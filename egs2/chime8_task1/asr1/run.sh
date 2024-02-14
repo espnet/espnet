@@ -290,16 +290,28 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     else
       regex="(S[0-9]+)"
     fi
-    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
+    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime8dasr_hyp/$split/$dset_name -r $regex
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
 
   if [[ $run_on == "train" ]]; then
-    split=dev
+    split=dev # reset split to dev here
+  else
+    split=$run_on
   fi
 
-  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
-  python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime8_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 1 2>&1 | tee $LOG_OUT
+  mkdir -p ${asr_exp}/${inference_tag}/scoring/tcpwer/
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/tcpwer/scoring.log
+  chime-utils score tcpwer -s ${asr_exp}/${inference_tag}/chime8dasr_hyp -r $chime8_root \
+        --dset-part $split \
+        --output-folder ${asr_exp}/${inference_tag}/scoring/tcpwer \
+        --ignore-missing 2>&1 | tee $LOG_OUT
+
+  mkdir -p ${asr_exp}/${inference_tag}/scoring/cpwer/
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/cpwer/scoring.log
+  chime-utils score cpwer -s  ${asr_exp}/${inference_tag}/chime8dasr_hyp -r $chime8_root \
+        --dset-part $split \
+        --output-folder ${asr_exp}/${inference_tag}/scoring/cpwer \
+        --ignore-missing 2>&1 | tee $LOG_OUT
 fi
