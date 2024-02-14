@@ -151,7 +151,6 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
     prev=pyan_use_pretrained
     pyan_use_pretrained="${PWD}/${pyan_finetune_dir}/lightning_logs/version_0/checkpoints/best.ckpt"
     echo "Using fine-tuned model in $pyan_use_pretrained instead of $prev"
-  fi
 fi
 
 if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ] && [ $diarization_backend == pyannote ]; then
