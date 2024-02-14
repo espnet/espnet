@@ -32,7 +32,7 @@ CHiME-6, DiPCo and NOTSOFAR1 will be downloaded automatically.
 The system here is effectively the same as used for the CHiME-7 DASR Challenge (except for some minor changes). <br>
 It is described in detail in the [CHiME-7 DASR paper](https://arxiv.org/abs/2306.13734) and the [website of the previous challenge](https://www.chimechallenge.org/challenges/chime7/task1/baseline). <br>
 The system consists of:
-1. diarization component based on [Pyannote diarization pipeline](https://huggingface.co/pyannote/speaker-diarization)
+1. diarization component based on [Pyannote diarization pipeline 2.0](https://huggingface.co/pyannote/speaker-diarization)
    - this is in `diar_asr1` folder
 2. Envelope-variance selection [4] + Guided source separation [2] + WavLM-based ASR model [1].
    - this is in `asr1` folder.
