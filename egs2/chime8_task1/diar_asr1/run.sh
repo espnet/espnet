@@ -36,7 +36,7 @@ pyan_merge_closer=0.5
 min_dur_on=0.5
 pyan_max_length_merged=20
 pyan_inf_max_batch=32
-pyan_use_pretrained=${PWD}/exp/pyannote_finetuned/lightning_logs/version_2/checkpoints/best.ckpt #popcornell/pyannote-segmentation-chime6-mixer6
+pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
 pyan_ft=0
 download_baseline_diarization=0
 # fine-tune

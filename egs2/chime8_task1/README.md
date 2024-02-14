@@ -55,7 +55,7 @@ Please if you use `run.pl` set your GPUs in EXCLUSIVE_PROCESS with `nvidia-smi -
 
 If you want to perform inference with the pre-trained models:
 - ASR ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
-- Pyannote Segmentation ([HF repo]()) 
+- Pyannote Segmentation ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline)) 
 
 #### Full-System
 
