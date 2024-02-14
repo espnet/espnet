@@ -393,7 +393,9 @@ if __name__ == "__main__":
     diarization_pipeline.segmentation.min_duration_on = 0.0  # 0.5
     diarization_pipeline.segmentation.pad_onset = 0.0  # 0.2
     diarization_pipeline.segmentation.pad_offset = 0.0  # 0.2
-    diarization_pipeline.clustering.threshold = 0.78 # higher than last year, did not tune it much
+    diarization_pipeline.clustering.threshold = (
+        0.78  # higher than last year, did not tune it much
+    )
     diarization_pipeline.clustering.min_cluster_size = (
         15  # higher than pre-trained, which was 15
     )

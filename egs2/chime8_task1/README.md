@@ -2,7 +2,7 @@
 
 ### Distant Automatic Speech Transcription with Multiple Devices in Diverse Scenarios
 
-#### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration. 
+#### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration.
 
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
@@ -10,12 +10,12 @@
 If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
 We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` channel there or contact us directly.<br>
 
-- We also have a [Troubleshooting page](./HELP.md). 
+- We also have a [Troubleshooting page](./HELP.md).
 
 ### <a id="whatisnew">What is new compared to CHiME-7 DASR Baseline ? </a>
 
 - GSS now is much more memory efficient see https://github.com/desh2608/gss/pull/39 (many thanks to Christoph Boeddeker).
-- Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a bit better. 
+- Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a bit better.
 - Some bugs have been fixed.
 
 ## DASR Data Download and Generation
@@ -23,26 +23,26 @@ We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` ch
 Data generation is handled here using [chime-utils](https://github.com/chimechallenge/chime-utils). <br>
 If you are **only interested in obtaining the data** you should use [chime-utils](https://github.com/chimechallenge/chime-utils) directly. <br>
 
-Data generation and downloading is done automatically in this recipe in stage 0. You can skip it if you have already the data. <br> 
+Data generation and downloading is done automatically in this recipe in stage 0. You can skip it if you have already the data. <br>
 Note that Mixer 6 Speech has to be obtained via LDC. See [official challenge website](https://www.chimechallenge.org/current/task1/data). <br>
 CHiME-6, DiPCo and NOTSOFAR1 will be downloaded automatically.
-## System Description 
+## System Description
 
 <img src="https://www.chimechallenge.org/challenges/chime7/task1/images/baseline.png" width="450" height="120" />
 
 The system here is effectively the same as used for the CHiME-7 DASR Challenge (except for the changes mentioned previously). <br>
 It is described in detail in the [CHiME-7 DASR paper](https://arxiv.org/abs/2306.13734) and the [website of the previous challenge](https://www.chimechallenge.org/challenges/chime7/task1/baseline). <br>
-The system consists of: 
+The system consists of:
 1. diarization component based on [Pyannote diarization pipeline](https://huggingface.co/pyannote/speaker-diarization)
    - this is in `diar_asr1` folder
-2. Envelope-variance selection [4] + Guided source separation [2] + WavLM-based ASR model [1].  
+2. Envelope-variance selection [4] + Guided source separation [2] + WavLM-based ASR model [1].
    - this is in `asr1` folder.
 
 ## Results
 
 As explained in [official challenge website](https://www.chimechallenge.org/current/task1/index) this year
 systems will be ranked according to macro tcpWER [5] across the 4 scenarios (5 s collar). <br>
-The 4 scenarios we feature this year are very diverse see ([see website for statistics](https://www.chimechallenge.org/current/task1/index)), and this diversity 
+The 4 scenarios we feature this year are very diverse see ([see website for statistics](https://www.chimechallenge.org/current/task1/index)), and this diversity
 significantly complicates speaker counting.
 
 
@@ -51,11 +51,11 @@ significantly complicates speaker counting.
 NOTE: **GSS currently does not work well if you use multi-gpu inference and your GPUs are in shared mode** <br>
 Please if you use `run.pl` set your GPUs in EXCLUSIVE_PROCESS with `nvidia-smi -i 3 -c 3` where `-i X` is the GPU index.
 
-### Inference-only 
+### Inference-only
 
 If you want to perform inference with the pre-trained models:
 - ASR ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
-- Pyannote Segmentation ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline)) 
+- Pyannote Segmentation ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
 
 #### Full-System
 
@@ -70,10 +70,10 @@ If you have already generated the data via [chime-utils](https://github.com/chim
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
 --run-on dev
 ```
-If you need to generate the data yet. 
+If you need to generate the data yet.
 CHiME-6, DiPCo and NOTSOFAR1 will be downloaded automatically. Ensure you have ~1TB of space in a path of your choice `/your/path/to/download`. <br>
 Mixer 6 Speech has to be obtained via LDC and unpacked in a directory of your choice `/your/path/to/mixer6_root`. <br>
-Data will be generated in `/your/path/to/chime8_dasr` again choose the most convenient location for you. 
+Data will be generated in `/your/path/to/chime8_dasr` again choose the most convenient location for you.
 
 
 ```bash
@@ -89,11 +89,11 @@ You can use `--stage` and `--gss-asr-stage` args to resume the inference in what
 
 #### Oracle-Diarization (or diarization from your own diarizer)
 
-We provide also a GSS + ASR only script to be used with oracle diarization 
+We provide also a GSS + ASR only script to be used with oracle diarization
 or you diarizer output if you wish only to work on diarization. <br>
 We assume here you have already generated the data and start from stage 1.
 
-If you want to use oracle diarization, go to `asr1`: 
+If you want to use oracle diarization, go to `asr1`:
 
 ```bash
 cd asr1
@@ -109,12 +109,12 @@ cd diar_asr1
 
 ./run.sh --chime8-root /path/to/chime8_dasr --stage 3 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---run-on dev --diarization-dir /path/to/your/diarization/output 
+--run-on dev --diarization-dir /path/to/your/diarization/output
 ```
 
-It is assumed that your diarizer produces JSON manifests (same as CHiME-8 DASR annotation see [data page]()) 
+It is assumed that your diarizer produces JSON manifests (same as CHiME-8 DASR annotation see [data page]())
 and these manifests are in `/path/to/your/diarization/output`. <br>
-`/path/to/your/diarization/output` should have this structure (you can ignore `.rttms`): 
+`/path/to/your/diarization/output` should have this structure (you can ignore `.rttms`):
 
 ```
 ├── chime6
@@ -138,7 +138,7 @@ and these manifests are in `/path/to/your/diarization/output`. <br>
 ### Training the ASR model
 
 We assume here you have already generated the data and start from stage 1.
-If you want to use retrain the ASR model, go to `asr1` and choose a name for the new model: 
+If you want to use retrain the ASR model, go to `asr1` and choose a name for the new model:
 
 ```bash
 cd asr1
@@ -150,7 +150,7 @@ cd asr1
 ### Fine-Tuning the Pyannote Segmentation Model
 
 We assume here you have already generated the data and start from stage 1.
-If you want to fine-tune the segmentation model, go to `diar_asr1` and choose a name for the new model: 
+If you want to fine-tune the segmentation model, go to `diar_asr1` and choose a name for the new model:
 
 ```bash
 cd diar_asr1
@@ -159,9 +159,9 @@ cd diar_asr1
 --pyan-ft 1
 ```
 
-Note that the data preparation for the fine-tuning is done in `diar_asr1/local/pyannote_dprep.py` 
+Note that the data preparation for the fine-tuning is done in `diar_asr1/local/pyannote_dprep.py`
 and you have also to set up `diar_asr1/local/database.yml` properly to use your own data. <br>
-See the [pyannote documentation](https://github.com/pyannote/pyannote-audio/blob/develop/tutorials/training_a_model.ipynb) for more info. 
+See the [pyannote documentation](https://github.com/pyannote/pyannote-audio/blob/develop/tutorials/training_a_model.ipynb) for more info.
 
 ## Acknowledgements
 
