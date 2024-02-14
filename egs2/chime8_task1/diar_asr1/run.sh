@@ -14,7 +14,7 @@ log() {
 
 stage=0
 stop_stage=100
-
+cmd=run.pl
 # NOTE, use absolute paths !
 chime8_root=/raid/users/popcornell/CHiME6/tmp_chimeutils/chime8_dasr_w_gt
 download_dir=${PWD}/datasets # where do you want your datasets downloaded
@@ -24,7 +24,6 @@ mixer6_root=/raid/users/popcornell/mixer6
 
 # DATAPREP CONFIG
 manifests_root=${PWD}/data/lhotse # dir where to save lhotse manifests
-cmd_dprep=run.pl
 
 
 # DIARIZATION config
@@ -72,7 +71,7 @@ gss_asr_stop_stage=10
 if [ -z "$gss_asr_stage" ]; then
   gss_asr_stage=2
 fi
-
+# shellcheck disable=SC2207
 devices=($(echo $CUDA_VISIBLE_DEVICES | tr "," " "))
 if [ "${#devices[@]}" -lt $ngpu ]; then
   echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
@@ -220,6 +219,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --run-on $run_on --gss-max-batch-dur $gss_max_batch_dur \
         --infer-max-segment-length $infer_max_segment_length \
         --gss-iterations $gss_iterations \
-        --run-on-ovrr 1
+        --run-on-ovrr 1 \
+        --cmd "$cmd"
 
 fi

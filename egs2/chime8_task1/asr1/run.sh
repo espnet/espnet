@@ -24,7 +24,6 @@ mixer6_root=/raid/users/popcornell/mixer6
 
 # DATAPREP CONFIG
 manifests_root=${PWD}/data/lhotse # dir where to save lhotse manifests
-cmd_dprep=run.pl
 
 gss_dump_root=./exp/gss
 ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
@@ -36,7 +35,7 @@ infer_max_segment_length=200
 use_selection=1 # always use selection
 gss_max_batch_dur=200 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
-cmd_gss=run.pl # change to suit your needs e.g. slurm !
+cmd=run.pl # change to suit your needs e.g. slurm !
 # NOTE !!! with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,mixer6_train,dipco_train,notsofar1_train,chime6_dev,dipco_dev,mixer6_dev"
@@ -98,7 +97,7 @@ elif
 fi
 
 
-
+# shellcheck disable=SC2207
 devices=($(echo $CUDA_VISIBLE_DEVICES | tr "," " "))
 if [ "${#devices[@]}" -lt $ngpu ]; then
   echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
@@ -188,7 +187,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
-          --cmd "$cmd_gss" \
+          --cmd "$cmd" \
           --nj $ngpu \
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
@@ -262,13 +261,11 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # final scoring
-  log "Scoring ASR predictions for CHiME-7 DASR challenge."
+  log "Scoring ASR predictions for CHiME-8 DASR challenge."
   # note, we re-create the asr exp folder here based on asr.sh
   if [ -n "$use_pretrained" ]; then
     asr_exp="exp/${use_pretrained}"
   else
-    #FIXME ask kamo ? if this fails put your own !
-    asr_tag=${asr_tag} #"$(basename "${asr_config}" .yaml)_raw"
     asr_exp="exp/asr_${asr_tag}"
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"
@@ -297,8 +294,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
-  #FIXME add chime-utils scoring here !
-  split=dev # participants cannot evaluate eval
+
+  if [[ $run_on == "train" ]]; then
+    split=dev
+  fi
+
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
      -r $chime8_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 1 2>&1 | tee $LOG_OUT
