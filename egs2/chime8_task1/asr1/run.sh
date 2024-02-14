@@ -179,7 +179,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     channels=all
 
     subpart="$(cut -d'_' -f3 <<<${dset})"
-    if [ $dset_name == "mixer6" ] && [ $dset_part == "train" ] && [ -n $subpart ]; then
+    if [ $dset_name == "mixer6" ] && [ $dset_part == "train" ] && [ -n "$subpart" ]; then
       dset_part="${dset_part}_${subpart}" # allow for train_call, train_intv for mixer6
     fi
 
