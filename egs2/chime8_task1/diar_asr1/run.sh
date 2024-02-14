@@ -16,7 +16,7 @@ stage=0
 stop_stage=100
 
 # NOTE, use absolute paths !
-chime8_root=/raid/users/popcornell/CHiME6/tmp_chimeutils/chime8_dasr
+chime8_root=/raid/users/popcornell/CHiME6/tmp_chimeutils/chime8_dasr_w_gt
 download_dir=${PWD}/datasets # where do you want your datasets downloaded
 # mixer6 has to be obtained through LDC see official data page
 mixer6_root=/raid/users/popcornell/mixer6
@@ -35,18 +35,19 @@ diarization_dir=exp/diarization
 pyan_merge_closer=0.5
 min_dur_on=0.5
 pyan_max_length_merged=20
-pyan_inf_max_batch=64 #FIXME reduce
-pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
+pyan_inf_max_batch=32
+pyan_use_pretrained=${PWD}/exp/pyannote_finetuned/lightning_logs/version_2/checkpoints/best.ckpt #popcornell/pyannote-segmentation-chime6-mixer6
+pyan_ft=0
 download_baseline_diarization=0
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
-pyan_batch_size=128
+pyan_batch_size=32
 pyan_learning_rate="1e-5"
 
 
 # GSS config
 ngpu=1
-gss_max_batch_dur=90
+gss_max_batch_dur=200
 gss_iterations=5
 infer_max_segment_length=200
 gss_dsets="chime6_dev dipco_dev mixer6_dev notsofar1_dev"
@@ -77,6 +78,8 @@ if [ "${#devices[@]}" -lt $ngpu ]; then
   echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
   exit
 fi
+
+
 
 
 
@@ -118,8 +121,7 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 
 fi
 
-
-if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ] && [ -z "${pyan_use_pretrained}" ]; then
+if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ] && [ $pyan_ft == 1 ]; then
 
   if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
@@ -146,9 +148,9 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
       --learning_rate $pyan_learning_rate \
       --token $pyannote_access_token
 
-  if [ -z "${pyan_use_pretrained}" ]; then
-    # use the one fine-tuned now
+    prev=pyan_use_pretrained
     pyan_use_pretrained="${PWD}/${pyan_finetune_dir}/lightning_logs/version_0/checkpoints/best.ckpt"
+    echo "Using fine-tuned model in $pyan_use_pretrained instead of $prev"
   fi
 fi
 

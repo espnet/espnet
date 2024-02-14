@@ -34,7 +34,7 @@ infer_max_segment_length=200
 
 # GSS CONFIG
 use_selection=1 # always use selection
-gss_max_batch_dur=30 # set accordingly to your GPU VRAM, A100 40GB you can use 360
+gss_max_batch_dur=200 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # NOTE !!! with run.pl your GPUs need to be in exclusive mode otherwise it fails
@@ -74,19 +74,17 @@ run_on_ovrr=0 # set to one if you want to bypass run_on overriding gss_dsets and
 . ./utils/parse_options.sh
 
 
-if [[ $run_on != "dev" ]] && [[ $run_on != "eval" ]] && [[ "$run_on" != "train" ]];
-then
+if [[ $run_on != "dev" ]] && [[ $run_on != "eval" ]] && [[ "$run_on" != "train" ]]; then
   log "run_on argument should be either dev, eval, train or val"
   exit
 fi
 
 if [ "$run_on" == "train" ] && [ -n "$use_pretrained" ]; then
-
-log "You cannot pass a pretrained model and also ask this script to do training from scratch with --run-on train."
-log "You are asking to use $use_pretrained pretrained model."
-exit
-
+  log "You cannot pass a pretrained model and also ask this script to do training from scratch with --run-on train."
+  log "You are asking to use $use_pretrained pretrained model."
+  exit
 fi
+
 
 if [ $run_on == "dev" ] && [ $run_on_ovrr == 0 ]; then
   # apply gss only on dev

@@ -105,7 +105,7 @@ def diarize_session(
     uem_boundaries=None,
     merge_closer_delta=1.5,
     max_length_merged=60,
-    max_n_speakers=4,
+    max_n_speakers=8,
 ):
     # take the min len across all wavs
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
@@ -212,6 +212,7 @@ def diarize_session(
         },  # <== for oracle clustering
         frames=pipeline._frames,  # <== for oracle clustering
     )
+
     # reconstruct discrete diarization from raw hard clusters
     # keep track of inactive speakers
     inactive_speakers = np.sum(selected_seg.data, axis=1) == 0
@@ -392,7 +393,7 @@ if __name__ == "__main__":
     diarization_pipeline.segmentation.min_duration_on = 0.0  # 0.5
     diarization_pipeline.segmentation.pad_onset = 0.0  # 0.2
     diarization_pipeline.segmentation.pad_offset = 0.0  # 0.2
-    diarization_pipeline.clustering.threshold = 0.78 # higher than last year
+    diarization_pipeline.clustering.threshold = 0.78 # higher than last year, did not tune it much
     diarization_pipeline.clustering.min_cluster_size = (
         15  # higher than pre-trained, which was 15
     )
