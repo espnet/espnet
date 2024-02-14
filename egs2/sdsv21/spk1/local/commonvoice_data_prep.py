@@ -1,6 +1,6 @@
 # commonvoice_data_prep.py
 
-# This script is for converting CommonVoice mp3 audio files to wav and 
+# This script is for converting CommonVoice mp3 audio files to wav and
 # creating the Kaldi-style utt2spk and wav.scp
 
 import os
