@@ -6,12 +6,12 @@
 ---
 
 
-#### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration.
+#### 📢  If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration.
 
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
 
-If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
+📌 If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
 We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` channel there or contact us directly.<br>
 
 - We also have a [Troubleshooting page](./HELP.md).
@@ -44,7 +44,7 @@ The system consists of:
 - Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a marginally better.
 - Some bugs have been fixed.
 
-## Results
+## 📊 Results
 
 As explained in [official challenge website](https://www.chimechallenge.org/current/task1/index) this year
 systems will be ranked according to macro tcpWER [5] across the 4 scenarios (5 s collar). <br>
@@ -54,7 +54,7 @@ significantly complicates speaker counting.
 
 ## Reproducing the Baseline
 
-NOTE: **GSS currently does not work well if you use multi-gpu inference and your GPUs are in shared mode** <br>
+⚠️  **GSS currently does not work well if you use multi-gpu inference and your GPUs are in shared mode** <br>
 Please if you use `run.pl` set your GPUs in EXCLUSIVE_PROCESS with `nvidia-smi -i 3 -c 3` where `-i X` is the GPU index.
 
 ### Inference-only
