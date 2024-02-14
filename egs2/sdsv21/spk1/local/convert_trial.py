@@ -22,7 +22,7 @@ def main(args):
         for tr in lines_trial_org:
             label, utt1, utt2 = tr.strip().split(" ")
             utt1 = os.path.splitext(utt1)[0]
-            utt1 = os.path.splitext(utt2)[0]
+            utt2 = os.path.splitext(utt2)[0]
             joint_key = "*".join([utt1, utt2])
             f_trial.write(f"{joint_key} {scp_dict[utt1]}\n")
             f_trial2.write(f"{joint_key} {scp_dict[utt2]}\n")
