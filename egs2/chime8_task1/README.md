@@ -147,6 +147,8 @@ cd asr1
 --run-on train --asr-tag YOUR_NEW_ASR_NAME
 ```
 
+You can use You can use `--stage` and `--asr-stage` and `--asr-dprep-stage`  args to resume the inference in whatever step.
+
 ### Fine-Tuning the Pyannote Segmentation Model
 
 We assume here you have already generated the data and start from stage 1.
@@ -163,6 +165,7 @@ Note that the data preparation for the fine-tuning is done in `diar_asr1/local/p
 and you have also to set up `diar_asr1/local/database.yml` properly to use your own data. <br>
 See the [pyannote documentation](https://github.com/pyannote/pyannote-audio/blob/develop/tutorials/training_a_model.ipynb) for more info.
 
+You can use You can use `--stage` and `--gss-asr-stage` args to resume the inference in whatever step.
 ## Acknowledgements
 
 We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for
