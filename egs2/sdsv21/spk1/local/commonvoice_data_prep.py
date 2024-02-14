@@ -1,6 +1,7 @@
 # commonvoice_data_prep.py
 
-# This script is for converting CommonVoice mp3 audio files to wav and creating the Kaldi-style utt2spk and wav.scp
+# This script is for converting CommonVoice mp3 audio files to wav and 
+# creating the Kaldi-style utt2spk and wav.scp
 
 import os
 import subprocess
@@ -77,7 +78,8 @@ def main(db_base, dataset, out_dir):
             if result:
                 uttId, client_id, path = result
                 f_wav.write(
-                    f"{uttId} ffmpeg -i {db_base}/clips/{path} -f wav -ar 16000 -ab 16 -ac 1 - |\n"
+                    f"{uttId} ffmpeg -i {db_base}/clips/{path} -f wav -ar 16000 "
+                    "-ab 16 -ac 1 - |\n"
                 )
                 f_utt2spk.write(f"{uttId} {client_id}\n")
 
@@ -106,10 +108,12 @@ def main(db_base, dataset, out_dir):
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print(
-            f"Usage: {sys.argv[0]} <path-to-commonvoice-corpus> <dataset> <valid-train|valid-dev|valid-test>"
+            f"Usage: {sys.argv[0]} <path-to-commonvoice-corpus> "
+            f"<dataset> <valid-train|valid-dev|valid-test>"
         )
         print(
-            f"e.g. {sys.argv[0]} /export/data/cv_corpus_v1 cv-valid-train valid-train"
+            f"e.g. {sys.argv[0]} /export/data/cv_corpus_v1 cv-valid-train "
+            f"valid-train"
         )
         sys.exit(1)
 
