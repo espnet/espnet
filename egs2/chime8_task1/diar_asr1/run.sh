@@ -199,7 +199,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     dset_part="$(cut -d'_' -f2 <<<${dset_split})"
       log "Creating lhotse manifests for ${dset} in ${manifests_root}/${dset}"
       chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --txt-norm none --dset-part $dset_part --json-dir ${diarization_dir}/${dset}/${dset_part}
-      echo "Discard lhotse supervisions shorter than 0.2"
+      echo "Discard lhotse supervisions shorter than $min_dur_on, you can change this using --min-dur-on arg"
       chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len $min_dur_on
   done
 fi
@@ -214,8 +214,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   ./run_gss_asr.sh --chime8-root $chime8_root --stage $gss_asr_stage \
         --stop-stage $gss_asr_stop_stage --ngpu $ngpu \
         --use-pretrained $use_pretrained \
-        --gss-dsets $gss_dsets \
-        --asr-tt-set $asr_tt_set \
+        --gss-dsets "$gss_dsets" \
+        --asr-tt-set "$asr_tt_set" \
         --run-on $run_on --gss-max-batch-dur $gss_max_batch_dur \
         --infer-max-segment-length $infer_max_segment_length \
         --gss-iterations $gss_iterations \
