@@ -172,7 +172,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     else
         mkdir -p ${data_dir_prefix}/commonvoice
         wget -P ${data_dir_prefix}/commonvoice -c ${data_url}
-        for file in ${data_dir_prefix}/commonvoice/*tar.gz*; do
+        for file in "${data_dir_prefix}/commonvoice/"*tar.gz*; do
             mv "$file" "${file%%\?*}"
         done
     fi
@@ -181,7 +181,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         log "Skip extracting commonvoice"
     else
         log "Extracting commonvoice"
-        for file in ${data_dir_prefix}/commonvoice/*tar.gz*; do
+        for file in "${data_dir_prefix}/commonvoice/"*tar.gz*; do
             tar -xzvf "$file" -C ${data_dir_prefix}/commonvoice/
         done
     fi
@@ -263,12 +263,17 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         # combine VoxCeleb 1 & 2 dev sets, librispeech train_other_500, and Commonvoice 16 Farsi for combined training set.
         mkdir -p ${trg_dir}/combined_train_set
         for f in wav.scp utt2spk spk2utt; do
-            cat ${trg_dir}/voxceleb1_dev/${f} >> ${trg_dir}/combined_train_set/${f}
-            cat ${trg_dir}/voxceleb2_dev/${f} >> ${trg_dir}/combined_train_set/${f}
-            cat ${trg_dir}/librispeech_train_other_500/${f} >> ${trg_dir}/combined_train_set/${f}
-            cat ${trg_dir}/cv_validated_fa/${f} >> ${trg_dir}/combined_train_set/${f}
-            sort ${trg_dir}/combined_train_set/${f} -o ${trg_dir}/combined_train_set/${f}
+            {
+                cat "${trg_dir}/voxceleb1_dev/${f}"
+                cat "${trg_dir}/voxceleb2_dev/${f}"
+                cat "${trg_dir}/librispeech_train_other_500/${f}"
+                cat "${trg_dir}/cv_validated_fa/${f}"
+            } >> "${trg_dir}/combined_train_set/${f}.tmp"
+
+            sort "${trg_dir}/combined_train_set/${f}.tmp" -o "${trg_dir}/combined_train_set/${f}"
+            rm -f "${trg_dir}/combined_train_set/${f}.tmp" # cleanup tmp file
         done
+
 
         # make test trial compatible with ESPnet.
         python local/convert_trial.py --trial ${data_dir_prefix}/veri_test2.txt --scp ${trg_dir}/voxceleb1_test/wav.scp --out ${trg_dir}/voxceleb1_test
