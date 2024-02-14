@@ -30,7 +30,7 @@ gss_dump_root=./exp/gss
 ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
 train_max_segment_length=20  # also reduce if you get OOM, here we used A100 40GB
-infer_max_segment_length=90
+infer_max_segment_length=200
 
 # GSS CONFIG
 use_selection=1 # always use selection
@@ -57,7 +57,7 @@ asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
 asr_cv_set=kaldi/chime6/dev/gss # we used only chime6 but maybe you can use a combination of all
 
 # note we use notsofar training here because dev gt is not available
-asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/dev/gss"
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -66,34 +66,34 @@ nbpe=500
 asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
-decode_train="dev" # chose from dev, train, test
-diar_score=0
+run_on="dev" # chose from dev, train, test
+run_on_ovrr=0 # set to one if you want to bypass run_on overriding gss_dsets and asr_tt_set
 
 . ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
 
 
-if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
+if [[ $run_on != "dev" ]] && [[ $run_on != "eval" ]] && [[ "$run_on" != "train" ]];
 then
-  log "decode_train argument should be either dev, eval, train or val"
+  log "run_on argument should be either dev, eval, train or val"
   exit
 fi
 
-if [ "$decode_train" == "train" ] && [ -n "$use_pretrained" ]; then
+if [ "$run_on" == "train" ] && [ -n "$use_pretrained" ]; then
 
-log "You cannot pass a pretrained model and also ask this script to do training from scratch with --decode-train train."
+log "You cannot pass a pretrained model and also ask this script to do training from scratch with --run-on train."
 log "You are asking to use $use_pretrained pretrained model."
 exit
 
 fi
 
-if [ $decode_train == "dev" ] && [ $diar_score == 0 ]; then
+if [ $run_on == "dev" ] && [ $run_on_ovrr == 0 ]; then
   # apply gss only on dev
-  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
-  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/dev/gss"
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
+  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss"
 elif
-  [ $decode_train == "eval" ] && [ $diar_score == 0 ]; then
+  [ $run_on == "eval" ] && [ $run_on_ovrr == 0 ]; then
   # apply gss only on eval
   gss_dsets="chime6_eval,dipco_eval,mixer6_eval,notsofar1_eval"
   asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/ kaldi/notsofar1/eval/gss"
@@ -119,7 +119,7 @@ asr_warmup=$(calc_int 40000.0/$ngpu)
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
   gen_splits=train,dev
-  if [ $decode_train == "eval" ]; then
+  if [ $run_on == "eval" ]; then
     gen_splits="eval"
   fi
 
@@ -136,9 +136,9 @@ fi
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco notsofar1 mixer6; do
-    if [ "$decode_train" == "eval" ]; then
+    if [ "$run_on" == "eval" ]; then
       dset_part="eval"
-    elif [ "$decode_train" != "eval" ]; then
+    elif [ "$run_on" != "eval" ]; then
       if [ "$dset" == "mixer6" ]; then
         dset_part="train_call train_intv train dev"
       else
@@ -180,10 +180,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     max_segment_length=${infer_max_segment_length}
     channels=all
 
-    if [ ${dset_part} == train ]; then
-      max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
-    fi
-
     subpart="$(cut -d'_' -f3 <<<${dset})"
     if [ $dset_name == "mixer6" ] && [ $dset_part == "train" ] && [ -n $subpart ]; then
       dset_part="${dset_part}_${subpart}" # allow for train_call, train_intv for mixer6
@@ -219,14 +215,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   fi
 
 
-  if [ -z $diar_score ] || [ $decode_train != "train" ]; then
+  if [ -z $run_on_ovrr ] || [ $run_on != "train" ]; then
     asr_dprep_stage=3
   fi
 
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --dasr-root ${chime8_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
-  data_opts+=" --decode-train ${decode_train}"
+  data_opts+=" --decode-train ${run_on}"
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
@@ -261,7 +257,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
 fi
 
-if [ "${decode_train}" == "eval" ]; then
+if [ "${run_on}" == "eval" ]; then
   log "Scoring not available for eval set till the end of the challenge."
   exit
 fi
@@ -307,5 +303,5 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   split=dev # participants cannot evaluate eval
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime8_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
+     -r $chime8_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 1 2>&1 | tee $LOG_OUT
 fi

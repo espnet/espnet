@@ -48,13 +48,13 @@ pyan_learning_rate="1e-5"
 ngpu=1
 gss_max_batch_dur=90
 gss_iterations=5
-infer_max_segment_length=90
-gss_dsets="dipco_dev"
-asr_tt_set="kaldi/dipco/dev/gss"
+infer_max_segment_length=200
+gss_dsets="chime6_dev dipco_dev mixer6_dev notsofar1_dev"
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/dev/gss"
 
 # ASR config
 use_pretrained=
-decode_train="dev"
+run_on="dev"
 
 if [ -z $use_pretrained ]; then
   echo "Pretrained ASR model not set. Using default !"
@@ -80,9 +80,9 @@ fi
 
 
 
-if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]];
+if [[ $run_on != "dev" ]] && [[ $run_on != "eval" ]];
 then
-  log "decode_train argument should be either dev, eval here. ASR training is done in asr1 recipe.
+  log "run_on argument should be either dev, eval here. ASR training is done in asr1 recipe.
   To fine-tune the pyannote segmentation model you should unset 'pyan_use_pretrained' variable in this script"
   exit
 fi
@@ -105,7 +105,7 @@ fi
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
   gen_splits=train,dev
-  if [ $decode_train == "eval" ]; then
+  if [ $run_on == "eval" ]; then
     gen_splits="eval"
   fi
 
@@ -216,9 +216,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --use-pretrained $use_pretrained \
         --gss-dsets $gss_dsets \
         --asr-tt-set $asr_tt_set \
-        --decode-train $decode_train --gss-max-batch-dur $gss_max_batch_dur \
+        --run-on $run_on --gss-max-batch-dur $gss_max_batch_dur \
         --infer-max-segment-length $infer_max_segment_length \
         --gss-iterations $gss_iterations \
-        --diar-score 1
+        --run-on-ovrr 1
 
 fi
