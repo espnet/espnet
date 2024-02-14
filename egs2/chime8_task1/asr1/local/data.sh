@@ -86,10 +86,12 @@ if [ $stage -le 2 ] && ! [[ " ${skip_stages[*]} " =~ " 2 " ]]; then
   local/make_noise_list.py distant_noises_chime6 > distant_noise_list
 
   # append also notsofar1 and dipco TODO
+  # shellcheck disable=SC2011
   ls ${dasr_root}/notsofar1/audio/train/*U*C* -1 | xargs -n1 basename | sed -e 's/\.wav$//' > local/distant_audio_list_notsofar1
   local/extract_noises.py ${dasr_root}/notsofar1/audio/train ${dasr_root}/notsofar1/transcriptions/train \
     local/distant_audio_list_notsofar1 distant_noises_notsofar1
   local/make_noise_list.py distant_noises_notsofar1 >> distant_noise_list
+  # shellcheck disable=SC2011
   ls -1 ${dasr_root}/dipco/audio/train/*U*C* | xargs -n1 basename | sed -e 's/\.wav$//' > local/distant_audio_list_dipco
   local/extract_noises.py ${dasr_root}/dipco/audio/train ${dasr_root}/dipco/transcriptions/train \
     local/distant_audio_list_dipco distant_noises_dipco
