@@ -2,7 +2,7 @@
 
 ### Distant Automatic Speech Transcription with Multiple Devices in Diverse Scenarios
 
-#### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration. 
+#### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration.
 
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
@@ -10,16 +10,16 @@
 If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
 We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` channel there or contact us directly.<br>
 
-- We also have a [Troubleshooting page](./HELP.md). 
+- We also have a [Troubleshooting page](./HELP.md).
 
 ### <a id="whatisnew">What is new compared to CHiME-7 DASR Baseline ? </a>
 
 - GSS now is much more memory efficient see https://github.com/desh2608/gss/pull/39 (many thanks to Christoph Boeddeker).
-- Segmentation has been retrained on CHiME-6 + NOTSOFAR1 data. 
+- Segmentation has been retrained on CHiME-6 + NOTSOFAR1 data.
 - Some bugs have been fixed.
 
 
-## System Description 
+## System Description
 
 
 
@@ -30,7 +30,7 @@ We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` ch
 
 ## Reproducing the Baseline
 
-### Inference-only 
+### Inference-only
 
 
 ### Training the ASR model
