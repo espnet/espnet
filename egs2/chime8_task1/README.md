@@ -65,7 +65,7 @@ If you want to perform inference with the pre-trained models:
 
 
 By default, the scripts hereafter will perform inference on dev set of all 4 scenarios: CHiME-6, DiPCo, Mixer 6 and NOTSOFAR1. <br>
-To limit e.g. only to CHiME-6 and DiPCo you can pass these options: 
+To limit e.g. only to CHiME-6 and DiPCo you can pass these options:
 
 ```bash
 --gss_dsets "chime6_dev dipco_dev" --asr_tt_set "kaldi/chime6/dev/gss kaldi/dipco/dev/gss"
