@@ -1,0 +1,85 @@
+# This configuration is for ESPnet2 to train FastSpeech2.
+# It requires only a single GPU with 12 GB memory and it
+# takes ~4 days to finish the training on Titan V.
+
+##########################################################
+#                  TTS MODEL SETTING                     #
+##########################################################
+tts: fastspeech2_ma      # model architecture
+tts_conf:             # keyword arguments for the selected model
+    adim: 384         # attention dimension
+    aheads: 2         # number of attention heads
+    elayers: 4        # number of encoder layers
+    eunits: 1536      # number of encoder ff units
+    dlayers: 4        # number of decoder layers
+    dunits: 1536      # number of decoder ff units
+    positionwise_layer_type: conv1d   # type of position-wise layer
+    positionwise_conv_kernel_size: 3  # kernel size of position wise conv layer
+    posterior_encoder_kernel_size: 5  # posterior encoder kernel size
+    posterior_encoder_layers: 16      # posterior encoder layers
+    posterior_encoder_stacks: 1       # posterior encoder stacks
+    posterior_encoder_base_dilation: 1 # posterior encoder conv dilation
+    use_weight_norm_in_posterior_encoder: true # whether to use weight norm in posterior encoder
+    flow_flows: 4                     # number of flows
+    flow_kernel_size: 5               # kernel size of flow module
+    flow_base_dilation: 1             # dilation in flow module
+    flow_layers: 4                    # number of layers in each flow module
+    use_weight_norm_in_flow: true     # whether to use weight norm in flow module
+    use_only_mean_in_flow: true       # whether to use only mean estimator in flow
+    stochastic_duration_predictor_kernel_size: 3
+    stochastic_duration_predictor_dropout_rate: 0.5
+    stochastic_duration_predictor_flows: 4
+    stochastic_duration_predictor_dds_conv_layers: 3
+    use_masking: True                 # whether to apply masking for padded part in loss calculation
+    use_scaled_pos_enc: True          # whether to use scaled positional encoding
+    encoder_normalize_before: True    # whether to perform layer normalization before the input
+    decoder_normalize_before: True    # whether to perform layer normalization before the input
+    reduction_factor: 1               # reduction factor
+    init_type: xavier_uniform         # initialization type
+    init_enc_alpha: 1.0               # initial value of alpha of encoder scaled position encoding
+    init_dec_alpha: 1.0               # initial value of alpha of decoder scaled position encoding
+    transformer_enc_dropout_rate: 0.2            # dropout rate for transformer encoder layer
+    transformer_enc_positional_dropout_rate: 0.2 # dropout rate for transformer encoder positional encoding
+    transformer_enc_attn_dropout_rate: 0.2       # dropout rate for transformer encoder attention layer
+    transformer_dec_dropout_rate: 0.2            # dropout rate for transformer decoder layer
+    transformer_dec_positional_dropout_rate: 0.2 # dropout rate for transformer decoder positional encoding
+    transformer_dec_attn_dropout_rate: 0.2       # dropout rate for transformer decoder attention layer
+    posterior_encoder_dropout_rate: 0.0          # posterior encoder dropout rate
+    flow_dropout_rate: 0.0                       # dropout rate of flow module
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+optim: adamw            # optimizer type
+optim_conf:            # keyword arguments for selected optimizer
+    lr: 1.0            # learning rate
+scheduler: noamlr      # scheduler type
+scheduler_conf:        # keyword arguments for selected scheduler
+    model_size: 384    # model size, a.k.a., attention dimension
+    warmup_steps: 4000 # the number of warmup steps
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+num_iters_per_epoch: 1000  # number of iterations per epoch
+max_epoch: 100           # number of epochs
+grad_clip: 1.0            # gradient clipping norm
+grad_noise: false         # whether to use gradient noise injection
+accum_grad: 1             # gradient accumulation
+batch_bins: 10000      # batch bins (feats_type=raw)
+batch_type: numel         # how to make batch
+sort_in_batch: descending # how to sort data in making batch
+sort_batch: descending    # how to sort created batches
+num_workers: 4            # number of workers of data loader
+train_dtype: float32      # dtype in training
+log_interval: 201         # log interval in iterations
+keep_nbest_models: 5      # number of models to keep
+num_att_plot: 0           # number of attention figures to be saved in every check
+seed: 0                   # random seed number
+best_model_criterion:     # criterion to save the best models
+-   - valid
+    - loss
+    - min
+-   - train
+    - loss
+    - min
