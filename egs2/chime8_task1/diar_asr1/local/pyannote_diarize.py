@@ -396,9 +396,7 @@ if __name__ == "__main__":
     diarization_pipeline.clustering.threshold = (
         0.75  # higher than last year, did not tune it much
     )
-    diarization_pipeline.clustering.min_cluster_size = (
-        15
-    )
+    diarization_pipeline.clustering.min_cluster_size = 15
     diarization_pipeline.clustering.method = pretrained_hyperparameters["clustering"][
         "method"
     ]
