@@ -9,9 +9,7 @@ from espnet2.layers.create_adapter_utils import (
     get_submodules,
     replace_module,
 )
-from espnet2.layers.houlsby_adapter_layer import (
-    Houlsby_Adapter,
-)
+from espnet2.layers.houlsby_adapter_layer import Houlsby_Adapter
 
 try:
     from transformers.models.wav2vec2.modeling_wav2vec2 import (
