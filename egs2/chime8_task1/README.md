@@ -67,7 +67,7 @@ By default, the scripts hereafter will perform inference on dev set of all 4 sce
 To limit e.g. only to CHiME-6 and DiPCo you can pass these options:
 
 ```bash
---gss_dsets "chime6_dev dipco_dev" --asr_tt_set "kaldi/chime6/dev/gss kaldi/dipco/dev/gss"
+--gss-dsets "chime6_dev,dipco_dev" --asr-tt-set "kaldi/chime6/dev/gss kaldi/dipco/dev/gss"
 ```
 
 #### Full-System (Diarization+GSS+ASR)

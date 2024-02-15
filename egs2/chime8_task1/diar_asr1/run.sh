@@ -49,7 +49,7 @@ ngpu=1
 gss_max_batch_dur=200
 gss_iterations=5
 infer_max_segment_length=200
-gss_dsets="chime6_dev dipco_dev mixer6_dev notsofar1_dev"
+gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
 asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/dev/gss"
 
 # ASR config
