@@ -514,6 +514,7 @@ class Trainer:
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
+        start_time = time.perf_counter()
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
@@ -755,6 +756,7 @@ class Trainer:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
                 if use_wandb:
                     reporter.wandb_log()
+
 
         else:
             if distributed:
