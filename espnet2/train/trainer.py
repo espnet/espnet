@@ -303,12 +303,7 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-
-
-            # Save the model early in case validation has issues
-            torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
             torch.cuda.empty_cache()
-            
             with reporter.observe("valid") as sub_reporter:
                 cls.validate_one_epoch(
                     model=dp_model,
@@ -369,6 +364,9 @@ class Trainer:
                     },
                     output_dir / "checkpoint.pth",
                 )
+
+                # 5. Save and log the model and update the link to the best model
+                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
                 p = output_dir / "latest.pth"
@@ -756,7 +754,6 @@ class Trainer:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
                 if use_wandb:
                     reporter.wandb_log()
-
 
         else:
             if distributed:
