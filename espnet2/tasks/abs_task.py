@@ -761,6 +761,12 @@ class AbsTask(ABC):
             default=False,
             help="Use multiple iterator mode",
         )
+        group.add_argument(
+            "--validate_each_iter_factory",
+            type=str2bool,
+            default=False,
+            help="Whether to validate after looping through all dataset shards or after each shard",
+        )
 
         group = parser.add_argument_group("Chunk iterator related")
         group.add_argument(
@@ -1884,8 +1890,11 @@ class AbsTask(ABC):
             [str(Path(s) / f"split.{i}") for s in iter_options.shape_files]
             for i in range(num_splits)
         ]
+        iters_per_epoch = iter_options.num_iters_per_epoch + i
+        if not args.validate_each_iter_factory:
+            iters_per_epoch // num_splits
         num_iters_per_epoch_list = [
-            (iter_options.num_iters_per_epoch + i) # // num_splits
+            iters_per_epoch
             if iter_options.num_iters_per_epoch is not None
             else None
             for i in range(num_splits)
@@ -1919,7 +1928,7 @@ class AbsTask(ABC):
 
         # 3. Build MultipleIterFactory
         return MultipleIterFactory(
-            build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed
+            build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed, validate_each_iter_factory=args.validate_each_iter_factory
         )
 
     @classmethod
