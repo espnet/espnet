@@ -493,12 +493,13 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         duration_loss = torch.sum(dur_nll.float())
         kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, y_mask)
         accuracy = (discrete_outs.argmax(-1) == ys).sum() / (ys == ys).sum()
-        loss = ce_loss + duration_loss
+        loss = ce_loss + duration_loss + kl_loss
 
         stats = dict(
             ce_loss=ce_loss.item(),
             duration_loss=duration_loss.item(),
             accuracy=accuracy.item(),
+            kl_loss=kl_loss.item(),
         )
 
         # report extra information
