@@ -20,7 +20,7 @@ idir = sys.argv[1]
 bad_utts = set()
 
 for filename in ["exclude_df_youtube_1120", "public_exclude_file_v5"]:
-    with open(idir + "/" + filename + ".csv", 'r') as bad_utts_list_file:
+    with open(idir + "/" + filename + ".csv") as bad_utts_list_file:
         bad_utts_list = csv.DictReader(bad_utts_list_file)
         for row in bad_utts_list:
             bad_utts.add(get_uttid(row["wav"]))

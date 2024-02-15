@@ -59,7 +59,7 @@ if [ ! -d links/11-13.1 -o ! -d links/13-34.1 -o ! -d links/11-2.1 ]; then
 fi
 
 # This version for SI-84
-echo "SI-84"
+
 cat links/11-13.1/wsj0/doc/indices/train/tr_s_wv1.ndx | \
  $local/ndx2flist.pl $* | sort | \
  grep -v -i 11-2.1/wsj0/si_tr_s/401 > train_si84.flist
@@ -68,7 +68,6 @@ nl=`cat train_si84.flist | wc -l`
 [ "$nl" -eq 7138 ] || echo "Warning: expected 7138 lines in train_si84.flist, got $nl"
 
 # This version for SI-284
-echo "SI-284"
 cat links/13-34.1/wsj1/doc/indices/si_tr_s.ndx \
  links/11-13.1/wsj0/doc/indices/train/tr_s_wv1.ndx | \
  $local/ndx2flist.pl  $* | sort | \
@@ -90,7 +89,6 @@ nl=`cat train_si284.flist | wc -l`
 # Nov'92 (333 utts)
 # These index files have a slightly different format;
 # have to add .wv1
-echo "333"
 cat links/11-13.1/wsj0/doc/indices/test/nvp/si_et_20.ndx | \
   $local/ndx2flist.pl $* |  awk '{printf("%s.wv1\n", $1)}' | \
   sort > test_eval92.flist
@@ -121,7 +119,7 @@ cat links/13-34.1/wsj1/doc/indices/h2_p0.ndx | \
 
 
 # Dev-set Hub 1,2 (503, 913 utterances)
-echo "find"
+
 # Note: the ???'s below match WSJ and SI_DT, or wsj and si_dt.
 # Sometimes this gets copied from the CD's with upcasing, don't know
 # why (could be older versions of the disks).
@@ -132,7 +130,6 @@ find `readlink links/13-16.1`/???1/??_??_05 -print | grep -i ".wv1" | sort > dev
 # Finding the transcript files:
 for x in $*; do find -L $x -iname '*.dot'; done > dot_files.flist
 
-echo "convert"
 # Convert the transcripts into our format (no normalization yet)
 for x in train_si84 train_si284 test_eval92 test_eval93 test_dev93 test_eval92_5k test_eval93_5k test_dev93_5k dev_dt_05 dev_dt_20; do
    $local/flist2scp.pl $x.flist | sort > ${x}_sph.scp
@@ -158,7 +155,7 @@ for x in train_si84 train_si284 test_eval92 test_eval93 test_dev93 test_eval92_5
    cat $x.utt2spk | $utils/utt2spk_to_spk2utt.pl > $x.spk2utt || exit 1;
 done
 
-echo "lm"
+
 if "${prepare_lm}"; then
   #in case we want to limit lm's on most frequent words, copy lm training word frequency list
   cp links/13-32.1/wsj1/doc/lng_modl/vocab/wfl_64.lst $lmdir
@@ -193,7 +190,6 @@ if "${prepare_lm}"; then
   gzip -f $lmdir/lm_tgpr_5k.arpa || exit 1;
 fi
 
-echo "wget"
 
 if [ ! -f wsj0-train-spkrinfo.txt ] || [ `cat wsj0-train-spkrinfo.txt | wc -l` -ne 134 ]; then
   rm wsj0-train-spkrinfo.txt
