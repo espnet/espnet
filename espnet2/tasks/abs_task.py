@@ -1942,9 +1942,9 @@ class AbsTask(ABC):
             [str(Path(s) / f"split.{i}") for s in iter_options.shape_files]
             for i in range(num_splits)
         ]
-        iters_per_epoch = iter_options.num_iters_per_epoch + i
-        if not args.validate_each_iter_factory:
-            iters_per_epoch // num_splits
+        iters_per_epoch = iter_options.num_iters_per_epoch
+        if not args.validate_each_iter_factory and iters_per_epoch is not None:
+            iters_per_epoch =  (iters_per_epoch + i ) // num_splits
         num_iters_per_epoch_list = [
             iters_per_epoch if iter_options.num_iters_per_epoch is not None else None
             for i in range(num_splits)
