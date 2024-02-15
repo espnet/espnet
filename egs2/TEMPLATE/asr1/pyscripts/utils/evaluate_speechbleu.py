@@ -23,8 +23,8 @@ import librosa
 import numpy as np
 import soundfile as sf
 import torch
-from scipy import spatial
 from discrete_speech_metrics import SpeechBLEU
+from scipy import spatial
 
 
 def find_files(
@@ -142,7 +142,8 @@ def main():
         layer=11,
         n_ngram=2,
         remove_repetition=True,
-        use_gpu=True)
+        use_gpu=True,
+    )
 
     # calculate SpeechBLEU.
     spbleu_dict = dict()

@@ -23,8 +23,8 @@ import librosa
 import numpy as np
 import soundfile as sf
 import torch
-from scipy import spatial
 from discrete_speech_metrics import SpeechBERTScore
+from scipy import spatial
 
 
 def find_files(
@@ -135,11 +135,7 @@ def main():
 
     # Using the best configuration of SpeechBERTScore.
     SR = 16000
-    metrics = SpeechBERTScore(
-        sr=SR,
-        model_type="wavlm-large",
-        layer=14,
-        use_gpu=True)
+    metrics = SpeechBERTScore(sr=SR, model_type="wavlm-large", layer=14, use_gpu=True)
 
     # calculate SpeechBERTScore.
     spbs_dict = dict()
