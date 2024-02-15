@@ -10,8 +10,6 @@ import librosa
 import numpy as np
 import scipy.signal
 import soundfile
-import copy
-from itertools import groupby
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.layers.augmentation import DataAugmentation, effects_dict
@@ -351,11 +349,6 @@ class CommonPreprocessor(AbsPreprocessor):
     ) -> Dict[str, Union[str, np.ndarray]]:
         assert check_argument_types()
         if self.speech_name in data:
-            speech = data[self.speech_name]
-            if speech.ndim == 2:
-                #print(speech.shape,flush=True)
-                speech = np.mean(speech, axis=1)
-                data[self.speech_name] = speech
             if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
 
@@ -399,6 +392,7 @@ class CommonPreprocessor(AbsPreprocessor):
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
+                print(speech.shape, self.speech_volume_normalize, ma, flush=True)
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
         assert check_return_type(data)
         return data
@@ -663,9 +657,6 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
-        span_corruption: bool = False,
-        span_corruption_spans: int = 10,
-        num_classes: int = 2050
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
@@ -700,9 +691,6 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         self.num_tokenizer = len(token_type)
         self.tokenizer = []
         self.token_id_converter = []
-        self.span_corruption = span_corruption
-        self.span_corruption_spans = span_corruption_spans
-        self.num_classes = num_classes
 
         for i in range(self.num_tokenizer):
             if token_type[i] is not None:
@@ -737,67 +725,11 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         self.text_cleaner = TextCleaner(text_cleaner)
         self.text_name = text_name  # override the text_name from CommonPreprocessor
 
-    def _corrupt(self, text_ints) -> Tuple[np.ndarray, np.ndarray]:
-        num_masks = 10
-        mask_max_length = 10
-        size = len(text_ints)
-        mask = np.array([False] * size)
-        
-        if size - mask_max_length <= num_masks:
-            min_len = size - num_masks -1
-        else:
-            min_len = mask_max_length
-        mask_idc = np.random.permutation(size - min_len)[:num_masks] # starting index of each span
-
-        for i in range(num_masks):
-            mask[mask_idc[i]: mask_idc[i] + mask_max_length] = [True] * mask_max_length
-        
-        # Apply the mask
-        inputs = np.array(text_ints)
-        labels = np.array(text_ints)
-
-        inputs[mask] = -1
-        labels[~mask] = -1
-            
-        sets = [inputs.tolist(), labels.tolist()]
-        out_sets = []
-        for dset in sets:
-            spans = 0
-            output = []
-            for key, group in groupby(dset):
-                # inputs -> we have a consecutive span of masks 
-                # labels -> we could have a single unmasked between maskeds
-                group = list(group)
-                if sum(group) < 0:
-                    output.append(self.num_classes+spans)
-                    spans += 1
-                else:
-                    output = output + group
-            out_sets.append(output)
-
-        inputs = np.array(out_sets[0], dtype=np.int64)
-        labels = np.array(out_sets[1], dtype=np.int64)
-
-        return inputs, labels
-
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         for i in range(self.num_tokenizer):
             text_name = self.text_name[i]
-            if self.span_corruption:
-                # hack so we only augment once and break out
-                text_name = 'src_text'
-                text = data[text_name]
-                text = self.text_cleaner(text)
-                tokens = self.tokenizer[i].text2tokens(text)
-                text_ints = self.token_id_converter[i].tokens2ids(tokens)
-                # span corruption
-                text_src, text_tgt = self._corrupt(text_ints)
-                data['src_text'] = text_src
-                data['text'] = text_tgt
-                break
-                
             if text_name in data and self.tokenizer[i] is not None:
                 text = data[text_name]
                 text = self.text_cleaner(text)
