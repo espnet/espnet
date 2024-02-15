@@ -37,7 +37,6 @@ pyan_max_length_merged=20
 pyan_inf_max_batch=32
 pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
 pyan_ft=0
-download_baseline_diarization=0
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
 pyan_batch_size=32
@@ -89,19 +88,6 @@ then
   exit
 fi
 
-
-
-if [ $download_baseline_diarization == 1 ]; then
-  exit
-  #log "Using organizer-provided JSON manifests from the baseline diarization system."
-  #if [ ! -d CHiME7DASRDiarizationBaselineJSONs ]; then
-  #    exit #FIXME later provide
-  #    git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs
-  #fi
-  #mkdir -p exp/diarization
-  #cp -r CHiME7DASRDiarizationBaselineJSONs/diarization exp/
-  #stage=3
-fi
 
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
