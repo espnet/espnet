@@ -26,11 +26,11 @@ from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     RelPositionMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    ConvolutionalPositionalEmbedding,
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
-    ConvolutionalPositionalEmbedding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -73,7 +73,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         feed_forward_macaron: Optional[torch.nn.Module],
         dropout_rate: float,
         merge_conv_kernel: int = 3,
-        downsample_attn: bool = False
+        downsample_attn: bool = False,
     ):
         super().__init__()
 
@@ -109,7 +109,6 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         self.downsample_attn = downsample_attn
         if self.downsample_attn:
             self.avg_pool = nn.AvgPool1d(31, stride=31)
-
 
     def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
@@ -429,7 +428,7 @@ class EBranchformerEncoder(AbsEncoder):
                 ),
                 dropout_rate,
                 merge_conv_kernel,
-                downsample_attn
+                downsample_attn,
             ),
             layer_drop_rate,
         )
@@ -472,7 +471,7 @@ class EBranchformerEncoder(AbsEncoder):
         if masks is None:
             masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
         else:
-            masks = (~masks[:, None, :])
+            masks = ~masks[:, None, :]
 
         if (
             isinstance(self.embed, Conv2dSubsampling)

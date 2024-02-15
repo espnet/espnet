@@ -384,9 +384,10 @@ class StreamPositionalEncoding(torch.nn.Module):
         x = x * self.xscale + self.pe[:, start_idx : start_idx + x.size(1)]
         return self.dropout(x)
 
+
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
     """Convolutional positional embedding which is placed at the beginning of Transformer.
-       Used in wav2vec2/HuBERT SSL models. 
+       Used in wav2vec2/HuBERT SSL models.
        https://arxiv.org/abs/1904.11660
 
     Args:
@@ -423,7 +424,10 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
             # normally we would do `if isinstance(...)` but this class is not accessible
             # because of shadowing, so we check the module name directly.
             # https://github.com/pytorch/pytorch/blob/be0ca00c5ce260eb5bcec3237357f7a30cc08983/torch/nn/utils/__init__.py#L3
-            if hook.__module__ == "torch.nn.utils.weight_norm" and hook.__class__.__name__ == "WeightNorm":
+            if (
+                hook.__module__ == "torch.nn.utils.weight_norm"
+                and hook.__class__.__name__ == "WeightNorm"
+            ):
                 _LG.warning("Removing weight_norm from %s", self.__class__.__name__)
                 torch.nn.utils.remove_weight_norm(self.conv)
         return self

@@ -2,25 +2,28 @@
 
 import copy
 import logging
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.nn import Module
 from torch.nn import functional as F
-
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+
 
 class LayerNorm(nn.LayerNorm):
     """Layer norm with transpose"""
 
     def forward(self, input: Tensor) -> Tensor:
         x = input.transpose(-2, -1)
-        x = nn.functional.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+        x = nn.functional.layer_norm(
+            x, self.normalized_shape, self.weight, self.bias, self.eps
+        )
         x = x.transpose(-2, -1)
         return x
+
 
 class ConvLayerBlock(Module):
     """Convolution unit of FeatureExtractor"""
@@ -55,7 +58,7 @@ class ConvLayerBlock(Module):
                 kernel_size=kernel_size,
                 stride=stride,
                 bias=bias,
-                groups=in_channels
+                groups=in_channels,
             )
         elif conv_mode == "depth_sep":
             self.conv = nn.Sequential(
@@ -65,7 +68,7 @@ class ConvLayerBlock(Module):
                     kernel_size=kernel_size,
                     stride=stride,
                     bias=bias,
-                    groups=in_channels
+                    groups=in_channels,
                 ),
                 nn.Conv1d(
                     in_channels=in_channels,
@@ -73,7 +76,7 @@ class ConvLayerBlock(Module):
                     kernel_size=1,
                     stride=1,
                     bias=bias,
-                )
+                ),
             )
 
     def forward(
@@ -95,10 +98,14 @@ class ConvLayerBlock(Module):
         x = nn.functional.gelu(x)
 
         if length is not None:
-            length = torch.div(length - self.kernel_size, self.stride, rounding_mode="floor") + 1
+            length = (
+                torch.div(length - self.kernel_size, self.stride, rounding_mode="floor")
+                + 1
+            )
             # When input length is 0, the resulting length can be negative. So fix it here.
             length = torch.max(torch.zeros_like(length), length)
         return x, length
+
 
 class CNNFrontend(AbsFrontend):
     def __init__(
@@ -106,9 +113,17 @@ class CNNFrontend(AbsFrontend):
         norm_mode: str,
         conv_mode: str,
         bias: bool,
-        shapes: List[Tuple[int, int, int]] = [(512, 10, 5), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 2, 2), (512, 2, 2)],
+        shapes: List[Tuple[int, int, int]] = [
+            (512, 10, 5),
+            (512, 3, 2),
+            (512, 3, 2),
+            (512, 3, 2),
+            (512, 3, 2),
+            (512, 2, 2),
+            (512, 2, 2),
+        ],
         fs: Union[int, str] = 16000,
-        normalize_audio: bool = False
+        normalize_audio: bool = False,
     ):
 
         super().__init__()
@@ -146,7 +161,7 @@ class CNNFrontend(AbsFrontend):
                     stride=stride,
                     bias=bias,
                     layer_norm=normalization,
-                    conv_mode=conv_mode
+                    conv_mode=conv_mode,
                 )
             )
             in_channels = out_channels
@@ -176,7 +191,9 @@ class CNNFrontend(AbsFrontend):
                 Valid length of each output sample. shape: ``[batch, ]``.
         """
         if x.ndim != 2:
-            raise ValueError(f"Expected the input Tensor to be 2D (batch, time). Found: {list(x.shape)}")
+            raise ValueError(
+                f"Expected the input Tensor to be 2D (batch, time). Found: {list(x.shape)}"
+            )
 
         if self.normalize_audio:
             x = F.layer_norm(x, x.shape)
@@ -185,6 +202,4 @@ class CNNFrontend(AbsFrontend):
         for layer in self.layers:
             x, length = layer(x, length)  # (batch, feature, frame)
         x = x.transpose(1, 2)  # (batch, frame, feature)
-        return x, length #// self.downsampling_factor
-
-    
+        return x, length  # // self.downsampling_factor

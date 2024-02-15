@@ -15,29 +15,27 @@ import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.cnn import CNNFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
-from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.preencoder.linear import LinearProjection
+from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.preencoder.subsampling import Subsampling
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.ssl.espnet_model import (
-    ESPnetSSLModel
-)
-from espnet2.ssl.loss.hubert_loss import HuBERTLoss
-from espnet2.ssl.loss.hubert_loss_ce import HuBERTLossCrossEntropy
-from espnet2.ssl.loss.abs_loss import AbsLoss
-from espnet2.ssl.mask.abs_mask import AbsMasker
-from espnet2.ssl.mask.hubert_mask import HubertMasker
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.ssl.espnet_model import ESPnetSSLModel
+from espnet2.ssl.loss.abs_loss import AbsLoss
+from espnet2.ssl.loss.hubert_loss import HuBERTLoss
+from espnet2.ssl.loss.hubert_loss_ce import HuBERTLossCrossEntropy
+from espnet2.ssl.mask.abs_mask import AbsMasker
+from espnet2.ssl.mask.hubert_mask import HubertMasker
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -75,9 +73,7 @@ normalize_choices = ClassChoices(
 preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
-        sinc=LightweightSincConvs,
-        linear=LinearProjection,
-        subsampling=Subsampling
+        sinc=LightweightSincConvs, linear=LinearProjection, subsampling=Subsampling
     ),
     type_check=AbsPreEncoder,
     default="linear",
@@ -85,10 +81,7 @@ preencoder_choices = ClassChoices(
 )
 encoder_choices = ClassChoices(
     "encoder",
-    classes=dict(
-        transformer=TransformerEncoder,
-        ebranchformer=EBranchformerEncoder
-    ),
+    classes=dict(transformer=TransformerEncoder, ebranchformer=EBranchformerEncoder),
     type_check=AbsEncoder,
     default="transformer",
 )
@@ -102,12 +95,9 @@ masker_choices = ClassChoices(
 )
 loss_choices = ClassChoices(
     "loss",
-    classes=dict(
-        hubert=HuBERTLoss,
-        hubert_ce=HuBERTLossCrossEntropy
-    ),
+    classes=dict(hubert=HuBERTLoss, hubert_ce=HuBERTLossCrossEntropy),
     type_check=AbsLoss,
-    default="hubert"
+    default="hubert",
 )
 model_choices = ClassChoices(
     "model",
@@ -117,6 +107,7 @@ model_choices = ClassChoices(
     type_check=AbsESPnetModel,
     default="espnet",
 )
+
 
 class SSLTask(AbsTask):
     # If you need more than one optimizers, change this value
@@ -293,9 +284,7 @@ class SSLTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -327,7 +316,8 @@ class SSLTask(AbsTask):
             label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
-            crop_audio=not args.collect_stats and args.collate_fn_conf.get("crop_audio", True),
+            crop_audio=not args.collect_stats
+            and args.collate_fn_conf.get("crop_audio", True),
             window_size=window_size,
             window_shift=window_shift,
             sample_rate=sample_rate,
@@ -339,7 +329,9 @@ class SSLTask(AbsTask):
             noise_apply_prob=args.collate_fn_conf.get("noise_apply_prob", 1.0),
             rir_apply_prob=args.collate_fn_conf.get("rir_apply_prob", 1.0),
             noise_db_range=args.collate_fn_conf.get("noise_db_range", "-5_20"),
-            dynamic_mixing_gain_db=args.collate_fn_conf.get("dynamic_mixing_gain_db", 5.0),
+            dynamic_mixing_gain_db=args.collate_fn_conf.get(
+                "dynamic_mixing_gain_db", 5.0
+            ),
             dynamic_mixing_prob=args.collate_fn_conf.get("dynamic_mixing_prob", 0.1),
         )
 
@@ -392,9 +384,7 @@ class SSLTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(
-        cls, args: argparse.Namespace
-    ) -> Union[ESPnetSSLModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSSLModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -440,7 +430,9 @@ class SSLTask(AbsTask):
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
             if "input_size" not in args.preencoder_conf:
-                preencoder = preencoder_class(input_size=input_size, **args.preencoder_conf)
+                preencoder = preencoder_class(
+                    input_size=input_size, **args.preencoder_conf
+                )
             else:
                 preencoder = preencoder_class(**args.preencoder_conf)
             input_size = preencoder.output_size()
@@ -457,7 +449,11 @@ class SSLTask(AbsTask):
         # 5. Masker
         masker_class = masker_choices.get_class(args.masker)
         masker = masker_class(
-            encoder_embed_dim=preencoder.output_size() if getattr(args, "preencoder", None) is not None else frontend.output_size(),
+            encoder_embed_dim=(
+                preencoder.output_size()
+                if getattr(args, "preencoder", None) is not None
+                else frontend.output_size()
+            ),
             **args.masker_conf,
         )
 

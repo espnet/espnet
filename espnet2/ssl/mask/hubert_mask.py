@@ -1,7 +1,11 @@
-import torch
-from torch import nn, Tensor
 from typing import Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import Tensor, nn
+
 from espnet2.ssl.mask.abs_mask import AbsMasker
+
+
 class HubertMasker(AbsMasker):
     """Generate the masks for masked prediction.
     Args:
@@ -70,7 +74,7 @@ class HubertMasker(AbsMasker):
         """
         B, T, C = x.shape
         if self.mask_prob > 0:
-            
+
             mask_indices = _compute_mask_indices(
                 (B, T),
                 padding_mask,
@@ -100,10 +104,12 @@ class HubertMasker(AbsMasker):
                 no_overlap=self.no_mask_channel_overlap,
                 min_space=self.mask_channel_min_space,
             )
-            mask_channel_indices = mask_channel_indices.to(x.device).unsqueeze(1).expand(-1, T, -1)
+            mask_channel_indices = (
+                mask_channel_indices.to(x.device).unsqueeze(1).expand(-1, T, -1)
+            )
             x[mask_channel_indices] = 0
 
-        return x, {'mask_m': mask_indices, 'mask_u': ~mask_indices}
+        return x, {"mask_m": mask_indices, "mask_u": ~mask_indices}
 
 
 def _compute_mask_indices(
@@ -209,7 +215,11 @@ def _compute_mask_indices(
 
             mask_idc = torch.randperm(sz - min_len)[:num_mask]
             mask_idc = torch.tensor(
-                [mask_idc[j] + offset for j in range(len(mask_idc)) for offset in range(lengths[j])]
+                [
+                    mask_idc[j] + offset
+                    for j in range(len(mask_idc))
+                    for offset in range(lengths[j])
+                ]
             )
 
         mask_idcs.append(torch.unique(mask_idc[mask_idc < sz]))

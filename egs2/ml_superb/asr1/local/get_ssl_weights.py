@@ -40,8 +40,11 @@ class BaseFeatureReader(object):
     def get_feats(self, data, ref_len=None):
         raise NotImplementedError
 
+
 class ESPnetModelFeatureReader(BaseFeatureReader):
-    def __init__(self, asr_model_path, layer=None, sample_rate=16000, max_chunk=1600000):
+    def __init__(
+        self, asr_model_path, layer=None, sample_rate=16000, max_chunk=1600000
+    ):
         self.sample_rate = sample_rate
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -61,8 +64,11 @@ class ESPnetModelFeatureReader(BaseFeatureReader):
         logger.info(f" max_chunk = {self.max_chunk}")
 
     def get_ssl_weights(self):
-        
-        if self.model.frontend is not None and self.model.frontend.featurizer is not None:
+
+        if (
+            self.model.frontend is not None
+            and self.model.frontend.featurizer is not None
+        ):
             weights = self.model.frontend.featurizer.weights
             norm_weights = F.softmax(weights, dim=-1)
             labels = range(len(norm_weights))
@@ -77,7 +83,7 @@ class ESPnetModelFeatureReader(BaseFeatureReader):
             x = data
         with torch.inference_mode():
             x = torch.from_numpy(x).float().to(self.device)
-            x = x.view(1, -1) # torch.Size([1, 32640])
+            x = x.view(1, -1)  # torch.Size([1, 32640])
 
             lens = torch.tensor([x.shape[1]], dtype=torch.long)
             feat, _ = self.model.encode(x, lens, layer=self.layer)

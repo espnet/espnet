@@ -1,13 +1,15 @@
 # Adapted from torchaudio/wav2vec2/components.py - LogitGenerator
 # Uses Cross-Entropy instead of HuBERTLoss - https://github.com/yanghaha0908/FastHuBERT/blob/master/criterion/fasthubert_criterion.py
 
-import torch
-from torch import nn, Tensor
-from torch.nn import functional as F
 from typing import Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
 
 from espnet2.ssl.loss.abs_loss import AbsLoss
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+
 
 class HuBERTDecoder(nn.Module):
     """Generate the logits of masked and unmasked inputs.
@@ -33,7 +35,9 @@ class HuBERTDecoder(nn.Module):
         self.skip_masked = skip_masked
         self.skip_nomask = skip_nomask
 
-    def forward(self, x: Tensor, mask_m: Tensor, mask_u: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(
+        self, x: Tensor, mask_m: Tensor, mask_u: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """
         Args:
             x (Tensor): The feature representation of the last transformer layer.
@@ -58,7 +62,8 @@ class HuBERTDecoder(nn.Module):
             proj_x_u = proj_x[mask_u]
             logit_u = self.label_embeddings(proj_x_u) / logit_temp
 
-        return logit_m, logit_u 
+        return logit_m, logit_u
+
 
 class HuBERTLossCrossEntropy(AbsLoss):
     def __init__(
@@ -68,8 +73,8 @@ class HuBERTLossCrossEntropy(AbsLoss):
         final_dim: int,
         masked_weight: float = 1.0,
         unmasked_weight: float = 0.0,
-        layers = [-1],
-        layer_weights = [1.0],
+        layers=[-1],
+        layer_weights=[1.0],
     ):
         super().__init__()
         self.masked_loss_weight = masked_weight
@@ -100,12 +105,13 @@ class HuBERTLossCrossEntropy(AbsLoss):
             count = max_idx.numel()
         return correct, count
 
-    def forward(self, 
+    def forward(
+        self,
         xs_pad: torch.Tensor,
         ys_pad: torch.Tensor,
         mask_info,
         feature_penalty,
-        feature_weight = 10,
+        feature_weight=10,
     ):
 
         mask_m = mask_info["mask_m"]
@@ -123,14 +129,22 @@ class HuBERTLossCrossEntropy(AbsLoss):
 
             if self.masked_loss_weight != 0.0:
 
-                loss_m = F.cross_entropy(hs_m, targets_m.long(), reduction='sum') * self.masked_loss_weight * self.layer_weights[i]
+                loss_m = (
+                    F.cross_entropy(hs_m, targets_m.long(), reduction="sum")
+                    * self.masked_loss_weight
+                    * self.layer_weights[i]
+                )
                 total_loss += loss_m
                 divisor = hs_m.shape[0] if hs_m.shape[0] > 0 else 1
                 losses_m.append(loss_m.detach().item() / divisor)
 
             if self.unmasked_loss_weight != 0.0:
-                
-                loss_u = F.cross_entropy(hs_u, targets_u.long(), reduction='sum') * self.unmasked_loss_weight * self.layer_weights[i]
+
+                loss_u = (
+                    F.cross_entropy(hs_u, targets_u.long(), reduction="sum")
+                    * self.unmasked_loss_weight
+                    * self.layer_weights[i]
+                )
                 total_loss += loss_u
                 divisor = hs_u.shape[0] if hs_u.shape[0] > 0 else 1
                 losses_u.append(loss_u.detach().item() / divisor)
@@ -150,17 +164,11 @@ class HuBERTLossCrossEntropy(AbsLoss):
         )
 
         for i, layer in enumerate(self.layers):
-            stats[f'hubert_losses_m_{layer}'] = losses_m[i] if len(losses_m) > 0 else None
-            stats[f'hubert_losses_u_{layer}'] = losses_u[i] if len(losses_u) > 0 else None
+            stats[f"hubert_losses_m_{layer}"] = (
+                losses_m[i] if len(losses_m) > 0 else None
+            )
+            stats[f"hubert_losses_u_{layer}"] = (
+                losses_u[i] if len(losses_u) > 0 else None
+            )
 
         return total_loss, stats
-
-            
-
-            
-        
-
-            
-
-            
-

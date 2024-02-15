@@ -14,8 +14,11 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import bf16_compress_hook, fp16_compress_hook
 from packaging.version import parse as V
+from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import (
+    bf16_compress_hook,
+    fp16_compress_hook,
+)
 from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -625,23 +628,23 @@ class Trainer:
                         optim_idx = None
 
                 stats = {k: v for k, v in stats.items() if v is not None}
-                
+
                 if ngpu > 1 or distributed:
                     # Apply weighted averaging for loss and stats
                     loss = (loss * weight.type(loss.dtype)).sum()
 
                     # if distributed, this method can also apply all_reduce()
                     stats, weight = recursive_average(stats, weight, distributed)
-                    
+
                     # Now weight is summation over all workers
                     loss /= weight
                 if distributed:
                     # NOTE(kamo): Multiply world_size because DistributedDataParallel
                     # automatically normalizes the gradient by world_size.
                     loss *= torch.distributed.get_world_size()
-                
+
                 loss /= accum_grad
-            #if distributed_option.dist_rank == 0:
+            # if distributed_option.dist_rank == 0:
             reporter.register(stats, weight)
 
             with reporter.measure_time("backward_time"):
@@ -655,7 +658,10 @@ class Trainer:
                         scaler.scale(loss).backward()
                     except:
                         torch.cuda.synchronize()
-                        print("OOM in backwards. Retrying after emptying cache.", flush=True)
+                        print(
+                            "OOM in backwards. Retrying after emptying cache.",
+                            flush=True,
+                        )
                         for iopt, optimizer in enumerate(optimizers):
                             if optim_idx is not None and iopt != optim_idx:
                                 continue

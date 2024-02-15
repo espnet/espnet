@@ -1,11 +1,13 @@
-import torch
-from torch import nn, Tensor
 import math
-from torch.nn import functional as F
 from typing import Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
 
 from espnet2.ssl.loss.abs_loss import AbsLoss
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+
 
 # https://github.com/pytorch/pytorch/issues/104564
 def cosine_similarity(t1, t2, dim=-1, eps=1e-8):
@@ -24,6 +26,7 @@ def cosine_similarity(t1, t2, dim=-1, eps=1e-8):
     t2_norm = t2 / t2_div
 
     return (t1_norm * t2_norm).sum(dim=dim)
+
 
 def _compute_logits(
     proj_x: Tensor,
@@ -45,7 +48,9 @@ def _compute_logits(
     neg_is_pos = (pos == negs).all(-1)
     pos = pos.unsqueeze(0)
     targets = torch.cat([pos, negs], dim=0)
-    logits = torch.cosine_similarity(proj_x.float(), targets.float(), dim=-1).type_as(proj_x)
+    logits = torch.cosine_similarity(proj_x.float(), targets.float(), dim=-1).type_as(
+        proj_x
+    )
     logits /= logit_temp
     if neg_is_pos.any():
         logits[1:][neg_is_pos] = float("-inf")
@@ -78,7 +83,9 @@ class LogitGenerator(nn.Module):
         self.skip_masked = skip_masked
         self.skip_nomask = skip_nomask
 
-    def forward(self, x: Tensor, label: Tensor, mask_m: Tensor, mask_u: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(
+        self, x: Tensor, label: Tensor, mask_m: Tensor, mask_u: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """
         Args:
             x (Tensor): The feature representation of the last transformer layer.
@@ -108,6 +115,7 @@ class LogitGenerator(nn.Module):
 
         return logit_m, logit_u
 
+
 class HuBERTLoss(AbsLoss):
     def __init__(
         self,
@@ -116,7 +124,7 @@ class HuBERTLoss(AbsLoss):
         final_dim: int,
         masked_weight: float = 1.0,
         unmasked_weight: float = 0.0,
-        layers = [-1],
+        layers=[-1],
     ):
         super().__init__()
         self.masked_weight = masked_weight
@@ -182,7 +190,7 @@ class HuBERTLoss(AbsLoss):
                 logit_m, target_m, reduction=reduction
             )
             loss_m *= self.masked_weight
-            
+
         loss_u = 0
         if logit_u is not None:
             target_u = torch.zeros(
@@ -192,15 +200,16 @@ class HuBERTLoss(AbsLoss):
                 logit_u, target_u, reduction=reduction
             )
             loss_u *= self.unmasked_weight
-        
+
         return loss_m, loss_u
 
-    def forward(self, 
+    def forward(
+        self,
         xs_pad: torch.Tensor,
         ys_pad: torch.Tensor,
         mask_info,
         feature_penalty,
-        feature_weight = 10,
+        feature_weight=10,
     ):
 
         mask_m = mask_info["mask_m"]
@@ -216,9 +225,9 @@ class HuBERTLoss(AbsLoss):
             )
 
             layer_loss = layer_loss + loss_m + loss_u
-        
+
         total_loss = feature_penalty * feature_weight * logit_m.shape[0] + layer_loss
-        
+
         # log accuracies of masked and unmasked frames
         correct_m, count_m = self._compute_correct(logit_m)
         correct_u, count_u = self._compute_correct(logit_u)

@@ -50,13 +50,12 @@ from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.frontend.cnn import CNNFrontend
-from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.maskctc_model import MaskCTCModel
 from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
@@ -68,13 +67,13 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.ssl.mask.abs_mask import AbsMasker
-from espnet2.ssl.mask.hubert_mask import HubertMasker
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.ssl.mask.abs_mask import AbsMasker
+from espnet2.ssl.mask.hubert_mask import HubertMasker
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -570,7 +569,9 @@ class ASRTask(AbsTask):
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
             if "input_size" not in args.preencoder_conf:
-                preencoder = preencoder_class(input_size=input_size, **args.preencoder_conf)
+                preencoder = preencoder_class(
+                    input_size=input_size, **args.preencoder_conf
+                )
             else:
                 preencoder = preencoder_class(**args.preencoder_conf)
             input_size = preencoder.output_size()
@@ -580,7 +581,11 @@ class ASRTask(AbsTask):
         if getattr(args, "masker", None) is not None:
             masker_class = masker_choices.get_class(args.masker)
             masker = masker_class(
-                encoder_embed_dim=preencoder.output_size() if getattr(args, "preencoder", None) is not None else frontend.output_size(),
+                encoder_embed_dim=(
+                    preencoder.output_size()
+                    if getattr(args, "preencoder", None) is not None
+                    else frontend.output_size()
+                ),
                 **args.masker_conf,
             )
         else:

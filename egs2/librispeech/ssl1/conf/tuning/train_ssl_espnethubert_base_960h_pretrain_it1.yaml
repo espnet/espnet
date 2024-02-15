@@ -76,4 +76,3 @@ loss: hubert
 loss_conf:
     num_classes: 500
     final_dim: 256
-

@@ -21,7 +21,9 @@ class Subsampling(AbsPreEncoder):
         assert check_argument_types()
         super().__init__()
 
-        self.subsampling = Conv2dSubsampling(input_size, output_size, dropout, torch.nn.Identity())
+        self.subsampling = Conv2dSubsampling(
+            input_size, output_size, dropout, torch.nn.Identity()
+        )
         self.output_dim = output_size
 
     def forward(
@@ -29,7 +31,7 @@ class Subsampling(AbsPreEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward."""
         output, _ = self.subsampling(input, x_mask=None)
-        return output, ((input_lengths - 1) // 2 - 1) // 2 # input_lengths - 2
+        return output, ((input_lengths - 1) // 2 - 1) // 2  # input_lengths - 2
 
     def output_size(self) -> int:
         """Get the output size."""

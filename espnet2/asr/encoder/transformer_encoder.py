@@ -13,8 +13,8 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
-    PositionalEncoding,
     ConvolutionalPositionalEmbedding,
+    PositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -105,7 +105,11 @@ class TransformerEncoder(AbsEncoder):
         elif input_layer == "linear_w2v":
             self.embed = torch.nn.Sequential(
                 pos_enc_class(output_size, positional_dropout_rate),
-                torch.nn.LayerNorm(output_size) if normalize_before else torch.nn.Identity(output_size),
+                (
+                    torch.nn.LayerNorm(output_size)
+                    if normalize_before
+                    else torch.nn.Identity(output_size)
+                ),
                 torch.nn.Dropout(dropout_rate),
             )
         elif input_layer == "conv1d2":
@@ -130,7 +134,7 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer is None or input_layer == 'none':
+        elif input_layer is None or input_layer == "none":
             if input_size == output_size:
                 self.embed = None
             else:
@@ -169,7 +173,13 @@ class TransformerEncoder(AbsEncoder):
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate, False, use_flash_attn, False, False
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    False,
+                    use_flash_attn,
+                    False,
+                    False,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,
@@ -214,7 +224,7 @@ class TransformerEncoder(AbsEncoder):
         if masks is None:
             masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
         else:
-            masks = (~masks[:, None, :])
+            masks = ~masks[:, None, :]
 
         if self.embed is None:
             xs_pad = xs_pad

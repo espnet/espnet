@@ -431,7 +431,7 @@ class CommonPreprocessor(AbsPreprocessor):
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
-            
+
             if len(text_ints) > 500:
                 logging.warning(
                     "The length of the text output exceeds 500, "
@@ -466,7 +466,7 @@ class CommonPreprocessor(AbsPreprocessor):
                         actual_token
                     )
                 )
-                
+
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
             if "prompt" in data:
                 whisper_tokenizer = self.token_id_converter.tokenizer.tokenizer

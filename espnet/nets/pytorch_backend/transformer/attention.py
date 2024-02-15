@@ -9,10 +9,10 @@
 import math
 
 import torch
+from flash_attn import flash_attn_func, flash_attn_varlen_func
+from flash_attn.bert_padding import pad_input, unpad_input
 from torch import nn
 
-from flash_attn import flash_attn_func, flash_attn_varlen_func
-from flash_attn.bert_padding import unpad_input, pad_input
 
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer.
@@ -29,8 +29,14 @@ class MultiHeadedAttention(nn.Module):
     """
 
     def __init__(
-        self, n_head, n_feat, dropout_rate,
-        qk_norm=False, use_flash_attn=False, causal=False, cross_attn=False,
+        self,
+        n_head,
+        n_feat,
+        dropout_rate,
+        qk_norm=False,
+        use_flash_attn=False,
+        causal=False,
+        cross_attn=False,
     ):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
@@ -43,7 +49,9 @@ class MultiHeadedAttention(nn.Module):
         self.linear_v = nn.Linear(n_feat, n_feat)
         self.linear_out = nn.Linear(n_feat, n_feat)
         self.attn = None
-        self.dropout = nn.Dropout(p=dropout_rate) if not use_flash_attn else nn.Identity()
+        self.dropout = (
+            nn.Dropout(p=dropout_rate) if not use_flash_attn else nn.Identity()
+        )
         self.dropout_rate = dropout_rate
 
         # LayerNorm for q and k
@@ -51,8 +59,8 @@ class MultiHeadedAttention(nn.Module):
         self.k_norm = LayerNorm(self.d_k) if qk_norm else nn.Identity()
 
         self.use_flash_attn = use_flash_attn
-        self.causal = causal    # only used with flash_attn
-        self.cross_attn = cross_attn    # only used with flash_attn
+        self.causal = causal  # only used with flash_attn
+        self.cross_attn = cross_attn  # only used with flash_attn
 
     def forward_qkv(self, query, key, value):
         """Transform query, key and value.
@@ -130,7 +138,7 @@ class MultiHeadedAttention(nn.Module):
         if self.training and self.use_flash_attn:
             try:
                 # In the causal case, the last row will be the key mask
-                key_nonpad_mask = mask[:, -1, :]     # (#batch, time2)
+                key_nonpad_mask = mask[:, -1, :]  # (#batch, time2)
                 if self.cross_attn:
                     # For cross attention, we do not know the query padding
                     query_nonpad_mask = torch.ones(
@@ -140,8 +148,12 @@ class MultiHeadedAttention(nn.Module):
                     query_nonpad_mask = key_nonpad_mask
 
                 if key_nonpad_mask.eq(0).any():
-                    q, indices_q, cu_seqlens_q, max_seqlen_q = unpad_input(query, query_nonpad_mask)
-                    k, indices_k, cu_seqlens_k, max_seqlen_k = unpad_input(key, key_nonpad_mask)
+                    q, indices_q, cu_seqlens_q, max_seqlen_q = unpad_input(
+                        query, query_nonpad_mask
+                    )
+                    k, indices_k, cu_seqlens_k, max_seqlen_k = unpad_input(
+                        key, key_nonpad_mask
+                    )
                     v, _, _, _ = unpad_input(value, key_nonpad_mask)
 
                     q = self.linear_q(q).reshape(-1, self.h, self.d_k)
@@ -152,10 +164,16 @@ class MultiHeadedAttention(nn.Module):
                     k = self.k_norm(k)
 
                     out = flash_attn_varlen_func(
-                        q, k, v, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k,
-                        dropout_p=self.dropout_rate if self.training else 0.,
+                        q,
+                        k,
+                        v,
+                        cu_seqlens_q,
+                        cu_seqlens_k,
+                        max_seqlen_q,
+                        max_seqlen_k,
+                        dropout_p=self.dropout_rate if self.training else 0.0,
                         causal=self.causal,
-                    )       # (total, nheads, headdim)
+                    )  # (total, nheads, headdim)
 
                     out = out.reshape(out.shape[0], -1)
                     out = self.linear_out(out)
@@ -169,15 +187,17 @@ class MultiHeadedAttention(nn.Module):
                         q.transpose(1, 2),
                         k.transpose(1, 2),
                         v.transpose(1, 2),
-                        dropout_p=self.dropout_rate if self.training else 0.,
+                        dropout_p=self.dropout_rate if self.training else 0.0,
                         causal=self.causal,
-                    )   # (batch_size, seqlen, nheads, headdim)
+                    )  # (batch_size, seqlen, nheads, headdim)
                     out = out.reshape(out.shape[0], out.shape[1], -1)
                     out = self.linear_out(out)
                     return out
             except Exception as e:
                 if self.training:
-                    import logging; logging.warning(f"Flash attn has exception: {e}")
+                    import logging
+
+                    logging.warning(f"Flash attn has exception: {e}")
                 pass
 
         q, k, v = self.forward_qkv(query, key, value)

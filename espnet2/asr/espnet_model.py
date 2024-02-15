@@ -13,15 +13,14 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.ssl.mask.abs_mask import AbsMasker
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
@@ -426,7 +425,9 @@ class ESPnetASRModel(AbsESPnetModel):
                         feats, feats_lengths, ctc=self.ctc, masks=pad_masks
                     )
                 else:
-                    encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
+                    encoder_out, encoder_out_lens, _ = self.encoder(
+                        feats, feats_lengths, masks=pad_masks
+                    )
         else:
             if self.encoder.interctc_use_conditioning or getattr(
                 self.encoder, "ctc_trim", False
@@ -435,7 +436,9 @@ class ESPnetASRModel(AbsESPnetModel):
                     feats, feats_lengths, ctc=self.ctc, masks=pad_masks
                 )
             else:
-                encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)   
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    feats, feats_lengths, masks=pad_masks
+                )
 
         intermediate_outs = None
         if isinstance(encoder_out, tuple):

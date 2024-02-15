@@ -36,7 +36,7 @@ class DefaultFrontend(AbsFrontend):
         htk: bool = False,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         apply_stft: bool = True,
-        rounding: str = 'trunc'
+        rounding: str = "trunc",
     ):
         assert check_argument_types()
         super().__init__()

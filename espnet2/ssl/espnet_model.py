@@ -11,22 +11,23 @@ from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.nn import functional as F
 from packaging.version import parse as V
+from torch.nn import functional as F
 from typeguard import check_argument_types
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.ssl.loss.abs_loss import AbsLoss
-from espnet2.ssl.mask.abs_mask import AbsMasker
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.ssl.loss.abs_loss import AbsLoss
+from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+
 
 class ESPnetSSLModel(AbsESPnetModel):
     """A generic SSL model"""
@@ -44,7 +45,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         vocab_size: int = None,
         token_list: Union[Tuple[str, ...], List[str]] = None,
         feature_grad_mult: Optional[float] = 0.1,
-        extract_feats_in_collect_stats: bool = True
+        extract_feats_in_collect_stats: bool = True,
     ):
 
         assert check_argument_types()
@@ -75,40 +76,42 @@ class ESPnetSSLModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
-        assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-        ), (speech.shape, speech_lengths.shape)
+        assert speech.shape[0] == speech_lengths.shape[0], (
+            speech.shape,
+            speech_lengths.shape,
+        )
 
         batch_size = speech.shape[0]
 
         # want to modify so encoded is [outs]. Where out is the output of a specific layer
-        # this is important for w2v-bert 
-        encoded, mask_info, feature_penalty = self.encode(
-            speech, speech_lengths
-        )
+        # this is important for w2v-bert
+        encoded, mask_info, feature_penalty = self.encode(speech, speech_lengths)
 
-        '''
+        """
         total_loss = 0
         total_stats = {}
-        
+
         for loss_fn in self.losses:
-            
+
             loss, stats = loss_fn(encoded, text, mask_info, feature_penalty)
             total_loss += loss
             total_stats.update(stats)
 
         total_stats['loss'] = total_loss#.detach()
-        '''
-        total_loss, total_stats = self.losses[0](encoded, text, mask_info, feature_penalty)
-        total_stats['loss'] = total_loss.item()
+        """
+        total_loss, total_stats = self.losses[0](
+            encoded, text, mask_info, feature_penalty
+        )
+        total_stats["loss"] = total_loss.item()
 
         del encoded
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        total_loss, total_stats, weight = force_gatherable((total_loss, total_stats, batch_size), total_loss.device)
+        total_loss, total_stats, weight = force_gatherable(
+            (total_loss, total_stats, batch_size), total_loss.device
+        )
 
-        #del encoded, mask_info#, loss
+        # del encoded, mask_info#, loss
         return total_loss, total_stats, weight
 
     def collect_feats(
@@ -126,18 +129,22 @@ class ESPnetSSLModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        y_pad: torch.Tensor=None,
-        y_pad_length: torch.Tensor=None,
-        use_mask=True
+        y_pad: torch.Tensor = None,
+        y_pad_length: torch.Tensor = None,
+        use_mask=True,
     ):
         """Frontend + Encoder"""
 
         """Returns (encoded, feat_penalty)"""
-        
+
         # 1. Extract feats
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-        if self.train and self.feature_grad_mult is not None and self.feature_grad_mult < 1.0:
+        if (
+            self.train
+            and self.feature_grad_mult is not None
+            and self.feature_grad_mult < 1.0
+        ):
             feats = GradMultiply.apply(feats, self.feature_grad_mult)
         features_pen = feats.float().pow(2).mean()
 
@@ -163,16 +170,18 @@ class ESPnetSSLModel(AbsESPnetModel):
         # 5. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks, return_all_hs=True)
+        encoder_out, out_lens, _ = self.encoder(
+            feats, feats_lengths, masks=pad_masks, return_all_hs=True
+        )
         encoder_out = encoder_out[1]
-        '''
+        """
         if not use_mask:
             encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks, return_all_hs=True)
             encoder_out = encoder_out[1]
         else:
             encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
             encoder_out = [encoder_out]
-        '''
+        """
 
         return encoder_out, mask_info, features_pen
 
@@ -195,6 +204,7 @@ class ESPnetSSLModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
+
 
 class GradMultiply(torch.autograd.Function):
     @staticmethod

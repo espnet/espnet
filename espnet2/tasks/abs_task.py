@@ -1645,7 +1645,7 @@ class AbsTask(ABC):
         else:
             utt2category_file = None
 
-        if mode == 'valid' and iter_options.batch_bins > 10000000:
+        if mode == "valid" and iter_options.batch_bins > 10000000:
             batch_bins = iter_options.batch_bins // 1000
         else:
             batch_bins = iter_options.batch_bins
@@ -1946,9 +1946,7 @@ class AbsTask(ABC):
         if not args.validate_each_iter_factory:
             iters_per_epoch // num_splits
         num_iters_per_epoch_list = [
-            iters_per_epoch
-            if iter_options.num_iters_per_epoch is not None
-            else None
+            iters_per_epoch if iter_options.num_iters_per_epoch is not None else None
             for i in range(num_splits)
         ]
         max_cache_size = iter_options.max_cache_size / num_splits
@@ -1980,7 +1978,10 @@ class AbsTask(ABC):
 
         # 3. Build MultipleIterFactory
         return MultipleIterFactory(
-            build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed, validate_each_iter_factory=args.validate_each_iter_factory
+            build_funcs=build_funcs,
+            shuffle=iter_options.train,
+            seed=args.seed,
+            validate_each_iter_factory=args.validate_each_iter_factory,
         )
 
     @classmethod
