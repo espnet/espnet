@@ -98,9 +98,9 @@ class TDSpeakerBeamExtractor(AbsExtractor):
                 R=1,
                 C=1,
                 Sc=skip_dim,
-                out_channel=adapt_enroll_dim
-                if skip_dim is None
-                else adapt_enroll_dim * 2,
+                out_channel=(
+                    adapt_enroll_dim if skip_dim is None else adapt_enroll_dim * 2
+                ),
                 norm_type=norm_type,
                 causal=False,
                 pre_mask_nonlinear=pre_nonlinear,

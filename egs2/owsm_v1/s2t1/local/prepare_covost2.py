@@ -1,4 +1,5 @@
 """Prepare CoVoST2 data for ASR and ST."""
+
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union

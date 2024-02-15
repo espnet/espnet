@@ -67,6 +67,8 @@ def time_masking(xs_pad, min_T=5, max_T=20):
 # 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/large_vox_iter5.pt'
 # avhubert_url(noise_base):
 # 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/base_vox_iter5.pt'
+
+
 class FairseqAVHubertEncoder(AbsEncoder):
     """FairSeq AVHubert pretrained encoder module
 
@@ -98,12 +100,21 @@ class FairseqAVHubertEncoder(AbsEncoder):
         encoder_attention_heads: int = 16,
         extracted: bool = False,
         pretrain: bool = True,
+        modality_dropout: float = 0.0,
+        audio_dropout: float = 0.0,
+        noise_augmentation: bool = False,
+        noise_path: str = "./data/babble_noise.pt",
+        max_noise_weight: float = 0.5,
+        audio_only: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
 
         self._output_size = encoder_embed_dim
         self.extracted = extracted
+        self.modality_dropout = modality_dropout
+        self.audio_dropout = audio_dropout
+        self.audio_only = audio_only
 
         arg_overrides = {
             "encoder_embed_dim": encoder_embed_dim,
@@ -120,12 +131,14 @@ class FairseqAVHubertEncoder(AbsEncoder):
             "encoder_layers": encoder_layers,
             "encoder_ffn_embed_dim": encoder_ffn_embed_dim,
             "encoder_attention_heads": encoder_attention_heads,
+            "audio_only": audio_only,
         }
         default_cfg = AVHubertConfig()
         for arg_name, arg_val in arg_overrides.items():
             setattr(default_cfg, arg_name, arg_val)
 
         model = AVHubertModel.build_model(cfg=default_cfg)
+        self.modality_fuse = model.modality_fuse
 
         if pretrain:
             self.avhubert_model_path = download_avhubert(
@@ -153,6 +166,13 @@ class FairseqAVHubertEncoder(AbsEncoder):
         self.pretrained_params = copy.deepcopy(model.state_dict())
 
         self.encoders = model
+
+        if noise_augmentation:
+            self.noise = torch.load(noise_path)
+            self.max_noise_weight = max_noise_weight
+        else:
+            self.noise = None
+            self.max_noise_weight = None
 
         self.freeze_finetune_updates = freeze_finetune_updates
         self.register_buffer("num_updates", torch.LongTensor([0]))
@@ -204,6 +224,45 @@ class FairseqAVHubertEncoder(AbsEncoder):
             if self.training:
                 xs_pad = time_masking(xs_pad)
 
+                if self.modality_dropout > 0 and self.modality_fuse == "concat":
+                    modality_drop_prob, audio_drop_prob = (
+                        np.random.random(),
+                        np.random.random(),
+                    )
+                    if modality_drop_prob < self.modality_dropout:
+                        if audio_drop_prob < self.audio_dropout:
+                            # first half dimension is audio features
+                            modal_masks = torch.ones_like(xs_pad)
+                            modal_masks[:, :, : modal_masks.size(2) // 2] = 0.0
+                            xs_pad = xs_pad * modal_masks
+                        else:
+                            # last half dimension is video features
+                            modal_masks = torch.ones_like(xs_pad)
+                            modal_masks[:, :, modal_masks.size(2) // 2 :] = 0.0
+                            xs_pad = xs_pad * modal_masks
+
+                if self.noise is not None:
+                    start_ind = torch.randint(
+                        0, self.noise.size(0) - xs_pad.size(1), size=[xs_pad.size(0)]
+                    )  # B
+                    noise_ind = start_ind.view(-1, 1) + torch.arange(
+                        0, xs_pad.size(1)
+                    ).unsqueeze(0).repeat(
+                        xs_pad.size(0), 1
+                    )  # B,T
+                    noise_weight = (
+                        torch.rand([xs_pad.size(0), 1, 1]).to(xs_pad.device)
+                        * self.max_noise_weight
+                    )
+                    xs_pad = (1 - noise_weight) * xs_pad + noise_weight * self.noise[
+                        noise_ind
+                    ].to(xs_pad.device)
+
+            if self.audio_only:
+                modal_masks = torch.ones_like(xs_pad)
+                modal_masks[:, :, : modal_masks.size(2) // 2] = 0.0
+                xs_pad = xs_pad * modal_masks
+
             if self.num_updates <= self.freeze_finetune_updates:
                 self.num_updates += 1
             elif ft and self.num_updates == self.freeze_finetune_updates + 1:
@@ -231,8 +290,14 @@ class FairseqAVHubertEncoder(AbsEncoder):
         self,
         xs_pad: Dict[str, torch.Tensor],
     ) -> torch.Tensor:
-        audio_feats = self.encoders.forward_audio(xs_pad["audio"])
-        video_feats = self.encoders.forward_video(xs_pad["video"])
+        if xs_pad["audio"] is not None:
+            audio_feats = self.encoders.forward_audio(xs_pad["audio"])
+        else:
+            audio_feats = None
+        if xs_pad["video"] is not None:
+            video_feats = self.encoders.forward_video(xs_pad["video"])
+        else:
+            video_feats = None
         return self.encoders.modality_fusion(audio_feats, video_feats)
 
     def reload_pretrained_parameters(self):
@@ -498,6 +563,10 @@ class AVHubertConfig:
         default=False,
         metadata={"help": "share decoder input and output embeddings"},
     )
+    audio_only: bool = field(
+        default=False,
+        metadata={"help": "whether to use audio stream only"},
+    )
     no_scale_embedding: bool = field(default=True, metadata={"help": "scale embedding"})
 
 
@@ -599,6 +668,7 @@ class AVHubertModel(nn.Module):
 
         self.encoder = TransformerEncoder(cfg)
         self.layer_norm = LayerNorm(self.embed)
+        self.audio_only = cfg.audio_only
 
     @classmethod
     def build_model(cls, cfg: AVHubertConfig):
@@ -644,7 +714,7 @@ class AVHubertModel(nn.Module):
         """
         src_audio, src_video = source["audio"], source["video"]
 
-        if src_audio is not None and src_video is None:
+        if (src_audio is not None and src_video is None) or self.audio_only:
             features_audio = self.forward_features(
                 src_audio, modality="audio"
             )  # features: [B, F, T]
@@ -711,11 +781,11 @@ class AVHubertModel(nn.Module):
         return features_video
 
     def modality_fusion(self, features_audio, features_video):
-        if features_audio is None and features_video is not None:
+        if features_video is None and features_audio is not None:
             features_video = features_audio.new_zeros(
                 features_audio.size(0), self.encoder_embed_dim, features_audio.size(-1)
             )
-        elif features_video is None and features_audio is not None:
+        elif features_audio is None and features_video is not None:
             features_audio = features_video.new_zeros(
                 features_video.size(0), self.encoder_embed_dim, features_video.size(-1)
             )

@@ -75,6 +75,7 @@ qmf_func=false        # Apply quality measurement based calibration in inference
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
 valid_set=        # Name of validation set used for monitoring/tuning network training.
+cohort_set=       # Name of cohort set used for score normalization and qmf function.
 test_sets=        # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 lang=multilingual # The language type of corpus.
 
@@ -134,6 +135,7 @@ Options:
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=        # Name of training set.
     valid_set=        # Name of validation set used for monitoring/tuning network training.
+    cohort_set=       # Name of cohort set used for score normalization and qmf function.
     test_sets=        # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
     lang=multilingual # The language type of corpus.
 
@@ -284,7 +286,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
-            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086
@@ -469,7 +471,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
-    log "Extracting speaker embeddings for inference... log: '${infer_exp}/spk_embed_extraction.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
         jobname="$(basename ${infer_exp})"
@@ -477,6 +478,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         jobname="${infer_exp}/spk_embed_extraction.log"
     fi
 
+    log "Extracting speaker embeddings for inference... log: '${infer_exp}/spk_embed_extraction_test.log'"
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
         --log ${infer_exp}/spk_embed_extraction_test.log \
@@ -499,10 +501,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 
     # extract embeddings for cohort set
     if [ "$score_norm" = true  ] || [ "$qmf_func" = true  ]; then
-        _spk_train_dir="${data_feats}/${train_set}"
-        if [ ! -e "${_spk_train_dir}/cohort.scp"  ]; then
-            ${python} pyscripts/utils/generate_cohort_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${fs}
+        cohort_dir="${data_feats}/${cohort_set}"
+        if [ ! -e "${cohort_dir}/cohort.scp"  ]; then
+            log "Generating a new cohort set."
+            ${python} pyscripts/utils/generate_cohort_list.py ${cohort_dir}/spk2utt ${cohort_dir}/wav.scp ${cohort_dir} ${inference_config} ${fs}
         fi
+        log "Extracting speaker embeddings for cohort... log: '${infer_exp}/spk_embed_extraction_cohort.log'"
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
             --log ${infer_exp}/spk_embed_extraction_cohort.log \
@@ -513,10 +517,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             ${python} -m espnet2.bin.spk_embed_extract \
                 --use_preprocessor true \
                 --output_dir ${infer_exp} \
-                --data_path_and_name_and_type ${_spk_train_dir}/cohort.scp,speech,sound \
-                --data_path_and_name_and_type ${_spk_train_dir}/cohort2.scp,speech2,sound \
-                --data_path_and_name_and_type ${_spk_train_dir}/cohort_label,spk_labels,text \
-                --shape_file ${_spk_train_dir}/cohort_speech_shape \
+                --data_path_and_name_and_type ${cohort_dir}/cohort.scp,speech,sound \
+                --data_path_and_name_and_type ${cohort_dir}/cohort2.scp,speech2,sound \
+                --data_path_and_name_and_type ${cohort_dir}/cohort_label,spk_labels,text \
+                --shape_file ${cohort_dir}/cohort_speech_shape \
                 --fold_length ${fold_length} \
                 --config ${inference_config} \
                 --spk_train_config "${spk_exp}/config.yaml" \
@@ -527,9 +531,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 
     # extract embeddings for qmf train set
     if "$qmf_func"; then
-        _spk_train_dir="${data_feats}/${train_set}"
-        if [ ! -e "${_spk_train_dir}/qmf_train.scp"  ]; then
-            ${python} pyscripts/utils/generate_qmf_train_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${_spk_train_dir}/utt2spk ${_spk_train_dir}/cohort_label ${fs}
+        cohort_dir="${data_feats}/${cohort_set}"
+        if [ ! -e "${cohort_dir}/qmf_train.scp"  ]; then
+            log "Generating a new QMF train set."
+            ${python} pyscripts/utils/generate_qmf_train_list.py ${cohort_dir}/spk2utt ${cohort_dir}/wav.scp ${cohort_dir} ${inference_config} ${cohort_dir}/utt2spk ${cohort_dir}/cohort_label ${fs}
             mkdir ${infer_exp}/qmf
         fi
         ${python} -m espnet2.bin.launch \
@@ -542,10 +547,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             ${python} -m espnet2.bin.spk_embed_extract \
                 --use_preprocessor true \
                 --output_dir ${infer_exp}/qmf \
-                --data_path_and_name_and_type ${_spk_train_dir}/qmf_train.scp,speech,sound \
-                --data_path_and_name_and_type ${_spk_train_dir}/qmf_train2.scp,speech2,sound \
-                --data_path_and_name_and_type ${_spk_train_dir}/qmf_train_label,spk_labels,text \
-                --shape_file ${_spk_train_dir}/qmf_train_speech_shape \
+                --data_path_and_name_and_type ${cohort_dir}/qmf_train.scp,speech,sound \
+                --data_path_and_name_and_type ${cohort_dir}/qmf_train2.scp,speech2,sound \
+                --data_path_and_name_and_type ${cohort_dir}/qmf_train_label,spk_labels,text \
+                --shape_file ${cohort_dir}/qmf_train_speech_shape \
                 --fold_length ${fold_length} \
                 --config ${inference_config} \
                 --spk_train_config "${spk_exp}/config.yaml" \
@@ -559,7 +564,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
-    _spk_train_dir="${data_feats}/${train_set}"
+    cohort_dir="${data_feats}/${cohort_set}"
 
     log "Stage 7-a: get scores for the test set."
     ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
@@ -567,27 +572,27 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
     if "$score_norm"; then
         log "Stage 7-b: apply score normalization."
-        ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
+        ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${cohort_set}_embeddings.npz ${cohort_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
         scorefile_cur=${infer_exp}/${test_sets}_scorenormed_scores
     fi
 
     if "$qmf_func"; then
         log "Stage 7-c: apply QMF calibration."
         log "get raw scores for the qmf train set."
-        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/qmf/${train_set}_embeddings.npz ${_spk_train_dir}/qmf_train_label ${infer_exp}/qmf/${train_set}_raw_trial_scores
+        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/qmf/${train_set}_embeddings.npz ${cohort_dir}/qmf_train_label ${infer_exp}/qmf/${cohort_set}_raw_trial_scores
 
         if "$score_norm"; then
             log "normalize qmf train set scores."
-            ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${train_set}_raw_trial_scores ${infer_exp}/qmf/${train_set}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/qmf/${train_set}_scorenormed_scores ${inference_config} ${ngpu}
-            qmf_train_scores=${infer_exp}/qmf/${train_set}_scorenormed_scores
+            ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${cohort_set}_raw_trial_scores ${infer_exp}/qmf/${cohort_set}_embeddings.npz ${infer_exp}/${cohort_set}_embeddings.npz ${cohort_dir}/utt2spk ${infer_exp}/qmf/${cohort_set}_scorenormed_scores ${inference_config} ${ngpu}
+            qmf_train_scores=${infer_exp}/qmf/${cohort_set}_scorenormed_scores
             test_scores=${infer_exp}/${test_sets}_scorenormed_scores
         else
-            qmf_train_scores=${infer_exp}/qmf/${train_set}_raw_trial_scores
+            qmf_train_scores=${infer_exp}/qmf/${cohort_set}_raw_trial_scores
             test_scores=${infer_exp}/${test_sets}_raw_trial_scores
         fi
 
         log "Apply qmf function."
-        ${python} pyscripts/utils/spk_apply_qmf_func.py ${_spk_train_dir}/qmf_train.scp ${_spk_train_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${train_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
+        ${python} pyscripts/utils/spk_apply_qmf_func.py ${cohort_dir}/qmf_train.scp ${cohort_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${cohort_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
     fi
 
 fi

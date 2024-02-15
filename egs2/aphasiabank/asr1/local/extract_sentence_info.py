@@ -3,6 +3,7 @@ Create text and utt2spk
 
 Based on https://github.com/monirome/AphasiaBank/blob/main/clean_transcriptions.ipynb
 """
+
 import os
 import re
 from argparse import ArgumentParser
