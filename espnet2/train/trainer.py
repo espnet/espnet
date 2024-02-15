@@ -39,11 +39,6 @@ from espnet2.utils.kwargs2args import kwargs2args
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
-import time 
-import os
-
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
 autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
@@ -230,8 +225,6 @@ class Trainer:
                 dp_model = fairscale.nn.data_parallel.ShardedDataParallel(
                     module=model,
                     sharded_optimizer=optimizers,
-                    reduce_fp16=True,
-                    reduce_buffer_size=0, #disable for single node
                 )
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
@@ -312,7 +305,7 @@ class Trainer:
                 )
 
 
-            # 5. Save and log the model and update the link to the best model
+            # Save the model early in case validation has issues
             torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
             torch.cuda.empty_cache()
             
@@ -358,10 +351,7 @@ class Trainer:
                     reporter.matplotlib_plot(output_dir / "images")
                 if train_summary_writer is not None:
                     reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
-                    try:
-                        reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
-                    except:
-                        pass
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
 
@@ -523,19 +513,12 @@ class Trainer:
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
-        pid = os.getpid()
-        start_time = time.perf_counter()
+
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
             assert isinstance(batch, dict), type(batch)
 
-            '''
-            if distributed:
-                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-                if iterator_stop > 0:
-                    break
-            '''
             batch["utt_id"] = utt_id
 
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
@@ -583,10 +566,8 @@ class Trainer:
                 **autocast_args,
             ):
                 with reporter.measure_time("forward_time"):
-                    start = time.time()
                     retval = model(**batch)
-                    end = time.time()
-                    #print(f"Process {pid} on {torch.distributed.get_rank()} is done wiht forward after {end-start} seconds!", flush=True)
+
                     # Note(kamo):
                     # Supporting two patterns for the returned value from the model
                     #   a. dict type
@@ -629,10 +610,7 @@ class Trainer:
                     loss = (loss * weight.type(loss.dtype)).sum()
 
                     # if distributed, this method can also apply all_reduce()
-                    #start = time.time()
                     stats, weight = recursive_average(stats, weight, distributed)
-                    #end = time.time()
-                    #print(f"Process {pid} on {torch.distributed.get_rank()} is done wiht average after {end-start} seconds!", flush=True)
                     
                     # Now weight is summation over all workers
                     loss /= weight
@@ -641,7 +619,6 @@ class Trainer:
                     # automatically normalizes the gradient by world_size.
                     loss *= torch.distributed.get_world_size()
                 
-                #loss *= torch.distributed.get_world_size()
                 loss /= accum_grad
             #if distributed_option.dist_rank == 0:
             reporter.register(stats, weight)
@@ -653,7 +630,6 @@ class Trainer:
                     # Backward passes under autocast are not recommended.
                     # Backward ops run in the same dtype autocast chose
                     # for corresponding forward ops.
-                    start = time.time()
                     try:
                         scaler.scale(loss).backward()
                     except:
@@ -673,8 +649,6 @@ class Trainer:
                             loss = retval["loss"]
                         torch.cuda.empty_cache()
                         scaler.scale(loss).backward()
-                    end = time.time()
-                    #print(f"Process {pid} on {torch.distributed.get_rank()} is done with backwards after {end-start} seconds!", flush=True)
                 else:
                     loss.backward()
 
@@ -781,8 +755,6 @@ class Trainer:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
                 if use_wandb:
                     reporter.wandb_log()
-            if iiter % 2000 == 0:
-                torch.cuda.empty_cache()
 
         else:
             if distributed:
