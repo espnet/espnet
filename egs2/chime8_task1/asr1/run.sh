@@ -218,8 +218,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --dasr-root ${chime8_root} --train-set ${asr_train_set}"
-  data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
-  data_opts+=" --decode-train ${run_on}"
+  data_opts+=" --manifests-root $manifests_root"
+  data_opts+=" --gss-dump $gss_dump_root --decode-train $run_on --gss-dsets ${gss_dsets}"
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"

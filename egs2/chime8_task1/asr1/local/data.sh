@@ -13,7 +13,7 @@ dasr_root=
 train_set=
 gss_dsets=
 manifests_root=
-gss_dump_root=
+gss_dump=
 augm_num_data_reps=4
 decode_train="dev"
 foreground_snrs="20:10:15:5:0"
@@ -138,7 +138,7 @@ if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
       # for each dataset get the name and part (dev or train)
       dset_name="$(cut -d'_' -f1 <<<${dset})"
       dset_part="$(cut -d'_' -f2 <<<${dset})"
-      python local/gss2lhotse.py -i ${gss_dump_root}/${dset_name}/${dset_part} \
+      python local/gss2lhotse.py -i ${gss_dump}/${dset_name}/${dset_part} \
         -o $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss
 
       lhotse kaldi export $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_recordings.jsonl.gz  \
