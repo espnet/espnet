@@ -26,78 +26,78 @@ espnet2.spk.__init__
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.identity_encoder:
+.. _espnet2.spk.loss.abs_loss:
 
-espnet2.spk.encoder.identity_encoder
-------------------------------------
+espnet2.spk.loss.abs_loss
+-------------------------
 
-.. automodule:: espnet2.spk.encoder.identity_encoder
+.. automodule:: espnet2.spk.loss.abs_loss
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.rawnet3_encoder:
+.. _espnet2.spk.loss.aamsoftmax:
 
-espnet2.spk.encoder.rawnet3_encoder
------------------------------------
+espnet2.spk.loss.aamsoftmax
+---------------------------
 
-.. automodule:: espnet2.spk.encoder.rawnet3_encoder
+.. automodule:: espnet2.spk.loss.aamsoftmax
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.xvector_encoder:
+.. _espnet2.spk.loss.__init__:
 
-espnet2.spk.encoder.xvector_encoder
------------------------------------
+espnet2.spk.loss.__init__
+-------------------------
 
-.. automodule:: espnet2.spk.encoder.xvector_encoder
+.. automodule:: espnet2.spk.loss.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.ecapa_tdnn_encoder:
+.. _espnet2.spk.loss.aamsoftmax_subcenter_intertopk:
 
-espnet2.spk.encoder.ecapa_tdnn_encoder
---------------------------------------
+espnet2.spk.loss.aamsoftmax_subcenter_intertopk
+-----------------------------------------------
 
-.. automodule:: espnet2.spk.encoder.ecapa_tdnn_encoder
+.. automodule:: espnet2.spk.loss.aamsoftmax_subcenter_intertopk
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.ska_tdnn_encoder:
+.. _espnet2.spk.layers.ecapa_block:
 
-espnet2.spk.encoder.ska_tdnn_encoder
-------------------------------------
+espnet2.spk.layers.ecapa_block
+------------------------------
 
-.. automodule:: espnet2.spk.encoder.ska_tdnn_encoder
+.. automodule:: espnet2.spk.layers.ecapa_block
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.conformer_encoder:
+.. _espnet2.spk.layers.__init__:
 
-espnet2.spk.encoder.conformer_encoder
--------------------------------------
+espnet2.spk.layers.__init__
+---------------------------
 
-.. automodule:: espnet2.spk.encoder.conformer_encoder
+.. automodule:: espnet2.spk.layers.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.encoder.__init__:
+.. _espnet2.spk.layers.rawnet_block:
 
-espnet2.spk.encoder.__init__
-----------------------------
+espnet2.spk.layers.rawnet_block
+-------------------------------
 
-.. automodule:: espnet2.spk.encoder.__init__
+.. automodule:: espnet2.spk.layers.rawnet_block
     :members:
     :undoc-members:
     :show-inheritance:
@@ -136,6 +136,17 @@ espnet2.spk.pooling.abs_pooling
     :show-inheritance:
 
 
+.. _espnet2.spk.pooling.__init__:
+
+espnet2.spk.pooling.__init__
+----------------------------
+
+.. automodule:: espnet2.spk.pooling.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.spk.pooling.mean_pooling:
 
 espnet2.spk.pooling.mean_pooling
@@ -147,12 +158,23 @@ espnet2.spk.pooling.mean_pooling
     :show-inheritance:
 
 
-.. _espnet2.spk.pooling.__init__:
+.. _espnet2.spk.projector.ska_tdnn_projector:
 
-espnet2.spk.pooling.__init__
-----------------------------
+espnet2.spk.projector.ska_tdnn_projector
+----------------------------------------
 
-.. automodule:: espnet2.spk.pooling.__init__
+.. automodule:: espnet2.spk.projector.ska_tdnn_projector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.projector.abs_projector:
+
+espnet2.spk.projector.abs_projector
+-----------------------------------
+
+.. automodule:: espnet2.spk.projector.abs_projector
     :members:
     :undoc-members:
     :show-inheritance:
@@ -180,28 +202,6 @@ espnet2.spk.projector.xvector_projector
     :show-inheritance:
 
 
-.. _espnet2.spk.projector.abs_projector:
-
-espnet2.spk.projector.abs_projector
------------------------------------
-
-.. automodule:: espnet2.spk.projector.abs_projector
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.spk.projector.ska_tdnn_projector:
-
-espnet2.spk.projector.ska_tdnn_projector
-----------------------------------------
-
-.. automodule:: espnet2.spk.projector.ska_tdnn_projector
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.spk.projector.__init__:
 
 espnet2.spk.projector.__init__
@@ -213,78 +213,78 @@ espnet2.spk.projector.__init__
     :show-inheritance:
 
 
-.. _espnet2.spk.loss.aamsoftmax:
+.. _espnet2.spk.encoder.identity_encoder:
 
-espnet2.spk.loss.aamsoftmax
----------------------------
+espnet2.spk.encoder.identity_encoder
+------------------------------------
 
-.. automodule:: espnet2.spk.loss.aamsoftmax
+.. automodule:: espnet2.spk.encoder.identity_encoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.loss.aamsoftmax_subcenter_intertopk:
+.. _espnet2.spk.encoder.conformer_encoder:
 
-espnet2.spk.loss.aamsoftmax_subcenter_intertopk
------------------------------------------------
+espnet2.spk.encoder.conformer_encoder
+-------------------------------------
 
-.. automodule:: espnet2.spk.loss.aamsoftmax_subcenter_intertopk
+.. automodule:: espnet2.spk.encoder.conformer_encoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.loss.abs_loss:
+.. _espnet2.spk.encoder.ska_tdnn_encoder:
 
-espnet2.spk.loss.abs_loss
--------------------------
+espnet2.spk.encoder.ska_tdnn_encoder
+------------------------------------
 
-.. automodule:: espnet2.spk.loss.abs_loss
+.. automodule:: espnet2.spk.encoder.ska_tdnn_encoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.loss.__init__:
+.. _espnet2.spk.encoder.ecapa_tdnn_encoder:
 
-espnet2.spk.loss.__init__
--------------------------
+espnet2.spk.encoder.ecapa_tdnn_encoder
+--------------------------------------
 
-.. automodule:: espnet2.spk.loss.__init__
+.. automodule:: espnet2.spk.encoder.ecapa_tdnn_encoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.layers.ecapa_block:
+.. _espnet2.spk.encoder.rawnet3_encoder:
 
-espnet2.spk.layers.ecapa_block
-------------------------------
+espnet2.spk.encoder.rawnet3_encoder
+-----------------------------------
 
-.. automodule:: espnet2.spk.layers.ecapa_block
+.. automodule:: espnet2.spk.encoder.rawnet3_encoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.layers.rawnet_block:
+.. _espnet2.spk.encoder.__init__:
 
-espnet2.spk.layers.rawnet_block
--------------------------------
+espnet2.spk.encoder.__init__
+----------------------------
 
-.. automodule:: espnet2.spk.layers.rawnet_block
+.. automodule:: espnet2.spk.encoder.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.spk.layers.__init__:
+.. _espnet2.spk.encoder.xvector_encoder:
 
-espnet2.spk.layers.__init__
----------------------------
+espnet2.spk.encoder.xvector_encoder
+-----------------------------------
 
-.. automodule:: espnet2.spk.layers.__init__
+.. automodule:: espnet2.spk.encoder.xvector_encoder
     :members:
     :undoc-members:
     :show-inheritance:

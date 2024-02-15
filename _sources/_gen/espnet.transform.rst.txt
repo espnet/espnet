@@ -15,23 +15,12 @@ espnet.transform.transformation
     :show-inheritance:
 
 
-.. _espnet.transform.wpe:
+.. _espnet.transform.channel_selector:
 
-espnet.transform.wpe
---------------------
+espnet.transform.channel_selector
+---------------------------------
 
-.. automodule:: espnet.transform.wpe
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.transform.transform_interface:
-
-espnet.transform.transform_interface
-------------------------------------
-
-.. automodule:: espnet.transform.transform_interface
+.. automodule:: espnet.transform.channel_selector
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,23 +37,23 @@ espnet.transform.cmvn
     :show-inheritance:
 
 
-.. _espnet.transform.functional:
+.. _espnet.transform.spectrogram:
 
-espnet.transform.functional
----------------------------
+espnet.transform.spectrogram
+----------------------------
 
-.. automodule:: espnet.transform.functional
+.. automodule:: espnet.transform.spectrogram
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.transform.spec_augment:
+.. _espnet.transform.transform_interface:
 
-espnet.transform.spec_augment
------------------------------
+espnet.transform.transform_interface
+------------------------------------
 
-.. automodule:: espnet.transform.spec_augment
+.. automodule:: espnet.transform.transform_interface
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,12 +70,12 @@ espnet.transform.perturb
     :show-inheritance:
 
 
-.. _espnet.transform.__init__:
+.. _espnet.transform.spec_augment:
 
-espnet.transform.__init__
--------------------------
+espnet.transform.spec_augment
+-----------------------------
 
-.. automodule:: espnet.transform.__init__
+.. automodule:: espnet.transform.spec_augment
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,23 +92,34 @@ espnet.transform.add_deltas
     :show-inheritance:
 
 
-.. _espnet.transform.channel_selector:
+.. _espnet.transform.__init__:
 
-espnet.transform.channel_selector
----------------------------------
+espnet.transform.__init__
+-------------------------
 
-.. automodule:: espnet.transform.channel_selector
+.. automodule:: espnet.transform.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.transform.spectrogram:
+.. _espnet.transform.functional:
 
-espnet.transform.spectrogram
-----------------------------
+espnet.transform.functional
+---------------------------
 
-.. automodule:: espnet.transform.spectrogram
+.. automodule:: espnet.transform.functional
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.transform.wpe:
+
+espnet.transform.wpe
+--------------------
+
+.. automodule:: espnet.transform.wpe
     :members:
     :undoc-members:
     :show-inheritance:

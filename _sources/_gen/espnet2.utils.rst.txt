@@ -15,34 +15,23 @@ espnet2.utils.nested_dict_action
     :show-inheritance:
 
 
+.. _espnet2.utils.sized_dict:
+
+espnet2.utils.sized_dict
+------------------------
+
+.. automodule:: espnet2.utils.sized_dict
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.utils.kwargs2args:
 
 espnet2.utils.kwargs2args
 -------------------------
 
 .. automodule:: espnet2.utils.kwargs2args
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.utils.config_argparse:
-
-espnet2.utils.config_argparse
------------------------------
-
-.. automodule:: espnet2.utils.config_argparse
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.utils.yaml_no_alias_safe_dump:
-
-espnet2.utils.yaml_no_alias_safe_dump
--------------------------------------
-
-.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,23 +59,34 @@ espnet2.utils.griffin_lim
     :show-inheritance:
 
 
+.. _espnet2.utils.config_argparse:
+
+espnet2.utils.config_argparse
+-----------------------------
+
+.. automodule:: espnet2.utils.config_argparse
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.utils.yaml_no_alias_safe_dump:
+
+espnet2.utils.yaml_no_alias_safe_dump
+-------------------------------------
+
+.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.utils.eer:
 
 espnet2.utils.eer
 -----------------
 
 .. automodule:: espnet2.utils.eer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.utils.types:
-
-espnet2.utils.types
--------------------
-
-.. automodule:: espnet2.utils.types
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,12 +114,12 @@ espnet2.utils.__init__
     :show-inheritance:
 
 
-.. _espnet2.utils.sized_dict:
+.. _espnet2.utils.types:
 
-espnet2.utils.sized_dict
-------------------------
+espnet2.utils.types
+-------------------
 
-.. automodule:: espnet2.utils.sized_dict
+.. automodule:: espnet2.utils.types
     :members:
     :undoc-members:
     :show-inheritance:
