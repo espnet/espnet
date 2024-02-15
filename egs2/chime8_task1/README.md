@@ -11,10 +11,9 @@
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
 
-📌 If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
+If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
 We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` channel there or contact us directly.<br>
-
-- We also have a [Troubleshooting page](./HELP.md).
+We also have a [Troubleshooting page](./HELP.md).
 
 
 ## DASR Data Download and Generation
