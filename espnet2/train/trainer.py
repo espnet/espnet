@@ -658,7 +658,7 @@ class Trainer:
                         scaler.scale(loss).backward()
                     except:
                         torch.cuda.synchronize()
-                        logging.warning("OOM in backwards. Retrying after emptying cache.")
+                        print("OOM in backwards. Retrying after emptying cache.", flush=True)
                         for iopt, optimizer in enumerate(optimizers):
                             if optim_idx is not None and iopt != optim_idx:
                                 continue
