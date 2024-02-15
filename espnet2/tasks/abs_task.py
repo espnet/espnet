@@ -788,7 +788,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--validate_each_iter_factory",
             type=str2bool,
-            default=False,
+            default=True,
             help="Whether to validate after looping through all dataset shards or after each shard",
         )
 

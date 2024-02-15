@@ -6,12 +6,18 @@
 
 """Multi-Head Attention layer definition."""
 
+import logging
 import math
 
 import torch
-from flash_attn import flash_attn_func, flash_attn_varlen_func
-from flash_attn.bert_padding import pad_input, unpad_input
 from torch import nn
+
+try:
+    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn.bert_padding import pad_input, unpad_input
+except:
+    logging.info("Failed to import Flash Attention, using ESPnet default.")
+
 
 
 class MultiHeadedAttention(nn.Module):
