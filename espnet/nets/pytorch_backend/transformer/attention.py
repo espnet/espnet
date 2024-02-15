@@ -12,6 +12,7 @@ import torch
 from torch import nn
 
 from flash_attn import flash_attn_func, flash_attn_varlen_func
+from flash_attn.bert_padding import unpad_input, pad_input
 
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer.
@@ -29,7 +30,7 @@ class MultiHeadedAttention(nn.Module):
 
     def __init__(
         self, n_head, n_feat, dropout_rate,
-        qk_norm=False, use_flash_attn=True, causal=False, cross_attn=False,
+        qk_norm=False, use_flash_attn=False, causal=False, cross_attn=False,
     ):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
@@ -98,13 +99,13 @@ class MultiHeadedAttention(nn.Module):
             mask = mask.unsqueeze(1).eq(0)  # (batch, 1, *, time2)
             min_value = torch.finfo(scores.dtype).min
             scores = scores.masked_fill(mask, min_value)
-            self.attn = torch.softmax(scores, dim=-1).masked_fill(
+            attn = torch.softmax(scores, dim=-1).masked_fill(
                 mask, 0.0
             )  # (batch, head, time1, time2)
         else:
-            self.attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
+            attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
 
-        p_attn = self.dropout(self.attn)
+        p_attn = self.dropout(attn)
         x = torch.matmul(p_attn, value)  # (batch, head, time1, d_k)
         x = (
             x.transpose(1, 2).contiguous().view(n_batch, -1, self.h * self.d_k)
@@ -178,8 +179,6 @@ class MultiHeadedAttention(nn.Module):
                 if self.training:
                     import logging; logging.warning(f"Flash attn has exception: {e}")
                 pass
-
-        # import logging; logging.warning("ESPnet attention")
 
         q, k, v = self.forward_qkv(query, key, value)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)

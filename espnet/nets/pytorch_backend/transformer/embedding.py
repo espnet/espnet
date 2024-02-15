@@ -385,7 +385,9 @@ class StreamPositionalEncoding(torch.nn.Module):
         return self.dropout(x)
 
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
-    """Positional embedding which is placed at the beginning of Transformer.
+    """Convolutional positional embedding which is placed at the beginning of Transformer.
+       Used in wav2vec2/HuBERT SSL models. 
+       https://arxiv.org/abs/1904.11660
 
     Args:
         embed_dim (int): Feature dimension of the input Tensor.
@@ -397,6 +399,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         self,
         embed_dim: int,
         droput: float,
+        max_len: int = 5000,
         kernel_size: int = 128,
         groups: int = 16,
     ):
