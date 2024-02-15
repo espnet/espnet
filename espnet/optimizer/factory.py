@@ -1,4 +1,5 @@
 """Import optimizer class dynamically."""
+
 import argparse
 
 from espnet.utils.dynamic_import import dynamic_import

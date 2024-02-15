@@ -14,6 +14,9 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
+from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
@@ -59,7 +62,9 @@ from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
+from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
@@ -74,7 +79,7 @@ from espnet2.train.preprocessor import (
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
@@ -105,6 +110,8 @@ separator_choices = ClassChoices(
         tcn_nomask=TCNSeparatorNomask,
         ineube=iNeuBe,
         tfgridnet=TFGridNet,
+        tfgridnetv2=TFGridNetV2,
+        uses=USESSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -168,6 +175,15 @@ preprocessor_choices = ClassChoices(
     default=None,
 )
 
+# Deffusion-based model related choices
+diffusion_choices = ClassChoices(
+    name="diffusion_model",
+    classes=dict(sgmse=ScoreModel),
+    type_check=AbsDiffusion,
+    default=None,
+)
+
+
 MAX_REFERENCE_NUM = 100
 
 
@@ -186,6 +202,8 @@ class EnhancementTask(AbsTask):
         mask_module_choices,
         # --preprocessor and --preprocessor_conf
         preprocessor_choices,
+        # --diffusion_model and --diffusion_model_conf
+        diffusion_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -328,6 +346,28 @@ class EnhancementTask(AbsTask):
             help="The set of all possible categories in the dataset. Used to add the "
             "category information to each sample",
         )
+        group.add_argument(
+            "--speech_segment",
+            type=int_or_none,
+            default=None,
+            help="Truncate the audios to the specified length (in samples) if not None",
+        )
+        group.add_argument(
+            "--avoid_allzero_segment",
+            type=str2bool,
+            default=True,
+            help="Only used when --speech_segment is specified. If True, make sure "
+            "all truncated segments are not all-zero",
+        )
+        group.add_argument(
+            "--flexible_numspk",
+            type=str2bool,
+            default=False,
+            help="Whether to load variable numbers of speakers in each sample. "
+            "In this case, only the first-speaker files such as 'spk1.scp' and "
+            "'dereverb1.scp' are used, which are expected to have multiple columns. "
+            "Other numbered files such as 'spk2.scp' and 'dereverb2.scp' are ignored.",
+        )
 
         group.add_argument(
             "--dynamic_mixing",
@@ -354,9 +394,7 @@ class EnhancementTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -416,6 +454,9 @@ class EnhancementTask(AbsTask):
                     force_single_channel=getattr(args, "force_single_channel", False),
                     channel_reordering=getattr(args, "channel_reordering", False),
                     categories=getattr(args, "categories", None),
+                    speech_segment=getattr(args, "speech_segment", None),
+                    avoid_allzero_segment=getattr(args, "avoid_allzero_segment", True),
+                    flexible_numspk=getattr(args, "flexible_numspk", False),
                 )
                 kwargs.update(args.preprocessor_conf)
                 retval = preprocessor_choices.get_class(args.preprocessor)(
@@ -463,6 +504,7 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+
         if args.separator.endswith("nomask"):
             mask_module = mask_module_choices.get_class(args.mask_module)(
                 input_dim=encoder.output_dim,
@@ -485,14 +527,27 @@ class EnhancementTask(AbsTask):
                 loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
-        model = ESPnetEnhancementModel(
-            encoder=encoder,
-            separator=separator,
-            decoder=decoder,
-            loss_wrappers=loss_wrappers,
-            mask_module=mask_module,
-            **args.model_conf,
-        )
+        if getattr(args, "diffusion_model", None) is not None:
+            diffusion_model = diffusion_choices.get_class(args.diffusion_model)(
+                **args.diffusion_model_conf
+            )
+            # build diffusion model
+            model = ESPnetDiffusionModel(
+                encoder=encoder,
+                diffusion=diffusion_model,
+                decoder=decoder,
+                **args.model_conf,
+            )
+
+        else:
+            model = ESPnetEnhancementModel(
+                encoder=encoder,
+                separator=separator,
+                decoder=decoder,
+                loss_wrappers=loss_wrappers,
+                mask_module=mask_module,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize

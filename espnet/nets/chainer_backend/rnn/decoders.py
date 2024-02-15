@@ -64,9 +64,11 @@ class Decoder(chainer.Chain):
                 setattr(
                     self,
                     "rnn%d" % i,
-                    L.StatelessLSTM(dunits, dunits)
-                    if dtype == "lstm"
-                    else L.StatelessGRU(dunits, dunits),
+                    (
+                        L.StatelessLSTM(dunits, dunits)
+                        if dtype == "lstm"
+                        else L.StatelessGRU(dunits, dunits)
+                    ),
                 )
             self.output = L.Linear(dunits, odim)
         self.dtype = dtype

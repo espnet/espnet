@@ -47,6 +47,7 @@ class BeamSearch(torch.nn.Module):
         pre_beam_score_key: str = None,
         return_hs: bool = False,
         hyp_primer: List[int] = None,
+        normalize_length: bool = False,
     ):
         """Initialize beam search.
 
@@ -64,6 +65,9 @@ class BeamSearch(torch.nn.Module):
             pre_beam_score_key (str): key of scores to perform pre-beam search
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
+            return_hs (bool): Whether to return hidden intermediates
+            normalize_length (bool): If true, select the best ended hypotheses
+                based on length-normalized scores rather than the accumulated scores
 
         """
         super().__init__()
@@ -114,6 +118,7 @@ class BeamSearch(torch.nn.Module):
             and len(self.part_scorers) > 0
         )
         self.return_hs = return_hs
+        self.normalize_length = normalize_length
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
@@ -394,6 +399,8 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
+                If minlenratio<0.0, its absolute value is interpreted
+                as a constant min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
                 Sequential attn computes attn first on pre_x then on x,
                 thereby attending to two sources in sequence.
@@ -413,7 +420,11 @@ class BeamSearch(torch.nn.Module):
             maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * inp.size(0)))
-        minlen = int(minlenratio * inp.size(0))
+
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * inp.size(0))
         logger.info("decoder input length: " + str(inp.shape[0]))
         logger.info("max output length: " + str(maxlen))
         logger.info("min output length: " + str(minlen))
@@ -425,7 +436,9 @@ class BeamSearch(torch.nn.Module):
             logger.debug("position " + str(i))
             best = self.search(running_hyps, x, pre_x=pre_x)
             # post process of one iteration
-            running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
+            running_hyps = self.post_process(
+                i, maxlen, minlen, maxlenratio, best, ended_hyps
+            )
             # end detection
             if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
                 logger.info(f"end detected at {i}")
@@ -436,7 +449,14 @@ class BeamSearch(torch.nn.Module):
             else:
                 logger.debug(f"remained hypotheses: {len(running_hyps)}")
 
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        if self.normalize_length:
+            # Note (Jinchuan): -1 since hyp starts with <sos> and
+            # initially has score of 0.0
+            nbest_hyps = sorted(
+                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+            )
+        else:
+            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
 
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
@@ -481,6 +501,7 @@ class BeamSearch(torch.nn.Module):
         self,
         i: int,
         maxlen: int,
+        minlen: int,
         maxlenratio: float,
         running_hyps: List[Hypothesis],
         ended_hyps: List[Hypothesis],
@@ -522,7 +543,8 @@ class BeamSearch(torch.nn.Module):
                     s = d.final_score(hyp.states[k])
                     hyp.scores[k] += s
                     hyp = hyp._replace(score=hyp.score + self.weights[k] * s)
-                ended_hyps.append(hyp)
+                if i >= minlen:
+                    ended_hyps.append(hyp)
             else:
                 remained_hyps.append(hyp)
         return remained_hyps

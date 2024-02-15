@@ -422,9 +422,11 @@ class EBranchformerEncoder(AbsEncoder):
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 cgmlp_layer(*cgmlp_layer_args),
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
-                positionwise_layer(*positionwise_layer_args)
-                if use_ffn and macaron_ffn
-                else None,
+                (
+                    positionwise_layer(*positionwise_layer_args)
+                    if use_ffn and macaron_ffn
+                    else None
+                ),
                 dropout_rate,
                 merge_conv_kernel,
                 downsample_attn

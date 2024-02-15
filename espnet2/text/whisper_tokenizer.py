@@ -1,4 +1,5 @@
 import copy
+import os
 from typing import Iterable, List
 
 from typeguard import check_argument_types
@@ -31,6 +32,7 @@ LANGUAGES_CODE_MAPPING = {
     "zh-CN": "chinese",
     "zh-HK": "chinese",
 }
+dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
@@ -38,8 +40,10 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         self,
         model_type: str,
         language: str = "en",
+        task: str = "transcribe",
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
+        added_tokens_txt: str = None,
     ):
         assert check_argument_types()
 
@@ -57,14 +61,24 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.language = LANGUAGES_CODE_MAPPING.get(language)
         if self.language is None:
-            raise ValueError("language unsupported for Whisper model")
+            raise ValueError(f"language: {self.language} unsupported for Whisper model")
+        self.task = task
+        if self.task not in ["transcribe", "translate"]:
+            raise ValueError(f"task: {self.task} unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=self.language
+                multilingual=True, language=self.language, task=self.task
             )
+            if added_tokens_txt is not None:
+                _added_tokens = []
+                with open(added_tokens_txt) as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        _added_tokens.append(line.rstrip())
+                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 

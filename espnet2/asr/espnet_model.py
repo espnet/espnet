@@ -419,14 +419,18 @@ class ESPnetASRModel(AbsESPnetModel):
         # -> encoder_out: (Batch, Length2, Dim2)
         if self.global_step <= self.freeze_encoder_updates:
             with torch.no_grad():
-                if self.encoder.interctc_use_conditioning:
+                if self.encoder.interctc_use_conditioning or getattr(
+                    self.encoder, "ctc_trim", False
+                ):
                     encoder_out, encoder_out_lens, _ = self.encoder(
                         feats, feats_lengths, ctc=self.ctc, masks=pad_masks
                     )
                 else:
                     encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
         else:
-            if self.encoder.interctc_use_conditioning:
+            if self.encoder.interctc_use_conditioning or getattr(
+                self.encoder, "ctc_trim", False
+            ):
                 encoder_out, encoder_out_lens, _ = self.encoder(
                     feats, feats_lengths, ctc=self.ctc, masks=pad_masks
                 )

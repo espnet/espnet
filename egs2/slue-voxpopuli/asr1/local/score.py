@@ -70,18 +70,19 @@ def process_line(line, label_F1=False):
     label_lst = []
     line = line.replace("  ", " ")
     wrd_lst = line.split(" ")
-    phrase_lst, is_entity, num_illegal_assigments = [], False, 0
+    phrase_lst, is_entity, num_illegal_assignments = [], False, 0
     for idx, wrd in enumerate(wrd_lst):
         if wrd in combined_labels:
             if is_entity:
                 phrase_lst = []
-                num_illegal_assigments += 1
+                num_illegal_assignments += 1
             is_entity = True
             entity_tag = wrd
         elif wrd == "SEP":
             if is_entity:
                 if len(phrase_lst) > 0:
-                    phrase_lst.remove("FILL")
+                    if "FILL" in phrase_lst:
+                        phrase_lst.remove("FILL")
                     if label_F1 is True:
                         label_lst.append((entity_tag, "phrase"))
                     else:
@@ -91,7 +92,7 @@ def process_line(line, label_F1=False):
                 phrase_lst = []
                 is_entity = False
             else:
-                num_illegal_assigments += 1
+                num_illegal_assignments += 1
 
         else:
             if is_entity:
@@ -143,7 +144,7 @@ def get_classification_result(hyp_file, ref_file, hyp_asr_file, ref_asr_file):
         ref_label_list.append(process_line(ref_line, label_F1=True))
 
     # NER F1 score
-    metrics = eval_utils.get_ner_scores(hyp_list, ref_list)
+    metrics = eval_utils.get_ner_scores(ref_list, hyp_list)
 
     # Write ASR text for computing WER later
     for ln in hyp_asr_list:
@@ -152,7 +153,7 @@ def get_classification_result(hyp_file, ref_file, hyp_asr_file, ref_asr_file):
         ref_asr_file.write(ln + "\n")
 
     # NER label-F1 score
-    label_metrics = eval_utils.get_ner_scores(hyp_label_list, ref_label_list)
+    label_metrics = eval_utils.get_ner_scores(ref_label_list, hyp_label_list)
 
     return metrics, label_metrics
 

@@ -14,7 +14,7 @@ gpu_inference=true
 
 # Config
 duration=10min # duration set ("10min" or "1h")
-only_lid=true # whether to perform only the LID task
+only_lid=false # whether to perform only the LID task
 lid=false # whether to add joint LID task in multiligual ASR
 
 # Model/Inference Configs

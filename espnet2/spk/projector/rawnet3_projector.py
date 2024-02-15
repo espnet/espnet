@@ -4,7 +4,7 @@ from espnet2.spk.projector.abs_projector import AbsProjector
 
 
 class RawNet3Projector(AbsProjector):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size=192):
         super().__init__()
         self._output_size = output_size
 

@@ -133,7 +133,11 @@ class ESPnetSTModel(AbsESPnetModel):
             from warprnnt_pytorch import RNNTLoss
 
             self.st_joint_network = st_joint_network
-            self.blank_id = token_list.index(tgt_sym_blank)
+            if tgt_sym_blank in token_list:
+                self.blank_id = token_list.index(tgt_sym_blank)
+            else:
+                # OpenAI Whisper model doesn't <blank> token
+                self.blank_id = 0
             self.st_criterion_transducer = RNNTLoss(
                 blank=self.blank_id,
                 fastemit_lambda=0.0,
@@ -441,15 +445,17 @@ class ESPnetSTModel(AbsESPnetModel):
             loss=loss.detach(),
             loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
-            loss_st_ctc=loss_st_ctc.detach()
-            if type(loss_st_ctc) is not float
-            else loss_st_ctc,
-            loss_st_trans=loss_st_trans.detach()
-            if type(loss_st_trans) is not float
-            else loss_st_trans,
-            loss_st_att=loss_st_att.detach()
-            if type(loss_st_att) is not float
-            else loss_st_att,
+            loss_st_ctc=(
+                loss_st_ctc.detach() if type(loss_st_ctc) is not float else loss_st_ctc
+            ),
+            loss_st_trans=(
+                loss_st_trans.detach()
+                if type(loss_st_trans) is not float
+                else loss_st_trans
+            ),
+            loss_st_att=(
+                loss_st_att.detach() if type(loss_st_att) is not float else loss_st_att
+            ),
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
             acc_mt=acc_mt_att,

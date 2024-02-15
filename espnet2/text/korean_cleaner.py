@@ -56,9 +56,11 @@ class KoreanCleaner:
         }
         new_text = re.sub("[a-z]+", lambda x: str.upper(x.group()), text)
         new_text = "".join(
-            upper_alphabet_to_kor[char]
-            if char in upper_alphabet_to_kor.keys()
-            else char
+            (
+                upper_alphabet_to_kor[char]
+                if char in upper_alphabet_to_kor.keys()
+                else char
+            )
             for char in new_text
         )
 

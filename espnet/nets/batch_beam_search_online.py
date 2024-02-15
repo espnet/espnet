@@ -99,13 +99,18 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.prev_incremental = None
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
+        self,
+        hyp: BatchHypothesis,
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for
+                sequential attention (T, D)
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -130,9 +135,20 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 self.running_hyps.states["decoder"] = [
                     None for _ in self.running_hyps.states["decoder"]
                 ]
-                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
             else:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+                temp_yseq = hyp.yseq
+
+            if "decoder" in k and self.return_hs:
+                (scores[k], hs), states[k] = d.batch_score(
+                    temp_yseq, hyp.states[k], x, return_hs=self.return_hs
+                )
+            elif "decoder" in k and pre_x is not None:
+                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x, pre_x)
+            else:
+                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
+
+        if self.return_hs:
+            return hs, scores, states
         return scores, states
 
     def forward(
@@ -167,6 +183,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             maxlen = x.shape[0]
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
+
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * x.size(0))
 
         # set block_size == 0 for recomputing
         if self.block_size == 0:
@@ -320,7 +341,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                         h, block_is_final, maxlen, maxlenratio
                     )
                 else:
-                    ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+                    ret = self.process_one_block(
+                        h, block_is_final, maxlen, minlen, maxlenratio
+                    )
                 logging.debug("Finished processing block: %d", self.processed_block)
                 self.processed_block += 1
 
@@ -365,7 +388,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.t = len(h)
         return hyps
 
-    def process_one_block(self, h, is_final, maxlen, maxlenratio):
+    def process_one_block(self, h, is_final, maxlen, minlen, maxlenratio):
         """Recognize one block."""
         # extend states for ctc
         self.extend(h, self.running_hyps)
@@ -376,7 +399,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             if self.process_idx == maxlen - 1:
                 # end decoding
                 self.running_hyps = self.post_process(
-                    self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
+                    self.process_idx, maxlen, minlen, maxlenratio, best, self.ended_hyps
                 )
             n_batch = best.yseq.shape[0]
             local_ended_hyps = []
@@ -424,7 +447,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             self.prev_hyps = self.running_hyps
             self.running_hyps = self.post_process(
-                self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
+                self.process_idx, maxlen, minlen, maxlenratio, best, self.ended_hyps
             )
 
             if is_final:
@@ -461,7 +484,14 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
     def assemble_hyps(self, ended_hyps):
         """Assemble the hypotheses."""
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        if self.normalize_length:
+            # Note (Jinchuan): -1 since hyp starts with <sos> and
+            # initially has score of 0.0
+            nbest_hyps = sorted(
+                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+            )
+        else:
+            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
             logging.warning(
