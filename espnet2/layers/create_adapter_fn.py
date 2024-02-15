@@ -1,15 +1,24 @@
+from typing import List
+
 import torch
 from typeguard import check_argument_types
-from typing import List
+
 from espnet2.asr.frontend.s3prl import S3prlFrontend
-from espnet2.layers.create_adapter_utils import replace_module, check_target_module_exists, get_submodules
+from espnet2.layers.create_adapter_utils import (
+    check_target_module_exists,
+    get_submodules,
+    replace_module,
+)
 from espnet2.layers.houlsby_adapter_layer import (
     Houlsby_Adapter,
     HoulsbyTransformerSentenceEncoderLayer,
 )
 
 try:
-    from transformers.models.wav2vec2.modeling_wav2vec2 import Wav2Vec2EncoderLayerStableLayerNorm
+    from transformers.models.wav2vec2.modeling_wav2vec2 import (
+        Wav2Vec2EncoderLayerStableLayerNorm,
+    )
+
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
@@ -17,15 +26,19 @@ except ImportError:
 try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
+
     is_s3prl_available = True
 except Exception:
     is_s3prl_available = False
-    
+
 try:
     import loralib as lora
+
     is_lora_available = True
 except Exception:
     is_lora_available = False
+
+
 def create_houlsby_adapter(
     model: torch.nn.Module,
     bottleneck: int = 32,
@@ -152,6 +165,7 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
         adapter_added_layer = target_module
 
     elif isinstance(target_module, TransformerSentenceEncoderLayer):
+
         class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
             """
             Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
@@ -241,6 +255,7 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
                     x = self.final_layer_norm(x)
 
                 return x, (attn, layer_result)
+
         embedding_dim = target_module.embedding_dim
         ffn_embedding_dim = target_module.fc1.out_features
         num_attention_heads = target_module.self_attn.num_heads
@@ -316,4 +331,3 @@ def create_new_lora_module(
         )
 
     return new_module
-
