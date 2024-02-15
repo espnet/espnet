@@ -39,7 +39,7 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
         bottleneck: int = 32,
         **kwargs,
     ) -> None:
-        
+
         super(HoulsbyTransformerSentenceEncoderLayer, self).__init__(**kwargs)
 
         self.adapter = Houlsby_Adapter(
