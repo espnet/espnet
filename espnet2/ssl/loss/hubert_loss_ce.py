@@ -131,16 +131,14 @@ class HuBERTLossCrossEntropy(AbsLoss):
             if self.unmasked_loss_weight != 0.0:
                 
                 loss_u = F.cross_entropy(hs_u, targets_u.long(), reduction='sum') * self.unmasked_loss_weight * self.layer_weights[i]
-                losses_u.append(loss_u.detach().item())
                 total_loss += loss_u
-                
+                divisor = hs_u.shape[0] if hs_u.shape[0] > 0 else 1
+                losses_u.append(loss_u.detach().item() / divisor)
+
         total_loss = feature_penalty * feature_weight * hs_m.shape[0] + total_loss
 
         correct_m, count_m = self._compute_correct(hs_m, targets_m)
         correct_u, count_u = self._compute_correct(hs_u, targets_u)
-
-        #    hubert_losses_m=losses_m[0] if len(losses_m) > 0 else None, 
-        #    hubert_losses_u=losses_u[0] if len(losses_u) > 0 else None,
 
         stats = dict(
             hubert_correct_m=correct_m,
