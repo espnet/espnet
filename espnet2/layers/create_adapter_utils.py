@@ -1,6 +1,8 @@
+from typing import List
+
 import torch
 from typeguard import check_argument_types
-from typing import List
+
 
 def replace_module(
     parent_module: torch.nn.Module,

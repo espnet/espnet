@@ -12,14 +12,16 @@ from typing import List
 
 import torch
 from typeguard import check_argument_types
-from espnet2.train.class_choices import ClassChoices
-from espnet2.layers.create_adapter_fn import (create_lora_adapter, create_houlsby_adapter)
 
-create_adapter_fn_table={
+from espnet2.layers.create_adapter_fn import create_houlsby_adapter, create_lora_adapter
+from espnet2.train.class_choices import ClassChoices
+
+create_adapter_fn_table = {
     "lora": create_lora_adapter,
     "houlsby": create_houlsby_adapter,
 }
-   
+
+
 def create_adapter(
     model: torch.nn.Module,
     adapter: str,
@@ -39,4 +41,3 @@ def create_adapter(
     assert adapter in create_adapter_fn_table, f"Adapter {adapter} is not supported."
     create_adapter_fn = create_adapter_fn_table[adapter]
     create_adapter_fn(model=model, **adapter_conf)
-

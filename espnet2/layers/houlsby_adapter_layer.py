@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class Houlsby_Adapter(nn.Module):
     def __init__(
         self,
@@ -17,6 +18,3 @@ class Houlsby_Adapter(nn.Module):
 
     def forward(self, x):
         return self.houlsby_adapter(x)
-
-
-
