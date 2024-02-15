@@ -392,7 +392,6 @@ class CommonPreprocessor(AbsPreprocessor):
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
-                print(speech.shape, self.speech_volume_normalize, ma, flush=True)
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
         assert check_return_type(data)
         return data
