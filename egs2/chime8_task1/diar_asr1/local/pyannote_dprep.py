@@ -44,7 +44,7 @@ def prepare4pyannote(
     for dset in ["chime6", "dipco", "mixer6", "notsofar1"]:
         print("Running Pyannote data preparation for {} scenario".format(dset))
         c_scenario = os.path.join(chime7dasr_root, dset)
-        c_splits = ["train", "dev"] if dset != "notsofar1" else ["train"]
+        c_splits = ["train", "dev"] if dset != "notsofar1" else ["train", "train_sc"]
         # exclude close-talk CH01, CH02, CH03 and P[0-9]+
         if dset in ["chime6", "dipco", "notsofar1"]:
             mic_regex = "(U[0-9]+)"
@@ -103,7 +103,7 @@ def prepare4pyannote(
                     uem_dict["dev"].append((c_uem, filename))
                     rttm_dict["dev"].append((c_ann, filename))
                     uri_dict["dev"].append(filename)
-                elif dset in ["chime6", "notsofar1"] and split == "train":
+                elif dset in ["chime6", "notsofar1"] and split in ["train", "train_sc"]:
                     # use these for train
                     uem_dict["train"].append((c_uem, filename))
                     rttm_dict["train"].append((c_ann, filename))
