@@ -83,22 +83,9 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         batch_size = speech.shape[0]
 
-        # want to modify so encoded is [outs]. Where out is the output of a specific layer
-        # this is important for w2v-bert
         encoded, mask_info, feature_penalty = self.encode(speech, speech_lengths)
 
-        """
-        total_loss = 0
-        total_stats = {}
-
-        for loss_fn in self.losses:
-
-            loss, stats = loss_fn(encoded, text, mask_info, feature_penalty)
-            total_loss += loss
-            total_stats.update(stats)
-
-        total_stats['loss'] = total_loss#.detach()
-        """
+        # TO DO: support multiple loss fns
         total_loss, total_stats = self.losses[0](
             encoded, text, mask_info, feature_penalty
         )
@@ -174,14 +161,6 @@ class ESPnetSSLModel(AbsESPnetModel):
             feats, feats_lengths, masks=pad_masks, return_all_hs=True
         )
         encoder_out = encoder_out[1]
-        """
-        if not use_mask:
-            encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks, return_all_hs=True)
-            encoder_out = encoder_out[1]
-        else:
-            encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
-            encoder_out = [encoder_out]
-        """
 
         return encoder_out, mask_info, features_pen
 

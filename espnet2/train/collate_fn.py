@@ -227,8 +227,7 @@ class HuBERTCollateFn(CommonCollateFn):
             num_frames = min([sample["speech"].shape[0] for uid, sample in data])
 
         new_data = []
-        # if self.train or self.label_downsampling > 1:
-        if self.train and self.label_downsampling > 1:
+        if self.train or self.label_downsampling > 1:
             for uid, sample in data:
                 waveform, label = sample["speech"], sample["text"]
                 assert waveform.ndim == 1
