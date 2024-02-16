@@ -32,10 +32,10 @@ fi
 data_tag="_ss0622_th${thre}"
 # Please check
 # https://github.com/sarulab-speech/jtubespeech/blob/master/README.md#step5-asv-speaker-variation-scoring
-# to obtain the single-speaker partition. 
+# to obtain the single-speaker partition.
 odir=/exp/swatanabe/data/opj/single-speaker
 # Please apply https://github.com/sarulab-speech/jtubespeech/blob/master/scripts/align.py
-# to get the segment files. 
+# to get the segment files.
 # See https://github.com/sarulab-speech/jtubespeech/blob/master/README.md#step5-asr-alignment-and-scoring
 # for the details. Currently, it only supports the Japanese data
 scores=/expscratch/swatanabe/202007espnet/espnet_v2/egs2/jtubespeech/asr1/100G_ctcseg_0622/segments.txt
