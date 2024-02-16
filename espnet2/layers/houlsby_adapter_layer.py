@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
@@ -7,6 +8,7 @@ try:
     is_s3prl_available = True
 except ImportError:
     is_s3prl_available = False
+
 
 class Houlsby_Adapter(nn.Module):
     def __init__(
@@ -25,9 +27,11 @@ class Houlsby_Adapter(nn.Module):
     def forward(self, x):
         return self.houlsby_adapter(x)
 
+
 if not is_s3prl_available:
     HoulsbyTransformerSentenceEncoderLayer = None
 else:
+
     class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
         """
         Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
