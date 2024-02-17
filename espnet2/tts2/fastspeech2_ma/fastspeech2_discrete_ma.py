@@ -111,6 +111,10 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         spks: Optional[int] = None,
         langs: Optional[int] = None,
         spk_embed_dim: Optional[int] = None,
+        # loss scale related
+        ce_scale: Optional[float] = 40.0,
+        kl_scale: Optional[float] = 1.0,
+        duration_scale: Optional[float] = 1.0,
         # training related
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
@@ -187,6 +191,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
                 lids will be provided as the input and use sid embedding layer.
             spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
                 assume that spembs will be provided as the input.
+            ce_scale
+            kl_scale
+            dur_scale
             init_type (str): How to initialize transformer parameters.
             init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
                 encoder.
@@ -408,6 +415,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         self.ce_criterion = torch.nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_id)
         self.mse_criterion = torch.nn.MSELoss(reduction="mean")
         self.kl_loss = KLDivergenceLoss()
+        self.ce_scale = ce_scale
+        self.kl_scale = kl_scale
+        self.dur_scale = dur_scale
 
         # delayed import
         from espnet2.gan_tts.vits.monotonic_align import maximum_path
@@ -493,7 +503,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         duration_loss = torch.sum(dur_nll.float())
         kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, y_mask)
         accuracy = (discrete_outs.argmax(-1) == ys).sum() / (ys == ys).sum()
-        loss = ce_loss + duration_loss + kl_loss
+        loss = self.ce_scale * ce_loss + self.dur_scale * duration_loss + self.kl_scale * kl_loss
 
         stats = dict(
             ce_loss=ce_loss.item(),
