@@ -653,11 +653,127 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         spembs: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
         alpha: float = 1.0,
+        max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Run major inference.
+
+        Args:
+            text (Tensor): Input text index tensor (T_text,).
+            feats (Tensor): Feature tensor (T_feats, aux_channels).
+            sids (Tensor): Speaker index tensor (1,).
+            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
+            lids (Tensor): Language index tensor (1,).
+            durations (Tensor): Ground-truth duration tensor (T_text,).
+            noise_scale (float): Noise scale value for flow.
+            noise_scale_dur (float): Noise scale value for duration predictor.
+            alpha (float): Alpha parameter to control the speed of generated speech.
+            max_len (Optional[int]): Maximum length.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
+
+        Returns:
+            Dict[str, Tensor]:
+                * discrete_outs (Tensor): Generated discrete unit tensor (T_wav,).
+                * duration (Tensor): Predicted duration tensor (T_text,).
+
+        """
+        # setup
+        text = text[None]
+        text_lengths = torch.tensor(
+            [text.size(1)],
+            dtype=torch.long,
+            device=text.device,
+        )
+        if sids is not None:
+            sids = sids.view(1)
+        if lids is not None:
+            lids = lids.view(1)
+        
+        # inference
+        if use_teacher_forcing:
+            assert feats is not None
+            feats = feats[None].transpose(1, 2)
+            feats_lengths = torch.tensor(
+                [feats.size(2)],
+                dtype=torch.long,
+                device=feats.device,
+            )
+            discrete_outs, dur = self._inference(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                sids=sids,
+                spembs=spembs,
+                lids=lids,
+                max_len=max_len,
+                use_teacher_forcing=use_teacher_forcing,
+            )
+        else:
+            discrete_outs, dur = self._inference(
+                text=text,
+                text_lengths=text_lengths,
+                sids=sids,
+                spembs=spembs,
+                lids=lids,
+                dur=durations,
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
+                alpha=alpha,
+                max_len=max_len,
+            )
+        return dict(
+            feat_gen=discrete_outs,
+            duration=dur,
+        )
+
+    def _inference(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        dur: Optional[torch.Tensor] = None,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
+        alpha: float = 1.0,
+        max_len: Optional[int] = None,
+        use_teacher_forcing: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Run inference with explicit inference.
+
+        Args:
+            text (Tensor): Input text index tensor (B, T_text,).
+            text_lengths (Tensor): Text length tensor (B,).
+            feats (Tensor): Feature tensor (B, aux_channels, T_feats,).
+            feats_lengths (Tensor): Feature length tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
+            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
+            dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
+                skip the prediction of durations (i.e., teacher forcing).
+            noise_scale (float): Noise scale parameter for flow.
+            noise_scale_dur (float): Noise scale parameter for duration predictor.
+            alpha (float): Alpha parameter to control the speed of generated speech.
+            max_len (Optional[int]): Maximum length of acoustic feature sequence.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
+
+        Returns:
+            Tensor: Generated waveform tensor (B, T_wav).
+            Tensor: Monotonic attention weight tensor (B, T_feats, T_text).
+            Tensor: Duration tensor (B, T_text).
+
+        """
+
         # forward text encoder and gather global information
-        x, m_p, logs_p, x_mask, g  = self._encode(text, ilens, spembs, sids, lids, inference=True)
+        x, m_p, logs_p, x_mask, g  = self._encode(text, text_lengths, spembs, sids, lids, inference=True)
 
         if use_teacher_forcing:
             # forward posterior encoder
@@ -705,7 +821,16 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         
         else:
             # infer duration
-            d_outs = self.duration_predictor.inference(x, x_mask)  # (B, T_text)
+            if dur is None:
+                logw = self.duration_predictor(
+                    x,
+                    x_mask,
+                    g=g,
+                    inverse=True,
+                    noise_scale=noise_scale_dur,
+                )
+                w = torch.exp(logw) * x_mask * alpha
+                dur = torch.ceil(w)
             y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
             y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
@@ -729,11 +854,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             discrete_outs = self.decoder((z * y_mask), g=g)
         
         discrete_outs = self.feat_out(discrete_outs)
+        return discrete_outs, dur
         
-        return dict(
-            feat_gen=discrete_outs,
-            duration=dur,
-        )
+
 
     def _generate_path(self, dur: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Generate path a.k.a. monotonic attention.
