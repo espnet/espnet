@@ -146,7 +146,7 @@ def create_lora_adapter(
             f"Target modules {target_modules} not found in the base model."
         )
 
-    lora.mark_only_lora_as_trainable(model, bias_type)
+    # lora.mark_only_lora_as_trainable(model, bias_type)
 
 
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
