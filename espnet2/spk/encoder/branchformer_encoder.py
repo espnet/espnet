@@ -541,4 +541,4 @@ class BranchformerEncoder(AbsEncoder):
         x, _ = self.encoders(x, masks)
 
         x = self.after_norm(x[0])
-        return x
+        return x.transpose(1,2)
