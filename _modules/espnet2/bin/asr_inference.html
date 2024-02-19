@@ -599,9 +599,6 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">elif</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span><span class="p">:</span>
-            <span class="n">tokenizer_language</span> <span class="o">=</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="s2">&quot;tokenizer_language&quot;</span><span class="p">,</span> <span class="s2">&quot;en&quot;</span>
-            <span class="p">)</span>
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span>
                 <span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span>
                 <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
