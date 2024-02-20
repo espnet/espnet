@@ -13,11 +13,13 @@ from espnet2.layers.houlsby_adapter_layer import (
 pytest.importorskip("transformers")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+
+
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
 def test_Houlsby_Adapter_init():
-    
+
     adapter = Houlsby_Adapter(
         input_size=64,
         bottleneck=32,
@@ -25,6 +27,7 @@ def test_Houlsby_Adapter_init():
     assert adapter.bottleneck == 32
     assert adapter.houlsby_adapter[0].in_features == 64
     assert adapter.houlsby_adapter[2].out_features == 64
+
 
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
@@ -37,7 +40,7 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
     attention_dropout = 0.1
     activation_dropout = 0.1
     activation_fn = "relu"
-    layer_norm_first= False
+    layer_norm_first = False
     bottleneck = 32
     adapter_added_layer = HoulsbyTransformerSentenceEncoderLayer(
         embedding_dim=embedding_dim,
@@ -50,7 +53,7 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
         layer_norm_first=layer_norm_first,
         bottleneck=bottleneck,
     )
-    
+
     assert adapter_added_layer.bottleneck == 32
     assert embedding_dim == adapter_added_layer.embedding_dim
     assert ffn_embedding_dim == adapter_added_layer.fc1.out_features
@@ -60,7 +63,8 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
     assert activation_dropout == adapter_added_layer.dropout2.p
     assert activation_fn == adapter_added_layer.activation_fn.__name__
     assert layer_norm_first == adapter_added_layer.layer_norm_first
-    
+
+
 if __name__ == "__main__":
     test_Houlsby_Adapter_init()
     test_HoulsbyTransformerSentenceEncoderLayer_init()
