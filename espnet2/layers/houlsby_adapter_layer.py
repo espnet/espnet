@@ -17,11 +17,11 @@ class Houlsby_Adapter(nn.Module):
         bottleneck: int,
     ):
         super(Houlsby_Adapter, self).__init__()
-
+        self.bottleneck = bottleneck
         self.houlsby_adapter = nn.Sequential(
-            nn.Linear(input_size, bottleneck),
+            nn.Linear(input_size, self.bottleneck),
             nn.GELU(),
-            nn.Linear(bottleneck, input_size),
+            nn.Linear(self.bottleneck, input_size),
         )
 
     def forward(self, x):
@@ -45,10 +45,10 @@ else:
         ) -> None:
 
             super(HoulsbyTransformerSentenceEncoderLayer, self).__init__(**kwargs)
-
+            self.bottleneck = bottleneck
             self.adapter = Houlsby_Adapter(
                 input_size=self.fc2.out_features,
-                bottleneck=bottleneck,
+                bottleneck=self.bottleneck ,
             )
 
         def forward(
