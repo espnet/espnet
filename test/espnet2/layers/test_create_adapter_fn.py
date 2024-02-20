@@ -1,15 +1,17 @@
-from typing import List
-import pytest
 import sys
+from typing import List
+
+import pytest
 import torch
-from typeguard import check_argument_types
 from packaging.version import parse as V
-from espnet2.asr.frontend.s3prl import S3prlFrontend
+from typeguard import check_argument_types
+
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
-from espnet2.layers.houlsby_adapter_layer import Houlsby_Adapter, HoulsbyTransformerSentenceEncoderLayer
-from espnet2.layers.create_adapter_fn import (
-    create_houlsby_adapter,
-    create_lora_adapter,
+from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.layers.create_adapter_fn import create_houlsby_adapter, create_lora_adapter
+from espnet2.layers.houlsby_adapter_layer import (
+    Houlsby_Adapter,
+    HoulsbyTransformerSentenceEncoderLayer,
 )
 
 is_python_3_8_plus = sys.version_info >= (3, 8)
@@ -18,11 +20,13 @@ is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 def init_S3prl_model():
     class Model(torch.nn.Module):
-        
+
         def __init__(self, frontend_conf: dict = {"upstream": "hubert_base"}):
             super().__init__()
             self.frontend = S3prlFrontend(frontend_conf=frontend_conf)
+
     return Model()
+
 
 def init_decoder_model():
     return TransformerDecoder(
@@ -34,11 +38,14 @@ def init_decoder_model():
         input_layer="embed",
     )
 
+
 # =========================================Houlsby================================================
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
-@pytest.mark.parametrize("model, bottleneck, target_layers", [(init_S3prl_model(), 64, [])])
+@pytest.mark.parametrize(
+    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [])]
+)
 def test_create_houlsby_adapter_bottleneck(
     model,
     bottleneck,
@@ -47,11 +54,18 @@ def test_create_houlsby_adapter_bottleneck(
     create_houlsby_adapter(
         model=model, bottleneck=bottleneck, target_layers=target_layers
     )
-    assert model.frontend.upstream.upstream.model.encoder.layers[0].bottleneck  == bottleneck
+    assert (
+        model.frontend.upstream.upstream.model.encoder.layers[0].bottleneck
+        == bottleneck
+    )
+
+
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
-@pytest.mark.parametrize("model, bottleneck, target_layers", [(init_S3prl_model(),64, [1,2])])
+@pytest.mark.parametrize(
+    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [1, 2])]
+)
 def test_create_houlsby_adapter_target_layers(
     model,
     bottleneck,
@@ -60,11 +74,27 @@ def test_create_houlsby_adapter_target_layers(
     create_houlsby_adapter(
         model=model, bottleneck=bottleneck, target_layers=target_layers
     )
-    assert not isinstance(model.frontend.upstream.upstream.model.encoder.layers[0],  HoulsbyTransformerSentenceEncoderLayer), type(model.frontend.upstream.upstream.model.encoder.layers[0])
-    assert isinstance(model.frontend.upstream.upstream.model.encoder.layers[1],  HoulsbyTransformerSentenceEncoderLayer), type(model.frontend.upstream.upstream.model.encoder.layers[1])
-    assert isinstance(model.frontend.upstream.upstream.model.encoder.layers[2],  HoulsbyTransformerSentenceEncoderLayer), type(model.frontend.upstream.upstream.model.encoder.layers[2])
-    assert not isinstance(model.frontend.upstream.upstream.model.encoder.layers[3],  HoulsbyTransformerSentenceEncoderLayer), type(model.frontend.upstream.upstream.model.encoder.layers[3])
-@pytest.mark.parametrize("model, bottleneck, target_layers", [(init_S3prl_model(),64, [200])])
+    assert not isinstance(
+        model.frontend.upstream.upstream.model.encoder.layers[0],
+        HoulsbyTransformerSentenceEncoderLayer,
+    ), type(model.frontend.upstream.upstream.model.encoder.layers[0])
+    assert isinstance(
+        model.frontend.upstream.upstream.model.encoder.layers[1],
+        HoulsbyTransformerSentenceEncoderLayer,
+    ), type(model.frontend.upstream.upstream.model.encoder.layers[1])
+    assert isinstance(
+        model.frontend.upstream.upstream.model.encoder.layers[2],
+        HoulsbyTransformerSentenceEncoderLayer,
+    ), type(model.frontend.upstream.upstream.model.encoder.layers[2])
+    assert not isinstance(
+        model.frontend.upstream.upstream.model.encoder.layers[3],
+        HoulsbyTransformerSentenceEncoderLayer,
+    ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
+
+
+@pytest.mark.parametrize(
+    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [200])]
+)
 def test_create_houlsby_adapter_invalid_target_layers(
     model,
     bottleneck,
@@ -74,7 +104,11 @@ def test_create_houlsby_adapter_invalid_target_layers(
         create_houlsby_adapter(
             model=model, bottleneck=bottleneck, target_layers=target_layers
         )
-@pytest.mark.parametrize("model, bottleneck, target_layers", [(init_decoder_model(), 64, [])])
+
+
+@pytest.mark.parametrize(
+    "model, bottleneck, target_layers", [(init_decoder_model(), 64, [])]
+)
 def test_create_houlsby_adapter_invalid_model(
     model,
     bottleneck,
@@ -84,7 +118,8 @@ def test_create_houlsby_adapter_invalid_model(
         create_houlsby_adapter(
             model=model, bottleneck=bottleneck, target_layers=target_layers
         )
-        
+
+
 # =========================================LORA================================================
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
@@ -147,39 +182,41 @@ def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
     with pytest.raises(TypeError):
         create_lora_adapter(
             model=model, rank=rank, alpha=alpha, target_modules=target_modules
-        )    
+        )
+
+
 if __name__ == "__main__":
     s3prl_model = init_S3prl_model()
     test_create_houlsby_adapter_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_bottleneck test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     s3prl_model = init_S3prl_model()
-    test_create_houlsby_adapter_target_layers(s3prl_model, 64, [1,2])
+    test_create_houlsby_adapter_target_layers(s3prl_model, 64, [1, 2])
     print("create_houlsby_adapter_target_layers test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     s3prl_model = init_S3prl_model()
     test_create_houlsby_adapter_invalid_target_layers(s3prl_model, 64, [200])
     print("create_houlsby_adapter_invalid_target_layers test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     decoder_model = init_decoder_model()
     test_create_houlsby_adapter_invalid_model(decoder_model, 64, [2])
     print("create_houlsby_adapter_invalid_model test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     decoder_model = init_decoder_model()
     test_create_lora_adapter_embedding(2, 4, ["embed.0"])
     print("create_lora_adapter_embedding test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     decoder_model = init_decoder_model()
     test_create_lora_adapter_invalid_target(2, 4, ["query_proj"])
     print("create_lora_adapter_invalid_target test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     decoder_model = init_decoder_model()
     test_create_lora_adapter_unsupport_target(2, 4, ["norm1"])
     print("create_lora_adapter_unsupport_target test passed")
-    print('-----------------------------------------------------------')
+    print("-----------------------------------------------------------")
     decoder_model = init_decoder_model()
     test_create_lora_adapter_invalid_type(2, 4, 5)
     print("create_lora_adapter_invalid_type test passed")
-    print('-----------------------------------------------------------')
-    
+    print("-----------------------------------------------------------")
+
     print("create_adapter_fn test passed")
