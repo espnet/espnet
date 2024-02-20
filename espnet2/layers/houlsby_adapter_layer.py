@@ -48,7 +48,7 @@ else:
             self.bottleneck = bottleneck
             self.adapter = Houlsby_Adapter(
                 input_size=self.fc2.out_features,
-                bottleneck=self.bottleneck ,
+                bottleneck=self.bottleneck,
             )
 
         def forward(
