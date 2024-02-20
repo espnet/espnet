@@ -91,7 +91,7 @@ def test_create_houlsby_adapter_invalid_model(
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["linear_q"])])
 def test_create_lora_adapter_linear(rank, alpha, target_modules):
-    model = init_model()
+    model = init_decoder_model()
     create_lora_adapter(
         model=model, rank=rank, alpha=alpha, target_modules=target_modules
     )
