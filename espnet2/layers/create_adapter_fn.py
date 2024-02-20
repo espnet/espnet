@@ -1,5 +1,4 @@
 from typing import List
-
 import torch
 from typeguard import check_argument_types
 
@@ -122,17 +121,16 @@ def create_lora_adapter(
     key_list = [key for key, _ in model.named_modules()]
 
     for key in key_list:
-        # TODO endswith may not be a good choice
-        # exists maybe better in our case cuz our class won't end in the key
-        #
         if not check_target_module_exists(key, target_modules):
             continue
 
+        # TODO is this a good way to check the target module?
+        # check_target_module_exists needs only one of the target modules
+        # to be in the key, but what if one key exists and another doesn't?
+        # Should this case raise an error?
         is_traget_module_exists = True
 
         parent_module, target_name, target_module = get_submodules(model, key)
-        # TODO Replace lora.LoRALayer with assigned instance
-        # Eg. AdapterEncoderLayer for adapter case
         if not isinstance(target_module, lora.LoRALayer):
             new_module = create_new_lora_module(
                 target_module, rank, alpha, dropout_rate
