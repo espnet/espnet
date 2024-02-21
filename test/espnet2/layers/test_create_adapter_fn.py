@@ -68,7 +68,18 @@ def test_create_houlsby_adapter_bottleneck(
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
-    [(init_S3prl_model(frontend_conf={"upstream": "hf_wav2vec2_custom", "path_or_url":"facebook/mms-300m"}), 64, [])],
+    [
+        (
+            init_S3prl_model(
+                frontend_conf={
+                    "upstream": "hf_wav2vec2_custom",
+                    "path_or_url": "facebook/mms-300m",
+                }
+            ),
+            64,
+            [],
+        )
+    ],
 )
 def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     model,
@@ -214,7 +225,9 @@ if __name__ == "__main__":
     test_create_houlsby_adapter_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_bottleneck test passed")
     print("-----------------------------------------------------------")
-    s3prl_model = init_S3prl_model({"upstream": "hf_wav2vec2_custom","path_or_url":"facebook/mms-300m"})
+    s3prl_model = init_S3prl_model(
+        {"upstream": "hf_wav2vec2_custom", "path_or_url": "facebook/mms-300m"}
+    )
     test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_hf_wav2vec2_custom_bottleneck test passed")
     print("-----------------------------------------------------------")
