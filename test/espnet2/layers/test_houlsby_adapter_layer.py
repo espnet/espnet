@@ -1,10 +1,12 @@
 import sys
 from typing import List
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
+
 try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
@@ -23,11 +25,16 @@ is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus,
+    reason="Not supported",
 )
 def test_transformers_availability_false():
     if not is_s3prl_available:
-        assert HoulsbyTransformerSentenceEncoderLayer is None, HoulsbyTransformerSentenceEncoderLayer
+        assert (
+            HoulsbyTransformerSentenceEncoderLayer is None
+        ), HoulsbyTransformerSentenceEncoderLayer
+
+
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -57,7 +64,8 @@ def test_Houlsby_Adapter_forward():
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    is_s3prl_available and not is_torch_1_8_plus or not is_python_3_8_plus,
+    reason="Not supported",
 )
 def test_HoulsbyTransformerSentenceEncoderLayer_init():
     embedding_dim = 768
@@ -93,7 +101,8 @@ def test_HoulsbyTransformerSentenceEncoderLayer_init():
 
 
 @pytest.mark.skipif(
-    is_s3prl_available and (not is_torch_1_8_plus) or not is_python_3_8_plus, reason="Not supported"
+    is_s3prl_available and (not is_torch_1_8_plus) or not is_python_3_8_plus,
+    reason="Not supported",
 )
 def test_HoulsbyTransformerSentenceEncoderLayer_forward():
     embedding_dim = 768
