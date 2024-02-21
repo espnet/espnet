@@ -1,7 +1,7 @@
 from typing import Collection
 
-from tacotron_cleaner.cleaners import custom_english_cleaners
 from jaconv import jaconv
+from tacotron_cleaner.cleaners import custom_english_cleaners
 from typeguard import check_argument_types
 
 try:

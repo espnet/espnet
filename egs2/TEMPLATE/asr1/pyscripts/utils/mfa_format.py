@@ -7,17 +7,17 @@ import codecs
 import json
 import logging
 import os
-import regex as re
 import sys
 import traceback
+from functools import partial
 from pathlib import Path
 from typing import Dict, Union
-from functools import partial
 
 import kaldiio
-from praatio.textgrid import openTextgrid
-from praatio.data_classes.textgrid import Textgrid
+import regex as re
 import soundfile as sf
+from praatio.data_classes.textgrid import Textgrid
+from praatio.textgrid import openTextgrid
 from pyopenjtalk import run_frontend
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
@@ -118,7 +118,7 @@ def get_parser():
         default="json",
         choices=["json", "long_textgrid"],
         help="Either 'json' or 'long_textgrid'. Default is json because it's more compact but if you want to view "
-             "the alignment Praat requires the regular textgrid format",
+        "the alignment Praat requires the regular textgrid format",
     )
     parser.add_argument(
         "--train_text_path",
@@ -142,7 +142,11 @@ def get_parser():
 
 
 def get_phoneme_durations(
-    data: Union[Dict, Textgrid], original_text: str, fs: int, hop_size: int, n_samples: int
+    data: Union[Dict, Textgrid],
+    original_text: str,
+    fs: int,
+    hop_size: int,
+    n_samples: int,
 ):
     """Get phoneme durations."""
     orig_text = original_text.replace(" ", "").rstrip()
@@ -348,11 +352,15 @@ def make_dictionary(args):
 
     if args.g2p_model.startswith("espeak_ng_english"):
         strings, replacements, compound_words = espeak_english_replacements(word_sep)
-        text_hacks = partial(multi_replace_text, strings=strings, replacements=replacements)
+        text_hacks = partial(
+            multi_replace_text, strings=strings, replacements=replacements
+        )
         phoneme_hacks = partial(merge_phonemes, compound_words=compound_words)
     else:
+
         def text_hacks(text):
             return text
+
         def phoneme_hacks(words, prons):
             return words, prons
 
@@ -378,12 +386,16 @@ def make_dictionary(args):
                     start = stop + 1
                 stop += 1
             words, prons = phoneme_hacks(words, prons)
-            for i, pron in enumerate(prons):    # Ensure no punctuation marks in pronunciation
+            for i, pron in enumerate(
+                prons
+            ):  # Ensure no punctuation marks in pronunciation
                 prons[i] = re.sub(r"\p{P}", "", pron)
 
-            assert len(prons) == len(words), (f"Word and pronunciation counts do not match at {_file}\n"
-                                              f"Prons: {prons}\n"
-                                              f"Words: {words}")
+            assert len(prons) == len(words), (
+                f"Word and pronunciation counts do not match at {_file}\n"
+                f"Prons: {prons}\n"
+                f"Words: {words}"
+            )
             for word, pron in zip(words, prons):
                 dict_lines.add(f"{word}\t{pron}")
 
@@ -395,11 +407,13 @@ def multi_replace_text(text, strings, replacements):
         text = text.replace(string, replacement)
     return text
 
+
 def merge_phonemes(words, prons, compound_words):
     for i, word in enumerate(words):
         if word in compound_words:
-            prons = prons[:i] + [" ".join(prons[i:i+2])] + prons[i+2:]
+            prons = prons[:i] + [" ".join(prons[i : i + 2])] + prons[i + 2 :]
     return words, prons
+
 
 def espeak_english_replacements(word_sep):
     # Unfortunately espeak combines many phrases as one word, causing alignments to fail.
@@ -407,6 +421,7 @@ def espeak_english_replacements(word_sep):
     # We have to ensure the word count is the same before and after phonemization.
     # See https://github.com/espeak-ng/espeak-ng/issues/1841
     import espnet2
+
     project_root = Path(espnet2.__file__).parent.parent
     rules_file = project_root / "tools" / "espeak-ng" / "dictsource" / "en_list"
     phrase_regex = re.compile(r"\n\([A-Za-z' ]+\)")

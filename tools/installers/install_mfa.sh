@@ -26,4 +26,3 @@ conda install -c conda-forge montreal-forced-aligner=2.2.17
 #        x=""; for b in $(ls | grep bin); do x="$x:$(pwd)/$b"; done; export PATH="$PATH:$x"
 #     )
 # pip install montreal-forced-aligner
-

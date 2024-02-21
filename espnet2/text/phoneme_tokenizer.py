@@ -50,15 +50,18 @@ g2p_choices = [
     "g2p_is",
 ]
 
-mfa_options = ("bulgarian_mfa croatian_mfa czech_mfa english_india_mfa english_nigeria_mfa english_uk_mfa "
-               "english_us_arpa english_us_mfa french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa "
-               "korean_mfa polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
-               "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa tamil_mfa thai_mfa turkish_mfa "
-               "ukrainian_mfa vietnamese_hanoi_mfa vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa")
+mfa_options = (
+    "bulgarian_mfa croatian_mfa czech_mfa english_india_mfa english_nigeria_mfa english_uk_mfa "
+    "english_us_arpa english_us_mfa french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa "
+    "korean_mfa polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
+    "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa tamil_mfa thai_mfa turkish_mfa "
+    "ukrainian_mfa vietnamese_hanoi_mfa vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa"
+)
 for mfa_option in mfa_options.split():
     g2p_choice = "mfa_" + mfa_option
     g2p_choices.append(g2p_choice)
     g2p_choices.append(g2p_choice + "_no_space")
+
 
 def split_by_space(text) -> List[str]:
     if "   " in text:
@@ -453,27 +456,36 @@ class MFATokenizer:
     def __init__(self, language: str, no_space: bool = False):
         from montreal_forced_aligner.g2p.generator import PyniniGenerator
         from montreal_forced_aligner.models import G2PModel
+
         model_path = G2PModel.get_pretrained_path(language)
         if model_path is None:
             from montreal_forced_aligner.models import ModelManager
+
             manager = ModelManager()
             manager.download_model("g2p", language)
             model_path = G2PModel.get_pretrained_path(language)
-            assert model_path is not None, "MFA model does not exist after attempted download"
+            assert (
+                model_path is not None
+            ), "MFA model does not exist after attempted download"
 
         from montreal_forced_aligner._version import __version__ as mfa_version
         from pkg_resources import parse_version
+
         if parse_version(mfa_version) >= parse_version("3.0.0"):
             MyPyniniGenerator = PyniniGenerator
         else:
+
             class MyPyniniGenerator(PyniniGenerator):
                 # These two methods are inherited and required, but useless! Resolved in MFA version 3
                 def data_directory(self):
                     return None
+
                 def working_directory(self):
                     return None
 
-        self.generator = MyPyniniGenerator(g2p_model_path=model_path, num_pronunciations=1)
+        self.generator = MyPyniniGenerator(
+            g2p_model_path=model_path, num_pronunciations=1
+        )
         self.generator.setup()
         self.rewriter = self.generator.rewriter
         self.valid_chars = self.rewriter.graphemes
@@ -485,6 +497,7 @@ class MFATokenizer:
             self.cleaner = lambda text: text
 
         from pynini.lib.rewrite import top_rewrite
+
         self.get_phone_str = functools.partial(
             top_rewrite,
             rule=self.generator.fst,
@@ -784,4 +797,3 @@ class PhonemeTokenizer(AbsTokenizer):
         if syllable in customed_dic:
             tokens = customed_dic[syllable]
         return tokens
-

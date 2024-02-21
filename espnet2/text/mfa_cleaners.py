@@ -1,8 +1,12 @@
 import re
 
 from tacotron_cleaner.cleaners import (
-    convert_to_ascii, lowercase, expand_numbers, expand_abbreviations,
-    expand_symbols, collapse_whitespace
+    collapse_whitespace,
+    convert_to_ascii,
+    expand_abbreviations,
+    expand_numbers,
+    expand_symbols,
+    lowercase,
 )
 
 
@@ -11,7 +15,9 @@ def remove_extra_chars(text):
 
 
 def remove_quotes(text):
-    text = re.sub(r"([a-z])'([a-z])", r'\1"\2', text)  # Save single quote inside words as double quote
+    text = re.sub(
+        r"([a-z])'([a-z])", r'\1"\2', text
+    )  # Save single quote inside words as double quote
     text = text.replace("'", "")  # remove single quotes
     text = text.replace('"', "'")  # put back single quotes inside of words
     return text
@@ -34,4 +40,3 @@ def mfa_english_cleaner(text):
     text = collapse_whitespace(text)
     text = space_after_punc(text)
     return text
-
