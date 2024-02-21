@@ -156,6 +156,7 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
 
         input_size = target_module.layer_norm.normalized_shape[0]
+        target_module.bottleneck = bottleneck
         target_module.adapter_layer = Houlsby_Adapter(
             input_size=input_size, bottleneck=bottleneck
         )
