@@ -2091,14 +2091,16 @@ class AbsTask(ABC):
                     else:
                         if any(["postdecoder" in k for k in state_dict.keys()]):
                             model.load_state_dict(
-                                state_dict, strict=False,
+                                state_dict,
+                                strict=False,
                             )
                         else:
                             raise
                 else:
                     if any(["postdecoder" in k for k in state_dict.keys()]):
                         model.load_state_dict(
-                            state_dict, strict=False,
+                            state_dict,
+                            strict=False,
                         )
                     else:
                         raise
