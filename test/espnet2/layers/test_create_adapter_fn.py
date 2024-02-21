@@ -20,14 +20,15 @@ is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 
-def init_S3prl_model():
+def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
     class Model(torch.nn.Module):
 
         def __init__(self, frontend_conf: dict = {"upstream": "hubert_base"}):
             super().__init__()
+            print(frontend_conf)
             self.frontend = S3prlFrontend(frontend_conf=frontend_conf)
 
-    return Model()
+    return Model(frontend_conf)
 
 
 def init_decoder_model():
@@ -67,7 +68,7 @@ def test_create_houlsby_adapter_bottleneck(
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
-    [(init_S3prl_model({"upstream": "hf_wav2vec2_custom"}), 64, [])],
+    [(init_S3prl_model(frontend_conf={"upstream": "hf_wav2vec2_custom", "path_or_url":"facebook/mms-300m"}), 64, [])],
 )
 def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     model,
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     test_create_houlsby_adapter_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_bottleneck test passed")
     print("-----------------------------------------------------------")
-    s3prl_model = init_S3prl_model({"upstream": "hf_wav2vec2_custom"})
+    s3prl_model = init_S3prl_model({"upstream": "hf_wav2vec2_custom","path_or_url":"facebook/mms-300m"})
     test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_hf_wav2vec2_custom_bottleneck test passed")
     print("-----------------------------------------------------------")
