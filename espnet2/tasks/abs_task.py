@@ -2101,8 +2101,20 @@ class AbsTask(ABC):
                         }
                         model.load_state_dict(state_dict, strict=not use_adapter)
                     else:
-                        raise
+                        if any(["postdecoder" in k for k in state_dict.keys()]):
+                            model.load_state_dict(
+                                state_dict,
+                                strict=False,
+                            )
+                        else:
+                            raise
                 else:
-                    raise
+                    if any(["postdecoder" in k for k in state_dict.keys()]):
+                        model.load_state_dict(
+                            state_dict,
+                            strict=False,
+                        )
+                    else:
+                        raise
 
         return model, args
