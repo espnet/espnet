@@ -4,8 +4,7 @@
 
 # Preparation of data and generation of MFA alignments
 # You need to install the following tools to run this script:
-# $ conda config --append channels conda-forge
-# $ conda install montreal-forced-aligner
+# $ conda install -c conda-forge montreal-forced-aligner=2.2.17
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -36,13 +35,16 @@ samplerate=22050    # Sampling rate.
 language=""                     # The language type of corpus.
 acoustic_model="english_mfa"    # MFA Acoustic model.
 dictionary="english_us_mfa"     # MFA Dictionary.
-g2p_model="english_us_mfa"      # MFA Grapheme-to-phoneme model.
-cleaner=tacotron                # Text Cleaner.
+g2p_model="english_us_mfa"      # Grapheme-to-phoneme model. If train, g2p_model is from ESPnet, otherwise from MFA.
+cleaner=mfa_english             # Text Cleaner.
 train=false                     # Whether to train the MFA models (acoustic and g2p) or not.
+mfa_validate=false              # Whether to run mfa validate before alignment. Disabled by default because it repeats g2p and alignment.
+textgrid_format="json"          # MFA alignment output format.
+single_speaker=false            # Whether corpus is single-speaker or not.
 # max_phonemes_word=7  # split the phonemes durations for word durations. (Ref. PortaSpeech)
 
 help_message=$(cat << EOF
-Usage: $0 --stage "<stage>" --stop-stage "<stop_stage>" --train <train>
+Usage: $0 --stage "<stage>" --stop_stage "<stop_stage>" --train <train>
 
 Options:
     # General configuration
@@ -65,19 +67,14 @@ Options:
     --g2p_model            # MFA Grapheme-to-phoneme model (default="${g2p_model}").
     --cleaner              # Text Cleaner (default="${cleaner}").
     --train                # Whether to train the MFA models (acoustic and g2p) or not (default="${train}").
+    --mfa_validate         # Whether to run mfa validate before alignment. Disabled by default because it repeats g2p and alignment.
+    --textgrid_format      # MFA alignment output format (default="${textgrid_format}").
+    --single_speaker       # Whether corpus is single-speaker or not. (default="${single_speaker}").
+
 EOF
 )
 
 log "$0 $*"
-
-# NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
-# First, execute this script as showed in `egs2/ljspeech/tts1/local/run_mfa.sh`
-# Then, execute the main routine with `egs2/ljspeech/tts1/run.sh`. For example:
-# $ ./run.sh --stage 2 \
-#     --train_config conf/tuning/train_fastspeech2.yaml \
-#     --teacher_dumpdir data \
-#     --tts_stats_dir data/stats \
-#     --write_collected_feats true
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -132,6 +129,26 @@ tempdir="${workdir}/tmp"
 corpus_dir="${workdir}/corpus"
 oov_dict="${workdir}/oov_corpus.dict"
 
+if ${train}; then
+    dictionary=${language}
+    dict_tag_or_path="${workdir}/${language}.txt"
+    src_dict="${dict_tag_or_path}"
+    acoustic_model="${workdir}/acoustic/${language}.zip"
+    espnet_g2p="${g2p_model}"
+    mfa_g2p="${workdir}/g2p/${language}.zip"
+else
+    dict_tag_or_path="${dictionary}"
+    src_dict="${HOME}/Documents/MFA/pretrained_models/dictionary/${dictionary}.dict"
+    espnet_g2p=none
+    mfa_g2p="${g2p_model}"
+fi
+
+if ${single_speaker}; then
+    single_spk_opt="--single_speaker"
+else
+    single_spk_opt=""
+fi
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # [Task dependent] Need to create data.sh for new corpus
     log "Stage 0: Data preparation for ${split_sets}"
@@ -144,7 +161,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python pyscripts/utils/mfa_format.py labs \
                                     --data_sets "${split_sets}" \
                                     --text_cleaner "${cleaner}" \
-                                    --g2p_model "${g2p_model}" \
+                                    --g2p_model "${espnet_g2p}" \
                                     --corpus_dir "${corpus_dir}"
 fi
 
@@ -154,12 +171,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mkdir -p ${workdir}/{g2p,acoustic}
 
         # Generate dictionary using ESPnet TTS frontend
-        log "Generating training dictionary..."
+        log "Generating training dictionary with ESPnet G2P..."
         # shellcheck disable=SC2154
         ${train_cmd} ${tempdir}/logs/dict_g2p.log \
             python pyscripts/utils/mfa_format.py dictionary \
                 --corpus_dir "${corpus_dir}" \
-                --g2p_model "${g2p_model}"
+                --g2p_model "${espnet_g2p}"
 
         # Train G2P
         log "Training G2P model with custom dictionary."
@@ -169,7 +186,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --phonetisaurus \
                 -t ${tempdir} \
                 ${workdir}/train_dict.txt \
-                ${workdir}/g2p/${language}.zip
+                "${mfa_g2p}"
 
         # Generate lexicon
         log "Generating Dictionary..."
@@ -178,19 +195,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --clean \
                 -j ${nj} \
                 -t ${tempdir} \
-                ${workdir}/g2p/${language}.zip \
-                ${corpus_dir} \
-                ${workdir}/${language}.txt
+                "${corpus_dir}" \
+                "${mfa_g2p}" \
+                "${dict_tag_or_path}"
 
-        # Train MFA
+        # Train MFA. Kaldi fails with relative paths
         log "Training MFA model..."
         ${train_cmd} ${tempdir}/logs/train_align.log \
             mfa train \
                 -j ${nj} \
-                -t ${tempdir} \
-                ${corpus_dir} \
-                ${workdir}/${language}.txt \
-                ${workdir}/acoustic/${language}.zip
+                -t "$(pwd)/${tempdir}" \
+                ${single_spk_opt} \
+                "${corpus_dir}" \
+                "${dict_tag_or_path}" \
+                "${acoustic_model}"
 
     elif [[ ${language} == espnet* ]]; then
         # TODO(fhrozen): Upload models to huggingface
@@ -202,23 +220,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # download pretrained MFA models
         mfa models download acoustic "${acoustic_model}"
         mfa models download dictionary "${dictionary}"
-        mfa models download g2p "${g2p_model}"
+        mfa models download g2p "${mfa_g2p}"
     fi
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: Generating aligments using MFA model"
-
-    if ${train}; then
-        dictionary=${language}
-        dict_tag_or_path="${workdir}/${language}.txt"
-        src_dict="${dict_tag_or_path}"
-        acoustic_model=${workdir}/acoustic/${language}.zip
-        g2p_model=${workdir}/g2p/${language}.zip
-    else
-        dict_tag_or_path="${dictionary}"
-        src_dict="${HOME}/Documents/MFA/pretrained_models/dictionary/${dictionary}.dict"
-    fi
+    log "stage 3: Generating OOV Dictionary"
 
     log "Generating Dictionary & OOV Dictionary..."
     # create OOV dictionary using validation and skip acoustics
@@ -228,9 +235,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --clean \
             --skip_acoustics \
             -t "${tempdir}" \
+            ${single_spk_opt} \
             "${corpus_dir}" \
             "${dict_tag_or_path}" \
-            "${acoustic_model}" \
             --brackets ''
 
     # create new dictionary including OOV
@@ -238,30 +245,39 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         mfa g2p \
             -j ${nj} \
             -t ${tempdir} \
-            "${g2p_model}" \
-            "${tempdir}/corpus_validate_pretrained/oovs_found_${dictionary}.txt" \
+            ${single_spk_opt} \
+            "${tempdir}/corpus/oovs_found_${dictionary}.txt" \
+            "${mfa_g2p}" \
             "${oov_dict}"
 
     cat "${src_dict}" "${oov_dict}" > "${workdir}/${dictionary}.dict"
+fi
 
-    # # Validate data set with acoustics.
-    log "Validating corpus..."
-    ${train_cmd} ${tempdir}/logs/validate.log \
-        mfa validate \
-            -j ${nj} \
-            --clean \
-            -t "${tempdir}" \
-            "${corpus_dir}" \
-            "${dict_tag_or_path}" \
-            "${acoustic_model}" \
-            --brackets ''
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Generating alignments using MFA model"
 
-    log "Obtaining aligments..."
+    if ${mfa_validate}; then
+        # Validate data set with acoustics.
+        log "Validating corpus..."
+        ${train_cmd} ${tempdir}/logs/validate.log \
+            mfa validate \
+                -j ${nj} \
+                --clean \
+                -t "${tempdir}" \
+                ${single_spk_opt} \
+                "${corpus_dir}" \
+                "${dict_tag_or_path}" \
+                --acoustic_model_path "${acoustic_model}" \
+                --brackets ''
+    fi
+
+    log "Obtaining alignments..."
     ${train_cmd} ${tempdir}/logs/align.log \
         mfa align -j ${nj} \
                 --clean \
-                -t "${tempdir}" \
-                --output_format json \
+                -t "$(pwd)/${tempdir}" \
+                --output_format "${textgrid_format}" \
+                ${single_spk_opt} \
                 "${corpus_dir}" \
                 "${workdir}/${dictionary}.dict" \
                 "${acoustic_model}" \
@@ -273,23 +289,24 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 4: Prepare phoneme-text labels"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "stage 5: Prepare phoneme-text labels"
 
     python pyscripts/utils/mfa_format.py \
         validate \
-        --corpus_dir "${corpus_dir}"
+        --corpus_dir "${corpus_dir}" \
+        --textgrid_format "${textgrid_format}"
 
     python pyscripts/utils/mfa_format.py \
         durations \
         --samplerate "${samplerate}" \
         --hop_size "${hop_size}" \
-        --corpus_dir "${corpus_dir}"
-
+        --corpus_dir "${corpus_dir}" \
+        --textgrid_format "${textgrid_format}"
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "stage 5: Prepare data sets with phoneme alignments"
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "stage 6: Prepare data sets with phoneme alignments"
     for dset in ${split_sets}; do
         utils/copy_data_dir.sh data/"${dset}"{,_phn}
         cp ${workdir}/text data/${dset}_phn/text

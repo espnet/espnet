@@ -1,3 +1,4 @@
+import functools
 import logging
 import re
 import warnings
@@ -10,6 +11,8 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+from espnet2.text.korean_cleaner import KoreanCleaner
+from espnet2.text.mfa_cleaners import mfa_english_cleaner
 
 g2p_choices = [
     None,
@@ -32,6 +35,8 @@ g2p_choices = [
     "espeak_ng_finnish",
     "espeak_ng_hungarian",
     "espeak_ng_dutch",
+    "espeak_ng_english_us",
+    "espeak_ng_english_us_word_sep",
     "espeak_ng_english_us_vits",
     "espeak_ng_hindi",
     "espeak_ng_italian",
@@ -45,6 +50,15 @@ g2p_choices = [
     "g2p_is",
 ]
 
+mfa_options = ("bulgarian_mfa croatian_mfa czech_mfa english_india_mfa english_nigeria_mfa english_uk_mfa "
+               "english_us_arpa english_us_mfa french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa "
+               "korean_mfa polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
+               "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa tamil_mfa thai_mfa turkish_mfa "
+               "ukrainian_mfa vietnamese_hanoi_mfa vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa")
+for mfa_option in mfa_options.split():
+    g2p_choice = "mfa_" + mfa_option
+    g2p_choices.append(g2p_choice)
+    g2p_choices.append(g2p_choice + "_no_space")
 
 def split_by_space(text) -> List[str]:
     if "   " in text:
@@ -435,6 +449,99 @@ class IsG2p:  # pylint: disable=too-few-public-methods
         return self.transcriber.transcribe(text).split()
 
 
+class MFATokenizer:
+    def __init__(self, language: str, no_space: bool = False):
+        from montreal_forced_aligner.g2p.generator import PyniniGenerator
+        from montreal_forced_aligner.models import G2PModel
+        model_path = G2PModel.get_pretrained_path(language)
+        if model_path is None:
+            from montreal_forced_aligner.models import ModelManager
+            manager = ModelManager()
+            manager.download_model("g2p", language)
+            model_path = G2PModel.get_pretrained_path(language)
+            assert model_path is not None, "MFA model does not exist after attempted download"
+
+        from montreal_forced_aligner._version import __version__ as mfa_version
+        from pkg_resources import parse_version
+        if parse_version(mfa_version) >= parse_version("3.0.0"):
+            MyPyniniGenerator = PyniniGenerator
+        else:
+            class MyPyniniGenerator(PyniniGenerator):
+                # These two methods are inherited and required, but useless! Resolved in MFA version 3
+                def data_directory(self):
+                    return None
+                def working_directory(self):
+                    return None
+
+        self.generator = MyPyniniGenerator(g2p_model_path=model_path, num_pronunciations=1)
+        self.generator.setup()
+        self.rewriter = self.generator.rewriter
+        self.valid_chars = self.rewriter.graphemes
+        self.inc_space = not no_space
+
+        if language.startswith("english"):
+            self.cleaner = mfa_english_cleaner
+        else:
+            self.cleaner = lambda text: text
+
+        from pynini.lib.rewrite import top_rewrite
+        self.get_phone_str = functools.partial(
+            top_rewrite,
+            rule=self.generator.fst,
+            output_token_type=self.generator.output_token_type,
+        )
+
+    def get_char_type(self, char):
+        if char in self.valid_chars:
+            return 1
+        elif char == " ":
+            return 0
+        else:  # punctuation or unrecognized chars
+            return -1
+
+    def __call__(self, text: str) -> List[str]:
+        """
+        Args:
+            text:  Should be cleaned already. In lowercase and the only whitespace sohuld be single spaces.
+
+        Returns:
+            List of phonemes.
+        """
+        # The g2p only works on individual words.
+        # Anything not in valid_chars will be treated as a separate word
+        text = self.cleaner(text)
+        if not text:
+            return []
+        phones = []
+        converts = []
+        word_chars = []
+        words = []
+        prev_char_type = self.get_char_type(text[0])
+        for char in text:
+            char_type = self.get_char_type(char)
+            if char_type == prev_char_type:
+                word_chars.append(char)
+            else:
+                words.append("".join(word_chars))
+                converts.append(prev_char_type == 1)
+                if char_type:
+                    word_chars = [char]
+                else:
+                    word_chars = [" "]
+            prev_char_type = char_type
+
+        words.append("".join(word_chars))
+        converts.append(prev_char_type == 1)
+
+        for convert, word in zip(converts, words):
+            if convert:
+                phone_str = self.get_phone_str(word)
+                phones.extend(phone_str.split())
+            elif word != " " or self.inc_space:
+                phones.append(word)
+        return phones
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -556,6 +663,21 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = G2pk(no_space=True)
         elif g2p_type == "g2pk_explicit_space":
             self.g2p = G2pk(explicit_space=True, space_symbol=space_symbol)
+        elif g2p_type == "espeak_ng_english_us":
+            self.g2p = Phonemizer(
+                language="en-us",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_english_us_word_sep":
+            self.g2p = Phonemizer(
+                language="en-us",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+                word_separator=" | ",
+            )
         elif g2p_type == "espeak_ng_english_us_vits":
             # VITS official implementation-like processing
             # Reference: https://github.com/jaywalnut310/vits
@@ -577,6 +699,13 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = IsG2p()
         elif g2p_type == "g2p_is_north":
             self.g2p = IsG2p(dialect="north")
+        elif g2p_type.startswith("mfa_"):
+            language = g2p_type[4:]
+            if g2p_type.endswith("_no_space"):
+                language = language[:-9]
+                self.g2p = MFATokenizer(language, no_space=True)
+            else:
+                self.g2p = MFATokenizer(language, no_space=False)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
@@ -655,3 +784,4 @@ class PhonemeTokenizer(AbsTokenizer):
         if syllable in customed_dic:
             tokens = customed_dic[syllable]
         return tokens
+

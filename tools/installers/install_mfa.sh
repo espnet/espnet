@@ -2,22 +2,28 @@
 
 set -euo pipefail
 
-if [ $# != 1 ]; then
-    echo "Usage: $0 true/false"
-    exit 1;
-fi
+# This is the last stable version. MFA 3.0 depends on an unstable kaldi version that creates errors
+conda install -c conda-forge montreal-forced-aligner=2.2.17
 
-use_conda="$1"
+# Installing with pip is not recommended as many dependencies are missing!
+# Also, baumwelch is only available on conda-forge. If you REALLY want to do it:
+# conda install -c conda-forge baumwelch  # includes openfst
+# conda install postgresql
+# pip install pgvector pynini hdbscan
+# git clone https://github.com/kaldi-asr/kaldi.git
+#     (
+#         set -euo pipefail
+#         sudo apt-get install zlib1g-dev gfortran subversion python2.7 intel-mkl
+#         cd kaldi/tools && make -j 4
+#         x=""; for b in $(ls | grep bin); do x="$x:$(pwd)/$b"; done; export PATH="$PATH:$x"
+#     )  # install more dependencies if make doesn't work
+#     (
+#        set -euo pipefail
+#        cd kaldi/src
+#        ./configure --shared
+#        make clean depend
+#        make -j 8
+#        x=""; for b in $(ls | grep bin); do x="$x:$(pwd)/$b"; done; export PATH="$PATH:$x"
+#     )
+# pip install montreal-forced-aligner
 
-if "${use_conda}"; then
-    conda install -c conda-forge pynini -y
-    conda install -c conda-forge ngram  -y # for training g2p
-    conda install -c conda-forge baumwelch -y # for training g2p
-else
-    #TODO(fhrozen): review the required packages on pip
-    pip install --only-binary :all: pynini
-fi
-
-# Use only pip, conda installation may cause issues due to version match.
-pip install sqlalchemy==1.4.45  # v2.0.0+ generates error on MFA
-pip install --ignore-requires-python git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git@v2.0.6

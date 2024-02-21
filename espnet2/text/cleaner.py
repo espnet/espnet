@@ -1,6 +1,6 @@
 from typing import Collection
 
-import tacotron_cleaner.cleaners
+from tacotron_cleaner.cleaners import custom_english_cleaners
 from jaconv import jaconv
 from typeguard import check_argument_types
 
@@ -10,6 +10,7 @@ except ImportError:
     vietnamese_cleaners = None
 
 from espnet2.text.korean_cleaner import KoreanCleaner
+from espnet2.text.mfa_cleaners import mfa_english_cleaner
 
 try:
     from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
@@ -45,21 +46,27 @@ class TextCleaner:
                 elif t == "whisper_basic":
                     self.whisper_cleaner = BasicTextNormalizer()
 
-    def __call__(self, text: str) -> str:
+        self.cleaner_fns = []
         for t in self.cleaner_types:
             if t == "tacotron":
-                text = tacotron_cleaner.cleaners.custom_english_cleaners(text)
+                cleaner_fn = custom_english_cleaners
+            elif t == "mfa_english":
+                cleaner_fn = mfa_english_cleaner
             elif t == "jaconv":
-                text = jaconv.normalize(text)
+                cleaner_fn = jaconv.normalize
             elif t == "vietnamese":
                 if vietnamese_cleaners is None:
                     raise RuntimeError("Please install underthesea")
-                text = vietnamese_cleaners.vietnamese_cleaner(text)
+                cleaner_fn = vietnamese_cleaners.vietnamese_cleaner
             elif t == "korean_cleaner":
-                text = KoreanCleaner.normalize_text(text)
+                cleaner_fn = KoreanCleaner.normalize_text
             elif "whisper" in t and self.whisper_cleaner is not None:
-                text = self.whisper_cleaner(text)
+                cleaner_fn = self.whisper_cleaner
             else:
                 raise RuntimeError(f"Not supported: type={t}")
+            self.cleaner_fns.append(cleaner_fn)
 
+    def __call__(self, text: str) -> str:
+        for cleaner_fn in self.cleaner_fns:
+            text = cleaner_fn(text)
         return text
