@@ -2302,9 +2302,21 @@
                         <span class="p">}</span>
                         <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span>
+                        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;postdecoder&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]):</span>
+                            <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                                <span class="n">state_dict</span><span class="p">,</span>
+                                <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span>
+                    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;postdecoder&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]):</span>
+                        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                            <span class="n">state_dict</span><span class="p">,</span>
+                            <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span>
 
         <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">args</span></div></div>
 </pre></div>
