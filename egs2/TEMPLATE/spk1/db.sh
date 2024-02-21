@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+ASVSpoof_LA=downloads
 PUBLICDEEPMINE=downloads
 LIBRISPEECH=downloads
 COMMONVOICE16FARSI=downloads
