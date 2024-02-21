@@ -60,11 +60,14 @@ def test_create_houlsby_adapter_bottleneck(
         model.frontend.upstream.upstream.model.encoder.layers[0].bottleneck
         == bottleneck
     )
+
+
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
-    "model, bottleneck, target_layers", [(init_S3prl_model({"upstream":"hf_wav2vec2_custom"}), 64, [])]
+    "model, bottleneck, target_layers",
+    [(init_S3prl_model({"upstream": "hf_wav2vec2_custom"}), 64, [])],
 )
 def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     model,
@@ -210,7 +213,7 @@ if __name__ == "__main__":
     test_create_houlsby_adapter_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_bottleneck test passed")
     print("-----------------------------------------------------------")
-    s3prl_model = init_S3prl_model({"upstream":"hf_wav2vec2_custom"})
+    s3prl_model = init_S3prl_model({"upstream": "hf_wav2vec2_custom"})
     test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(s3prl_model, 64, [])
     print("create_houlsby_adapter_hf_wav2vec2_custom_bottleneck test passed")
     print("-----------------------------------------------------------")
