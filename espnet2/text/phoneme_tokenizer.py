@@ -51,11 +51,13 @@ g2p_choices = [
 ]
 
 mfa_options = (
-    "bulgarian_mfa croatian_mfa czech_mfa english_india_mfa english_nigeria_mfa english_uk_mfa "
-    "english_us_arpa english_us_mfa french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa "
-    "korean_mfa polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
-    "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa tamil_mfa thai_mfa turkish_mfa "
-    "ukrainian_mfa vietnamese_hanoi_mfa vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa"
+    "bulgarian_mfa croatian_mfa czech_mfa english_india_mfa "
+    "english_nigeria_mfa english_uk_mfa english_us_arpa english_us_mfa "
+    "french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa korean_mfa "
+    "polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
+    "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa "
+    "tamil_mfa thai_mfa turkish_mfa ukrainian_mfa vietnamese_hanoi_mfa "
+    "vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa"
 )
 for mfa_option in mfa_options.split():
     g2p_choice = "mfa_" + mfa_option
@@ -476,7 +478,8 @@ class MFATokenizer:
         else:
 
             class MyPyniniGenerator(PyniniGenerator):
-                # These two methods are inherited and required, but useless! Resolved in MFA version 3
+                # These two methods are inherited and required, but useless!
+                # Resolved in MFA version 3
                 def data_directory(self):
                     return None
 
@@ -515,7 +518,7 @@ class MFATokenizer:
     def __call__(self, text: str) -> List[str]:
         """
         Args:
-            text:  Should be cleaned already. In lowercase and the only whitespace sohuld be single spaces.
+            text:
 
         Returns:
             List of phonemes.

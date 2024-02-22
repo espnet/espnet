@@ -123,7 +123,7 @@ fi
 if [ -f $srcdir/cmvn.scp ]; then
   utils/apply_map.pl -f 1 $destdir/spk_map <$srcdir/cmvn.scp >$destdir/cmvn.scp
 fi
-for f in frame_shift stm glm ctm; do
+for f in frame_shift stm glm ctm durations; do
   if [ -f $srcdir/$f ]; then
     cp $srcdir/$f $destdir
   fi
@@ -133,7 +133,7 @@ rm $destdir/spk_map $destdir/utt_map
 
 echo "$0: copied data from $srcdir to $destdir"
 
-for f in feats.scp cmvn.scp vad.scp utt2lang utt2uniq utt2dur utt2num_frames text wav.scp reco2file_and_channel frame_shift stm glm ctm; do
+for f in feats.scp cmvn.scp vad.scp utt2lang utt2uniq utt2dur utt2num_frames text wav.scp reco2file_and_channel frame_shift stm glm ctm durations; do
   if [ -f $destdir/$f ] && [ ! -f $srcdir/$f ]; then
     echo "$0: file $f exists in dest $destdir but not in src $srcdir.  Moving it to"
     echo " ... $destdir/.backup/$f"

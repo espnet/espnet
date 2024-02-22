@@ -331,7 +331,7 @@ if ! "${skip_data_prep}"; then
             else
                 _suf=""
             fi
-            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            utils/copy_tts_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
@@ -373,7 +373,7 @@ if ! "${skip_data_prep}"; then
                         _suf=""
                     fi
                     # 1. Copy datadir and resample to 16k
-                    utils/copy_data_dir.sh "${data_feats}${_suf}/${dset}" "${dumpdir}/mfcc/${dset}"
+                    utils/copy_tts_data_dir.sh "${data_feats}${_suf}/${dset}" "${dumpdir}/mfcc/${dset}"
                     utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
 
                     # 2. Extract mfcc features
@@ -497,7 +497,7 @@ if ! "${skip_data_prep}"; then
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
             # Copy data dir
-            utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+            utils/copy_tts_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
                 cp "${data_feats}/org/${dset}/utt2sid" "${data_feats}/${dset}/utt2sid"
