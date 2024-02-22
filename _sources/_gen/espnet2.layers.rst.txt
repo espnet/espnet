@@ -26,17 +26,6 @@ espnet2.layers.global_mvn
     :show-inheritance:
 
 
-.. _espnet2.layers.create_lora_adapter:
-
-espnet2.layers.create_lora_adapter
-----------------------------------
-
-.. automodule:: espnet2.layers.create_lora_adapter
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.layers.sinc_conv:
 
 espnet2.layers.sinc_conv
@@ -59,6 +48,17 @@ espnet2.layers.log_mel
     :show-inheritance:
 
 
+.. _espnet2.layers.create_adapter_utils:
+
+espnet2.layers.create_adapter_utils
+-----------------------------------
+
+.. automodule:: espnet2.layers.create_adapter_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.layers.stft:
 
 espnet2.layers.stft
@@ -76,6 +76,39 @@ espnet2.layers.utterance_mvn
 ----------------------------
 
 .. automodule:: espnet2.layers.utterance_mvn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.layers.houlsby_adapter_layer:
+
+espnet2.layers.houlsby_adapter_layer
+------------------------------------
+
+.. automodule:: espnet2.layers.houlsby_adapter_layer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.layers.create_adapter:
+
+espnet2.layers.create_adapter
+-----------------------------
+
+.. automodule:: espnet2.layers.create_adapter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.layers.create_adapter_fn:
+
+espnet2.layers.create_adapter_fn
+--------------------------------
+
+.. automodule:: espnet2.layers.create_adapter_fn
     :members:
     :undoc-members:
     :show-inheritance:

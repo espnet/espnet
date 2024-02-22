@@ -280,6 +280,11 @@
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
     <span class="n">lora</span> <span class="o">=</span> <span class="kc">None</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">s3prl</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="n">s3prl</span> <span class="o">=</span> <span class="kc">None</span>
+
 
 <div class="viewcode-block" id="TrainerOptions"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.hubert.TrainerOptions">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">TrainerOptions</span><span class="p">:</span>
@@ -296,8 +301,9 @@
     <span class="n">use_matplotlib</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">use_tensorboard</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">use_wandb</span><span class="p">:</span> <span class="nb">bool</span>
-    <span class="n">use_lora</span><span class="p">:</span> <span class="nb">bool</span>
-    <span class="n">save_lora_only</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">adapter</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">use_adapter</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">save_strategy</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
     <span class="n">max_epoch</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span>
@@ -424,10 +430,16 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">scaler</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">use_lora</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">,</span> <span class="s2">&quot;use_lora&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="n">save_lora_only</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">,</span> <span class="s2">&quot;save_lora_only&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">use_lora</span> <span class="ow">and</span> <span class="n">lora</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Requiring loralib. Do &#39;pip install loralib&#39;&quot;</span><span class="p">)</span>
+        <span class="n">adapter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">,</span> <span class="s2">&quot;adapter&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">use_adapter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">,</span> <span class="s2">&quot;use_adapter&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">save_strategy</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">trainer_options</span><span class="p">,</span> <span class="s2">&quot;save_strategy&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_adapter</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">&quot;lora&quot;</span> <span class="ow">and</span> <span class="n">lora</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Requiring loralib. Do &#39;pip install loralib&#39;&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">&quot;houlsby&quot;</span> <span class="ow">and</span> <span class="n">s3prl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: S3PRL is not properly installed.&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install S3PRL: cd $</span><span class="si">{MAIN_ROOT}</span><span class="s2">/tools &amp;&amp; make s3prl.done&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Requiring S3PRL. &quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">resume</span> <span class="ow">and</span> <span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;checkpoint.pth&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span>
@@ -438,7 +450,7 @@
                 <span class="n">reporter</span><span class="o">=</span><span class="n">reporter</span><span class="p">,</span>
                 <span class="n">scaler</span><span class="o">=</span><span class="n">scaler</span><span class="p">,</span>
                 <span class="n">ngpu</span><span class="o">=</span><span class="n">trainer_options</span><span class="o">.</span><span class="n">ngpu</span><span class="p">,</span>
-                <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">,</span>
+                <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_adapter</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
@@ -573,12 +585,25 @@
                     <span class="n">reporter</span><span class="o">.</span><span class="n">wandb_log</span><span class="p">()</span>
 
                 <span class="c1"># 4. Save/Update the checkpoint</span>
-                <span class="k">if</span> <span class="n">use_lora</span> <span class="ow">and</span> <span class="n">save_lora_only</span><span class="p">:</span>
-                    <span class="c1"># Only the LoRA realted params are saved, not the whole model</span>
-                    <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">lora</span><span class="o">.</span><span class="n">lora_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Save all params of the model</span>
-                    <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">use_adapter</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">save_strategy</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+                        <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">model_state_dict</span>
+                    <span class="k">elif</span> <span class="n">save_strategy</span> <span class="o">==</span> <span class="s2">&quot;adapter_only&quot;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">&quot;lora&quot;</span><span class="p">:</span>
+                            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">lora</span><span class="o">.</span><span class="n">lora_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">&quot;houlsby&quot;</span><span class="p">:</span>
+                            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                                <span class="k">if</span> <span class="s2">&quot;adapter&quot;</span> <span class="ow">in</span> <span class="n">k</span>
+                            <span class="p">}</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adapter type </span><span class="si">{</span><span class="n">adapter</span><span class="si">}</span><span class="s2"> not supported&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># save_strategy == &quot;required_grad_only&quot;</span>
+                        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+                                <span class="n">model_state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
 
                 <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
                     <span class="p">{</span>

@@ -240,7 +240,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.iterators.chunk_iter_factory</span> <span class="kn">import</span> <span class="n">ChunkIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.multiple_iter_factory</span> <span class="kn">import</span> <span class="n">MultipleIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
-<span class="kn">from</span> <span class="nn">espnet2.layers.create_lora_adapter</span> <span class="kn">import</span> <span class="n">create_lora_adapter</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.create_adapter</span> <span class="kn">import</span> <span class="n">create_adapter</span>
 <span class="kn">from</span> <span class="nn">espnet2.main_funcs.collect_stats</span> <span class="kn">import</span> <span class="n">collect_stats</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.optim_groups</span> <span class="kn">import</span> <span class="n">configure_optimizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.sgd</span> <span class="kn">import</span> <span class="n">SGD</span>
@@ -860,23 +860,35 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set torch.autograd.set_detect_anomaly&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--use_lora&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--use_adapter&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) &quot;</span>
-            <span class="s2">&quot;for large pre-trained foundation models, like Whisper&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable efficient finetuning, see (https://arxiv.org/abs/2106.09685) &quot;</span>
+            <span class="s2">&quot;for large pre-trained foundation models, like Whisper and SSL models&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--save_lora_only&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only save LoRA parameters or save all model parameters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--adapter&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;lora&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Adapter Name&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lora&quot;</span><span class="p">,</span> <span class="s2">&quot;houlsby&quot;</span><span class="p">],</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--lora_conf&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--save_strategy&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The strategy to save parameters. Default: &#39;all&#39; </span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;&#39;all&#39;: save all parameters</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;&#39;adapter_only&#39;: save only adapter parameters,&quot;</span>
+            <span class="s2">&quot; without other parameters like downstream model</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;&#39;required_grad_only&#39;: save only parameters with requires_grad=True</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="s2">&quot;adapter_only&quot;</span><span class="p">,</span> <span class="s2">&quot;required_grad_only&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--adapter_conf&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Configuration for LoRA based finetuning&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Configuration for efficient finetuning&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Pretraining model related&quot;</span><span class="p">)</span>
@@ -1456,9 +1468,9 @@
                         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.requires_grad = False&quot;</span><span class="p">)</span>
                         <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
 
-            <span class="c1"># Use LoRA to finetune the large pre-trained foundation models, like Whisper</span>
-            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_lora&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-                <span class="n">create_lora_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">lora_conf</span><span class="p">)</span>
+            <span class="c1"># Use adapter to finetune the large pre-trained foundation models</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_adapter&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">create_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adapter</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adapter_conf</span><span class="p">)</span>
 
             <span class="c1"># 3. Build optimizer</span>
             <span class="n">optimizers</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_optimizers</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
@@ -2267,10 +2279,10 @@
             <span class="p">)</span>
         <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># For LoRA finetuned model, create LoRA adapter</span>
-        <span class="n">use_lora</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_lora&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">use_lora</span><span class="p">:</span>
-            <span class="n">create_lora_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">lora_conf</span><span class="p">)</span>
+        <span class="c1"># For finetuned model, create adapter</span>
+        <span class="n">use_adapter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_adapter&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_adapter</span><span class="p">:</span>
+            <span class="n">create_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adapter</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adapter_conf</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
@@ -2280,7 +2292,7 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
-                    <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">,</span>
+                    <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_adapter</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
                 <span class="c1"># Note(simpleoier): the following part is to be compatible with</span>
@@ -2300,7 +2312,7 @@
                             <span class="p">):</span> <span class="n">v</span>
                             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                         <span class="p">}</span>
-                        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">)</span>
+                        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_adapter</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;postdecoder&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()]):</span>
                             <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
