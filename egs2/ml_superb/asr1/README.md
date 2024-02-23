@@ -96,6 +96,66 @@ General steps to run tasks in LID trask are as follows:
 ```
 ./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid true --only_lid false
 ```
+## Adapter usage guidelines
+### General steps to run ASR tasks are as follows:
+- Follow the preparation of MLSUPERB until finishing stage 10
+- Enabling the usage of adapter by setting asr_config to `conf/tuning/train_asr_s3prl_houlsby.yaml` or `conf/tuning/train_asr_s3prl_lora.yaml`
+- Pretrained model: https://huggingface.co/espnet/s3prl_adapter_model
+- For example,
+```
+./run_mono.sh --asr_config conf/tuning/train_asr_s3prl_houlsby.yaml
+```
+- For the configuration for adapter, you may set the following argument in the yaml-style config files located in `conf/tuning`:
+```
+# LoRA
+use_adapter: true
+adapter: lora
+save_strategy: adapter
+adapter_conf:
+    rank: 4
+    alpha: 4
+    dropout_rate: 0.1
+    target_modules:
+    - fc1
+    - fc2
+
+# Houlsby
+use_adapter: true
+adapter: houlsby
+save_strategy: required_grad_only
+adapter_conf:
+    bottleneck: 32
+    # target layers to insert adapters, Insert adapter to all layers if not specified
+    target_layers:
+    - 0
+    - 1
+```
+### Result: CER/PER
+Experiment Setup
+
+- SSL: HuBERT Base
+- optim: adam
+- Basically follow default settings of MLSUPERB
+
+#### eng1
+
+|Baseline|10min|1h|
+|---|---|---|
+|No Adapter|33.8|26.7|
+|Houlsby Adapter|31.0|23.6|
+
+#### deu1
+|Baseline|10min|1h|
+|---|---|---|
+|No Adapter|35.1|30.2|
+|Houlsby Adapter|33.7|27.7|
+
+#### jpn
+|Baseline|10min|1h|
+|---|---|---|
+|No Adapter|20.6|15.6|
+|Houlsby Adapter|15.3|11.9|
+
 
 ## Credits
 

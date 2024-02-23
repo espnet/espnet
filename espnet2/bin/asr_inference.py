@@ -386,9 +386,6 @@ class Speech2Text:
             else:
                 tokenizer = None
         elif "whisper" in token_type:
-            tokenizer_language = asr_train_args.preprocessor_conf.get(
-                "tokenizer_language", "en"
-            )
             tokenizer = build_tokenizer(
                 token_type=token_type,
                 bpemodel=bpemodel,
