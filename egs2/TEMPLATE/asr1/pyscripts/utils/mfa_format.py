@@ -120,8 +120,8 @@ def get_parser():
         default="json",
         choices=["json", "long_textgrid"],
         help="Either 'json' or 'long_textgrid'. Default is json because it's "
-             "more compact but if you want to view the alignment Praat "
-             "requires the regular textgrid format",
+        "more compact but if you want to view the alignment Praat "
+        "requires the regular textgrid format",
     )
     parser.add_argument(
         "--train_text_path",
@@ -145,11 +145,11 @@ def get_parser():
 
 
 def get_phoneme_durations(
-        data: Union[Dict, Textgrid],
-        original_text: str,
-        fs: int,
-        hop_size: int,
-        n_samples: int,
+    data: Union[Dict, Textgrid],
+    original_text: str,
+    fs: int,
+    hop_size: int,
+    n_samples: int,
 ):
     """Get phoneme durations."""
     orig_text = original_text.replace(" ", "").rstrip()
@@ -227,7 +227,7 @@ def get_phoneme_durations(
         text_pos = len(orig_text) - 1
         while orig_text[text_pos] in punctuation:
             text_pos -= 1
-        puncs = orig_text[text_pos + 1:]
+        puncs = orig_text[text_pos + 1 :]
         if not puncs:
             puncs = ["sil"]
         new_phones.extend(puncs)
@@ -245,8 +245,7 @@ def get_phoneme_durations(
     total_durations = int(n_samples / hop_size) + 1
     timing_frames = [int(timing * fs / hop_size) + 1 for timing in timings]
     durations = [
-        timing_frames[i + 1] - timing_frames[i] for i in
-        range(len(timing_frames) - 1)
+        timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
     ]
 
     sum_durations = sum(durations)
@@ -266,8 +265,7 @@ def validate(args):
     for _file in filelist:
         # File contains folder of speaker and file
         filename = (
-            _file.as_posix().replace(args.corpus_dir + "/", "").replace(
-                f".{fmt}", "")
+            _file.as_posix().replace(args.corpus_dir + "/", "").replace(f".{fmt}", "")
         )
         if is_json:
             with codecs.open(_file, "r", encoding="utf-8") as reader:
@@ -280,8 +278,7 @@ def validate(args):
             if phone == "spn":
                 with open(Path(args.wavs_dir) / f"{filename}.lab") as f:
                     original_text = f.read()
-                    logging.error(
-                        f"{filename} contains spn. Text: {original_text}")
+                    logging.error(f"{filename} contains spn. Text: {original_text}")
                 valid = False
     assert valid
 
@@ -297,7 +294,7 @@ def make_durations(args):
     durations_path = args.durations_path
 
     os.makedirs(os.path.dirname(train_text_path), exist_ok=True)
-    with (open(train_text_path, "w") as text_file):
+    with open(train_text_path, "w") as text_file:
         with open(durations_path, "w") as durations_file:
             lab_paths = sorted(wavs_dir.glob("**/*.lab"))
             assert (
@@ -308,8 +305,7 @@ def make_durations(args):
                     ".lab", ".wav"
                 )  # Assumes .wav files are in same dir as .lab files
                 if not os.path.exists(wav_path):
-                    logging.warning("There is no wav file for %s, skipping.",
-                                    lab_path)
+                    logging.warning("There is no wav file for %s, skipping.", lab_path)
                     continue
 
                 # get no. of samples and original sr directly from audio file
@@ -328,8 +324,7 @@ def make_durations(args):
 
                 tg_path = os.path.join(textgrid_dir, f"{filename}.{fmt}")
                 if not os.path.exists(tg_path):
-                    logging.warning("There is no alignment for %s, skipping.",
-                                    lab_path)
+                    logging.warning("There is no alignment for %s, skipping.", lab_path)
                     continue
                 if is_json:
                     with codecs.open(tg_path, "r", encoding="utf-8") as reader:
@@ -359,8 +354,7 @@ def make_dictionary(args):
     word_sep = "|"
 
     if args.g2p_model.startswith("espeak_ng_english"):
-        strings, replacements, compound_words = espeak_english_replacements(
-            word_sep)
+        strings, replacements, compound_words = espeak_english_replacements(word_sep)
         text_hacks = partial(
             multi_replace_text, strings=strings, replacements=replacements
         )
@@ -396,7 +390,7 @@ def make_dictionary(args):
                 stop += 1
             words, prons = phoneme_hacks(words, prons)
             for i, pron in enumerate(
-                    prons
+                prons
             ):  # Ensure no punctuation marks in pronunciation
                 prons[i] = re.sub(r"\p{P}", "", pron)
 
@@ -420,7 +414,7 @@ def multi_replace_text(text, strings, replacements):
 def merge_phonemes(words, prons, compound_words):
     for i, word in enumerate(words):
         if word in compound_words:
-            prons = prons[:i] + [" ".join(prons[i: i + 2])] + prons[i + 2:]
+            prons = prons[:i] + [" ".join(prons[i : i + 2])] + prons[i + 2 :]
     return words, prons
 
 
@@ -486,8 +480,7 @@ def make_labs(args):
                 # Convert single quotes into double quotes so that MFA doesn't
                 # confuse them with clitics.
                 # Find ' not preceded by a letter to the last ' not followed by a letter
-                text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3',
-                              text)
+                text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
 
                 # Remove braces because MFA interprets them as enclosing a single word
                 text = re.sub(r"[\{\}]", "", text)
@@ -499,8 +492,7 @@ def make_labs(args):
                 try:
                     spk = utt2spk[utt]
                     with open(
-                            corpus_dir / spk / f"{utt}.lab", "w",
-                            encoding="utf-8"
+                        corpus_dir / spk / f"{utt}.lab", "w", encoding="utf-8"
                     ) as writer:
                         writer.write(text)
                 except KeyError:
@@ -517,8 +509,7 @@ def make_labs(args):
                         dst_file = (corpus_dir / spk / f"{utt}.wav").as_posix()
                         sf.write(dst_file, array, rate)
                     except KeyError:
-                        logging.warning(
-                            f"{utt} is in wav.scp file but not in utt2spk")
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
         else:
             with open(dset / "wav.scp") as reader:
                 for line in reader:
@@ -535,8 +526,7 @@ def make_labs(args):
                             rate, array = kaldiio.load_mat(src_file)
                             sf.write(dst_file.as_posix(), array, rate)
                     except KeyError:
-                        logging.warning(
-                            f"{utt} is in wav.scp file but not in utt2spk")
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
     logging.info("Finished writing .lab files")
 
 
