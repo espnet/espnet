@@ -27,6 +27,8 @@ def token_list(tmp_path: Path):
             f.write(f"{c}\n")
         f.write("<unk>\n")
         f.write("<sos/eos>\n")
+        f.write("<generatetext>\n")
+        f.write("<generatespeech>\n")
     return tmp_path / "tokens.txt"
 
 
@@ -43,6 +45,8 @@ def lm_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--model",
+            "lm_multitask",
         ]
     )
     return tmp_path / "lm" / "config.yaml"
@@ -76,7 +80,7 @@ def test_GenerateText(lm_config_file):
 @pytest.mark.execution_timeout(5)
 def test_GenerateText_unconditioned(lm_config_file):
     generatetext = GenerateText(lm_train_config=lm_config_file, beam_size=1)
-    results = generatetext()
+    results = generatetext("<generatetext>")
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
         assert isinstance(token[0], str)
