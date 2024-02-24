@@ -114,7 +114,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         # loss scale related
         ce_scale: Optional[float] = 40.0,
         kl_scale: Optional[float] = 1.0,
-        duration_scale: Optional[float] = 1.0,
+        dur_scale: Optional[float] = 1.0,
         # training related
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
@@ -833,7 +833,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             # infer duration
             if dur is None:
                 logw = self.duration_predictor(
-                    x,
+                    x.transpose(1, 2),
                     x_mask,
                     g=g,
                     inverse=True,
@@ -889,7 +889,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         # [[[1., 1., 0., 0., 0.],      [[[1., 1., 0., 0., 0.],
         #   [1., 1., 1., 1., 0.],  -->   [0., 0., 1., 1., 0.],
         #   [1., 1., 1., 1., 1.]]]       [0., 0., 0., 0., 1.]]]
-        path = path - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
+        path = path.long() - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
         return path.unsqueeze(1).transpose(2, 3) * mask
 
     def _source_mask(self, ilens: torch.Tensor) -> torch.Tensor:
