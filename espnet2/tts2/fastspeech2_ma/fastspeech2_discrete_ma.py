@@ -737,8 +737,8 @@ class FastSpeech2DiscreteMA(AbsTTS2):
                 max_len=max_len,
             )
         return dict(
-            feat_gen=discrete_outs,
-            duration=dur,
+            feat_gen=discrete_outs[0],
+            duration=dur[0],
         )
 
     def _inference(
@@ -781,6 +781,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             Tensor: Duration tensor (B, T_text).
 
         """
+        logging.info("text_info: {}".format(text.size()))
 
         # forward text encoder and gather global information
         x, m_p, logs_p, x_mask, g  = self._encode(text, text_lengths, spembs, sids, lids, inference=True)
@@ -827,9 +828,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             ).unsqueeze(1)
             dur = attn.sum(2)  # (B, 1, T_text)
 
-            discrete_outs = self.decoder(z * y_mask, g=g)
-        
+            discrete_outs, _ = self.decoder(z.transpose(1, 2), y_mask)
         else:
+            logging.info("intermediate z: {}".format(x.size()))
             # infer duration
             if dur is None:
                 logw = self.duration_predictor(
@@ -841,10 +842,11 @@ class FastSpeech2DiscreteMA(AbsTTS2):
                 )
                 w = torch.exp(logw) * x_mask * alpha
                 dur = torch.ceil(w)
+                logging.info("duration: {}".format(dur.size()))
             y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
             y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            attn = self._generate_path(dur, attn_mask)
+            attn = self._generate_path(dur, attn_mask).float()
 
             # expand the length to match with the feature sequence
             # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
@@ -860,9 +862,13 @@ class FastSpeech2DiscreteMA(AbsTTS2):
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+            logging.info("z_p: {}".format(z_p.size()))
             z = self.flow(z_p, y_mask, g=g, inverse=True)
-            discrete_outs = self.decoder((z * y_mask), g=g)
+            logging.info("z:{}".format(z.size()))
+            discrete_outs, _ = self.decoder(z.transpose(1, 2), y_mask)
+            logging.info("final output: {}".format(discrete_outs))
         
+         
         discrete_outs = self.feat_out(discrete_outs)
         return discrete_outs, dur
         
@@ -889,7 +895,8 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         # [[[1., 1., 0., 0., 0.],      [[[1., 1., 0., 0., 0.],
         #   [1., 1., 1., 1., 0.],  -->   [0., 0., 1., 1., 0.],
         #   [1., 1., 1., 1., 1.]]]       [0., 0., 0., 0., 1.]]]
-        path = path.long() - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
+        path = path - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
+        loggging.info("path: {}".format(path))
         return path.unsqueeze(1).transpose(2, 3) * mask
 
     def _source_mask(self, ilens: torch.Tensor) -> torch.Tensor:

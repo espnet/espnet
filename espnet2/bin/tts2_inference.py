@@ -188,7 +188,8 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            input_feat = output_dict["feat_gen"].unsqueeze(1)
+            input_feat = output_dict["feat_gen"].argmax(-1)
+            logging.info(input_feat.size())
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
