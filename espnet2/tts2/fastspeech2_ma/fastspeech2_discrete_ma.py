@@ -114,7 +114,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         # loss scale related
         ce_scale: Optional[float] = 40.0,
         kl_scale: Optional[float] = 1.0,
-        duration_scale: Optional[float] = 1.0,
+        dur_scale: Optional[float] = 1.0,
         # training related
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
@@ -827,13 +827,12 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             ).unsqueeze(1)
             dur = attn.sum(2)  # (B, 1, T_text)
 
-            discrete_outs = self.decoder(z * y_mask, g=g)
-        
+            discrete_outs, _ = self.decoder(z.transpose(1, 2), y_mask)
         else:
             # infer duration
             if dur is None:
                 logw = self.duration_predictor(
-                    x,
+                    x.transpose(1, 2),
                     x_mask,
                     g=g,
                     inverse=True,
@@ -844,7 +843,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
             y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            attn = self._generate_path(dur, attn_mask)
+            attn = self._generate_path(dur, attn_mask).float()
 
             # expand the length to match with the feature sequence
             # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
@@ -861,8 +860,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
             z = self.flow(z_p, y_mask, g=g, inverse=True)
-            discrete_outs = self.decoder((z * y_mask), g=g)
+            discrete_outs, _ = self.decoder(z.transpose(1, 2), y_mask)
         
+         
         discrete_outs = self.feat_out(discrete_outs)
         return discrete_outs, dur
         
@@ -889,7 +889,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         # [[[1., 1., 0., 0., 0.],      [[[1., 1., 0., 0., 0.],
         #   [1., 1., 1., 1., 0.],  -->   [0., 0., 1., 1., 0.],
         #   [1., 1., 1., 1., 1.]]]       [0., 0., 0., 0., 1.]]]
-        path = path - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
+        path = path.long() - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1].long()
         return path.unsqueeze(1).transpose(2, 3) * mask
 
     def _source_mask(self, ilens: torch.Tensor) -> torch.Tensor:
