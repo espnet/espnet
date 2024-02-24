@@ -181,7 +181,9 @@ class Speech2Text:
 
         self.streaming = streaming and decoding_window >= 0
         self.asr_model.encoder.dynamic_chunk_training = False
-        self.left_context = max(left_context, 0)
+        self.left_context = (
+            max(left_context, 0) if self.asr_model.encoder.use_attention else 0
+        )
 
         if streaming:
             self.audio_processor = OnlineAudioProcessor(
