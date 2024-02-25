@@ -1,0 +1,11 @@
+# beam size and maxlenratio
+
+batch_size: 1 # Note that we only support batch_size=1 now
+seed: 0
+maxlenratio: 1.5
+minlenratio: 0.0
+
+use_teacher_forcing: false
+
+beam_size: 4
+penalty: 0.2

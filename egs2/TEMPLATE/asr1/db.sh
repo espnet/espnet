@@ -213,6 +213,7 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
+SPEECHMATRIX=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

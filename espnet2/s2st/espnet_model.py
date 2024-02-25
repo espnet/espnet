@@ -11,6 +11,7 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
@@ -128,10 +129,15 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
-        if self.s2st_type == "discrete_unit":
+        if self.s2st_type == "discrete_unit" and (
+            "asr_ctc" in self.losses or "tgt_attn" in self.losses
+        ):
             assert isinstance(self.encoder, ConformerEncoder) or isinstance(
                 self.encoder, TransformerEncoder
-            ), "only support conformer or transformer-based encoder now"
+            ), (
+                "Only support conformer or transformer-based encoders"
+                "that returns intermediate layer outputs"
+            )
 
         # synthesizer
         assert (
@@ -461,11 +467,9 @@ class ESPnetS2STModel(AbsESPnetModel):
             # discrete unit-based synthesis
             # Reference: https://arxiv.org/pdf/2107.05604.pdf
 
-            encoder_layer_for_asr = len(inter_encoder_out) // 2
-            encoder_layer_for_st = len(inter_encoder_out) * 2 // 3
-
             # asr_ctc
             if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                encoder_layer_for_asr = len(inter_encoder_out) // 2
                 asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
                     inter_encoder_out[encoder_layer_for_asr],
                     encoder_out_lens,
@@ -498,6 +502,7 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             # st decoder
             if self.st_decoder is not None and "tgt_attn" in self.losses:
+                encoder_layer_for_st = len(inter_encoder_out) * 2 // 3
                 (
                     tgt_attn_loss,
                     acc_tgt_attn,
@@ -798,7 +803,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-            if self.src_normalize is not None:
+            if self.src_normalize is not None and not isinstance(
+                self.encoder, FairSeqWav2Vec2Encoder
+            ):
                 feats, feats_lengths = self.src_normalize(feats, feats_lengths)
 
         # Pre-encoder, e.g. used for raw input data

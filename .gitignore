@@ -13,7 +13,7 @@ tmp*
 .hypothesis/
 .idea
 .pytest_cache/
-__pycache__/
+**/__pycache__/
 check_autopep8
 .coverage
 htmlcov
@@ -29,6 +29,7 @@ test_spm.model
 *.vim
 *.swp
 *.nfs*
+**/.ipynb_checkpoints
 
 # recipe related
 egs*/*/*/data*
