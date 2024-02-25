@@ -49,7 +49,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Remove audio and transcript
     for lng in "eng" "nld"; do
-        cat local/zero_utt_${lng}.txt | while read line
+        cat local/zero_utt_${lng}.txt | while read -r line
         do
             if [ -f ${MLSUPERB}/swc/${lng}/wav/${line}.wav ]; then
                 rm ${MLSUPERB}/swc/${lng}/wav/${line}.wav
