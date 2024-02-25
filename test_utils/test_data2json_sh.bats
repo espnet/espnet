@@ -424,35 +424,35 @@ teardown() {
 @test "data2json.sh: single input" {
     $utils/data2json.sh --feat $scp_1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid.json
+    jdiff $tmpdir/data.json $tmpdir/valid.json
 }
 
 @test "data2json.sh: multi inputs" {
     $utils/data2json.sh --feat $scp_1,$scp_2 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multi_inputs.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multi_inputs.json
 }
 
 @test "data2json.sh: language tag for ST and MT" {
     $utils/data2json.sh --feat $scp_1 --lang lang1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_st.json
+    jdiff $tmpdir/data.json $tmpdir/valid_st.json
 }
 
 @test "data2json.sh: no input for MT" {
     $utils/data2json.sh --lang lang1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_mt.json
+    jdiff $tmpdir/data.json $tmpdir/valid_mt.json
 }
 
 @test "data2json.sh: multilingual ST" {
     $utils/data2json.sh --multilingual true --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_st.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multilingual_st.json
 }
 
 @test "data2json.sh: multilingual MT" {
     $utils/data2json.sh --multilingual true --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
 }
