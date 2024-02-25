@@ -175,5 +175,5 @@ teardown() {
         --output-scps token:$tmpdir/token token_id:$tmpdir/token_id shape:$tmpdir/text_shape:shape \
         --scps spk2utt:$tmpdir/spk2utt spk2lang:$tmpdir/spk2lang \
         -O $tmpdir/out.json
-    [ "$(jsondiff $tmpdir/out.json $tmpdir/valid)" = "{}" ]
+    [ "$(jdiff $tmpdir/out.json $tmpdir/valid)" = "{}" ]
 }
