@@ -6,7 +6,7 @@
 echo "$0 $*" >&2 # Print the command line for logging
 # WARNING: In Centos7, there is an output when loading conda saying:
 # "WARNING: No ICDs were found. Either,..."
-# and generates an error in the jsondiff comparison 
+# and generates an error in the jsondiff comparison
 . ./path.sh > /dev/null
 
 nj=1
