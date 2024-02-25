@@ -4,7 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 echo "$0 $*" >&2 # Print the command line for logging
-. ./path.sh
+# WARNING: In Centos7, there is an output when loading conda saying:
+# "WARNING: No ICDs were found. Either,..."
+# and generates an error in the jsondiff comparison
+. ./path.sh > /dev/null
 
 nj=1
 cmd=run.pl
