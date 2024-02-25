@@ -10,6 +10,7 @@ train_set="train"
 valid_set="valid"
 cohort_set="test"
 test_sets="test"
+skip_train=true
 
 feats_type="raw"
 
@@ -20,4 +21,5 @@ feats_type="raw"
     --valid_set ${valid_set} \
     --cohort_set ${cohort_set} \
     --test_sets ${test_sets} \
+    --skip_train ${skip_train} \
     "$@"
