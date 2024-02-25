@@ -618,9 +618,11 @@ We provide five objective evaluation metrics:
 - Character error rate (CER)
 - Conditional Fréchet Speech Distance (CFSD)
 - Speaker Embedding Cosine Similarity (SECS)
+- Discrete speech metrics
 
 MCD and log-F0 RMSE reflect speaker, prosody, and phonetic content similarities, and CER can reflect the intelligibility.
 For MCD and log-F0 RMSE, we apply dynamic time-warping (DTW) to match the length difference between ground-truth speech and generated speech.
+Discrete speech metrics better correlate with human subjective judgements than MCD.
 
 Here we show the example command to calculate objective metrics:
 
@@ -697,6 +699,16 @@ awk < "exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp" \
 
 # Evaluate SECS
 ./pyscripts/utils/evaluate_secs.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate SpeechBERTScore
+./pyscripts/utils/evaluate_speechbertscore.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate SpeechBLEU
+./pyscripts/utils/evaluate_speechbleu.py \
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
     dump/raw/eval1/wav.scp
 
