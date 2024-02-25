@@ -116,4 +116,58 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3, DONE."    
 fi
 
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Data Preparation for train"
+    mkdir -p data/train
+    python3 local/cm_data_prep.py ${data_dir_prefix}
+    for f in wav.scp utt2spk; do
+        sort data/train/${f} -o data/train/${f}
+    done
+    utils/utt2spk_to_spk2utt.pl data/train/utt2spk > "data/train/spk2utt"
+    utils/validate_data_dir.sh --no-feats --no-text data/train || exit 1
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "Stage 5: Download Musan and RIR_NOISES for augmentation."
+
+    if [ ! -f ${data_dir_prefix}/rirs_noises.zip ]; then
+        wget -P ${data_dir_prefix} -c http://www.openslr.org/resources/28/rirs_noises.zip
+    else
+        log "RIRS_NOISES exists. Skip download."
+    fi
+
+    if [ ! -f ${data_dir_prefix}/musan.tar.gz ]; then
+        wget -P ${data_dir_prefix} -c http://www.openslr.org/resources/17/musan.tar.gz
+    else
+        log "Musan exists. Skip download."
+    fi
+
+    if [ -d ${data_dir_prefix}/RIRS_NOISES ]; then
+        log "Skip extracting RIRS_NOISES"
+    else
+        log "Extracting RIR augmentation data."
+        unzip -q ${data_dir_prefix}/rirs_noises.zip -d ${data_dir_prefix}
+    fi
+
+    if [ -d ${data_dir_prefix}/musan ]; then
+        log "Skip extracting Musan"
+    else
+        log "Extracting Musan noise augmentation data."
+        tar -zxvf ${data_dir_prefix}/musan.tar.gz -C ${data_dir_prefix}
+    fi
+
+    # make scp files
+    log "Making scp files for musan"
+    for x in music noise speech; do
+        find ${data_dir_prefix}/musan/${x} -iname "*.wav" > ${trg_dir}/musan_${x}.scp
+    done
+
+    # Use small and medium rooms, leaving out largerooms.
+    # Similar setup to Kaldi and VoxCeleb_trainer.
+    log "Making scp files for RIRS_NOISES"
+    find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/mediumroom -iname "*.wav" > ${trg_dir}/rirs.scp
+    find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/smallroom -iname "*.wav" >> ${trg_dir}/rirs.scp
+    log "Stage 5, DONE."
+fi
+
 log "Successfully finished. [elapsed=${SECONDS}s]"

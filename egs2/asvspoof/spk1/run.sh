@@ -4,13 +4,13 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_RawNet3.yaml
+spk_config=conf/train_rawnet3.yaml
 
 train_set="train"
-valid_set="valid"
+valid_set="test"
 cohort_set="test"
 test_sets="test"
-skip_train=true
+skip_train=false
 
 feats_type="raw"
 
