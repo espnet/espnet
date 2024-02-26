@@ -265,11 +265,12 @@ if __name__ == "__main__":
                 if reserve_flag and utt_id not in FEW_SHOT_SELECTED_DATA[lang]:
                     continue
 
-                # skip wavefile over 30s, the default setting in ml-superb benchmark
+                # skip wavefile over 20s
+                # the default setting in ml-superb benchmark (asr1)
                 wav_details, sample_rate = sf.read(os.path.join(
                             args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                         ))
-                if len(wav_details) / sample_rate > 30:
+                if len(wav_details) / sample_rate > 20:
                     continue
                     
                 train_wavscp.write(
