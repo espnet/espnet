@@ -297,7 +297,7 @@
 <span class="sd">            tgt (torch.Tensor): Input tensor (#batch, maxlen_out, size).</span>
 <span class="sd">            tgt_mask (torch.Tensor): Mask for input tensor (#batch, maxlen_out).</span>
 <span class="sd">            memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, size).</span>
-<span class="sd">            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).</span>
+<span class="sd">            memory_mask (torch.Tensor): Encoded memory mask (#batch, 1, maxlen_in).</span>
 <span class="sd">            cache (List[torch.Tensor]): List of cached tensors.</span>
 <span class="sd">                Each tensor shape should be (#batch, maxlen_out - 1, size).</span>
 <span class="sd">            pre_memory (torch.Tensor): Encoded memory (#batch, maxlen_in, size).</span>

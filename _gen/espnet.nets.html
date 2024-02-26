@@ -12242,7 +12242,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.encoder_mix.EncoderMix.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">masks</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder_mix.html#EncoderMix.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder_mix.EncoderMix.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">masks</em>, <em class="sig-param">*</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder_mix.html#EncoderMix.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder_mix.EncoderMix.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encode input frame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -12366,7 +12366,7 @@ dtype=torch.uint8 in PyTorch 1.2- and dtype=torch.bool in PyTorch 1.2+
 
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.decoder.Decoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt</em>, <em class="sig-param">tgt_mask</em>, <em class="sig-param">memory</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder.html#Decoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder.Decoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt</em>, <em class="sig-param">tgt_mask</em>, <em class="sig-param">memory</em>, <em class="sig-param">*</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder.html#Decoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder.Decoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -12487,7 +12487,7 @@ torch.Tensor: Mask tensor (#batch, 1, time).</p>
 
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.encoder.Encoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">masks</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder.html#Encoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder.Encoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">masks</em>, <em class="sig-param">*</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder.html#Encoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder.Encoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encode input frame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -12678,7 +12678,7 @@ thereby attending to two sources in sequence.</p></li>
 <li><p><strong>tgt</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, maxlen_out, size).</p></li>
 <li><p><strong>tgt_mask</strong> (<em>torch.Tensor</em>) – Mask for input tensor (#batch, maxlen_out).</p></li>
 <li><p><strong>memory</strong> (<em>torch.Tensor</em>) – Encoded memory, float32 (#batch, maxlen_in, size).</p></li>
-<li><p><strong>memory_mask</strong> (<em>torch.Tensor</em>) – Encoded memory mask (#batch, maxlen_in).</p></li>
+<li><p><strong>memory_mask</strong> (<em>torch.Tensor</em>) – Encoded memory mask (#batch, 1, maxlen_in).</p></li>
 <li><p><strong>cache</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – List of cached tensors.
 Each tensor shape should be (#batch, maxlen_out - 1, size).</p></li>
 <li><p><strong>pre_memory</strong> (<em>torch.Tensor</em>) – Encoded memory (#batch, maxlen_in, size).</p></li>

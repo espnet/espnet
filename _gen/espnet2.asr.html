@@ -1456,7 +1456,7 @@ input tensor (batch, maxlen_out, #mels) in the other cases</p></li>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/whisper_decoder.html#OpenAIWhisperDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">*</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/whisper_decoder.html#OpenAIWhisperDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1624,7 +1624,7 @@ before output layer</p></li>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">memory_mask: torch.Tensor = None</em>, <em class="sig-param">*</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1634,6 +1634,7 @@ before output layer</p></li>
 dtype=torch.uint8 in PyTorch 1.2-
 dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
 <li><p><strong>memory</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>memory_mask</strong> – encoded memory mask (batch, 1, maxlen_in)</p></li>
 <li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
 <li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
 used for searchable hidden ints</p></li>
@@ -1751,7 +1752,7 @@ used for searchable hidden ints</p></li>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">memory_mask: torch.Tensor = None</em>, <em class="sig-param">*</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">speech_mask: torch.Tensor = None</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1761,7 +1762,9 @@ used for searchable hidden ints</p></li>
 dtype=torch.uint8 in PyTorch 1.2-
 dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
 <li><p><strong>memory</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>memory_mask</strong> – encoded memory mask (batch, 1, maxlen_in)</p></li>
 <li><p><strong>speech</strong> – encoded speech, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>speech_mask</strong> – encoded memory mask (batch, 1, maxlen_in)</p></li>
 <li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
 <li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
 used for searchable hidden ints</p></li>
