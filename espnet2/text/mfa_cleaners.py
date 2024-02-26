@@ -11,7 +11,7 @@ from tacotron_cleaner.cleaners import (
 
 
 def remove_extra_chars(text):
-    return re.sub(r"[^a-z.,?!' ]", "", text)
+    return re.sub(r"[^a-z.,?!'\s]", "", text)
 
 
 def remove_quotes(text):
