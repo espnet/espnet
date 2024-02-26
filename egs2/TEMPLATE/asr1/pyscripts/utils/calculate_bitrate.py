@@ -4,6 +4,7 @@
 import argparse
 import json
 import math
+
 import numpy as np
 
 if __name__ == "__main__":
@@ -13,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("--reference_len", type=str, required=True)
     parser.add_argument("--bitrate_details", type=str, default=None)
     parser.add_argument("--bitrate_result", type=str, default=None)
-  
+
     args = parser.parse_args()
 
     reference_len_dict = {}
@@ -25,8 +26,9 @@ if __name__ == "__main__":
             key, value = line.strip().split(maxsplit=1)
             reference_len_dict[key] = float(value)
 
-    with open(args.vocab, "r", encoding="utf-8") as vocab_f, \
-         open(args.tokens, "r", encoding="utf-8") as tokens_f:
+    with open(args.vocab, "r", encoding="utf-8") as vocab_f, open(
+        args.tokens, "r", encoding="utf-8"
+    ) as tokens_f:
 
         if args.bitrate_details is not None:
             bitrate_details_f = open(args.bitrate_details, "w", encoding="utf-8")
@@ -38,7 +40,7 @@ if __name__ == "__main__":
             vocab[key] = math.log2(len(vocab[key]))  # convert to log space
 
         bitrates = []
-           
+
         for key in tokens.keys():
             assert (
                 key in reference_len_dict.keys()

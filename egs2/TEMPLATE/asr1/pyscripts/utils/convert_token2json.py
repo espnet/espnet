@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+
 import soundfile as sf
 
 if __name__ == "__main__":
@@ -21,9 +22,9 @@ if __name__ == "__main__":
         os.path.join(args.result_dir, "ref_len.scp"), "w", encoding="utf-8"
     )
 
-    with open(args.vocab, "r", encoding="utf-8") as vocab_f, \
-        open(args.token, "r", encoding="utf-8") as token_f, \
-        open(args.ref_scp, "r", encoding="utf-8") as ref_f:
+    with open(args.vocab, "r", encoding="utf-8") as vocab_f, open(
+        args.token, "r", encoding="utf-8"
+    ) as token_f, open(args.ref_scp, "r", encoding="utf-8") as ref_f:
 
         # preparing vocabulary
         vocab_json[0] = vocab_f.read().strip().split("\n")
