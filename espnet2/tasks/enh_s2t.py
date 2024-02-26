@@ -46,6 +46,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
     CommonPreprocessor,
     CommonPreprocessor_multi,
+    DiarPreprocessor,
     MutliTokenizerCommonPreprocessor,
 )
 from espnet2.train.trainer import Trainer
@@ -469,9 +470,12 @@ class EnhS2TTask(AbsTask):
                     **getattr(args, "preprocessor_conf", {}),
                 )
             elif "diar" in args.subtask_series:
-                retval = CommonPreprocessor(
-                    train=train, **getattr(args, "preprocessor_conf", {})
+                retval = DiarPreprocessor(
+                    train=train,
+                    num_spk=args.diar_num_spk,
+                    **getattr(args, "preprocessor_conf", {}),
                 )
+
             else:
                 retval = CommonPreprocessor_multi(
                     train=train,
