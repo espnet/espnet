@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import string
+
 import soundfile as sf
 
 from espnet2.utils.types import str2bool
@@ -267,12 +268,14 @@ if __name__ == "__main__":
 
                 # skip wavefile over 20s
                 # the default setting in ml-superb benchmark (asr1)
-                wav_details, sample_rate = sf.read(os.path.join(
-                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
-                        ))
+                wav_details, sample_rate = sf.read(
+                    os.path.join(
+                        args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                    )
+                )
                 if len(wav_details) / sample_rate > 20:
                     continue
-                    
+
                 train_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
