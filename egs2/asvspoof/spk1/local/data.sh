@@ -58,8 +58,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # unzip LA.zip
     if [ ! -d "${data_dir_prefix}/LA" ]; then
         log "Unzipping LA.zip..."
-        unzip "${data_dir_prefix}/LA.zip"
-        rm "${data_dir_prefix}/LA.zip" # cleanup
+        unzip "${data_dir_prefix}/LA.zip" -d "${data_dir_prefix}"
     else
        log "LA exists. Skip unzipping ASVspoof LA.zip"
     fi
