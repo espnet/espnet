@@ -165,6 +165,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        *,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
@@ -714,6 +715,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        *,
         speech: torch.Tensor = None,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
@@ -771,7 +773,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             ys.unsqueeze(0),
             ys_mask,
             x.unsqueeze(0),
-            speech.unsqueeze(0) if speech is not None else None,
+            speech=speech.unsqueeze(0) if speech is not None else None,
             cache=state,
         )
         return logp.squeeze(0), state
@@ -811,7 +813,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-        logp, states = self.forward_one_step(ys, ys_mask, xs, speech, cache=batch_state)
+        logp, states = self.forward_one_step(ys, ys_mask, xs, speech=speech, cache=batch_state)
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
