@@ -732,9 +732,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                       dtype=torch.uint8 in PyTorch 1.2-
                       dtype=torch.bool in PyTorch 1.2+ (include 1.2)
             memory: encoded memory, float32  (batch, maxlen_in, feat)
-            memory_mask: encoded memory mask (batch, maxlen_in)
+            memory_mask: encoded memory mask (batch, 1, maxlen_in)
             speech: encoded speech, float32  (batch, maxlen_in, feat)
-            speech_mask: encoded memory mask (batch, maxlen_in)
+            speech_mask: encoded memory mask (batch, 1, maxlen_in)
             cache: cached output list of (batch, max_time_out-1, size)
             return_hs: dec hidden state corresponding to ys,
                 used for searchable hidden ints
