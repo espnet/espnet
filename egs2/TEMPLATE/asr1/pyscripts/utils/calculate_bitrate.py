@@ -44,9 +44,7 @@ if __name__ == "__main__":
         for key in tokens.keys():
             assert (
                 key in reference_len_dict.keys()
-            ), "mismatched key ({}) between reference and provided tokens".format(
-                key
-            )
+            ), "mismatched key ({}) between reference and provided tokens".format(key)
             ref_len = reference_len_dict[key]  # in seconds
             token = tokens[key]
             cum_info = 0
@@ -54,7 +52,8 @@ if __name__ == "__main__":
                 assert (
                     str(stream) in vocab.keys()
                 ), "stream {} does not have vocab, check vocab file {}".format(
-                    stream, args.vocab,
+                    stream,
+                    args.vocab,
                 )
                 info = math.log2(len(token[stream]) / ref_len) + vocab[str(stream)]
                 cum_info += info
