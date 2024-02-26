@@ -60,8 +60,8 @@ C 5
 EOF
 
     cat << EOF > $tmpdir/data_multilingual/text
-uttid0-lang1 <lang1> ABC ABC
-uttid1-lang2 <lang2> BC BC
+uttid0-lang1 <lang1>ABC ABC
+uttid1-lang2 <lang2>BC BC
 EOF
 
     cat << EOF > $tmpdir/data_multilingual/utt2spk
@@ -279,7 +279,7 @@ EOF
         "uttid0-lang1": {
             "input": [
                 {
-                    "feat": "${ark_1_multilingual}:7",
+                    "feat": "${ark_1_multilingual}:13",
                     "name": "input1",
                     "shape": [
                         30,
@@ -295,7 +295,7 @@ EOF
                         8,
                         9
                     ],
-                    "text": "<lang1> ABC ABC",
+                    "text": "<lang1>ABC ABC",
                     "token": "<lang1> A B C <space> A B C",
                     "tokenid": "6 3 4 5 2 3 4 5"
                 }
@@ -305,7 +305,7 @@ EOF
         "uttid1-lang2": {
             "input": [
                 {
-                    "feat": "${ark_1_multilingual}:2429",
+                    "feat": "${ark_1_multilingual}:2441",
                     "name": "input1",
                     "shape": [
                         30,
@@ -321,7 +321,7 @@ EOF
                         6,
                         9
                     ],
-                    "text": "<lang2> BC BC",
+                    "text": "<lang2>BC BC",
                     "token": "<lang2> B C <space> B C",
                     "tokenid": "7 4 5 2 4 5"
                 }
@@ -386,7 +386,7 @@ EOF
                         8,
                         9
                     ],
-                    "text": "<lang1> ABC ABC",
+                    "text": "<lang1>ABC ABC",
                     "token": "<lang1> A B C <space> A B C",
                     "tokenid": "6 3 4 5 2 3 4 5"
                 }
@@ -403,7 +403,7 @@ EOF
                         6,
                         9
                     ],
-                    "text": "<lang2> BC BC",
+                    "text": "<lang2>BC BC",
                     "token": "<lang2> B C <space> B C",
                     "tokenid": "7 4 5 2 4 5"
                 }
@@ -424,35 +424,35 @@ teardown() {
 @test "data2json.sh: single input" {
     $utils/data2json.sh --feat $scp_1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid.json
+    jdiff $tmpdir/data.json $tmpdir/valid.json
 }
 
 @test "data2json.sh: multi inputs" {
     $utils/data2json.sh --feat $scp_1,$scp_2 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multi_inputs.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multi_inputs.json
 }
 
 @test "data2json.sh: language tag for ST and MT" {
     $utils/data2json.sh --feat $scp_1 --lang lang1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_st.json
+    jdiff $tmpdir/data.json $tmpdir/valid_st.json
 }
 
 @test "data2json.sh: no input for MT" {
     $utils/data2json.sh --lang lang1 $tmpdir/data \
         $tmpdir/dict > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_mt.json
+    jdiff $tmpdir/data.json $tmpdir/valid_mt.json
 }
 
 @test "data2json.sh: multilingual ST" {
-    $utils/data2json.sh --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
+    $utils/data2json.sh --multilingual true --feat $scp_1_multilingual --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_st.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multilingual_st.json
 }
 
 @test "data2json.sh: multilingual MT" {
-    $utils/data2json.sh --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
+    $utils/data2json.sh --multilingual true --nlsyms $tmpdir/nlsyms $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual > $tmpdir/data.json
-    jsondiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
+    jdiff $tmpdir/data.json $tmpdir/valid_multilingual_mt.json
 }

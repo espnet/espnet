@@ -223,7 +223,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # for data-parallel
-        speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
+        speech_ref = speech_ref[:, :, : speech_lengths.max()].unbind(dim=1)
         if noise_ref is not None:
             noise_ref = noise_ref[..., : speech_lengths.max()].unbind(dim=1)
         if dereverb_speech_ref is not None:
