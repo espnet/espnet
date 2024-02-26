@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import string
+import soundfile as sf
 
 from espnet2.utils.types import str2bool
 
@@ -263,6 +264,14 @@ if __name__ == "__main__":
                 utt_id, _, text = line
                 if reserve_flag and utt_id not in FEW_SHOT_SELECTED_DATA[lang]:
                     continue
+
+                # skip wavefile over 30s, the default setting in ml-superb benchmark
+                wav_details, sample_rate = sf.read(os.path.join(
+                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                        ))
+                if len(wav_details) / sample_rate > 30:
+                    continue
+                    
                 train_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
