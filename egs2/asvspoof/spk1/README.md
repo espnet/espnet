@@ -1,8 +1,6 @@
 # RESULTS
 ## Overall results
-# RESULTS
 
-Overall results
 | Model (conf name) | EER(%) | minDCF | Note | Huggingface |
 |---|---|---|---|---|
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 26.124 | 1.00000 | | https://huggingface.co/espnet/voxcelebs12_ecapa_mel |
