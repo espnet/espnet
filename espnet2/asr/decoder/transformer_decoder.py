@@ -165,6 +165,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        memory_mask: torch.Tensor = None,
         *,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
@@ -177,6 +178,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                       dtype=torch.uint8 in PyTorch 1.2-
                       dtype=torch.bool in PyTorch 1.2+ (include 1.2)
             memory: encoded memory, float32  (batch, maxlen_in, feat)
+            memory_mask: encoded memory mask (batch, maxlen_in)
             cache: cached output list of (batch, max_time_out-1, size)
             return_hs: dec hidden state corresponding to ys,
                 used for searchable hidden ints
@@ -190,7 +192,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, None, cache=c
+                x, tgt_mask, memory, memory_mask, cache=c
             )
             new_cache.append(x)
 
