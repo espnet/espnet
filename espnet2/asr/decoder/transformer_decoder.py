@@ -749,7 +749,13 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         for c, decoder in zip(cache, self.decoders):
             if self.use_speech_attn:
                 x, tgt_mask, memory, memory_mask, _, speech, speech_mask = decoder(
-                    x, tgt_mask, memory, memory_mask, cache=c, pre_memory=speech, pre_memory_mask=speech_mask
+                    x,
+                    tgt_mask,
+                    memory,
+                    memory_mask,
+                    cache=c,
+                    pre_memory=speech,
+                    pre_memory_mask=speech_mask,
                 )
             else:
                 x, tgt_mask, memory, memory_mask = decoder(
@@ -819,7 +825,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-        logp, states = self.forward_one_step(ys, ys_mask, xs, speech=speech, cache=batch_state)
+        logp, states = self.forward_one_step(
+            ys, ys_mask, xs, speech=speech, cache=batch_state
+        )
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
