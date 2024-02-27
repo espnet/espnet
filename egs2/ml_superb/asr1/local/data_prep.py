@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import re
 import string
@@ -205,6 +206,7 @@ if __name__ == "__main__":
     parser.add_argument("--source", type=str, default="downloads")
     parser.add_argument("--lid", type=str2bool, default=False)
     parser.add_argument("--only_lid", type=str2bool, default=False)
+    parser.add_argument("--max_wav_len", type=float, default=20.0)
 
     args = parser.parse_args()
     assert args.duration in ["10min", "1h"], "we only "
@@ -262,18 +264,21 @@ if __name__ == "__main__":
             )
             for line in train_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
+                if len(line) < 3:
+                    continue # a fix for seventh version
                 utt_id, _, text = line
                 if reserve_flag and utt_id not in FEW_SHOT_SELECTED_DATA[lang]:
                     continue
 
-                # skip wavefile over 20s
+                # skip wavefile over the threshold
                 # the default setting in ml-superb benchmark (asr1)
                 wav_details, sample_rate = sf.read(
                     os.path.join(
                         args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                     )
                 )
-                if len(wav_details) / sample_rate > 20:
+                if len(wav_details) / sample_rate > args.max_wav_len:
+                    logging.warning("skip {} for long sequence (over {}s)".format(utt_id, args.max_wav_len))
                     continue
 
                 train_wavscp.write(
@@ -304,7 +309,19 @@ if __name__ == "__main__":
             )
             for line in dev_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
+                if len(line) < 3:
+                    continue # a fix for seventh version
                 utt_id, _, text = line
+                
+                wav_details, sample_rate = sf.read(
+                    os.path.join(
+                        args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                    )
+                )
+                if len(wav_details) / sample_rate > args.max_wav_len:
+                    logging.warning("skip {} for long sequence (over {}s)".format(utt_id, args.max_wav_len))
+                    continue
+                
                 dev_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
@@ -333,6 +350,8 @@ if __name__ == "__main__":
             )
             for line in test_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
+                if len(line) < 3:
+                    continue # a fix for seventh version
                 utt_id, _, text = line
                 test_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
