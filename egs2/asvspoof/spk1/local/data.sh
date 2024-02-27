@@ -169,4 +169,55 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5, DONE."
 fi
 
+# types of trials:                            # num of examples
+# SV: bonafide target * bonafide nontarget    5370 | 33327
+# A07: bonafide target * A07 spoof            5370 | 4914
+# A08: bonafide target * A08 spoof            5370 | 4914
+# A09: bonafide target * A09 spoof            5370 | 4914
+# A10: bonafide target * A10 spoof            5370 | 4914
+# A11: bonafide target * A11 spoof            5370 | 4914
+# A12: bonafide target * A12 spoof            5370 | 4914
+# A13: bonafide target * A13 spoof            5370 | 4914
+# A14: bonafide target * A14 spoof            5370 | 4914
+# A15: bonafide target * A15 spoof            5370 | 4914
+# A16: bonafide target * A16 spoof            5370 | 4914
+# A17: bonafide target * A17 spoof            5370 | 4914
+# A18: bonafide target * A18 spoof            5370 | 4914
+# A19: bonafide target * A19 spoof            5370 | 4914
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "stage 6: Making sub-protocols and Kaldi-style files for each subset of trials"
+
+    log "Making sub-protocols..."
+    if [ ! -f "${data_dir_prefix}/SV.txt" ]; then
+        for x in SV A07 A08 A09 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19; do
+            # Make new protocol file
+            python local/make_subprotocols.py --in_file "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.eval.gi.trl.txt" --out_file "${data_dir_prefix}/LA_asv_eval/${x}.txt" --trial_type ${x}
+        done
+    else
+       log "Sub protocol files exist. Skip making sub-protocols"
+    fi
+
+    log "Making Kaldi-style files for each subprotocol"
+    if [ ! -d "${trg_dir}/test_SV" ]; then
+        log "Making Kaldi style files and making trials"
+        for x in SV A07 A08 A09 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19; do
+            mkdir -p data/test_${x}
+            # make kaldi-style files for ASV dev and test
+            python3 local/asv_data_prep.py --src "${data_dir_prefix}/LA_asv_eval/flac/" --dst "${trg_dir}/test_${x}"
+            for f in wav.scp utt2spk spk2utt; do
+                sort ${trg_dir}/test_${x}/${f} -o ${trg_dir}/test_${x}/${f}
+            done
+            utils/validate_data_dir.sh --no-feats --no-text "data/test_${x}" || exit 1
+
+            # make test trial compatible with ESPnet
+            log "Making the trial compatible with ESPnet"
+            python local/convert_trial.py --trial "${data_dir_prefix}/LA_asv_eval/${x}.txt" --scp ${trg_dir}/test_${x}/wav.scp --out ${trg_dir}/test_${x}
+        done
+    else
+        log "${trg_dir}/test_SV exists. Skip making Kaldi style files and trials"
+    fi
+
+    log "Stage 6, DONE."    
+fi
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
