@@ -265,7 +265,7 @@ if __name__ == "__main__":
             for line in train_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
                 if len(line) < 3:
-                    continue # a fix for seventh version
+                    continue  # a fix for seventh version
                 utt_id, _, text = line
                 if reserve_flag and utt_id not in FEW_SHOT_SELECTED_DATA[lang]:
                     continue
@@ -278,7 +278,11 @@ if __name__ == "__main__":
                     )
                 )
                 if len(wav_details) / sample_rate > args.max_wav_len:
-                    logging.warning("skip {} for long sequence (over {}s)".format(utt_id, args.max_wav_len))
+                    logging.warning(
+                        "skip {} for long sequence (over {}s)".format(
+                            utt_id, args.max_wav_len
+                        )
+                    )
                     continue
 
                 train_wavscp.write(
@@ -310,18 +314,22 @@ if __name__ == "__main__":
             for line in dev_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
                 if len(line) < 3:
-                    continue # a fix for seventh version
+                    continue  # a fix for seventh version
                 utt_id, _, text = line
-                
+
                 wav_details, sample_rate = sf.read(
                     os.path.join(
                         args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                     )
                 )
                 if len(wav_details) / sample_rate > args.max_wav_len:
-                    logging.warning("skip {} for long sequence (over {}s)".format(utt_id, args.max_wav_len))
+                    logging.warning(
+                        "skip {} for long sequence (over {}s)".format(
+                            utt_id, args.max_wav_len
+                        )
+                    )
                     continue
-                
+
                 dev_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
@@ -351,7 +359,7 @@ if __name__ == "__main__":
             for line in test_transcript.readlines():
                 line = line.strip().split(maxsplit=2)
                 if len(line) < 3:
-                    continue # a fix for seventh version
+                    continue  # a fix for seventh version
                 utt_id, _, text = line
                 test_wavscp.write(
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
