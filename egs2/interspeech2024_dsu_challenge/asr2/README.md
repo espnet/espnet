@@ -2,7 +2,7 @@
 # ML_SUPERB data download
 This can be referred to the ML-SUPERB [recipe](https://github.com/espnet/espnet/blob/master/egs2/ml_superb/asr1)
 
-[Download link](https://drive.google.com/file/d/1zslKQwadZaYWXAmfBCvlos9BVQ9k6PHT/view?usp=sharing)
+[Download link](https://drive.google.com/file/d/1QYjl-7vflle__3AfuosAC5VJGiBDvEqz/view?usp=drive_link)
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 
