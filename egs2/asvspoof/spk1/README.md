@@ -14,10 +14,10 @@
 | Model (conf name) | SV | A07 | A08 | A09 | A10 | A11 | A12 | A13 | A14 | A15 | A16 | A17 | A18 | A19 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 2.103 |39.276 | 27.635| 4.538 |51.974|51.669|42.737|18.566|39.907|44.488|57.530|3.154|3.762|7.184|
-| [conf/train_xvector.yaml](conf/train_xvector.yaml) |  |  | |  |
-| [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 	 |  | |  |
-| [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 1.245 | 28.045 | 14.774 |2.775|49.013| 45.645 |37.654 |10.501|30.057|38.585 |55.800 | 1.546 |1.770 | 4.097 |
-| [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) |1.117| 4.172|12.421 |1.913 |50.204|43.333|39.438|12.272|27.002|39.296|13.948|1.791|2.177|1.079
+| [conf/train_xvector.yaml](conf/train_xvector.yaml) |1.769| 39.214 |27.432 | 2.514 |52.514|49.389|44.618|19.292|40.521|42.593|59.702|2.551|3.948|9.255|
+| [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) |1.335|33.394|23.077|2.890|52.666|47.561|43.529|17.952|37.281|43.128|59.106|2.570|2.259|6.108|
+| [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 1.245 | 28.045 | 14.774 |2.775|__49.013__| 45.645 |__37.654__|__10.501__|30.057|__38.585__|55.800 |__1.546__|__1.770__| 4.097 |
+| [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) |__1.117__|__4.172__|__12.421__|__1.913__|50.204|__43.333__|39.438|12.272|__27.002__|39.296|__13.948__|1.791|2.177|__1.079__
 
 ## Environments
 
@@ -102,7 +102,10 @@ date: 2024-02-26 09:24:59.144113
 | conf/train_xvector | 25.847 | 1.00000 |
 
 # Subprotocol trials
+<details><summary>expand</summary>
+
 ## RawNet3
+
 ### SV
 date: 2024-02-27 11:15:36.088677
 
@@ -316,6 +319,7 @@ date: 2024-02-27 13:03:33.379022
 | conf/train_rawnet3 | 1.079 | 0.06626 |
 
 ## SKA-TDNN
+
 ### SV
 date: 2024-02-27 13:17:37.638194
 
@@ -528,6 +532,7 @@ date: 2024-02-27 15:05:46.297891
 | conf/train_SKA_mel | 4.097 | 0.26304 |
 
 ## ECAPA-TDNN
+
 ### SV
 date: 2024-02-27 15:20:39.941932
 
@@ -739,3 +744,427 @@ date: 2024-02-27 16:14:24.949749
 | Model name | EER(%) | minDCF |
 |---|---|---|
 | conf/train_ECAPA_mel | 7.184 | 0.38394 |
+
+## MFA-conformer
+### SV
+date: 2024-02-27 17:16:47.826700
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.0938 | 0.0938 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 1.335 | 0.07360 |
+### A07
+date: 2024-02-27 17:22:35.591538
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1142 | 0.1142 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 33.394 | 0.91796 |
+### A08
+date: 2024-02-27 17:28:21.413240
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1161 | 0.1161 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 23.077 | 0.72508 |
+### A09
+date: 2024-02-27 17:34:06.180903
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.0992 | 0.0992 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 2.890 | 0.12334 |
+### A10
+date: 2024-02-27 17:39:53.286866
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1399 | 0.1399 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 52.666 | 1.00000 |
+### A11
+date: 2024-02-27 17:45:38.874941
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1357 | 0.1357 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 47.561 | 0.99832 |
+### A12
+date: 2024-02-27 17:51:26.157545
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1374 | 0.1374 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 43.529 | 0.99926 |
+### A13
+date: 2024-02-27 17:57:13.055793
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1114 | 0.1114 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 17.952 | 0.64849 |
+### A14
+date: 2024-02-27 18:02:59.994983
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1222 | 0.1222 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 37.281 | 0.98003 |
+### A15
+date: 2024-02-27 18:08:46.911828
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1190 | 0.1190 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 43.128 | 0.99069 |
+### A16
+date: 2024-02-27 18:14:34.204601
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1328 | 0.1328 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 59.106 | 1.00000 |
+### A17
+date: 2024-02-27 18:20:20.830238
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1065 | 0.1065 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 2.570 | 0.16197 |
+### A18
+date: 2024-02-27 18:26:08.860074
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.0951 | 0.0951 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 2.259 | 0.11208 |
+### A19
+date: 2024-02-27 18:31:56.184388
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7894 | 0.1262 |
+| Non-target | 0.1063 | 0.1063 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_mfa_conformer | 6.108 | 0.36242 |2024-02-27T18:31:56 |
+
+## x-vector
+### SV
+date: 2024-02-27 18:46:47.088042
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1007 | 0.1007 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 1.769 | 0.12031 |
+### A07
+date: 2024-02-27 18:50:17.579856
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1134 | 0.1134 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 39.214 | 0.98642 |
+### A08
+date: 2024-02-27 18:53:45.686145
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1222 | 0.1222 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 27.432 | 0.86012 |
+### A09
+date: 2024-02-27 18:57:15.571895
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1039 | 0.1039 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 2.514 | 0.12675 |
+### A10
+date: 2024-02-27 19:00:45.868605
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1428 | 0.1428 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 52.514 | 0.99981 |
+### A11
+date: 2024-02-27 19:04:16.249534
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1380 | 0.1380 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 49.389 | 0.99888 |
+### A12
+date: 2024-02-27 19:07:46.341433
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1358 | 0.1358 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 44.618 | 0.99907 |
+### A13
+date: 2024-02-27 19:11:16.559528
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1060 | 0.1060 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 19.292 | 0.70417 |
+### A14
+date: 2024-02-27 19:14:46.716614
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1117 | 0.1117 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 40.521 | 0.99814 |
+### A15
+date: 2024-02-27 19:18:18.388321
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1121 | 0.1121 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 42.593 | 0.99907 |
+### A16
+date: 2024-02-27 19:21:48.705205
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1242 | 0.1242 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 59.702 | 1.00000 |
+### A17
+date: 2024-02-27 19:25:19.174404
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1093 | 0.1093 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 2.551 | 0.13312 |
+### A18
+date: 2024-02-27 19:28:49.195360
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1000 | 0.1000 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 3.948 | 0.20679 |
+### A19
+date: 2024-02-27 19:32:20.156885
+
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.8091 | 0.1173 |
+| Non-target | 0.1105 | 0.1105 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_xvector | 9.255 | 0.54227 |
