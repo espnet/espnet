@@ -9,6 +9,14 @@
 | [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 21.756 | 1.00000 | | https://huggingface.co/espnet/voxcelebs12_ska_mel |
 | [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) | 17.413 | 0.99984 | | https://huggingface.co/espnet/voxcelebs12_rawnet3 |
 
+## EER (%) breakdown for SV and A07-A19 attacks
+| Model (conf name) | SV | A07 | A08 | A09 | A10 | A11 | A12 | A13 | A14 | A15 | A16 | A17 | A18 | A19 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | | | |
+| [conf/train_xvector.yaml](conf/train_xvector.yaml) |  |  | |  |
+| [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 	 |  | |  |
+| [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 1.245 | 28.045 | 14.774 |2.775|49.013| 45.645 |37.654 |10.501|30.057|38.585 |55.800 | 1.546 |1.770 | 4.097 |
+| [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) |1.117| 4.172|12.421 |1.913 |50.204|43.333|39.438|12.272|27.002|39.296|13.948|1.791|2.177|1.079
 ## Environments
 
 ### RawNet3
@@ -304,118 +312,215 @@ date: 2024-02-27 13:03:33.379022
 | Model name | EER(%) | minDCF |
 |---|---|---|
 | conf/train_rawnet3 | 1.079 | 0.06626 |
+
 ## SKA-TDNN
 ### SV
+date: 2024-02-27 13:17:37.638194
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.0997 | 0.0997 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 1.245 | 0.06959 |
 ### A07
+date: 2024-02-27 13:39:52.524862
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1156 | 0.1156 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 28.045 | 0.87993 |
 ### A08
+date: 2024-02-27 13:47:13.719990
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1101 | 0.1101 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 14.774 | 0.58913 |
 ### A09
+date: 2024-02-27 13:54:41.520466
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1038 | 0.1038 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 2.775 | 0.12594 |
 ### A10
+date: 2024-02-27 14:01:47.901840
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1370 | 0.1370 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 49.013 | 0.99981 |
 ### A11
+date: 2024-02-27 14:09:13.161921
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1331 | 0.1331 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 45.645 | 0.99814 |
 ### A12
+date: 2024-02-27 14:16:24.912623
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1411 | 0.1411 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 37.654 | 0.99902 |
 ### A13
+date: 2024-02-27 14:23:29.051876
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1209 | 0.1209 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 10.501 | 0.48012 |
 ### A14
+date: 2024-02-27 14:31:26.798849
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1231 | 0.1231 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 30.057 | 0.98078 |
 ### A15
+date: 2024-02-27 14:38:11.396463
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1186 | 0.1186 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 38.585 | 0.99590 |
 ### A16
+date: 2024-02-27 14:45:03.819763
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1287 | 0.1287 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 55.800 | 1.00000 |
 ### A17
+date: 2024-02-27 14:51:48.948318
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1059 | 0.1059 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 1.546 | 0.09163 |
 ### A18
+date: 2024-02-27 14:59:00.361763
 
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
+
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.0976 | 0.0976 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 1.770 | 0.11161 |
 ### A19
+date: 2024-02-27 15:05:46.297891
 
-## ECAPA-TDNN
-### SV
+- python version: 3.10.13 | packaged by conda-forge | (main, Dec 23 2023, 15:36:39) [GCC 12.3.0]
+- espnet version: 202402
+- pytorch version: 2.0.0
 
-### A07
+| | Mean | Std |
+|---|---|---|
+| Target | -0.7505 | 0.1179 |
+| Non-target | 0.1128 | 0.1128 |
 
-### A08
-
-### A09
-
-### A10
-
-### A11
-
-### A12
-
-### A13
-
-### A14
-
-### A15
-
-### A16
-
-### A17
-
-### A18
-
-### A19
-
-## MFA-conformer
-### SV
-
-### A07
-
-### A08
-
-### A09
-
-### A10
-
-### A11
-
-### A12
-
-### A13
-
-### A14
-
-### A15
-
-### A16
-
-### A17
-
-### A18
-
-### A19
-
-## x-vector
-### SV
-
-### A07
-
-### A08
-
-### A09
-
-### A10
-
-### A11
-
-### A12
-
-### A13
-
-### A14
-
-### A15
-
-### A16
-
-### A17
-
-### A18
-
-### A19
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/train_SKA_mel | 4.097 | 0.26304 |
