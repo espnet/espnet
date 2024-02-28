@@ -1,11 +1,10 @@
 import argparse
-from io import BytesIO
 import json
 import os
+from io import BytesIO
 
 import kaldiio
 import soundfile as sf
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("convert espnet tokens for bitrate calculation")

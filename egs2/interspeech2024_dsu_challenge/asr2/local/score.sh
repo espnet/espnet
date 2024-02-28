@@ -91,7 +91,7 @@ if [[ -n ${final_ls_result} ]] && [[ -n ${final_ms_result} ]]; then
                     print(inf_conf, results[inf_conf]["en"], results[inf_conf]["ml"])
                 }
             }
-        }' | while read line; do 
+        }' | while read line; do
             output_file=$(echo "${line}" | cut -d" " -f1)"_result.json"
             echo "Writing submission json file in ${asr_exp}/${output_file}"
             echo
@@ -99,7 +99,7 @@ if [[ -n ${final_ls_result} ]] && [[ -n ${final_ms_result} ]]; then
             cat <<EOF > ${asr_exp}/${output_file}
 {
     "config": {
-        "model_dtype": "torch.float16", 
+        "model_dtype": "torch.float16",
         "model_name": "YOUR_MODEL_NAME"
     },
     "results": {
