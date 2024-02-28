@@ -6,6 +6,47 @@ This can be referred to the ML-SUPERB [recipe](https://github.com/espnet/espnet/
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 
+# Bitrate calculation
+
+We show how to calculate the bitrate in the baseline system:
+```bash
+$ token_suffix="wavlm_large_21_km2000"
+$ bpe_folder="data/token_list/src_bpe_unigram3000_rm_wavlm_large_21_km2000"
+$ for dset in dev_clean dev_other test_clean test_other test_1h; do
+$   result_dir="bitrate/${dset}"
+
+$   paste \
+$     <(<dump/raw/${dset}/text.rm.${token_suffix} cut -d" " -f1) \
+$     <(<dump/raw/${dset}/text.rm.${token_suffix} spm_encode --model=${bpe_folder}/bpe.model --output_format=id) \
+$     > dump/raw/${dset}/token_int.rm.${token_suffix}
+
+$   python pyscripts/utils/convert_token2json.py \
+$     --vocab data/token_list/src_bpe_unigram3000_rm_${token_suffix}/tokens.txt \
+$     --token dump/raw/${dset}/token_int.rm.${token_suffix} \
+$     --ref_scp data/${dset}/wav.scp \
+$     --result_dir "${result_dir}"
+
+$   python pyscripts/utils/calculate_bitrate.py \
+$     --vocab ${result_dir}/vocab.json \
+$     --tokens ${result_dir}/tokens.json \
+$     --reference_len ${result_dir}/ref_len.scp \
+$     --bitrate_details ${result_dir}/details.txt
+$ done
+
+$ python - <<EOF
+import numpy as np
+bitrates=[]
+result_dir="${result_dir}/.."
+for dset in ["dev_clean", "dev_other", "test_clean", "test_other", "test_1h"]:
+    with open(f"{result_dir}/{dset}/details.txt", "r") as f:
+        for line in f.readlines():
+            lst = line.strip().split()
+            bitrates.append(float(lst[1]))
+print(np.mean(bitrates))
+
+EOF
+```
+
 # RESULTS
 ## Environments
 - date: `Wed Jan 17 08:22:49 EST 2024`
