@@ -15,15 +15,18 @@ ENGLISH_DIRTY_TEXT = "(Hello-$10);  'i am Joe's jr. & dr.',ëé\t\nßæãåūú�
         "mfa_english",
         "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!"
     ), (
-        "whisper_en",
-        "i am joe is junior doctor ee ssaeaauuiiooeo"
-    ), (
-        "whisper_basic",
-        " i am joe s jr dr ëé ßæãåūúìîóœø "
-    ), (
         ["tacotron", "mfa_english"],
         "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!"
-    )]
+    ),
+        # Commented out for now due to whisper not installed on some CI settings
+        # (
+        #     "whisper_en",
+        #     "i am joe is junior doctor ee ssaeaauuiiooeo"
+        # ), (
+        #     "whisper_basic",
+        #     " i am joe s jr dr ëé ßæãåūúìîóœø "
+        # ),
+    ]
 )
 def test_english(cleaner_types: Collection[str], expected_clean_text: str):
     cleaner = TextCleaner(cleaner_types)
