@@ -12,9 +12,9 @@ if len(sys.argv) != 2:
 root = sys.argv[1]
 
 dir_dict = {
-    "train": "slue-voxpopuli_fine-tune.tsv",
-    "devel": "slue-voxpopuli_dev.tsv",
-    "test": "slue-voxpopuli_test_blind.tsv",
+    "train": "fine-tune.tsv",
+    "devel": "dev.tsv",
+    "test": "test.tsv",
 }
 
 ontonotes_to_combined_label = {
@@ -62,47 +62,46 @@ for x in dir_dict:
 
             transcript = row[2].lower()
             entities = []
-            if x != "test":  # blind test set
-                if str(row[6]) != "None" and str(row[6]) != "nan":
-                    for slot in row[6].split("], "):
-                        ent_type = (
-                            slot.split(",")[0]
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace('"', "")
-                            .replace("'", "")
-                        )
-                        if ent_type in ontonotes_to_combined_label:
-                            ent_type = ontonotes_to_combined_label[ent_type]
-                        else:
-                            missing_count += 1
-                            missing_ent.add(ent_type)
-                            continue
-                        fill_start = int(
-                            slot.split(",")[1]
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace('"', "")
-                            .replace("'", "")
-                            .replace(" ", "")
-                        )
-                        fill_len = int(
-                            slot.split(",")[2]
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace('"', "")
-                            .replace("'", "")
-                            .replace(" ", "")
-                        )
-                        filler = transcript[fill_start : fill_start + fill_len]
-                        entities.append(
-                            {
-                                "type": ent_type,
-                                "filler": filler,
-                                "filler_start": fill_start,
-                                "filler_end": fill_start + fill_len,
-                            }
-                        )
+            if str(row[6]) != "None" and str(row[6]) != "nan":
+                for slot in row[6].split("], "):
+                    ent_type = (
+                        slot.split(",")[0]
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace('"', "")
+                        .replace("'", "")
+                    )
+                    if ent_type in ontonotes_to_combined_label:
+                        ent_type = ontonotes_to_combined_label[ent_type]
+                    else:
+                        missing_count += 1
+                        missing_ent.add(ent_type)
+                        continue
+                    fill_start = int(
+                        slot.split(",")[1]
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace('"', "")
+                        .replace("'", "")
+                        .replace(" ", "")
+                    )
+                    fill_len = int(
+                        slot.split(",")[2]
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace('"', "")
+                        .replace("'", "")
+                        .replace(" ", "")
+                    )
+                    filler = transcript[fill_start : fill_start + fill_len]
+                    entities.append(
+                        {
+                            "type": ent_type,
+                            "filler": filler,
+                            "filler_start": fill_start,
+                            "filler_end": fill_start + fill_len,
+                        }
+                    )
             new_transcript = transcript[:]
             for entity in entities:
                 new_transcript = (
