@@ -16,6 +16,7 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.slu.postencoder.Featurizer import Featurizer
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
@@ -46,6 +47,7 @@ class ESPnetASRModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
+        prepostencoder: Optional[AbsPreEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
         ctc: CTC,
@@ -68,6 +70,7 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
+        weighted_sum: bool = False,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -94,11 +97,13 @@ class ESPnetASRModel(AbsESPnetModel):
         self.interctc_weight = interctc_weight
         self.aux_ctc = aux_ctc
         self.token_list = token_list.copy()
+        self.weighted_sum = weighted_sum
 
         self.frontend = frontend
         self.specaug = specaug
         self.normalize = normalize
         self.preencoder = preencoder
+        self.prepostencoder = prepostencoder
         self.postencoder = postencoder
         self.encoder = encoder
 
@@ -200,6 +205,15 @@ class ESPnetASRModel(AbsESPnetModel):
             self.lang_token_id = torch.tensor([[lang_token_id]])
         else:
             self.lang_token_id = None
+        if self.weighted_sum:
+            if self.is_encoder_whisper:
+                self.featurizer = Featurizer(
+                    len(self.encoder.encoders.blocks), self.encoder.output_size()
+                )
+            else:
+                self.featurizer = Featurizer(
+                    len(self.encoder.encoders), self.encoder._output_size
+                )
 
     def forward(
         self,
@@ -398,8 +412,21 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens, _ = self.encoder(
                 feats, feats_lengths, ctc=self.ctc
             )
+        elif self.weighted_sum:
+            encoder_out, encoder_out_lens, _ = self.encoder(
+                feats, feats_lengths, return_all_hs=True
+            )
         else:
             encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+        if self.weighted_sum:
+            # import pdb;pdb.set_trace()
+            encoder_out, encoder_out_lens = self.featurizer(
+                encoder_out[1], [encoder_out_lens for i in encoder_out[1]]
+            )
+        if self.prepostencoder is not None:
+            encoder_out, encoder_out_lens = self.prepostencoder(
+                encoder_out, encoder_out_lens
+            )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -436,6 +463,8 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
+        if len(speech.shape) == 3:
+            speech = torch.sum(speech, dim=2)
 
         if self.frontend is not None:
             # Frontend

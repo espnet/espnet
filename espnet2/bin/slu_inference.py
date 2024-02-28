@@ -75,6 +75,7 @@ class Speech2Understand:
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
+        greedy_ctc: bool = False,
     ):
         assert check_argument_types()
 
@@ -238,6 +239,7 @@ class Speech2Understand:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.greedy_ctc = greedy_ctc
 
     @torch.no_grad()
     def __call__(
@@ -290,10 +292,69 @@ class Speech2Understand:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
+        enc, enc_lens = self.asr_model.encode(**batch)
         if isinstance(enc, tuple):
             enc = enc[0]
         assert len(enc) == 1, len(enc)
+        if self.asr_model.superb_setup:
+            if self.asr_model.superb_da:
+                m = torch.nn.Sigmoid()
+                token_int = (m(enc[0]) > 0.5).nonzero(as_tuple=True)[0].tolist()
+            else:
+                m = torch.nn.Softmax()
+                token_int = [torch.argmax(m(enc[0])).tolist()]
+            token_int = [k + 2 for k in token_int]
+            token = self.converter.ids2tokens(token_int)
+            text = self.tokenizer.tokens2text(token)
+            hyp = Hypothesis(
+                score=0.0, scores=None, states=None, yseq=torch.tensor(token_int)
+            )
+            results = [(text, token, token_int, hyp)]
+            return results
+        if self.asr_model.superb_setup_encoder:
+            encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
+            feats_mean_out = []
+            for k in range(encoder_out.shape[0]):
+                feats_mean_out.append(torch.mean(encoder_out[k, : enc_lens[k]], dim=0))
+            feats = torch.stack(feats_mean_out)
+            encoder_out = self.asr_model.transform_linear(feats)
+            if self.asr_model.superb_da:
+                m = torch.nn.Sigmoid()
+                token_int = (m(encoder_out[0]) > 0.5).nonzero(as_tuple=True)[0].tolist()
+            else:
+                m = torch.nn.Softmax()
+                token_int = [torch.argmax(m(encoder_out[0])).tolist()]
+            token_int = [k + 2 for k in token_int]
+            token = self.converter.ids2tokens(token_int)
+            text = self.tokenizer.tokens2text(token)
+            hyp = Hypothesis(
+                score=0.0, scores=None, states=None, yseq=torch.tensor(token_int)
+            )
+            results = [(text, token, token_int, hyp)]
+            return results
+        if self.greedy_ctc:
+            hyp_pred = torch.argmax(self.asr_model.ctc.ctc_lo(enc), dim=-1).data
+            seq_hat_total = hyp_pred
+            logging.info(
+                "best hypo: "
+                + "".join(self.converter.ids2tokens(seq_hat_total[0]))
+                + "\n"
+            )
+
+            results = []
+            token_int = seq_hat_total[0].clone().detach().tolist()
+            token = self.converter.ids2tokens(token_int)
+
+            if self.tokenizer is not None:
+                text = self.tokenizer.tokens2text(token)
+            else:
+                text = None
+            hyp = Hypothesis(
+                score=0.0, scores=None, states=None, yseq=torch.tensor(seq_hat_total[0])
+            )
+            results.append((text, token, token_int, hyp))
+
+            return results
 
         # c. Passed the encoder result and the beam search
         if self.beam_search_transducer:
@@ -407,6 +468,7 @@ def inference(
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
+    greedy_ctc: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -455,6 +517,7 @@ def inference(
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
+        greedy_ctc=greedy_ctc,
     )
     speech2understand = Speech2Understand.from_pretrained(
         model_tag=model_tag,
@@ -694,6 +757,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
+    )
+    group.add_argument(
+        "--greedy_ctc",
+        type=str2bool,
+        default=False,
+        help="Greedy CTC",
     )
 
     return parser

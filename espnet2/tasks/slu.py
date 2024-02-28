@@ -26,6 +26,7 @@ from espnet2.asr.encoder.contextual_block_conformer_encoder import (
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
@@ -35,6 +36,7 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
+from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
@@ -58,6 +60,7 @@ from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
 from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
+from espnet2.slu.postencoder.conformer_full_postencoder import ConformerFullPostEncoder
 from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.tasks.asr import ASRTask
@@ -131,9 +134,21 @@ encoder_choices = ClassChoices(
         hubert_pretrain=FairseqHubertPretrainEncoder,
         longformer=LongformerEncoder,
         branchformer=BranchformerEncoder,
+        whisper=OpenAIWhisperEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
+)
+prepostencoder_choices = ClassChoices(
+    name="prepostencoder",
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
+    type_check=AbsPreEncoder,
+    default=None,
+    optional=True,
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
@@ -141,6 +156,7 @@ postencoder_choices = ClassChoices(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
         conformer=ConformerPostEncoder,
         transformer=TransformerPostEncoder,
+        conformer_full=ConformerFullPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -201,6 +217,8 @@ class SLUTask(ASRTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --prepostencoder and --prepostencoder_conf
+        prepostencoder_choices,
         # --postencoder and --postencoder_conf
         postencoder_choices,
         # --deliberationencoder and --deliberationencoder_conf
@@ -491,9 +509,16 @@ class SLUTask(ASRTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
+        if getattr(args, "prepostencoder", None) is not None:
+            prepostencoder_class = prepostencoder_choices.get_class(args.prepostencoder)
+            prepostencoder = prepostencoder_class(**args.prepostencoder_conf)
+            encoder_output_size = prepostencoder.output_size()
+        else:
+            prepostencoder = None
+            encoder_output_size = encoder.output_size()
+
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(
@@ -568,6 +593,7 @@ class SLUTask(ASRTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
+            prepostencoder=prepostencoder,
             postencoder=postencoder,
             deliberationencoder=deliberationencoder,
             decoder=decoder,
