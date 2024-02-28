@@ -64,7 +64,7 @@ cat $srcdir/utt2spk | awk -v p=$utt_prefix -v s=$utt_suffix '{printf("%s %s%s%s\
 cat $srcdir/spk2utt | awk -v p=$spk_prefix -v s=$spk_suffix '{printf("%s %s%s%s\n", $1, p, $1, s);}' > $destdir/spk_map
 
 if [ ! -f $srcdir/utt2uniq ]; then
-  if [[ ! -z $utt_prefix  ||  ! -z $utt_suffix ]]; then
+  if [[ -n $utt_prefix  ||  -n $utt_suffix ]]; then
     cat $srcdir/utt2spk | awk -v p=$utt_prefix -v s=$utt_suffix '{printf("%s%s%s %s\n", p, $1, s, $1);}' > $destdir/utt2uniq
   fi
 else
