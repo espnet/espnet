@@ -56,7 +56,8 @@ mfa_options = (
     "french_mfa german_mfa hausa_mfa japanese_mfa korean_jamo_mfa korean_mfa "
     "polish_mfa portuguese_brazil_mfa portuguese_portugal_mfa russian_mfa "
     "spanish_latin_america_mfa spanish_spain_mfa swahili_mfa swedish_mfa "
-    "tamil_mfa thai_mfa turkish_mfa ukrainian_mfa vietnamese_hanoi_mfa "
+    # "tamil_mfa "  # currently Tamil g2p is listed in MFA models but missing!
+    "thai_mfa turkish_mfa ukrainian_mfa vietnamese_hanoi_mfa "
     "vietnamese_ho_chi_minh_city_mfa vietnamese_hue_mfa"
 )
 for mfa_option in mfa_options.split():
@@ -464,7 +465,12 @@ class MFATokenizer:
             from montreal_forced_aligner.models import ModelManager
 
             manager = ModelManager()
-            manager.download_model("g2p", language)
+            manager.refresh_remote()
+            releases = manager.remote_models["g2p"][language].keys()
+            for version in ["v2.2.1", "v2.0.0a", "v2.0.0"]:
+                if version in releases:
+                    break
+            manager.download_model("g2p", language, version=version)
             model_path = G2PModel.get_pretrained_path(language)
             assert (
                 model_path is not None
@@ -497,7 +503,8 @@ class MFATokenizer:
         if language.startswith("english"):
             self.cleaner = mfa_english_cleaner
         else:
-            self.cleaner = lambda text: text
+            # Add cleaners for other languages here if needed
+            self.cleaner = lambda text: text.lower()
 
         from pynini.lib.rewrite import top_rewrite
 
@@ -551,7 +558,8 @@ class MFATokenizer:
 
         for convert, word in zip(converts, words):
             if convert:
-                phone_str = self.get_phone_str(word)
+                word_fst = self.rewriter.create_word_fst(word)
+                phone_str = self.get_phone_str(word_fst)
                 phones.extend(phone_str.split())
             elif word != " " or self.inc_space:
                 phones.append(word)
