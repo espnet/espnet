@@ -4,10 +4,11 @@ import argparse
 import os
 import re
 
+
 def process_files(src, dst):
     # regex to match eval file names (skip ones used in enrollment)
-    valid_file_regex = re.compile(r'^LA(_E)?_\d+\.flac$')
-    
+    valid_file_regex = re.compile(r"^LA(_E)?_\d+\.flac$")
+
     spk2utt = {}
     utt2spk = []
     wav_list = []
@@ -17,7 +18,7 @@ def process_files(src, dst):
             continue  # skip files not matching the criteria
 
         full_path = os.path.join(src, f)
-        speaker_id = f.split('.')[0]  # file name without extension as speaker ID
+        speaker_id = f.split(".")[0]  # file name without extension as speaker ID
         utt_id = speaker_id  # in this case, speaker ID is the same as utterance ID
 
         if speaker_id not in spk2utt:
@@ -26,9 +27,9 @@ def process_files(src, dst):
         utt2spk.append([utt_id, speaker_id])
         wav_list.append([utt_id, full_path])
 
-    with open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt, \
-         open(os.path.join(dst, "utt2spk"), "w") as f_utt2spk, \
-         open(os.path.join(dst, "wav.scp"), "w") as f_wav:
+    with open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt, open(
+        os.path.join(dst, "utt2spk"), "w"
+    ) as f_utt2spk, open(os.path.join(dst, "wav.scp"), "w") as f_wav:
 
         for spk in spk2utt:
             f_spk2utt.write(f"{spk} {' '.join(spk2utt[spk])}\n")
@@ -37,6 +38,7 @@ def process_files(src, dst):
         for utt, path in wav_list:
             f_wav.write(f"{utt} {path}\n")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get spk utt mapping")
     parser.add_argument("--src", type=str, required=True, help="src dir")
@@ -44,5 +46,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     process_files(args.src, args.dst)
-
-

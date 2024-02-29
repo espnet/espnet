@@ -75,7 +75,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cp "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.eval.female.trn.txt" "${data_dir_prefix}/LA_asv_eval/trn.txt"
         cat "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.eval.male.trn.txt" >> "${data_dir_prefix}/LA_asv_eval/trn.txt"
 
-        # Make concatenated speaker enrollment utterances for (approximate) averaging of embeddings 
+        # Make concatenated speaker enrollment utterances for (approximate) averaging of embeddings
         python local/cat_spk_utt.py --in_dir "${data_dir_prefix}/LA/ASVspoof2019_LA_eval/flac" --in_file "${data_dir_prefix}/LA_asv_eval/trn.txt" --out_dir "${data_dir_prefix}/LA_asv_eval/flac"
         # Copy eval files to same dir with new concat files
         log "Making single dir for eval..."
@@ -86,7 +86,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     else
        log "LA_asv_eval exists. Skipping protocol modification"
     fi
-    log "Stage 2, DONE."    
+    log "Stage 2, DONE."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
@@ -112,7 +112,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     else
         log "${trg_dir} exists. Skip making Kaldi style files and trials"
     fi
-    log "Stage 3, DONE."    
+    log "Stage 3, DONE."
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -217,7 +217,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         log "${trg_dir}/test_SV exists. Skip making Kaldi style files and trials"
     fi
 
-    log "Stage 6, DONE."    
+    log "Stage 6, DONE."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

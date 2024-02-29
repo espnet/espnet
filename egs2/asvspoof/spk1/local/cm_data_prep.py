@@ -35,5 +35,5 @@ for x in dir_dict:
             data_dir = Path(split_path, f'{line.split(" ")[1]}.flac')
 
             wav_scp_f.write(utt_id + " " + str(data_dir) + "\n")
-            #text_f.write(utt_id + " " + cls + "\n")
+            # text_f.write(utt_id + " " + cls + "\n")
             utt2spk_f.write(utt_id + " " + spk + "\n")
