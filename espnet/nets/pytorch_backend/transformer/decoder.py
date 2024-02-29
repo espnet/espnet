@@ -246,7 +246,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def forward_one_step(self, tgt, tgt_mask, memory, cache=None):
+    def forward_one_step(self, tgt, tgt_mask, memory, *, cache=None):
         """Forward one step.
 
         Args:
