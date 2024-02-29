@@ -1,7 +1,7 @@
 # RESULTS
 ## Overall results
 
-| Model (conf name) | EER(%) | minDCF | Note | Huggingface |
+| Model (conf name) | SASV-EER(%) | minDCF | Note | Huggingface |
 |---|---|---|---|---|
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 26.124 | 1.00000 | | https://huggingface.co/espnet/voxcelebs12_ecapa_mel |
 | [conf/train_xvector.yaml](conf/train_xvector.yaml) | 25.847 | 1.00000 | | https://huggingface.co/espnet/voxcelebs12_xvector_mel |
