@@ -15,11 +15,12 @@ if len(sys.argv) != 2:
     print("Usage: python data_prep.py [root]")
     sys.exit(1)
 root = sys.argv[1]
+use_classifier = sys.argv[2]
 
 dir_dict = {
-    "train": "slue-voxceleb_fine-tune.tsv",
-    "devel": "slue-voxceleb_dev.tsv",
-    "test": "slue-voxceleb_test_blind.tsv",
+    "train": "fine-tune.tsv",
+    "devel": "dev.tsv",
+    "test": "test.tsv",
 }
 
 for x in dir_dict:
@@ -34,33 +35,27 @@ for x in dir_dict:
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
-        # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
-            if x == "test":
-                speaker = row[1]
-                words = (
-                    "<blank>"  # Test set is blind, will have to submit to leaderboard
-                )
+            if row[4] == "<mixed>":
+                continue
+            if row[4] == "Disagreement":
+                continue
+            if use_classifier:
+                words = row[4].replace(" ", "_")
             else:
-                if row[4] == "<mixed>":
-                    continue
-                # print(x)
-                # print(row)
                 words = (
                     row[4].replace(" ", "_")
                     + " "
                     + row[1].encode("ascii", "ignore").decode()
                 )
-                # print(words)
-                speaker = row[2]
+            speaker = row[2]
             if x == "train":
-                path = "fine-tune_raw/" + row[0] + ".flac"
+                path = "audio/fine-tune_raw/" + row[0] + ".flac"
             elif x == "devel":
-                path = "dev_raw/" + row[0] + ".flac"
+                path = "audio/dev_raw/" + row[0] + ".flac"
             else:
-                path = "test_raw/" + row[0] + ".flac"
+                path = "audio/test_raw/" + row[0] + ".flac"
             utt_id = row[0]
-            # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + root + "/" + path + "\n")
             utt2spk_f.write(utt_id + " " + speaker + "\n")

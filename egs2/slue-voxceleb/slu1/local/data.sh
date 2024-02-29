@@ -16,6 +16,7 @@ stage=1
 stop_stage=100000
 log "$0 $*"
 use_transcript=false
+use_classifier=false
 transcript_folder=
 . utils/parse_options.sh
 
@@ -34,10 +35,10 @@ if [ -z "${VOXCELEB}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${VOXCELEB}/LICENSE.txt" ]; then
+    if [ ! -e "${VOXCELEB}/LICENSE" ]; then
 	echo "stage 1: Download data to ${VOXCELEB}"
     else
-        log "stage 1: ${VOXCELEB}/LICENSE.txt is already existing. Skip data downloading"
+        log "stage 1: ${VOXCELEB}/LICENSE is already existing. Skip data downloading"
     fi
 fi
 
@@ -47,7 +48,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if ${use_transcript}; then
         python3 local/data_prep_slue_transcript.py ${VOXCELEB} ${transcript_folder}
     else
-        python3 local/data_prep_slue.py ${VOXCELEB}
+        python3 local/data_prep_slue.py ${VOXCELEB} ${use_classifier}
     fi
     for x in test devel train; do
         for f in text wav.scp utt2spk transcript; do
@@ -56,9 +57,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
-    local/run_spm.sh
-    mv data data_old
-    mv data_bpe_1000 data
+    if ${use_classifier}; then
+        echo "Using classifier layers to predict only sentiment"
+    else
+        local/run_spm.sh
+        mv data data_old
+        mv data_bpe_1000 data
+    fi
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
