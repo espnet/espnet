@@ -66,12 +66,6 @@ fi
 
 if [[ -n ${final_ls_result} ]] && [[ -n ${final_ms_result} ]]; then
 
-    bitrate=$(python3 pyscripts/utils/calculate_bitrate.py \
-        --vocab \
-        --tokens \
-        --reference_len \
-        )
-
     echo "## ${asr_exp}"
     echo "${ls_result}"
     echo "${ms_result}"
