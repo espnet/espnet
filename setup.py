@@ -99,7 +99,7 @@ requirements = {
         "hacking>=2.0.0",
         "mock>=2.0.0",
         "pycodestyle",
-        "jsondiff<2.0.0,>=1.2.0",
+        "jsondiff>=2.0.0",
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",

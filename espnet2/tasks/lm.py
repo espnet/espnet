@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,11 +8,13 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
+from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -31,13 +33,27 @@ lm_choices = ClassChoices(
     default="seq_rnn",
 )
 
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        lm=ESPnetLanguageModel,
+        lm_multitask=ESPnetMultitaskLanguageModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="lm",
+)
+
 
 class LMTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
     # Add variable objects configurations
-    class_choices_list = [lm_choices]
+    class_choices_list = [
+        lm_choices,
+        # --model and --model_conf
+        model_choices,
+    ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
@@ -72,12 +88,6 @@ class LMTask(AbsTask):
                 "kaiming_normal",
                 None,
             ],
-        )
-        group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(ESPnetLanguageModel),
-            help="The keyword arguments for model class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -171,7 +181,9 @@ class LMTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetLanguageModel:
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[ESPnetLanguageModel, ESPnetMultitaskLanguageModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -194,7 +206,19 @@ class LMTask(AbsTask):
 
         # 2. Build ESPnetModel
         # Assume the last-id is sos_and_eos
-        model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.model_conf)
+        try:
+            model_class = model_choices.get_class(args.model)
+            if args.model == "lm_multitask":
+                extra_model_conf = dict(token_list=token_list)
+            else:
+                extra_model_conf = dict()
+        except AttributeError:
+            model_class = model_choices.get_class("lm")
+            extra_model_conf = dict()
+
+        model = model_class(
+            lm=lm, vocab_size=vocab_size, **args.model_conf, **extra_model_conf
+        )
 
         # FIXME(kamo): Should be done in model?
         # 3. Initialize
