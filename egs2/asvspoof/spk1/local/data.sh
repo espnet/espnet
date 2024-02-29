@@ -14,7 +14,6 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-n_proc=8
 
 data_dir_prefix= # root dir to save datasets
 trg_dir=data
@@ -50,7 +49,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # download ASVspoof LA.zip
     if [ ! -f "${data_dir_prefix}/LA.zip" ]; then
         log "Downloading ASVspoof LA.zip..."
-        wget -O "${data_dir_prefix}/LA.zip" https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip?sequence=3&isAllowed=y
+        wget -O "${data_dir_prefix}/LA.zip" "https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip?sequence=3&isAllowed=y"
     else
        log "LA.zip exists. Skip downloading ASVspoof LA.zip"
     fi
