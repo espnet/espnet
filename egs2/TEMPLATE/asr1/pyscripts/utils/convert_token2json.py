@@ -1,7 +1,9 @@
 import argparse
 import json
 import os
+from io import BytesIO
 
+import kaldiio
 import soundfile as sf
 
 if __name__ == "__main__":
@@ -38,7 +40,13 @@ if __name__ == "__main__":
             if len(line.strip()) == 0:
                 break
             key, value = line.strip().split(maxsplit=1)
-            data, sample_rate = sf.read(value)
+            if value.endswith("|"):
+                # Streaming input e.g. cat a.wav |
+                with kaldiio.open_like_kaldi(value, "rb") as wav_f:
+                    with BytesIO(wav_f.read()) as g:
+                        data, sample_rate = sf.read(g)
+            else:
+                data, sample_rate = sf.read(value)
             ref_len_file.write("{} {}\n".format(key, len(data) / sample_rate))
 
         # preparing tokens
