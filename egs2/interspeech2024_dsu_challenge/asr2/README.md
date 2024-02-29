@@ -6,6 +6,57 @@ This can be referred to the ML-SUPERB [recipe](https://github.com/espnet/espnet/
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 
+# Bitrate calculation
+
+We show how to calculate the bitrate in the baseline system (16.49). For each eval set, it follows three steps:
+1. Convert the input text to index (`token_int.rm.wavlm_large_21_km2000`). This is because the baseline uses subword modeling (e.g BPE), and it is represented in CJK characters. **Note: as long as the input text is in index, this step can be skipped.**
+   ```
+   1272-135031-0014        784 0 1867 1102 866 2042 1209 184 187 1209 768 3 17 111 940 202 69 1518 217 337 1984 121 2383 916 276 2470 1287 217 833 508 690 161 211 161 211 206 174 30 96 3 729
+   ```
+2. `pyscripts/utils/convert_token2json.py` generates json file for `vocab`, `tokens`, `ref_len`.
+3. `pyscripts/utils/calculate_bitrate.py` computes the bitrate
+
+Finally, the overall bitrate is computed by aggregating the results of all eval sets.
+
+```bash
+$ token_suffix="wavlm_large_21_km2000"
+$ bpe_folder="data/token_list/src_bpe_unigram3000_rm_wavlm_large_21_km2000"
+$ bitrate_dir="./bitrate"
+$ for dset in dev_clean dev_other test_clean test_other test_1h; do
+$   paste \
+$     <(<dump/raw/${dset}/text.rm.${token_suffix} cut -d" " -f1) \
+$     <(<dump/raw/${dset}/text.rm.${token_suffix} spm_encode --model=${bpe_folder}/bpe.model --output_format=id) \
+$     > dump/raw/${dset}/token_int.rm.${token_suffix}
+
+$   python pyscripts/utils/convert_token2json.py \
+$     --vocab data/token_list/src_bpe_unigram3000_rm_${token_suffix}/tokens.txt \
+$     --token dump/raw/${dset}/token_int.rm.${token_suffix} \
+$     --ref_scp data/${dset}/wav.scp \
+$     --result_dir "${bitrate_dir}/${dset}"
+
+$   python pyscripts/utils/calculate_bitrate.py \
+$     --vocab "${bitrate_dir}/${dset}"/vocab.json \
+$     --tokens "${bitrate_dir}/${dset}"/tokens.json \
+$     --reference_len "${bitrate_dir}/${dset}"/ref_len.scp \
+$     --bitrate_details "${bitrate_dir}/${dset}"/details.txt
+$ done
+
+$ python - <<EOF
+import numpy as np
+bitrates=[]
+bitrate_dir="${bitrate_dir}"
+for dset in ["dev_clean", "dev_other", "test_clean", "test_other", "test_1h"]:
+    with open(f"{bitrate_dir}/{dset}/details.txt", "r") as f:
+        for line in f.readlines():
+            lst = line.strip().split()
+            bitrates.append(float(lst[1]))
+print(np.round(np.mean(bitrates), 2))
+
+EOF
+
+$ 16.49
+```
+
 # RESULTS
 ## Environments
 - date: `Wed Jan 17 08:22:49 EST 2024`
