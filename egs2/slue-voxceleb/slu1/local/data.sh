@@ -17,6 +17,7 @@ stop_stage=100000
 log "$0 $*"
 use_transcript=false
 use_classifier=false
+run_only_asr=false
 transcript_folder=
 . utils/parse_options.sh
 
@@ -48,7 +49,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if ${use_transcript}; then
         python3 local/data_prep_slue_transcript.py ${VOXCELEB} ${transcript_folder}
     else
-        python3 local/data_prep_slue.py ${VOXCELEB} ${use_classifier}
+        python3 local/data_prep_slue.py ${VOXCELEB} ${use_classifier} ${run_only_asr}
     fi
     for x in test devel train; do
         for f in text wav.scp utt2spk transcript; do

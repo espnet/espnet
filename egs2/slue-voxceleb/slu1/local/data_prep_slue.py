@@ -11,11 +11,12 @@ import sys
 
 import pandas as pd
 
-if len(sys.argv) != 2:
+if len(sys.argv) != 4:
     print("Usage: python data_prep.py [root]")
     sys.exit(1)
 root = sys.argv[1]
 use_classifier = sys.argv[2]
+run_only_asr = sys.argv[3]
 
 dir_dict = {
     "train": "fine-tune.tsv",
@@ -42,6 +43,8 @@ for x in dir_dict:
                 continue
             if use_classifier:
                 words = row[4].replace(" ", "_")
+            elif run_only_asr:
+                words = row[1].encode("ascii", "ignore").decode()
             else:
                 words = (
                     row[4].replace(" ", "_")

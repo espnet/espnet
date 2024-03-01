@@ -54,11 +54,11 @@ for x in dir_dict:
             uttid = row[3] + "_" + row[0]
             speaker = row[3]
             if x == "train":
-                wav = "fine-tune/" + row[0] + ".ogg"
+                wav = "audio/fine-tune/" + row[0] + ".ogg"
             elif x == "devel":
-                wav = "dev/" + row[0] + ".ogg"
+                wav = "audio/dev/" + row[0] + ".ogg"
             else:
-                wav = "test/" + row[0] + ".ogg"
+                wav = "audio/test/" + row[0] + ".ogg"
 
             transcript = row[2].lower()
             entities = []

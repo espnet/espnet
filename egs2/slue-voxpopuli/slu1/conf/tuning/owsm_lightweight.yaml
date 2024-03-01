@@ -59,7 +59,7 @@ model_conf:
 
 normalize: global_mvn
 normalize_conf:
-    stats_file: /share/data/lang/users/ankitap/ESPNET/owsm_hf/owsm_v3.1_ebf/exp/s2t_stats_raw_bpe50000/train/feats_stats.npz
+    stats_file: /scratch/bbjs/arora1/new_download_espnet_egs2/harpervalley/slu1_superb_onlyda/owsm_v3.1_ebf/exp/s2t_stats_raw_bpe50000/train/feats_stats.npz
 frontend: default
 frontend_conf:
     n_fft: 512
@@ -116,5 +116,5 @@ freeze_param:
     - "encoder"
 
 init_param: [
-    "/share/data/lang/users/ankitap/ESPNET/owsm_hf/owsm_v3.1_ebf/exp/s2t_train_s2t_ebf_conv2d_size1024_e18_d18_piecewise_lr2e-4_warmup60k_flashattn_raw_bpe50000/valid.total_count.ave_5best.till45epoch.pth:encoder:encoder",
+    "/scratch/bbjs/arora1/new_download_espnet_egs2/harpervalley/slu1_superb_onlyda/owsm_v3.1_ebf/exp/s2t_train_s2t_ebf_conv2d_size1024_e18_d18_piecewise_lr2e-4_warmup60k_flashattn_raw_bpe50000/valid.total_count.ave_5best.till45epoch.pth:encoder:encoder",
 ]
