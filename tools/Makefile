@@ -164,7 +164,7 @@ speechbrain.done: espnet.done conda_packages.done
 	touch speechbrain.done
 
 mfa.done: espnet.done pyopenjtalk.done phonemizer.done conda_packages.done
-    . ./activate_python.sh && ./installers/install_mfa.sh
+	. ./activate_python.sh && ./installers/install_mfa.sh
 
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
