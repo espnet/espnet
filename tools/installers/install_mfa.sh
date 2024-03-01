@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # This is the last stable version. MFA 3.0 depends on an unstable kaldi version that creates errors
-conda install -c conda-forge montreal-forced-aligner=2.2.17
+conda install -y -c conda-forge montreal-forced-aligner=2.2.17
 
 # Installing with pip is not recommended as many dependencies are missing!
 # Also, baumwelch is only available on conda-forge. If you REALLY want to do it:
