@@ -5,6 +5,8 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
     LearnableFourierPosEnc,
     PositionalEncoding,
     ScaledPositionalEncoding,
+    RelPositionalEncoding,
+    RelPositionalEncodingForPaddedSequences
 )
 
 
@@ -159,3 +161,94 @@ def test_compatibility():
     legacy = legacy_net(x)
     latest = latest_net(x)
     assert torch.allclose(legacy, latest)
+
+
+def test_relative_positional_encodings_for_padded_sequences():
+    encoding_params = dict(
+        d_model=256,
+        dropout_rate=0.1,  # will be turned off
+        max_len=512
+    )
+    rel_pos_enc = RelPositionalEncoding(**encoding_params)
+    rel_pos_enc.eval()  # for reproducibility
+    rel_pos_enc_for_padded = RelPositionalEncodingForPaddedSequences(**encoding_params)
+    rel_pos_enc_for_padded.eval()  # for reproducibility
+
+    batch_size = 128
+    sequence_lens = torch.randint(
+        low=1,
+        high=encoding_params['max_len'],
+        size=(batch_size,)
+    )
+    xs = [
+        torch.randn(length, encoding_params['d_model']) for length in sequence_lens
+    ]
+    masks = [
+        torch.ones(length, dtype=torch.int) for length in sequence_lens
+    ]
+
+    # showcase that RelPositionalEncoding is not consistent
+    # with batches of padded sequences
+
+    entry_wise_outputs = []
+    for x in xs:
+        new_x, emb = rel_pos_enc(
+            x.unsqueeze(0)  # creating fictional batch dimension
+        )
+        entry_wise_outputs.append(
+            emb.squeeze(0)  # removing fictional batch dimension
+        )
+    entry_wise_outputs_padded = torch.nn.utils.rnn.pad_sequence(
+        entry_wise_outputs,
+        batch_first=True,
+        padding_value=0.0
+    )
+
+    batch_new_x, batch_emb = rel_pos_enc(
+        torch.nn.utils.rnn.pad_sequence(
+            xs,
+            batch_first=True,
+            padding_value=0.0
+        )
+    )
+    batch_output = batch_emb.expand(batch_size, -1, -1)  # since RelPositionalEncoding outputs broadcastable embedding,
+                                                         # which is same for any object in batch
+
+    assert entry_wise_outputs_padded.shape == batch_output.shape
+    assert not torch.allclose(entry_wise_outputs_padded, batch_output)
+
+    # showcase that RelPositionalEncodingForPaddedSequences is consistent
+    # with batches of padded sequences and entry-wise output of RelPositionalEncoding
+
+    entry_wise_outputs_for_padded = []
+    for x, mask in zip(xs, masks):
+        new_x, emb = rel_pos_enc_for_padded(
+            x.unsqueeze(0),  # creating fictional batch dimension
+            mask.unsqueeze(0)  # creating fictional batch dimension
+        )
+        entry_wise_outputs_for_padded.append(
+            emb.squeeze(0)  # removing fictional batch dimension
+        )
+    entry_wise_outputs_padded2 = torch.nn.utils.rnn.pad_sequence(
+        entry_wise_outputs_for_padded,
+        batch_first=True,
+        padding_value=0.0
+    )
+
+    batch_new_x, batch_emb_for_padded = rel_pos_enc_for_padded(
+        torch.nn.utils.rnn.pad_sequence(
+            xs,
+            batch_first=True,
+            padding_value=0.0
+        ),
+        torch.nn.utils.rnn.pad_sequence(
+            masks,
+            batch_first=True,
+            padding_value=0
+        )
+    )
+    assert entry_wise_outputs_padded.shape == entry_wise_outputs_padded2.shape
+    assert torch.allclose(entry_wise_outputs_padded, entry_wise_outputs_padded2)
+    assert torch.allclose(batch_emb_for_padded, entry_wise_outputs_padded2)
+    assert torch.allclose(entry_wise_outputs_padded, batch_emb_for_padded)
+
