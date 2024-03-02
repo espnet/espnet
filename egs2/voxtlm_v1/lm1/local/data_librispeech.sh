@@ -70,7 +70,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${data_dir_textlm}/train
     # use external data
     if [ ! -e ${data_dir_textlm}/librispeech-lm-norm.txt.gz ]; then
@@ -80,7 +80,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e ${data_dir_textlm}/train/text ]; then
         # provide utterance id to each texts
         # e.g., librispeech_lng_00003686 A BANK CHECK
-        zcat ${data_dir}/textlm/librispeech-lm-norm.txt.gz | \
+        zcat ${data_dir}/textlm/train/librispeech-lm-norm.txt.gz | \
             awk '{ printf("textlm_librispeech_lng_%08d %s\n",NR,$0) } ' > ${data_dir_textlm}/train/text
     fi
 
