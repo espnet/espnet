@@ -62,7 +62,7 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.002
+    lr: 0.001 # 0.002
     weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
