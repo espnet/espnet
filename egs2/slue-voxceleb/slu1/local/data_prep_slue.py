@@ -15,8 +15,14 @@ if len(sys.argv) != 4:
     print("Usage: python data_prep.py [root]")
     sys.exit(1)
 root = sys.argv[1]
-use_classifier = sys.argv[2]
-run_only_asr = sys.argv[3]
+if sys.argv[2].lower() == "false":
+    use_classifier = False
+else:
+    use_classifier = True
+if sys.argv[3].lower() == "false":
+    run_only_asr = False
+else:
+    run_only_asr = True
 
 dir_dict = {
     "train": "fine-tune.tsv",

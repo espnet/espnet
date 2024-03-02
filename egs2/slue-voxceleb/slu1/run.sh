@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set="train"
 valid_set="devel"
-test_sets="test org/devel"
+test_sets="test"
 local_data_opts="--use_transcript false --use_classifier false"
 
 slu_config=conf/train_asr.yaml

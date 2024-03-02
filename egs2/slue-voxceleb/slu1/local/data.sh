@@ -61,7 +61,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if ${use_classifier}; then
         echo "Using classifier layers to predict only sentiment"
     else
-        local/run_spm.sh
+        if ${run_only_asr}; then
+            local/run_spm_asr.sh
+        else
+            local/run_spm.sh
+        fi
         mv data data_old
         mv data_bpe_1000 data
     fi
