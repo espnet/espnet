@@ -75,7 +75,7 @@ endif
 
 ffmpeg.done: activate_python.sh
 ifneq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && { command -v ffmpeg || conda install -y ffmpeg -c conda-forge; }
+	. ./activate_python.sh && { command -v ffmpeg || ./installers/install_ffmpeg_conda.sh; }
 else
 	. ./activate_python.sh && { command -v ffmpeg || ./installers/install_ffmpeg.sh; }
 endif
@@ -165,7 +165,7 @@ speechbrain.done: espnet.done conda_packages.done
 
 mfa.done: espnet.done pyopenjtalk.done phonemizer.done conda_packages.done
 ifneq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && { ./installers/install_mfa.sh || conda list }
+	. ./activate_python.sh && { ./installers/install_mfa.sh || conda list; }
 endif
 	touch mfa.done
 
