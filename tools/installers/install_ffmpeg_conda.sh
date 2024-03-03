@@ -12,10 +12,9 @@ set -euo pipefail
 # 2) libarchive will be replaced by the conda-forge version. This breaks libmamba as libmamba needs libarchive.so.19
 #       while the conda-forge version numbering is libarchive.so.13.6
 #       See https://github.com/conda-forge/libarchive-feedstock/issues/69
-#    We restore libarchive from the main channel to correct this.
+#    We pre-install libarchive and all mamba-related packages from conda-forge.
 
-libarchive=$(conda list | grep libarchive | awk 'BEGIN { OFS="="} { print $1,$2,$3 }')
+conda install -y libarchive conda-libmamba-solver libmamba libmambapy ffmpeg -c conda-forge
 
-conda install -y ffmpeg -c conda-forge
 rm "${CONDA_PREFIX}/etc/conda/activate.d/ocl-icd_activate.sh" || true
-conda install -y "${libarchive}" -c main --no-deps  # certifi should be included, but doesn't matter
+
