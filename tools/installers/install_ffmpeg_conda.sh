@@ -17,4 +17,3 @@ set -euo pipefail
 conda install -y libarchive conda-libmamba-solver libmamba libmambapy ffmpeg -c conda-forge
 
 rm "${CONDA_PREFIX}/etc/conda/activate.d/ocl-icd_activate.sh" || true
-
