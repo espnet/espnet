@@ -15,14 +15,14 @@ This is the recipe of [VoxtLM](https://arxiv.org/pdf/2309.07937.pdf), unified de
    </details>
 
 
-# Pretrained models
-## VoxtLM_OPT350_Kmeans_200
+## Pretrained models
+### VoxtLM_OPT350_Kmeans_200
 Model link: [VoxtLM_OPT350_Kmeans_200](https://huggingface.co/soumi-maiti/voxtlm_k200/tree/main/exp/opt_350)
 
-## VoxtLM_OPT1.3b_Kmeans_200
+### VoxtLM_OPT1.3b_Kmeans_200
 Model link: [VoxtLM_OPT1.3b_Kmeans_200](https://huggingface.co/soumi-maiti/voxtlm_k200/tree/main/exp/opt_1.3b)
 
-## VoxtLM_OPT350_Kmeans_1000
+### VoxtLM_OPT350_Kmeans_1000
 Model link: [VoxtLM_OPT350_Kmeans_1000](https://huggingface.co/soumi-maiti/voxtlm-k1000)
 
 
