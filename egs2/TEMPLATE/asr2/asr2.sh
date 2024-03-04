@@ -54,6 +54,8 @@ audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feat
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
 fs=16k               # Sampling rate.
+min_wav_duration=0.1 # Minimum duration in second.
+max_wav_duration=30  # Maximum duration in second.
 
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
@@ -191,6 +193,8 @@ Options:
     --feats_type       # Feature type (raw, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw or raw_copy, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
+    --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
+    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Kmeans related
     --kmeans_opts       # The options given to kmeans step (default="${kmeans_opts}").
@@ -335,6 +339,10 @@ else
     log "Error: not supported: --feats_type ${feats_type}"
     exit 2
 fi
+
+ref_text_files_str="text "
+# shellcheck disable=SC2206
+ref_text_files=(${ref_text_files_str// / })
 
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang} utt2spk"
@@ -647,8 +655,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         # i.e. the input file format and rate is same as the output.
 
         for dset in ${_dsets}; do
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}/${dset}"
-            rm -f "${data_audio}/${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            if [ "${dset}" = "${train_set}" ] || [[ "${dset}" == ${train_set}_sp* ]] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}${_suf}/${dset}"
+            rm -f "${data_audio}${_suf}/${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
             _opts=
             if [ -e "data/${dset}"/segments ]; then
@@ -663,13 +677,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                 --multi-columns-input "${multi_columns_input_wav_scp}" \
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
-                "data/${dset}/wav.scp" "${data_audio}/${dset}"
+                "data/${dset}/wav.scp" "${data_audio}${_suf}/${dset}"
 
-            echo "${feats_type}" > "${data_audio}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
-                echo "multi_${audio_format}" > "${data_audio}/${dset}/audio_format"
+                echo "multi_${audio_format}" > "${data_audio}${_suf}/${dset}/audio_format"
             else
-                echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
+                echo "${audio_format}" > "${data_audio}${_suf}/${dset}/audio_format"
             fi
         done
     else
@@ -680,12 +694,68 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
-    log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
+    log "Stage 4: Remove long/short data: ${data_audio}/org -> ${data_audio}"
+
+    # NOTE(kamo): Not applying to test_sets to keep original data
+    for dset in "${train_set}" ${train_sp_sets} "${valid_set}"; do
+
+        # Copy data dir
+        utils/copy_data_dir.sh --validate_opts --non-print "${data_audio}/org/${dset}" "${data_audio}/${dset}"
+        cp "${data_audio}/org/${dset}/feats_type" "${data_audio}/${dset}/feats_type"
+
+        # Remove short utterances
+        _feats_type="$(<${data_audio}/${dset}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+
+            # utt2num_samples is created by format_wav_scp.sh
+            <"${data_audio}/org/${dset}/utt2num_samples" \
+                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                    >"${data_audio}/${dset}/utt2num_samples"
+            <"${data_audio}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_audio}/${dset}/utt2num_samples"  \
+                >"${data_audio}/${dset}/wav.scp"
+        else
+            log "Error: not supported: --feats_type ${feats_type}"
+            exit 2
+        fi
+
+        # Remove empty text
+        # shellcheck disable=SC2068
+        for ref_txt in ${ref_text_files[@]}; do
+            <"${data_audio}/org/${dset}/${ref_txt}" \
+                awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/${ref_txt}"
+        done
+
+        # fix_data_dir.sh leaves only utts which exist in all files
+        utils/fix_data_dir.sh \
+            ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
+            "${data_audio}/${dset}"
+
+        # Check how many samples are removed
+        org_num_samples=$(wc -l "${data_audio}/org/${dset}/utt2spk" | cut -d' ' -f1)
+        filtered_num_samples=$(wc -l "${data_audio}/${dset}/utt2spk" | cut -d' ' -f1)
+        echo "filter samples: removed $((org_num_samples - filtered_num_samples)) samples with empty text"
+    done
+fi
+
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
+    log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
+
+    if "${eval_valid_set}"; then
+        _dev_set="org/${valid_set}"
+    else
+        _dev_set="${valid_set}"
+    fi
 
     scripts/feats/perform_kmeans.sh \
         --stage 1 --stop-stage 4 \
         --train_set "${train_set}" \
-        --dev_set "${valid_set}" \
+        --dev_set "${_dev_set}" \
         --other_sets "${test_sets} ${train_sp_sets}" \
         --datadir "${data_audio}" \
         --featdir "${data_extract}" \
@@ -703,7 +773,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --cuda_cmd "${cuda_cmd}" \
         ${kmeans_opts}
 
-    log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
+    log "Stage 5b: Prepare token_list and convert number indices to CJK tokens"
 
     # Get uniq chars
     if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
@@ -721,7 +791,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     if [ "${src_case}" = ts ]; then
         echo "keep the original discrete token sequence"
-        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
             awk '
                 (FILENAME==ARGV[1]) {a[$1]=$2}
                 (FILENAME==ARGV[2]) {
@@ -732,11 +802,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
                     print($1,out);
                 }' "${km_dir}/../"distinct_cjk_token_lists \
                 "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                > "data/${dset}"/text.${src_case}.${src_lang}
+                > "${data_extract}/${kmeans_feature_type}/${_suf}${dset}"/text.${src_case}.${src_lang}
         done
     elif [ "${src_case}" = rm ]; then
         echo "remove repetitions in the discrete token sequence"
-        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
             awk '
                 (FILENAME==ARGV[1]) {a[$1]=$2}
                 (FILENAME==ARGV[2]) {
@@ -747,26 +817,39 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
                     print($1,out);
                 }' "${km_dir}/../"distinct_cjk_token_lists \
                 "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                > "data/${dset}/text.${src_case}.${src_lang}"
+                > "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text.${src_case}.${src_lang}"
         done
     else
         echo "Unrecognized src_case ${src_case}" && exit 1;
     fi
 
-    for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-        cp data/${dset}/text data/${dset}/text.${tgt_case}.${tgt_lang}
+    for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+        cp ${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text \
+            ${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text.${tgt_case}.${tgt_lang}
     done
 
+    if ${eval_valid_set}; then
+        utils/copy_data_dir.sh --validate_opts --non-print ${data_audio}/org/${valid_set} \
+            ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+        cp ${data_extract}/${kmeans_feature_type}/${_suf}org/${valid_set}/text.${src_case}.${src_lang} \
+            ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+        cp ${data_extract}/${kmeans_feature_type}/${_suf}org/${valid_set}/text.${tgt_case}.${tgt_lang} \
+            ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+
+        utils/fix_data_dir.sh --utt_extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+            "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"
+    fi
+
     if [ -n "${speed_perturb_factors}" ]; then
-        _dirs="data/${train_set} "
+        _dirs="${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set} "
         for factor in ${speed_perturb_factors}; do
             if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
-                _dirs+="data/${train_set}_sp${factor} "
+                _dirs+="${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set}_sp${factor} "
             fi
         done
         utils/combine_data.sh \
             --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
-            "data/${train_set}_sp" ${_dirs}
+            "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set}_sp" ${_dirs}
     fi
 fi
 
@@ -774,72 +857,50 @@ fi
 if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
-            _dsets="${valid_set} ${test_sets}"
+            _dsets="org/${valid_set} ${test_sets}"
         else
             _dsets="${test_sets}"
         fi
     else
-        _dsets="${train_set} ${valid_set} ${test_sets}"
+        if "${eval_valid_set}"; then
+            _dsets="${train_set} ${valid_set} org/${valid_set} ${test_sets}"
+        else
+            _dsets="${train_set} ${valid_set} ${test_sets}"
+        fi
     fi
     if [ "${feats_type}" = raw ]; then
-        log "Stage 5: data/ -> ${data_feats}"
+        log "Stage 6: ${data_extract} -> ${data_feats}"
+
+        _suf=
+        if [ -n "${layer}" ]; then
+            _suf="layer${layer}/"
+        fi
 
         for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
-            mkdir -p "${data_feats}${_suf}/${dset}"
+            mkdir -p "${data_feats}/${dset}"
 
             for extra_file in ${utt_extra_files}; do
                 # with regex to suuport multi-references
-                for single_file in data/"${dset}"/*; do
+                for single_file in "${data_extract}/${kmeans_feature_type}/${_suf}${dset}"/*; do
                     base=$(basename "${single_file}")
-                    [ "${base}" = "${extra_file}" ] && cp ${single_file} "${data_feats}${_suf}/${dset}"
+                    [ "${base}" = "${extra_file}" ] && cp ${single_file} "${data_feats}/${dset}"
                 done
             done
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
     fi
-fi
 
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
-    log "Stage 6: Data filtering: ${data_feats}/org -> ${data_feats}"
-
-    # NOTE(kamo): Not applying to test_sets to keep original data
-    for dset in "${train_set}" "${valid_set}"; do
-        # Copy data dir
-        mkdir -p "${data_feats}/${dset}"
-        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-
-        for utt_extra_file in ${utt_extra_files}; do
-            cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
-        done
-
-        # Remove empty text
-        cat "${data_feats}/org/${dset}/text.${tgt_case}.${tgt_lang}" | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}"
-        utils/filter_scp.pl "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}" "${data_feats}/org/${dset}/utt2spk" > "${data_feats}/${dset}/utt2spk"
-        utils/fix_data_dir.sh \
-            --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
-
-        # Check how many samples are removed
-        org_num_samples=$(wc -l "${data_feats}/org/${dset}/utt2spk" | cut -d' ' -f1)
-        filtered_num_samples=$(wc -l "${data_feats}/${dset}/utt2spk" | cut -d' ' -f1)
-        echo "filter samples with empty texts: removed $((org_num_samples - filtered_num_samples)) samples with empty text"
-
-        # TODO: Add other data cleaning -- currently being done as part of data.sh
-    done
-
-    # shellcheck disable=SC2002
-    cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+    # shellcheck disable=SC2002,SC2068,SC2005
+    for lm_txt in ${lm_train_text[@]}; do
+        suffix=$(echo "$(basename ${lm_txt})" | sed 's/text//')
+        <${lm_txt} awk -v suffix=${suffix} ' { if( NF != 1 ) {$1=$1 suffix; print $0; }} '
+    done > "${data_feats}/lm_train.txt"
 fi
 
 
