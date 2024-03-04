@@ -146,8 +146,8 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
         output = ["k", "a3", "er3", "p", "u3", "p", "ei2",
                   "uai4", "s", "uen1", "uan2", "h", "ua2", "t", "i1", "。", ]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
-        input = "ع"
-        output = ['ʕ', 'ˈa', 'j', 'n']
+        input = "من"
+        output = ['m', 'ˈi', 'n']
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic_no_stress":
         input = "السلام عليكم"
         output = ["ʔ", "a", "s", "s", "a", "l", "aː", "m",
