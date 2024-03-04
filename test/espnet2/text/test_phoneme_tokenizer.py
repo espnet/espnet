@@ -29,6 +29,7 @@ try:
     import phonemizer
 
     params.extend(["espeak_ng_arabic"])
+    params.extend(["espeak_ng_arabic_no_stress"])
     params.extend(["espeak_ng_german"])
     params.extend(["espeak_ng_french"])
     params.extend(["espeak_ng_spanish"])
@@ -145,9 +146,12 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
         output = ["k", "a3", "er3", "p", "u3", "p", "ei2",
                   "uai4", "s", "uen1", "uan2", "h", "ua2", "t", "i1", "。", ]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
+        input = "ع"
+        output = ['ʕ', 'ˈa', 'j', 'n']
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic_no_stress":
         input = "السلام عليكم"
-        output = ["ʔ", "a", "s", "s", "ˈa", "l", "aː", "m",
-                  "ʕ", "l", "ˈiː", "k", "m"]
+        output = ["ʔ", "a", "s", "s", "a", "l", "aː", "m",
+                  "ʕ", "l", "iː", "k", "m"]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_german":
         input = "Das hört sich gut an."
         output = ["d", "a", "s", "h", "ˈœ", "ɾ", "t",

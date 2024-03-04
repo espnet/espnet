@@ -27,6 +27,7 @@ g2p_choices = [
     "pypinyin_g2p_phone",
     "pypinyin_g2p_phone_without_prosody",
     "espeak_ng_arabic",
+    "espeak_ng_arabic_no_stress",
     "espeak_ng_german",
     "espeak_ng_french",
     "espeak_ng_spanish",
@@ -602,6 +603,13 @@ class PhonemeTokenizer(AbsTokenizer):
                 language="ar",
                 backend="espeak",
                 with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_arabic_no_stress":
+            self.g2p = Phonemizer(
+                language="ar",
+                backend="espeak",
+                with_stress=False,
                 preserve_punctuation=True,
             )
         elif g2p_type == "espeak_ng_german":
