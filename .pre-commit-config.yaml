@@ -17,7 +17,7 @@ repos:
     rev: 24.2.0
     hooks:
     -   id: black
-        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid|doc|test)
 
 -   repo: https://github.com/pycqa/isort
     rev: 5.13.2

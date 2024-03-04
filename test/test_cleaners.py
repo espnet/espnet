@@ -10,20 +10,16 @@ ENGLISH_DIRTY_TEXT = "(Hello-$10);  'i am Joe's jr. & dr.',ëé\t\nßæãåūú�
 
 
 @pytest.mark.parametrize(
-    "cleaner_types, expected_clean_text",
-    [
-        (
-            "tacotron",
-            "HELLO TEN DOLLARS, 'I AM JOE'S JUNIOR AND DOCTOR',EE SSAEAAUUIIOOEO!!",
-        ),
-        (
-            "mfa_english",
-            "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!",
-        ),
-        (
-            ["tacotron", "mfa_english"],
-            "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!",
-        ),
+    "cleaner_types, expected_clean_text", [(
+        "tacotron",
+        "HELLO TEN DOLLARS, 'I AM JOE'S JUNIOR AND DOCTOR',EE SSAEAAUUIIOOEO!!",
+    ), (
+        "mfa_english",
+        "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!",
+    ), (
+        ["tacotron", "mfa_english"],
+        "hello ten dollars, i am joe's junior and doctor, ee ssaeaauuiiooeo!!",
+    ),
         # Commented out for now due to whisper not installed on some CI settings
         # (
         #     "whisper_en",
