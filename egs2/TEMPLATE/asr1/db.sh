@@ -186,7 +186,7 @@ ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
 MLS=downloads
-VOXPOPULI=downloads
+VOXPOPULI=
 HARPERVALLEY=downloads
 TALROMUR=downloads
 TALROMUR2=downloads
@@ -213,6 +213,7 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
+SQA_5=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

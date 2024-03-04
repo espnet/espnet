@@ -9,7 +9,7 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-slu_config=conf/tuning/wavlm_complex.yaml
+slu_config=conf//train_asr_wavlm.yaml
 inference_config=conf/decode_asr.yaml
 
 ./slu.sh \
@@ -18,17 +18,16 @@ inference_config=conf/decode_asr.yaml
     --use_lm false \
     --token_type bpe \
     --gpu_inference true \
-    --nbpe 500 \
-    --bpe_nlsyms "[sep],&quot;" \
+    --nbpe 1000 \
+    --bpe_nlsyms ANS,SEP \
     --feats_type raw \
     --audio_format "flac.ark" \
     --max_wav_duration 120 \
-    --speed_perturb_factors '0.9 1.0 1.1'\
     --feats_normalize utterance_mvn \
     --slu_config "${slu_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --lm_train_text data/train/text \
+    --lm_train_text dump/raw/train/text \
     --bpe_train_text "data/${train_set}/text" "$@"
