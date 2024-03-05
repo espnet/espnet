@@ -275,17 +275,17 @@ class Speech2Text:
             hugging_face_model.to(device=device).eval()
 
             if "num_beams" not in hugging_face_decoder_conf:
-                hugging_face_decoder_conf[
-                    "num_beams"
-                ] = hugging_face_model.config.num_beams
+                hugging_face_decoder_conf["num_beams"] = (
+                    hugging_face_model.config.num_beams
+                )
 
             if (
                 hugging_face_model.config.pad_token_id is None
                 and "pad_token_id" not in hugging_face_decoder_conf
             ):
-                hugging_face_decoder_conf[
-                    "pad_token_id"
-                ] = hugging_face_model.config.eos_token_id
+                hugging_face_decoder_conf["pad_token_id"] = (
+                    hugging_face_model.config.eos_token_id
+                )
 
             beam_search = None
             beam_search_transducer = None
@@ -386,9 +386,6 @@ class Speech2Text:
             else:
                 tokenizer = None
         elif "whisper" in token_type:
-            tokenizer_language = asr_train_args.preprocessor_conf.get(
-                "tokenizer_language", "en"
-            )
             tokenizer = build_tokenizer(
                 token_type=token_type,
                 bpemodel=bpemodel,
@@ -463,9 +460,7 @@ class Speech2Text:
         self.multi_asr = multi_asr
 
     @torch.no_grad()
-    def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> Union[
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
         ListOfHypothesis,
         Tuple[
             ListOfHypothesis,
@@ -870,9 +865,9 @@ def inference(
                 ibest_writer = writer[f"1best_recog"]
                 if encoder_interctc_res is not None:
                     for idx, text in encoder_interctc_res.items():
-                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][
-                            key
-                        ] = " ".join(text)
+                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (
+                            " ".join(text)
+                        )
 
 
 def get_parser():

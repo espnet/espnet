@@ -272,9 +272,7 @@ class MTTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -297,12 +295,14 @@ class MTTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 text_name=["text", "src_text"],
-                tokenizer_encode_conf=[
-                    args.tokenizer_encode_conf,
-                    args.src_tokenizer_encode_conf,
-                ]
-                if train
-                else [dict(), dict()],
+                tokenizer_encode_conf=(
+                    [
+                        args.tokenizer_encode_conf,
+                        args.src_tokenizer_encode_conf,
+                    ]
+                    if train
+                    else [dict(), dict()]
+                ),
             )
         else:
             retval = None

@@ -29,6 +29,7 @@ test_spm.model
 *.vim
 *.swp
 *.nfs*
+constraints.txt
 
 # recipe related
 egs*/*/*/data*

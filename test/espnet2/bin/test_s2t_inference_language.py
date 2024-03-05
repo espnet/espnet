@@ -4,9 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.s2t_inference_language import Speech2Text, get_parser, main
+from espnet2.bin.s2t_inference_language import Speech2Language, get_parser, main
 from espnet2.tasks.s2t import S2TTask
-from espnet.nets.beam_search import Hypothesis
 
 
 def test_get_parser():
@@ -26,11 +25,14 @@ def token_list(tmp_path: Path):
             "<unk>",
             "<na>",
             "<nospeech>",
-            "<en>",
+            "<abk>",
+            "<zul>",
             "<asr>",
-            "<st_en>" "<notimestamps>",
+            "<st_eng>",
+            "<st_zho>",
+            "<notimestamps>",
             "<0.00>",
-            "<30.00>",
+            "<1.00>",
             "a",
             "i",
             "<sos>",
@@ -56,7 +58,21 @@ def s2t_config_file(tmp_path: Path, token_list):
             "--token_type",
             "char",
             "--decoder",
-            "rnn",
+            "transformer",
+            "--decoder_conf",
+            "linear_units=2",
+            "--decoder_conf",
+            "num_blocks=1",
+            "--preprocessor_conf",
+            "notime_symbol='<notimestamps>'",
+            "--preprocessor_conf",
+            "first_time_symbol='<0.00>'",
+            "--preprocessor_conf",
+            "last_time_symbol='<1.00>'",
+            "--preprocessor_conf",
+            "fs=2000",
+            "--preprocessor_conf",
+            "speech_length=1",
         ]
     )
     return tmp_path / "s2t" / "config.yaml"
@@ -64,28 +80,24 @@ def s2t_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(s2t_config_file):
-    speech2text = Speech2Text(
+    speech2language = Speech2Language(
         s2t_train_config=s2t_config_file,
     )
     speech = np.random.randn(1000)
-    results = speech2text(speech)
-    for text, token, token_int, hyp in results:
-        assert isinstance(text, str)
-        assert isinstance(token[0], str)
-        assert isinstance(token_int[0], int)
-        assert isinstance(hyp, Hypothesis)
+    results = speech2language(speech)
+    for lang, prob in results:
+        assert isinstance(lang, str)
+        assert isinstance(prob, float)
 
 
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text_quantized(s2t_config_file):
-    speech2text = Speech2Text(
+    speech2language = Speech2Language(
         s2t_train_config=s2t_config_file,
         quantize_s2t_model=True,
     )
     speech = np.random.randn(1000)
-    results = speech2text(speech)
-    for text, token, token_int, hyp in results:
-        assert isinstance(text, str)
-        assert isinstance(token[0], str)
-        assert isinstance(token_int[0], int)
-        assert isinstance(hyp, Hypothesis)
+    results = speech2language(speech)
+    for lang, prob in results:
+        assert isinstance(lang, str)
+        assert isinstance(prob, float)
