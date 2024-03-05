@@ -2078,9 +2078,10 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
-                    strict=not use_adapter,
-                )
+                    torch.load(model_file, map_location=device), strict=False
+                    # torch.load(model_file, map_location=device),
+                    # strict=not use_adapter,
+                )  # TODO: Yifeng
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`

@@ -21,6 +21,7 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -36,6 +37,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
     def __init__(
         self,
+        frontend: Optional[AbsFrontend],
         text_extract: Optional[AbsFeatsExtract],
         feats_extract: Optional[AbsFeatsExtract],
         score_feats_extract: Optional[AbsFeatsExtract],
@@ -64,6 +66,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.svs = svs
+        self.frontend = frontend
         assert hasattr(
             svs, "generator"
         ), "generator module must be registered as svs.generator"
@@ -253,6 +256,16 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     feats_lengths=feats_lengths,
                 )
 
+            if self.frontend is not None:
+                # Frontend
+                #  e.g. STFT and Feature extract
+                #       data_loader may send time-domain signal in this case
+                # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+                asr_feats, asr_feats_lengths = self.frontend(singing, singing_lengths)
+            else:
+                # No frontend and no feature extract
+                asr_feats, asr_feats_lengths = singing, singing_lengths
+
             # Normalize
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
@@ -325,6 +338,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
+        if self.frontend is not None:
+            batch.update(asr_feats=asr_feats, asr_feats_lengths=asr_feats_lengths)
         return self.svs(**batch)
 
     def collect_feats(

@@ -311,7 +311,8 @@ class VISingerGenerator(torch.nn.Module):
                 f"Not supported vocoder generator type: {vocoder_generator_type}"
             )
         self.posterior_encoder = PosteriorEncoder(
-            in_channels=aux_channels,
+            in_channels=1104,  # mel 80 + hubert 1024 = 1104
+            # TODO (hard coded)
             out_channels=hidden_channels,
             hidden_channels=hidden_channels,
             kernel_size=posterior_encoder_kernel_size,
