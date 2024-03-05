@@ -172,7 +172,7 @@ def prepare_se(
                 enroll_token = [unit2cjk(t) for t in enroll_token]
                 enroll_token = ''.join(enroll_token)
             
-        uttid = f"tts_{uttid}"
+        uttid = f"se_{uttid}"
         text = text.lower()
         token_source = "".join(token_source)
         token_target = "".join(token_target)
@@ -217,7 +217,7 @@ def prepare_vc(
                 enroll_token = [unit2cjk(t) for t in enroll_token]
                 enroll_token = ''.join(enroll_token)
             
-        uttid = f"tts_{uttid}"
+        uttid = f"vc_{uttid}"
         text = text.lower()
         token_source = "".join(token_source)
         token_target = "".join(token_target)

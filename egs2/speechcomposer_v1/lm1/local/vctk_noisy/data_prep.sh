@@ -79,6 +79,6 @@ for x in tr cv tt; do
   done < "$tmpdir/${x}.text.flist" | sort -u > "${data}/${ddir}/text"
 
 
-  sed -e "s#${NOISY_SPEECH}/noisy_#${NOISY_SPEECH}/clean_#g" ${data}/${ddir}/wav.scp \
-    > ${data}/${ddir}/wav_noisy.scp
+  sed -i.bak "s#${NOISY_SPEECH}/noisy_#${NOISY_SPEECH}/clean_#g" ${data}/${ddir}/wav.scp
+
 done

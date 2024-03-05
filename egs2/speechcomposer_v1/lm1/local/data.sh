@@ -26,10 +26,9 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-#data_dict={"LIBRISPEECH":"asr", "LIBRITTS":"tts", "VCTK":"tts", "LIBRISPEECH":"lm", "LIBRILIGHT":"lm"}
 
-declare -a arr=("librispeech" "libritts" "vctk" "librilight" "vctk_noisy")
-declare -a arr_task=("asr" "tts" "textlm" "speechlm" "vc" "se")
+declare -a arr=("librispeech" "libritts" "vctk" "librilight" "vctk_noisy") # add your own dataset here
+declare -a arr_task=("asr" "tts" "textlm" "speechlm" "vc" "se") # add your new task here
 
 data_root="data" #/temp"
 
