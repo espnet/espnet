@@ -559,23 +559,23 @@ teardown() {
 @test "update_json.sh: multi outputs" {
     $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base_st.json $tmpdir/data \
         $tmpdir/dict
-    jsondiff $tmpdir/base_st.json $tmpdir/valid_st.json
+    jdiff $tmpdir/base_st.json $tmpdir/valid_st.json
 }
 
 @test "update_json.sh: MT" {
     $utils/update_json.sh --text $tmpdir/data/text_src $tmpdir/base_mt.json $tmpdir/data \
         $tmpdir/dict
-    jsondiff $tmpdir/base_mt.json $tmpdir/valid_mt.json
+    jdiff $tmpdir/base_mt.json $tmpdir/valid_mt.json
 }
 
 @test "update_json.sh: multilingual ST" {
     $utils/update_json.sh --text $tmpdir/data_multilingual/text_src --nlsyms $tmpdir/nlsyms $tmpdir/base_multilingual_st.json $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual
-    jsondiff $tmpdir/base_multilingual_st.json $tmpdir/valid_multilingual_st.json
+    jdiff $tmpdir/base_multilingual_st.json $tmpdir/valid_multilingual_st.json
 }
 
 @test "update_json.sh: multilingual MT" {
     $utils/update_json.sh --text $tmpdir/data_multilingual/text_src --nlsyms $tmpdir/nlsyms $tmpdir/base_multilingual_mt.json $tmpdir/data_multilingual \
         $tmpdir/dict_multilingual
-    jsondiff $tmpdir/base_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
+    jdiff $tmpdir/base_multilingual_mt.json $tmpdir/valid_multilingual_mt.json
 }

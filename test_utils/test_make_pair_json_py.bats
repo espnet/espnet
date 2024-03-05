@@ -107,5 +107,5 @@ teardown() {
 
 @test "make_pair_json.py" {
     python $utils/make_pair_json.py --src-json $tmpdir/test1.json --trg-json $tmpdir/test2.json > $tmpdir/out.json
-    jsondiff $tmpdir/out.json $tmpdir/valid
+    jdiff $tmpdir/out.json $tmpdir/valid
 }
