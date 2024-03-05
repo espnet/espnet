@@ -14,6 +14,9 @@ km_dir="" #Add pretrained km_directory path
 lm_config=conf/train_transformer_size768_e12.yaml
 lm_inference_asr_config=conf/decode_lm_asr.yaml
 lm_inference_tts_config=conf/decode_lm_tts.yaml
+lm_inference_vc_config=conf/decode_lm_vc.yaml
+lm_inference_se_config=conf/decode_lm_se.yaml
+
 
 ./lm.sh \
     --stage 1 \
@@ -36,7 +39,11 @@ lm_inference_tts_config=conf/decode_lm_tts.yaml
     --km_dir "${km_dir}" \
     --lm_inference_asr_config "${lm_inference_asr_config}" \
     --lm_inference_tts_config "${lm_inference_tts_config}" \
+    --lm_inference_vc_config "${lm_inference_vc_config}" \
+    --lm_inference_se_config "${lm_inference_se_config}" \
     --lm_test_text_asr dump/raw/${test_sets}/text.asr \
     --lm_test_text_tts dump/raw/${test_sets}/text.tts \
+    --lm_test_text_vc dump/raw/${test_sets}/text.vc \
+    --lm_test_text_se dump/raw/${test_sets}/text.se \
     --lm_test_text_textlm dump/raw/${test_sets}/text.textlm \
     --lm_test_text_speechlm dump/raw/${test_sets}/text.speechlm "$@"

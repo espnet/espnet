@@ -37,11 +37,18 @@ mkdir -p $tmpdir
 train_dir=${NOISY_SPEECH}/noisy_trainset_28spk_wav
 test_dir=${NOISY_SPEECH}/noisy_testset_wav
 
+train_dir=${NOISY_SPEECH}/trainset_28spk_txt
+test_dir=${NOISY_SPEECH}/testset_txt
+
 echo "Building training and testing data"
 
 find $train_dir -name '*.wav' -not -name 'p226_*.wav' -not -name 'p287_*.wav' | sort -u > $tmpdir/tr.flist
 find $train_dir -name 'p226_*.wav' -o -name 'p287_*.wav' | sort -u > $tmpdir/cv.flist
 find $test_dir -name '*.wav' | sort -u > $tmpdir/tt.flist
+
+find $train_text_dir -name '*.txt' -not -name 'p226_*.txt' -not -name 'p287_*.txt' | sort -u > $tmpdir/tr.text.flist
+find $train_text_dir -name 'p226_*.txt' -o -name 'p287_*.txt' | sort -u > $tmpdir/cv.text.flist
+find $test_text_dir -name '*.txt' | sort -u > $tmpdir/tt.text.flist
 
 
 for x in tr cv tt; do
@@ -65,8 +72,12 @@ for x in tr cv tt; do
     sort -u> ${data}/${ddir}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
 
-  awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
-    sort -u> ${data}/${ddir}/text
+  while IFS= read -r line; do
+    id=$(basename "$line" .txt)
+    text=$(cat "$line")
+    echo "${id} ${text}"
+  done < "$tmpdir/${x}.text.flist" | sort -u > "${data}/${ddir}/text"
+
 
   sed -e "s#${NOISY_SPEECH}/noisy_#${NOISY_SPEECH}/clean_#g" ${data}/${ddir}/wav.scp \
     > ${data}/${ddir}/wav_noisy.scp

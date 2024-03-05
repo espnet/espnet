@@ -69,7 +69,7 @@ You may change the decoding setting via `--lm_inference_vc_config`. You may need
 Decoding stage for speech enhancement.
 You may change the decoding setting via `--lm_inference_se_config`. You may need an extra discrete vocoder to generate wavform from discrete tokens.
 
-### 11-12. (Optional) Pack results for upload
+### 13-15. (Optional) Pack results for upload
 
 Packing stage.
 It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).

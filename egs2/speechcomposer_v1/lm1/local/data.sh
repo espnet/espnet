@@ -28,8 +28,8 @@ fi
 
 #data_dict={"LIBRISPEECH":"asr", "LIBRITTS":"tts", "VCTK":"tts", "LIBRISPEECH":"lm", "LIBRILIGHT":"lm"}
 
-declare -a arr=("librispeech" "libritts" "vctk" "librilight")
-declare -a arr_task=("asr" "tts" "textlm" "speechlm")
+declare -a arr=("librispeech" "libritts" "vctk" "librilight" "vctk_noisy")
+declare -a arr_task=("asr" "tts" "textlm" "speechlm" "vc" "se")
 
 data_root="data" #/temp"
 

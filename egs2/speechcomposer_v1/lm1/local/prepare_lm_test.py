@@ -56,6 +56,10 @@ if __name__ == "__main__":
     prepare_asr_tts(test_file, out_dir / "text.asr", "asr_", args.generate_text_token)
 
     prepare_asr_tts(test_file, out_dir / "text.tts", "tts_", args.generate_speech_token)
+    
+    prepare_asr_tts(test_file, out_dir / "text.vc", "vc_", args.generate_speech_token)
+    
+    prepare_asr_tts(test_file, out_dir / "text.se", "se_", args.generate_speech_token)
 
     prepare_lm(test_file, out_dir / "text.textlm", "textlm_")
 

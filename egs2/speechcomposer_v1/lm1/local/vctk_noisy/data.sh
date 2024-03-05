@@ -39,7 +39,9 @@ if [ ! -e "${NOISY_SPEECH}" ] ; then
         ├── clean_testset_wav
         ├── clean_trainset_28spk_wav
         ├── noisy_testset_wav
-        └── noisy_trainset_28spk_wav
+        ├── noisy_trainset_28spk_wav
+        ├── trainset_28spk_txt
+        └── testset_txt
     "
     exit 1
 fi
@@ -47,4 +49,4 @@ fi
 log "Data preparation"
 # The following datasets will be created:
 # tr_26spk, {cv,tt}_2spk
-local/vctk_data_prep.sh  ${NOISY_SPEECH} || exit 1;
+local/vctk_noisy/data_prep.sh  ${NOISY_SPEECH} || exit 1;
