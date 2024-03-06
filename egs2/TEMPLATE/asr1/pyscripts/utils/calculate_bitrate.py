@@ -55,7 +55,7 @@ if __name__ == "__main__":
                     stream,
                     args.vocab,
                 )
-                info = math.log2(len(token[stream]) / ref_len) + vocab[str(stream)]
+                info = len(token[stream]) / ref_len * vocab[str(stream)]
                 cum_info += info
             bitrates.append(cum_info)
             if args.bitrate_details is not None:
