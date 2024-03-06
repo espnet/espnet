@@ -132,7 +132,7 @@ def prepare_tts(
         text = text.lower()
         token = "".join(token)
 
-        res.append(f"{uttid} {start_text_token} {text}{enrollment_speech_token}
+        res.append(f"{uttid} {start_text_token} {text}{enrollment_speech_token}"
                    f"{enroll_token}{generate_speech_token}{token}")
 
     print("Creating tts: ", out_dir / "lm_text")
@@ -178,8 +178,9 @@ def prepare_se(
         token_source = "".join(token_source)
         token_target = "".join(token_target)
 
-        res.append(f"{uttid} {start_speech_token}{token_source} {generate_text_token} {text}
-                   f"{enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
+        res.append(f"{uttid} {start_speech_token}{token_source} {generate_text_token}"
+                   f"{text} {enrollment_speech_token}{enroll_token} "
+                   f"{generate_speech_token}{token_target}")
 
     print("Creating se: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -224,8 +225,9 @@ def prepare_vc(
         token_source = "".join(token_source)
         token_target = "".join(token_target)
 
-        res.append(f"{uttid} {start_speech_token}{token_source} {generate_text_token} {text}
-                   f"{enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
+        res.append(f"{uttid} {start_speech_token}{token_source} "
+                   f"{generate_text_token} {text} {enrollment_speech_token}"
+                   f"{enroll_token} {generate_speech_token}{token_target}")
 
     print("Creating vc: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -235,20 +237,17 @@ def prepare_vc(
     return
 
 
-
-
-
-def prepare_enroll_speech_dict(root: Path):
+def prepare_enroll_speech(root: Path):
     enroll_dict = {}
     uttid2token = read_text(root)
     for uttid, token in uttid2text.items():
         spkid = utt_id.split("_")[0]
-        token=token.split()
+        token = token.split()
         if use_cjk:
             token = [unit2cjk(t) for t in token]
         token = "".join(token)
         if spkid not in enroll_dict:
-            enroll_dict[spkid]=tok
+            enroll_dict[spkid] = tok
     print("Save enrollmet speech for ",len(enroll_dict.keys())," speakers.")
     return enroll_dict
 
@@ -308,10 +307,9 @@ if __name__ == "__main__":
 
     # prepare enrollment speech dict
     if use_enroll_speech:
-        tts_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/tts/token")
-        vc_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/vc/token_source")
-        se_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/se/token_source")
-
+        tts_enrollment_dict = prepare_enroll_speech(out_dir / "speech/tts/token")
+        vc_enrollment_dict = prepare_enroll_speech(out_dir / "speech/vc/token_source")
+        se_enrollment_dict = prepare_enroll_speech(out_dir / "speech/se/token_source")
 
 
     # prepare textlm
