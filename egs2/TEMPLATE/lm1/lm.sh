@@ -40,6 +40,7 @@ inference_nj=4      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
+split_asr=false      # ASR audio is split and needs to be combined after inference
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -814,11 +815,19 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
         _scoredir="${_dir}/score_wer"
         mkdir -p "${_scoredir}"
 
-        python3 local/postprocess.py \
+        if "${split_asr}"; then
+            python3 local/postprocess_asr_split.py \
+                --input ${_dir}/text \
+                --output ${_scoredir}/hyp.trn \
+                --sos "<generatetext>" \
+                --prefix "asr_"
+        else
+            python3 local/postprocess.py \
             --input ${_dir}/text \
             --output ${_scoredir}/hyp.trn \
             --sos "<generatetext>" \
             --prefix "asr_"
+        fi
 
         python3 local/postprocess.py \
            --input ${data_feats}/test/lm_text \

@@ -38,6 +38,8 @@ if [ -z "${LIBRISPEECH}" ]; then
 fi
 
 ls_dir="local/librispeech"
+split_asr_test=false
+split_threshold=20
 data_dir=$1
 data_dir_asr="${data_dir}/asr"
 data_dir_textlm="${data_dir}/textlm"
@@ -67,20 +69,28 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/combine_data.sh ${data_dir_asr}/${train_set} ${data_dir_asr}/train_clean_100 ${data_dir_asr}/train_clean_360 ${data_dir_asr}/train_other_500
     utils/combine_data.sh ${data_dir_asr}/${train_dev} ${data_dir_asr}/dev_clean ${data_dir_asr}/dev_other
     utils/combine_data.sh ${data_dir_asr}/${train_eval} ${data_dir_asr}/test_clean ${data_dir_asr}/test_other
-
+    
+    if [ -n "${split_asr_test}" ]; then
+        log "Split long test sentence for ASR"
+        echo ${ls_dir}
+        echo "data_dir_asr ${data_dir_asr}"
+        python ${ls_dir}/split_audio.py ${data_dir_asr}/test ${split_threshold}
+        mv ${data_dir_asr}/test ${data_dir_asr}/test_org
+        mv ${data_dir_asr}/test_split ${data_dir_asr}/test
+    fi
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${data_dir_textlm}/train
     # use external data
-    if [ ! -e ${data_dir_textlm}/librispeech-lm-norm.txt.gz ]; then
+    if [ ! -e ${data_dir_textlm}/train/librispeech-lm-norm.txt.gz ]; then
         log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P ${data_dir_textlm}/train/
     fi
     if [ ! -e ${data_dir_textlm}/train/text ]; then
         # provide utterance id to each texts
         # e.g., librispeech_lng_00003686 A BANK CHECK
-        zcat ${data_dir}/textlm/librispeech-lm-norm.txt.gz | \
+        zcat ${data_dir}/textlm/train/librispeech-lm-norm.txt.gz | \
             awk '{ printf("textlm_librispeech_lng_%08d %s\n",NR,$0) } ' > ${data_dir_textlm}/train/text
     fi
 
