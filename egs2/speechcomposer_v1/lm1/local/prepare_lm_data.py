@@ -133,7 +133,7 @@ def prepare_tts(
         token = "".join(token)
 
         res.append(f"{uttid} {start_text_token} {text}{enrollment_speech_token}
-                   {enroll_token}{generate_speech_token}{token}")
+                   f"{enroll_token}{generate_speech_token}{token}")
 
     print("Creating tts: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -179,7 +179,7 @@ def prepare_se(
         token_target = "".join(token_target)
 
         res.append(f"{uttid} {start_speech_token}{token_source} {generate_text_token} {text}
-                   {enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
+                   f"{enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
 
     print("Creating se: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -225,7 +225,7 @@ def prepare_vc(
         token_target = "".join(token_target)
 
         res.append(f"{uttid} {start_speech_token}{token_source} {generate_text_token} {text}
-                   {enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
+                   f"{enrollment_speech_token}{enroll_token}{generate_speech_token}{token_target}")
 
     print("Creating vc: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
