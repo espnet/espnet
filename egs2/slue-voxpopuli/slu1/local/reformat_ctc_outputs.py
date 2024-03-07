@@ -39,19 +39,17 @@ def load_json(fname):
 
 
 class ReadCTCEmissions:
-    def __init__(self, dir_name, split="devel"):
-        self.token_fn = dir_name
+    def __init__(self, token_fn, log_dir, split="devel"):
+        self.token_fn = token_fn
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+        self.log_dir = log_dir
         self.split = split
         self.nel_utt_lst = list(
             load_json(
                 os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
             ).keys()
         )
-        # self.og_data = os.path.join(
-        #     MY_DIR,
-        #     "nel_code_package/slue-toolkit/data/slue-voxpopuli_nel",
-        #     f"slue-voxpopuli_nel_{split}.tsv"
-        #     )
 
     def deduplicate(self, output_tokens, frame_len):
         """
@@ -124,12 +122,12 @@ class ReadCTCEmissions:
         # print(f"Tot samples: {len(self.nel_utt_lst)}")
         # print(f"Tot pred samples: {tot_cnt}")
         # print(f"Tot inconsistent samples: {num_inconsistent}")
-        save_dir = os.path.dirname(self.token_fn)
-        save_json(os.path.join(save_dir, f"{self.split}_pred_stamps.json"), res_dct)
+
+        save_json(os.path.join(self.log_dir, f"{self.split}_pred_stamps.json"), res_dct)
 
 
-def main(dir_name="token", split="devel", frame_len=4e-2):
-    obj = ReadCTCEmissions(dir_name, split)
+def main(token_fn, log_dir, split="devel", frame_len=4e-2):
+    obj = ReadCTCEmissions(token_fn, log_dir, split)
     obj.get_char_outputs(frame_len)
 
 

@@ -64,6 +64,10 @@ def update_false_neg_cnt(cnt_dct, idx_lst, gt_tuple_dct, eval_type="segment"):
 
 
 def convert(sec):
+    """
+    resolution: resolution to convert duration to discrete bins for the purpose of evaluation
+    Note that this is different from the resolution of the model. Model resolution is set by `frame_len` in `reformat_ctc_outputs.py`
+    """
     resolution = 0.01  # 10 milliseconds
     return int(sec * 1 / resolution)
 
@@ -228,12 +232,7 @@ def clip_dur(dur, offset):
     return dur
 
 
-def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
-    pred_dir = os.path.dirname(dir_name)
-    # gt_alignment_dct = load_json(
-    #     os.path.join("data", "devel_nel", f"{split}_gt_alignment.json")
-    # )
-    # gt_dct = load_json(os.path.join("data", "devel_nel", f"{split}_gt_tuple.json"))
+def evaluate_submission(log_dir, offset=-1, split="devel", ms=False):
     gt_alignment_dct = load_json(
         os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
     )
@@ -241,7 +240,7 @@ def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
         os.path.join("data", "nel_gt", f"{split}_entity_alignments.json")
     )
     pred_dct = filter_pred_dct(
-        load_json(os.path.join(pred_dir, f"{split}_pred_stamps.json")), ms, offset
+        load_json(os.path.join(log_dir, f"{split}_pred_stamps.json")), ms, offset
     )
 
     res_dct = {
@@ -264,33 +263,38 @@ def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
     res_dct["frame"]["prec"] = prec
     res_dct["frame"]["recall"] = recall
 
-    os.makedirs(os.path.join(pred_dir, "nel_results"), exist_ok=True)
+    os.makedirs(os.path.join(log_dir, "nel_results"), exist_ok=True)
     save_json(
         os.path.join(
-            pred_dir,
+            log_dir,
             "nel_results",
             f"{split}_offset{offset}.json",
         ),
         res_dct,
     )
+    if split == "test":
+        print("Frame-F1: ", np.round(100 * res_dct["frame"]["f1"], 2))
 
 
-def choose_best(dir_name):
-    pred_dir = os.path.dirname(dir_name)
+def choose_best(log_dir):
     best_params_dct = {}
-    res_fnames = glob(os.path.join(pred_dir, "nel_results", f"devel_offset*.json"))
+    res_fnames = glob(os.path.join(log_dir, "nel_results", f"devel_offset*.json"))
     best_score = 0
     for fname in res_fnames:
-        score = load_json(fname)["frame"]["f1"]
+        score = np.round(100 * load_json(fname)["frame"]["f1"], 2)
         if score > best_score:
             best_score = score
             best_offset = fname.split("_")[-1][6:-5]
     best_params_dct["offset"] = best_offset
-    with open(os.path.join(pred_dir, "nel_results", "best_offset.lst"), "a") as f:
-        f.write(
-            ",".join([dir_name, best_offset, str(np.round(100 * best_score, 1))]) + "\n"
-        )
+    with open(os.path.join(log_dir, "nel_results", "best_offset.lst"), "a") as f:
+        f.write(",".join([log_dir, best_offset, str(best_score)]) + "\n")
     print(f"Best frame-F1 score: {best_score} at offset: {best_offset}")
+    return best_offset
+
+
+def eval_test(log_dir):
+    best_offset = float(choose_best(log_dir))
+    evaluate_submission(log_dir, best_offset, "test")
 
 
 if __name__ == "__main__":

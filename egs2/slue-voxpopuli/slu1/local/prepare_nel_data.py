@@ -46,10 +46,6 @@ def update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labe
         while data_idx < len(gt_labels):  # until a match for all GT entities is found
             label, _, _ = all_word_alignments[utt_id][curr_idx]
             if label == wrd_lst[0]:
-                if label == "committee":
-                    import pdb
-
-                    pdb.set_trace()
                 update_words = True
                 if len_phrase > 1:
                     done_processing = False
@@ -60,15 +56,9 @@ def update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labe
                 while not done_processing:
                     label, _, _ = all_word_alignments[utt_id][curr_idx + tier_idx]
                     if label != "":
-                        if (
-                            label != wrd_lst[gt_idx]
-                            and label.replace("'s", "") != wrd_lst[gt_idx]
-                        ):
-                            if wrd_lst[gt_idx] == "'s" and label == wrd_lst[gt_idx + 1]:
-                                gt_idx += 2
-                            else:
-                                done_processing = True
-                                update_words = False
+                        if label != wrd_lst[gt_idx]:
+                            done_processing = True
+                            update_words = False
                         else:
                             gt_idx += 1
                     tier_idx += 1
@@ -106,16 +96,13 @@ def update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labe
             if curr_idx == len(all_word_alignments[utt_id]) and data_idx != len(
                 gt_labels
             ):
-                import pdb
-
-                pdb.set_trace()
                 print(data_idx, len(gt_labels))
                 print(gt_labels)
                 print(text)
                 sys.exit("Process exited, possibly an issue with text processing.")
 
 
-def modify_word_alignments(dataset_obj, data_dir, data_split, extract_gt):
+def modify_word_alignments(dataset_obj, data_dir, data_split):
     """
     Modify the word alignments to mark entity phrases for evaluation
     """
@@ -140,7 +127,11 @@ def modify_word_alignments(dataset_obj, data_dir, data_split, extract_gt):
             word = wrd_durs["word"][wrd_idx]
             start_sec = wrd_durs["start_sec"][wrd_idx]
             end_sec = wrd_durs["end_sec"][wrd_idx]
-            all_word_alignments[utt_id].append([word, start_sec, end_sec])
+            if len(word) > 2 and word[-2:] == "'s":  # handle apostrophe
+                all_word_alignments[utt_id].append([word[:-2], start_sec, end_sec])
+                all_word_alignments[utt_id].append([word[-2:], end_sec, end_sec])
+            else:
+                all_word_alignments[utt_id].append([word, start_sec, end_sec])
         update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labels)
 
     if data_split == "validation":
@@ -149,20 +140,18 @@ def modify_word_alignments(dataset_obj, data_dir, data_split, extract_gt):
         os.path.join(data_dir, f"{data_split}_all_word_alignments.json"),
         all_word_alignments,
     )
-    if extract_gt:
-        save_json(
-            os.path.join(data_dir, f"{data_split}_entity_alignments.json"),
-            entity_alignments,
-        )
+    save_json(
+        os.path.join(data_dir, f"{data_split}_entity_alignments.json"),
+        entity_alignments,
+    )
 
 
-def main(data_dir="data/nel_gt", is_blind=False):
-    dataset = load_dataset("asapp/slue-phase-2", "vp_nel")
+def main(data_dir="data/nel_gt", cache_dir="data/cache"):
+    dataset = load_dataset("asapp/slue-phase-2", "vp_nel", cache_dir=cache_dir)
     split_lst = ["validation", "test"]
     os.makedirs(data_dir, exist_ok=True)
     for data_split in split_lst:
-        extract_gt = data_split == "validation" or not is_blind
-        modify_word_alignments(dataset[data_split], data_dir, data_split, extract_gt)
+        modify_word_alignments(dataset[data_split], data_dir, data_split)
 
 
 if __name__ == "__main__":
