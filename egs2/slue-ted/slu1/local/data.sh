@@ -22,7 +22,7 @@ transcript_folder=
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-SQA_5=/scratch/bbjs/shared/corpora/ted_summ
+
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
@@ -30,10 +30,10 @@ fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${SQA_5}/slue-ted_train/LICENSE" ]; then
-	    echo "stage 1: Download data to ${SQA_5}"
+    if [ ! -e "${SLUE_TED}/slue-ted_train/LICENSE" ]; then
+	    echo "stage 1: Download data to ${SLUE_TED}"
     else
-        log "stage 1: ${SQA_5}/slue-ted_train/LICENSE is already existing. Skip data downloading"
+        log "stage 1: ${SLUE_TED}/slue-ted_train/LICENSE is already existing. Skip data downloading"
     fi
 fi
 
@@ -41,7 +41,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
 
     mkdir -p data/{train,devel,test}
-    python3 local/data_prep_original_slue_format.py ${SQA_5}
+    python3 local/data_prep_original_slue_format.py ${SLUE_TED}
     for x in test devel train; do
         for f in text wav.scp utt2spk segments; do
             sort data/${x}/${f} -o data/${x}/${f}

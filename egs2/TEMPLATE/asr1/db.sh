@@ -214,6 +214,7 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 SQA_5=
+SLUE_TED=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
