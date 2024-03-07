@@ -68,7 +68,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                     # speech
                     if [ -f "${src_path}/wav.scp" ]; then
                         speech_dirs+=" ${src_path}"
-                        utils/validate_data_dir.sh --no-feats ${src_path}
+                        utils/validate_data_dir.sh --no-text --no-feats ${src_path}
                     fi
                 fi
             done

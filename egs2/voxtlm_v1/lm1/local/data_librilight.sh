@@ -84,17 +84,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     log "combine all training and development sets"
-    utils/combine_data.sh ${data_dir}/${train_set} ${data_dir}/librilight_small ${data_dir}/librilight_medium {data_dir}/librilight_large
+    utils/combine_data.sh ${data_dir}/${train_set} ${data_dir}/librilight_small ${data_dir}/librilight_medium ${data_dir}/librilight_large
 
     # copy dev from Librispeech
     mkdir -p ${data_dir}/${train_dev}
-    cp -r ${data_dir_librispeech_asr}/audio ${data_dir}/${train_dev}
+    # cp -r ${data_dir_librispeech_asr}/audio ${data_dir}/${train_dev}
     utils/copy_data_dir.sh ${data_dir_librispeech_asr}/dev ${data_dir}/${train_dev}
     rm ${data_dir}/${train_dev}/text
 
     # copy eval from Librispeech
     mkdir -p ${data_dir}/"test"
-    cp -r ${data_dir_librispeech_asr}/test/audio ${data_dir}/"test"
+    # cp -r ${data_dir_librispeech_asr}/test/audio ${data_dir}/"test"
     utils/copy_data_dir.sh ${data_dir_librispeech_asr}/test ${data_dir}/"test"
     rm ${data_dir}/"test"/text
 

@@ -29,14 +29,24 @@ utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
 for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
   reader=$(basename $reader_dir)
-  if ! [ $reader -eq $reader ]; then  # not integer.
+
+  if [ "$reader" = "logdir" ]; then
+    continue
+  fi
+  
+  if ! [[ $reader =~ ^[0-9]+$ ]]; then
     echo "$0: unexpected subdirectory name $reader"
     exit 1
   fi
+  # if ! [ $reader -eq $reader ]; then  # not integer.
+  #   echo "$0: unexpected subdirectory name $reader"
+  #   exit 1
+  # fi
 
   for chapter_dir in $(find -L $reader_dir/ -mindepth 1 -maxdepth 1 -type d | sort); do
     chapter=$(basename $chapter_dir)
-    if ! [ "$chapter" -eq "$chapter" ]; then
+    # if ! [ "$chapter" -eq "$chapter" ]; then
+    if ! [[ $chapter =~ ^[0-9]+$ ]]; then
       echo "$0: unexpected chapter-subdirectory name $chapter"
       exit 1
     fi
@@ -58,7 +68,8 @@ for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
 done
 
 cat ${utt2spk} | sort -k 2 > ${utt2spk}.sorted && mv ${utt2spk}.sorted ${utt2spk}
-awk '(ARGIND==1){wav_scp[$1]=$0} (ARGIND==2){print(wav_scp[$1])}' ${wav_scp} ${utt2spk} > ${wav_scp}.sorted && mv ${wav_scp}.sorted ${wav_scp}
+# awk '(ARGIND==1){${wav_scp}[$1]=$0} (ARGIND==2){print(wav_scp[$1])}' ${wav_scp} ${utt2spk} > ${wav_scp}.sorted && mv ${wav_scp}.sorted ${wav_scp}
+awk 'FNR==NR{wav_scp[$1]=$0; next} {if($1 in wav_scp) print(wav_scp[$1])}'${wav_scp} ${utt2spk} > ${wav_scp}.sorted && mv ${wav_scp}.sorted ${wav_scp}
 
 spk2utt=$dst/spk2utt
 utils/utt2spk_to_spk2utt.pl <$utt2spk >$spk2utt || exit 1
