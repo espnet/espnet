@@ -9,8 +9,8 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-slu_config=conf//train_asr_wavlm.yaml
-inference_config=conf/decode_asr.yaml
+slu_config=conf/tuning/wavlm_complex.yaml
+inference_config=conf/tuning/decode_asr.yaml
 
 ./slu.sh \
     --lang en \

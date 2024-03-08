@@ -39,19 +39,12 @@ def load_json(fname):
 
 
 class ReadCTCEmissions:
-    def __init__(self, dir_name, split="devel"):
-        self.token_fn = dir_name
+    def __init__(self, token_fn, log_dir, split="devel"):
+        self.token_fn = token_fn
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+        self.log_dir = log_dir
         self.split = split
-        # self.nel_utt_lst = list(
-        #     load_json(
-        #         os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
-        #     ).keys()
-        # )
-        # self.og_data = os.path.join(
-        #     MY_DIR,
-        #     "nel_code_package/slue-toolkit/data/slue-voxpopuli_nel",
-        #     f"slue-voxpopuli_nel_{split}.tsv"
-        #     )
 
     def deduplicate(self, output_tokens, frame_len):
         """
@@ -83,7 +76,6 @@ class ReadCTCEmissions:
         for idx, item_tuple in enumerate(zip(subtoken_lst, dur_lst)):
             subtoken, dur = item_tuple
             if subtoken == "ANS":
-                # import pdb;pdb.set_trace()
                 if part_of_entity:
                     end_time += dur
                     tstamp_tuple_lst.append((start_time, end_time))
@@ -101,32 +93,22 @@ class ReadCTCEmissions:
         Convert frame_level outputs to a sequence of words and timestamps
         """
         frame_level_op = read_lst(self.token_fn)
-        # lines = read_lst(self.og_data)[1:]
-        # nel_utt_lst = [line.split("\t")[0] for line in lines]
         res_dct = {}
         num_inconsistent = 0
         tot_cnt = 0
         for item in frame_level_op:
             utt_id = item.split(" ")[0]
             subtokens = item.split(" ")[1:]
-            # if utt_id in self.nel_utt_lst:  # process NEL corpus utterances only
             tot_cnt += 1
             subtoken_lst, dur_lst = self.deduplicate(subtokens, frame_len)
             if "ANS" in subtoken_lst:  # at least one entity
-                # cnt_fill = len(np.where(np.array(subtoken_lst) == "FILL")[0])
-                # cnt_sep = len(np.where(np.array(subtoken_lst) == "SEP")[0])
-                # if cnt_fill != cnt_sep:
-                #     num_inconsistent += 1
                 res_dct[utt_id] = self.extract_entity_timestamps(subtoken_lst, dur_lst)
-        # print(f"Tot samples: {len(self.nel_utt_lst)}")
-        # print(f"Tot pred samples: {tot_cnt}")
-        # print(f"Tot inconsistent samples: {num_inconsistent}")
         save_dir = os.path.dirname(self.token_fn)
-        save_json(os.path.join(save_dir, f"{self.split}_pred_stamps.json"), res_dct)
+        save_json(os.path.join(self.log_dir, f"{self.split}_pred_stamps.json"), res_dct)
 
 
-def main(dir_name="token", split="test", frame_len=4e-2):
-    obj = ReadCTCEmissions(dir_name, split)
+def main(token_fn, log_dir, split="test", frame_len=4e-2):
+    obj = ReadCTCEmissions(token_fn, log_dir, split)
     obj.get_char_outputs(frame_len)
 
 

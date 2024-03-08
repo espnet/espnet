@@ -15,8 +15,6 @@ SECONDS=0
 stage=1
 stop_stage=100000
 log "$0 $*"
-use_transcript=false
-transcript_folder=
 . utils/parse_options.sh
 
 . ./db.sh

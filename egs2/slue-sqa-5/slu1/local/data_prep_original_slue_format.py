@@ -32,7 +32,6 @@ for x in dir_dict:
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
-        # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if "\t" in row[1]:
                 row = [row[0]] + row[1].split("\t") + list(row[2:])
@@ -53,11 +52,6 @@ for x in dir_dict:
                 doc_transcript = row[6].lower()
             except:
                 row = list(row[:5]) + list(row[5].split("\t"))
-                # import pdb;pdb.set_trace()
-            if len(row) < 10:
-                import pdb
-
-                pdb.set_trace()
             if len(row[9].split("], [")) > 1:
                 timestamp_file = open(
                     os.path.join(os.path.join(root, timestamp_dir[x]), row[4] + ".txt")
@@ -93,13 +87,7 @@ for x in dir_dict:
                     doc_sentence += line.split("\t")[1] + " "
                     if found_end:
                         doc_sentence += "ANS "
-                try:
-                    assert found_ever == len(unique_start_dict)
-                except:
-                    import pdb
-
-                    pdb.set_trace()
-                # import pdb;pdb.set_trace()
+                assert found_ever == len(unique_start_dict)
             else:
                 timestamp_file = open(
                     os.path.join(os.path.join(root, timestamp_dir[x]), row[4] + ".txt")
@@ -108,15 +96,11 @@ for x in dir_dict:
                 ans_word = row[9].split(",")[0].replace("[", "").replace('"', "")
                 doc_sentence = ""
                 found_ever = 0
-                # print(len(timestamp_line_arr))
                 for line in timestamp_line_arr:
                     found_start = False
                     found_end = False
                     if len(line.split("\t")) == 1:
                         continue
-                    # if line.split("\t")[1]==ans_word or line.split("\t")[0]==ans_word:
-                    # if line.split("\t")[0]=="200,000":
-                    #     import pdb;pdb.set_trace()
                     if (
                         line.split("\t")[2]
                         == row[9].split('"')[-1].split(", ")[1].strip()
@@ -132,17 +116,10 @@ for x in dir_dict:
                     doc_sentence += line.split("\t")[1] + " "
                     if found_end:
                         doc_sentence += "ANS "
-                try:
-                    assert found_ever == 1
-                except:
-                    import pdb
-
-                    pdb.set_trace()
-            # import pdb;pdb.set_trace()
+                assert found_ever == 1
             doc_transcript = doc_sentence.strip()
 
             words = question_transcript + " SEP " + doc_transcript
-            # import pdb;pdb.set_trace()
             if "\n" in words:
                 import pdb
 
