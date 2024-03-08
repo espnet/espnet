@@ -1381,7 +1381,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         if [ ${#aux_list[@]} != 0 ]; then
             _opts+="--allow_variable_data_keys True "
             for aux_dset in "${aux_list[@]}"; do
-                 _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
+                 _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},${aux_dset},text "
             done
         fi
         # shellcheck disable=SC2068
