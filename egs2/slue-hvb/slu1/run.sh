@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set="train"
 valid_set="valid"
-test_sets="test"
+test_sets="test valid"
 
 local_data_opts="--use_classifier false"
 asr_config=conf/tuning/wavlm_complex.yaml

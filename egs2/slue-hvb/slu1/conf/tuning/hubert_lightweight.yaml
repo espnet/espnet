@@ -25,6 +25,7 @@ model_conf:
     lsm_weight: 0.0
     length_normalized_loss: false
     superb_setup: true
+    superb_da: true
     num_class: 18
     ssl_input_size: 1024
     extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.

@@ -15,7 +15,7 @@
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ]; then
-  echo "Usage: local/score.sh <asr-exp-dir> <valid_inference_folder> <test_inference_folder> <evaluate_only_asr>"
+  echo "Usage: local/score.sh <asr-exp-dir> <valid_inference_folder> <test_inference_folder>"
   exit 1;
 fi
 

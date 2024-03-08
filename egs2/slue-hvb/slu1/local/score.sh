@@ -16,21 +16,30 @@ if [ $# -lt 1 ]; then
   exit 1;
 fi
 
-asr_expdir=$1
-
-if [ $# -gt 1 ]; then
-	valid_inference_folder=$2
-	test_inference_folder=$3
-	python local/score_da.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder}
+if [ $# -gt 3 ]; then
+  echo "Run only classifier scoring"
+  use_only_classifier=$1
+  asr_expdir=$2
+  valid_inference_folder=$3
+  test_inference_folder=$4
+  if ${use_only_classifier}; then
+    echo "Run only classifier scoring"
+    python local/score.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder} --use_only_classifier ${use_only_classifier}
+    exit 0
+  fi
 else
-	python local/score_da.py --exp_root ${asr_expdir}
+    asr_expdir=$1
+    valid_inference_folder=$2
+	  test_inference_folder=$3
 fi
-# sclite \
-#     -r "${asr_expdir}/${valid_inference_folder}/score_wer/ref_asr.trn" trn \
-#     -h "${asr_expdir}/${valid_inference_folder}/score_wer/hyp_asr.trn" trn \
-#     -i rm -o all stdout > "${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
-# echo "Write ASR result in ${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
-# grep -e Avg -e SPKR -m 2 "${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
+
+python local/score.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder}
+sclite \
+    -r "${asr_expdir}/${valid_inference_folder}/score_wer/ref_asr.trn" trn \
+    -h "${asr_expdir}/${valid_inference_folder}/score_wer/hyp_asr.trn" trn \
+    -i rm -o all stdout > "${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
+echo "Write ASR result in ${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
+grep -e Avg -e SPKR -m 2 "${asr_expdir}/${valid_inference_folder}/score_wer/result_asr.txt"
 sclite \
     -r "${asr_expdir}/${test_inference_folder}/score_wer/ref_asr.trn" trn \
     -h "${asr_expdir}/${test_inference_folder}/score_wer/hyp_asr.trn" trn \

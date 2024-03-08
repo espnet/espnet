@@ -15,32 +15,45 @@ from sklearn.metrics import f1_score
 from sklearn.preprocessing import MultiLabelBinarizer
 
 
-def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
+def get_classification_result(
+    hyp_file, ref_file, hyp_write, ref_write, use_only_classifier
+):
     hyp_lines = [line for line in hyp_file]
     ref_lines = [line for line in ref_file]
     hyp_dialog_acts_list = []
     ref_dialog_acts_list = []
     mlb = MultiLabelBinarizer()
     for line_count in range(len(hyp_lines)):
-        if "<utt>" not in hyp_lines[line_count]:
-            hyp_dialog_acts = []
-        elif " <utt>\t" in hyp_lines[line_count]:
-            hyp_dialog_acts = (
-                hyp_lines[line_count].split(" <utt>\t")[0].split(" <sep> ")
-            )
+        if use_only_classifier:
+            hyp_dialog_acts = hyp_lines[line_count].split("\t")[0].split(" ")
+            ref_dialog_acts = ref_lines[line_count].split("\t")[0].split(" ")
         else:
-            hyp_dialog_acts = hyp_lines[line_count].split(" <utt> ")[0].split(" <sep> ")
-        ref_dialog_acts = ref_lines[line_count].split(" <utt> ")[0].split(" <sep> ")
+            if "<utt>" not in hyp_lines[line_count]:
+                hyp_dialog_acts = []
+            elif " <utt>\t" in hyp_lines[line_count]:
+                hyp_dialog_acts = (
+                    hyp_lines[line_count].split(" <utt>\t")[0].split(" <sep> ")
+                )
+            else:
+                hyp_dialog_acts = (
+                    hyp_lines[line_count].split(" <utt> ")[0].split(" <sep> ")
+                )
+            ref_dialog_acts = ref_lines[line_count].split(" <utt> ")[0].split(" <sep> ")
         hyp_dialog_acts_list.append(hyp_dialog_acts)
         ref_dialog_acts_list.append(ref_dialog_acts)
-        try:
-            if " <utt> " in hyp_lines[line_count]:
-                hyp_write.write(" ".join(hyp_lines[line_count].split(" <utt> ")[1:]))
-            else:
-                hyp_write.write(" ".join(hyp_lines[line_count].split(" <utt>\t")[1:]))
-        except:
-            hyp_write.write("<na> \t" + hyp_lines[line_count].split("\t")[-1])
-        ref_write.write(" ".join(ref_lines[line_count].split(" <utt> ")[1:]))
+        if not (use_only_classifier):
+            try:
+                if " <utt> " in hyp_lines[line_count]:
+                    hyp_write.write(
+                        " ".join(hyp_lines[line_count].split(" <utt> ")[1:])
+                    )
+                else:
+                    hyp_write.write(
+                        " ".join(hyp_lines[line_count].split(" <utt>\t")[1:])
+                    )
+            except:
+                hyp_write.write("<na> \t" + hyp_lines[line_count].split("\t")[-1])
+            ref_write.write(" ".join(ref_lines[line_count].split(" <utt> ")[1:]))
     mlb.fit(ref_dialog_acts_list)
     hyp_dialog_acts_binary = mlb.transform(hyp_dialog_acts_list)
     ref_dialog_acts_binary = mlb.transform(ref_dialog_acts_list)
@@ -69,9 +82,9 @@ parser.add_argument(
     help="Directory inside exp_root containing inference on test set",
 )
 parser.add_argument(
-    "--utterance_test_folder",
-    default=None,
-    help="Directory inside exp_root containing inference on utterance test set",
+    "--use_only_classifier",
+    default=False,
+    help="Set to true when training with classifier layers",
 )
 
 args = parser.parse_args()
@@ -79,6 +92,7 @@ args = parser.parse_args()
 exp_root = args.exp_root
 valid_inference_folder = args.valid_folder
 test_inference_folder = args.test_folder
+use_only_classifier = args.use_only_classifier
 
 valid_hyp_file = open(
     os.path.join(exp_root, valid_inference_folder + "score_wer/hyp.trn")
@@ -95,7 +109,11 @@ valid_ref_write_file = open(
 )
 
 result = get_classification_result(
-    valid_hyp_file, valid_ref_file, valid_hyp_write_file, valid_ref_write_file
+    valid_hyp_file,
+    valid_ref_file,
+    valid_hyp_write_file,
+    valid_ref_write_file,
+    use_only_classifier,
 )
 print("Valid Intent Classification Result")
 print(result)
@@ -114,7 +132,11 @@ test_ref_write_file = open(
 )
 
 result = get_classification_result(
-    test_hyp_file, test_ref_file, test_hyp_write_file, test_ref_write_file
+    test_hyp_file,
+    test_ref_file,
+    test_hyp_write_file,
+    test_ref_write_file,
+    use_only_classifier,
 )
 print("Test Intent Classification Result")
 print(result)
