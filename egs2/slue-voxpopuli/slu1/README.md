@@ -2,134 +2,351 @@
 # RESULTS
 
 ## Environments
-- date: `Mon Feb 28 12:28:28 EST 2021`
-- python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
-- espnet version: `espnet 0.10.3a2`
-- pytorch version: `pytorch 1.8.1+cu102`
-- Git hash: `6bf3c2a4f138d35331634d2e879bbc5c32a5266e`
-  - Commit date: `Tue Feb 22 15:41:32 EST 2021`
+- date: `Fri Mar  8 14:12:05 CST 2024`
+- python version: `3.9.13 (main, Aug 25 2022, 23:26:10)  [GCC 11.2.0]`
+- espnet version: `espnet 202402`
+- pytorch version: `pytorch 2.1.0+cu121`
+- Git hash: `dd643549fb1865232569cae406bbf5e106e105de`
+  - Commit date: `Fri Mar 8 13:14:52 2024 -0600`
+
+## Data Download
+Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/voxpopuli and set VoxPopuli in db.sh to downloaded path
 
 
-## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
-- SLU config: [conf/tuning/train_asr_no_pretrain.yaml](conf/tuning/train_asr_no_pretrain.yaml)
+## General Information
 - token_type: bpe
+- NER scoring function: local/score.sh
+- NEL scoring function: local/score_nel.sh
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|54.7|67.6|
+## Lightweight prediction head with SFM feature extractor
+### Hubert
+- SLU config: [conf/tuning/hubert_lightweight.yaml](conf/tuning/hubert_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With TERA SSL Pretrain
-- SLU config: [conf/tuning/train_asr_tera.yaml](conf/tuning/train_asr_tera.yaml)
-- token_type: bpe
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|81.8|64.6|13.8|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|76.5|59.3|14.2|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|57.1|70.9|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
 
-## With VQ-APC SSL Pretrain
-- SLU config: [conf/tuning/train_asr_vq_apc.yaml](conf/tuning/train_asr_vq_apc.yaml)
-- token_type: bpe
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|70.9|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|67.7|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|63.6|76.6|
+### Wav2vec2
+- SLU config: [conf/tuning/w2v2_lightweight.yaml](conf/tuning/w2v2_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With Wav2Vec2 SSL Pretrain
-- SLU config: [conf/tuning/train_asr_tera.yaml](conf/tuning/train_asr_tera.yaml)
-- token_type: bpe
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|79.9|64.5|15.4|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|73.6|57.5|16.0|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|69.5|83.3|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
 
-## With HuBERT SSL Pretrain
-- SLU config: [conf/tuning/train_asr_hubert.yaml](conf/tuning/train_asr_hubert.yaml)
-- token_type: bpe
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|68.4|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|64.1|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|69.7|84.8|
+### WavLM
+- SLU config: [conf/tuning/wavlm_lightweight.yaml](conf/tuning/wavlm_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With WavLM SSL Pretrain
-- SLU config: [conf/tuning/train_asr_wavlm.yaml](conf/tuning/train_asr_wavlm.yaml)
-- token_type: bpe
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|87.4|71.4|10.2|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|80.6|64.5|10.4|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|74.5|88.0|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
 
-## With Gigaspeech ASR Pretrain
-- SLU config: [conf/tuning/train_asr_gigaspeech.yaml](conf/tuning/train_asr_gigaspeech.yaml)
-- token_type: bpe
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|74.1|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|72.0|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|73.9|86.0|
+### Whisper
+- SLU config: [conf/tuning/whisper_lightweight.yaml](conf/tuning/whisper_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With SPGISpeech ASR Pretrain
-- SLU config: [conf/tuning/train_asr_spgispeech.yaml](conf/tuning/train_asr_spgispeech.yaml)
-- token_type: bpe
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|85.8|68.9|12.0|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|79.6|63.1|12.5|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|71.9|84.1|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 2e-2
 
-## With SLURP SLU Pretrain
-- SLU config: [conf/tuning/train_asr_slurp.yaml](conf/tuning/train_asr_slurp.yaml)
-- token_type: bpe
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|73.5|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|71.8|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|59.7|71.5|
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+- SLU config: [conf/tuning/owsm_lightweight.yaml](conf/tuning/owsm_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With WavLM and SLURP SLU Pretrain
-- SLU config: [conf/tuning/train_asr_slurp_wavlm.yaml](conf/tuning/train_asr_slurp_wavlm.yaml)
-- token_type: bpe
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|84.6|69.2|12.6|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|78.4|61.7|12.8|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|75.7|87.5|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
 
-## With BERT LM Pretrain
-- SLU config: [conf/tuning/train_asr_bert.yaml](conf/tuning/train_asr_bert.yaml)
-- token_type: bpe
-- use_transcript: true
-- pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|73.1|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|70.5|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|54.5|69.2|
+### SLURP
+- Pretrained model: https://huggingface.co/pyf98/slurp_entity_conformer
+- SLU config: [conf/tuning/slurp_lightweight.yaml](conf/tuning/slurp_lightweight.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
 
-## With DeBERTA LM Pretrain
-- SLU config: [conf/tuning/train_asr_deberta.yaml](conf/tuning/train_asr_deberta.yaml)
-- token_type: bpe
-- use_transcript: true
-- pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|66.6|50.8|37.7|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|60.8|45.5|39.1|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|55.5|69.4|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 32e-3
 
-## With WavLM and BERT LM Pretrain
-- SLU config: [conf/tuning/train_asr_bert_wavlm.yaml](conf/tuning/train_asr_bert_wavlm.yaml)
-- token_type: bpe
-- use_transcript: true
-- pretrained_model: exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|52.2|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|47.8|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|73.5|87.3|
+## Complex prediction head with SFM feature extractor
+### Hubert
+- SLU config: [conf/tuning/hubert_complex.yaml](conf/tuning/hubert_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With WavLM and DeBERTA LM Pretrain
-- SLU config: [conf/tuning/train_asr_deberta_wavlm.yaml](conf/tuning/train_asr_deberta_wavlm.yaml)
-- token_type: bpe
-- use_transcript: true
-- pretrained_model: exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|84.6|69.4|12.6|
+|decode_asr_slu_model_valid.acc.ave/test|1842|78.5|63.1|13.0|
 
-|dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/devel|1742|74.0|87.7|
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|72.7|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|69.8|
+
+### Wav2vec2
+- SLU config: [conf/tuning/w2v2_complex.yaml](conf/tuning/w2v2_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|83.1|68.9|13.1|
+|decode_asr_slu_model_valid.acc.ave/test|1842|78.2|63.7|14.0|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|74.0|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|71.2|
+
+### WavLM
+- SLU config: [conf/tuning/wavlm_complex.yaml](conf/tuning/wavlm_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|87.9|74.1|9.5|
+|decode_asr_slu_model_valid.acc.ave/test|1842|82.7|69.7|10.1|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|74.7|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|72.6|
+
+### Whisper
+- SLU config: [conf/tuning/whisper_complex.yaml](conf/tuning/whisper_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|86.1|69.9|12.7|
+|decode_asr_slu_model_valid.acc.ave/test|1842|79.2|64.1|13.2|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|73.9|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|70.1|
+
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+- SLU config: [conf/tuning/owsm_complex.yaml](conf/tuning/owsm_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|84.8|72.2|12.0|
+|decode_asr_slu_model_valid.acc.ave/test|1842|79.6|66.0|12.6|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|70.7|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|68.6|
+
+### SLURP
+- Pretrained model: https://huggingface.co/pyf98/slurp_entity_conformer
+- SLU config: [conf/tuning/slurp_complex.yaml](conf/tuning/slurp_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave/org/devel|1753|73.8|61.0|27.5|
+|decode_asr_slu_model_valid.acc.ave/test|1842|68.7|54.8|28.5|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 32e-3
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.acc.ave/org/devel|1753|57.8|
+|decode_asr_full_path_slu_model_valid.acc.ave/test|1842|54.4|
+
+## Fine-tuning representations with SFM feature extractor
+### Hubert
+- SLU config: [conf/tuning/hubert_finetune.yaml](conf/tuning/hubert_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|84.3|68.2|11.6|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|78.8|62.6|12.0|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|73.0|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|69.4|
+
+### Wav2vec2
+- SLU config: [conf/tuning/w2v2_finetune.yaml](conf/tuning/w2v2_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|84.6|70.4|11.3|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|78.2|62.9|11.7|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|71.1|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|68.6|
+
+### WavLM
+- SLU config: [conf/tuning/wavlm_finetune.yaml](conf/tuning/wavlm_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|88.3|73.5|9.3|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|82.5|66.3|9.7|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|73.9|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|71.7|
+
+### Whisper
+- SLU config: [conf/tuning/whisper_finetune.yaml](conf/tuning/whisper_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|85.8|68.9|12.0|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|82.3|65.5|16.7|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|56.3|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|56.6|
+
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+- SLU config: [conf/tuning/owsm_finetune.yaml](conf/tuning/owsm_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|83.6|69.1|13.7|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|78.8|61.7|14.3|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 4e-2
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|66.9|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|65.1|
+
+### SLURP
+- Pretrained model: https://huggingface.co/pyf98/slurp_entity_conformer
+- SLU config: [conf/tuning/slurp_finetune.yaml](conf/tuning/slurp_finetune.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+
+|dataset|Snt|Micro Label F1 (%)| Micro F1 (%)| WER|
+|---|---|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1753|67.5|54.1|35.3|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|1842|60.8|47.6|37.1|
+
+#### NEL results
+- Inference config: [conf/decode_asr_ctc_full_path.yaml](conf/decode_asr_ctc_full_path.yaml)
+- Frame len: 32e-3
+
+|dataset|Snt|Frame F1 (%)|
+|---|---|---|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/org/devel|1753|54.8|
+|decode_asr_full_path_slu_model_valid.cer_ctc.ave/test|1842|49.1|
