@@ -11,6 +11,7 @@ from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
+from espnet2.lm.transformer_lm_opt import TransformerLMOPT
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -28,6 +29,7 @@ lm_choices = ClassChoices(
     classes=dict(
         seq_rnn=SequentialRNNLM,
         transformer=TransformerLM,
+        transformer_opt=TransformerLMOPT,
     ),
     type_check=AbsLM,
     default="seq_rnn",
