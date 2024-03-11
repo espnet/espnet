@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from espnet2.tasks.lm import LMTask
 
+
 def get_parser():
     parser = LMTask.get_parser()
     return parser

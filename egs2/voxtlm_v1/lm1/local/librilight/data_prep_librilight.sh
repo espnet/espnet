@@ -33,7 +33,7 @@ for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
   if [ "$reader" = "logdir" ]; then
     continue
   fi
-  
+
   if ! [[ $reader =~ ^[0-9]+$ ]]; then
     echo "$0: unexpected subdirectory name $reader"
     exit 1

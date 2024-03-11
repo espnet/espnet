@@ -8,7 +8,6 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
-
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
     from transformers.file_utils import ModelOutput
@@ -30,20 +29,25 @@ class TransformerLMOPT(AbsLM):
         if qlora:
             from transformers import BitsAndBytesConfig
 
-
             nf4_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True,
-                bnb_4bit_compute_dtype=torch.bfloat16
+                bnb_4bit_compute_dtype=torch.bfloat16,
             )
-            self.model = AutoModelForCausalLM.from_pretrained(opt_name, torch_dtype=torch.float16, quantization_config=nf4_config, local_files_only=local_files_only)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                opt_name,
+                torch_dtype=torch.float16,
+                quantization_config=nf4_config,
+                local_files_only=local_files_only,
+            )
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(opt_name, torch_dtype=torch.float16, local_files_only=local_files_only)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                opt_name, torch_dtype=torch.float16, local_files_only=local_files_only
+            )
         self.vocab_size = vocab_size
 
         self.model.resize_token_embeddings(vocab_size)
-
 
     def _target_mask(self, ys_in_pad):
         ys_mask = ys_in_pad != 0
@@ -59,12 +63,13 @@ class TransformerLMOPT(AbsLM):
 
         """
         output = self.model(input, labels=hidden)
-        
+
         # tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         return output.logits, None
-        
-        
-    def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
+
+    def score(
+        self, y: torch.Tensor, state: Any, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, Any]:
         """
         Args:
             y (torch.Tensor): 1D torch.int64 prefix tokens.
@@ -77,7 +82,9 @@ class TransformerLMOPT(AbsLM):
                 and next state (ignored in this implementation)
         """
         # Ensure `y` is formatted properly for the model input
-        inputs = y.unsqueeze(0)  # OPT expects input shape as (batch_size, sequence_length)
+        inputs = y.unsqueeze(
+            0
+        )  # OPT expects input shape as (batch_size, sequence_length)
 
         # Use the model to get logits for the next token
         with torch.no_grad():  # Do not compute gradients to save memory and compute
@@ -93,8 +100,6 @@ class TransformerLMOPT(AbsLM):
         # For OPT, `state` is managed internally, so we don't update it externally.
         # Return log probabilities and a placeholder for state (None or unchanged state)
         return log_probs, None
-
-
 
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
@@ -131,7 +136,6 @@ class TransformerLMOPT(AbsLM):
 
         return log_probs, state_list
 
-
     # def score(
     #     self, y: torch.Tensor, state: Any, x: torch.Tensor
     # ) -> Tuple[torch.Tensor, Any]:
@@ -148,7 +152,7 @@ class TransformerLMOPT(AbsLM):
     #             and next state for ys
 
     #     """
-    
+
     #     y = y.unsqueeze(0)
     #     h, _, cache = self.encoder.forward_one_step(
     #         self.embed(y), self._target_mask(y), cache=state
