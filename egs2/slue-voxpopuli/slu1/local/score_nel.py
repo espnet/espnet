@@ -65,8 +65,10 @@ def update_false_neg_cnt(cnt_dct, idx_lst, gt_tuple_dct, eval_type="segment"):
 
 def convert(sec):
     """
-    resolution: resolution to convert duration to discrete bins for the purpose of evaluation
-    Note that this is different from the resolution of the model. Model resolution is set by `frame_len` in `reformat_ctc_outputs.py`
+    resolution: resolution to convert duration to discrete bins
+    for the purpose of evaluation
+    Note that this is different from the resolution of the model.
+    Model resolution is set by `frame_len` in `reformat_ctc_outputs.py`
     """
     resolution = 0.01  # 10 milliseconds
     return int(sec * 1 / resolution)
@@ -156,7 +158,8 @@ def process_gt_word(cnt_dct, pred_tuple_lst, gt_tuple, pred_idx, thresh):
 def evaluate_alignments_word(gt_alignment_dct, pred_tuple_dct, gt_tuple_dct, thresh=1):
     """
     Word-level measure inspired from de-ID task:
-    Each word is evaluated as a hit (TP) or a miss (FN) based on a tolerance on fraction overlap
+    Each word is evaluated as a hit (TP) or a miss (FN)
+    based on a tolerance on fraction overlap
     FP: # non-entity words redacted
     """
     false_neg_indices = []

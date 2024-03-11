@@ -154,11 +154,11 @@ class ReadCTCEmissions:
                             k = subtoken_ctc_lst[subtok_idx]
                             if "▁" in k:
                                 find_count += 1
-                            if find_count == add_count and first_found == False:
+                            if find_count == add_count and (first_found is False):
                                 subtoken_ctc_lst1.append("ANS")
                                 dur_lst1.append(0.0)
                                 first_found = True
-                            elif find_count == end_count and last_found == False:
+                            elif find_count == end_count and (last_found is False):
                                 subtoken_ctc_lst1.append("ANS")
                                 dur_lst1.append(0.0)
                                 last_found = True
@@ -209,11 +209,11 @@ class ReadCTCEmissions:
                             k = subtoken_ctc_lst[subtok_idx]
                             if "▁" in k:
                                 find_count += 1
-                            if find_count == add_count and first_found == False:
+                            if find_count == add_count and (first_found is False):
                                 subtoken_ctc_lst1.append("ANS")
                                 dur_lst1.append(0.0)
                                 first_found = True
-                            elif find_count == end_count and last_found == False:
+                            elif find_count == end_count and (last_found is False):
                                 subtoken_ctc_lst1.append("ANS")
                                 dur_lst1.append(0.0)
                                 last_found = True

@@ -42,16 +42,11 @@ def get_classification_result(
         hyp_dialog_acts_list.append(hyp_dialog_acts)
         ref_dialog_acts_list.append(ref_dialog_acts)
         if not (use_only_classifier):
-            try:
-                if " <utt> " in hyp_lines[line_count]:
-                    hyp_write.write(
-                        " ".join(hyp_lines[line_count].split(" <utt> ")[1:])
-                    )
-                else:
-                    hyp_write.write(
-                        " ".join(hyp_lines[line_count].split(" <utt>\t")[1:])
-                    )
-            except:
+            if " <utt> " in hyp_lines[line_count]:
+                hyp_write.write(" ".join(hyp_lines[line_count].split(" <utt> ")[1:]))
+            elif " <utt>\t" in hyp_lines[line_count]:
+                hyp_write.write(" ".join(hyp_lines[line_count].split(" <utt>\t")[1:]))
+            else:
                 hyp_write.write("<na> \t" + hyp_lines[line_count].split("\t")[-1])
             ref_write.write(" ".join(ref_lines[line_count].split(" <utt> ")[1:]))
     mlb.fit(ref_dialog_acts_list)

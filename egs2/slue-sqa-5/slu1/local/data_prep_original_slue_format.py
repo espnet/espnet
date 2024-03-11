@@ -50,7 +50,7 @@ for x in dir_dict:
             question_transcript = row[2].lower()
             try:
                 doc_transcript = row[6].lower()
-            except:
+            except AttributeError:
                 row = list(row[:5]) + list(row[5].split("\t"))
             if len(row[9].split("], [")) > 1:
                 timestamp_file = open(
@@ -127,5 +127,6 @@ for x in dir_dict:
             text_f.write("{} {}\n".format(uttid, words))
             utt2spk_f.write("{} {}\n".format(uttid, speaker))
             wav_scp_f.write(
-                f"{uttid} sox {os.path.join(root,wav.split()[0])} {os.path.join(root,wav.split()[1])} -t wav -r 16k - |\n"
+                f"{uttid} sox {os.path.join(root,wav.split()[0])} "
+                + f"{os.path.join(root,wav.split()[1])} -t wav -r 16k - |\n"
             )

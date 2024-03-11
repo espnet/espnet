@@ -52,7 +52,7 @@ for x in dir_dict:
         question_transcript = row[2].lower()
         try:
             doc_transcript = row[6].lower()
-        except:
+        except AttributeError:
             row = list(row[:5]) + list(row[5].split("\t"))
         timestamp_file = open(
             os.path.join(os.path.join(root, timestamp_dir[x]), row[4] + ".txt")

@@ -8,21 +8,26 @@ import torch.nn.functional as F
 class Featurizer(nn.Module):
     """
     Featurizer take the :obj:`S3PRLUpstream`'s multiple layer of hidden_states and
-    reduce (standardize) them into a single hidden_states, to connect with downstream NNs.
+    reduce (standardize) them into a single hidden_states,
+    to connect with downstream NNs.
 
     This basic Featurizer expects all the layers to have same stride and hidden_size
-    When the input upstream only have a single layer of hidden states, use that directly.
-    If multiple layers are presented, add a trainable weighted-sum on top of those layers.
+    When the input upstream only have a single layer of hidden states,
+    use that directly.
+    If multiple layers are presented, add a
+    trainable weighted-sum on top of those layers.
 
     Args:
         num_layers:
             int
         layer_selections (List[int]):
-            To select a subset of hidden states from the given upstream by layer ids (0-index)
+            To select a subset of hidden states from the
+            given upstream by layer ids (0-index)
             If None (default), than all the layer of hidden states are selected
         normalize (bool):
             Whether to apply layer norm on all the hidden states before weighted-sum
-            This can help convergence in some cases, but not used in SUPERB to ensure the
+            This can help convergence in some cases,
+            but not used in SUPERB to ensure the
             fidelity of each upstream's extracted representation.
 
     Example::
@@ -75,8 +80,8 @@ class Featurizer(nn.Module):
 
     def _weighted_sum(self, all_hs, all_lens):
         assert len(all_hs) == len(all_lens) > 1
-        for l in all_lens[1:]:
-            torch.allclose(all_lens[0], l)
+        for ll in all_lens[1:]:
+            torch.allclose(all_lens[0], ll)
         stacked_hs = torch.stack(all_hs, dim=0)
 
         if self.normalize:

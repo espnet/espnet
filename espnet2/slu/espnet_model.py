@@ -351,8 +351,8 @@ class ESPnetSLUModel(ESPnetASRModel):
             # 2b. Attention decoder branch
             if (
                 self.ctc_weight != 1.0
-                and self.superb_setup == False
-                and self.superb_setup_encoder == False
+                and not self.superb_setup
+                and not self.superb_setup_encoder
             ):
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
