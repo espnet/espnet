@@ -36,6 +36,11 @@ from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.kwargs2args import kwargs2args
 
+
+
+
+
+
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
@@ -442,6 +447,7 @@ class Trainer:
                     import wandb
 
                     logging.info("Logging Model on this epoch :::::")
+
                     artifact = wandb.Artifact(
                         name=f"model_{wandb.run.id}",
                         type="model",

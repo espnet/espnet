@@ -23,9 +23,23 @@ class TransformerLMOPT(AbsLM):
         self,
         vocab_size: int,
         opt_name: str,
+        qlora: bool = False,
+        local_files_only: bool = False,
     ):
         super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained(opt_name, torch_dtype=torch.float16)
+        if qlora:
+            from transformers import BitsAndBytesConfig
+
+
+            nf4_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(opt_name, torch_dtype=torch.float16, quantization_config=nf4_config, local_files_only=local_files_only)
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(opt_name, torch_dtype=torch.float16, local_files_only=local_files_only)
         self.vocab_size = vocab_size
 
         self.model.resize_token_embeddings(vocab_size)
@@ -50,6 +64,74 @@ class TransformerLMOPT(AbsLM):
         return output.logits, None
         
         
+    def score(self, y: torch.Tensor, state: Any, x: torch.Tensor) -> Tuple[torch.Tensor, Any]:
+        """
+        Args:
+            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            state: Ignored in this implementation, OPT handles state internally.
+            x: Ignored in this implementation, not used directly with OPT.
+
+        Returns:
+            Tuple[torch.Tensor, Any]: Tuple of
+                torch.float32 scores for next token (vocab_size)
+                and next state (ignored in this implementation)
+        """
+        # Ensure `y` is formatted properly for the model input
+        inputs = y.unsqueeze(0)  # OPT expects input shape as (batch_size, sequence_length)
+
+        # Use the model to get logits for the next token
+        with torch.no_grad():  # Do not compute gradients to save memory and compute
+            outputs = self.model(inputs)
+            logits = outputs.logits
+
+        # Extract logits for the last token produced, as we're scoring the next token
+        next_token_logits = logits[:, -1, :]
+
+        # Calculate log softmax to get probabilities
+        log_probs = torch.nn.functional.log_softmax(next_token_logits, dim=-1)
+
+        # For OPT, `state` is managed internally, so we don't update it externally.
+        # Return log probabilities and a placeholder for state (None or unchanged state)
+        return log_probs, None
+
+
+
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch for Transformer OPT model.
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states: Ignored in this implementation, OPT handles states internally.
+            xs: Ignored in this implementation, not directly used with OPT.
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchified scores for next token with shape of `(n_batch, vocab_size)`
+                and next state list (ignored in this implementation).
+        """
+        # Ensure ys is in the correct format for the model
+        # Note: OPT model expects input as (batch_size, sequence_length), which matches ys shape
+
+        # OPT model handles the computation including any necessary padding internally
+        with torch.no_grad():  # Disable gradient computation for efficiency
+            outputs = self.model(ys)
+            logits = outputs.logits
+
+        # Extract logits for the last token positions across the batch
+        next_token_logits = logits[:, -1, :]  # Shape: (n_batch, vocab_size)
+
+        # Calculate log softmax for the next token probabilities
+        log_probs = torch.nn.functional.log_softmax(next_token_logits, dim=-1)
+
+        # Since OPT manages state internally, we simply return None or an unchanged state list
+        # This placeholder state handling will vary depending on if you need to track states
+        state_list = [None] * len(ys)  # Placeholder for state management
+
+        return log_probs, state_list
+
+
     # def score(
     #     self, y: torch.Tensor, state: Any, x: torch.Tensor
     # ) -> Tuple[torch.Tensor, Any]:
@@ -66,6 +148,7 @@ class TransformerLMOPT(AbsLM):
     #             and next state for ys
 
     #     """
+    
     #     y = y.unsqueeze(0)
     #     h, _, cache = self.encoder.forward_one_step(
     #         self.embed(y), self._target_mask(y), cache=state

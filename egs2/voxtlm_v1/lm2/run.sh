@@ -5,25 +5,21 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_bal"
+train_set="train"
 valid_set="dev"
 test_sets="test"
 
-nbpe=5000
+nbpe=10000
 km_dir="" #Add pretrained km_directory path
-# lm_config=conf/train_transformer_size768_e12.yaml
-lm_config=conf/train_transformer_opt.yaml
+lm_config=conf/train_transformer_size768_e12.yaml
 lm_inference_asr_config=conf/decode_lm_asr.yaml
 lm_inference_tts_config=conf/decode_lm_tts.yaml
 
 ./lm.sh \
     --stage 1 \
     --stop_stage 9 \
-    --local_data_opts "--stage 2 " \
-    --kmeans_opts "--nj 4 --stage 3 " \
-    --nclusters 200 \
     --num_splits_lm 1 \
-    --nj 32 \
+    --nj 16 \
     --ngpu 4 \
     --gpu_inference true \
     --inference_nj 8 \

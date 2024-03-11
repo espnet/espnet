@@ -442,7 +442,7 @@ def get_parser():
     group.add_argument(
         "--use_tensorboard",
         type=str2bool,
-        default=True,
+        default=False,
         help="Enable tensorboard logging",
     )
     group.add_argument(
@@ -454,7 +454,7 @@ def get_parser():
     group.add_argument(
         "--use_wandb",
         type=str2bool,
-        default=False,
+        default=True,
         help="Enable wandb logging",
     )
     group.add_argument(
