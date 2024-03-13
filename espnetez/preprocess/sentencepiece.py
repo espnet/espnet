@@ -9,7 +9,7 @@ import sentencepiece as spm
 def prepare_sentences(
     dump_text_paths: Union[str, Path],
     output_path: Union[str, Path],
-    remove_chars: str = "",
+    remove_characters: str = "",
 ):
     """
     Create train.txt file for sentencepiece training from the given dump file.
@@ -30,7 +30,8 @@ def prepare_sentences(
 
     # normalize text
     # remove unrequired characters
-    lines = [l.translate(str.maketrans("", "", remove_chars)) for l in lines]
+    table = str.maketrans("", "", remove_characters)
+    lines = [line.translate(table) for line in lines]
     texts = "\n".join(
         [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
     )
