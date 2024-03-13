@@ -1,4 +1,5 @@
 """Iterable dataset module."""
+
 import copy
 from io import StringIO
 from pathlib import Path

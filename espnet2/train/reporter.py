@@ -1,4 +1,5 @@
 """Reporter module."""
+
 import dataclasses
 import datetime
 import logging
@@ -516,11 +517,13 @@ class Reporter:
         epochs = np.arange(1, self.get_epoch() + 1)
         for key in keys:
             y = [
-                self.stats[e][key][key2]
-                if e in self.stats
-                and key in self.stats[e]
-                and key2 in self.stats[e][key]
-                else np.nan
+                (
+                    self.stats[e][key][key2]
+                    if e in self.stats
+                    and key in self.stats[e]
+                    and key2 in self.stats[e][key]
+                    else np.nan
+                )
                 for e in epochs
             ]
             assert len(epochs) == len(y), "Bug?"

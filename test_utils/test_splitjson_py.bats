@@ -114,6 +114,6 @@ teardown() {
 
 @test "splitjson.py" {
     python $utils/splitjson.py -p 2 $tmpdir/input.json
-    jsondiff $tmpdir/split2utt/input.1.json $tmpdir/valid1
-    jsondiff $tmpdir/split2utt/input.2.json $tmpdir/valid2
+    jdiff $tmpdir/split2utt/input.1.json $tmpdir/valid1
+    jdiff $tmpdir/split2utt/input.2.json $tmpdir/valid2
 }

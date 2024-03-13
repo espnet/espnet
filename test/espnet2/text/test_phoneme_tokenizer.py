@@ -103,7 +103,21 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
         ]
     elif phoneme_tokenizer.g2p_type == "pyopenjtalk_kana":
         input = "昔は、俺も若かった"
-        output = ["ム", "カ", "シ", "ワ", "、", "オ", "レ", "モ", "ワ", "カ", "カ", "ッ", "タ"]
+        output = [
+            "ム",
+            "カ",
+            "シ",
+            "ワ",
+            "、",
+            "オ",
+            "レ",
+            "モ",
+            "ワ",
+            "カ",
+            "カ",
+            "ッ",
+            "タ",
+        ]
     elif phoneme_tokenizer.g2p_type == "pyopenjtalk_accent":
         input = "昔は、俺も若かった"
         output = [

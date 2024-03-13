@@ -28,6 +28,8 @@
 |decode_et05_simu_beamformit_2mics_decode_lm_word65000|1320|126812|91.4|3.7|4.8|1.6|10.1|74.4|
 |decode_et05_simu_beamformit_5mics_decode_lm_word65000|1320|126812|93.3|2.9|3.8|1.3|8.0|70.3|
 |decode_et05_simu_isolated_1ch_track_decode_lm_word65000|1320|126812|89.7|5.0|5.3|2.2|12.5|77.3|
+|decode_et05_simu_clean_decode_lm_word65000|330|31703|98.2|0.9|0.9|0.3|2.1|44.8|
+|decode_dt05_simu_clean_decode_lm_word65000|410|40100|98.3|1.0|0.7|0.3|2.0|47.3|
 
 ### WER
 
@@ -45,6 +47,8 @@
 |decode_et05_simu_beamformit_2mics_decode_lm_word65000|1320|21416|84.1|11.7|4.2|1.5|17.4|74.4|
 |decode_et05_simu_beamformit_5mics_decode_lm_word65000|1320|21416|87.2|9.5|3.3|1.4|14.2|70.3|
 |decode_et05_simu_isolated_1ch_track_decode_lm_word65000|1320|21416|81.2|14.3|4.5|2.1|20.9|77.3|
+|decode_et05_simu_clean_decode_lm_word65000|330|5354|95.2|4.0|0.9|0.3|5.1|44.8|
+|decode_dt05_simu_clean_decode_lm_word65000|410|6780|95.5|3.8|0.7|0.4|4.8|47.3||
 
 # Transformer result(mix si284 + default transformer with n_average = 10, epoch = 100, ngpu=2)
 ## Environments

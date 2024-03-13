@@ -50,6 +50,7 @@ class Speech2Speech:
         backward_window: int = 1,
         forward_window: int = 3,
         nbest: int = 1,
+        normalize_length: bool = False,
         beam_size: int = 5,
         penalty: float = 0.0,
         st_subtask_beam_size: int = 5,
@@ -132,6 +133,7 @@ class Speech2Speech:
                 vocab_size=len(token_list),
                 token_list=None,  # No need to print out the lengthy discrete unit
                 pre_beam_score_key="full",
+                normalize_length=normalize_length,
             )
 
             # TODO(karita): make all scorers batchfied
@@ -177,6 +179,7 @@ class Speech2Speech:
                     eos=model.eos,
                     vocab_size=len(model.tgt_token_list),
                     pre_beam_score_key="full",
+                    normalize_length=normalize_length,
                     return_hs=True,
                 )
                 # TODO(karita): make all st_subtask_scorers batchfied
@@ -530,6 +533,7 @@ def inference(
     forward_window: int,
     always_fix_seed: bool,
     nbest: int,
+    normalize_length: bool,
     beam_size: int,
     penalty: float,
     st_subtask_nbest: int,
@@ -575,6 +579,7 @@ def inference(
         backward_window=backward_window,
         forward_window=forward_window,
         nbest=nbest,
+        normalize_length=normalize_length,
         beam_size=beam_size,
         penalty=penalty,
         st_subtask_nbest=st_subtask_nbest,
@@ -964,6 +969,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
     return parser
 

@@ -36,9 +36,11 @@ def get_commandline_args():
 
     # Escape the extra characters for shell
     argv = [
-        arg.replace("'", "'\\''")
-        if all(char not in arg for char in extra_chars)
-        else "'" + arg.replace("'", "'\\''") + "'"
+        (
+            arg.replace("'", "'\\''")
+            if all(char not in arg for char in extra_chars)
+            else "'" + arg.replace("'", "'\\''") + "'"
+        )
         for arg in sys.argv
     ]
 

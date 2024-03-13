@@ -98,6 +98,6 @@ teardown() {
 @test "addjson.py" {
     python $utils/addjson.py $tmpdir/base.json $tmpdir/aux.json> $tmpdir/out.json
     cat $tmpdir/out.json
-    jsondiff $tmpdir/out.json $tmpdir/valid
+    jdiff $tmpdir/out.json $tmpdir/valid
 }
 NG=en_US.UTF-8

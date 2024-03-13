@@ -24,7 +24,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -44,6 +43,109 @@ ListOfHypothesis = List[
 ]
 
 
+class ScoreFilter(BatchScorerInterface, torch.nn.Module):
+    """Filter scores based on pre-defined rules.
+
+    See comments in the score method.
+
+    """
+
+    def __init__(
+        self,
+        notimestamps: int,
+        first_time: int,
+        last_time: int,
+        sos: int,
+        eos: int,
+        vocab_size: int,
+    ):
+        super().__init__()
+
+        self.notimestamps = notimestamps
+        self.first_time = first_time
+        self.last_time = last_time
+        self.sos = sos
+        self.eos = eos
+        self.vocab_size = vocab_size
+
+        # dummy param used to obtain the current dtype and device
+        self.param = torch.nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+
+    def score(
+        self, y: torch.Tensor, state: Any, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, Any]:
+        """Score new token (required).
+
+        Args:
+            y (torch.Tensor): 1D torch.int64 prefix tokens.
+            state: Scorer state for prefix tokens
+            x (torch.Tensor): The encoder feature that generates ys.
+
+        Returns:
+            tuple[torch.Tensor, Any]: Tuple of
+                scores for next token that has a shape of `(n_vocab)`
+                and next state for ys
+
+        """
+
+        score = torch.zeros(
+            self.vocab_size, dtype=self.param.dtype, device=self.param.device
+        )
+        if self.notimestamps in y:
+            # Suppress timestamp tokens if we don't predict time
+            score[self.first_time : self.last_time + 1] = -np.inf
+        elif y[-3] == self.sos:
+            # The first token must be a timestamp if we predict time
+            score[: self.first_time] = -np.inf
+            score[self.last_time + 1 :] = -np.inf
+        else:
+            prev_times = y[torch.logical_and(y >= self.first_time, y <= self.last_time)]
+            if len(prev_times) % 2 == 1:
+                # there are an odd number of timestamps, so the sentence is incomplete
+                score[self.eos] = -np.inf
+                # timestamps are monotonic
+                score[self.first_time : prev_times[-1] + 1] = -np.inf
+            else:
+                # there are an even number of timestamps (all are paired)
+                if y[-1] >= self.first_time and y[-1] <= self.last_time:
+                    # the next tokon should be a timestamp or eos
+                    score[: y[-1]] = -np.inf
+                    score[self.last_time + 1 :] = -np.inf
+                    score[self.eos] = 0.0
+                else:
+                    # this is an illegal hyp
+                    score[:] = -np.inf
+
+        return score, None
+
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch (required).
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+
+        scores = list()
+        outstates = list()
+        for i, (y, state, x) in enumerate(zip(ys, states, xs)):
+            score, outstate = self.score(y, state, x)
+            outstates.append(outstate)
+            scores.append(score)
+        scores = torch.cat(scores, 0).view(ys.shape[0], -1)
+        return scores, outstates
+
+
 class Speech2Text:
     """Speech2Text class
 
@@ -52,7 +154,7 @@ class Speech2Text:
         >>> speech2text = Speech2Text("s2t_config.yml", "s2t.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
-        [(text, token, token_int, hypothesis object), ...]
+        [(text, token, token_int, text_nospecial, hypothesis object), ...]
 
     """
 
@@ -71,22 +173,26 @@ class Speech2Text:
         minlenratio: float = 0.0,
         batch_size: int = 1,
         dtype: str = "float32",
-        beam_size: int = 20,
+        beam_size: int = 5,
         ctc_weight: float = 0.0,
         lm_weight: float = 0.0,
         ngram_weight: float = 0.0,
         penalty: float = 0.0,
         nbest: int = 1,
-        streaming: bool = False,
+        normalize_length: bool = False,
         quantize_s2t_model: bool = False,
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
-        category_sym: str = "<en>",
+        # default values that can be overwritten in __call__
+        lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
-        time_sym: Optional[str] = "<notimestamps>",
+        predict_time: bool = False,
     ):
         assert check_argument_types()
+
+        if ctc_weight > 0.0 and predict_time:
+            raise ValueError("CTC cannot predict timestamps")
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
@@ -111,6 +217,20 @@ class Speech2Text:
             decoder=decoder,
             ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
+            scorefilter=ScoreFilter(
+                notimestamps=token_list.index(
+                    s2t_train_args.preprocessor_conf["notime_symbol"]
+                ),
+                first_time=token_list.index(
+                    s2t_train_args.preprocessor_conf["first_time_symbol"]
+                ),
+                last_time=token_list.index(
+                    s2t_train_args.preprocessor_conf["last_time_symbol"]
+                ),
+                sos=s2t_model.sos,
+                eos=s2t_model.eos,
+                vocab_size=len(token_list),
+            ),
         )
 
         # 2. Build language model
@@ -147,6 +267,7 @@ class Speech2Text:
             lm=lm_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
+            scorefilter=1.0,
         )
         beam_search = BeamSearch(
             beam_size=beam_size,
@@ -157,6 +278,7 @@ class Speech2Text:
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+            normalize_length=normalize_length,
         )
 
         # TODO(karita): make all scorers batchfied
@@ -167,13 +289,8 @@ class Speech2Text:
                 if not isinstance(v, BatchScorerInterface)
             ]
             if len(non_batch) == 0:
-                if streaming:
-                    beam_search.__class__ = BatchBeamSearchOnlineSim
-                    beam_search.set_streaming_config(s2t_train_config)
-                    logging.info("BatchBeamSearchOnlineSim implementation is selected.")
-                else:
-                    beam_search.__class__ = BatchBeamSearch
-                    logging.info("BatchBeamSearch implementation is selected.")
+                beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
             else:
                 logging.warning(
                     f"As non-batch scorers {non_batch} are found, "
@@ -218,6 +335,7 @@ class Speech2Text:
 
         self.s2t_model = s2t_model
         self.s2t_train_args = s2t_train_args
+        self.preprocessor_conf = s2t_train_args.preprocessor_conf
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -227,15 +345,18 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
-        self.category_id = converter.token2id[category_sym]
-        self.task_id = converter.token2id[task_sym]
-        self.time_id = converter.token2id[time_sym] if time_sym is not None else None
+        self.lang_sym = lang_sym
+        self.task_sym = task_sym
+        self.predict_time = predict_time
 
     @torch.no_grad()
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
         text_prev: Optional[Union[torch.Tensor, np.ndarray, str]] = None,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
+        predict_time: Optional[bool] = None,
     ) -> Union[
         ListOfHypothesis,
         Tuple[
@@ -243,18 +364,34 @@ class Speech2Text:
             Optional[Dict[int, List[str]]],
         ],
     ]:
-        """Inference for a short utterance.
+        """Inference for a single utterance.
+
+        The input speech will be padded or trimmed to the fixed length,
+        which is consistent with training.
 
         Args:
-            speech: Input speech
-            text_prev: Previous text used as condition (optional)
+            speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
+            text_prev: previous text used as condition (optional)
+
         Returns:
-            text, token, token_int, hyp
+            n-best list of (text, token, token_int, text_nospecial, hyp)
 
         """
         assert check_argument_types()
 
+        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
+        task_sym = task_sym if task_sym is not None else self.task_sym
+        predict_time = predict_time if predict_time is not None else self.predict_time
+
+        lang_id = self.converter.token2id[lang_sym]
+        task_id = self.converter.token2id[task_sym]
+        notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
+
         # Prepare hyp_primer
+        hyp_primer = [self.s2t_model.sos, lang_id, task_id]
+        if not predict_time:
+            hyp_primer.append(notime_id)
+
         if text_prev is not None:
             if isinstance(text_prev, str):
                 text_prev = self.converter.tokens2ids(
@@ -268,20 +405,29 @@ class Speech2Text:
                 text_prev = None
 
         if text_prev is not None:
-            hyp_primer = (
-                [self.s2t_model.sop]
-                + text_prev
-                + [self.s2t_model.sos, self.category_id, self.task_id]
-            )
-        else:
-            hyp_primer = [self.s2t_model.sos, self.category_id, self.task_id]
-        if self.time_id is not None:
-            hyp_primer.append(self.time_id)
+            hyp_primer = [self.s2t_model.sop] + text_prev + hyp_primer
+
         self.beam_search.set_hyp_primer(hyp_primer)
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
+
+        # Only support single-channel speech
+        if speech.dim() > 1:
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
+            speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
+
+        speech_length = int(
+            self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
+        )
+        # Pad or trim speech to the fixed length
+        if speech.size(-1) >= speech_length:
+            speech = speech[:speech_length]
+        else:
+            speech = F.pad(speech, (0, speech_length - speech.size(-1)))
 
         # Batchify input
         # speech: (nsamples,) -> (1, nsamples)
@@ -315,24 +461,6 @@ class Speech2Text:
 
         return results
 
-    def _decode_interctc(
-        self, intermediate_outs: List[Tuple[int, torch.Tensor]]
-    ) -> Dict[int, List[str]]:
-        assert check_argument_types()
-
-        exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
-        res = {}
-        token_list = self.beam_search.token_list
-
-        for layer_idx, encoder_out in intermediate_outs:
-            y = self.s2t_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
-            y = [x[0] for x in groupby(y) if x[0] not in exclude_ids]
-            y = [token_list[x] for x in y]
-
-            res[layer_idx] = y
-
-        return res
-
     def _decode_single_sample(self, enc: torch.Tensor):
         if hasattr(self.beam_search.nn_dict, "decoder"):
             if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
@@ -340,10 +468,10 @@ class Speech2Text:
                 for module in self.beam_search.nn_dict.decoder.modules():
                     if hasattr(module, "setup_step"):
                         module.setup_step()
+
         nbest_hyps = self.beam_search(
             x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
         )
-
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
@@ -367,79 +495,102 @@ class Speech2Text:
             # remove special tokens (task, timestamp, etc.)
             token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
 
+            text, text_nospecial = None, None
             if self.tokenizer is not None:
                 text = self.tokenizer.tokens2text(token)
                 text_nospecial = self.tokenizer.tokens2text(token_nospecial)
-            else:
-                text, text_nospecial = None, None
+
             results.append((text, token, token_int, text_nospecial, hyp))
 
         return results
+
+    def _decode_interctc(
+        self, intermediate_outs: List[Tuple[int, torch.Tensor]]
+    ) -> Dict[int, List[str]]:
+        assert check_argument_types()
+
+        exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
+        res = {}
+        token_list = self.beam_search.token_list
+
+        for layer_idx, encoder_out in intermediate_outs:
+            y = self.s2t_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
+            y = [x[0] for x in groupby(y) if x[0] not in exclude_ids]
+            y = [token_list[x] for x in y]
+
+            res[layer_idx] = y
+
+        return res
 
     @torch.no_grad()
     def decode_long(
         self,
         speech: Union[torch.Tensor, np.ndarray],
-        segment_sec: float = 30,
-        fs: int = 16000,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        start_time: Optional[str] = "<0.00>",
         end_time_threshold: str = "<29.00>",
-        first_time_sym: str = "<0.00>",
-        last_time_sym: str = "<30.00>",
-        resolution: float = 0.02,
+        lang_sym: Optional[str] = None,
+        task_sym: Optional[str] = None,
     ):
         """Decode unsegmented long-form speech.
 
         Args:
-            speech: long-form speech of shape (nsamples,)
-            segment_sec: segment length in seconds, default: 30
-            fs: sampling rate, default: 16000
-            condition_on_prev_text: whether to condition on previous text
+            speech: 1D long-form input speech
+            condition_on_prev_text (bool): whether to condition on previous text
             init_text: text used as condition for the first segment
-            start_time: the start timestamp symbol of the first segment
             end_time_threshold: the last utterance is considered as incomplete
                 if its end timestamp exceeds this threshold
-            first_time_sym: first timestamp symbol
-            last_time_sym: last timestamp symbol
-            resolution: time resolution
+
+        Returns:
+            utterances: list of tuples of (start_time, end_time, text)
+
         """
 
         assert check_argument_types()
 
+        lang_sym = lang_sym if lang_sym is not None else self.lang_sym
+        task_sym = task_sym if task_sym is not None else self.task_sym
+        segment_len = int(
+            self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
+        )
+        end_time_id_threshold = self.converter.token2id[end_time_threshold]
+        first_time_id = self.converter.token2id[
+            self.preprocessor_conf["first_time_symbol"]
+        ]
+        last_time_id = self.converter.token2id[
+            self.preprocessor_conf["last_time_symbol"]
+        ]
+        resolution = self.preprocessor_conf["speech_resolution"]
+        fs = self.preprocessor_conf["fs"]
+
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        segment_len = int(segment_sec * fs)
-        start_time_id = (
-            self.converter.token2id[start_time] if start_time is not None else None
-        )
-        end_time_id_threshold = self.converter.token2id[end_time_threshold]
-        first_time_id = self.converter.token2id[first_time_sym]
-        last_time_id = self.converter.token2id[last_time_sym]
-
-        self.time_id = start_time_id
-        logging.warning(f"Overwrite start time as: {start_time}, {start_time_id}")
+        assert (
+            speech.dim() == 1
+        ), f"speech must have one dimension, got size {speech.size()} instead"
 
         utterances = []
         offset = 0
         text_prev = init_text
         while offset < len(speech):
-            segment = speech[offset : min(offset + segment_len, len(speech))]
-            if len(segment) < segment_len:
-                segment = F.pad(segment, (0, segment_len - len(segment)))
+            logging.info(f"Current start time in seconds: {offset / fs:.2f}")
 
+            segment = speech[offset : offset + segment_len]
+            # segment will be padded in __call__
             result = self.__call__(
                 speech=segment,
                 text_prev=text_prev if condition_on_prev_text else None,
+                lang_sym=lang_sym,
+                task_sym=task_sym,
+                predict_time=True,
             )
             if isinstance(result, tuple):
                 result = result[0]
 
             # NOTE(yifan): sos and eos have been removed
             text, token, token_int, text_nospecial, hyp = result[0]  # best hyp
-            token_int = token_int[2:]  # remove category and task
+            token_int = token_int[2:]  # remove lang and task
 
             # Find all timestamp positions
             time_pos = [
@@ -539,6 +690,7 @@ def inference(
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -554,14 +706,13 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    streaming: bool,
     quantize_s2t_model: bool,
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
-    category_sym: str,
+    lang_sym: str,
     task_sym: str,
-    time_sym: str,
+    predict_time: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -582,9 +733,8 @@ def inference(
         device = "cpu"
 
     # NOTE(yifan): < and > cannot be passed in command line
-    category_sym = f"<{category_sym.lstrip('<').rstrip('>')}>"
+    lang_sym = f"<{lang_sym.lstrip('<').rstrip('>')}>"
     task_sym = f"<{task_sym.lstrip('<').rstrip('>')}>"
-    time_sym = f"<{time_sym.lstrip('<').rstrip('>')}>"
 
     # 1. Set random-seed
     set_all_random_seed(seed)
@@ -608,14 +758,14 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
-        streaming=streaming,
+        normalize_length=normalize_length,
         quantize_s2t_model=quantize_s2t_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
-        category_sym=category_sym,
+        lang_sym=lang_sym,
         task_sym=task_sym,
-        time_sym=time_sym,
+        predict_time=predict_time,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -645,13 +795,13 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
-            # N-best list of (text, token, token_int, hyp_object)
+            # N-best list of (text, token, token_int, text_nospecial, hyp_object)
             try:
                 results = speech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                results = [[" ", ["<space>"], [2], hyp]] * nbest
+                results = [[" ", ["<space>"], [2], " ", hyp]] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
@@ -732,7 +882,7 @@ def get_parser():
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
-    group = parser.add_argument_group("The model configuration related")
+    group = parser.add_argument_group("Model configuration related")
     group.add_argument(
         "--s2t_train_config",
         type=str,
@@ -773,6 +923,15 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+
+    group.add_argument("--lang_sym", type=str, default="<eng>", help="Language symbol.")
+    group.add_argument("--task_sym", type=str, default="<asr>", help="Task symbol.")
+    group.add_argument(
+        "--predict_time",
+        type=str2bool,
+        default=False,
+        help="Predict timestamps.",
     )
 
     group = parser.add_argument_group("Quantization related")
@@ -841,19 +1000,11 @@ def get_parser():
     )
     group.add_argument("--lm_weight", type=float, default=0.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.0, help="ngram weight")
-    group.add_argument("--streaming", type=str2bool, default=False)
-
     group.add_argument(
-        "--category_sym", type=str, default="<en>", help="Category symbol."
-    )
-    group.add_argument(
-        "--task_sym", type=str, default="<transcribe>", help="Task symbol."
-    )
-    group.add_argument(
-        "--time_sym",
-        type=str,
-        default="<notimestamps>",
-        help="First start time symbol.",
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     group = parser.add_argument_group("Text converter related")
