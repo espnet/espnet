@@ -1,5 +1,5 @@
 # ESPnet-Easy Task class
-# This class is a wrapper for Task classes to support custom datasets and models.
+# This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
 from pathlib import Path
@@ -118,7 +118,9 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
             else:
                 iterator_type = args.iterator_type
 
-            iter_options = cls.build_iter_options(args, distributed_option, mode)
+            iter_options = cls.build_iter_options(
+                args=args, distributed_option=distributed_option, mode=mode
+            )
             # Overwrite iter_options if any kwargs is given
             if kwargs is not None:
                 for k, v in kwargs.items():
@@ -159,7 +161,10 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
 
         @classmethod
         def build_sequence_iter_factory(
-            cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+            cls,
+            args: argparse.Namespace,
+            iter_options: IteratorOptions,
+            mode: str,
         ) -> AbsIterFactory:
             assert check_argument_types()
 
@@ -204,7 +209,8 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
             logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
             logging.info(
                 f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
-                f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
+                f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, "
+                f"max={np.max(bs_list)}"
             )
 
             if iter_options.distributed:
@@ -213,8 +219,8 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 for batch in batches:
                     if len(batch) < world_size:
                         raise RuntimeError(
-                            f"The batch-size must be equal or more than world_size: "
-                            f"{len(batch)} < {world_size}"
+                            f"The batch-size must be equal or more than "
+                            f"world_size: {len(batch)} < {world_size}"
                         )
                 batches = [batch[rank::world_size] for batch in batches]
 
@@ -232,7 +238,10 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
 
         @classmethod
         def build_category_iter_factory(
-            cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+            cls,
+            args: argparse.Namespace,
+            iter_options: IteratorOptions,
+            mode: str,
         ) -> AbsIterFactory:
             raise ValueError(
                 "category2utt mandatory for category iterator, but not found."
@@ -286,23 +295,23 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 kwargs = {}
 
             if mode == "train":
-                dataset = cls.train_dataset
+                ds = cls.train_dataset
             elif mode == "valid":
-                dataset = cls.valid_dataset
+                ds = cls.valid_dataset
             else:
                 raise ValueError(f"Invalid mode: {mode}")
 
-            if hasattr(dataset, "apply_utt2category") and dataset.apply_utt2category:
+            if hasattr(ds, "apply_utt2category") and ds.apply_utt2category:
                 kwargs.update(batch_size=1)
             else:
                 kwargs.update(batch_size=batch_size)
 
             cls.check_task_requirements(
-                dataset, allow_variable_data_keys, train=False, inference=inference
+                ds, allow_variable_data_keys, train=False, inference=inference
             )
 
             return DataLoader(
-                dataset=dataset,
+                dataset=ds,
                 pin_memory=ngpu > 0,
                 num_workers=num_workers,
                 **kwargs,

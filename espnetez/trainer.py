@@ -18,7 +18,8 @@ def check_argument(
     # else if we have dataloader, dumpfile/dataset should be None.
     if (train_dump_dir is not None) ^ (valid_dump_dir is not None):
         raise ValueError(
-            "If you try to use dump file, both the train_dump_dir and valid_dump_dir should be provided."
+            "If you try to use dump file, both the train_dump_dir "
+            + "and valid_dump_dir should be provided."
         )
     elif (
         train_dump_dir is not None
@@ -36,18 +37,20 @@ def check_argument(
 
     if (train_dataset is not None) ^ (valid_dataset is not None):
         raise ValueError(
-            "If you try to use custom dataset, both the train_dataset and valid_dataset should be provided."
+            "If you try to use custom dataset,"
+            + "both the train_dataset and valid_dataset should be provided."
         )
     elif (
         train_dataset is not None
         and valid_dataset is not None
         and (train_dataloader is not None or valid_dataloader is not None)
     ):
-        raise ValueError("If you try to use dataset, dataloader should be None.")
+        raise ValueError("Dataloader should be None when using custom dataset.")
 
     if (train_dataloader is not None) ^ (valid_dataloader is not None):
         raise ValueError(
-            "If you try to use custom dataset, both the train_dataset and valid_dataset should be provided."
+            "If you try to use custom dataset, "
+            + "both the train_dataset and valid_dataset should be provided."
         )
 
     if (
@@ -59,7 +62,7 @@ def check_argument(
         and valid_dataloader is None
     ):
         raise ValueError(
-            "You need to specify at least one of dump_dir, dataset, or dataloader."
+            "Please specify at least one of dump_dir, dataset, or dataloader."
         )
 
     return True
@@ -102,7 +105,7 @@ class Trainer:
                 setattr(self.train_config, key, value)
         else:
             raise ValueError(
-                "train_config should be a dict or Namespace, but got {}.".format(
+                "train_config should be dict or Namespace, but got {}.".format(
                     type(self.train_config)
                 )
             )
@@ -117,8 +120,8 @@ class Trainer:
             self.task_class.valid_dataloader = valid_dataloader
         else:
             assert data_info is not None, "data_info should be provided."
-            assert train_dump_dir is not None, "train_dump_dir should be provided."
-            assert valid_dump_dir is not None, "valid_dump_dir should be provided."
+            assert train_dump_dir is not None, "Please provide train_dump_dir."
+            assert valid_dump_dir is not None, "Please provide valid_dump_dir."
             self.task_class = get_easy_task(task)
             train_dpnt = []
             valid_dpnt = []

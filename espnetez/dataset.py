@@ -1,7 +1,5 @@
 from typing import Dict, Tuple, Union
 
-import numpy as np
-
 from espnet2.train.dataset import AbsDataset
 
 
@@ -16,7 +14,7 @@ class ESPnetEasyDataset(AbsDataset):
     def names(self) -> Tuple[str, ...]:
         return tuple(self.data_info.keys())
 
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
         idx = int(uid)
         return (
             str(uid),

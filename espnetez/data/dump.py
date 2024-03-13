@@ -63,7 +63,7 @@ def create_dump_file(
     else:
         raise ValueError("dataset must be a dict or a list.")
 
-    for input_name in data_inputs.keys():
+    for input_name in data_inputs:
         file_path = os.path.join(dump_dir, data_inputs[input_name][0])
         text = []
         for key in keys:

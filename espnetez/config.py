@@ -22,17 +22,17 @@ def update_finetune_config(task, pretrain_config, path):
 
     # update pretrain_config with finetune_config
     # and update distributed related configs to the default.
-    for k in list(pretrain_config.keys()):
+    for k in list(pretrain_config):
         if "dist_" in k or "_rank" in k:
             pretrain_config[k] = default_config[k]
-        elif k in finetune_config.keys() and pretrain_config[k] != finetune_config[k]:
+        elif k in finetune_config and pretrain_config[k] != finetune_config[k]:
             pretrain_config[k] = finetune_config[k]
 
-    for k in list(default_config.keys()):
-        if k not in pretrain_config.keys():
+    for k in list(default_config):
+        if k not in pretrain_config:
             pretrain_config[k] = default_config[k]
 
-    if "preprocessor_conf" in pretrain_config.keys():
+    if "preprocessor_conf" in pretrain_config:
         pretrain_config["preprocessor_conf"] = finetune_config.get(
             "preprocessor_conf", {}
         )
