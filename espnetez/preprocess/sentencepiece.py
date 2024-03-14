@@ -17,7 +17,7 @@ def prepare_sentences(
     Args:
         dump_text_paths (Union[str, Path]): Dump text file path.
         output_path (Union[str, Path]): Output directory for train.txt file.
-        remove_chars (str): Characters to be removed from the text.
+        remove_characters (str): Characters to be removed from the text.
     """
     # Please join the dump set before running this function.
     if not os.path.exists(output_path):
