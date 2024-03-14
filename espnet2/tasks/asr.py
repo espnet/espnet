@@ -633,6 +633,8 @@ class ASRTask(AbsTask):
             model_class = model_choices.get_class(args.model)
         except AttributeError:
             model_class = model_choices.get_class("espnet")
+        if "prepostencoder" in args.model_conf:
+            args.model_conf["prepostencoder"]=prepostencoder
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
@@ -640,7 +642,6 @@ class ASRTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
-            prepostencoder=prepostencoder,
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
