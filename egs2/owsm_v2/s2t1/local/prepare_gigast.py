@@ -1,4 +1,5 @@
 """Prepare GigaST data for En-{De,Zh} ST."""
+
 import json
 from argparse import ArgumentParser
 from collections import defaultdict

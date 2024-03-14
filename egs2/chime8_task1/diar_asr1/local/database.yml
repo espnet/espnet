@@ -1,0 +1,30 @@
+# this file is necessary for fine-tuning the pyannote
+# segmentation model.
+# See https://github.com/pyannote/pyannote-database for more information
+# It basically states where the annotation and the audio files for
+# each dataset are located.
+
+Databases:
+  chime8_finetune:
+    - ./chime8_dasr/chime6/audio/train/{uri}.wav
+    - ./chime8_dasr/chime6/audio/dev/{uri}.wav
+    - ./chime8_dasr/dipco/audio/train/{uri}.wav
+    - ./chime8_dasr/dipco/audio/dev/{uri}.wav
+    - ./chime8_dasr/notsofar1/audio/train/{uri}.wav
+    - ./chime8_dasr/notsofar1/audio/train_sc/{uri}.wav
+    - ./chime8_dasr/mixer6/audio/train/{uri}.flac
+    - ./chime8_dasr/mixer6/audio/dev/{uri}.flac
+
+
+Protocols:
+  chime8_finetune:
+    SpeakerDiarization:
+      only_words:
+        train:
+          uri: ./data/pyannote_diarization/train/uris/uri.txt
+          annotation: ./data/pyannote_diarization/train/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/train/uem/{uri}.uem
+        development:
+          uri: ./data/pyannote_diarization/dev/uris/uri.txt
+          annotation: ./data/pyannote_diarization/dev/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/dev/uem/{uri}.uem

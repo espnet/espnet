@@ -260,8 +260,6 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
             input_dict.update(feats=feats)
-            if self.tts.require_raw_speech:
-                input_dict.update(speech=speech)
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:

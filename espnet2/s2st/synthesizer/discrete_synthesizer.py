@@ -237,6 +237,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        *,
         cache: List[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
@@ -263,7 +264,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         if self.spk_embed_dim is not None:
             memory = self._integrate_with_spk_embed(memory, spembs)
 
-        return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache)
+        return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache=cache)
 
     def score(self, ys, state, x):
         """Score."""
