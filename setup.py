@@ -11,6 +11,7 @@ requirements = {
         "setuptools>=38.5.1",
         "packaging",
         "configargparse>=1.2.1",
+        "typeguard",
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
