@@ -3,10 +3,10 @@
 import os
 from pathlib import Path
 
-import torch
 import pytest
+import torch
 
-
+import espnetez as ez
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.asvspoof import ASVSpoofTask
@@ -27,8 +27,6 @@ from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
-import espnetez as ez
-
 
 # Prepare directory in the test environment to store dummy files
 FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -59,8 +57,8 @@ TASK_CLASSES = [
 def generate_random_dataset(count: int):
     return [
         {
-            'speech': f'/path/to/{i}.wav',
-            'text': str(torch.rand((1,))[0].numpy()),
+            "speech": f"/path/to/{i}.wav",
+            "text": str(torch.rand((1,))[0].numpy()),
         }
         for i in range(count)
     ]
@@ -69,7 +67,7 @@ def generate_random_dataset(count: int):
 def setup_dump_folder(dump_name: str):
     dump_dir = FILE_DIR / dump_name
     dump_dir.mkdir(parents=True, exist_ok=True)
-    for f in dump_dir.glob('*'):
+    for f in dump_dir.glob("*"):
         f.unlink()
     return dump_dir
 
@@ -82,22 +80,22 @@ def test_create_dump_file():
         "text": ["text", "text"],
     }
     ez.data.create_dump_file(dump_dir, dataset, data_inputs)
-    assert dump_dir.glob('wav.scp')
-    assert dump_dir.glob('text')
+    assert dump_dir.glob("wav.scp")
+    assert dump_dir.glob("text")
 
     # check dump files
-    with open(dump_dir / 'wav.scp', 'r') as f:
+    with open(dump_dir / "wav.scp", "r") as f:
         for idx_l, l in enumerate(f.readlines()):
             l = l.strip().split()
             assert len(l) == 2
-            assert l[1] == dataset[idx_l]['speech']
+            assert l[1] == dataset[idx_l]["speech"]
 
-    with open(dump_dir / 'text', 'r') as f:
+    with open(dump_dir / "text", "r") as f:
         for idx_l, l in enumerate(f.readlines()):
             l = l.strip().split()
             assert len(l) == 2
-            assert l[1] == dataset[idx_l]['text']
-    
+            assert l[1] == dataset[idx_l]["text"]
+
 
 def test_join_dumps():
     data_inputs = {
@@ -113,48 +111,34 @@ def test_join_dumps():
     ez.data.create_dump_file(dump_dir2, dataset2, data_inputs)
 
     dump_dir_out = setup_dump_folder("eztest_join_dumps_out")
-    ez.data.join_dumps([
-        dump_dir1,
-        dump_dir2
-    ],
-    [
-        'dump_1',
-        'dump_2'
-    ],
-    dump_dir_out)
+    ez.data.join_dumps([dump_dir1, dump_dir2], ["dump_1", "dump_2"], dump_dir_out)
 
-    assert dump_dir_out.glob('wav.scp')
-    assert dump_dir_out.glob('text')
+    assert dump_dir_out.glob("wav.scp")
+    assert dump_dir_out.glob("text")
 
     concat_dataset = dataset1 + dataset2
 
     # check dump files
-    with open(dump_dir_out / 'wav.scp', 'r') as f:
+    with open(dump_dir_out / "wav.scp", "r") as f:
         for idx_l, l in enumerate(f.readlines()):
             l = l.strip().split()
             assert len(l) == 2
-            assert l[1] == concat_dataset[idx_l]['speech']
+            assert l[1] == concat_dataset[idx_l]["speech"]
 
-    with open(dump_dir_out / 'text', 'r') as f:
+    with open(dump_dir_out / "text", "r") as f:
         for idx_l, l in enumerate(f.readlines()):
             l = l.strip().split()
             assert len(l) == 2
-            assert l[1] == concat_dataset[idx_l]['text']
+            assert l[1] == concat_dataset[idx_l]["text"]
 
 
-@pytest.mark.parametrize(
-    "task_name,task_class",
-    TASK_CLASSES
-)
+@pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
 def test_task(task_name, task_class):
     task = ez.task.get_easy_task(task_name)
     assert issubclass(task, task_class)
 
 
-@pytest.mark.parametrize(
-    "task_name,task_class",
-    TASK_CLASSES
-)
+@pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
 def test_task_with_dataset(task_name, task_class):
     task = ez.task.get_easy_task_with_dataset(task_name)
     assert issubclass(task, task_class)
@@ -163,14 +147,12 @@ def test_task_with_dataset(task_name, task_class):
 @pytest.mark.parametrize(
     "tr_dump,val_dump,tr_ds,val_ds,tr_dl,val_dl,test_case",
     [
-        [
-            'not None string' if i == '1' else None
-            for i in format(idx_case, '06b')
-        ] + [format(idx_case, '06b')]
+        ["not None string" if i == "1" else None for i in format(idx_case, "06b")]
+        + [format(idx_case, "06b")]
         for idx_case in range(64)
-    ]
+    ],
 )
-def test_check_argument(tr_dump,val_dump,tr_ds,val_ds,tr_dl,val_dl,test_case):
+def test_check_argument(tr_dump, val_dump, tr_ds, val_ds, tr_dl, val_dl, test_case):
     print(test_case)
     try:
         ez.trainer.check_argument(
@@ -179,9 +161,8 @@ def test_check_argument(tr_dump,val_dump,tr_ds,val_ds,tr_dl,val_dl,test_case):
             train_dataset=tr_ds,
             valid_dataset=val_ds,
             train_dataloader=tr_dl,
-            valid_dataloader=val_dl
+            valid_dataloader=val_dl,
         )
-        assert test_case in ('110000', '001100', '000011')
+        assert test_case in ("110000", "001100", "000011")
     except ValueError:
-        assert test_case not in ('110000', '001100', '000011')
-    
+        assert test_case not in ("110000", "001100", "000011")

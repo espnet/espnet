@@ -34,7 +34,7 @@ def join_dumps(
             dump_file_path = os.path.join(dataset, dump_file_name)
             with open(dump_file_path, "r") as f:
                 for line in f.readlines():
-                    lines.append(f'{dump_prefix[idx_dataset]}-' + line)
+                    lines.append(f"{dump_prefix[idx_dataset]}-" + line)
 
         with open(os.path.join(output_dir, dump_file_name), "w") as f:
             f.write("\n".join([line.replace("\n", "") for line in lines]))
