@@ -417,7 +417,9 @@ class ASRTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
+    def build_collate_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -634,7 +636,7 @@ class ASRTask(AbsTask):
         except AttributeError:
             model_class = model_choices.get_class("espnet")
         if "prepostencoder" in args.model_conf:
-            args.model_conf["prepostencoder"]=prepostencoder
+            args.model_conf["prepostencoder"] = prepostencoder
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
