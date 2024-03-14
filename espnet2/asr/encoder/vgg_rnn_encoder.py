@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
@@ -36,7 +36,7 @@ class VGGRNNEncoder(AbsEncoder):
         dropout: float = 0.0,
         in_channel: int = 1,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type

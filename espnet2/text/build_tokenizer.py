@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Iterable, Union
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 from espnet2.text.char_tokenizer import CharTokenizer
@@ -29,7 +29,7 @@ def build_tokenizer(
     sot_asr: bool = False,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
-    assert check_argument_types()
+    @typechecked
     if token_type == "bpe":
         if bpemodel is None:
             raise ValueError('bpemodel is required if token_type = "bpe"')

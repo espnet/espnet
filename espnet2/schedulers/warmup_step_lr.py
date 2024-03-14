@@ -4,7 +4,7 @@ from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
@@ -39,7 +39,7 @@ class WarmupStepLR(_LRScheduler, AbsBatchStepScheduler):
         gamma: float = 0.1,
         last_epoch: int = -1,
     ):
-        assert check_argument_types()
+        @typechecked
         self.warmup_steps = warmup_steps
 
         self.step_num = 0

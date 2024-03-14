@@ -1,7 +1,7 @@
 from typing import List
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.layers.create_adapter_utils import (
@@ -55,7 +55,7 @@ def create_houlsby_adapter(
             "Error: S3PRL is not properly installed."
             "Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done"
         )
-    assert check_argument_types()
+    @typechecked
     assert hasattr(model, "frontend") and isinstance(
         model.frontend, S3prlFrontend
     ), "Only support S3PRL frontend now !!"
@@ -111,7 +111,7 @@ def create_lora_adapter(
 
     """
 
-    assert check_argument_types()
+    @typechecked
     if not is_lora_available:
         raise ImportError(
             "Requiring loralib. Install loralib following: "
@@ -152,7 +152,7 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     Wav2Vec2EncoderLayerStableLayerNorm &
     TransformerSentenceEncoderLayer
     """
-    assert check_argument_types()
+    @typechecked
     if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
 
         input_size = target_module.layer_norm.normalized_shape[0]
@@ -218,7 +218,7 @@ def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
 ):
     """Create a new lora module for the given target module."""
-    assert check_argument_types()
+    @typechecked
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):

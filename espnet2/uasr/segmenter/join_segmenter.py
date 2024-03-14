@@ -2,7 +2,7 @@ import argparse
 from typing import Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
@@ -18,7 +18,7 @@ class JoinSegmenter(AbsSegmenter):
         remove_zeros: str2bool = False,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
 
         if cfg is not None:
             cfg = argparse.Namespace(**cfg["segmentation"])
@@ -36,7 +36,7 @@ class JoinSegmenter(AbsSegmenter):
         xs_pad: torch.Tensor,
         padding_mask: torch.Tensor,
     ) -> torch.Tensor:
-        assert check_argument_types()
+        @typechecked
         return xs_pad, padding_mask
 
     def logit_segment(
@@ -44,7 +44,7 @@ class JoinSegmenter(AbsSegmenter):
         logits: torch.Tensor,
         padding_mask: torch.Tensor,
     ) -> torch.Tensor:
-        assert check_argument_types()
+        @typechecked
         preds = logits.argmax(dim=-1)
 
         if padding_mask.any():

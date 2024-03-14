@@ -4,7 +4,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
@@ -61,7 +61,7 @@ class LMTask(AbsTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
+        @typechecked
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -135,7 +135,6 @@ class LMTask(AbsTask):
             # e.g. --encoder and --encoder_conf
             class_choices.add_arguments(group)
 
-        assert check_return_type(parser)
         return parser
 
     @classmethod
@@ -143,14 +142,14 @@ class LMTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
+        @typechecked
         return CommonCollateFn(int_pad_value=0)
 
     @classmethod
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+        @typechecked
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -163,7 +162,6 @@ class LMTask(AbsTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -184,7 +182,7 @@ class LMTask(AbsTask):
     def build_model(
         cls, args: argparse.Namespace
     ) -> Union[ESPnetLanguageModel, ESPnetMultitaskLanguageModel]:
-        assert check_argument_types()
+        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -225,5 +223,4 @@ class LMTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model

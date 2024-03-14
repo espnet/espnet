@@ -4,7 +4,7 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
@@ -73,7 +73,7 @@ class MEGADecoder(AbsDecoder):
         """Construct a MEGADecoder object."""
         super().__init__()
 
-        assert check_argument_types()
+        @typechecked
 
         self.embed = torch.nn.Embedding(vocab_size, block_size, padding_idx=embed_pad)
         self.dropout_embed = torch.nn.Dropout(p=embed_dropout_rate)

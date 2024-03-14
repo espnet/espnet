@@ -5,7 +5,7 @@ import humanfriendly
 import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.layers.log_mel import LogMel
@@ -37,7 +37,7 @@ class DefaultFrontend(AbsFrontend):
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         apply_stft: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

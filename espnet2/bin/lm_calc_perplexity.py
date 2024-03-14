@@ -8,7 +8,7 @@ from typing import Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 from torch.nn.parallel import data_parallel
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -35,7 +35,7 @@ def calc_perplexity(
     log_base: Optional[float],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",

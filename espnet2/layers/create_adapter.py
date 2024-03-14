@@ -11,7 +11,7 @@ References:
 from typing import List
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.create_adapter_fn import create_houlsby_adapter, create_lora_adapter
 from espnet2.train.class_choices import ClassChoices
@@ -37,7 +37,7 @@ def create_adapter(
             e.g.  {"rank": 8, "alpha": 8, ...} for lora
 
     """
-    assert check_argument_types()
+    @typechecked
     assert adapter in create_adapter_fn_table, f"Adapter {adapter} is not supported."
     create_adapter_fn = create_adapter_fn_table[adapter]
     create_adapter_fn(model=model, **adapter_conf)

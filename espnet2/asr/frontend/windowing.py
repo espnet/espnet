@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -43,7 +43,7 @@ class SlidingWindow(AbsFrontend):
             padding: Padding (placeholder, currently not implemented).
             fs:  Sampling rate (placeholder for compatibility, not used).
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.fs = fs
         self.win_length = win_length

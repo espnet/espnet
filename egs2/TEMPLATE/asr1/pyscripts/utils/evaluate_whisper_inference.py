@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import whisper
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -28,7 +28,7 @@ class Speech2Text:
         model_dir: str = "./models",
         device: str = "cpu",
     ):
-        assert check_argument_types()
+        @typechecked
 
         self.model = whisper.load_model(
             name=model_tag, download_root=model_dir, device=device
@@ -44,7 +44,7 @@ class Speech2Text:
             text
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         result = self.model.transcribe(speech, **decode_options)
@@ -65,7 +65,7 @@ def inference(
     allow_variable_data_keys: bool,
     decode_options: Dict,
 ):
-    assert check_argument_types()
+    @typechecked
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

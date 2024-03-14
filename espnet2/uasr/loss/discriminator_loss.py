@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.utils.types import str2bool
@@ -17,7 +17,7 @@ class UASRDiscriminatorLoss(AbsUASRLoss):
         reduction: str = "sum",
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         self.weight = weight
         self.smoothing = smoothing
         self.smoothing_one_sided = smoothing_one_side

@@ -5,7 +5,7 @@
 from typing import Any, List, Sequence, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -58,7 +58,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         attention_dim = encoder_output_size
 
@@ -302,7 +302,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         layer_drop_rate: float = 0.0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,
@@ -355,7 +355,7 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
+        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -417,7 +417,7 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
+        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -479,7 +479,7 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
+        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -541,7 +541,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
+        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -601,7 +601,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         use_speech_attn: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,

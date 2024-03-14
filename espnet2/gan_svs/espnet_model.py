@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -50,7 +50,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         svs: AbsGANSVS,
     ):
         """Initialize ESPnetGANSVSModel module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract

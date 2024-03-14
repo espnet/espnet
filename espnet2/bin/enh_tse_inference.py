@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import yaml
 from tqdm import trange
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
@@ -107,7 +107,7 @@ class SeparateSpeech:
         device: str = "cpu",
         dtype: str = "float32",
     ):
-        assert check_argument_types()
+        @typechecked
 
         # 1. Build Enh model
         if inference_config is None:
@@ -195,7 +195,7 @@ class SeparateSpeech:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
+        @typechecked
 
         enroll_ref = [
             # (Batch, samples_aux)
@@ -438,7 +438,7 @@ def inference(
     ref_channel: Optional[int],
     normalize_output_wav: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

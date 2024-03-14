@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 import torch
 import yaml
 from filelock import FileLock
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -131,7 +131,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         finetuning: bool = False,
         freeze_encoder_updates: int = 0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         try:
             import torchaudio
@@ -322,7 +322,7 @@ class FairseqHubertEncoder(AbsEncoder):
         layerdrop: float = 0.1,
         feature_grad_mult: float = 0.0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.apply_mask = apply_mask
         try:
@@ -525,7 +525,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         use_amp: bool = False,
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self._output_size = output_size
         self.use_amp = use_amp

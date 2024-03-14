@@ -2,7 +2,7 @@ import math
 from typing import Sequence, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 def mask_along_axis(
@@ -76,7 +76,7 @@ class MaskAlongAxis(torch.nn.Module):
         dim: Union[int, str] = "time",
         replace_with_zero: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         if isinstance(mask_width_range, int):
             mask_width_range = (0, mask_width_range)
         if len(mask_width_range) != 2:
@@ -143,7 +143,7 @@ class MaskAlongAxisVariableMaxWidth(torch.nn.Module):
         dim: Union[int, str] = "time",
         replace_with_zero: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         if isinstance(mask_width_ratio_range, float):
             mask_width_ratio_range = (0.0, mask_width_ratio_range)
         if len(mask_width_ratio_range) != 2:

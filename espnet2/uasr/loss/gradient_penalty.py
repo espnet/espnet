@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import autograd
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
@@ -19,7 +19,7 @@ class UASRGradientPenalty(AbsUASRLoss):
         reduction: str = "sum",
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
 
         self.discriminator = [discriminator]
         self.weight = weight

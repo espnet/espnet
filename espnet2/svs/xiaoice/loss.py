@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
     DurationPredictorLoss,
@@ -28,7 +28,7 @@ class XiaoiceSing2Loss(torch.nn.Module):
                 calculation.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         assert (use_masking != use_weighted_masking) or not use_masking

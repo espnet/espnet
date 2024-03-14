@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List, Optional
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
@@ -79,7 +79,7 @@ def tokenize(
     g2p: Optional[str],
     add_nonsplit_symbol: List[str],
 ):
-    assert check_argument_types()
+    @typechecked
 
     logging.basicConfig(
         level=log_level,

@@ -6,7 +6,7 @@ import sys
 
 import music21 as m21
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.score_scp import NOTE, SingingScoreWriter
@@ -58,7 +58,7 @@ class XMLReader:
         fname,
         dtype=np.int16,
     ):
-        assert check_argument_types()
+        @typechecked
         self.fname = fname
         self.dtype = dtype
         self.data = read_2columns_text(fname)  # get key-value dict

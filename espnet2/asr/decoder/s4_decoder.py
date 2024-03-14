@@ -3,7 +3,7 @@
 from typing import Any, List, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.state_spaces.model import SequenceModel
@@ -52,7 +52,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         track_norms=True,
         drop_path: float = 0.0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         self.d_model = encoder_output_size

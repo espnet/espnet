@@ -6,7 +6,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -493,7 +493,7 @@ class S2STTask(STTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
+        @typechecked
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
@@ -501,7 +501,7 @@ class S2STTask(STTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+        @typechecked
         if args.src_token_type == "none":
             args.src_token_type = None
         if args.unit_token_list is None:
@@ -553,7 +553,6 @@ class S2STTask(STTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -575,12 +574,11 @@ class S2STTask(STTask):
             retval = ("src_text", "tgt_text")
         else:
             retval = ("tgt_speech",)
-        assert check_return_type(retval)
         return retval
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetS2STModel:
-        assert check_argument_types()
+        @typechecked
         if args.tgt_token_list is not None:
             if isinstance(args.tgt_token_list, str):
                 with open(args.tgt_token_list, encoding="utf-8") as f:
@@ -835,7 +833,6 @@ class S2STTask(STTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model
 
     @classmethod

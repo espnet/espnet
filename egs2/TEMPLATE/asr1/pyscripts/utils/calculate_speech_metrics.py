@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from mir_eval.separation import bss_eval_sources
 from pystoi import stoi
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
@@ -30,7 +30,7 @@ def scoring(
     frame_size: int = 512,
     frame_hop: int = 256,
 ):
-    assert check_argument_types()
+    @typechecked
     for metric in metrics:
         assert metric in (
             "STOI",

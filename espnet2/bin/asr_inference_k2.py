@@ -10,7 +10,7 @@ import k2
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fst.lm_rescore import nbest_am_lm_scores
@@ -163,7 +163,7 @@ class k2Speech2Text:
         nbest_batch_size: int = 500,
         nll_batch_size: int = 100,
     ):
-        assert check_argument_types()
+        @typechecked
 
         # 1. Build ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
@@ -240,7 +240,7 @@ class k2Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
+        @typechecked
 
         if isinstance(batch["speech"], np.ndarray):
             batch["speech"] = torch.tensor(batch["speech"])
@@ -418,7 +418,6 @@ class k2Speech2Text:
             text = self.tokenizer.tokens2text(token)
             results.append((text, token, token_int, score))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -488,7 +487,7 @@ def inference(
     k2_config: Optional[str],
 ):
     assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
-    assert check_argument_types()
+    @typechecked
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

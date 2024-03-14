@@ -2,7 +2,7 @@ import argparse
 from typing import Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
 from espnet2.utils.types import str2bool
@@ -42,7 +42,7 @@ class ConvDiscriminator(AbsDiscriminator):
         weight_norm: str2bool = False,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         if cfg is not None:
             cfg = argparse.Namespace(**cfg)
             self.conv_channels = cfg.discriminator_dim
@@ -147,7 +147,7 @@ class ConvDiscriminator(AbsDiscriminator):
         )
 
     def forward(self, x: torch.Tensor, padding_mask: Optional[torch.Tensor]):
-        assert check_argument_types()
+        @typechecked
 
         # (Batch, Time, Channel) -> (Batch, Channel, Time)
         x = x.transpose(1, 2)

@@ -2,7 +2,7 @@ from typing import Collection
 
 import tacotron_cleaner.cleaners
 from jaconv import jaconv
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 try:
     from vietnamese_cleaner import vietnamese_cleaners
@@ -28,7 +28,7 @@ class TextCleaner:
     """
 
     def __init__(self, cleaner_types: Collection[str] = None):
-        assert check_argument_types()
+        @typechecked
 
         if cleaner_types is None:
             self.cleaner_types = []

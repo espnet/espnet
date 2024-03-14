@@ -7,7 +7,7 @@ from typing import Iterable, List, Optional, Union
 import g2p_en
 import jamo
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
@@ -443,7 +443,7 @@ class PhonemeTokenizer(AbsTokenizer):
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
         if g2p_type is None:
             self.g2p = split_by_space
         elif g2p_type == "g2p_en":

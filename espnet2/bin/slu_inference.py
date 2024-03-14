@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
@@ -76,7 +76,7 @@ class Speech2Understand:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
+        @typechecked
 
         task = SLUTask
 
@@ -258,7 +258,7 @@ class Speech2Understand:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -337,8 +337,7 @@ class Speech2Understand:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
-        return results
+       return results
 
     @staticmethod
     def from_pretrained(
@@ -408,7 +407,7 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

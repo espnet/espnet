@@ -9,7 +9,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -106,7 +106,7 @@ class Translatotron(AbsSynthesizer):
             dropout_rate (float): Dropout rate.
             zoneout_rate (float): Zoneout rate.
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # store hyperparameters

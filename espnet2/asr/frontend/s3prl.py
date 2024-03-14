@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -30,7 +30,7 @@ class S3prlFrontend(AbsFrontend):
             print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
             raise e
 
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         if isinstance(fs, str):

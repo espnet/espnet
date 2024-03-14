@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -25,7 +25,7 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         sos_syms: List[str] = ["<generatetext>", "<generatespeech>"],
         eos_sym: str = "<sos/eos>",
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.lm = lm
         self.sos_ids = [token_list.index(t) for t in sos_syms]

@@ -10,7 +10,7 @@ import librosa
 import numpy as np
 import scipy.signal
 import soundfile
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -372,7 +372,7 @@ class CommonPreprocessor(AbsPreprocessor):
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        assert check_argument_types()
+        @typechecked
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
@@ -418,7 +418,6 @@ class CommonPreprocessor(AbsPreprocessor):
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
-        assert check_return_type(data)
         return data
 
     def _text_process(
@@ -486,13 +485,12 @@ class CommonPreprocessor(AbsPreprocessor):
                     tokens = self.tokenizer.text2tokens(text)
                     text_ints = self.token_id_converter.tokens2ids(tokens)
                     data[name] = np.array(text_ints, dtype=np.int64)
-        assert check_return_type(data)
         return data
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = self._speech_process(data)
         data = self._text_process(data)
@@ -585,7 +583,6 @@ class SLUPreprocessor(CommonPreprocessor):
             tokens = self.transcript_tokenizer.text2tokens(text)
             text_ints = self.transcript_token_id_converter.tokens2ids(tokens)
             data["transcript"] = np.array(text_ints, dtype=np.int64)
-        assert check_return_type(data)
         return data
 
 
@@ -700,13 +697,12 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                     tokens = self.tokenizer.text2tokens(text)
                     text_ints = self.token_id_converter.tokens2ids(tokens)
                     data[name] = np.array(text_ints, dtype=np.int64)
-        assert check_return_type(data)
         return data
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = self._speech_process(data)
         data = self._text_process(data)
@@ -844,7 +840,6 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 tokens = self.tokenizer[i].text2tokens(text)
                 text_ints = self.token_id_converter[i].tokens2ids(tokens)
                 data[text_name] = np.array(text_ints, dtype=np.int64)
-        assert check_return_type(data)
         return data
 
 
@@ -1003,7 +998,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         if self.train:
             data = self._mix_speech_(uid, data)
 
-        assert check_return_type(data)
         return data
 
 
@@ -1232,10 +1226,9 @@ class EnhPreprocessor(CommonPreprocessor):
     def _speech_process(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        assert check_argument_types()
+        @typechecked
 
         if self.speech_name not in data:
-            assert check_return_type(data)
             return data
 
         num_spk = self.num_spk
@@ -1452,13 +1445,12 @@ class EnhPreprocessor(CommonPreprocessor):
                     assert data[k].shape == speech_mix.shape
                     data[k] = data[k][..., chs]
 
-        assert check_return_type(data)
         return data
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = self._speech_process(uid, data)
         data = self._text_process(data)
@@ -1532,7 +1524,7 @@ class SVSPreprocessor(AbsPreprocessor):
         uid: str,
         data: Dict[str, Union[str, np.ndarray, tuple]],
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         if self.singing_name in data:
             if self.singing_volume_normalize is not None:
@@ -1756,7 +1748,7 @@ class TSEPreprocessor(EnhPreprocessor):
     def _speech_process(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        assert check_argument_types()
+        @typechecked
 
         ref_names = [k for k in data.keys() if re.match(r"speech_ref\d+", k)]
         num_spk = len(ref_names)
@@ -1846,13 +1838,12 @@ class TSEPreprocessor(EnhPreprocessor):
                     else:
                         data[name] = soundfile.read(data[name])[0]
 
-        assert check_return_type(data)
         return data
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = super()._speech_process(uid, data)
         data = self._speech_process(uid, data)
@@ -2126,7 +2117,7 @@ class SpkPreprocessor(CommonPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = self._text_process(data)
         data = self._speech_process(data)
@@ -2208,7 +2199,7 @@ class S2TPreprocessor(CommonPreprocessor):
     def _pad_or_trim_speech(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
-        assert check_argument_types()
+        @typechecked
 
         init_pad = 0
         if self.speech_name in data:
@@ -2238,13 +2229,12 @@ class S2TPreprocessor(CommonPreprocessor):
 
             data[self.speech_name] = speech.T  # convert back to time first
 
-        assert check_return_type((data, init_pad))
         return data, init_pad
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]], time_shift: int
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         text_names = [self.text_name, self.text_prev_name, self.text_ctc_name]
         if self.tokenizer is not None:
@@ -2295,13 +2285,12 @@ class S2TPreprocessor(CommonPreprocessor):
 
                     data[name] = text_ints
 
-        assert check_return_type(data)
         return data
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+        @typechecked
 
         data = self._speech_process(data)
         data, init_pad = self._pad_or_trim_speech(data)

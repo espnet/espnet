@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import trange
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
@@ -60,7 +60,7 @@ class DiarizeSpeech:
         enh_s2t_task: bool = False,
         multiply_diar_result: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
 
         task = DiarizationTask if not enh_s2t_task else EnhS2TTask
 
@@ -132,7 +132,7 @@ class DiarizeSpeech:
             [speaker_info1, speaker_info2, ...]
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -486,7 +486,7 @@ def inference(
     multiply_diar_result: bool,
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

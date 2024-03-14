@@ -1,5 +1,5 @@
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.utils.types import str2bool
@@ -13,7 +13,7 @@ class UASRPhonemeDiversityLoss(AbsUASRLoss):
         weight: float = 1.0,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
 
         self.weight = weight
 

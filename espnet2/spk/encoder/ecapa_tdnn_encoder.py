@@ -7,7 +7,7 @@ ECAPA-TDNN Encoder
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.ecapa_block import EcapaBlock
@@ -38,7 +38,7 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if block == "EcapaBlock":
             block = EcapaBlock

@@ -2,7 +2,7 @@ import warnings
 from pathlib import Path
 from typing import Union
 
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 
 class DatadirWriter:
@@ -19,7 +19,7 @@ class DatadirWriter:
     """
 
     def __init__(self, p: Union[Path, str]):
-        assert check_argument_types()
+        @typechecked
         self.path = Path(p)
         self.chilidren = {}
         self.fd = None
@@ -30,7 +30,7 @@ class DatadirWriter:
         return self
 
     def __getitem__(self, key: str) -> "DatadirWriter":
-        assert check_argument_types()
+        @typechecked
         if self.fd is not None:
             raise RuntimeError("This writer points out a file")
 
@@ -40,11 +40,10 @@ class DatadirWriter:
             self.has_children = True
 
         retval = self.chilidren[key]
-        assert check_return_type(retval)
         return retval
 
     def __setitem__(self, key: str, value: str):
-        assert check_argument_types()
+        @typechecked
         if self.has_children:
             raise RuntimeError("This writer points out a directory")
         if key in self.keys:

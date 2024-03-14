@@ -11,7 +11,7 @@ from typing import Union
 import humanfriendly
 import numpy as np
 import soundfile
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.utils.types import str_or_int
 
@@ -31,7 +31,7 @@ def convert_rttm_text(
         "w", encoding="utf-8"
     )
 
-    assert check_argument_types()
+    @typechecked
     utt_ids = set()
     with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     get_hugging_face_model_lm_head,
@@ -115,7 +115,7 @@ class Speech2Text:
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
     ):
-        assert check_argument_types()
+        @typechecked
 
         task = ASRTask if not enh_s2t_task else EnhS2TTask
 
@@ -475,7 +475,7 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -512,7 +512,6 @@ class Speech2Text:
 
                 # c. Passed the encoder result and the beam search
                 ret = self._decode_single_sample(enc_spk[0])
-                assert check_return_type(ret)
                 results.append(ret)
 
         else:
@@ -530,14 +529,13 @@ class Speech2Text:
             if intermediate_outs is not None:
                 encoder_interctc_res = self._decode_interctc(intermediate_outs)
                 results = (results, encoder_interctc_res)
-            assert check_return_type(results)
 
         return results
 
     def _decode_interctc(
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
-        assert check_argument_types()
+        @typechecked
 
         exclude_ids = [self.asr_model.blank_id, self.asr_model.sos, self.asr_model.eos]
         res = {}
@@ -724,7 +722,7 @@ def inference(
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

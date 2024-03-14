@@ -9,7 +9,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
@@ -78,7 +78,7 @@ class UnitYSynthesizer(AbsSynthesizer):
                 assume that spembs will be provided as the input.
             spk_embed_integration_type (str): How to integrate speaker embedding.
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         self.spks = None

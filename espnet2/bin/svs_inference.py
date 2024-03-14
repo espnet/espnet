@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 import soundfile as sf
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
@@ -61,7 +61,7 @@ class SingingGenerate:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize SingingGenerate module."""
-        assert check_argument_types()
+        @typechecked
 
         # setup model
         model, train_args = SVSTask.build_model_from_file(
@@ -135,7 +135,7 @@ class SingingGenerate:
         lids: Union[torch.Tensor, np.ndarray] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
-        assert check_argument_types()
+        @typechecked
 
         # check inputs
         if self.use_sids and sids is None:
@@ -328,7 +328,7 @@ def inference(
     vocoder_tag: Optional[str] = None,
 ):
     """Perform SVS model decoding."""
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

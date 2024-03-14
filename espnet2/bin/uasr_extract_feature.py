@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
 from torch.nn.parallel import data_parallel
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.uasr import UASRTask
@@ -107,7 +107,7 @@ def extract_feature(
     dset: str,
     log_level: Union[int, str],
 ):
-    assert check_argument_types()
+    @typechecked
 
     logging.basicConfig(
         level=log_level,

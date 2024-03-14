@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch_complex
 import yaml
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.bin.enh_inference import (
     build_model_from_args_and_file,
@@ -64,7 +64,7 @@ class SeparateSpeechStreaming:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -147,7 +147,7 @@ class SeparateSpeechStreaming:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -237,7 +237,7 @@ def inference(
     ref_channel: Optional[int],
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
 from scipy.optimize import linear_sum_assignment
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
@@ -36,7 +36,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
         self.enh_model = enh_model
@@ -514,7 +514,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         inherite_enh_attrs: List[str] = [],
         inherite_s2t_attrs: List[str] = [],
     ):
-        assert check_argument_types()
+        @typechecked
 
         if len(inherite_enh_attrs) > 0:
             for attr in inherite_enh_attrs:

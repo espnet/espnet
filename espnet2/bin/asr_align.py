@@ -21,7 +21,7 @@ from ctc_segmentation import (
     prepare_text,
     prepare_token_list,
 )
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -217,7 +217,7 @@ class CTCSegmentation:
                 longer audio files: "auto".
             **ctc_segmentation_args: Parameters for CTC segmentation.
         """
-        assert check_argument_types()
+        @typechecked
 
         # Basic settings
         if batch_size > 1:
@@ -542,7 +542,7 @@ class CTCSegmentation:
             result: Dictionary with alignments. Combine this with the task
                 object to obtain a human-readable segments representation.
         """
-        assert check_argument_types()
+        @typechecked
         assert task.config is not None
         config = task.config
         lpz = task.lpz
@@ -587,7 +587,7 @@ class CTCSegmentation:
         Returns:
             CTCSegmentationTask object with segments.
         """
-        assert check_argument_types()
+        @typechecked
         if fs is not None:
             self.set_config(fs=fs)
         # Get log CTC posterior probabilities
@@ -597,7 +597,6 @@ class CTCSegmentation:
         # Apply CTC segmentation
         segments = self.get_segments(task)
         task.set(**segments)
-        assert check_return_type(task)
         return task
 
 
@@ -613,7 +612,7 @@ def ctc_align(
     **kwargs,
 ):
     """Provide the scripting interface to align text to audio."""
-    assert check_argument_types()
+    @typechecked
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",

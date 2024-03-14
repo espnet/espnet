@@ -10,7 +10,7 @@ from typing import Optional, Tuple
 
 import torch
 from filelock import FileLock
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -39,7 +39,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         normalize_before: bool = False,
         freeze_finetune_updates: int = 0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         if w2v_url != "":

@@ -8,7 +8,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
@@ -144,7 +144,7 @@ class Tacotron2(AbsTTS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # store hyperparameters

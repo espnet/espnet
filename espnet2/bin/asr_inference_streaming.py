@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
@@ -72,7 +72,7 @@ class Speech2TextStreaming:
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
     ):
-        assert check_argument_types()
+        @typechecked
 
         # 1. Build ASR model
         scorers = {}
@@ -302,7 +302,7 @@ class Speech2TextStreaming:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -355,7 +355,6 @@ class Speech2TextStreaming:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
 
@@ -391,7 +390,7 @@ def inference(
     encoded_feat_length_limit: int,
     decoder_text_length_limit: int,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

@@ -1,7 +1,7 @@
 import math
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
@@ -16,7 +16,7 @@ class RandomSegmenter(AbsSegmenter):
         remove_zeros: str2bool = False,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         self.subsample_rate = subsample_rate
 
     def pre_segment(

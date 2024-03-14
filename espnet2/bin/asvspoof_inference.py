@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asvspoof import ASVSpoofTask
@@ -39,7 +39,7 @@ class SpeechAntiSpoof:
         batch_size: int = 1,
         dtype: str = "float32",
     ):
-        assert check_argument_types()
+        @typechecked
 
         asvspoof_model, asvspoof_train_args = ASVSpoofTask.build_model_from_file(
             asvspoof_train_config, asvspoof_model_file, device
@@ -59,7 +59,7 @@ class SpeechAntiSpoof:
         Returns:
             [prediction, scores]
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -100,7 +100,7 @@ def inference(
     asvspoof_model_file: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

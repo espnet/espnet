@@ -4,7 +4,7 @@
 from typing import Dict, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -49,7 +49,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         projector: Optional[AbsProjector],
         loss: Optional[AbsLoss],
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
 

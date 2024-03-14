@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -51,7 +51,7 @@ class ChunkIterFactory(AbsIterFactory):
         excluded_key_prefixes: Optional[List[str]] = None,
         default_fs: Optional[int] = None,
     ):
-        assert check_argument_types()
+        @typechecked
         assert all(len(x) == 1 for x in batches), "batch-size must be 1"
 
         self.per_sample_iter_factory = SequenceIterFactory(

@@ -13,7 +13,7 @@ import logging
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -214,7 +214,7 @@ class EBranchformerEncoder(AbsEncoder):
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self._output_size = output_size
 

@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
@@ -20,7 +20,7 @@ class S2STTacotron2Loss(AbsS2STLoss):
         bce_pos_weight: float = 20.0,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         self.weight = weight
         self.loss_type = loss_type
         self.loss = Tacotron2Loss(

@@ -2,7 +2,7 @@ import copy
 import os
 from typing import Iterable, List
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
@@ -45,7 +45,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         speaker_change_symbol: str = "<sc>",
         added_tokens_txt: str = None,
     ):
-        assert check_argument_types()
+        @typechecked
 
         try:
             import whisper.tokenizer

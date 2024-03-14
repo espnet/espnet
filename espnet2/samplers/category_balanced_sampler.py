@@ -17,7 +17,7 @@ import random
 from collections import Counter
 from typing import Iterator, List, Sequence, Tuple, Union
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
@@ -37,7 +37,7 @@ class CategoryBalancedSampler(AbsSampler):
         epoch: int = 1,
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
         assert batch_size > 0
         random.seed(epoch)
 

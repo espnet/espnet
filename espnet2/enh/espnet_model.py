@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple
 import numpy as np
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -89,7 +89,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             category_weights: list of weights for each category.
                 Used to set loss weights for batches of different categories.
         """
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
 

@@ -5,7 +5,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -37,7 +37,7 @@ class MLMDecoder(AbsDecoder):
         normalize_before: bool = True,
         concat_after: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         attention_dim = encoder_output_size
         vocab_size += 1  # for mask token

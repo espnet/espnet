@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -39,7 +39,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         tts: AbsTTS,
     ):
         """Initialize ESPnetTTSModel module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.feats_extract = feats_extract
         self.pitch_extract = pitch_extract

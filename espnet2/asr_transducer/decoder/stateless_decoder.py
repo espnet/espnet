@@ -3,7 +3,7 @@
 from typing import Any, List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
@@ -30,7 +30,7 @@ class StatelessDecoder(AbsDecoder):
         """Construct a StatelessDecoder object."""
         super().__init__()
 
-        assert check_argument_types()
+        @typechecked
 
         self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
         self.embed_dropout_rate = torch.nn.Dropout(p=embed_dropout_rate)

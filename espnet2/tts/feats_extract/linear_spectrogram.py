@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
@@ -23,7 +23,7 @@ class LinearSpectrogram(AbsFeatsExtract):
         normalized: bool = False,
         onesided: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length

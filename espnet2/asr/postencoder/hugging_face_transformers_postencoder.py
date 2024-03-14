@@ -9,7 +9,7 @@ import logging
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -34,7 +34,7 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         lang_token_id: int = -1,
     ):
         """Initialize the module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         if not is_transformers_available:

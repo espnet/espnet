@@ -14,7 +14,7 @@ import soundfile
 import soundfile as sf
 from scipy.signal import lfilter
 from tqdm import tqdm
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet.utils.cli_utils import get_commandline_args

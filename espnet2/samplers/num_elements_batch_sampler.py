@@ -1,7 +1,7 @@
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text
 from espnet2.samplers.abs_sampler import AbsSampler
@@ -18,7 +18,7 @@ class NumElementsBatchSampler(AbsSampler):
         drop_last: bool = False,
         padding: bool = True,
     ):
-        assert check_argument_types()
+        @typechecked
         assert batch_bins > 0
         if sort_batch != "ascending" and sort_batch != "descending":
             raise ValueError(

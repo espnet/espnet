@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -52,7 +52,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
 

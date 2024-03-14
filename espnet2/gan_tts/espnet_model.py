@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -39,7 +39,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         tts: AbsGANTTS,
     ):
         """Initialize ESPnetGANTTSModel module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.feats_extract = feats_extract
         self.normalize = normalize

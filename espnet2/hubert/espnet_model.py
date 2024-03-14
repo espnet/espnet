@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -47,7 +47,7 @@ class TorchAudioHubertPretrainModel(AbsESPnetModel):
         encoder: AbsEncoder,
         ignore_id: int = -1,
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
         self.vocab_size = vocab_size
@@ -286,7 +286,7 @@ class HubertPretrainModel(AbsESPnetModel):
         pred_nomask_weight: float = 0.0,
         loss_weights: float = 0.0,
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)

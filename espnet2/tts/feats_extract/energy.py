@@ -8,7 +8,7 @@ from typing import Any, Dict, Tuple, Union
 import humanfriendly
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
@@ -31,7 +31,7 @@ class Energy(AbsFeatsExtract):
         use_token_averaged_energy: bool = True,
         reduction_factor: int = None,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

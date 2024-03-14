@@ -4,7 +4,7 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
@@ -53,7 +53,7 @@ class RWKVDecoder(AbsDecoder):
         """Construct a RWKVDecoder object."""
         super().__init__()
 
-        assert check_argument_types()
+        @typechecked
 
         norm_class, norm_args = get_normalization(
             normalization_type, **normalization_args

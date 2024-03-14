@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
@@ -22,7 +22,7 @@ class S2STAttentionLoss(AbsS2STLoss):
         criterion: torch.nn.Module = torch.nn.KLDivLoss(reduction="none"),
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         self.weight = weight
         self.loss = LabelSmoothingLoss(
             size=vocab_size,

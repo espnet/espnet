@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.s2t import S2TTask
@@ -36,7 +36,7 @@ class Speech2Language:
         first_lang_sym: str = "<abk>",
         last_lang_sym: str = "<zul>",
     ):
-        assert check_argument_types()
+        @typechecked
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
@@ -84,7 +84,7 @@ class Speech2Language:
 
         """
 
-        assert check_argument_types()
+        @typechecked
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -136,7 +136,6 @@ class Speech2Language:
                 (self.s2t_model.token_list[idx + self.first_lang_id], val.item())
             )
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -191,7 +190,7 @@ def inference(
     first_lang_sym: str,
     last_lang_sym: str,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

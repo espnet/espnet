@@ -2,7 +2,7 @@ import logging
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class CTC(torch.nn.Module):
@@ -31,7 +31,7 @@ class CTC(torch.nn.Module):
         brctc_group_strategy: str = "end",
         brctc_risk_factor: float = 0.0,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         eprojs = encoder_output_size
         self.dropout_rate = dropout_rate

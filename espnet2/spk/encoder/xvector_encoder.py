@@ -9,7 +9,7 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
@@ -36,7 +36,7 @@ class XvectorEncoder(AbsEncoder):
         dilations: List = [1, 2, 3, 1, 1],
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self._output_size = output_size
         in_channels = [input_size] + [ndim] * 4

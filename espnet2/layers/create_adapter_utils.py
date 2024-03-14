@@ -1,7 +1,7 @@
 from typing import List
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 def replace_module(
@@ -11,7 +11,7 @@ def replace_module(
     new_module: torch.nn.Module,
 ):
     """Replace the target module with the new module."""
-    assert check_argument_types()
+    @typechecked
     # TODO add hook and whether requires_grad to them
     device = old_module.weight.device
     setattr(parent_module, child_name, new_module)
@@ -27,13 +27,13 @@ def replace_module(
 
 def check_target_module_exists(key: str, target_modules: List[str]):
     """Check if the target_modules matchs the given key."""
-    assert check_argument_types()
+    @typechecked
     return any([key.endswith(target_key) for target_key in target_modules])
 
 
 def get_submodules(model: torch.nn.Module, key: str):
     """Return the submodules of the given key."""
-    assert check_argument_types()
+    @typechecked
     parent_module = model.get_submodule(".".join(key.split(".")[:-1]))
     target_name = key.split(".")[-1]
     target_module = model.get_submodule(key)

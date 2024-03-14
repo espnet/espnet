@@ -7,7 +7,7 @@ import editdistance
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -66,7 +66,7 @@ class ESPnetUASRModel(AbsESPnetModel):
         decay_temperature: float = 0.99995,
         use_collected_training_feats: str2bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -120,7 +120,7 @@ class ESPnetUASRModel(AbsESPnetModel):
 
     @number_updates.setter
     def number_updates(self, iiter: int):
-        assert check_argument_types() and iiter >= 0
+        @typechecked and iiter >= 0
         self._number_updates = iiter
 
     def forward(

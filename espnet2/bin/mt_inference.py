@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -60,7 +60,7 @@ class Text2Text:
         nbest: int = 1,
         normalize_length: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
 
         # 1. Build MT model
         scorers = {}
@@ -186,7 +186,7 @@ class Text2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(src_text, np.ndarray):
@@ -237,7 +237,6 @@ class Text2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -301,7 +300,7 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

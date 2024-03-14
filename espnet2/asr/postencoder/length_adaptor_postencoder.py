@@ -7,7 +7,7 @@
 from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -26,7 +26,7 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         return_int_enc: bool = False,
     ):
         """Initialize the module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         if input_layer == "linear":

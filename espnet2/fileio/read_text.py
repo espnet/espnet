@@ -5,7 +5,7 @@ from pathlib import Path
 from random import randint
 from typing import Dict, List, Optional, Tuple, Union
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
@@ -20,7 +20,7 @@ def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
         {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
 
     """
-    assert check_argument_types()
+    @typechecked
 
     data = {}
     with Path(path).open("r", encoding="utf-8") as f:
@@ -55,7 +55,7 @@ def read_multi_columns_text(
          'key3': ['/some/path/c1.wav']}
 
     """
-    assert check_argument_types()
+    @typechecked
 
     data = {}
 
@@ -94,7 +94,7 @@ def load_num_sequence_text(
         >>> d = load_num_sequence_text('text')
         >>> np.testing.assert_array_equal(d["key1"], np.array([1, 2, 3]))
     """
-    assert check_argument_types()
+    @typechecked
     if loader_type == "text_int":
         delimiter = " "
         dtype = int
@@ -138,7 +138,7 @@ def read_label(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
         >>> d = load_num_sequence_text('label')
         >>> np.testing.assert_array_equal(d["key1"], [0.1, 0.2, "啊"]))
     """
-    assert check_argument_types()
+    @typechecked
     label = open(path, "r", encoding="utf-8")
 
     retval = {}
@@ -184,7 +184,7 @@ class RandomTextReader(collections.abc.Mapping):
         self,
         text_and_scp: str,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         text, text_scp = text_and_scp.split("-")

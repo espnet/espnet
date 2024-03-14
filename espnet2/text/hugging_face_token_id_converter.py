@@ -1,7 +1,7 @@
 from typing import Iterable, List, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 try:
     from transformers import AutoTokenizer
@@ -16,7 +16,7 @@ class HuggingFaceTokenIDConverter:
         self,
         model_name_or_path: str,
     ):
-        assert check_argument_types()
+        @typechecked
 
         if not is_transformers_available:
             raise ImportError(

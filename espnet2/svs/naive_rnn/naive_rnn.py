@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -167,7 +167,7 @@ class NaiveRNN(AbsSVS):
             loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # store hyperparameters

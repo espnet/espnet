@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import yaml
 from tqdm import trange
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
@@ -110,7 +110,7 @@ class SeparateSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        assert check_argument_types()
+        @typechecked
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -203,7 +203,7 @@ class SeparateSpeech:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -450,7 +450,7 @@ def inference(
     normalize_output_wav: bool,
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

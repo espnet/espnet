@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.hifigan import (
@@ -217,7 +217,7 @@ class VITS(AbsGANTTS):
             mos_pred_tool (str): MOS prediction tool name.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # define modules

@@ -5,7 +5,7 @@ from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
@@ -32,7 +32,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        assert check_argument_types()
+        @typechecked
         self.model_size = model_size
         self.warmup_steps = warmup_steps
 

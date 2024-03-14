@@ -5,7 +5,7 @@
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.rawnet_block import Bottle2neck
@@ -34,7 +34,7 @@ class RawNet3Encoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if block == "Bottle2neck":
             block = Bottle2neck

@@ -4,7 +4,7 @@ import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
@@ -33,7 +33,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         normalize: bool = False,
         **kwargs,
     ):
-        assert check_argument_types()
+        @typechecked
 
         super().__init__(
             encoder=encoder,

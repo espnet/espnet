@@ -11,7 +11,7 @@ import six
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.singing_tacotron.decoder import Decoder
@@ -156,7 +156,7 @@ class singing_tacotron(AbsSVS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # store hyperparameters

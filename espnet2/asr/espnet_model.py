@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -69,7 +69,7 @@ class ESPnetASRModel(AbsESPnetModel):
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
     ):
-        assert check_argument_types()
+        @typechecked
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 

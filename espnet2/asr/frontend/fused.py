@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -13,7 +13,7 @@ class FusedFrontends(AbsFrontend):
     def __init__(
         self, frontends=None, align_method="linear_projection", proj_dim=100, fs=16000
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.align_method = (
             align_method  # fusing method : linear_projection only for now

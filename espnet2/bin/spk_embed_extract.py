@@ -9,7 +9,7 @@ import humanfriendly
 import numpy as np
 import torch
 from torch.multiprocessing.spawn import ProcessContext
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.tasks.spk import SpeakerTask

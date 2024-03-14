@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, float]]]:
@@ -13,7 +13,7 @@ def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, f
     Note: only support speaker information now
     """
 
-    assert check_argument_types()
+    @typechecked
     data = {}
     with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
@@ -69,7 +69,7 @@ class RttmReader(collections.abc.Mapping):
         self,
         fname: str,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         self.fname = fname

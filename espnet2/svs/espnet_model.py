@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -51,7 +51,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         svs: AbsSVS,
     ):
         """Initialize ESPnetSVSModel module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract

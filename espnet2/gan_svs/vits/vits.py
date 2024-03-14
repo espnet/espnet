@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from torch.nn import functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.avocodo.avocodo import (
@@ -314,7 +314,7 @@ class VITS(AbsGANSVS):
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         # define modules

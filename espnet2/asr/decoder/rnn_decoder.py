@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -95,7 +95,7 @@ class RNNDecoder(AbsDecoder):
         att_conf: dict = get_default_kwargs(build_attention_list),
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
-        assert check_argument_types()
+        @typechecked
         if rnn_type not in {"lstm", "gru"}:
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
 

@@ -10,7 +10,7 @@ from typing import Any, List, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -43,7 +43,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         prefix: str = "",
         postfix: str = "",
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         if not is_transformers_available:

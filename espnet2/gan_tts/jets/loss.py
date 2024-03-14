@@ -8,7 +8,7 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
     DurationPredictorLoss,
@@ -27,7 +27,7 @@ class VarianceLoss(torch.nn.Module):
                 calculation.
 
         """
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         assert (use_masking != use_weighted_masking) or not use_masking

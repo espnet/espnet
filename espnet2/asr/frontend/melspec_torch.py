@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio as ta
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -34,7 +34,7 @@ class MelSpectrogramTorch(AbsFrontend):
         mel_scale: str = "htk",
         normalize: str = None,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         self.log = log

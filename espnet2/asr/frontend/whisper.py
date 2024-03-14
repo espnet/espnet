@@ -3,7 +3,7 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -31,7 +31,7 @@ class WhisperFrontend(AbsFrontend):
             )
             raise e
 
-        assert check_argument_types()
+        @typechecked
         super().__init__()
 
         self.n_fft = N_FFT

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.spk import SpeakerTask
@@ -39,7 +39,7 @@ class Speech2Embedding:
         dtype: str = "float32",
         batch_size: int = 1,
     ):
-        assert check_argument_types()
+        @typechecked
 
         spk_model, spk_train_args = SpeakerTask.build_model_from_file(
             train_config, model_file, device
@@ -62,7 +62,7 @@ class Speech2Embedding:
 
         """
 
-        assert check_argument_types()
+        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -126,7 +126,7 @@ def inference(
     model_file: Optional[str],
     model_tag: Optional[str],
 ):
-    assert check_argument_types()
+    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

@@ -5,7 +5,7 @@
 from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -66,7 +66,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_conv_kernel_size: int = 1,
         padding_idx: int = -1,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self._output_size = output_size
 

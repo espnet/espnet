@@ -15,7 +15,7 @@ except ImportError:
 import logging
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
@@ -27,7 +27,7 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         output_size=256,
     ):
         """Initialize the module."""
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if not is_transformers_available:
             raise ImportError(

@@ -3,7 +3,7 @@ from typing import Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -29,7 +29,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         norm_vars: bool = True,
         eps: float = 1.0e-20,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars

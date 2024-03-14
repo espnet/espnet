@@ -8,7 +8,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
@@ -131,7 +131,7 @@ class TTSTask(AbsTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
+        @typechecked
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -208,7 +208,7 @@ class TTSTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
+        @typechecked
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -219,7 +219,7 @@ class TTSTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+        @typechecked
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -232,7 +232,6 @@ class TTSTask(AbsTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -274,7 +273,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetTTSModel:
-        assert check_argument_types()
+        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line[0] + line[1:].rstrip() for line in f]
@@ -365,7 +364,6 @@ class TTSTask(AbsTask):
             tts=tts,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod

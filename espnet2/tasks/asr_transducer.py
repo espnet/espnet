@@ -7,7 +7,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -239,7 +239,7 @@ class ASRTransducerTask(AbsTask):
             : Callable collate function.
 
         """
-        assert check_argument_types()
+        @typechecked
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
@@ -258,7 +258,7 @@ class ASRTransducerTask(AbsTask):
             : Callable pre-processing function.
 
         """
-        assert check_argument_types()
+        @typechecked
 
         if args.use_preprocessor:
             retval = CommonPreprocessor(
@@ -287,7 +287,6 @@ class ASRTransducerTask(AbsTask):
         else:
             retval = None
 
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -328,7 +327,6 @@ class ASRTransducerTask(AbsTask):
 
         """
         retval = ()
-        assert check_return_type(retval)
 
         return retval
 
@@ -344,7 +342,7 @@ class ASRTransducerTask(AbsTask):
             model: ASR Transducer model.
 
         """
-        assert check_argument_types()
+        @typechecked
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -430,7 +428,5 @@ class ASRTransducerTask(AbsTask):
                 "Currently not supported.",
                 "Initialization part will be reworked in a short future.",
             )
-
-        assert check_return_type(model)
 
         return model

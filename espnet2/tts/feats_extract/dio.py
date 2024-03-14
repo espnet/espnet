@@ -12,7 +12,7 @@ import pyworld
 import torch
 import torch.nn.functional as F
 from scipy.interpolate import interp1d
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -48,7 +48,7 @@ class Dio(AbsFeatsExtract):
         use_log_f0: bool = True,
         reduction_factor: int = None,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

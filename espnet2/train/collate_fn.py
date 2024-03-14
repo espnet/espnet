@@ -3,7 +3,7 @@ from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -17,7 +17,7 @@ class CommonCollateFn:
         int_pad_value: int = -32768,
         not_sequence: Collection[str] = (),
     ):
-        assert check_argument_types()
+        @typechecked
         self.float_pad_value = float_pad_value
         self.int_pad_value = int_pad_value
         self.not_sequence = set(not_sequence)
@@ -55,7 +55,7 @@ class HuBERTCollateFn(CommonCollateFn):
         window_shift: float = 20,
         sample_rate: float = 16,
     ):
-        assert check_argument_types()
+        @typechecked
         super().__init__(
             float_pad_value=float_pad_value,
             int_pad_value=int_pad_value,
@@ -202,7 +202,7 @@ def common_collate_fn(
         that of the dataset as they are.
 
     """
-    assert check_argument_types()
+    @typechecked
     uttids = [u for u, _ in data]
     data = [d for _, d in data]
 
@@ -236,5 +236,4 @@ def common_collate_fn(
             output[key + "_lengths"] = lens
 
     output = (uttids, output)
-    assert check_return_type(output)
     return output

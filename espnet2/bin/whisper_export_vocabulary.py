@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet2.utils.types import str2bool
@@ -34,7 +34,7 @@ def export_vocabulary(
         )
         raise e
 
-    assert check_argument_types()
+    @typechecked
 
     logging.basicConfig(
         level=log_level,

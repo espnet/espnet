@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
@@ -18,7 +18,7 @@ class S2STGuidedAttentionLoss(AbsS2STLoss):
         alpha: float = 1.0,
     ):
         super().__init__()
-        assert check_argument_types()
+        @typechecked
         self.weight = weight
         self.loss = GuidedAttentionLoss(
             sigma=sigma,
