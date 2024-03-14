@@ -25,7 +25,7 @@ def humanfriendly_or_none(value: str):
         return None
     return humanfriendly.parse_size(value)
 
-
+@typechecked
 def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     """
 
@@ -33,16 +33,15 @@ def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     (3, 4, 5)
 
     """
-    @typechecked
     if integers.strip() in ("none", "None", "NONE", "null", "Null", "NULL"):
         return None
     return tuple(map(int, integers.strip().split(",")))
 
 
+@typechecked
 def vad_trim(vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int) -> np.array:
     # Conduct trim wtih vad information
 
-    @typechecked
     assert uttid in vad_reader, uttid
 
     vad_info = vad_reader[uttid]
