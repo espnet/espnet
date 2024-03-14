@@ -47,7 +47,6 @@ class ESPnetASRModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
-        prepostencoder: Optional[AbsPreEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
         ctc: CTC,
@@ -64,6 +63,7 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         transducer_multi_blank_durations: List = [],
         transducer_multi_blank_sigma: float = 0.05,
+        prepostencoder: Optional[AbsPreEncoder] = None,
         # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
@@ -71,6 +71,7 @@ class ESPnetASRModel(AbsESPnetModel):
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
         weighted_sum: bool = False,
+        compress_multichannel: bool = False,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -106,6 +107,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.prepostencoder = prepostencoder
         self.postencoder = postencoder
         self.encoder = encoder
+        self.compress_multichannel = compress_multichannel
 
         if not hasattr(self.encoder, "interctc_use_conditioning"):
             self.encoder.interctc_use_conditioning = False
@@ -419,7 +421,6 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
         if self.weighted_sum:
-            # import pdb;pdb.set_trace()
             encoder_out, encoder_out_lens = self.featurizer(
                 encoder_out[1], [encoder_out_lens for i in encoder_out[1]]
             )
@@ -463,8 +464,10 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
-        if len(speech.shape) == 3:
-            speech = torch.sum(speech, dim=2)
+        if getattr(self, "compress_multichannel", None) is not None:
+            if self.compress_multichannel:
+                if len(speech.shape) == 3:
+                    speech = torch.sum(speech, dim=2)
 
         if self.frontend is not None:
             # Frontend
