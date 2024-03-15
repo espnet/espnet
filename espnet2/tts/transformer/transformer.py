@@ -42,6 +42,7 @@ class Transformer(AbsTTS):
         https://arxiv.org/pdf/1809.08895.pdf
 
     """
+
     @typechecked
     def __init__(
         self,

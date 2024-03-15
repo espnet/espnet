@@ -302,7 +302,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-
         return results
 
     @staticmethod

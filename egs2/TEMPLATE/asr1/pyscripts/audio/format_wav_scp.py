@@ -25,6 +25,7 @@ def humanfriendly_or_none(value: str):
         return None
     return humanfriendly.parse_size(value)
 
+
 @typechecked
 def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     """

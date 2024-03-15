@@ -48,7 +48,7 @@ class Speech2Text:
         maskctc_n_iterations: int = 10,
         maskctc_threshold_probability: float = 0.99,
     ):
-        
+
         # 1. Build ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
             asr_train_config, asr_model_file, device

@@ -51,6 +51,7 @@ class Speech2Text:
 
         return result["text"]
 
+
 @typechecked
 def inference(
     output_dir: str,

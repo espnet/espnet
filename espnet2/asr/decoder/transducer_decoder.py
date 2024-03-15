@@ -34,7 +34,7 @@ class TransducerDecoder(AbsDecoder):
         dropout_embed: float = 0.0,
         embed_pad: int = 0,
     ):
-        
+
         if rnn_type not in {"lstm", "gru"}:
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
 

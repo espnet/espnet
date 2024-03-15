@@ -68,6 +68,7 @@ BATCH_TYPES = dict(
     "    utterance_id_c 1241,80\n",
 )
 
+
 @typechecked
 def build_batch_sampler(
     type: str,

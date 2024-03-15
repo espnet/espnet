@@ -116,7 +116,7 @@ class Speech2Text:
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
     ):
-    
+
         task = ASRTask if not enh_s2t_task else EnhS2TTask
 
         if quantize_asr_model or quantize_lm:
