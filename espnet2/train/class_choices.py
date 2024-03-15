@@ -50,7 +50,8 @@ class ClassChoices:
 
         self.optional = optional
         self.default = default
-        if default is None:
+        # if default is None:
+        if default is None and not optional:
             self.optional = True
 
     def choices(self) -> Tuple[Optional[str], ...]:
