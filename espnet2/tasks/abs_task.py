@@ -1112,7 +1112,11 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
-    def main(cls, args: Optional[argparse.Namespace] = None, cmd: Sequence[str] = None):
+    def main(
+        cls, 
+        args: Optional[argparse.Namespace] = None, 
+        cmd: Optional[Sequence[str]] = None
+    ):
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
             parser = cls.get_parser()
