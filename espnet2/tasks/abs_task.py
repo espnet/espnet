@@ -996,13 +996,13 @@ class AbsTask(ABC):
         return "required", "print_config", "config", "ngpu"
 
     @classmethod
+    @typechecked
     def get_default_config(cls) -> Dict[str, Any]:
         """Return the configuration as dict.
 
         This method is used by print_config()
         """
 
-        @typechecked
         def get_class_type(name: str, classes: dict):
             _cls = classes.get(name)
             if _cls is None:
