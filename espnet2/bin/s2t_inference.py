@@ -188,6 +188,7 @@ class Speech2Text:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         predict_time: bool = False,
+        skip_last_chunk_threshold: float = 0.2,
     ):
         assert check_argument_types()
 
@@ -344,6 +345,7 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.skip_last_chunk_threshold = skip_last_chunk_threshold
 
         self.lang_sym = lang_sym
         self.task_sym = task_sym
@@ -566,23 +568,28 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        assert (
-            speech.dim() == 1
-        ), f"speech must have one dimension, got size {speech.size()} instead"
+        if speech.dim() > 1:
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
+            speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
         utterances = []
         offset = 0
         text_prev = init_text
         while offset < len(speech):
             logging.info(f"Current start time in seconds: {offset / fs:.2f}")
-            if offset + segment_len > len(speech) and len(segment) / fs < 0.2:
+            segment = speech[offset : offset + segment_len]
+            if (
+                offset + segment_len > len(speech)
+                and len(segment) / fs < self.skip_last_chunk_threshold
+            ):
                 logging.warning(
-                    f"Skip the last clip as it's too short: {len(segment)/ fs:.2f}s"
+                    f"Skip the last clip as it's too short: {len(segment) / fs:.2f}s"
                 )
                 offset += segment_len
                 continue
 
-            segment = speech[offset : offset + segment_len]
             # segment will be padded in __call__
             result = self.__call__(
                 speech=segment,
@@ -718,6 +725,7 @@ def inference(
     lang_sym: str,
     task_sym: str,
     predict_time: bool,
+    skip_last_chunk_threshold: float,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -771,6 +779,7 @@ def inference(
         lang_sym=lang_sym,
         task_sym=task_sym,
         predict_time=predict_time,
+        skip_last_chunk_threshold=skip_last_chunk_threshold,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1010,6 +1019,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
+    )
+    group.add_argument(
+        "--skip_last_chunk_threshold",
+        type=float,
+        default=0.2,
+        help="In long-form decoding, the last chunk smaller than this will be skipped",
     )
 
     group = parser.add_argument_group("Text converter related")
