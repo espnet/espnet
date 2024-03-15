@@ -575,6 +575,12 @@ class Speech2Text:
         text_prev = init_text
         while offset < len(speech):
             logging.info(f"Current start time in seconds: {offset / fs:.2f}")
+            if offset + segment_len > len(speech) and len(segment) / fs < 0.2:
+                logging.warning(
+                    f"Skip the last clip as it's too short: {len(segment)/ fs:.2f}s"
+                )
+                offset += segment_len
+                continue
 
             segment = speech[offset : offset + segment_len]
             # segment will be padded in __call__
@@ -641,7 +647,6 @@ class Speech2Text:
                 utterances.append(utt)
 
             offset += round((new_start_time_id - first_time_id) * resolution * fs)
-            self.time_id = first_time_id
 
         return utterances
 
