@@ -457,7 +457,7 @@ class Speech2Text:
             encoder_interctc_res = self._decode_interctc(intermediate_outs)
             results = (results, encoder_interctc_res)
 
-         return results
+        return results
 
     def _decode_single_sample(self, enc: torch.Tensor):
         if hasattr(self.beam_search.nn_dict, "decoder"):
