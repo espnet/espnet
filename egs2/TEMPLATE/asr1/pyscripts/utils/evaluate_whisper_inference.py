@@ -22,19 +22,20 @@ from espnet.utils.cli_utils import get_commandline_args
 class Speech2Text:
     """Speech2Text class"""
 
+    @typechecked
     def __init__(
         self,
         model_tag: str = "base",
         model_dir: str = "./models",
         device: str = "cpu",
     ):
-        @typechecked
 
         self.model = whisper.load_model(
             name=model_tag, download_root=model_dir, device=device
         )
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: str, **decode_options) -> Optional[str]:
         """Inference
 
@@ -44,14 +45,13 @@ class Speech2Text:
             text
 
         """
-        @typechecked
 
         # Input as audio signal
         result = self.model.transcribe(speech, **decode_options)
 
         return result["text"]
 
-
+@typechecked
 def inference(
     output_dir: str,
     ngpu: int,
@@ -65,7 +65,6 @@ def inference(
     allow_variable_data_keys: bool,
     decode_options: Dict,
 ):
-    @typechecked
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

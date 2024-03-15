@@ -18,8 +18,8 @@ class DatadirWriter:
 
     """
 
+    @typechecked
     def __init__(self, p: Union[Path, str]):
-        @typechecked
         self.path = Path(p)
         self.chilidren = {}
         self.fd = None
@@ -29,8 +29,8 @@ class DatadirWriter:
     def __enter__(self):
         return self
 
+    @typechecked
     def __getitem__(self, key: str) -> "DatadirWriter":
-        @typechecked
         if self.fd is not None:
             raise RuntimeError("This writer points out a file")
 
@@ -42,8 +42,8 @@ class DatadirWriter:
         retval = self.chilidren[key]
         return retval
 
+    @typechecked
     def __setitem__(self, key: str, value: str):
-        @typechecked
         if self.has_children:
             raise RuntimeError("This writer points out a directory")
         if key in self.keys:

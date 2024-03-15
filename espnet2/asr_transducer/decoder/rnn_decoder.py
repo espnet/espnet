@@ -24,6 +24,7 @@ class RNNDecoder(AbsDecoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -37,8 +38,6 @@ class RNNDecoder(AbsDecoder):
     ) -> None:
         """Construct a RNNDecoder object."""
         super().__init__()
-
-        @typechecked
 
         if rnn_type not in ("lstm", "gru"):
             raise ValueError(f"Not supported: rnn_type={rnn_type}")

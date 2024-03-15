@@ -13,6 +13,7 @@ class LinearSpectrogram(AbsTgtFeatsExtract):
     Stft -> amplitude-spec
     """
 
+    @typechecked
     def __init__(
         self,
         n_fft: int = 1024,
@@ -23,7 +24,6 @@ class LinearSpectrogram(AbsTgtFeatsExtract):
         normalized: bool = False,
         onesided: bool = True,
     ):
-        @typechecked
         super().__init__()
         self.n_fft = n_fft
         self.hop_length = hop_length

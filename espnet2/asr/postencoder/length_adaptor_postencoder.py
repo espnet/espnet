@@ -16,6 +16,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 class LengthAdaptorPostEncoder(AbsPostEncoder):
     """Length Adaptor PostEncoder."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -26,7 +27,6 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         return_int_enc: bool = False,
     ):
         """Initialize the module."""
-        @typechecked
         super().__init__()
 
         if input_layer == "linear":

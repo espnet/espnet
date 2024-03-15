@@ -39,6 +39,7 @@ else:
 class ESPnetS2STModel(AbsESPnetModel):
     """ESPnet speech-to-speech translation model"""
 
+    @typechecked
     def __init__(
         self,
         s2st_type: str,
@@ -72,7 +73,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
     ):
-        @typechecked
 
         super().__init__()
         self.sos = tgt_vocab_size - 1 if tgt_vocab_size else None
@@ -653,6 +653,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    @typechecked
     def inference(
         self,
         src_speech: torch.Tensor,
@@ -670,7 +671,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        @typechecked
 
         # 0. Target feature extract
         # NOTE(jiatong): only for teaching-forcing in spectrogram

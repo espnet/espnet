@@ -17,6 +17,7 @@ class SequentialRNNLM(AbsLM):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -28,7 +29,6 @@ class SequentialRNNLM(AbsLM):
         rnn_type: str = "lstm",
         ignore_id: int = 0,
     ):
-        @typechecked
         super().__init__()
 
         ninp = unit

@@ -37,6 +37,7 @@ class Text2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         mt_train_config: Union[Path, str] = None,
@@ -60,7 +61,6 @@ class Text2Text:
         nbest: int = 1,
         normalize_length: bool = False,
     ):
-        @typechecked
 
         # 1. Build MT model
         scorers = {}
@@ -175,6 +175,7 @@ class Text2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, src_text: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -186,7 +187,6 @@ class Text2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(src_text, np.ndarray):
@@ -269,6 +269,7 @@ class Text2Text:
         return Text2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -300,7 +301,6 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

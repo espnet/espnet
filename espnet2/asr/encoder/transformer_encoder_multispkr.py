@@ -59,6 +59,7 @@ class TransformerEncoder(AbsEncoder):
         num_inf: number of inference output
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -79,7 +80,6 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         num_inf: int = 1,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

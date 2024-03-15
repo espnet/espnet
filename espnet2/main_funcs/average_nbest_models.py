@@ -10,6 +10,7 @@ from espnet2.train.reporter import Reporter
 
 
 @torch.no_grad()
+@typechecked
 def average_nbest_models(
     output_dir: Path,
     reporter: Reporter,
@@ -27,7 +28,6 @@ def average_nbest_models(
         nbest: Number of best model files to be averaged
         suffix: A suffix added to the averaged model file name
     """
-    @typechecked
     if isinstance(nbest, int):
         nbests = [nbest]
     else:

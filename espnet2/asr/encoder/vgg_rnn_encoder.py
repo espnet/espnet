@@ -24,6 +24,7 @@ class VGGRNNEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -36,7 +37,6 @@ class VGGRNNEncoder(AbsEncoder):
         dropout: float = 0.0,
         in_channel: int = 1,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type

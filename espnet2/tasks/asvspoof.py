@@ -184,19 +184,19 @@ class ASVSpoofTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -224,8 +224,8 @@ class ASVSpoofTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASVSpoofModel:
-        @typechecked
 
         # 1. frontend
         if args.input_size is None:

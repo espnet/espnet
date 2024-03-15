@@ -28,6 +28,7 @@ else:
 class ESPnetTTSModel(AbsESPnetModel):
     """ESPnet model for text-to-speech task."""
 
+    @typechecked
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
@@ -39,7 +40,6 @@ class ESPnetTTSModel(AbsESPnetModel):
         tts: AbsTTS,
     ):
         """Initialize ESPnetTTSModel module."""
-        @typechecked
         super().__init__()
         self.feats_extract = feats_extract
         self.pitch_extract = pitch_extract

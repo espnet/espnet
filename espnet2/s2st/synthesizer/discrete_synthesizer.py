@@ -32,6 +32,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # decoder related
@@ -83,7 +84,6 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
                 assume that spembs will be provided as the input.
             spk_embed_integration_type (str): How to integrate speaker embedding.
         """
-        @typechecked
         super().__init__()
 
         self.spks = None

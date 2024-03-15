@@ -246,18 +246,18 @@ class SpeakerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
         return CommonCollateFn()
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.use_preprocessor:
             if train:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
@@ -298,8 +298,8 @@ class SpeakerTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
-        @typechecked
 
         if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)

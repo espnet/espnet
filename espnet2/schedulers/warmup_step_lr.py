@@ -28,6 +28,7 @@ class WarmupStepLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -39,7 +40,6 @@ class WarmupStepLR(_LRScheduler, AbsBatchStepScheduler):
         gamma: float = 0.1,
         last_epoch: int = -1,
     ):
-        @typechecked
         self.warmup_steps = warmup_steps
 
         self.step_num = 0

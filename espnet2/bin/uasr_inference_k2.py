@@ -63,6 +63,7 @@ class k2Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         uasr_train_config: Union[Path, str],
@@ -101,7 +102,6 @@ class k2Speech2Text:
         nbest_batch_size: int = 500,
         nll_batch_size: int = 100,
     ):
-        @typechecked
 
         # 1. Build UASR model
         uasr_model, uasr_train_args = UASRTask.build_model_from_file(
@@ -162,6 +162,7 @@ class k2Speech2Text:
         self.uasr_model_ignore_id = 0
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
@@ -173,7 +174,6 @@ class k2Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -305,6 +305,7 @@ class k2Speech2Text:
         return k2Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     decoding_graph: str,
@@ -343,7 +344,6 @@ def inference(
     k2_config: Optional[str],
 ):
     assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
-    @typechecked
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

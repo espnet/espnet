@@ -53,12 +53,12 @@ class XMLReader:
         >>> tempo, note_list = reader['key1']
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
         dtype=np.int16,
     ):
-        @typechecked
         self.fname = fname
         self.dtype = dtype
         self.data = read_2columns_text(fname)  # get key-value dict

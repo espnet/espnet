@@ -62,6 +62,7 @@ class SpkTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -70,7 +71,6 @@ class SpkTrainer(Trainer):
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> None:
-        @typechecked
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
@@ -246,6 +246,7 @@ class SpkTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def extract_embed(
         cls,
         model: torch.nn.Module,
@@ -257,7 +258,6 @@ class SpkTrainer(Trainer):
         custom_bs: int,
         average: bool = False,
     ) -> None:
-        @typechecked
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed

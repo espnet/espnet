@@ -39,6 +39,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     (e.g., ASR, SE, target speaker extraction).
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -49,7 +50,6 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         projector: Optional[AbsProjector],
         loss: Optional[AbsLoss],
     ):
-        @typechecked
 
         super().__init__()
 

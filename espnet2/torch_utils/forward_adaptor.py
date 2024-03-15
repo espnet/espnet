@@ -20,8 +20,8 @@ class ForwardAdaptor(torch.nn.Module):
         >>> model(x)
     """
 
+    @typechecked
     def __init__(self, module: torch.nn.Module, name: str):
-        @typechecked
         super().__init__()
         self.module = module
         self.name = name

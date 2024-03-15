@@ -78,6 +78,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         avhubert_dir_path: dir_path for downloading pre-trained avhubert model
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -107,7 +108,6 @@ class FairseqAVHubertEncoder(AbsEncoder):
         max_noise_weight: float = 0.5,
         audio_only: bool = False,
     ):
-        @typechecked
         super().__init__()
 
         self._output_size = encoder_embed_dim

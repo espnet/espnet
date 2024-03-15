@@ -50,6 +50,7 @@ class JETS(AbsGANTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # generator related
@@ -243,7 +244,6 @@ class JETS(AbsGANTTS):
             plot_pred_mos (bool): Whether to plot predicted MOS during the training.
             mos_pred_tool (str): MOS prediction tool name.
         """
-        @typechecked
         super().__init__()
 
         # define modules

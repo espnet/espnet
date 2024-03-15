@@ -22,6 +22,7 @@ create_adapter_fn_table = {
 }
 
 
+@typechecked
 def create_adapter(
     model: torch.nn.Module,
     adapter: str,
@@ -37,7 +38,6 @@ def create_adapter(
             e.g.  {"rank": 8, "alpha": 8, ...} for lora
 
     """
-    @typechecked
     assert adapter in create_adapter_fn_table, f"Adapter {adapter} is not supported."
     create_adapter_fn = create_adapter_fn_table[adapter]
     create_adapter_fn(model=model, **adapter_conf)

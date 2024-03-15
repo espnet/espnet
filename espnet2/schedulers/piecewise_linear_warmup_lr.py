@@ -18,6 +18,7 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -25,7 +26,6 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_lr_list: List[float] = [0.0, 0.001],
         last_epoch: int = -1,
     ):
-        @typechecked
         self.warmup_steps_list = warmup_steps_list
         self.warmup_lr_list = warmup_lr_list
 

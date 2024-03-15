@@ -46,6 +46,7 @@ class CategoryIterFactory(AbsIterFactory):
 
     """
 
+    @typechecked
     def __init__(
         self,
         dataset,
@@ -58,7 +59,6 @@ class CategoryIterFactory(AbsIterFactory):
         collate_fn=None,
         pin_memory: bool = False,
     ):
-        @typechecked
 
         if not isinstance(batches, AbsSampler):
             self.sampler = RawSampler(batches)

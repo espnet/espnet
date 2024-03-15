@@ -71,8 +71,8 @@ class SegmentsExtractor:
             "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5\n"
     """
 
+    @typechecked
     def __init__(self, fname: str, segments: str = None, multi_columns: bool = False):
-        @typechecked
         self.wav_scp = fname
         self.multi_columns = multi_columns
         self.wav_dict = {}

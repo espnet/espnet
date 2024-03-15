@@ -34,6 +34,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         model_name_or_path: Hugging Face Transformers model name
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -43,7 +44,6 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         prefix: str = "",
         postfix: str = "",
     ):
-        @typechecked
         super().__init__()
 
         if not is_transformers_available:

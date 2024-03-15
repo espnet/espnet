@@ -76,6 +76,7 @@ class IterableESPnetDataset(IterableDataset):
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
+    @typechecked
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
@@ -86,7 +87,6 @@ class IterableESPnetDataset(IterableDataset):
         int_dtype: str = "long",
         key_file: str = None,
     ):
-        @typechecked
         if len(path_name_type_list) == 0:
             raise ValueError(
                 '1 or more elements are required for "path_name_type_list"'

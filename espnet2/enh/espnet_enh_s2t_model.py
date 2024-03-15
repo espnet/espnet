@@ -29,6 +29,7 @@ else:
 class ESPnetEnhS2TModel(AbsESPnetModel):
     """Joint model Enhancement and Speech to Text."""
 
+    @typechecked
     def __init__(
         self,
         enh_model: ESPnetEnhancementModel,
@@ -36,7 +37,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
-        @typechecked
 
         super().__init__()
         self.enh_model = enh_model
@@ -509,12 +509,12 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         return hyp_perm, torch.stack(min_perm_loss)
 
+    @typechecked
     def inherite_attributes(
         self,
         inherite_enh_attrs: List[str] = [],
         inherite_s2t_attrs: List[str] = [],
     ):
-        @typechecked
 
         if len(inherite_enh_attrs) > 0:
             for attr in inherite_enh_attrs:

@@ -89,6 +89,7 @@ class NaiveRNN(AbsSVS):
     predict the singing voice features
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -167,7 +168,6 @@ class NaiveRNN(AbsSVS):
             loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

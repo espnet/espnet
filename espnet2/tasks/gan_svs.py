@@ -154,9 +154,9 @@ class GANSVSTask(AbsTask):
     trainer = GANTrainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        @typechecked
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -236,11 +236,11 @@ class GANSVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -248,10 +248,10 @@ class GANSVSTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -301,8 +301,8 @@ class GANSVSTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
-        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

@@ -27,8 +27,8 @@ class TextCleaner:
 
     """
 
+    @typechecked
     def __init__(self, cleaner_types: Collection[str] = None):
-        @typechecked
 
         if cleaner_types is None:
             self.cleaner_types = []

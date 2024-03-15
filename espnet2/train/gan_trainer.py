@@ -58,9 +58,9 @@ class GANTrainer(Trainer):
     """
 
     @classmethod
+    @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()."""
-        @typechecked
         return build_dataclass(GANTrainerOptions, args)
 
     @classmethod
@@ -74,6 +74,7 @@ class GANTrainer(Trainer):
         )
 
     @classmethod
+    @typechecked
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -87,7 +88,6 @@ class GANTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> bool:
         """Train one epoch."""
-        @typechecked
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
@@ -307,6 +307,7 @@ class GANTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -316,7 +317,6 @@ class GANTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> None:
         """Validate one epoch."""
-        @typechecked
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed

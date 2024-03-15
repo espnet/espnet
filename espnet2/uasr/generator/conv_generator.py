@@ -37,6 +37,7 @@ class SamePad(torch.nn.Module):
 class ConvGenerator(AbsGenerator):
     """convolutional generator for UASR."""
 
+    @typechecked
     def __init__(
         self,
         input_dim: int,
@@ -53,7 +54,6 @@ class ConvGenerator(AbsGenerator):
         residual: str2bool = True,
     ):
         super().__init__()
-        @typechecked
 
         self.input_dim = input_dim
         self.output_dim = output_dim

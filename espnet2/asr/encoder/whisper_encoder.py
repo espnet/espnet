@@ -15,6 +15,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -36,7 +37,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
             )
             raise e
 
-        @typechecked
         super().__init__()
 
         self.n_fft = N_FFT

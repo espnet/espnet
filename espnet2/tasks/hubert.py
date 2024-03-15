@@ -269,11 +269,11 @@ class HubertTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
 
         # default sampling rate is 16000
         fs = args.frontend_conf.get("fs", 16000)
@@ -308,10 +308,10 @@ class HubertTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -354,10 +354,10 @@ class HubertTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(
         cls, args: argparse.Namespace
     ) -> Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
-        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

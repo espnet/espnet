@@ -47,6 +47,7 @@ class Speech2Understand:
 
     """
 
+    @typechecked
     def __init__(
         self,
         slu_train_config: Union[Path, str] = None,
@@ -76,7 +77,6 @@ class Speech2Understand:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        @typechecked
 
         task = SLUTask
 
@@ -240,6 +240,7 @@ class Speech2Understand:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], transcript: torch.Tensor = None
     ) -> List[
@@ -258,7 +259,6 @@ class Speech2Understand:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -370,6 +370,7 @@ class Speech2Understand:
         return Speech2Understand(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -407,7 +408,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

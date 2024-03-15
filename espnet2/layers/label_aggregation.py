@@ -7,13 +7,13 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class LabelAggregate(torch.nn.Module):
+    @typechecked
     def __init__(
         self,
         win_length: int = 512,
         hop_length: int = 128,
         center: bool = True,
     ):
-        @typechecked
         super().__init__()
 
         self.win_length = win_length

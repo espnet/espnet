@@ -15,9 +15,9 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 class LinearProjection(AbsPreEncoder):
     """Linear Projection Preencoder."""
 
+    @typechecked
     def __init__(self, input_size: int, output_size: int, dropout: float = 0.0):
         """Initialize the module."""
-        @typechecked
         super().__init__()
 
         self.output_dim = output_size

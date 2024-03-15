@@ -22,6 +22,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         eps:
     """
 
+    @typechecked
     def __init__(
         self,
         stats_file: Union[Path, str],
@@ -29,7 +30,6 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         norm_vars: bool = True,
         eps: float = 1.0e-20,
     ):
-        @typechecked
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars

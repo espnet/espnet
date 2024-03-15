@@ -45,6 +45,7 @@ class singing_tacotron(AbsSVS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -156,7 +157,6 @@ class singing_tacotron(AbsSVS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

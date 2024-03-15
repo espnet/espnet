@@ -45,6 +45,7 @@ class DiarizeSpeech:
 
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -60,7 +61,6 @@ class DiarizeSpeech:
         enh_s2t_task: bool = False,
         multiply_diar_result: bool = False,
     ):
-        @typechecked
 
         task = DiarizationTask if not enh_s2t_task else EnhS2TTask
 
@@ -120,6 +120,7 @@ class DiarizeSpeech:
             logging.info("Perform direct speaker diarization on the input")
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
     ) -> List[torch.Tensor]:
@@ -132,7 +133,6 @@ class DiarizeSpeech:
             [speaker_info1, speaker_info2, ...]
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -462,6 +462,7 @@ class DiarizeSpeech:
         return spk_prediction, num_spk
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -486,7 +487,6 @@ def inference(
     multiply_diar_result: bool,
     enh_s2t_task: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

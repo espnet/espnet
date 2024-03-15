@@ -68,7 +68,7 @@ BATCH_TYPES = dict(
     "    utterance_id_c 1241,80\n",
 )
 
-
+@typechecked
 def build_batch_sampler(
     type: str,
     batch_size: int,
@@ -100,7 +100,6 @@ def build_batch_sampler(
         padding: Whether sequences are input as a padded tensor or not.
             used for "numel" mode
     """
-    @typechecked
     if len(shape_files) == 0:
         raise ValueError("No shape file are given")
 

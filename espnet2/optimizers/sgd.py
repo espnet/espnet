@@ -12,6 +12,7 @@ class SGD(torch.optim.SGD):
     I can't understand why only SGD.lr doesn't have the default value.
     """
 
+    @typechecked
     def __init__(
         self,
         params,
@@ -21,7 +22,6 @@ class SGD(torch.optim.SGD):
         weight_decay: float = 0.0,
         nesterov: bool = False,
     ):
-        @typechecked
         super().__init__(
             params,
             lr=lr,

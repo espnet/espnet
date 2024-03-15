@@ -34,6 +34,7 @@ else:
 class ESPnetGANSVSModel(AbsGANESPnetModel):
     """ESPnet model for GAN-based singing voice synthesis task."""
 
+    @typechecked
     def __init__(
         self,
         text_extract: Optional[AbsFeatsExtract],
@@ -50,7 +51,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         svs: AbsGANSVS,
     ):
         """Initialize ESPnetGANSVSModel module."""
-        @typechecked
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract

@@ -95,6 +95,7 @@ class SeparateSpeech:
 
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -110,7 +111,6 @@ class SeparateSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        @typechecked
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -191,6 +191,7 @@ class SeparateSpeech:
             logging.info("Perform direct speech %s on the input" % task)
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000, **kwargs
     ) -> List[torch.Tensor]:
@@ -203,7 +204,6 @@ class SeparateSpeech:
             [separated_audio1, separated_audio2, ...]
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -426,6 +426,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -450,7 +451,6 @@ def inference(
     normalize_output_wav: bool,
     enh_s2t_task: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

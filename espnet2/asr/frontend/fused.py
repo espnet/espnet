@@ -10,10 +10,10 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 
 
 class FusedFrontends(AbsFrontend):
+    @typechecked
     def __init__(
         self, frontends=None, align_method="linear_projection", proj_dim=100, fs=16000
     ):
-        @typechecked
         super().__init__()
         self.align_method = (
             align_method  # fusing method : linear_projection only for now

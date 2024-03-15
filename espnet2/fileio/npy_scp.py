@@ -24,8 +24,8 @@ class NpyScpWriter:
 
     """
 
+    @typechecked
     def __init__(self, outdir: Union[Path, str], scpfile: Union[Path, str]):
-        @typechecked
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
@@ -72,8 +72,8 @@ class NpyScpReader(collections.abc.Mapping):
 
     """
 
+    @typechecked
     def __init__(self, fname: Union[Path, str]):
-        @typechecked
         self.fname = Path(fname)
         self.data = read_2columns_text(fname)
 

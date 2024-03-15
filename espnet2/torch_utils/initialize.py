@@ -9,6 +9,7 @@ import torch
 from typeguard import typechecked
 
 
+@typechecked
 def initialize(model: torch.nn.Module, init: str):
     """Initialize weights of a neural network module.
 
@@ -21,7 +22,6 @@ def initialize(model: torch.nn.Module, init: str):
         model: Target.
         init: Method of initialization.
     """
-    @typechecked
 
     if init == "chainer":
         # 1. lecun_normal_init_parameters

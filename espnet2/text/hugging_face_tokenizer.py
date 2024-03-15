@@ -14,8 +14,8 @@ except ImportError:
 
 
 class HuggingFaceTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(self, model: Union[Path, str]):
-        @typechecked
 
         if not is_transformers_available:
             raise ImportError(

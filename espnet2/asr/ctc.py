@@ -18,6 +18,7 @@ class CTC(torch.nn.Module):
         zero_infinity:  Whether to zero infinite losses and the associated gradients.
     """
 
+    @typechecked
     def __init__(
         self,
         odim: int,
@@ -31,7 +32,6 @@ class CTC(torch.nn.Module):
         brctc_group_strategy: str = "end",
         brctc_risk_factor: float = 0.0,
     ):
-        @typechecked
         super().__init__()
         eprojs = encoder_output_size
         self.dropout_rate = dropout_rate

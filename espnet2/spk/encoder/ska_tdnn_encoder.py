@@ -352,6 +352,7 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: ouptut embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -363,7 +364,6 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        @typechecked
         super().__init__()
 
         if block == "Bottle2neck":

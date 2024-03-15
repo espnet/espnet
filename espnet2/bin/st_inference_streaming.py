@@ -57,6 +57,7 @@ class Speech2TextStreaming:
 
     """
 
+    @typechecked
     def __init__(
         self,
         st_train_config: Union[Path, str],
@@ -86,7 +87,6 @@ class Speech2TextStreaming:
         transducer_conf: dict = None,
         hugging_face_decoder: bool = False,
     ):
-        @typechecked
 
         # 1. Build ST model
         scorers = {}
@@ -385,6 +385,7 @@ class Speech2TextStreaming:
         return feats, feats_lengths, next_states
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -396,7 +397,6 @@ class Speech2TextStreaming:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -458,6 +458,7 @@ class Speech2TextStreaming:
         return results
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -496,7 +497,6 @@ def inference(
     transducer_conf: Optional[dict],
     hugging_face_decoder: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

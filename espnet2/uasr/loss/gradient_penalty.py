@@ -11,6 +11,7 @@ from espnet2.utils.types import str2bool
 class UASRGradientPenalty(AbsUASRLoss):
     """gradient penalty for UASR."""
 
+    @typechecked
     def __init__(
         self,
         discriminator: AbsDiscriminator,
@@ -19,7 +20,6 @@ class UASRGradientPenalty(AbsUASRLoss):
         reduction: str = "sum",
     ):
         super().__init__()
-        @typechecked
 
         self.discriminator = [discriminator]
         self.weight = weight

@@ -42,7 +42,7 @@ class Transformer(AbsTTS):
         https://arxiv.org/pdf/1809.08895.pdf
 
     """
-
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -203,7 +203,6 @@ class Transformer(AbsTTS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

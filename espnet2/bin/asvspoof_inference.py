@@ -31,6 +31,7 @@ class SpeechAntiSpoof:
         prediction_result (int)
     """
 
+    @typechecked
     def __init__(
         self,
         asvspoof_train_config: Union[Path, str] = None,
@@ -39,7 +40,6 @@ class SpeechAntiSpoof:
         batch_size: int = 1,
         dtype: str = "float32",
     ):
-        @typechecked
 
         asvspoof_model, asvspoof_train_args = ASVSpoofTask.build_model_from_file(
             asvspoof_train_config, asvspoof_model_file, device
@@ -52,6 +52,7 @@ class SpeechAntiSpoof:
         self.dtype = dtype
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> float:
         """Inference
         Args:
@@ -59,7 +60,6 @@ class SpeechAntiSpoof:
         Returns:
             [prediction, scores]
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -86,6 +86,7 @@ class SpeechAntiSpoof:
         return None
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -100,7 +101,6 @@ def inference(
     asvspoof_model_file: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

@@ -18,6 +18,7 @@ from espnet2.utils import config_argparse
 from espnet.utils.cli_utils import get_commandline_args
 
 
+@typechecked
 def scoring(
     output_dir: str,
     dtype: str,
@@ -30,7 +31,6 @@ def scoring(
     frame_size: int = 512,
     frame_hop: int = 256,
 ):
-    @typechecked
     for metric in metrics:
         assert metric in (
             "STOI",

@@ -20,6 +20,7 @@ class DefaultFrontend(AbsFrontend):
     Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Log-Mel-Fbank
     """
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
@@ -37,7 +38,6 @@ class DefaultFrontend(AbsFrontend):
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         apply_stft: bool = True,
     ):
-        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

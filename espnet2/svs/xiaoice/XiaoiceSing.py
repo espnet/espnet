@@ -48,6 +48,7 @@ class XiaoiceSing(AbsSVS):
         https://arxiv.org/pdf/2006.06261.pdf
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -182,7 +183,6 @@ class XiaoiceSing(AbsSVS):
             lambda_vuv (float): Loss scaling coefficient for VUV loss.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

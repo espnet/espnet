@@ -6,12 +6,12 @@ from typeguard import typechecked
 
 
 class TokenIDConverter:
+    @typechecked
     def __init__(
         self,
         token_list: Union[Path, str, Iterable[str]],
         unk_symbol: str = "<unk>",
     ):
-        @typechecked
 
         if isinstance(token_list, (Path, str)):
             token_list = Path(token_list)

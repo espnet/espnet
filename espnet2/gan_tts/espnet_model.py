@@ -28,6 +28,7 @@ else:
 class ESPnetGANTTSModel(AbsGANESPnetModel):
     """ESPnet model for GAN-based text-to-speech task."""
 
+    @typechecked
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
@@ -39,7 +40,6 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         tts: AbsGANTTS,
     ):
         """Initialize ESPnetGANTTSModel module."""
-        @typechecked
         super().__init__()
         self.feats_extract = feats_extract
         self.normalize = normalize

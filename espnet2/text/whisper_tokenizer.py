@@ -36,6 +36,7 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(
         self,
         model_type: str,
@@ -45,7 +46,6 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         speaker_change_symbol: str = "<sc>",
         added_tokens_txt: str = None,
     ):
-        @typechecked
 
         try:
             import whisper.tokenizer

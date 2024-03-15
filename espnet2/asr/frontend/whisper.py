@@ -14,6 +14,7 @@ class WhisperFrontend(AbsFrontend):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         whisper_model: str = "small",
@@ -31,7 +32,6 @@ class WhisperFrontend(AbsFrontend):
             )
             raise e
 
-        @typechecked
         super().__init__()
 
         self.n_fft = N_FFT

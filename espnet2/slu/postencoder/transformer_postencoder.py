@@ -48,6 +48,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -66,7 +67,6 @@ class TransformerPostEncoder(AbsPostEncoder):
         positionwise_conv_kernel_size: int = 1,
         padding_idx: int = -1,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

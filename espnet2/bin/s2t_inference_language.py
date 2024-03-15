@@ -22,6 +22,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Language:
+    @typechecked
     def __init__(
         self,
         s2t_train_config: Union[Path, str] = None,
@@ -36,7 +37,6 @@ class Speech2Language:
         first_lang_sym: str = "<abk>",
         last_lang_sym: str = "<zul>",
     ):
-        @typechecked
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
@@ -67,6 +67,7 @@ class Speech2Language:
         self.last_lang_id = token_list.index(last_lang_sym)
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -83,8 +84,6 @@ class Speech2Language:
             List of (language, probability)
 
         """
-
-        @typechecked
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -169,6 +168,7 @@ class Speech2Language:
         return Speech2Language(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -190,7 +190,6 @@ def inference(
     first_lang_sym: str,
     last_lang_sym: str,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

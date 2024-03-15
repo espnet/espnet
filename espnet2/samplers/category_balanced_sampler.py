@@ -28,6 +28,7 @@ def round_down(num, divisor):
 
 
 class CategoryBalancedSampler(AbsSampler):
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -37,7 +38,6 @@ class CategoryBalancedSampler(AbsSampler):
         epoch: int = 1,
         **kwargs,
     ):
-        @typechecked
         assert batch_size > 0
         random.seed(epoch)
 

@@ -12,6 +12,7 @@ from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 from espnet2.text.word_tokenizer import WordTokenizer
 
 
+@typechecked
 def build_tokenizer(
     token_type: str,
     bpemodel: Union[Path, str, Iterable[str]] = None,
@@ -29,7 +30,6 @@ def build_tokenizer(
     sot_asr: bool = False,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
-    @typechecked
     if token_type == "bpe":
         if bpemodel is None:
             raise ValueError('bpemodel is required if token_type = "bpe"')

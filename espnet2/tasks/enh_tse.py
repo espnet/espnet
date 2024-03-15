@@ -256,19 +256,19 @@ class TargetSpeakerExtractionTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         kwargs = dict(
             train_spk2enroll=args.train_spk2enroll,
             enroll_segment=getattr(args, "enroll_segment", None),
@@ -326,8 +326,8 @@ class TargetSpeakerExtractionTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetExtractionModel:
-        @typechecked
 
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
         extractor = extractor_choices.get_class(args.extractor)(

@@ -17,6 +17,7 @@ class SortedBatchSampler(AbsSampler):
         sort_batch:
     """
 
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -25,7 +26,6 @@ class SortedBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
     ):
-        @typechecked
         assert batch_size > 0
         self.batch_size = batch_size
         self.shape_file = shape_file

@@ -40,6 +40,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -52,7 +53,6 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
     ):
-        @typechecked
 
         super().__init__()
 

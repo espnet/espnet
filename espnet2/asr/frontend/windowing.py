@@ -26,6 +26,7 @@ class SlidingWindow(AbsFrontend):
     There is currently no additional window function applied to input values.
     """
 
+    @typechecked
     def __init__(
         self,
         win_length: int = 400,
@@ -43,7 +44,6 @@ class SlidingWindow(AbsFrontend):
             padding: Padding (placeholder, currently not implemented).
             fs:  Sampling rate (placeholder for compatibility, not used).
         """
-        @typechecked
         super().__init__()
         self.fs = fs
         self.win_length = win_length

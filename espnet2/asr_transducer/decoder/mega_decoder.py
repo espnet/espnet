@@ -46,6 +46,7 @@ class MEGADecoder(AbsDecoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -72,8 +73,6 @@ class MEGADecoder(AbsDecoder):
     ) -> None:
         """Construct a MEGADecoder object."""
         super().__init__()
-
-        @typechecked
 
         self.embed = torch.nn.Embedding(vocab_size, block_size, padding_idx=embed_pad)
         self.dropout_embed = torch.nn.Dropout(p=embed_dropout_rate)

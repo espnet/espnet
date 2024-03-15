@@ -482,19 +482,19 @@ class STTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        @typechecked
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.src_token_type == "none":
             args.src_token_type = None
 
@@ -553,8 +553,8 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel]:
-        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

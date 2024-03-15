@@ -7,6 +7,7 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class LengthBatchSampler(AbsSampler):
+    @typechecked
     def __init__(
         self,
         batch_bins: int,
@@ -17,7 +18,6 @@ class LengthBatchSampler(AbsSampler):
         drop_last: bool = False,
         padding: bool = True,
     ):
-        @typechecked
         assert batch_bins > 0
         if sort_batch != "ascending" and sort_batch != "descending":
             raise ValueError(

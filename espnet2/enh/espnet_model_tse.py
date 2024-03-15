@@ -21,6 +21,7 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 class ESPnetExtractionModel(AbsESPnetModel):
     """Target Speaker Extraction Frontend model"""
 
+    @typechecked
     def __init__(
         self,
         encoder: AbsEncoder,
@@ -32,7 +33,6 @@ class ESPnetExtractionModel(AbsESPnetModel):
         share_encoder: bool = True,
         extract_feats_in_collect_stats: bool = False,
     ):
-        @typechecked
 
         super().__init__()
 

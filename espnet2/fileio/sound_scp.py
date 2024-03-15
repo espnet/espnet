@@ -115,6 +115,7 @@ class SoundScpReader(collections.abc.Mapping):
         but it increases the required amount of memory.
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
@@ -123,7 +124,6 @@ class SoundScpReader(collections.abc.Mapping):
         multi_columns: bool = False,
         concat_axis=1,
     ):
-        @typechecked
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d
@@ -197,6 +197,7 @@ class SoundScpWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
@@ -207,7 +208,6 @@ class SoundScpWriter:
         output_name_format_multi_columns: str = "{key}-CH{channel}.{audio_format}",
         subtype: str = None,
     ):
-        @typechecked
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)

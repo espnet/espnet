@@ -15,6 +15,7 @@ class LogMelFbank(AbsFeatsExtract):
     Stft -> amplitude-spec -> Log-Mel-Fbank
     """
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
@@ -31,7 +32,6 @@ class LogMelFbank(AbsFeatsExtract):
         htk: bool = False,
         log_base: Optional[float] = 10.0,
     ):
-        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

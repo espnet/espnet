@@ -42,6 +42,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         uasr_train_config: Union[Path, str] = None,
@@ -64,7 +65,6 @@ class Speech2Text:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        @typechecked
 
         if quantize_uasr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
@@ -200,6 +200,7 @@ class Speech2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis]]]:
@@ -211,7 +212,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -292,6 +292,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -322,7 +323,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

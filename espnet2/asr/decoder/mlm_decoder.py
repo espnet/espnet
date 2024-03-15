@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class MLMDecoder(AbsDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -37,7 +38,6 @@ class MLMDecoder(AbsDecoder):
         normalize_before: bool = True,
         concat_after: bool = False,
     ):
-        @typechecked
         super().__init__()
         attention_dim = encoder_output_size
         vocab_size += 1  # for mask token

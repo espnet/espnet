@@ -60,6 +60,7 @@ class VITS(AbsGANTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # generator related
@@ -217,7 +218,6 @@ class VITS(AbsGANTTS):
             mos_pred_tool (str): MOS prediction tool name.
 
         """
-        @typechecked
         super().__init__()
 
         # define modules

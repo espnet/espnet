@@ -58,6 +58,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str] = None,
@@ -81,8 +82,6 @@ class Speech2Text:
     ) -> None:
         """Construct a Speech2Text object."""
         super().__init__()
-
-        @typechecked
 
         asr_model, asr_train_args = ASRTransducerTask.build_model_from_file(
             asr_train_config, asr_model_file, device
@@ -247,6 +246,7 @@ class Speech2Text:
         return nbest_hyps
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> List[Hypothesis]:
         """Speech2Text call.
 
@@ -257,7 +257,6 @@ class Speech2Text:
             nbest_hypothesis: N-best hypothesis.
 
         """
-        @typechecked
 
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -336,6 +335,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -400,7 +400,6 @@ def inference(
         display_hypotheses: Whether to display (partial and full) hypotheses.
 
     """
-    @typechecked
 
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")

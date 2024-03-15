@@ -20,6 +20,7 @@ class MelSpectrogramTorch(AbsFrontend):
     Mel-Spectrogram using Torchaudio Implementation.
     """
 
+    @typechecked
     def __init__(
         self,
         preemp: bool = True,
@@ -34,7 +35,6 @@ class MelSpectrogramTorch(AbsFrontend):
         mel_scale: str = "htk",
         normalize: str = None,
     ):
-        @typechecked
         super().__init__()
 
         self.log = log

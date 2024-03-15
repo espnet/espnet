@@ -35,6 +35,7 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -51,7 +52,6 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         eps=1e-8,
         verbose=False,
     ):
-        @typechecked
         self.warmup_steps = warmup_steps
         self.step_num = 0
         self.lr_scale = warmup_steps**-1

@@ -39,6 +39,7 @@ except ImportError:
     is_lora_available = False
 
 
+@typechecked
 def create_houlsby_adapter(
     model: torch.nn.Module,
     bottleneck: int = 32,
@@ -55,7 +56,6 @@ def create_houlsby_adapter(
             "Error: S3PRL is not properly installed."
             "Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done"
         )
-    @typechecked
     assert hasattr(model, "frontend") and isinstance(
         model.frontend, S3prlFrontend
     ), "Only support S3PRL frontend now !!"
@@ -82,6 +82,7 @@ def create_houlsby_adapter(
         raise ValueError(f"Target layers {target_layers} not found in the base model.")
 
 
+@typechecked
 def create_lora_adapter(
     model: torch.nn.Module,
     rank: int = 8,
@@ -111,7 +112,6 @@ def create_lora_adapter(
 
     """
 
-    @typechecked
     if not is_lora_available:
         raise ImportError(
             "Requiring loralib. Install loralib following: "
@@ -146,13 +146,13 @@ def create_lora_adapter(
         )
 
 
+@typechecked
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     """Create a new houlsby adapter module for the given target module\n.
     Currently, only support:
     Wav2Vec2EncoderLayerStableLayerNorm &
     TransformerSentenceEncoderLayer
     """
-    @typechecked
     if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
 
         input_size = target_module.layer_norm.normalized_shape[0]
@@ -214,11 +214,11 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     return adapter_added_layer
 
 
+@typechecked
 def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
 ):
     """Create a new lora module for the given target module."""
-    @typechecked
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):

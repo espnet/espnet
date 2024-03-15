@@ -63,6 +63,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         ctx_pos_enc: whether to use positional encoding to the context vectors
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -91,7 +92,6 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         init_average: bool = True,
         ctx_pos_enc: bool = True,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
         self.pos_enc = pos_enc_class(output_size, positional_dropout_rate)

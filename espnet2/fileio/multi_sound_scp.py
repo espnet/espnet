@@ -32,10 +32,10 @@ class MultiSoundScpReader(collections.abc.Mapping):
                 to the same length.
     """
 
+    @typechecked
     def __init__(
         self, fname, dtype=None, always_2d: bool = False, stack_axis=0, pad=np.nan
     ):
-        @typechecked
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d

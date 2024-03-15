@@ -34,6 +34,7 @@ class RWKVDecoder(AbsDecoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -52,8 +53,6 @@ class RWKVDecoder(AbsDecoder):
     ) -> None:
         """Construct a RWKVDecoder object."""
         super().__init__()
-
-        @typechecked
 
         norm_class, norm_args = get_normalization(
             normalization_type, **normalization_args

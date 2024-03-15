@@ -20,6 +20,7 @@ from espnet2.utils.types import float_or_none, str2bool, str2triple_str, str_or_
 from espnet.utils.cli_utils import get_commandline_args
 
 
+@typechecked
 def calc_perplexity(
     output_dir: str,
     batch_size: int,
@@ -35,7 +36,6 @@ def calc_perplexity(
     log_base: Optional[float],
     allow_variable_data_keys: bool,
 ):
-    @typechecked
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",

@@ -84,6 +84,7 @@ class ConformerEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -115,7 +116,6 @@ class ConformerEncoder(AbsEncoder):
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

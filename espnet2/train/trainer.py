@@ -133,9 +133,9 @@ class Trainer:
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
+    @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()"""
-        @typechecked
         return build_dataclass(TrainerOptions, args)
 
     @classmethod
@@ -174,6 +174,7 @@ class Trainer:
         logging.info(f"The training was resumed using {checkpoint}")
 
     @classmethod
+    @typechecked
     def run(
         cls,
         model: AbsESPnetModel,
@@ -186,7 +187,6 @@ class Trainer:
         distributed_option: DistributedOption,
     ) -> None:
         """Perform training. This method performs the main process of training."""
-        @typechecked
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
@@ -516,6 +516,7 @@ class Trainer:
             )
 
     @classmethod
+    @typechecked
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -528,7 +529,6 @@ class Trainer:
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
-        @typechecked
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
@@ -790,6 +790,7 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -798,7 +799,6 @@ class Trainer:
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> None:
-        @typechecked
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
@@ -842,6 +842,7 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def plot_attention(
         cls,
         model: torch.nn.Module,
@@ -851,7 +852,6 @@ class Trainer:
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:
-        @typechecked
         import matplotlib
 
         ngpu = options.ngpu

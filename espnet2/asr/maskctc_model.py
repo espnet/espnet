@@ -39,6 +39,7 @@ else:
 class MaskCTCModel(ESPnetASRModel):
     """Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC)"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -64,7 +65,6 @@ class MaskCTCModel(ESPnetASRModel):
         sym_mask: str = "<mask>",
         extract_feats_in_collect_stats: bool = True,
     ):
-        @typechecked
 
         super().__init__(
             vocab_size=vocab_size,

@@ -47,6 +47,7 @@ def read_audio(reader, key, audio_format="sound"):
         raise ValueError(f"Unknown audio format: {audio_format}")
 
 
+@typechecked
 def scoring(
     output_dir: str,
     dtype: str,
@@ -61,7 +62,6 @@ def scoring(
     dnsmos_args: Dict,
     use_pesq: bool,
 ):
-    @typechecked
 
     logging.basicConfig(
         level=log_level,

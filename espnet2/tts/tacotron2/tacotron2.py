@@ -35,6 +35,7 @@ class Tacotron2(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -144,7 +145,6 @@ class Tacotron2(AbsTTS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

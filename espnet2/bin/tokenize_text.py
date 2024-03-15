@@ -60,6 +60,7 @@ def field2slice(field: Optional[str]) -> slice:
     return slic
 
 
+@typechecked
 def tokenize(
     input: str,
     output: str,
@@ -79,7 +80,6 @@ def tokenize(
     g2p: Optional[str],
     add_nonsplit_symbol: List[str],
 ):
-    @typechecked
 
     logging.basicConfig(
         level=log_level,

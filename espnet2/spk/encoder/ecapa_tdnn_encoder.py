@@ -29,6 +29,7 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: output embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -38,7 +39,6 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        @typechecked
         super().__init__()
         if block == "EcapaBlock":
             block = EcapaBlock

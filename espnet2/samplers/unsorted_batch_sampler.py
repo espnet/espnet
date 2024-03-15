@@ -20,6 +20,7 @@ class UnsortedBatchSampler(AbsSampler):
         key_file:
     """
 
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -27,7 +28,6 @@ class UnsortedBatchSampler(AbsSampler):
         drop_last: bool = False,
         utt2category_file: str = None,
     ):
-        @typechecked
         assert batch_size > 0
         self.batch_size = batch_size
         self.key_file = key_file

@@ -9,6 +9,7 @@ from espnet2.utils.types import str2bool
 class UASRDiscriminatorLoss(AbsUASRLoss):
     """discriminator loss for UASR."""
 
+    @typechecked
     def __init__(
         self,
         weight: float = 1.0,
@@ -17,7 +18,6 @@ class UASRDiscriminatorLoss(AbsUASRLoss):
         reduction: str = "sum",
     ):
         super().__init__()
-        @typechecked
         self.weight = weight
         self.smoothing = smoothing
         self.smoothing_one_sided = smoothing_one_side

@@ -17,13 +17,13 @@ except ImportError:
     is_transformers_available = False
 
 
+@typechecked
 def export_vocabulary(
     output: str,
     model_name_or_path: str,
     log_level: str,
     add_symbol: List[str],
 ):
-    @typechecked
 
     if not is_transformers_available:
         raise ImportError(

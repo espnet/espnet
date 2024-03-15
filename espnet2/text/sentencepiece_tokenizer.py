@@ -8,8 +8,8 @@ from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class SentencepiecesTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(self, model: Union[Path, str], encode_kwargs: Dict = dict()):
-        @typechecked
         self.model = str(model)
         # NOTE(kamo):
         # Don't build SentencePieceProcessor in __init__()

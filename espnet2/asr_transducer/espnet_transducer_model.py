@@ -59,6 +59,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -88,8 +89,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     ) -> None:
         """Construct an ESPnetASRTransducerModel object."""
         super().__init__()
-
-        @typechecked
 
         # The following labels ID are reserved:
         #    - 0: Blank symbol.

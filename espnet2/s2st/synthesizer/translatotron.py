@@ -41,6 +41,7 @@ class Translatotron(AbsSynthesizer):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -106,7 +107,6 @@ class Translatotron(AbsSynthesizer):
             dropout_rate (float): Dropout rate.
             zoneout_rate (float): Zoneout rate.
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
 
 
 class ESPnetMultitaskLanguageModel(AbsESPnetModel):
+    @typechecked
     def __init__(
         self,
         lm: AbsLM,
@@ -25,7 +26,6 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         sos_syms: List[str] = ["<generatetext>", "<generatespeech>"],
         eos_sym: str = "<sos/eos>",
     ):
-        @typechecked
         super().__init__()
         self.lm = lm
         self.sos_ids = [token_list.index(t) for t in sos_syms]

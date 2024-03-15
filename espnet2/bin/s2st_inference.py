@@ -36,6 +36,7 @@ from espnet.utils.cli_utils import get_commandline_args
 class Speech2Speech:
     """Speech2Speech class."""
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -67,7 +68,6 @@ class Speech2Speech:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize Speech2Speech module."""
-        @typechecked
 
         # setup model
         model, train_args = S2STTask.build_model_from_file(
@@ -235,6 +235,7 @@ class Speech2Speech:
             )
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
@@ -247,7 +248,6 @@ class Speech2Speech:
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run speech-to-speech."""
-        @typechecked
 
         # check inputs
         if self.use_speech and tgt_speech is None:
@@ -510,6 +510,7 @@ class Speech2Speech:
         return Speech2Speech(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -547,7 +548,6 @@ def inference(
     vocoder_tag: Optional[str],
 ):
     """Run text-to-speech inference."""
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

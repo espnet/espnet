@@ -31,6 +31,7 @@ class NaiveRNNDP(AbsSVS):
     predict the singing voice features
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -116,7 +117,6 @@ class NaiveRNNDP(AbsSVS):
                 loss calculation.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

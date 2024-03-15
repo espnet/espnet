@@ -45,6 +45,7 @@ class FastSpeech2(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -224,7 +225,6 @@ class FastSpeech2(AbsTTS):
                 calculation.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

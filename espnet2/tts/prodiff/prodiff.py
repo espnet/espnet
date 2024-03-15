@@ -43,6 +43,7 @@ class ProDiff(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -222,7 +223,6 @@ class ProDiff(AbsTTS):
                 calculation.
 
         """
-        @typechecked
         super().__init__()
 
         # store hyperparameters

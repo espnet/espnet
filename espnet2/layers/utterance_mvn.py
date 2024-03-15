@@ -8,13 +8,13 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class UtteranceMVN(AbsNormalize):
+    @typechecked
     def __init__(
         self,
         norm_means: bool = True,
         norm_vars: bool = False,
         eps: float = 1.0e-20,
     ):
-        @typechecked
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars

@@ -32,6 +32,7 @@ else:
 class ESPnetMTModel(AbsESPnetModel):
     """Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -53,7 +54,6 @@ class ESPnetMTModel(AbsESPnetModel):
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
     ):
-        @typechecked
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)

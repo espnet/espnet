@@ -34,6 +34,7 @@ class LinearEncoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -43,7 +44,6 @@ class LinearEncoder(AbsEncoder):
         normalize_before: bool = True,
         padding_idx: int = -1,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

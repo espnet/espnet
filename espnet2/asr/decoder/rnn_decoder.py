@@ -80,6 +80,7 @@ def build_attention_list(
 
 
 class RNNDecoder(AbsDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -95,7 +96,6 @@ class RNNDecoder(AbsDecoder):
         att_conf: dict = get_default_kwargs(build_attention_list),
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
-        @typechecked
         if rnn_type not in {"lstm", "gru"}:
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
 

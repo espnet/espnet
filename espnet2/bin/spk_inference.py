@@ -31,6 +31,7 @@ class Speech2Embedding:
 
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -39,7 +40,6 @@ class Speech2Embedding:
         dtype: str = "float32",
         batch_size: int = 1,
     ):
-        @typechecked
 
         spk_model, spk_train_args = SpeakerTask.build_model_from_file(
             train_config, model_file, device
@@ -51,6 +51,7 @@ class Speech2Embedding:
         self.batch_size = batch_size
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """Inference
 
@@ -61,8 +62,6 @@ class Speech2Embedding:
             spk_embedding
 
         """
-
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -112,6 +111,7 @@ class Speech2Embedding:
         return Speech2Embedding(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -126,7 +126,6 @@ def inference(
     model_file: Optional[str],
     model_tag: Optional[str],
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

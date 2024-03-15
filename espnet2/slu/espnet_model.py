@@ -35,6 +35,7 @@ else:
 class ESPnetSLUModel(ESPnetASRModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -64,7 +65,6 @@ class ESPnetSLUModel(ESPnetASRModel):
         two_pass: bool = False,
         pre_postencoder_norm: bool = False,
     ):
-        @typechecked
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 

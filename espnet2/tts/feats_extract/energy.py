@@ -18,6 +18,7 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class Energy(AbsFeatsExtract):
     """Energy extractor."""
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -31,7 +32,6 @@ class Energy(AbsFeatsExtract):
         use_token_averaged_energy: bool = True,
         reduction_factor: int = None,
     ):
-        @typechecked
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

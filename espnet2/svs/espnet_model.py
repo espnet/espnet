@@ -35,6 +35,7 @@ else:
 class ESPnetSVSModel(AbsESPnetModel):
     """ESPnet model for singing voice synthesis task."""
 
+    @typechecked
     def __init__(
         self,
         text_extract: Optional[AbsFeatsExtract],
@@ -51,7 +52,6 @@ class ESPnetSVSModel(AbsESPnetModel):
         svs: AbsSVS,
     ):
         """Initialize ESPnetSVSModel module."""
-        @typechecked
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract

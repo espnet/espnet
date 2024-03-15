@@ -72,6 +72,7 @@ class ConformerPostEncoder(AbsPostEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -97,7 +98,6 @@ class ConformerPostEncoder(AbsPostEncoder):
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

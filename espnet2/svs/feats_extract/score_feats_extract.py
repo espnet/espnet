@@ -17,6 +17,7 @@ def ListsToTensor(xs):
 
 
 class FrameScoreFeats(AbsFeatsExtract):
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -28,7 +29,6 @@ class FrameScoreFeats(AbsFeatsExtract):
     ):
         if win_length is None:
             win_length = n_fft
-        @typechecked
         super().__init__()
 
         self.fs = fs
@@ -154,6 +154,7 @@ class FrameScoreFeats(AbsFeatsExtract):
 
 
 class SyllableScoreFeats(AbsFeatsExtract):
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -165,7 +166,6 @@ class SyllableScoreFeats(AbsFeatsExtract):
     ):
         if win_length is None:
             win_length = n_fft
-        @typechecked
         super().__init__()
 
         self.fs = fs

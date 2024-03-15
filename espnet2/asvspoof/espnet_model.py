@@ -37,6 +37,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
     A simple ASV Spoofing model
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -47,7 +48,6 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         decoder: AbsDecoder,
         losses: Dict[str, AbsASVSpoofLoss],
     ):
-        @typechecked
 
         super().__init__()
 

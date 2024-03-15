@@ -30,6 +30,7 @@ else:
 class ESPnetDiscreteASRModel(ESPnetMTModel):
     """Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -55,7 +56,6 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
     ):
-        @typechecked
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
 
         super().__init__(

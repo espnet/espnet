@@ -22,8 +22,8 @@ Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 _reserved = {"time", "total_count"}
 
 
+@typechecked
 def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
-    @typechecked
     if isinstance(v, (torch.Tensor, np.ndarray)):
         if np.prod(v.shape) != 1:
             raise ValueError(f"v must be 0 or 1 dimension: {len(v.shape)}")
@@ -41,8 +41,8 @@ def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
     return retval
 
 
+@typechecked
 def aggregate(values: Sequence["ReportedValue"]) -> Num:
-    @typechecked
 
     for v in values:
         if not isinstance(v, type(values[0])):
@@ -115,8 +115,8 @@ class SubReporter:
     See the docstring of Reporter for the usage.
     """
 
+    @typechecked
     def __init__(self, key: str, epoch: int, total_count: int):
-        @typechecked
         self.key = key
         self.epoch = epoch
         self.start_time = time.perf_counter()
@@ -149,12 +149,12 @@ class SubReporter:
 
         self._seen_keys_in_the_step = set()
 
+    @typechecked
     def register(
         self,
         stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
         weight: Num = None,
     ) -> None:
-        @typechecked
         if self._finished:
             raise RuntimeError("Already finished")
         if len(self._seen_keys_in_the_step) == 0:
@@ -284,8 +284,8 @@ class Reporter:
 
     """
 
+    @typechecked
     def __init__(self, epoch: int = 0):
-        @typechecked
         if epoch < 0:
             raise ValueError(f"epoch must be 0 or more: {epoch}")
         self.epoch = epoch
@@ -498,8 +498,8 @@ class Reporter:
             p.parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(p)
 
+    @typechecked
     def _plot_stats(self, keys: Sequence[str], key2: str):
-        @typechecked
         # str is also Sequence[str]
         if isinstance(keys, str):
             raise TypeError(f"Input as [{keys}]")

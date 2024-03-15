@@ -29,6 +29,7 @@ class ClassChoices:
 
     """
 
+    @typechecked
     def __init__(
         self,
         name: str,
@@ -37,7 +38,6 @@ class ClassChoices:
         default: str = None,
         optional: bool = False,
     ):
-        @typechecked
         self.name = name
         self.base_type = type_check
         self.classes = {k.lower(): v for k, v in classes.items()}
@@ -60,8 +60,8 @@ class ClassChoices:
         else:
             return retval
 
+    @typechecked
     def get_class(self, name: Optional[str]) -> Optional[type]:
-        @typechecked
         if name is None or (self.optional and name.lower() == ("none", "null", "nil")):
             retval = None
         elif name.lower() in self.classes:

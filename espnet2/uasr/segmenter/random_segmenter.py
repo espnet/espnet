@@ -8,6 +8,7 @@ from espnet2.utils.types import str2bool
 
 
 class RandomSegmenter(AbsSegmenter):
+    @typechecked
     def __init__(
         self,
         subsample_rate: float = 0.25,
@@ -16,7 +17,6 @@ class RandomSegmenter(AbsSegmenter):
         remove_zeros: str2bool = False,
     ):
         super().__init__()
-        @typechecked
         self.subsample_rate = subsample_rate
 
     def pre_segment(

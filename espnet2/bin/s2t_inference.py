@@ -158,6 +158,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         s2t_train_config: Union[Path, str] = None,
@@ -189,7 +190,6 @@ class Speech2Text:
         task_sym: str = "<asr>",
         predict_time: bool = False,
     ):
-        @typechecked
 
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
@@ -350,6 +350,7 @@ class Speech2Text:
         self.predict_time = predict_time
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -377,7 +378,6 @@ class Speech2Text:
             n-best list of (text, token, token_int, text_nospecial, hyp)
 
         """
-        @typechecked
 
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
@@ -502,10 +502,10 @@ class Speech2Text:
 
         return results
 
+    @typechecked
     def _decode_interctc(
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
-        @typechecked
 
         exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
         res = {}
@@ -521,6 +521,7 @@ class Speech2Text:
         return res
 
     @torch.no_grad()
+    @typechecked
     def decode_long(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -543,8 +544,6 @@ class Speech2Text:
             utterances: list of tuples of (start_time, end_time, text)
 
         """
-
-        @typechecked
 
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
@@ -674,6 +673,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -712,7 +712,6 @@ def inference(
     task_sym: str,
     predict_time: bool,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

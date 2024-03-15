@@ -18,6 +18,7 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenIDConverter:
+    @typechecked
     def __init__(
         self,
         model_type: str,
@@ -27,7 +28,6 @@ class OpenAIWhisperTokenIDConverter:
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
     ):
-        @typechecked
 
         try:
             import whisper.tokenizer

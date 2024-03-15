@@ -271,8 +271,8 @@ class AbsTask(ABC):
         raise NotImplementedError
 
     @classmethod
+    @typechecked
     def get_parser(cls) -> config_argparse.ArgumentParser:
-        @typechecked
 
         class ArgumentDefaultsRawTextHelpFormatter(
             argparse.RawTextHelpFormatter,
@@ -1002,6 +1002,7 @@ class AbsTask(ABC):
         This method is used by print_config()
         """
 
+        @typechecked
         def get_class_type(name: str, classes: dict):
             _cls = classes.get(name)
             if _cls is None:
@@ -1009,7 +1010,6 @@ class AbsTask(ABC):
             return _cls
 
         # This method is used only for --print_config
-        @typechecked
         parser = cls.get_parser()
         args, _ = parser.parse_known_args()
         config = vars(args)
@@ -1048,8 +1048,8 @@ class AbsTask(ABC):
         return config
 
     @classmethod
+    @typechecked
     def check_required_command_args(cls, args: argparse.Namespace):
-        @typechecked
         for k in vars(args):
             if "-" in k:
                 raise RuntimeError(f'Use "_" instead of "-": parser.get_parser("{k}")')
@@ -1070,6 +1070,7 @@ class AbsTask(ABC):
             sys.exit(2)
 
     @classmethod
+    @typechecked
     def check_task_requirements(
         cls,
         dataset: Union[AbsDataset, IterableESPnetDataset],
@@ -1078,7 +1079,6 @@ class AbsTask(ABC):
         inference: bool = False,
     ) -> None:
         """Check if the dataset satisfy the requirement of current Task"""
-        @typechecked
         mes = (
             f"If you intend to use an additional input, modify "
             f'"{cls.__name__}.required_data_names()" or '
@@ -1104,15 +1104,15 @@ class AbsTask(ABC):
                     )
 
     @classmethod
+    @typechecked
     def print_config(cls, file=sys.stdout) -> None:
-        @typechecked
         # Shows the config: e.g. python train.py asr --print_config
         config = cls.get_default_config()
         file.write(yaml_no_alias_safe_dump(config, indent=4, sort_keys=False))
 
     @classmethod
+    @typechecked
     def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
-        @typechecked
         print(get_commandline_args(), file=sys.stderr)
         if args is None:
             parser = cls.get_parser()
@@ -1182,8 +1182,8 @@ class AbsTask(ABC):
                 pass
 
     @classmethod
+    @typechecked
     def main_worker(cls, args: argparse.Namespace):
-        @typechecked
 
         # 0. Init distributed process
         distributed_option = build_dataclass(DistributedOption, args)
@@ -1548,6 +1548,7 @@ class AbsTask(ABC):
         )
 
     @classmethod
+    @typechecked
     def build_iter_factory(
         cls,
         args: argparse.Namespace,
@@ -1579,7 +1580,6 @@ class AbsTask(ABC):
         - 4 epoch with "--num_iters_per_epoch" == 1
 
         """
-        @typechecked
         iter_options = cls.build_iter_options(args, distributed_option, mode)
 
         # Overwrite iter_options if any kwargs is given
@@ -1620,10 +1620,10 @@ class AbsTask(ABC):
             raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
 
     @classmethod
+    @typechecked
     def build_sequence_iter_factory(
         cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
     ) -> AbsIterFactory:
-        @typechecked
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,
@@ -1702,10 +1702,10 @@ class AbsTask(ABC):
         )
 
     @classmethod
+    @typechecked
     def build_category_iter_factory(
         cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
     ) -> AbsIterFactory:
-        @typechecked
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,
@@ -1786,13 +1786,13 @@ class AbsTask(ABC):
         )
 
     @classmethod
+    @typechecked
     def build_chunk_iter_factory(
         cls,
         args: argparse.Namespace,
         iter_options: IteratorOptions,
         mode: str,
     ) -> AbsIterFactory:
-        @typechecked
 
         dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,
@@ -1897,10 +1897,10 @@ class AbsTask(ABC):
         raise NotImplementedError
 
     @classmethod
+    @typechecked
     def build_multiple_iter_factory(
         cls, args: argparse.Namespace, distributed_option: DistributedOption, mode: str
     ):
-        @typechecked
         iter_options = cls.build_iter_options(args, distributed_option, mode)
         assert len(iter_options.data_path_and_name_and_type) > 0, len(
             iter_options.data_path_and_name_and_type
@@ -1983,6 +1983,7 @@ class AbsTask(ABC):
         )
 
     @classmethod
+    @typechecked
     def build_streaming_iterator(
         cls,
         data_path_and_name_and_type,
@@ -1997,7 +1998,6 @@ class AbsTask(ABC):
         inference: bool = False,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
-        @typechecked
         # For backward compatibility for pytorch DataLoader
         if collate_fn is not None:
             kwargs = dict(collate_fn=collate_fn)
@@ -2028,6 +2028,7 @@ class AbsTask(ABC):
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~
     @classmethod
+    @typechecked
     def build_model_from_file(
         cls,
         config_file: Union[Path, str] = None,
@@ -2044,7 +2045,6 @@ class AbsTask(ABC):
             device: Device type, "cpu", "cuda", or "cuda:N".
 
         """
-        @typechecked
         if config_file is None:
             assert model_file is not None, (
                 "The argument 'model_file' must be provided "

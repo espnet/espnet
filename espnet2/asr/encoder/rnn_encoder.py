@@ -23,6 +23,7 @@ class RNNEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -35,7 +36,6 @@ class RNNEncoder(AbsEncoder):
         dropout: float = 0.0,
         subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type

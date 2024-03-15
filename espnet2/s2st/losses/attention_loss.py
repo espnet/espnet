@@ -12,6 +12,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
 class S2STAttentionLoss(AbsS2STLoss):
     """attention-based label smoothing loss for S2ST."""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -22,7 +23,6 @@ class S2STAttentionLoss(AbsS2STLoss):
         criterion: torch.nn.Module = torch.nn.KLDivLoss(reduction="none"),
     ):
         super().__init__()
-        @typechecked
         self.weight = weight
         self.loss = LabelSmoothingLoss(
             size=vocab_size,

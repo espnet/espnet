@@ -44,6 +44,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -63,7 +64,6 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
             )
             raise e
 
-        @typechecked
         super().__init__()
 
         assert whisper_model in whisper.available_models()

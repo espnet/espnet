@@ -11,8 +11,8 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class ESPnetLanguageModel(AbsESPnetModel):
+    @typechecked
     def __init__(self, lm: AbsLM, vocab_size: int, ignore_id: int = 0):
-        @typechecked
         super().__init__()
         self.lm = lm
         self.sos = vocab_size - 1

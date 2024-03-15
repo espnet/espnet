@@ -50,6 +50,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         st_train_config: Union[Path, str] = None,
@@ -92,7 +93,6 @@ class Speech2Text:
         hugging_face_decoder: bool = False,
         hugging_face_decoder_max_length: int = 256,
     ):
-        @typechecked
 
         task = STTask if not enh_s2t_task else EnhS2TTask
 
@@ -462,6 +462,7 @@ class Speech2Text:
         self.ctc_greedy = ctc_greedy
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[
@@ -475,7 +476,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -644,6 +644,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -695,7 +696,6 @@ def inference(
     hugging_face_decoder: bool,
     hugging_face_decoder_max_length: int,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

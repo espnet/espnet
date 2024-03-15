@@ -14,6 +14,7 @@ from espnet.utils.cli_utils import get_commandline_args
 dirname = os.path.dirname(__file__)
 
 
+@typechecked
 def export_vocabulary(
     output: str,
     whisper_model: str,
@@ -33,8 +34,6 @@ def export_vocabulary(
             "./installers/install_whisper.sh"
         )
         raise e
-
-    @typechecked
 
     logging.basicConfig(
         level=log_level,

@@ -35,6 +35,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str],
@@ -47,8 +48,7 @@ class Speech2Text:
         maskctc_n_iterations: int = 10,
         maskctc_threshold_probability: float = 0.99,
     ):
-        @typechecked
-
+        
         # 1. Build ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
             asr_train_config, asr_model_file, device
@@ -90,6 +90,7 @@ class Speech2Text:
         self.dtype = dtype
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -101,7 +102,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -174,6 +174,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -193,7 +194,6 @@ def inference(
     maskctc_n_iterations: int,
     maskctc_threshold_probability: float,
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

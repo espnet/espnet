@@ -127,6 +127,7 @@ class k2Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str],
@@ -163,7 +164,6 @@ class k2Speech2Text:
         nbest_batch_size: int = 500,
         nll_batch_size: int = 100,
     ):
-        @typechecked
 
         # 1. Build ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
@@ -229,6 +229,7 @@ class k2Speech2Text:
         self.nll_batch_size = nll_batch_size
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, batch: Dict[str, Union[torch.Tensor, np.ndarray]]
     ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
@@ -240,7 +241,6 @@ class k2Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         if isinstance(batch["speech"], np.ndarray):
             batch["speech"] = torch.tensor(batch["speech"])
@@ -451,6 +451,7 @@ class k2Speech2Text:
         return k2Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -487,7 +488,6 @@ def inference(
     k2_config: Optional[str],
 ):
     assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
-    @typechecked
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

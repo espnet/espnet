@@ -25,6 +25,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -32,7 +33,6 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        @typechecked
         self.model_size = model_size
         self.warmup_steps = warmup_steps
 

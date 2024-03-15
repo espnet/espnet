@@ -224,6 +224,7 @@ class ASRTransducerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -239,11 +240,11 @@ class ASRTransducerTask(AbsTask):
             : Callable collate function.
 
         """
-        @typechecked
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
@@ -258,7 +259,6 @@ class ASRTransducerTask(AbsTask):
             : Callable pre-processing function.
 
         """
-        @typechecked
 
         if args.use_preprocessor:
             retval = CommonPreprocessor(
@@ -331,6 +331,7 @@ class ASRTransducerTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRTransducerModel:
         """Required data depending on task mode.
 
@@ -342,7 +343,6 @@ class ASRTransducerTask(AbsTask):
             model: ASR Transducer model.
 
         """
-        @typechecked
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:

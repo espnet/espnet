@@ -77,6 +77,7 @@ class LongformerEncoder(ConformerEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -107,7 +108,6 @@ class LongformerEncoder(ConformerEncoder):
         attention_dilation: list = [1, 1, 1, 1, 1, 1],
         attention_mode: str = "sliding_chunks",
     ):
-        @typechecked
         super().__init__(input_size)
         self._output_size = output_size
 

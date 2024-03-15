@@ -37,6 +37,7 @@ class SingingGenerate:
         >>> soundfile.write("out.wav", wav.numpy(), svs.fs, "PCM_16")
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Optional[Union[Path, str]],
@@ -61,7 +62,6 @@ class SingingGenerate:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize SingingGenerate module."""
-        @typechecked
 
         # setup model
         model, train_args = SVSTask.build_model_from_file(
@@ -117,6 +117,7 @@ class SingingGenerate:
         self.decode_conf = decode_conf
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         text: Union[Dict[str, Tuple], torch.Tensor, np.ndarray],
@@ -135,7 +136,6 @@ class SingingGenerate:
         lids: Union[torch.Tensor, np.ndarray] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
-        @typechecked
 
         # check inputs
         if self.use_sids and sids is None:
@@ -307,6 +307,7 @@ class SingingGenerate:
         return SingingGenerate(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -328,7 +329,6 @@ def inference(
     vocoder_tag: Optional[str] = None,
 ):
     """Perform SVS model decoding."""
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

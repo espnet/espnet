@@ -12,11 +12,11 @@ except ImportError:
 
 
 class HuggingFaceTokenIDConverter:
+    @typechecked
     def __init__(
         self,
         model_name_or_path: str,
     ):
-        @typechecked
 
         if not is_transformers_available:
             raise ImportError(

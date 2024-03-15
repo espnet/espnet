@@ -371,10 +371,10 @@ class SLUTask(ASRTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        @typechecked
         if args.use_preprocessor:
             retval = SLUPreprocessor(
                 train=train,
@@ -422,8 +422,8 @@ class SLUTask(ASRTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSLUModel:
-        @typechecked
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

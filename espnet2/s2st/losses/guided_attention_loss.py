@@ -11,6 +11,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 class S2STGuidedAttentionLoss(AbsS2STLoss):
     """Tacotron-based loss for S2ST."""
 
+    @typechecked
     def __init__(
         self,
         weight: float = 1.0,
@@ -18,7 +19,6 @@ class S2STGuidedAttentionLoss(AbsS2STLoss):
         alpha: float = 1.0,
     ):
         super().__init__()
-        @typechecked
         self.weight = weight
         self.loss = GuidedAttentionLoss(
             sigma=sigma,

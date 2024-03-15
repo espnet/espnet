@@ -111,6 +111,7 @@ def griffin_lim(
 class Spectrogram2Waveform(object):
     """Spectrogram to waveform conversion module."""
 
+    @typechecked
     def __init__(
         self,
         n_fft: int,
@@ -137,7 +138,6 @@ class Spectrogram2Waveform(object):
             griffin_lim_iters: The number of iterations.
 
         """
-        @typechecked
         self.fs = fs
         self.logmel2linear = (
             partial(

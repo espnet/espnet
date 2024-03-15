@@ -8,13 +8,13 @@ from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class WordTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(
         self,
         delimiter: str = None,
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         remove_non_linguistic_symbols: bool = False,
     ):
-        @typechecked
         self.delimiter = delimiter
 
         if not remove_non_linguistic_symbols and non_linguistic_symbols is not None:

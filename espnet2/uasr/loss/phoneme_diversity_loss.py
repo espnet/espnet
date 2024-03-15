@@ -8,12 +8,12 @@ from espnet2.utils.types import str2bool
 class UASRPhonemeDiversityLoss(AbsUASRLoss):
     """phoneme diversity loss for UASR."""
 
+    @typechecked
     def __init__(
         self,
         weight: float = 1.0,
     ):
         super().__init__()
-        @typechecked
 
         self.weight = weight
 

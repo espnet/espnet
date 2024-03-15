@@ -160,6 +160,7 @@ class SSimLoss(torch.nn.Module):
 class ProDiffLoss(torch.nn.Module):
     """Loss function module for ProDiffLoss."""
 
+    @typechecked
     def __init__(
         self,
         use_masking: bool = True,
@@ -174,7 +175,6 @@ class ProDiffLoss(torch.nn.Module):
                 calculation.
 
         """
-        @typechecked
         super().__init__()
 
         assert (use_masking != use_weighted_masking) or not use_masking

@@ -31,6 +31,7 @@ class Encoder(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -40,8 +41,6 @@ class Encoder(torch.nn.Module):
     ) -> None:
         """Construct an Encoder object."""
         super().__init__()
-
-        @typechecked
 
         embed_size, output_size = validate_architecture(
             input_conf, body_conf, input_size

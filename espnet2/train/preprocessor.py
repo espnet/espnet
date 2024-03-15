@@ -369,10 +369,10 @@ class CommonPreprocessor(AbsPreprocessor):
             speech = speech + scale * noise
         return speech, noise
 
+    @typechecked
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        @typechecked
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
@@ -487,10 +487,10 @@ class CommonPreprocessor(AbsPreprocessor):
                     data[name] = np.array(text_ints, dtype=np.int64)
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = self._speech_process(data)
         data = self._text_process(data)
@@ -699,10 +699,10 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                     data[name] = np.array(text_ints, dtype=np.int64)
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = self._speech_process(data)
         data = self._text_process(data)
@@ -1223,10 +1223,10 @@ class EnhPreprocessor(CommonPreprocessor):
                     break
         return start, start + tgt_length
 
+    @typechecked
     def _speech_process(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        @typechecked
 
         if self.speech_name not in data:
             return data
@@ -1447,10 +1447,10 @@ class EnhPreprocessor(CommonPreprocessor):
 
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = self._speech_process(uid, data)
         data = self._text_process(data)
@@ -1519,12 +1519,12 @@ class SVSPreprocessor(AbsPreprocessor):
             self.tokenizer = None
             self.token_id_converter = None
 
+    @typechecked
     def __call__(
         self,
         uid: str,
         data: Dict[str, Union[str, np.ndarray, tuple]],
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         if self.singing_name in data:
             if self.singing_volume_normalize is not None:
@@ -1745,10 +1745,10 @@ class TSEPreprocessor(EnhPreprocessor):
                 raise RuntimeError(f"Something wrong: {path}")
         return audio[:, 0]
 
+    @typechecked
     def _speech_process(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
-        @typechecked
 
         ref_names = [k for k in data.keys() if re.match(r"speech_ref\d+", k)]
         num_spk = len(ref_names)
@@ -1840,10 +1840,10 @@ class TSEPreprocessor(EnhPreprocessor):
 
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = super()._speech_process(uid, data)
         data = self._speech_process(uid, data)
@@ -2114,10 +2114,10 @@ class SpkPreprocessor(CommonPreprocessor):
 
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = self._text_process(data)
         data = self._speech_process(data)
@@ -2196,10 +2196,10 @@ class S2TPreprocessor(CommonPreprocessor):
         self.first_time = self.token_id_converter.token2id[first_time_symbol]
         self.last_time = self.token_id_converter.token2id[last_time_symbol]
 
+    @typechecked
     def _pad_or_trim_speech(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
-        @typechecked
 
         init_pad = 0
         if self.speech_name in data:
@@ -2231,10 +2231,10 @@ class S2TPreprocessor(CommonPreprocessor):
 
         return data, init_pad
 
+    @typechecked
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]], time_shift: int
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         text_names = [self.text_name, self.text_prev_name, self.text_ctc_name]
         if self.tokenizer is not None:
@@ -2287,10 +2287,10 @@ class S2TPreprocessor(CommonPreprocessor):
 
         return data
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        @typechecked
 
         data = self._speech_process(data)
         data, init_pad = self._pad_or_trim_speech(data)

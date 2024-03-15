@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 class S3prlFrontend(AbsFrontend):
     """Speech Pretrained Representation frontend structure for ASR."""
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
@@ -30,7 +31,6 @@ class S3prlFrontend(AbsFrontend):
             print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
             raise e
 
-        @typechecked
         super().__init__()
 
         if isinstance(fs, str):

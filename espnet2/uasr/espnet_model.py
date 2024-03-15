@@ -42,6 +42,7 @@ class ESPnetUASRModel(AbsESPnetModel):
     https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -66,7 +67,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         decay_temperature: float = 0.99995,
         use_collected_training_feats: str2bool = False,
     ):
-        @typechecked
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -119,8 +119,9 @@ class ESPnetUASRModel(AbsESPnetModel):
         return self._number_updates
 
     @number_updates.setter
+    @typechecked
     def number_updates(self, iiter: int):
-        @typechecked and iiter >= 0
+        iiter >= 0
         self._number_updates = iiter
 
     def forward(

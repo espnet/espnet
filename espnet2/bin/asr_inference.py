@@ -77,6 +77,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str] = None,
@@ -115,8 +116,7 @@ class Speech2Text:
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
     ):
-        @typechecked
-
+    
         task = ASRTask if not enh_s2t_task else EnhS2TTask
 
         if quantize_asr_model or quantize_lm:
@@ -460,6 +460,7 @@ class Speech2Text:
         self.multi_asr = multi_asr
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
         ListOfHypothesis,
         Tuple[
@@ -475,7 +476,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        @typechecked
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -532,10 +532,10 @@ class Speech2Text:
 
         return results
 
+    @typechecked
     def _decode_interctc(
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
-        @typechecked
 
         exclude_ids = [self.asr_model.blank_id, self.asr_model.sos, self.asr_model.eos]
         res = {}
@@ -677,6 +677,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -722,7 +723,6 @@ def inference(
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
 ):
-    @typechecked
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

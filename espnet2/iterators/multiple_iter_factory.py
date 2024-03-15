@@ -8,13 +8,13 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 
 
 class MultipleIterFactory(AbsIterFactory):
+    @typechecked
     def __init__(
         self,
         build_funcs: Collection[Callable[[], AbsIterFactory]],
         seed: int = 0,
         shuffle: bool = False,
     ):
-        @typechecked
         self.build_funcs = list(build_funcs)
         self.seed = seed
         self.shuffle = shuffle

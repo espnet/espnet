@@ -93,6 +93,7 @@ def get_parser():
     return parser
 
 
+@typechecked
 def extract_feature(
     uasr_train_config: Optional[str],
     uasr_model_file: Optional[str],
@@ -107,7 +108,6 @@ def extract_feature(
     dset: str,
     log_level: Union[int, str],
 ):
-    @typechecked
 
     logging.basicConfig(
         level=log_level,

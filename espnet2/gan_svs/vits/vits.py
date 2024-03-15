@@ -77,6 +77,7 @@ class VITS(AbsGANSVS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # generator related
@@ -314,7 +315,6 @@ class VITS(AbsGANSVS):
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
-        @typechecked
         super().__init__()
 
         # define modules

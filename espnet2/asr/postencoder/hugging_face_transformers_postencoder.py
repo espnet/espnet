@@ -26,6 +26,7 @@ except ImportError:
 class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
     """Hugging Face Transformers PostEncoder."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -34,7 +35,6 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         lang_token_id: int = -1,
     ):
         """Initialize the module."""
-        @typechecked
         super().__init__()
 
         if not is_transformers_available:

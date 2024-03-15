@@ -22,6 +22,7 @@ class VariancePredictor(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         idim: int,
@@ -41,7 +42,6 @@ class VariancePredictor(torch.nn.Module):
             dropout_rate (float): Dropout rate.
 
         """
-        @typechecked
         super().__init__()
         self.conv = torch.nn.ModuleList()
         for idx in range(n_layers):

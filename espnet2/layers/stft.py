@@ -15,6 +15,7 @@ is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
+    @typechecked
     def __init__(
         self,
         n_fft: int = 512,
@@ -25,7 +26,6 @@ class Stft(torch.nn.Module, InversibleInterface):
         normalized: bool = False,
         onesided: bool = True,
     ):
-        @typechecked
         super().__init__()
         self.n_fft = n_fft
         if win_length is None:

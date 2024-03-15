@@ -30,6 +30,7 @@ class AsteroidFrontend(AbsFrontend):
     "Filterbank design for end-to-end speech separation," in Proc. ICASSP, 2020
     """
 
+    @typechecked
     def __init__(
         self,
         sinc_filters: int = 256,
@@ -48,7 +49,6 @@ class AsteroidFrontend(AbsFrontend):
             preemph_coef: the coeifficient for preempahsis.
             log_term: the log term to prevent infinity.
         """
-        @typechecked
         super().__init__()
 
         # kernel for preemphasis

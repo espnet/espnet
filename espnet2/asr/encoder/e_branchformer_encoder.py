@@ -184,6 +184,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 class EBranchformerEncoder(AbsEncoder):
     """E-Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -214,7 +215,6 @@ class EBranchformerEncoder(AbsEncoder):
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

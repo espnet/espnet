@@ -296,6 +296,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
 class BranchformerEncoder(AbsEncoder):
     """Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -322,7 +323,6 @@ class BranchformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

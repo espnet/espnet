@@ -25,13 +25,13 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        @typechecked
         self.warmup_steps = warmup_steps
 
         # __init__() must be invoked before setting field

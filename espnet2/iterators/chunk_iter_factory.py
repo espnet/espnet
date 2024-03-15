@@ -34,6 +34,7 @@ class ChunkIterFactory(AbsIterFactory):
 
     """
 
+    @typechecked
     def __init__(
         self,
         dataset,
@@ -51,7 +52,6 @@ class ChunkIterFactory(AbsIterFactory):
         excluded_key_prefixes: Optional[List[str]] = None,
         default_fs: Optional[int] = None,
     ):
-        @typechecked
         assert all(len(x) == 1 for x in batches), "batch-size must be 1"
 
         self.per_sample_iter_factory = SequenceIterFactory(

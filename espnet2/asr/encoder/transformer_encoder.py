@@ -60,6 +60,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -81,7 +82,6 @@ class TransformerEncoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         layer_drop_rate: float = 0.0,
     ):
-        @typechecked
         super().__init__()
         self._output_size = output_size
 

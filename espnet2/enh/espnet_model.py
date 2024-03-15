@@ -28,6 +28,7 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 class ESPnetEnhancementModel(AbsESPnetModel):
     """Speech enhancement or separation Frontend model"""
 
+    @typechecked
     def __init__(
         self,
         encoder: AbsEncoder,
@@ -89,7 +90,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             category_weights: list of weights for each category.
                 Used to set loss weights for batches of different categories.
         """
-        @typechecked
 
         super().__init__()
 

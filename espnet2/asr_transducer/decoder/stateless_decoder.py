@@ -20,6 +20,7 @@ class StatelessDecoder(AbsDecoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -29,8 +30,6 @@ class StatelessDecoder(AbsDecoder):
     ) -> None:
         """Construct a StatelessDecoder object."""
         super().__init__()
-
-        @typechecked
 
         self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
         self.embed_dropout_rate = torch.nn.Dropout(p=embed_dropout_rate)

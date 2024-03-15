@@ -47,6 +47,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             i.e. x -> x + att(x)
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -58,7 +59,6 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
     ):
-        @typechecked
         super().__init__()
         attention_dim = encoder_output_size
 
@@ -284,6 +284,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
 
 class TransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -302,7 +303,6 @@ class TransformerDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         layer_drop_rate: float = 0.0,
     ):
-        @typechecked
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,
@@ -335,6 +335,7 @@ class TransformerDecoder(BaseTransformerDecoder):
 
 
 class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -355,7 +356,6 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -397,6 +397,7 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
 
 
 class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -417,7 +418,6 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -459,6 +459,7 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
 
 
 class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -479,7 +480,6 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -521,6 +521,7 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
 
 
 class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -541,7 +542,6 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        @typechecked
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -583,6 +583,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
 
 
 class TransformerMDDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -601,7 +602,6 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         use_speech_attn: bool = True,
     ):
-        @typechecked
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,

@@ -8,13 +8,13 @@ from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 class UASRSmoothnessPenalty(AbsUASRLoss):
     """smoothness penalty for UASR."""
 
+    @typechecked
     def __init__(
         self,
         weight: float = 1.0,
         reduction: str = "none",
     ):
         super().__init__()
-        @typechecked
 
         self.weight = weight
         self.reduction = reduction

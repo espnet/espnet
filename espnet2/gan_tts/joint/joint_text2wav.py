@@ -64,6 +64,7 @@ AVAILABLE_DISCRIMINATORS = {
 class JointText2Wav(AbsGANTTS):
     """General class to jointly train text2mel and vocoder parts."""
 
+    @typechecked
     def __init__(
         self,
         # generator (text2mel + vocoder) related
@@ -275,7 +276,6 @@ class JointText2Wav(AbsGANTTS):
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
-        @typechecked
         super().__init__()
         self.segment_size = segment_size
         self.use_pqmf = use_pqmf

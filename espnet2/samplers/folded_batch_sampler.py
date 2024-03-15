@@ -7,6 +7,7 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class FoldedBatchSampler(AbsSampler):
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -18,7 +19,6 @@ class FoldedBatchSampler(AbsSampler):
         drop_last: bool = False,
         utt2category_file: str = None,
     ):
-        @typechecked
         assert batch_size > 0
         if sort_batch != "ascending" and sort_batch != "descending":
             raise ValueError(
