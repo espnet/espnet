@@ -585,7 +585,7 @@ class Speech2Text:
                 and len(segment) / fs < self.skip_last_chunk_threshold
             ):
                 logging.warning(
-                    f"Skip the last clip as it's too short: {len(segment) / fs:.2f}s"
+                    f"Skip the last chunk as it's too short: {len(segment) / fs:.2f}s"
                 )
                 offset += segment_len
                 continue
