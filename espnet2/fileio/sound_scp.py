@@ -1,6 +1,6 @@
 import collections.abc
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import soundfile
@@ -206,7 +206,7 @@ class SoundScpWriter:
         multi_columns: bool = False,
         output_name_format: str = "{key}.{audio_format}",
         output_name_format_multi_columns: str = "{key}-CH{channel}.{audio_format}",
-        subtype: str = None,
+        subtype: Optional[str] = None,
     ):
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
