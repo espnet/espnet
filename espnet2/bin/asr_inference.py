@@ -82,7 +82,7 @@ class Speech2Text:
         self,
         asr_train_config: Union[Path, str] = None,
         asr_model_file: Union[Path, str] = None,
-        transducer_conf: Optional[Dict],
+        transducer_conf: Optional[Dict] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
