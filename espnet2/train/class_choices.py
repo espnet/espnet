@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Tuple
+from typing import Mapping, Optional, Tuple, Type
 
 from typeguard import typechecked
 
@@ -33,8 +33,8 @@ class ClassChoices:
     def __init__(
         self,
         name: str,
-        classes: Mapping[str, type],
-        type_check: type = None,
+        classes: Mapping[str, Type],
+        type_check: Optional[Type] = None,
         default: Optional[str] = None,
         optional: bool = False,
     ):
