@@ -35,7 +35,7 @@ class ClassChoices:
         name: str,
         classes: Mapping[str, type],
         type_check: type = None,
-        default: str = None,
+        default: Optional[str] = None,
         optional: bool = False,
     ):
         self.name = name
@@ -49,8 +49,6 @@ class ClassChoices:
                     raise ValueError(f"must be {type_check.__name__}, but got {v}")
 
         self.optional = optional
-        if default is not None and not isinstance(default, str):
-            raise TypeError("Default value must be a string.")
         self.default = default
         if default is None:
             self.optional = True
