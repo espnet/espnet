@@ -337,7 +337,7 @@ class Speech2Understand:
                 text = None
             results.append((text, token, token_int, hyp))
 
-       return results
+        return results
 
     @staticmethod
     def from_pretrained(
