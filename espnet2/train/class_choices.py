@@ -54,6 +54,7 @@ class ClassChoices:
         self.default = default
         if default is None:
             self.optional = True
+
     def choices(self) -> Tuple[Optional[str], ...]:
         retval = tuple(self.classes)
         if self.optional:
