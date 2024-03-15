@@ -4,7 +4,6 @@ from typing import List
 import pytest
 import torch
 from packaging.version import parse as V
-from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.frontend.s3prl import S3prlFrontend
