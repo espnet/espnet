@@ -121,7 +121,7 @@ class ESPnetUASRModel(AbsESPnetModel):
     @number_updates.setter
     @typechecked
     def number_updates(self, iiter: int):
-        iiter >= 0
+        assert iiter >= 0
         self._number_updates = iiter
 
     def forward(
