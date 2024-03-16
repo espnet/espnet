@@ -4,7 +4,7 @@ batch_size: 2
 accum_grad: 1
 max_epoch: 1
 num_iters_per_epoch: 1
-patience: 
+patience:
 # The initialization method for model parameters
 init: xavier_uniform
 best_model_criterion:

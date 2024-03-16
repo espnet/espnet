@@ -1,11 +1,11 @@
 # Copyright 2024 Masao Someki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
 import torch
-import tempfile
 
 import espnetez as ez
 from espnet2.tasks.asr import ASRTask
@@ -90,9 +90,7 @@ def test_create_dump_file():
 
 
 def test_join_dumps():
-    with tempfile.TemporaryDirectory() as dump_dir1, \
-        tempfile.TemporaryDirectory() as dump_dir2, \
-        tempfile.TemporaryDirectory() as dump_dir_out:
+    with tempfile.TemporaryDirectory() as dump_dir1, tempfile.TemporaryDirectory() as dump_dir2, tempfile.TemporaryDirectory() as dump_dir_out:
         dump_dir_out = Path(dump_dir_out)
         data_inputs = {
             "speech": ["wav.scp", "sound"],
@@ -181,24 +179,19 @@ def test_update_finetune_config(task_name, task_class):
         config_path.write_text("""use_lora: true""")
         pretrain_config = task_class.get_default_config()
         easy_config = ez.config.update_finetune_config(
-            task_name,
-            pretrain_config,
-            config_path
+            task_name, pretrain_config, config_path
         )
 
-        for k,v in easy_config.items():
-            if k != 'use_lora':
+        for k, v in easy_config.items():
+            if k != "use_lora":
                 assert v == pretrain_config[k]
             else:
                 assert v == True
 
 
-@pytest.mark.parametrize("model_type,vocab_size", [
-    ("unigram", 24),
-    ("bpe", 50),
-    ("char", 50),
-    ("word", 10)
-])
+@pytest.mark.parametrize(
+    "model_type,vocab_size", [("unigram", 24), ("bpe", 50), ("char", 50), ("word", 10)]
+)
 def test_sentencepiece_model(model_type, vocab_size):
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
@@ -211,7 +204,7 @@ def test_sentencepiece_model(model_type, vocab_size):
         ez.preprocess.prepare_sentences([temp_dir / "dump" / "text"], temp_dir / "spm")
         ez.preprocess.train_sentencepiece(
             temp_dir / "spm" / "train.txt",
-            temp_dir/ "data" / "bpemodel",
+            temp_dir / "data" / "bpemodel",
             vocab_size=vocab_size,
-            model_type=model_type
+            model_type=model_type,
         )

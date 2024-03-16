@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
-import espnetez as ez
 
+import espnetez as ez
 
 TASK_CLASSES = [
     "asr",
@@ -83,23 +83,23 @@ if __name__ == "__main__":
     }
 
     # Train sentencepiece model
-    if args.task == 'lm':
-        user_defined_symbols = ['<generatetext>']
+    if args.task == "lm":
+        user_defined_symbols = ["<generatetext>"]
         data_info.pop("speech")
     else:
         user_defined_symbols = []
-    
+
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
-        ez.preprocess.prepare_sentences([args.train_dump_path / "text"],
-            args.data_path / "tokenize"
+        ez.preprocess.prepare_sentences(
+            [args.train_dump_path / "text"], args.data_path / "tokenize"
         )
         ez.preprocess.tokenize(
             input=str(args.data_path / "tokenize" / "train.txt"),
             output=str(args.train_dump_path / "tokenize" / "tokenized.txt"),
             token_type="phn",
             cleaner="tacotron",
-            g2p="g2p_en"
+            g2p="g2p_en",
         )
         if args.train_sentencepiece_model:
             ez.preprocess.train_sentencepiece(
@@ -107,32 +107,32 @@ if __name__ == "__main__":
                 args.data_path / "spm/bpemodel",
                 vocab_size=50,
                 character_coverage=0.9995,
-                user_defined_symbols=user_defined_symbols
+                user_defined_symbols=user_defined_symbols,
             )
 
     elif args.train_sentencepiece_model:
-        ez.preprocess.prepare_sentences([args.train_dump_path / "text"],
-            args.data_path / "spm"
+        ez.preprocess.prepare_sentences(
+            [args.train_dump_path / "text"], args.data_path / "spm"
         )
         ez.preprocess.train_sentencepiece(
             args.data_path / "spm/train.txt",
             args.data_path / "spm/bpemodel",
             vocab_size=50,
             character_coverage=0.9995,
-            user_defined_symbols=user_defined_symbols
+            user_defined_symbols=user_defined_symbols,
         )
-    
+
     # Prepare configurations
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
 
     training_config = ez.config.from_yaml(args.task, args.config_path)
-    training_config['max_epoch'] = 1
-    training_config['bpemodel'] = str(args.data_path / "spm/bpemodel/bpe.model")
+    training_config["max_epoch"] = 1
+    training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
     with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
         tokens = [t.replace("\n", "") for t in f.readlines()]
         training_config["token_list"] = tokens
-    
+
     if args.task == "tts" or args.task == "gan_tts":
         normalize = training_config["normalize"]
         training_config["normalize"] = None
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         training_config["pitch_normalize"] = None
         energy_normalize = training_config["energy_normalize"]
         training_config["energy_normalize"] = None
-    
+
     # if args.run_config is not None:
     #     training_config.update(parser.parse_args(shlex.split(args.run_config)))
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     )
     if args.run_collect_stats:
         trainer.collect_stats()
-    
+
     if args.task == "tts":
         training_config["normalize"] = normalize
         training_config["pitch_normalize"] = pitch_normalize
@@ -174,4 +174,3 @@ if __name__ == "__main__":
 
     if args.run_train:
         trainer.train()
-

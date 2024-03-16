@@ -69,7 +69,7 @@ python -m coverage run --append ../../../ci/test_integrate_easy.py \
     --config_path ../lm1/conf/train_transformer.yaml \
     --train_sentencepiece_model \
     --run_collect_stats \
-    --run_train 
+    --run_train
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
@@ -85,7 +85,7 @@ python -m coverage run --append ../../../ci/test_integrate_easy.py \
     --config_path ../s2t1/conf/train_slu_transformer.yaml \
     --train_sentencepiece_model \
     --run_collect_stats \
-    --run_train 
+    --run_train
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
@@ -101,7 +101,7 @@ python -m coverage run --append ../../../ci/test_integrate_easy.py \
     --config_path ../tts1/conf/train_tacotron2_debug.yaml \
     --train_sentencepiece_model \
     --run_collect_stats \
-    --run_train 
+    --run_train
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm

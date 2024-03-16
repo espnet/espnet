@@ -63,4 +63,3 @@ best_model_criterion:
     - acc
     - max
 keep_nbest_models: 5
-

@@ -4,7 +4,7 @@ from espnetez.task import get_easy_task
 
 
 def convert_none_to_None(dic):
-    for k,v in dic.items():
+    for k, v in dic.items():
         if isinstance(v, dict):
             dic[k] = convert_none_to_None(dic[k])
 
@@ -48,7 +48,7 @@ def update_finetune_config(task, pretrain_config, path):
         pretrain_config["preprocessor_conf"] = finetune_config.get(
             "preprocessor_conf", {}
         )
-    
+
     pretrain_config = convert_none_to_None(pretrain_config)
 
     return pretrain_config

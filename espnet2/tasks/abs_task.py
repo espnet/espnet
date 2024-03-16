@@ -170,7 +170,7 @@ scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 CONFIG_REPLACE_MAP = [
     ("text_cleaner", "cleaner"),
     ("g2p_type", "g2p"),
-    ("aux_task_names", "aux_ctc_tasks")
+    ("aux_task_names", "aux_ctc_tasks"),
 ]
 
 
@@ -1055,14 +1055,14 @@ class AbsTask(ABC):
                         conf.pop(k[0])
                     elif k[0] in conf:
                         conf[k[1]] = conf.pop(k[0])
-                
+
                 remove_keys = []
                 for k in conf:
                     if k in config:
                         remove_keys.append(k)
                 for k in remove_keys:
                     conf.pop(k)
-                
+
                 name = class_choices.name
                 # Overwrite the default by the arguments,
                 conf.update(config[f"{name}_conf"])
