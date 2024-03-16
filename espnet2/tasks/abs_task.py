@@ -167,6 +167,13 @@ optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
+CONFIG_REPLACE_MAP = [
+    ("text_cleaner", "cleaner"),
+    ("g2p_type", "g2p"),
+    ("aux_task_names", "aux_ctc_tasks")
+]
+
+
 @dataclass
 class IteratorOptions:
     preprocess_fn: callable
@@ -1041,6 +1048,21 @@ class AbsTask(ABC):
             if getattr(args, class_choices.name) is not None:
                 class_obj = class_choices.get_class(getattr(args, class_choices.name))
                 conf = get_default_kwargs(class_obj)
+
+                # remove duplicate arguments
+                for k in CONFIG_REPLACE_MAP:
+                    if k[0] in conf and k[1] in config:
+                        conf.pop(k[0])
+                    elif k[0] in conf:
+                        conf[k[1]] = conf.pop(k[0])
+                
+                remove_keys = []
+                for k in conf:
+                    if k in config:
+                        remove_keys.append(k)
+                for k in remove_keys:
+                    conf.pop(k)
+                
                 name = class_choices.name
                 # Overwrite the default by the arguments,
                 conf.update(config[f"{name}_conf"])
