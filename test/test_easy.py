@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import torch
+import tempfile
 
 import espnetez as ez
 from espnet2.tasks.asr import ASRTask
@@ -29,7 +30,6 @@ from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
 
 # Prepare directory in the test environment to store dummy files
-FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 TASK_CLASSES = [
     ("asr", ASRTask),
     ("asr_transducer", ASRTransducerTask),
@@ -58,78 +58,70 @@ def generate_random_dataset(count: int):
     return [
         {
             "speech": f"/path/to/{i}.wav",
-            "text": str(torch.rand((1,))[0].numpy()),
+            "text": f"Lorem ipsum dolor sit amet {i}.",
         }
         for i in range(count)
     ]
 
 
-def setup_dump_folder(dump_name: str):
-    dump_dir = FILE_DIR / dump_name
-    dump_dir.mkdir(parents=True, exist_ok=True)
-    for f in dump_dir.glob("*"):
-        f.unlink()
-    return dump_dir
-
-
 def test_create_dump_file():
-    dump_dir = setup_dump_folder("eztest_create_dump_file")
-    dataset = generate_random_dataset(5)
-    data_inputs = {
-        "speech": ["wav.scp", "sound"],
-        "text": ["text", "text"],
-    }
-    ez.data.create_dump_file(dump_dir, dataset, data_inputs)
-    assert dump_dir.glob("wav.scp")
-    assert dump_dir.glob("text")
+    with tempfile.TemporaryDirectory() as dump_dir:
+        dump_dir = Path(dump_dir)
+        dataset = generate_random_dataset(5)
+        data_inputs = {
+            "speech": ["wav.scp", "sound"],
+            "text": ["text", "text"],
+        }
+        ez.data.create_dump_file(dump_dir, dataset, data_inputs)
+        assert dump_dir.glob("wav.scp")
+        assert dump_dir.glob("text")
 
-    # check dump files
-    with open(dump_dir / "wav.scp", "r") as f:
-        for idx_l, l in enumerate(f.readlines()):
-            l = l.strip().split()
-            assert len(l) == 2
-            assert l[1] == dataset[idx_l]["speech"]
+        # check dump files
+        with open(dump_dir / "wav.scp", "r") as f:
+            for idx_l, l in enumerate(f.readlines()):
+                l = l.strip().split()
+                assert len(l) == 2
+                assert l[1] == dataset[idx_l]["speech"]
 
-    with open(dump_dir / "text", "r") as f:
-        for idx_l, l in enumerate(f.readlines()):
-            l = l.strip().split()
-            assert len(l) == 2
-            assert l[1] == dataset[idx_l]["text"]
+        with open(dump_dir / "text", "r") as f:
+            for idx_l, l in enumerate(f.readlines()):
+                l = l.strip().split(maxsplit=1)
+                assert l[1] == dataset[idx_l]["text"]
 
 
 def test_join_dumps():
-    data_inputs = {
-        "speech": ["wav.scp", "sound"],
-        "text": ["text", "text"],
-    }
-    dump_dir1 = setup_dump_folder("eztest_join_dumps_1")
-    dataset1 = generate_random_dataset(5)
-    ez.data.create_dump_file(dump_dir1, dataset1, data_inputs)
+    with tempfile.TemporaryDirectory() as dump_dir1, \
+        tempfile.TemporaryDirectory() as dump_dir2, \
+        tempfile.TemporaryDirectory() as dump_dir_out:
+        dump_dir_out = Path(dump_dir_out)
+        data_inputs = {
+            "speech": ["wav.scp", "sound"],
+            "text": ["text", "text"],
+        }
+        dataset1 = generate_random_dataset(5)
+        ez.data.create_dump_file(dump_dir1, dataset1, data_inputs)
 
-    dump_dir2 = setup_dump_folder("eztest_join_dumps_2")
-    dataset2 = generate_random_dataset(5)
-    ez.data.create_dump_file(dump_dir2, dataset2, data_inputs)
+        dataset2 = generate_random_dataset(5)
+        ez.data.create_dump_file(dump_dir2, dataset2, data_inputs)
 
-    dump_dir_out = setup_dump_folder("eztest_join_dumps_out")
-    ez.data.join_dumps([dump_dir1, dump_dir2], ["dump_1", "dump_2"], dump_dir_out)
+        ez.data.join_dumps([dump_dir1, dump_dir2], ["dump_1", "dump_2"], dump_dir_out)
 
-    assert dump_dir_out.glob("wav.scp")
-    assert dump_dir_out.glob("text")
+        assert dump_dir_out.glob("wav.scp")
+        assert dump_dir_out.glob("text")
 
-    concat_dataset = dataset1 + dataset2
+        concat_dataset = dataset1 + dataset2
 
-    # check dump files
-    with open(dump_dir_out / "wav.scp", "r") as f:
-        for idx_l, l in enumerate(f.readlines()):
-            l = l.strip().split()
-            assert len(l) == 2
-            assert l[1] == concat_dataset[idx_l]["speech"]
+        # check dump files
+        with open(dump_dir_out / "wav.scp", "r") as f:
+            for idx_l, l in enumerate(f.readlines()):
+                l = l.strip().split()
+                assert len(l) == 2
+                assert l[1] == concat_dataset[idx_l]["speech"]
 
-    with open(dump_dir_out / "text", "r") as f:
-        for idx_l, l in enumerate(f.readlines()):
-            l = l.strip().split()
-            assert len(l) == 2
-            assert l[1] == concat_dataset[idx_l]["text"]
+        with open(dump_dir_out / "text", "r") as f:
+            for idx_l, l in enumerate(f.readlines()):
+                l = l.strip().split(maxsplit=1)
+                assert l[1] == concat_dataset[idx_l]["text"]
 
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
@@ -166,3 +158,60 @@ def test_check_argument(tr_dump, val_dump, tr_ds, val_ds, tr_dl, val_dl, test_ca
         assert test_case in ("110000", "001100", "000011")
     except ValueError:
         assert test_case not in ("110000", "001100", "000011")
+
+
+@pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
+def test_load_config(task_name, task_class):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # first create demo config
+        config_path = Path(temp_dir) / "config.yaml"
+        config_path.write_text("""task: {task_name}""")
+        default_config = task_class.get_default_config()
+        easy_config = ez.config.from_yaml(task_name, config_path)
+
+        for k in default_config.keys():
+            assert default_config[k] == easy_config[k]
+
+
+@pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
+def test_update_finetune_config(task_name, task_class):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # first create demo config
+        config_path = Path(temp_dir) / "config.yaml"
+        config_path.write_text("""use_lora: true""")
+        pretrain_config = task_class.get_default_config()
+        easy_config = ez.config.update_finetune_config(
+            task_name,
+            pretrain_config,
+            config_path
+        )
+
+        for k,v in easy_config.items():
+            if k != 'use_lora':
+                assert v == pretrain_config[k]
+            else:
+                assert v == True
+
+
+@pytest.mark.parametrize("model_type,vocab_size", [
+    ("unigram", 24),
+    ("bpe", 50),
+    ("char", 50),
+    ("word", 10)
+])
+def test_sentencepiece_model(model_type, vocab_size):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        dataset = generate_random_dataset(5)
+        data_inputs = {
+            "speech": ["wav.scp", "sound"],
+            "text": ["text", "text"],
+        }
+        ez.data.create_dump_file(temp_dir / "dump", dataset, data_inputs)
+        ez.preprocess.prepare_sentences([temp_dir / "dump" / "text"], temp_dir / "spm")
+        ez.preprocess.train_sentencepiece(
+            temp_dir / "spm" / "train.txt",
+            temp_dir/ "data" / "bpemodel",
+            vocab_size=vocab_size,
+            model_type=model_type
+        )

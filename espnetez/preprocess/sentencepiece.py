@@ -45,6 +45,8 @@ def train_sentencepiece(
     output_path: Union[str, Path],
     vocab_size: int = 5000,
     character_coverage: float = 0.9995,
+    model_type: str = "bpe",
+    user_defined_symbols: list = [],
 ):
     """Main function to train sentencepiece model.
 
@@ -55,24 +57,26 @@ def train_sentencepiece(
         vocab_size (int, optional): Vocaburary size. Defaults to 5000.
         character_coverage (float, optional): Character coverage.
             Defaults to 0.9995.
+        model_type (str, optional): Model type of sentencepiece. Defaults to "bpe".
+        user_defined_symbols (list, optional): User defined symbols.
     """
     # Please prepare sentences before running this function.
     spm.SentencePieceTrainer.Train(
         input=dump_text_path,
-        model_prefix="bpe",
-        model_type="bpe",
+        model_prefix=model_type,
+        model_type=model_type,
         vocab_size=vocab_size,
         character_coverage=character_coverage,
-        user_defined_symbols=[],
+        user_defined_symbols=user_defined_symbols,
     )
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    shutil.move("bpe.model", output_path)
-    shutil.move("bpe.vocab", output_path)
+    shutil.move(f"{model_type}.model", output_path)
+    shutil.move(f"{model_type}.vocab", output_path)
 
     # create vocab file
-    with open(os.path.join(output_path, "bpe.vocab"), "r") as f:
+    with open(os.path.join(output_path, f"{model_type}.vocab"), "r") as f:
         lines = f.readlines()
 
     vocabs = (

@@ -3,6 +3,16 @@ import yaml
 from espnetez.task import get_easy_task
 
 
+def convert_none_to_None(dic):
+    for k,v in dic.items():
+        if isinstance(v, dict):
+            dic[k] = convert_none_to_None(dic[k])
+
+        elif v == "none":
+            dic[k] = None
+    return dic
+
+
 def from_yaml(task, path):
     task_class = get_easy_task(task)
     with open(path, "r") as f:
@@ -11,6 +21,8 @@ def from_yaml(task, path):
     # get default configuration from task class.
     default_config = task_class.get_default_config()
     default_config.update(config)
+
+    default_config = convert_none_to_None(default_config)
 
     return default_config
 
@@ -36,5 +48,7 @@ def update_finetune_config(task, pretrain_config, path):
         pretrain_config["preprocessor_conf"] = finetune_config.get(
             "preprocessor_conf", {}
         )
+    
+    pretrain_config = convert_none_to_None(pretrain_config)
 
     return pretrain_config
