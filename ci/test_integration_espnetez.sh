@@ -28,6 +28,7 @@ cp -r dump/raw data/
 # Now we have flac files under dump/org/train_*/data/format.*/
 # and wav.scp files under dump/train_*/
 
+rm -rf exp data/spm
 # [ESPnet Easy] test asr recipe with coverage
 python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task asr \
@@ -39,6 +40,16 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --train_sentencepiece_model \
     --run_collect_stats \
     --run_train
+
+# finetuning
+python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+    --task asr \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_transformer_debug.yaml \
+    --run_finetune
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
@@ -55,6 +66,16 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_collect_stats \
     --run_train
 
+# finetuning
+python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+    --task asr \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_transducer_debug.yaml \
+    --run_finetune
+
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
 
@@ -69,6 +90,16 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --train_sentencepiece_model \
     --run_collect_stats \
     --run_train
+
+# finetune
+python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+    --task lm \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ../lm1/conf/train_transformer.yaml \
+    --run_finetune
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
@@ -86,6 +117,16 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_collect_stats \
     --run_train
 
+# finetune
+python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+    --task slu \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ../s2t1/conf/train_slu_transformer.yaml \
+    --run_finetune
+
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
 
@@ -101,6 +142,16 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --train_sentencepiece_model \
     --run_collect_stats \
     --run_train
+
+# finetune
+python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+    --task tts \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ../tts1/conf/train_tacotron2_debug.yaml \
+    --run_finetune
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm

@@ -40,7 +40,7 @@ if __name__ == "__main__":
         "--valid_dump_path",
         type=Path,
         required=True,
-        help="path to dump",
+        help="path to valid dump",
     )
     parser.add_argument(
         "--exp_path",
@@ -55,24 +55,19 @@ if __name__ == "__main__":
         help="path to config yaml file",
     )
     parser.add_argument(
-        "--run_config",
-        type=str,
-        default="",
-    )
-    parser.add_argument(
         "--train_sentencepiece_model",
         action="store_true",
-        help="path to train sentencepiece model",
+        help="Flag to train sentencepiece model",
     )
     parser.add_argument(
         "--run_collect_stats",
         action="store_true",
-        help="path to train sentencepiece model",
+        help="Flag to run collect stats",
     )
     parser.add_argument(
         "--run_train",
         action="store_true",
-        help="path to train sentencepiece model",
+        help="Flag to test training",
     )
     args = parser.parse_args()
 
