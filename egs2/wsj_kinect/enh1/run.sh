@@ -14,12 +14,14 @@ valid_set="cv"
 test_sets="tt"
 
 ./enh.sh \
+    --ref_num 2 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
     --lang en \
-    --ngpu 1 \
+    --ngpu 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config conf/tuning/train_enh_dprnn_tasnet.yaml \
+    --gpu_inference true \
+    --enh_config conf/train.yaml \
     "$@"
