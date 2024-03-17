@@ -5,9 +5,8 @@ set -euo pipefail
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 export PYTHONPATH
-# python="python -m coverage run --append"
+python="python -m coverage run --append"
 cwd=$(pwd)
-tasks=("asr" "asr_transducer" "gan_tts" "hubert" "lm" "s2t" "slu" "st" "tts" "uasr")
 
 gen_dummy_coverage(){
     # To avoid a problem when parallel running for `coverage run`.
