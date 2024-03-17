@@ -142,9 +142,6 @@ if __name__ == "__main__":
         energy_normalize = training_config["energy_normalize"]
         training_config["energy_normalize"] = None
 
-    # if args.run_config is not None:
-    #     training_config.update(parser.parse_args(shlex.split(args.run_config)))
-
     trainer = ez.Trainer(
         task=args.task,
         train_config=training_config,

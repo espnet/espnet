@@ -29,7 +29,7 @@ cp -r dump/raw data/
 # and wav.scp files under dump/train_*/
 
 # [ESPnet Easy] test asr recipe with coverage
-python -m coverage run --append ../../../ci/test_integrate_easy.py \
+python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -44,7 +44,7 @@ python -m coverage run --append ../../../ci/test_integrate_easy.py \
 rm -rf exp data/spm
 
 # [ESPnet Easy] test asr transducer recipe with coverage
-python -m coverage run --append ../../../ci/test_integrate_easy.py \
+python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -59,7 +59,7 @@ python -m coverage run --append ../../../ci/test_integrate_easy.py \
 rm -rf exp data/spm
 
 # [ESPnet Easy] test lm recipe with coverage
-python -m coverage run --append ../../../ci/test_integrate_easy.py \
+python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task lm \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -75,7 +75,7 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test slu recipe with coverage
-python -m coverage run --append ../../../ci/test_integrate_easy.py \
+python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task slu \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -91,7 +91,7 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test tts recipe with coverage
-python -m coverage run --append ../../../ci/test_integrate_easy.py \
+python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --task tts \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \

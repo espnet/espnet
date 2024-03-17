@@ -29,13 +29,13 @@ decoder: transducer
 decoder_conf:
     rnn_type: lstm
     num_layers: 1  # Decoder Layers
-    hidden_size: 640  # Decoder dim
+    hidden_size: 4  # Decoder dim
     dropout: 0.1
     dropout_embed: 0.2
 
 
 joint_net_conf:
-    joint_space_size: 640
+    joint_space_size: 4
 
 model: espnet
 model_conf:
