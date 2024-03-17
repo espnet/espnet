@@ -199,9 +199,9 @@ def test_update_finetune_config(task_name, task_class):
                 assert v
 
 
-@pytest.mark.parametrize(
-    "model_type,vocab_size", [("unigram", 24), ("bpe", 50), ("char", 50), ("word", 10)]
-)
+# @pytest.mark.parametrize(
+#     "model_type,vocab_size", [("unigram", 24), ("bpe", 50), ("char", 50), ("word", 10)]
+# )
 def test_sentencepiece_preparation():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
