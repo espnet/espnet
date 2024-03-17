@@ -350,7 +350,7 @@ class Encoder(torch.nn.Module):
             return xs, masks, intermediate_outputs
         return xs, masks
 
-    def forward_one_step(self, xs, masks, cache=None):
+    def forward_one_step(self, xs, masks, *, cache=None):
         """Encode input frame.
 
         Args:

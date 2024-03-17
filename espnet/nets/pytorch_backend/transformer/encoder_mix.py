@@ -127,7 +127,7 @@ class EncoderMix(Encoder, torch.nn.Module):
                 xs_sd[ns] = self.after_norm(xs_sd[ns])
         return xs_sd, masks_sd
 
-    def forward_one_step(self, xs, masks, cache=None):
+    def forward_one_step(self, xs, masks, *, cache=None):
         """Encode input frame.
 
         :param torch.Tensor xs: input tensor
