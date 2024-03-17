@@ -128,6 +128,7 @@ if __name__ == "__main__":
 
     training_config = ez.config.from_yaml(args.task, args.config_path)
     training_config["max_epoch"] = 1
+    training_config["ngpu"] = 0
     training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
     with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
         tokens = [t.replace("\n", "") for t in f.readlines()]
