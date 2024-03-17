@@ -153,7 +153,7 @@ if __name__ == "__main__":
         data_info=data_info,
         output_dir=exp_dir,
         stats_dir=stats_dir,
-        ngpu=1,
+        ngpu=0,
     )
     if args.run_collect_stats:
         trainer.collect_stats()
@@ -170,7 +170,7 @@ if __name__ == "__main__":
             data_info=data_info,
             output_dir=exp_dir,
             stats_dir=stats_dir,
-            ngpu=1,
+            ngpu=0,
         )
 
     if args.run_train:
