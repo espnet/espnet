@@ -35,7 +35,7 @@ tts_conf:
 
 num_iters_per_epoch: 1
 max_epoch: 1
-batch_type: unsorted
+batch_type: sorted
 batch_size: 2
 
 feats_extract: fbank
