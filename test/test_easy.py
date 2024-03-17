@@ -1,6 +1,7 @@
 # Copyright 2024 Masao Someki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -78,19 +79,23 @@ def test_create_dump_file():
 
         # check dump files
         with open(dump_dir / "wav.scp", "r") as f:
-            for idx_l, l in enumerate(f.readlines()):
-                l = l.strip().split()
-                assert len(l) == 2
-                assert l[1] == dataset[idx_l]["speech"]
+            for idx_l, line in enumerate(f.readlines()):
+                line = line.strip().split()
+                assert len(line) == 2
+                assert line[1] == dataset[idx_l]["speech"]
 
         with open(dump_dir / "text", "r") as f:
-            for idx_l, l in enumerate(f.readlines()):
-                l = l.strip().split(maxsplit=1)
-                assert l[1] == dataset[idx_l]["text"]
+            for idx_l, line in enumerate(f.readlines()):
+                line = line.strip().split(maxsplit=1)
+                assert line[1] == dataset[idx_l]["text"]
 
 
 def test_join_dumps():
-    with tempfile.TemporaryDirectory() as dump_dir1, tempfile.TemporaryDirectory() as dump_dir2, tempfile.TemporaryDirectory() as dump_dir_out:
+    dump_dir1 = tempfile.mktemp()
+    dump_dir2 = tempfile.mktemp()
+    dump_dir_out = tempfile.mktemp()
+
+    try:
         dump_dir_out = Path(dump_dir_out)
         data_inputs = {
             "speech": ["wav.scp", "sound"],
@@ -111,15 +116,20 @@ def test_join_dumps():
 
         # check dump files
         with open(dump_dir_out / "wav.scp", "r") as f:
-            for idx_l, l in enumerate(f.readlines()):
-                l = l.strip().split()
-                assert len(l) == 2
-                assert l[1] == concat_dataset[idx_l]["speech"]
+            for idx_l, line in enumerate(f.readlines()):
+                line = line.strip().split()
+                assert len(line) == 2
+                assert line[1] == concat_dataset[idx_l]["speech"]
 
         with open(dump_dir_out / "text", "r") as f:
-            for idx_l, l in enumerate(f.readlines()):
-                l = l.strip().split(maxsplit=1)
-                assert l[1] == concat_dataset[idx_l]["text"]
+            for idx_l, line in enumerate(f.readlines()):
+                line = line.strip().split(maxsplit=1)
+                assert line[1] == concat_dataset[idx_l]["text"]
+
+    finally:
+        shutil.rmtree(dump_dir1)
+        shutil.rmtree(dump_dir2)
+        shutil.rmtree(dump_dir_out)
 
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
@@ -186,7 +196,7 @@ def test_update_finetune_config(task_name, task_class):
             if k != "use_lora":
                 assert v == pretrain_config[k]
             else:
-                assert v == True
+                assert v
 
 
 @pytest.mark.parametrize(
