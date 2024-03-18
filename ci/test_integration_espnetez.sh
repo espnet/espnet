@@ -18,7 +18,7 @@ gen_dummy_coverage(){
 python3 -m pip uninstall -y chainer
 
 # Download mini_an4 as test data and prepare flac data
-cd ./egs2/mini_an4/asr1
+cd ./egs2/mini_an4/asr1 || exit
 ./run.sh --stage 1 --stop-stage 1
 ./run.sh --stage 2 --stop-stage 4 --feats-type "raw"
 
@@ -153,7 +153,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
 
-cd "${cwd}"
+cd "${cwd}" || exit
 
 
 echo "=== report ==="
