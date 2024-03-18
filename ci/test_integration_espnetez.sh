@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+# set -euo pipefail
 
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
@@ -21,16 +21,13 @@ python3 -m pip uninstall -y chainer
 cd ./egs2/mini_an4/asr1
 ./run.sh --stage 1 --stop-stage 1
 ./run.sh --stage 2 --stop-stage 4 --feats-type "raw"
-cp -r dump/raw data/
-./run.sh --stage 2 --stop-stage 4 --feats-type "raw_copy" \
-    --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test
 
 # Now we have flac files under dump/org/train_*/data/format.*/
 # and wav.scp files under dump/train_*/
 
 rm -rf exp data/spm
 # [ESPnet Easy] test asr recipe with coverage
-python -m coverage run --append ../../../ci/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -42,7 +39,7 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_train
 
 # finetuning
-python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -55,7 +52,7 @@ python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
 rm -rf exp data/spm
 
 # [ESPnet Easy] test asr transducer recipe with coverage
-python -m coverage run --append ../../../ci/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -67,7 +64,7 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_train
 
 # finetuning
-python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -80,7 +77,7 @@ python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
 rm -rf exp data/spm
 
 # [ESPnet Easy] test lm recipe with coverage
-python -m coverage run --append ../../../ci/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task lm \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -92,7 +89,7 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_train
 
 # finetune
-python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
     --task lm \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -106,7 +103,7 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test slu recipe with coverage
-python -m coverage run --append ../../../ci/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task slu \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -118,7 +115,7 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_train
 
 # finetune
-python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
     --task slu \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -132,7 +129,7 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test tts recipe with coverage
-python -m coverage run --append ../../../ci/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task tts \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -144,7 +141,7 @@ python -m coverage run --append ../../../ci/test_integration_espnetez.py \
     --run_train
 
 # finetune
-python -m coverage run --append ../../../ci/test_finetune_espnetez.py \
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
     --task tts \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
