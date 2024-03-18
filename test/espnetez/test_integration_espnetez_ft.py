@@ -1,15 +1,13 @@
 import argparse
 from pathlib import Path
 
+import espnetez as ez
 from espnet2.bin.asr_inference import Speech2Text as ASRInference
-from espnet2.bin.tts_inference import Text2Speech as TTSInference
-from espnet2.bin.uasr_inference import Speech2Text as UASRInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
-
+from espnet2.bin.tts_inference import Text2Speech as TTSInference
+from espnet2.bin.uasr_inference import Speech2Text as UASRInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
-
-import espnetez as ez
 
 TASK_CLASSES = {
     "asr": ASRInference,
@@ -27,9 +25,7 @@ CONFIG_NAMES = {
     "uasr": "uasr_train_args",
 }
 
-LORA_TARGET = [
-    "w_1", "w_2", "merge_proj"
-]
+LORA_TARGET = ["w_1", "w_2", "merge_proj"]
 
 
 def get_pretrained_model(args):
@@ -130,9 +126,7 @@ if __name__ == "__main__":
     tokenizer = getattr(pretrained_model, "tokenizer", None)
 
     finetune_config = ez.config.update_finetune_config(
-        args.task,
-        vars(pretrain_config),
-        f"../asr1/conf/finetune_with_lora.yaml"
+        args.task, vars(pretrain_config), f"../asr1/conf/finetune_with_lora.yaml"
     )
 
     finetune_config["max_epoch"] = 2
@@ -144,9 +138,9 @@ if __name__ == "__main__":
 
     if args.task == "tts":
         training_config = ez.config.from_yaml(args.task, args.config_path)
-        finetune_config["normalize"] = training_config['normalize']
-        finetune_config["pitch_normalize"] = training_config['pitch_normalize']
-        finetune_config["energy_normalize"] = training_config['energy_normalize']
+        finetune_config["normalize"] = training_config["normalize"]
+        finetune_config["pitch_normalize"] = training_config["pitch_normalize"]
+        finetune_config["energy_normalize"] = training_config["energy_normalize"]
 
     trainer = ez.Trainer(
         task=args.task,
