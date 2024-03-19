@@ -13,7 +13,7 @@ import librosa
 import numpy as np
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 EPS = 1e-10
 
@@ -111,6 +111,7 @@ def griffin_lim(
 class Spectrogram2Waveform(object):
     """Spectrogram to waveform conversion module."""
 
+    @typechecked
     def __init__(
         self,
         n_fft: int,
@@ -137,7 +138,6 @@ class Spectrogram2Waveform(object):
             griffin_lim_iters: The number of iterations.
 
         """
-        assert check_argument_types()
         self.fs = fs
         self.logmel2linear = (
             partial(

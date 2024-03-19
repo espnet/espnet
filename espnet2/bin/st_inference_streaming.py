@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
@@ -57,6 +57,7 @@ class Speech2TextStreaming:
 
     """
 
+    @typechecked
     def __init__(
         self,
         st_train_config: Union[Path, str],
@@ -86,7 +87,6 @@ class Speech2TextStreaming:
         transducer_conf: dict = None,
         hugging_face_decoder: bool = False,
     ):
-        assert check_argument_types()
 
         # 1. Build ST model
         scorers = {}
@@ -385,6 +385,7 @@ class Speech2TextStreaming:
         return feats, feats_lengths, next_states
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -396,7 +397,6 @@ class Speech2TextStreaming:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -455,10 +455,10 @@ class Speech2TextStreaming:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -497,7 +497,6 @@ def inference(
     transducer_conf: Optional[dict],
     hugging_face_decoder: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

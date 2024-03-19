@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch_complex
 import yaml
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.bin.enh_inference import (
     build_model_from_args_and_file,
@@ -54,6 +54,7 @@ class SeparateSpeechStreaming:
         >>>     for chunks in output_chunks ]
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -64,7 +65,6 @@ class SeparateSpeechStreaming:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        assert check_argument_types()
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -135,6 +135,7 @@ class SeparateSpeechStreaming:
         self.streaming_states = None
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000
     ) -> List[torch.Tensor]:
@@ -147,7 +148,6 @@ class SeparateSpeechStreaming:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -218,6 +218,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -237,7 +238,6 @@ def inference(
     ref_channel: Optional[int],
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import List
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -17,13 +17,13 @@ except ImportError:
     is_transformers_available = False
 
 
+@typechecked
 def export_vocabulary(
     output: str,
     model_name_or_path: str,
     log_level: str,
     add_symbol: List[str],
 ):
-    assert check_argument_types()
 
     if not is_transformers_available:
         raise ImportError(

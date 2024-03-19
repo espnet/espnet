@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from asteroid_filterbanks import Encoder, ParamSincFB
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -30,6 +30,7 @@ class AsteroidFrontend(AbsFrontend):
     "Filterbank design for end-to-end speech separation," in Proc. ICASSP, 2020
     """
 
+    @typechecked
     def __init__(
         self,
         sinc_filters: int = 256,
@@ -48,7 +49,6 @@ class AsteroidFrontend(AbsFrontend):
             preemph_coef: the coeifficient for preempahsis.
             log_term: the log term to prevent infinity.
         """
-        assert check_argument_types()
         super().__init__()
 
         # kernel for preemphasis

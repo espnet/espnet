@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import (
     BeamSearchTransducer,
@@ -58,6 +58,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str] = None,
@@ -81,8 +82,6 @@ class Speech2Text:
     ) -> None:
         """Construct a Speech2Text object."""
         super().__init__()
-
-        assert check_argument_types()
 
         asr_model, asr_train_args = ASRTransducerTask.build_model_from_file(
             asr_train_config, asr_model_file, device
@@ -247,6 +246,7 @@ class Speech2Text:
         return nbest_hyps
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> List[Hypothesis]:
         """Speech2Text call.
 
@@ -257,7 +257,6 @@ class Speech2Text:
             nbest_hypothesis: N-best hypothesis.
 
         """
-        assert check_argument_types()
 
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -303,8 +302,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-            assert check_return_type(results)
-
         return results
 
     @staticmethod
@@ -337,6 +334,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -401,7 +399,6 @@ def inference(
         display_hypotheses: Whether to display (partial and full) hypotheses.
 
     """
-    assert check_argument_types()
 
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")

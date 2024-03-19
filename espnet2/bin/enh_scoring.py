@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from mir_eval.separation import bss_eval_sources
 from pystoi import stoi
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -47,6 +47,7 @@ def read_audio(reader, key, audio_format="sound"):
         raise ValueError(f"Unknown audio format: {audio_format}")
 
 
+@typechecked
 def scoring(
     output_dir: str,
     dtype: str,
@@ -61,7 +62,6 @@ def scoring(
     dnsmos_args: Dict,
     use_pesq: bool,
 ):
-    assert check_argument_types()
 
     logging.basicConfig(
         level=log_level,

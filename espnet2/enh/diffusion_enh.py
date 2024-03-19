@@ -4,7 +4,7 @@ import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
@@ -23,6 +23,7 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 class ESPnetDiffusionModel(ESPnetEnhancementModel):
     """Target Speaker Extraction Frontend model"""
 
+    @typechecked
     def __init__(
         self,
         encoder: AbsEncoder,
@@ -33,7 +34,6 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         normalize: bool = False,
         **kwargs,
     ):
-        assert check_argument_types()
 
         super().__init__(
             encoder=encoder,

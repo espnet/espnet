@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
@@ -78,6 +78,7 @@ class MfaConformerEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -104,7 +105,6 @@ class MfaConformerEncoder(AbsEncoder):
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size * num_blocks
 

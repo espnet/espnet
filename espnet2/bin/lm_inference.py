@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -52,6 +52,7 @@ class GenerateText:
 
     """
 
+    @typechecked
     def __init__(
         self,
         lm_train_config: Union[Path, str] = None,
@@ -73,7 +74,6 @@ class GenerateText:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         # 1. Build language model
         lm, lm_train_args = LMTask.build_model_from_file(
@@ -192,6 +192,7 @@ class GenerateText:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, text: Union[str, torch.Tensor, np.ndarray]) -> ListOfHypothesis:
         """Inference
 
@@ -204,7 +205,6 @@ class GenerateText:
             List of (text, token, token_int, hyp)
 
         """
-        assert check_argument_types()
 
         if isinstance(text, str):
             tokens = self.tokenizer.text2tokens(text)
@@ -245,7 +245,6 @@ class GenerateText:
                 text = self.tokenizer.tokens2text(token)
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -279,6 +278,7 @@ class GenerateText:
         return GenerateText(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlen: int,
@@ -308,7 +308,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

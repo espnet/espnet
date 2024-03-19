@@ -2,12 +2,13 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Union
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class CharTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(
         self,
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
@@ -15,7 +16,6 @@ class CharTokenizer(AbsTokenizer):
         remove_non_linguistic_symbols: bool = False,
         nonsplit_symbols: Iterable[str] = None,
     ):
-        assert check_argument_types()
         self.space_symbol = space_symbol
         if non_linguistic_symbols is None:
             self.non_linguistic_symbols = set()

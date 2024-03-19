@@ -21,7 +21,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -62,6 +62,7 @@ class SpkTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -70,7 +71,6 @@ class SpkTrainer(Trainer):
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> None:
-        assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
@@ -246,6 +246,7 @@ class SpkTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def extract_embed(
         cls,
         model: torch.nn.Module,
@@ -257,7 +258,6 @@ class SpkTrainer(Trainer):
         custom_bs: int,
         average: bool = False,
     ) -> None:
-        assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed

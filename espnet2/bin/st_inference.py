@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
@@ -50,6 +50,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         st_train_config: Union[Path, str] = None,
@@ -92,7 +93,6 @@ class Speech2Text:
         hugging_face_decoder: bool = False,
         hugging_face_decoder_max_length: int = 256,
     ):
-        assert check_argument_types()
 
         task = STTask if not enh_s2t_task else EnhS2TTask
 
@@ -462,6 +462,7 @@ class Speech2Text:
         self.ctc_greedy = ctc_greedy
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[
@@ -475,7 +476,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -612,7 +612,6 @@ class Speech2Text:
 
         if self.st_model.use_multidecoder:
             return (results, asr_results)
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -645,6 +644,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -696,7 +696,6 @@ def inference(
     hugging_face_decoder: bool,
     hugging_face_decoder_max_length: int,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

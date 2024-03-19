@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
 from espnet2.utils.types import str2bool
@@ -10,6 +10,7 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 class MultiHeadAttention(AbsS2STAuxAttention):
     """Multihead Attention for S2ST."""
 
+    @typechecked
     def __init__(
         self,
         n_head: int = 4,
@@ -17,7 +18,6 @@ class MultiHeadAttention(AbsS2STAuxAttention):
         dropout_rate: float = 0.0,
     ):
         super().__init__()
-        assert check_argument_types()
         self.attn = MultiHeadedAttention(
             n_head=n_head,
             n_feat=n_feat,

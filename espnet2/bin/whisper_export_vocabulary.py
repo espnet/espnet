@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet2.utils.types import str2bool
@@ -14,6 +14,7 @@ from espnet.utils.cli_utils import get_commandline_args
 dirname = os.path.dirname(__file__)
 
 
+@typechecked
 def export_vocabulary(
     output: str,
     whisper_model: str,
@@ -33,8 +34,6 @@ def export_vocabulary(
             "./installers/install_whisper.sh"
         )
         raise e
-
-    assert check_argument_types()
 
     logging.basicConfig(
         level=log_level,

@@ -6,7 +6,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -77,6 +77,7 @@ class LongformerEncoder(ConformerEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -107,7 +108,6 @@ class LongformerEncoder(ConformerEncoder):
         attention_dilation: list = [1, 1, 1, 1, 1, 1],
         attention_mode: str = "sliding_chunks",
     ):
-        assert check_argument_types()
         super().__init__(input_size)
         self._output_size = output_size
 

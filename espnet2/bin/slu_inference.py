@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
@@ -47,6 +47,7 @@ class Speech2Understand:
 
     """
 
+    @typechecked
     def __init__(
         self,
         slu_train_config: Union[Path, str] = None,
@@ -76,7 +77,6 @@ class Speech2Understand:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         task = SLUTask
 
@@ -240,6 +240,7 @@ class Speech2Understand:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], transcript: torch.Tensor = None
     ) -> List[
@@ -258,7 +259,6 @@ class Speech2Understand:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -337,7 +337,6 @@ class Speech2Understand:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -371,6 +370,7 @@ class Speech2Understand:
         return Speech2Understand(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -408,7 +408,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

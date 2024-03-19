@@ -7,7 +7,7 @@
 from typing import Any, Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_tts.hifigan import (
@@ -61,6 +61,7 @@ AVAILABLE_DISCRIMINATORS = {
 class JointScore2Wav(AbsGANSVS):
     """General class to jointly train score2mel and vocoder parts."""
 
+    @typechecked
     def __init__(
         self,
         # generator (score2mel + vocoder) related
@@ -260,7 +261,6 @@ class JointScore2Wav(AbsGANSVS):
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
-        assert check_argument_types()
         super().__init__()
         self.segment_size = segment_size
         self.use_pqmf = use_pqmf

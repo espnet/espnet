@@ -1,7 +1,7 @@
 import logging
 from typing import Iterator, Tuple
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
@@ -20,6 +20,7 @@ class UnsortedBatchSampler(AbsSampler):
         key_file:
     """
 
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -27,7 +28,6 @@ class UnsortedBatchSampler(AbsSampler):
         drop_last: bool = False,
         utt2category_file: str = None,
     ):
-        assert check_argument_types()
         assert batch_size > 0
         self.batch_size = batch_size
         self.key_file = key_file

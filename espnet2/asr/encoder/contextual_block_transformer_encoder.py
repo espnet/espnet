@@ -6,7 +6,7 @@ import math
 from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -62,6 +62,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         ctx_pos_enc: whether to use positional encoding to the context vectors
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -85,7 +86,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         init_average: bool = True,
         ctx_pos_enc: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 

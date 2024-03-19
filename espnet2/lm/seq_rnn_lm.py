@@ -4,7 +4,7 @@ from typing import Tuple, Union
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.lm.abs_model import AbsLM
 
@@ -17,6 +17,7 @@ class SequentialRNNLM(AbsLM):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -28,7 +29,6 @@ class SequentialRNNLM(AbsLM):
         rnn_type: str = "lstm",
         ignore_id: int = 0,
     ):
-        assert check_argument_types()
         super().__init__()
 
         ninp = unit

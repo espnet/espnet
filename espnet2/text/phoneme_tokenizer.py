@@ -7,7 +7,7 @@ from typing import Iterable, List, Optional, Union
 import g2p_en
 import jamo
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
@@ -436,6 +436,7 @@ class IsG2p:  # pylint: disable=too-few-public-methods
 
 
 class PhonemeTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(
         self,
         g2p_type: Union[None, str],
@@ -443,7 +444,6 @@ class PhonemeTokenizer(AbsTokenizer):
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
-        assert check_argument_types()
         if g2p_type is None:
             self.g2p = split_by_space
         elif g2p_type == "g2p_en":

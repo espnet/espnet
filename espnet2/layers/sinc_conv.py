@@ -7,7 +7,7 @@ import math
 from typing import Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class LogCompression(torch.nn.Module):
@@ -48,6 +48,7 @@ class SincConv(torch.nn.Module):
     and not on the input values, which is different to traditional ASR.
     """
 
+    @typechecked
     def __init__(
         self,
         in_channels: int,
@@ -72,7 +73,6 @@ class SincConv(torch.nn.Module):
             window_func: Window function on the filter, one of ["hamming", "none"].
             fs (str, int, float): Sample rate of the input data
         """
-        assert check_argument_types()
         super().__init__()
         window_funcs = {
             "none": self.none_window,
@@ -198,6 +198,7 @@ class MelScale:
         return 700.0 * (torch.exp(torch.div(x, 1125.0)) - 1.0)
 
     @classmethod
+    @typechecked
     def bank(cls, channels: int, fs: float) -> torch.Tensor:
         """Obtain initialization values for the mel scale.
 
@@ -209,7 +210,6 @@ class MelScale:
             torch.Tensor: Filter start frequencíes.
             torch.Tensor: Filter stop frequencies.
         """
-        assert check_argument_types()
         # min and max bandpass edge frequencies
         min_frequency = torch.tensor(30.0)
         max_frequency = torch.tensor(fs * 0.5)
@@ -247,6 +247,7 @@ class BarkScale:
         return f * 1000.0
 
     @classmethod
+    @typechecked
     def bank(cls, channels: int, fs: float) -> torch.Tensor:
         """Obtain initialization values for the Bark scale.
 
@@ -258,7 +259,6 @@ class BarkScale:
             torch.Tensor: Filter start frequencíes.
             torch.Tensor: Filter stop frequencíes.
         """
-        assert check_argument_types()
         # min and max BARK center frequencies by approximation
         min_center_frequency = torch.tensor(70.0)
         max_center_frequency = torch.tensor(fs * 0.45)

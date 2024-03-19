@@ -9,7 +9,7 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.layers.sinc_conv import LogCompression, SincConv
@@ -38,6 +38,7 @@ class LightweightSincConvs(AbsPreEncoder):
     Use `plot_sinc_filters.py` to visualize the learned Sinc filters.
     """
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str, float] = 16000,
@@ -59,7 +60,6 @@ class LightweightSincConvs(AbsPreEncoder):
             windowing_type: Choice of windowing function.
             scale_type:  Choice of filter-bank initialization scale.
         """
-        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
@@ -256,6 +256,7 @@ class SpatialDropout(torch.nn.Module):
     Apply dropout to full channels on tensors of input (B, C, D)
     """
 
+    @typechecked
     def __init__(
         self,
         dropout_probability: float = 0.15,
@@ -267,7 +268,6 @@ class SpatialDropout(torch.nn.Module):
             dropout_probability: Dropout probability.
             shape (tuple, list): Shape of input tensors.
         """
-        assert check_argument_types()
         super().__init__()
         if shape is None:
             shape = (0, 2, 1)

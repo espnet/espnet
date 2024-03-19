@@ -8,7 +8,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
@@ -352,6 +352,7 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: ouptut embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -363,7 +364,6 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
 
         if block == "Bottle2neck":

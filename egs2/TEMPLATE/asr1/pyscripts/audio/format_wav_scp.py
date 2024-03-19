@@ -11,7 +11,7 @@ import numpy as np
 import resampy
 import soundfile
 from tqdm import tqdm
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
@@ -26,6 +26,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     """
 
@@ -33,16 +34,15 @@ def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     (3, 4, 5)
 
     """
-    assert check_argument_types()
     if integers.strip() in ("none", "None", "NONE", "null", "Null", "NULL"):
         return None
     return tuple(map(int, integers.strip().split(",")))
 
 
+@typechecked
 def vad_trim(vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int) -> np.array:
     # Conduct trim wtih vad information
 
-    assert check_argument_types()
     assert uttid in vad_reader, uttid
 
     vad_info = vad_reader[uttid]
@@ -72,8 +72,8 @@ class SegmentsExtractor:
             "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5\n"
     """
 
+    @typechecked
     def __init__(self, fname: str, segments: str = None, multi_columns: bool = False):
-        assert check_argument_types()
         self.wav_scp = fname
         self.multi_columns = multi_columns
         self.wav_dict = {}

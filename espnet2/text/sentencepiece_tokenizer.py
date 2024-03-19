@@ -2,14 +2,14 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Union
 
 import sentencepiece as spm
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class SentencepiecesTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(self, model: Union[Path, str], encode_kwargs: Dict = dict()):
-        assert check_argument_types()
         self.model = str(model)
         # NOTE(kamo):
         # Don't build SentencePieceProcessor in __init__()

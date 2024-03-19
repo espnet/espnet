@@ -7,7 +7,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
@@ -43,6 +43,7 @@ class Transformer(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -203,7 +204,6 @@ class Transformer(AbsTTS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -32,6 +32,7 @@ else:
 class ESPnetMTModel(AbsESPnetModel):
     """Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -53,7 +54,6 @@ class ESPnetMTModel(AbsESPnetModel):
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
     ):
-        assert check_argument_types()
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)

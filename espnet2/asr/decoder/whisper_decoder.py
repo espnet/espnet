@@ -2,7 +2,7 @@ import copy
 from typing import Any, List, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -44,6 +44,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -63,7 +64,6 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
             )
             raise e
 
-        assert check_argument_types()
         super().__init__()
 
         assert whisper_model in whisper.available_models()

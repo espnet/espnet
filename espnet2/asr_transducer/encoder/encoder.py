@@ -3,7 +3,7 @@
 from typing import Any, Dict, List, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr_transducer.encoder.building import (
     build_body_blocks,
@@ -31,6 +31,7 @@ class Encoder(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -40,8 +41,6 @@ class Encoder(torch.nn.Module):
     ) -> None:
         """Construct an Encoder object."""
         super().__init__()
-
-        assert check_argument_types()
 
         embed_size, output_size = validate_architecture(
             input_conf, body_conf, input_size

@@ -6,7 +6,7 @@
 from typing import Sequence
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention as BaseMultiHeadedAttention,
@@ -42,6 +42,7 @@ class StyleEncoder(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         idim: int = 80,
@@ -56,7 +57,6 @@ class StyleEncoder(torch.nn.Module):
         gru_units: int = 128,
     ):
         """Initilize global style encoder module."""
-        assert check_argument_types()
         super(StyleEncoder, self).__init__()
 
         self.ref_enc = ReferenceEncoder(
@@ -114,6 +114,7 @@ class ReferenceEncoder(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         idim=80,
@@ -125,7 +126,6 @@ class ReferenceEncoder(torch.nn.Module):
         gru_units: int = 128,
     ):
         """Initilize reference encoder module."""
-        assert check_argument_types()
         super(ReferenceEncoder, self).__init__()
 
         # check hyperparameters are valid
@@ -209,6 +209,7 @@ class StyleTokenLayer(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         ref_embed_dim: int = 128,
@@ -218,7 +219,6 @@ class StyleTokenLayer(torch.nn.Module):
         dropout_rate: float = 0.0,
     ):
         """Initilize style token layer module."""
-        assert check_argument_types()
         super(StyleTokenLayer, self).__init__()
 
         gst_embs = torch.randn(gst_tokens, gst_token_dim // gst_heads)

@@ -5,7 +5,6 @@
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.rawnet_block import Bottle2neck

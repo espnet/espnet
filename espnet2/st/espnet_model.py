@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 from packaging.version import parse as V
 from torch.nn.utils.rnn import pad_sequence
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -40,6 +40,7 @@ else:
 class ESPnetSTModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -82,7 +83,6 @@ class ESPnetSTModel(AbsESPnetModel):
         tgt_sym_eos: str = "<sos/eos>",
         lang_token_id: int = -1,
     ):
-        assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
         assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"

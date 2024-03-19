@@ -21,7 +21,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from filelock import FileLock
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -78,6 +78,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         avhubert_dir_path: dir_path for downloading pre-trained avhubert model
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -107,7 +108,6 @@ class FairseqAVHubertEncoder(AbsEncoder):
         max_noise_weight: float = 0.5,
         audio_only: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
 
         self._output_size = encoder_embed_dim

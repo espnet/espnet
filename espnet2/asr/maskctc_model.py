@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
@@ -39,6 +39,7 @@ else:
 class MaskCTCModel(ESPnetASRModel):
     """Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC)"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -64,7 +65,6 @@ class MaskCTCModel(ESPnetASRModel):
         sym_mask: str = "<mask>",
         extract_feats_in_collect_stats: bool = True,
     ):
-        assert check_argument_types()
 
         super().__init__(
             vocab_size=vocab_size,

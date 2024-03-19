@@ -5,7 +5,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -121,6 +121,7 @@ class PITLossWrapper(AbsLossWrapper):
 class ESPnetASRModel(SingleESPnetASRModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -154,7 +155,6 @@ class ESPnetASRModel(SingleESPnetASRModel):
         num_inf: int = 1,
         num_ref: int = 1,
     ):
-        assert check_argument_types()
         assert 0.0 < ctc_weight <= 1.0, ctc_weight
         assert interctc_weight == 0.0, "interctc is not supported for multispeaker ASR"
 

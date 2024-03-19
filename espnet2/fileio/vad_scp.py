@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 
@@ -25,12 +25,12 @@ class VADScpReader(collections.abc.Mapping):
 
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
         dtype=np.float32,
     ):
-        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.data = read_2columns_text(fname)
@@ -71,12 +71,12 @@ class VADScpWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         scpfile: Union[Path, str],
         dtype=None,
     ):
-        assert check_argument_types()
         scpfile = Path(scpfile)
         scpfile.parent.mkdir(parents=True, exist_ok=True)
         self.fscp = scpfile.open("w", encoding="utf-8")

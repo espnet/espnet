@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -42,6 +42,7 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         uasr_train_config: Union[Path, str] = None,
@@ -64,7 +65,6 @@ class Speech2Text:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         if quantize_uasr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
@@ -200,6 +200,7 @@ class Speech2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis]]]:
@@ -211,7 +212,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -259,7 +259,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -293,6 +292,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -323,7 +323,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

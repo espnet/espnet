@@ -10,7 +10,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
@@ -154,9 +154,9 @@ class GANSVSTask(AbsTask):
     trainer = GANTrainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -236,11 +236,11 @@ class GANSVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -248,10 +248,10 @@ class GANSVSTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -266,8 +266,6 @@ class GANSVSTask(AbsTask):
             )
         else:
             retval = None
-        # FIXME (jiatong): sometimes checking is not working here
-        # assert check_return_type(retval)
         return retval
 
     # TODO(Yuning): check new names
@@ -303,8 +301,8 @@ class GANSVSTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
-        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -413,7 +411,6 @@ class GANSVSTask(AbsTask):
             svs=svs,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod

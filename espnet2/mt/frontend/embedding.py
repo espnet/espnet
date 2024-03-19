@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -16,6 +16,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 class Embedding(AbsFrontend):
     """Embedding Frontend for text based inputs."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 400,
@@ -31,7 +32,6 @@ class Embedding(AbsFrontend):
             pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
             positional_dropout_rate: dropout rate after adding positional encoding
         """
-        assert check_argument_types()
         super().__init__()
         self.embed_dim = embed_dim
         # TODO(sdalmia): check for padding idx

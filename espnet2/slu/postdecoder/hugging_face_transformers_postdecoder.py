@@ -15,19 +15,19 @@ except ImportError:
 import logging
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
     """Hugging Face Transformers PostEncoder."""
 
+    @typechecked
     def __init__(
         self,
         model_name_or_path: str,
         output_size=256,
     ):
         """Initialize the module."""
-        assert check_argument_types()
         super().__init__()
         if not is_transformers_available:
             raise ImportError(

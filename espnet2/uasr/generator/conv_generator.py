@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.utils.types import str2bool
@@ -37,6 +37,7 @@ class SamePad(torch.nn.Module):
 class ConvGenerator(AbsGenerator):
     """convolutional generator for UASR."""
 
+    @typechecked
     def __init__(
         self,
         input_dim: int,
@@ -53,7 +54,6 @@ class ConvGenerator(AbsGenerator):
         residual: str2bool = True,
     ):
         super().__init__()
-        assert check_argument_types()
 
         self.input_dim = input_dim
         self.output_dim = output_dim

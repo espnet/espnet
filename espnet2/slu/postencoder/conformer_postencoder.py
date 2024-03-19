@@ -7,7 +7,7 @@ import logging
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
@@ -72,6 +72,7 @@ class ConformerPostEncoder(AbsPostEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -97,7 +98,6 @@ class ConformerPostEncoder(AbsPostEncoder):
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 

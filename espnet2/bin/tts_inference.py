@@ -14,7 +14,7 @@ import numpy as np
 import soundfile as sf
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_tts.vits import VITS
@@ -63,6 +63,7 @@ class Text2Speech:
 
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -86,7 +87,6 @@ class Text2Speech:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = TTSTask.build_model_from_file(
@@ -145,6 +145,7 @@ class Text2Speech:
         self.decode_conf = decode_conf
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         text: Union[str, torch.Tensor, np.ndarray],
@@ -156,7 +157,6 @@ class Text2Speech:
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run text-to-speech."""
-        assert check_argument_types()
 
         # check inputs
         if self.use_speech and speech is None:
@@ -306,6 +306,7 @@ class Text2Speech:
         return Text2Speech(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -336,7 +337,6 @@ def inference(
     vocoder_tag: Optional[str],
 ):
     """Run text-to-speech inference."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

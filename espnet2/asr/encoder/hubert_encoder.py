@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 import torch
 import yaml
 from filelock import FileLock
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -85,6 +85,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         https://pytorch.org/audio/stable/generated/torchaudio.models.hubert_pretrain_model.html#torchaudio.models.hubert_pretrain_model
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = None,
@@ -131,7 +132,6 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         finetuning: bool = False,
         freeze_encoder_updates: int = 0,
     ):
-        assert check_argument_types()
         super().__init__()
         try:
             import torchaudio
@@ -299,6 +299,7 @@ class FairseqHubertEncoder(AbsEncoder):
         https://github.com/pytorch/fairseq/blob/master/fairseq/models/hubert/hubert.py
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -322,7 +323,6 @@ class FairseqHubertEncoder(AbsEncoder):
         layerdrop: float = 0.1,
         feature_grad_mult: float = 0.0,
     ):
-        assert check_argument_types()
         super().__init__()
         self.apply_mask = apply_mask
         try:
@@ -508,6 +508,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         normalize_before: whether to use layer_norm before the first block
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -525,7 +526,6 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         use_amp: bool = False,
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.use_amp = use_amp

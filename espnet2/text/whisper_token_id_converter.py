@@ -3,7 +3,7 @@ import os
 from typing import Iterable, List, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 
@@ -18,6 +18,7 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenIDConverter:
+    @typechecked
     def __init__(
         self,
         model_type: str,
@@ -27,7 +28,6 @@ class OpenAIWhisperTokenIDConverter:
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
     ):
-        assert check_argument_types()
 
         try:
             import whisper.tokenizer

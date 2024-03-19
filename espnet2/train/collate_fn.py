@@ -3,7 +3,7 @@ from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -11,13 +11,13 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class CommonCollateFn:
     """Functor class of common_collate_fn()"""
 
+    @typechecked
     def __init__(
         self,
         float_pad_value: Union[float, int] = 0.0,
         int_pad_value: int = -32768,
         not_sequence: Collection[str] = (),
     ):
-        assert check_argument_types()
         self.float_pad_value = float_pad_value
         self.int_pad_value = int_pad_value
         self.not_sequence = set(not_sequence)
@@ -42,6 +42,7 @@ class CommonCollateFn:
 class HuBERTCollateFn(CommonCollateFn):
     """Functor class of common_collate_fn()"""
 
+    @typechecked
     def __init__(
         self,
         float_pad_value: Union[float, int] = 0.0,
@@ -55,7 +56,6 @@ class HuBERTCollateFn(CommonCollateFn):
         window_shift: float = 20,
         sample_rate: float = 16,
     ):
-        assert check_argument_types()
         super().__init__(
             float_pad_value=float_pad_value,
             int_pad_value=int_pad_value,
@@ -179,6 +179,7 @@ def _crop_audio_label(
     return waveform, label, length
 
 
+@typechecked
 def common_collate_fn(
     data: Collection[Tuple[str, Dict[str, np.ndarray]]],
     float_pad_value: Union[float, int] = 0.0,
@@ -202,7 +203,6 @@ def common_collate_fn(
         that of the dataset as they are.
 
     """
-    assert check_argument_types()
     uttids = [u for u, _ in data]
     data = [d for _, d in data]
 
@@ -236,5 +236,4 @@ def common_collate_fn(
             output[key + "_lengths"] = lens
 
     output = (uttids, output)
-    assert check_return_type(output)
     return output

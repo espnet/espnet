@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
@@ -15,6 +15,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -36,7 +37,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
             )
             raise e
 
-        assert check_argument_types()
         super().__init__()
 
         self.n_fft = N_FFT
