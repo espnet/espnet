@@ -579,10 +579,7 @@ class Speech2Text:
         while offset < len(speech):
             logging.info(f"Current start time in seconds: {offset / fs:.2f}")
             segment = speech[offset : offset + segment_len]
-            if (
-                offset + segment_len > len(speech)
-                and len(segment) / fs < skip_last_chunk_threshold
-            ):
+            if len(segment) / fs < skip_last_chunk_threshold:
                 logging.warning(
                     f"Skip the last chunk as it's too short: {len(segment) / fs:.2f}s"
                 )
