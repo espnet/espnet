@@ -1,7 +1,7 @@
 import copy
 import logging
-from typing import Any, List, Tuple
 import re
+from typing import Any, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -26,8 +26,8 @@ class HuggingfaceOPTModel(AbsLM):
             print("Please install transformers")
             raise e
 
-        #opt_model_name_pattern = re.compile(r"facebook/opt-\d+m")
-        #assert opt_model_name_pattern.match(opt_name) is not None
+        # opt_model_name_pattern = re.compile(r"facebook/opt-\d+m")
+        # assert opt_model_name_pattern.match(opt_name) is not None
 
         pretrained_opt_model = OPTModel.from_pretrained(opt_name)
         pretrained_opt_model_dict = pretrained_opt_model.state_dict()
@@ -42,7 +42,9 @@ class HuggingfaceOPTModel(AbsLM):
 
         self.decoder = OPTModel(config)
 
-        self.lm_head = nn.Linear(config.word_embed_proj_dim, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(
+            config.word_embed_proj_dim, config.vocab_size, bias=False
+        )
 
     def _target_mask(self, ys_in_pad):
         ys_mask = ys_in_pad != 0
@@ -65,10 +67,9 @@ class HuggingfaceOPTModel(AbsLM):
         )
         y = y.last_hidden_state
 
-        logits = self.lm_head(y) 
+        logits = self.lm_head(y)
 
         return logits, None
-
 
     def score(
         self, y: torch.Tensor, state: Any, x: torch.Tensor
@@ -90,7 +91,7 @@ class HuggingfaceOPTModel(AbsLM):
             _use_cache = True
         else:
             _use_cache = False
-        
+
         y = y.unsqueeze(0)
 
         output = self.decoder(
@@ -131,7 +132,7 @@ class HuggingfaceOPTModel(AbsLM):
             batch_state = None
             _use_cache = True
         else:
-            batch_state=None
+            batch_state = None
             _use_cache = False
 
         # batch decoding
