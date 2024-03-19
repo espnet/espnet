@@ -24,4 +24,5 @@ test_sets="tt"
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --gpu_inference true \
     --enh_config conf/train.yaml \
+    --nj 16 \
     "$@"
