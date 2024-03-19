@@ -11,6 +11,7 @@ from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
+from espnet2.lm.huggingface_pretrained_opt_lm import HuggingfaceOPTModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -28,6 +29,7 @@ lm_choices = ClassChoices(
     classes=dict(
         seq_rnn=SequentialRNNLM,
         transformer=TransformerLM,
+        transformer_opt=HuggingfaceOPTModel
     ),
     type_check=AbsLM,
     default="seq_rnn",
@@ -225,5 +227,9 @@ class LMTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
 
+        if args.lm == "transformer_opt":
+            # loading opt parameters
+            model.lm.reload_pretrained_parameters()
+            
         assert check_return_type(model)
         return model
