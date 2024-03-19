@@ -188,7 +188,6 @@ class Speech2Text:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         predict_time: bool = False,
-        skip_last_chunk_threshold: float = 0.2,
     ):
         assert check_argument_types()
 
@@ -345,7 +344,6 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
-        self.skip_last_chunk_threshold = skip_last_chunk_threshold
 
         self.lang_sym = lang_sym
         self.task_sym = task_sym
@@ -533,6 +531,7 @@ class Speech2Text:
         end_time_threshold: str = "<29.00>",
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
+        skip_last_chunk_threshold=0.2,
     ):
         """Decode unsegmented long-form speech.
 
@@ -582,7 +581,7 @@ class Speech2Text:
             segment = speech[offset : offset + segment_len]
             if (
                 offset + segment_len > len(speech)
-                and len(segment) / fs < self.skip_last_chunk_threshold
+                and len(segment) / fs < skip_last_chunk_threshold
             ):
                 logging.warning(
                     f"Skip the last chunk as it's too short: {len(segment) / fs:.2f}s"
@@ -725,7 +724,6 @@ def inference(
     lang_sym: str,
     task_sym: str,
     predict_time: bool,
-    skip_last_chunk_threshold: float,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -779,7 +777,6 @@ def inference(
         lang_sym=lang_sym,
         task_sym=task_sym,
         predict_time=predict_time,
-        skip_last_chunk_threshold=skip_last_chunk_threshold,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1019,12 +1016,6 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
-    )
-    group.add_argument(
-        "--skip_last_chunk_threshold",
-        type=float,
-        default=0.2,
-        help="In long-form decoding, the last chunk smaller than this will be skipped",
     )
 
     group = parser.add_argument_group("Text converter related")
