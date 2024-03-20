@@ -26,6 +26,17 @@ espnet2.lm.espnet_model_multitask
     :show-inheritance:
 
 
+.. _espnet2.lm.huggingface_pretrained_opt_lm:
+
+espnet2.lm.huggingface_pretrained_opt_lm
+----------------------------------------
+
+.. automodule:: espnet2.lm.huggingface_pretrained_opt_lm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.lm.transformer_lm:
 
 espnet2.lm.transformer_lm

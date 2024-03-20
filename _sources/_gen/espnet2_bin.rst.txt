@@ -6203,8 +6203,9 @@ lm_train.py
                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                        [--cleaner {None,tacotron,jaconv,vietnamese}]
                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
-                       [--lm {seq_rnn,transformer}] [--lm_conf LM_CONF]
-                       [--model {lm,lm_multitask}] [--model_conf MODEL_CONF]
+                       [--lm {seq_rnn,transformer,transformer_opt}]
+                       [--lm_conf LM_CONF] [--model {lm,lm_multitask}]
+                       [--model_conf MODEL_CONF]
     
     base parser
     
@@ -6610,7 +6611,7 @@ lm_train.py
                             Apply preprocessing to data or not (default: True)
       --token_type {bpe,char,word}
       --bpemodel BPEMODEL   The model file fo sentencepiece (default: None)
-      --lm {seq_rnn,transformer}
+      --lm {seq_rnn,transformer,transformer_opt}
                             The lm type (default: seq_rnn)
       --lm_conf LM_CONF     The keyword arguments for lm (default: {})
       --model {lm,lm_multitask}

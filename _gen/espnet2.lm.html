@@ -150,6 +150,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.lm package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-init-1">espnet2.lm.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-espnet-model-multitask-1">espnet2.lm.espnet_model_multitask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-huggingface-pretrained-opt-lm-1">espnet2.lm.huggingface_pretrained_opt_lm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-transformer-lm-1">espnet2.lm.transformer_lm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-seq-rnn-lm-1">espnet2.lm.seq_rnn_lm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-abs-model-1">espnet2.lm.abs_model</a></li>
@@ -256,6 +257,86 @@ NOTE(yifan): We only use nll to calculate perplexity,</p>
 :param text: (Batch, Length)
 :param text_lengths: (Batch,)
 :param max_lengths: int</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-lm-huggingface-pretrained-opt-lm-1">
+<span id="espnet2-lm-huggingface-pretrained-opt-lm"></span><h2>espnet2.lm.huggingface_pretrained_opt_lm<a class="headerlink" href="#espnet2-lm-huggingface-pretrained-opt-lm-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.lm.huggingface_pretrained_opt_lm"></span><dl class="class">
+<dt id="espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.huggingface_pretrained_opt_lm.</code><code class="sig-name descname">HuggingfaceOPTModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">opt_name: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/huggingface_pretrained_opt_lm.html#HuggingfaceOPTModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.lm.abs_model.AbsLM" title="espnet2.lm.abs_model.AbsLM"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.lm.abs_model.AbsLM</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.batch_score">
+<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/lm/huggingface_pretrained_opt_lm.html#HuggingfaceOPTModel.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.batch_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new token batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ys</strong> (<em>torch.Tensor</em>) – torch.int64 prefix tokens (n_batch, ylen).</p></li>
+<li><p><strong>states</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – Scorer states for prefix tokens.</p></li>
+<li><p><strong>xs</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys (n_batch, xlen, n_feat).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>batchfied scores for next token with shape of <cite>(n_batch, vocab_size)</cite>
+and next state list for ys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, List[Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">hidden: None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, None]<a class="reference internal" href="../_modules/espnet2/lm/huggingface_pretrained_opt_lm.html#HuggingfaceOPTModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute LM loss value from buffer sequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – Input ids. (batch, len)</p></li>
+<li><p><strong>hidden</strong> (<em>torch.Tensor</em>) – Target ids. (batch, len)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.reload_pretrained_parameters">
+<code class="sig-name descname">reload_pretrained_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/huggingface_pretrained_opt_lm.html#HuggingfaceOPTModel.reload_pretrained_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.reload_pretrained_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.score">
+<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">y: torch.Tensor</em>, <em class="sig-param">state: Any</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Any]<a class="reference internal" href="../_modules/espnet2/lm/huggingface_pretrained_opt_lm.html#HuggingfaceOPTModel.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.huggingface_pretrained_opt_lm.HuggingfaceOPTModel.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new token.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>torch.Tensor</em>) – 1D torch.int64 prefix tokens.</p></li>
+<li><p><strong>state</strong> – Scorer state for prefix tokens</p></li>
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – encoder feature that generates ys.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>torch.float32 scores for next token (vocab_size)
+and next state for ys</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, Any]</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
