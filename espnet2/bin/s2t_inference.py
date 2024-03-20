@@ -531,7 +531,7 @@ class Speech2Text:
         end_time_threshold: str = "<29.00>",
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
-        skip_last_chunk_threshold=0.2,
+        skip_last_chunk_threshold: float = 0.2,
     ):
         """Decode unsegmented long-form speech.
 
