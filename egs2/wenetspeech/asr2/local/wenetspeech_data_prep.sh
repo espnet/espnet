@@ -1,0 +1,1 @@
+../../asr1/local/wenetspeech_data_prep.sh
