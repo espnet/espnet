@@ -83,7 +83,8 @@ Note: Here, the PESQ score is calculated based on https://github.com/vBaiCai/pyt
 
 ## enh_train_enh_tfgrid_raw
 
-config: ./conf/tuning/train_enh_tfgrid.yaml
+- config: ./conf/tuning/train_enh_tfgrid.yaml
+- model: https://huggingface.co/Zhaoheng/tfgridnet_dns_ins20_epoch33
 
 |dataset|PESQ_WB|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
