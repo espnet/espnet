@@ -71,38 +71,45 @@ fi
 
 cd $data
 
-# if ! tar -xzf $filename; then
-#   echo "$0: error un-tarring archive $filepath"
-#   exit 1;
-# fi
-
 # Determine the file extension and perform the corresponding extraction operation
 case $filename in
-  *.tgz|*.gz)
+  *.tgz|*.tar.gz)
+    # For .tgz and .tar.gz files, use tar to decompress
+    if ! tar -xzf $filename; then
+      echo "$0: error un-tarring gzip archive $filepath"
+      exit 1;
+    fi
+    ;;
+  *.gz)
+    # For .gz files, use gzip to decompress
     if ! gzip -d $filename; then
-      echo "$0: error unzipping gzip archive $filepath"
+      echo "$0: error unzipping gzip file $filepath"
       exit 1;
     fi
     ;;
   *.zip)
+    # For .zip files, use unzip
     if ! unzip $filename; then
       echo "$0: error unzipping zip archive $filepath"
       exit 1;
     fi
     ;;
   *)
-    echo "$0: unsupported archive format $filepath"
-    exit 1;
+    # Report unsupported file types but don't exit
+    echo "$0: '$filename' does not appear to be a supported archive format. No extraction performed."
     ;;
 esac
 
+
 cd $workspace
 
-touch $data/$filename.complete
 
-echo "$0: Successfully downloaded and unzipped $filepath"
+if [ -f "$filepath" ]; then
+    touch $data/$filename.complete
+    echo "$0: Successfully downloaded $filepath"
 
-if $remove_archive; then
-  echo "$0: removing $filepath file since --remove-archive option was supplied."
-  rm $filepath
+    if $remove_archive && [[ "$filename" =~ \.(tgz|tar\.gz|gz|zip)$ ]]; then
+      echo "$0: removing $filepath file since --remove-archive option was supplied."
+      rm $filepath
+    fi
 fi

@@ -28,6 +28,11 @@ if [ -z "${SPEECH_MATRIX}" ]; then
     exit 1
 fi
 
+FLORES_ROOT="${SPEECH_MATRIX}/flores"
+mkdir -p ${FLORES_ROOT}
+EPST_DIR="${SPEECH_MATRIX}/epst"
+mkdir -p ${EPST_DIR}
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -37,15 +42,31 @@ set -o pipefail
 log "data preparation started"
 
 # base url for download speech_matrix data
-speech_matrix_raw_data_url=https://dl.fbaipublicfiles.com/speech_matrix/audios/${src_lang}_aud.zip
+# url 1 for source language and url 2 for target language
+# aligned data tsv indicates the aligned utts
+speech_matrix_raw_data_url_1=https://dl.fbaipublicfiles.com/speech_matrix/audios/${src_lang}_aud.zip
+speech_matrix_raw_data_url_2=https://dl.fbaipublicfiles.com/speech_matrix/audios/${dst_lang}_aud.zip
 speech_matrix_aligned_data_tsv=https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${src_lang}-${dst_lang}.tsv.gz
 
+# url for download FLORES data (for aligning speech in FLEURS with texts in FLORES)
+flores_raw_data_url=https://tinyurl.com/flores200dataset
+europarl_raw_data_url=https://www.mllp.upv.es/europarl-st/v1.1.tar.gz
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${SPEECH_MATRIX}"
-    log "Prepare source aligned speech data from fairseq"
+    log "Prepare source aligned speech data from speech matrix for training"
     mkdir -p ${SPEECH_MATRIX}/audios/${src_lang}
-    local/download_and_unzip.sh ${SPEECH_MATRIX}/audios/${src_lang} ${speech_matrix_raw_data_url} ${src_lang}_aud.zip
+    local/download_and_unzip.sh ${SPEECH_MATRIX}/audios/${src_lang} ${speech_matrix_raw_data_url_1} ${src_lang}_aud.zip
+    mkdir -p ${SPEECH_MATRIX}/audios/${dst_lang}
+    local/download_and_unzip.sh ${SPEECH_MATRIX}/audios/${dst_lang} ${speech_matrix_raw_data_url_2} ${dst_lang}_aud.zip
     mkdir -p ${SPEECH_MATRIX}/${src_lang}-${dst_lang}
     local/download_and_unzip.sh ${SPEECH_MATRIX}/${src_lang}-${dst_lang} ${speech_matrix_aligned_data_tsv} ${src_lang}-${dst_lang}.tsv.gz
+
+    log "Download FLORES data to ${SPEECH_MATRIX}"
+    local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores200dataset
+    log "Download EuroParl-ST data to ${SPEECH_MATRIX}"
+    local/download_and_unzip.sh ${EPST_DIR} ${europarl_raw_data_url} v1.1.tar.gz
 fi
+
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
