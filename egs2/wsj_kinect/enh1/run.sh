@@ -5,7 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-min_or_max=min # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
+### The following two parameters are currently fixed for Kinect-WSJ 
+#min_or_max=min # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
 sample_rate=16k
 
 
@@ -21,7 +22,6 @@ test_sets="tt"
     --fs "${sample_rate}" \
     --lang en \
     --ngpu 2 \
-    --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --gpu_inference true \
     --enh_config conf/train.yaml \
     --nj 16 \

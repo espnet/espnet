@@ -12,10 +12,7 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 [--min_or_max <min/max>] [--sample_rate <8k/16k>]
-  optional argument:
-    [--min_or_max]: min (Default), max
-    [--sample_rate]: 16k (Default), 8k
+Usage: $0 
 EOF
 )
 
@@ -30,8 +27,9 @@ parallel=true
 ### This parameter is used to decide whether to use dereverb or reverb references during training.
 use_dereverb=false
 
-min_or_max=min
-sample_rate=16k
+### The following two parameters are currently fixed for Kinect-WSJ
+#min_or_max=min
+#sample_rate=16k
 
 output_path=$PWD/data/2speakers_reverb_kinect
 tr="tr"
@@ -64,8 +62,8 @@ fi
 if [ "${use_dereverb}" == true ]
 then
     echo "Using dereverb references"
-    spk1_dir = "s1_direct"
-    spk2_dir = "s2_direct"
+    spk1_dir="s1_direct"
+    spk2_dir="s2_direct"
 fi
 
 
@@ -84,7 +82,7 @@ for x in ${tr} ${cv} ${tt};
 do
   if [ -d $datadir/$x ]; then
   echo "Clearing $x"
-  rm -r $datadir/$x
+  rm -r ${datadir:?}/${x:?}
   fi
 done
 
