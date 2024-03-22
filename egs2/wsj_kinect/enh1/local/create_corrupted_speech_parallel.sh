@@ -15,7 +15,7 @@ mkdir -p $dest
 
 # Path to download the simulated RIRs. Dont change
 rir_download_path="https://zenodo.org/record/3520737/files/kinect_rir.tar.gz"
-min_max="max" 
+min_max="max"
 src_count=2 # Not implemented for other src counts
 tt_parallel="007"
 tr_parallel="049"
@@ -31,7 +31,7 @@ if [ $stage -le 0 ]; then
         wget $rir_download_path -O $dest/kinect_rir.tar.gz
         tar -xvzf $dest/kinect_rir.tar.gz -C $dest || exit 1;
         # Remove the downloaded tar file to save space
-        rm $dest/kinect_rir.tar.gz 
+        rm $dest/kinect_rir.tar.gz
         ln -s $dest/kinect_rir
     else
         echo "$dest/kinect_rir already exists. Skipping download"
@@ -66,11 +66,11 @@ if [ $stage -le 2 ]; then
         for ele in `seq -w 000 $parallel_max`; do
             rir_yaml_list="${rir_base_path}/${ele}/list.yaml"
             rir_file_cnt=`grep rir_base_path $rir_yaml_list  | wc -l`
-            file_end=$(($start+${rir_file_cnt})) 
+            file_end=$(($start+${rir_file_cnt}))
             echo $start $file_end
             # Put an & at the end of next line if you want run the wav creation in parallel using a single machine. It will spawn 50, 13 and 7 jobs for train dev and test
             # You can also use cluster managers such as SLURM/SGE/OAR with this command
-            # python create_corrupted_speech.py $wsj_mix_list $start $file_end $wsj2_mix_base $noise_list $src_count $rir_yaml_list $SNR $dest_base  || exit 1; 
+            # python create_corrupted_speech.py $wsj_mix_list $start $file_end $wsj2_mix_base $noise_list $src_count $rir_yaml_list $SNR $dest_base  || exit 1;
             python create_corrupted_speech.py $wsj_mix_list $start $file_end $wsj2_mix_base $noise_list $src_count $rir_yaml_list $SNR $dest_base  || exit 1 &
             start=$file_end
 	    start=$file_end

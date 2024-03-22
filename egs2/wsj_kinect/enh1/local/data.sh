@@ -66,7 +66,7 @@ then
     echo "Using dereverb references"
     spk1_dir = "s1_direct"
     spk2_dir = "s2_direct"
-fi    
+fi
 
 
 ### Download the scripts for noise extraction and mixture creation
@@ -76,14 +76,14 @@ datadir=data
 wdir=data/scripts
 
 if [ -d $wdir ]; then
-  echo "Replacing $wdir" 
+  echo "Replacing $wdir"
   rm -r $wdir
 fi
 
 for x in ${tr} ${cv} ${tt};
 do
   if [ -d $datadir/$x ]; then
-  echo "Clearing $x" 
+  echo "Clearing $x"
   rm -r $datadir/$x
   fi
 done
