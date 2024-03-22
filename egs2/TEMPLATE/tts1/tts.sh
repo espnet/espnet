@@ -666,8 +666,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${tts_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${tts_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts_stats_dir}/run.sh"; chmod +x "${tts_stats_dir}/run.sh"
+        log "Generate '${tts_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${tts_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts_stats_dir}/run.sh"; chmod +x "${tts_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
@@ -899,8 +899,8 @@ if ! "${skip_train}"; then
             _opts+="--normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${tts_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
+        log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${tts_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
@@ -984,8 +984,8 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
+        log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do
@@ -1149,7 +1149,7 @@ if [ -z "${download_model}" ]; then
 
         # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
         #   % unzip ${packed_model}
-        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
+        #   % ./run.sh --stage 9 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
     fi
 fi
 

@@ -9,6 +9,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
+from espnet2.lm.huggingface_pretrained_opt_lm import HuggingfaceOPTModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
@@ -28,6 +29,7 @@ lm_choices = ClassChoices(
     classes=dict(
         seq_rnn=SequentialRNNLM,
         transformer=TransformerLM,
+        transformer_opt=HuggingfaceOPTModel,
     ),
     type_check=AbsLM,
     default="seq_rnn",
@@ -224,6 +226,10 @@ class LMTask(AbsTask):
         # 3. Initialize
         if args.init is not None:
             initialize(model, args.init)
+
+        if args.lm == "transformer_opt":
+            # loading opt parameters
+            model.lm.reload_pretrained_parameters()
 
         assert check_return_type(model)
         return model
