@@ -12,7 +12,7 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 
+Usage: $0
 EOF
 )
 
