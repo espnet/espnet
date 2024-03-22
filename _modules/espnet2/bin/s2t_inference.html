@@ -744,6 +744,7 @@
         <span class="n">end_time_threshold</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;29.00&gt;&quot;</span><span class="p">,</span>
         <span class="n">lang_sym</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_sym</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">skip_last_chunk_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode unsegmented long-form speech.</span>
 
@@ -779,17 +780,25 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
             <span class="n">speech</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">speech</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
-        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;speech must have one dimension, got size </span><span class="si">{</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="si">}</span><span class="s2"> instead&quot;</span>
+        <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;speech of size </span><span class="si">{</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="si">}</span><span class="s2"> is not supported&quot;</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (nsamples, 1) --&gt; (nsamples,)</span>
 
         <span class="n">utterances</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">text_prev</span> <span class="o">=</span> <span class="n">init_text</span>
         <span class="k">while</span> <span class="n">offset</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">speech</span><span class="p">):</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current start time in seconds: </span><span class="si">{</span><span class="n">offset</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">fs</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
             <span class="n">segment</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">segment_len</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span> <span class="o">/</span> <span class="n">fs</span> <span class="o">&lt;</span> <span class="n">skip_last_chunk_threshold</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Skip the last chunk as it&#39;s too short: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">fs</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s&quot;</span>
+                <span class="p">)</span>
+                <span class="n">offset</span> <span class="o">+=</span> <span class="n">segment_len</span>
+                <span class="k">continue</span>
+
             <span class="c1"># segment will be padded in __call__</span>
             <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span>
                 <span class="n">speech</span><span class="o">=</span><span class="n">segment</span><span class="p">,</span>
@@ -854,7 +863,6 @@
                 <span class="n">utterances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">utt</span><span class="p">)</span>
 
             <span class="n">offset</span> <span class="o">+=</span> <span class="nb">round</span><span class="p">((</span><span class="n">new_start_time_id</span> <span class="o">-</span> <span class="n">first_time_id</span><span class="p">)</span> <span class="o">*</span> <span class="n">resolution</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time_id</span> <span class="o">=</span> <span class="n">first_time_id</span>
 
         <span class="k">return</span> <span class="n">utterances</span></div>
 

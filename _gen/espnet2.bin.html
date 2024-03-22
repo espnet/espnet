@@ -597,7 +597,7 @@ and next state for ys</p>
 </div>
 <dl class="method">
 <dt id="espnet2.bin.s2t_inference.Speech2Text.decode_long">
-<code class="sig-name descname">decode_long</code><span class="sig-paren">(</span><em class="sig-param">speech: Union[torch.Tensor, numpy.ndarray], condition_on_prev_text: bool = False, init_text: Optional[str] = None, end_time_threshold: str = '&lt;29.00&gt;', lang_sym: Optional[str] = None, task_sym: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2t_inference.html#Speech2Text.decode_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2t_inference.Speech2Text.decode_long" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">decode_long</code><span class="sig-paren">(</span><em class="sig-param">speech: Union[torch.Tensor, numpy.ndarray], condition_on_prev_text: bool = False, init_text: Optional[str] = None, end_time_threshold: str = '&lt;29.00&gt;', lang_sym: Optional[str] = None, task_sym: Optional[str] = None, skip_last_chunk_threshold: float = 0.2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2t_inference.html#Speech2Text.decode_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2t_inference.Speech2Text.decode_long" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decode unsegmented long-form speech.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
