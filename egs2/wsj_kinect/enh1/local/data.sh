@@ -12,7 +12,12 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0
+Usage: $0 [--parallel <true/false>] [--use_dereverb <true/false>]
+  optional argument:
+      [--parallel]: true (Default), false
+          whether to use parallel execution of the script
+      [--use_dereverb]: false (Default), true
+          whether to use dereverb or reverb references during training
 EOF
 )
 
@@ -69,30 +74,28 @@ fi
 
 ### Download the scripts for noise extraction and mixture creation
 echo "Downloading scripts for wsj_kinect"
-url=https://github.com/sunits/Reverberated_WSJ_2MIX/archive/refs/heads/master.zip
+repo=https://github.com/sunits/Reverberated_WSJ_2MIX.git
 datadir=data
 wdir=data/scripts
 
 if [ -d $wdir ]; then
   echo "Replacing $wdir"
-  rm -r $wdir
+  rm -rf ${wdir:?}
 fi
 
 for x in ${tr} ${cv} ${tt};
 do
   if [ -d $datadir/$x ]; then
   echo "Clearing $x"
-  rm -r ${datadir:?}/${x:?}
+  rm -rf ${datadir:?}/${x:?}
   fi
 done
 
 mkdir -p $wdir
 
-wget --continue -O $wdir/mixture_scripts.zip ${url}
-unzip $wdir/mixture_scripts.zip -d $wdir
-#chmod 700 local/create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/create_corrupted_speech.sh
+git clone ${repo} $wdir/Reverberated_WSJ_2MIX-master
+
 cp local/create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/ # Move the modified parallel script to the folder
-rm $wdir/mixture_scripts.zip
 
 ### Execute the scripts
 echo "Running the script with parallel=${parallel}"
@@ -104,6 +107,7 @@ then
   --chime5_wav_base ${CHIME5} --dihard_sad_label_path ${DIHARD2} \
   --dest ${output_path} || exit 1;
 else
+  chmod 500 create_corrupted_speech.sh
   ./create_corrupted_speech.sh \
   --stage 0 --wsj_data_path ${WSJ0_2MIX} \
   --chime5_wav_base ${CHIME5} --dihard_sad_label_path ${DIHARD2} \
