@@ -62,7 +62,7 @@ if [ ! -f $filepath ]; then
   echo "$0: downloading data from $url.  This may take some time, please be patient."
 
   cd $data
-  if ! wget --no-check-certificate $url; then
+  if ! wget --no-check-certificate -L -O "$filename" "$url"; then
     echo "$0: error executing wget $url"
     exit 1;
   fi
@@ -108,7 +108,7 @@ if [ -f "$filepath" ]; then
     touch $data/$filename.complete
     echo "$0: Successfully downloaded $filepath"
 
-    if $remove_archive && [[ "$filename" =~ \.(tgz|tar\.gz|gz|zip)$ ]]; then
+    if $remove_archive && [[ "$filename" =~ \.(tgz|tar\.gz|gz|zip|tsv\.gz)$ ]]; then
       echo "$0: removing $filepath file since --remove-archive option was supplied."
       rm $filepath
     fi
