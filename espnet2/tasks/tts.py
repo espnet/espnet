@@ -31,6 +31,7 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tts.feats_extract.praat_pitch import PraatPitch
 from espnet2.tts.prodiff import ProDiff
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
@@ -52,7 +53,7 @@ feats_extractor_choices = ClassChoices(
 )
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
-    classes=dict(dio=Dio),
+    classes=dict(dio=Dio, praat_pitch=PraatPitch),
     type_check=AbsFeatsExtract,
     default=None,
     optional=True,
