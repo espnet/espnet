@@ -28,13 +28,9 @@ tt="tt"
 
 # Ensure that the wav dir exists
 for f in "$wavdir/$tr" "$wavdir/$cv" "$wavdir/$tt"; do
- # echo "$f"
   if [ ! -d $wavdir ]; then
     echo "Error: $wavdir is not a directory."
     exit 1;
- # elif [ ! -d f ]; then
- #   echo "Error: $f is not a directory."
- #   exit 1;
   fi
 done
 

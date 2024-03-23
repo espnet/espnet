@@ -8,6 +8,8 @@ set -o pipefail
 ### The following two parameters are currently fixed for Kinect-WSJ
 #min_or_max=min # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
 sample_rate=16k
+parallel=true
+use_dereverb=false
 
 
 train_set="tr"
@@ -22,5 +24,6 @@ test_sets="tt"
     --fs "${sample_rate}" \
     --lang en \
     --ngpu 2 \
+    --local_data_opts "--parallel ${parallel} --use_dereverb ${use_dereverb}" \
     --enh_config conf/train.yaml \
     "$@"
