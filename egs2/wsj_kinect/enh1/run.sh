@@ -22,7 +22,5 @@ test_sets="tt"
     --fs "${sample_rate}" \
     --lang en \
     --ngpu 2 \
-    --gpu_inference true \
     --enh_config conf/train.yaml \
-    --nj 16 \
     "$@"

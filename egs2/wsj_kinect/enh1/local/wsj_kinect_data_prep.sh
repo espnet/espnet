@@ -11,18 +11,12 @@ sample_rate="16k"
 
 . utils/parse_options.sh
 . ./path.sh
-. utils/parse_options.sh
 
 if [ $# -le 1 ]; then
   echo "Arguments should be 2speakers_reverb_kinect path and the Reverberated_WSJ_2MIX/list/ path"
   exit 1;
 fi
 
-# Set bash to 'debug' mode, it will exit on :
-# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-set -e
-set -u
-set -o pipefail
 
 wavdir="$1/2speakers_reverb_kinect_chime_noise_corrected/wav${sample_rate}/${min_or_max}"
 listdir=$2
