@@ -12,9 +12,8 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 
-# todo: some alignments tsv are forbidden to download
 langs=(cs de en es et fi fr hr hu it lt nl pl pt ro sk sl)
-# langs=(sl lt)
+# langs=(lt sl)
 
 . utils/parse_options.sh || exit 1;
 
@@ -64,9 +63,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # audio alignments for each language pairs
-    for i in {0..17}; do
-        for j in {0..17}; do
-            if [[ $i != $j ]]; then
+    for i in {0..1}; do
+        for j in {0..1}; do
+            if [[ $i < $j ]]; then
 
                 mkdir -p ${SPEECH_MATRIX}/aligned_speech/${langs[i]}-${langs[j]}
 
@@ -118,8 +117,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Fleurs data paraparation done."
     )
 fi
-
-
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
