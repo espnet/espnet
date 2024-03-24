@@ -40,11 +40,11 @@ frontend_conf:
     n_fft: 512
     win_length: 400
     hop_length: 160
-    
+
 use_amp: true
 num_workers: 4
 batch_type: sorted
-batch_size: 4  
+batch_size: 4
 accum_grad: 5
 max_epoch: 90
 patience: none

@@ -42,9 +42,9 @@ class ConvolutionModule(nn.Module):
             groups=channels,
             bias=bias,
         )
-        
+
         if normtype =="batchnorm":
-            self.norm = nn.BatchNorm1d(channels) 
+            self.norm = nn.BatchNorm1d(channels)
         elif normtype =="layernorm":
             self.norm = LayerNorm(channels, -2)
 
