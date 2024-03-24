@@ -27,6 +27,7 @@ chime_noise_dest="$dest/chime5_noise"
 
 if [ $stage -le 0 ]; then
     # Download the RIRs
+    echo "Stage 0: Download the RIR"
     if [ ! -d $dest/kinect_rir ]; then
         wget $rir_download_path -O $dest/kinect_rir.tar.gz
         tar -xvzf $dest/kinect_rir.tar.gz -C $dest || exit 1;
@@ -40,10 +41,13 @@ fi
 
 if [ $stage -le 1 ]; then
     # Extract chime noise
+    echo "Stage 1: Extract chime noise"
     bash noise_from_chime5/getNonSpeechSegments.sh $chime5_wav_base $chime_noise_dest  $dihard_sad_label_path || exit 1;
 fi
 
 if [ $stage -le 2 ]; then
+    echo "Stage 2: Create corrupted speech"
+    pids=() # initialize pids
     for  dataset in tr tt cv; do
         if [ $dataset == 'tr' ]; then
             parallel_max=$tr_parallel
@@ -73,10 +77,13 @@ if [ $stage -le 2 ]; then
             # python create_corrupted_speech.py $wsj_mix_list $start $file_end $wsj2_mix_base $noise_list $src_count $rir_yaml_list $SNR $dest_base  || exit 1;
             python create_corrupted_speech.py $wsj_mix_list $start $file_end $wsj2_mix_base $noise_list $src_count $rir_yaml_list $SNR $dest_base  || exit 1 &
             start=$file_end
-	    start=$file_end
         done
         # Remove wait if you can run 50+8+14 jobs  in parallel
         #wait
+	pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished"
 fi
 wait
