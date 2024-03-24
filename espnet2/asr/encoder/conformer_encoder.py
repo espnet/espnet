@@ -22,6 +22,7 @@ from espnet.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
+    FourierTransform,
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,
@@ -114,6 +115,7 @@ class ConformerEncoder(AbsEncoder):
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
+        norm_type="batchnorm",
     ):
         assert check_argument_types()
         super().__init__()
@@ -260,11 +262,16 @@ class ConformerEncoder(AbsEncoder):
                 attention_dropout_rate,
                 zero_triu,
             )
+        elif selfattention_layer_type == "fourier":
+            encoder_selfattn_layer = FourierTransform
+            encoder_selfattn_layer_args = (
+                output_size, attention_dropout_rate,
+            )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
 
         convolution_layer = ConvolutionModule
-        convolution_layer_args = (output_size, cnn_module_kernel, activation)
+        convolution_layer_args = (output_size, cnn_module_kernel, activation, True, norm_type)
 
         if isinstance(stochastic_depth_rate, float):
             stochastic_depth_rate = [stochastic_depth_rate] * num_blocks
