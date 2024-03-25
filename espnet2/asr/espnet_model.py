@@ -209,6 +209,8 @@ class ESPnetASRModel(AbsESPnetModel):
 
         if freeze_encoder_updates > 0:
             self.register_buffer("global_step", torch.LongTensor([0]))
+        else:
+            self.global_step = 0 # backward compatability for saved ckpts
 
     def forward(
         self,
