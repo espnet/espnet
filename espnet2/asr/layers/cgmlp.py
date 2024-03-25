@@ -22,7 +22,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         dropout_rate: float,
         use_linear_after_conv: bool,
         gate_activation: str,
-        activation_ckpt: bool,
+        activation_ckpt: bool = False,
     ):
         super().__init__()
 
