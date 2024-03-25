@@ -117,7 +117,7 @@ class MultiHeadedAttention(nn.Module):
             )  # (batch, head, time1, time2)
         else:
             attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
-            
+
         if not self.training:
             self.attn = attn
 
