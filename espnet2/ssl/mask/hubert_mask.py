@@ -11,9 +11,9 @@ class HubertMasker(AbsMasker):
     """Generate the masks for masked prediction.
     Args:
         encoder_embed_dim (int): The dimension of the transformer embedding output.
-        mask_prob (float): Probability for each token to be chosen as start of the span to be masked.
-            This will be multiplied by number of timesteps divided by length of mask span to mask
-            approximately this percentage of all elements. However due to overlaps, the actual number
+        mask_prob (float): Prob for each token to be the start of a masked span.
+            This will be multiplied by num of timesteps divided by len of mask span to mask
+            approx this % of all elements. However due to overlaps, the actual number
             will be smaller (unless no_overlap is True).
         mask_selection (str): How to choose the mask length.
             Options: [``static``, ``uniform``, ``normal``, ``poisson``].
@@ -24,10 +24,13 @@ class HubertMasker(AbsMasker):
         mask_channel_prob (float): The probability of replacing a feature with 0.
         mask_channel_selection (str): How to choose the mask length for channel masking.
             Options: [``static``, ``uniform``, ``normal``, ``poisson``].
-        mask_channel_other (float): Secondary mask argument for channel masking(used for more complex distributions).
-        mask_channel_length (int): Minimum space between spans (if no overlap is enabled) for channel masking.
+        mask_channel_other (float): Secondary mask argument for channel masking
+            (used for more complex distributions).
+        mask_channel_length (int): Minimum space between spans 
+            (if no overlap is enabled) for channel masking.
         no_mask_channel_overlap (bool):  Whether to allow channel masks to overlap.
-        mask_channel_min_space (int): Minimum space between spans for channel masking(if no overlap is enabled).
+        mask_channel_min_space (int): Minimum space between spans for channel masking
+            (if no overlap is enabled).
     """
 
     def __init__(
@@ -66,7 +69,7 @@ class HubertMasker(AbsMasker):
         """
         Args:
             x (Tensor): The encoded representations after feature extraction module.
-            padding_mask (Tensor or None): The padding mask of the same dimension as shape,
+            padding_mask (Tensor or None): The padding mask
                 which will prevent masking padded elements.
 
         Returns:
@@ -138,12 +141,14 @@ def _compute_mask_indices(
         mask_type (str): How to compute mask lengths.
             ``static``: Fixed size
             ``uniform``: Sample from uniform distribution [mask_other, mask_length*2]
-            ``normal``: Sample from normal dist with mean ``mask_length`` and stdev ``mask_other``.
+            ``normal``: Sample from normal dist with 
+                mean ``mask_length`` and stdev ``mask_other``.
             ``poisson``: Sample from possion distribution with lambda = ``mask_length``.
         min_masks (int): Minimum number of masked spans.
         no_overlap (bool): If false, will switch to an alternative recursive algorithm
             that prevents spans from overlapping.
-        min_space (int): How many frames to keep unmasked between spans (if no_overlap is True).
+        min_space (int): How many frames to keep unmasked between spans 
+            (if no_overlap is True).
 
     Returns:
         (Tensor): The mask indices of dimension `[batch, frame]`.

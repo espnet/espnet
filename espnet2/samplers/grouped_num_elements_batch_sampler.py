@@ -139,7 +139,8 @@ class GroupedNumElementsBatchSampler(AbsSampler):
 
                 old_total_samples = sum(batch_sizes)
 
-                # we could over allocate past the batch size if the distribution is uneven
+                # we could over allocate past the batch size 
+                # if the distribution is uneven
                 # try to split it more if possible
                 for i in range(2,8):
                     if samples_per_batch % i == 0: 
