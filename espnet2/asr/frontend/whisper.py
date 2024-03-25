@@ -19,6 +19,7 @@ class WhisperFrontend(AbsFrontend):
         whisper_model: str = "small",
         freeze_weights: bool = True,
         download_dir: str = None,
+        fs = 16000,
     ):
         try:
             import whisper
