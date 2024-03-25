@@ -414,7 +414,7 @@ class ESPnetASRModel(AbsESPnetModel):
                 if self.global_step <= self.freeze_encoder_updates:
                     feats, mask_info = self.masker(feats, pad_masks)
                     mask_encoder_feats = False
-            if mask_encoder_feats == True:
+            if mask_encoder_feats is True:
                 feats, mask_info = self.masker(feats, pad_masks)
 
         # 4. Forward encoder

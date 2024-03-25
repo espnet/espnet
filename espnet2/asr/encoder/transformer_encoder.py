@@ -102,7 +102,7 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.ReLU(),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer == "linear_w2v":
+        elif input_layer == "wav2vec":
             self.embed = torch.nn.Sequential(
                 pos_enc_class(output_size, positional_dropout_rate),
                 (

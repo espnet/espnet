@@ -34,6 +34,7 @@ from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
@@ -42,6 +43,7 @@ from espnet2.utils.kwargs2args import kwargs2args
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
+import gc
 
 autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
@@ -102,6 +104,11 @@ class TrainerOptions:
     unused_parameters: bool
     wandb_model_log_interval: int
     create_graph_in_tensorboard: bool
+    static_graph: bool
+    gradient_as_bucket_view: bool
+    broadcast_buffers: bool
+    bucket_cap_mb: int
+    compress_gradients: bool
 
 
 class Trainer:
@@ -259,11 +266,14 @@ class Trainer:
                         if distributed_option.ngpu == 1
                         else None
                     ),
+                    bucket_cap_mb=trainer_options.bucket_cap_mb,
+                    broadcast_buffers=trainer_options.broadcast_buffers,
                     find_unused_parameters=trainer_options.unused_parameters,
-                    static_graph=True,
-                    gradient_as_bucket_view=True,
+                    static_graph=trainer_options.static_graph,
+                    gradient_as_bucket_view=trainer_options.gradient_as_bucket_view,
                 )
-                dp_model.register_comm_hook(None, bf16_compress_hook)
+                if trainer_options.compress_gradients:
+                    dp_model.register_comm_hook(None, bf16_compress_hook)
 
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
@@ -308,6 +318,8 @@ class Trainer:
             set_all_random_seed(trainer_options.seed + iepoch)
 
             reporter.set_epoch(iepoch)
+            gc.collect()
+            torch.cuda.empty_cache()
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
                 all_steps_are_invalid = cls.train_one_epoch(
@@ -321,6 +333,7 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
+            gc.collect()
             torch.cuda.empty_cache()
             with reporter.observe("valid") as sub_reporter:
                 cls.validate_one_epoch(
@@ -538,6 +551,9 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
+        gc.collect()
+        torch.cuda.empty_cache()
+
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
@@ -626,26 +642,13 @@ class Trainer:
                     else:
                         loss, stats, weight = retval
                         optim_idx = None
-
+                del retval
                 stats = {k: v for k, v in stats.items() if v is not None}
-
-                if ngpu > 1 or distributed:
-                    # Apply weighted averaging for loss and stats
-                    loss = (loss * weight.type(loss.dtype)).sum()
-
-                    # if distributed, this method can also apply all_reduce()
-                    stats, weight = recursive_average(stats, weight, distributed)
-
-                    # Now weight is summation over all workers
-                    loss /= weight
-                if distributed:
-                    # NOTE(kamo): Multiply world_size because DistributedDataParallel
-                    # automatically normalizes the gradient by world_size.
-                    loss *= torch.distributed.get_world_size()
-
+                
                 loss /= accum_grad
-            # if distributed_option.dist_rank == 0:
-            reporter.register(stats, weight)
+            if not distributed_option.distributed or distributed_option.dist_rank == 0:
+                reporter.register(stats, weight)
+            del stats, weight
 
             with reporter.measure_time("backward_time"):
                 if scaler is not None:
@@ -654,27 +657,17 @@ class Trainer:
                     # Backward passes under autocast are not recommended.
                     # Backward ops run in the same dtype autocast chose
                     # for corresponding forward ops.
-                    try:
+                    if iiter % accum_grad == 0:
                         scaler.scale(loss).backward()
-                    except:
-                        torch.cuda.synchronize()
-                        logging.warning("OOM in backwards. Retrying after emptying cache.")
-                        for iopt, optimizer in enumerate(optimizers):
-                            if optim_idx is not None and iopt != optim_idx:
-                                continue
-                            optimizer.zero_grad(set_to_none=True)
-                            for p in model.parameters():
-                                del p.grad
-                        with autocast(
-                            scaler is not None,
-                            **autocast_args,
-                        ):
-                            retval = model(**batch)
-                            loss = retval["loss"]
-                        torch.cuda.empty_cache()
+                    elif distributed_option.distributed:
+                        with model.no_sync():
+                            scaler.scale(loss).backward()
+                    else:
                         scaler.scale(loss).backward()
                 else:
                     loss.backward()
+
+            del loss
 
             if iiter % accum_grad == 0:
                 if scaler is not None:
@@ -779,11 +772,16 @@ class Trainer:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
                 if use_wandb:
                     reporter.wandb_log()
-
         else:
-            if distributed:
-                iterator_stop.fill_(1)
-                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            # if last_iter / accum_grad != 0
+            # we will have excess gradients
+            for iopt, optimizer in enumerate(optimizers):
+                optimizer.zero_grad(set_to_none=True)    
+
+        if distributed:
+            iterator_stop.fill_(1)
+            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            
         return all_steps_are_invalid
 
     @classmethod
@@ -808,10 +806,6 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for utt_id, batch in iterator:
             assert isinstance(batch, dict), type(batch)
-            if distributed:
-                torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-                if iterator_stop > 0:
-                    break
 
             batch["utt_id"] = utt_id
 

@@ -11,9 +11,9 @@ def main(cmd=None):
     """Hubert pretraining.
 
     Example:
-        % python hubert_train.py asr --print_config --optim adadelta \
+        % python ssl_train.py asr --print_config --optim adadelta \
                 > conf/hubert_asr.yaml
-        % python hubert_train.py --config conf/train_asr.yaml
+        % python ssl_train.py --config conf/train_asr.yaml
     """
     SSLTask.main(cmd=cmd)
 

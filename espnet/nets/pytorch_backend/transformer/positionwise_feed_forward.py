@@ -19,14 +19,21 @@ class PositionwiseFeedForward(torch.nn.Module):
 
     """
 
-    def __init__(self, idim, hidden_units, dropout_rate, activation=torch.nn.ReLU()):
+    def __init__(self, idim, hidden_units, dropout_rate, activation=torch.nn.ReLU(), activation_ckpt=False):
         """Construct an PositionwiseFeedForward object."""
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = torch.nn.Linear(idim, hidden_units)
         self.w_2 = torch.nn.Linear(hidden_units, idim)
         self.dropout = torch.nn.Dropout(dropout_rate)
         self.activation = activation
+        self.activation_ckpt = activation_ckpt
 
     def forward(self, x):
         """Forward function."""
-        return self.w_2(self.dropout(self.activation(self.w_1(x))))
+        if self.activation_ckpt:
+            x = torch.utils.checkpoint.checkpoint(self.w_1, x, use_reentrant=False)
+            x = torch.utils.checkpoint.checkpoint(self.activation, x, use_reentrant=False)
+        else:
+            x = self.w_1(x)
+            x = self.activation(x)
+        return self.w_2(self.dropout(x))

@@ -1,3 +1,6 @@
+# github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py#L1075
+# github.com/pytorch/audio/blob/main/examples/self_supervised_learning/losses/_hubert_loss.py
+
 import math
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -35,9 +38,9 @@ def _compute_logits(
 ) -> Tensor:
     """Compute the logits of the embeddings.
     Args:
-        proj_x (Tensor): The projected masked representations of dimension `[batch, frame, final_dim]`.
-        target (Tensor): The target Tensor of dimension `[batch, frame, final_dim]`.
-        label_embeddings (Parameter): The trainable embeddings of target of dimension `[num_class, final_dim]`.
+        proj_x (Tensor): The projected masked representations `[batch, frame, final_dim]`.
+        target (Tensor): The target Tensor  `[batch, frame, final_dim]`.
+        label_embeddings (Parameter): The trainable embeddings of target  `[num_class, final_dim]`.
 
     Returns:
         (Tensor): The logits of the inputs.
@@ -94,8 +97,8 @@ class LogitGenerator(nn.Module):
             mask_u (Tensor): The unmasked indices of dimension `[batch, frame]`.
 
         Returns:
-            Tensor: The logits of masked frames. Tensor of dimension `[masked_frame, final_dim]`.
-            Tensor: The logits of unmasked frames. Tensor of dimension `[unmasked_frame, final_dim]`.
+            Tensor: The logits of masked frames `[masked_frame, final_dim]`.
+            Tensor: The logits of unmasked frames `[unmasked_frame, final_dim]`.
         """
         proj_x = self.final_proj(x)
 

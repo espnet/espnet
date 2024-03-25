@@ -1,5 +1,6 @@
 # Adapted from torchaudio/wav2vec2/components.py - LogitGenerator
-# Uses Cross-Entropy instead of HuBERTLoss - https://github.com/yanghaha0908/FastHuBERT/blob/master/criterion/fasthubert_criterion.py
+# Uses Cross-Entropy instead of HuBERTLoss
+# https://github.com/yanghaha0908/FastHuBERT/blob/master/criterion/fasthubert_criterion.py
 
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -41,13 +42,12 @@ class HuBERTDecoder(nn.Module):
         """
         Args:
             x (Tensor): The feature representation of the last transformer layer.
-            label (Tensor): The label Tensor of dimension `[batch, frame]`.
             mask_m (Tensor): The masked indices of dimension `[batch, frame]`.
             mask_u (Tensor): The unmasked indices of dimension `[batch, frame]`.
 
         Returns:
-            Tensor: The logits of masked frames. Tensor of dimension `[masked_frame, final_dim]`.
-            Tensor: The logits of unmasked frames. Tensor of dimension `[unmasked_frame, final_dim]`.
+            Tensor: The logits of masked frames. `[masked_frame, final_dim]`.
+            Tensor: The logits of unmasked frames. `[unmasked_frame, final_dim]`.
         """
         logit_temp = 0.1
         proj_x = self.final_proj(x)
@@ -57,11 +57,14 @@ class HuBERTDecoder(nn.Module):
         if not self.skip_masked:
             proj_x_m = proj_x[mask_m]
             logit_m = self.label_embeddings(proj_x_m) / logit_temp
+            del proj_x_m
 
         if not self.skip_nomask:
             proj_x_u = proj_x[mask_u]
             logit_u = self.label_embeddings(proj_x_u) / logit_temp
+            del proj_x_u
 
+        del proj_x
         return logit_m, logit_u
 
 
@@ -124,7 +127,7 @@ class HuBERTLossCrossEntropy(AbsLoss):
         targets_m = ys_pad[mask_m]
         targets_u = ys_pad[mask_u]
         for i, layer in enumerate(self.layers):
-            x = xs_pad[i]
+            x = xs_pad[layer]
             hs_m, hs_u = self.decoder(x, mask_m, mask_u)
 
             if self.masked_loss_weight != 0.0:
@@ -170,5 +173,7 @@ class HuBERTLossCrossEntropy(AbsLoss):
             stats[f"hubert_losses_u_{layer}"] = (
                 losses_u[i] if len(losses_u) > 0 else None
             )
+
+        del hs_m, hs_u, loss_m, correct_m, correct_u, targets_m, targets_u, xs_pad, ys_pad, x
 
         return total_loss, stats

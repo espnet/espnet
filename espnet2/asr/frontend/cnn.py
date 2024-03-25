@@ -1,4 +1,5 @@
-# from https://github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py
+# Adapted from TorchAudio
+# github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py
 
 import copy
 import logging
@@ -94,7 +95,7 @@ class ConvLayerBlock(Module):
         """
         x = self.conv(x)
         if self.layer_norm is not None:
-            x = self.layer_norm(x)
+            x = torch.utils.checkpoint.checkpoint(self.layer_norm, x, use_reentrant=False)
         x = nn.functional.gelu(x)
 
         if length is not None:
@@ -102,12 +103,17 @@ class ConvLayerBlock(Module):
                 torch.div(length - self.kernel_size, self.stride, rounding_mode="floor")
                 + 1
             )
-            # When input length is 0, the resulting length can be negative. So fix it here.
+            # When input length is 0, the resulting length can be negative.
             length = torch.max(torch.zeros_like(length), length)
         return x, length
 
 
 class CNNFrontend(AbsFrontend):
+    """Convolutional feature extractor.
+    
+    Typically used in SSL models.
+    Uses raw waveforms as input.
+    """
     def __init__(
         self,
         norm_mode: str,
@@ -192,7 +198,7 @@ class CNNFrontend(AbsFrontend):
         """
         if x.ndim != 2:
             raise ValueError(
-                f"Expected the input Tensor to be 2D (batch, time). Found: {list(x.shape)}"
+                f"Expected the input to be 2D (batch, time). Found: {list(x.shape)}"
             )
 
         if self.normalize_audio:
@@ -202,4 +208,4 @@ class CNNFrontend(AbsFrontend):
         for layer in self.layers:
             x, length = layer(x, length)  # (batch, feature, frame)
         x = x.transpose(1, 2)  # (batch, frame, feature)
-        return x, length  # // self.downsampling_factor
+        return x, length

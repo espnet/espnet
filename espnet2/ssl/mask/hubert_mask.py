@@ -1,10 +1,11 @@
+# https://github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py#L972
+
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor, nn
 
 from espnet2.ssl.mask.abs_mask import AbsMasker
-
 
 class HubertMasker(AbsMasker):
     """Generate the masks for masked prediction.
@@ -78,6 +79,7 @@ class HubertMasker(AbsMasker):
             mask_indices = _compute_mask_indices(
                 (B, T),
                 padding_mask,
+                x.device,
                 self.mask_prob,
                 self.mask_length,
                 self.mask_selection,
@@ -86,7 +88,6 @@ class HubertMasker(AbsMasker):
                 no_overlap=self.no_mask_overlap,
                 min_space=self.mask_min_space,
             )
-            mask_indices = mask_indices.to(x.device)
             # change dtype of mask_embedding to x for mixed-precision training.
             # see https://github.com/pytorch/audio/issues/2847 for details.
             x[mask_indices] = self.mask_embedding.to(x.dtype)
@@ -115,6 +116,7 @@ class HubertMasker(AbsMasker):
 def _compute_mask_indices(
     shape: Tuple[int, int],
     padding_mask: Optional[Tensor],
+    device: str,
     mask_prob: float,
     mask_length: int,
     mask_type: str = "static",
@@ -129,19 +131,19 @@ def _compute_mask_indices(
             The first element is batch size and second is the number of frames.
         padding_mask (Tensor or None): The padding mask of the same dimension as shape,
             which will prevent masking padded elements.
-        mask_prob (float): Probability for each token to be chosen as start of the span to be masked.
-            This will be multiplied by number of timesteps divided by length of mask span to mask
-            approximately this percentage of all elements. However due to overlaps, the actual number
+        mask_prob (float): Prob to be chosen as start of the span to be masked.
+            Will be multiplied by num timesteps divided by length of mask span to mask
+            approx this percentage of all elements. Due to overlaps, the actual number
             will be smaller (unless no_overlap is True).
-        mask_type (str): How to compute mask lengths. Options: [``static``, ``uniform``, ``normal``, ``poisson``].
+        mask_type (str): How to compute mask lengths.
             ``static``: Fixed size
             ``uniform``: Sample from uniform distribution [mask_other, mask_length*2]
-            ``normal``: Sample from normal distribution with mean ``mask_length`` and stdev ``mask_other``.
+            ``normal``: Sample from normal dist with mean ``mask_length`` and stdev ``mask_other``.
             ``poisson``: Sample from possion distribution with lambda = ``mask_length``.
         min_masks (int): Minimum number of masked spans.
         no_overlap (bool): If false, will switch to an alternative recursive algorithm
             that prevents spans from overlapping.
-        min_space (int): How many frames to keep unmasked between spans (Only used if no_overlap is True).
+        min_space (int): How many frames to keep unmasked between spans (if no_overlap is True).
 
     Returns:
         (Tensor): The mask indices of dimension `[batch, frame]`.

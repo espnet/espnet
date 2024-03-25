@@ -22,6 +22,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         dropout_rate: float,
         use_linear_after_conv: bool,
         gate_activation: str,
+        activation_ckpt: bool,
     ):
         super().__init__()
 
@@ -46,6 +47,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
             self.act = get_activation(gate_activation)
 
         self.dropout = torch.nn.Dropout(dropout_rate)
+        self.activation_ckpt = activation_ckpt
 
     def espnet_initialization_fn(self):
         torch.nn.init.normal_(self.conv.weight, std=1e-6)
@@ -67,7 +69,10 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         x_r, x_g = x.chunk(2, dim=-1)
 
-        x_g = self.norm(x_g)  # (N, T, D/2)
+        if self.activation_ckpt:
+            x_g = torch.utils.checkpoint.checkpoint(self.norm, x_g, use_reentrant=False)  # (N, T, D/2)
+        else:
+            x_g = self.norm(x_g)
         x_g = self.conv(x_g.transpose(1, 2)).transpose(1, 2)  # (N, T, D/2)
         if self.linear is not None:
             x_g = self.linear(x_g)
@@ -75,9 +80,15 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         if gate_add is not None:
             x_g = x_g + gate_add
 
-        x_g = self.act(x_g)
+        if self.activation_ckpt:
+            x_g = torch.utils.checkpoint.checkpoint(self.act, x_g, use_reentrant=False)
+        else:
+            x_g = self.act(x_g)
+
         out = x_r * x_g  # (N, T, D/2)
         out = self.dropout(out)
+
+        del x_g, x_r
         return out
 
 
@@ -92,6 +103,7 @@ class ConvolutionalGatingMLP(torch.nn.Module):
         dropout_rate: float,
         use_linear_after_conv: bool,
         gate_activation: str,
+        activation_ckpt: bool,
     ):
         super().__init__()
 
@@ -104,16 +116,22 @@ class ConvolutionalGatingMLP(torch.nn.Module):
             dropout_rate=dropout_rate,
             use_linear_after_conv=use_linear_after_conv,
             gate_activation=gate_activation,
+            activation_ckpt=activation_ckpt,
         )
         self.channel_proj2 = torch.nn.Linear(linear_units // 2, size)
+        self.activation_ckpt = activation_ckpt
 
     def forward(self, x, mask):
         if isinstance(x, tuple):
             xs_pad, pos_emb = x
         else:
             xs_pad, pos_emb = x, None
+        del x
 
-        xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
+        if self.activation_ckpt:
+            xs_pad = torch.utils.checkpoint.checkpoint(self.channel_proj1, xs_pad, use_reentrant=False)
+        else:
+            xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
         xs_pad = self.csgu(xs_pad)  # linear_units -> linear_units/2
         xs_pad = self.channel_proj2(xs_pad)  # linear_units/2 -> size
 

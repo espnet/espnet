@@ -73,6 +73,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor = None,
         text_lengths: torch.Tensor = None,
+        use_mask: bool = True,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
@@ -89,16 +90,15 @@ class ESPnetSSLModel(AbsESPnetModel):
         total_loss, total_stats = self.losses[0](
             encoded, text, mask_info, feature_penalty
         )
-        total_stats["loss"] = total_loss.item()
+        total_stats["loss"] = total_loss.detach().item()
 
-        del encoded
+        del encoded, mask_info, feature_penalty
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         total_loss, total_stats, weight = force_gatherable(
             (total_loss, total_stats, batch_size), total_loss.device
         )
 
-        # del encoded, mask_info#, loss
         return total_loss, total_stats, weight
 
     def collect_feats(
@@ -151,7 +151,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         mask_info = None
         pad_masks = None
         if use_mask and self.masker is not None:
-            pad_masks = (make_pad_mask(feats_lengths)).to(feats.device)
+            pad_masks = (make_pad_mask(feats_lengths, device=feats.device))
             encoder_in, mask_info = self.masker(feats, pad_masks)
 
         # 5. Forward encoder
@@ -160,7 +160,9 @@ class ESPnetSSLModel(AbsESPnetModel):
         encoder_out, out_lens, _ = self.encoder(
             feats, feats_lengths, masks=pad_masks, return_all_hs=True
         )
-        encoder_out = encoder_out[1]
+
+        encoder_out =  encoder_out[1][:-1] + [encoder_out[0]]
+        del feats, feats_lengths, pad_masks
 
         return encoder_out, mask_info, features_pen
 
@@ -182,6 +184,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         else:
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
+        
+        del speech, speech_lengths
         return feats, feats_lengths
 
 
