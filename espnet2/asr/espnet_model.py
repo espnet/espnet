@@ -205,8 +205,10 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             self.lang_token_id = None
 
-        self.register_buffer("global_step", torch.LongTensor([0]))
         self.freeze_encoder_updates = freeze_encoder_updates
+
+        if freeze_encoder_updates > 0:
+            self.register_buffer("global_step", torch.LongTensor([0]))
 
     def forward(
         self,
