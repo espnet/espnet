@@ -9,13 +9,14 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 class GroupedNumElementsBatchSampler(AbsSampler):
     """
-    A variation of numel batchsampler 
+    A variation of numel batchsampler
     that groups samples by input length.
     Allows each GPU to have a near identical batch size.
     Uses a per-GPU level batch bins.
 
     Designed for large-scale multi-node training.
     """
+
     def __init__(
         self,
         batch_bins: int,
@@ -128,32 +129,36 @@ class GroupedNumElementsBatchSampler(AbsSampler):
             whole_batches = len(batch_sizes) // min_batch_size
 
             # we have x amount of left over batches
-            leftovers = batch_sizes[whole_batches*min_batch_size:]
+            leftovers = batch_sizes[whole_batches * min_batch_size :]
 
             # first get total number of samples
             total_samples = sum(leftovers)
 
             samples_per_batch = total_samples // min_batch_size
 
-            if samples_per_batch > 0: # dont distribute if we dont have much data left
+            if samples_per_batch > 0:  # dont distribute if we dont have much data left
 
                 old_total_samples = sum(batch_sizes)
 
-                # we could over allocate past the batch size 
+                # we could over allocate past the batch size
                 # if the distribution is uneven
                 # try to split it more if possible
-                for i in range(2,8):
-                    if samples_per_batch % i == 0: 
-                        new_batch_sizes = [samples_per_batch // i] * (min_batch_size * i)
+                for i in range(2, 8):
+                    if samples_per_batch % i == 0:
+                        new_batch_sizes = [samples_per_batch // i] * (
+                            min_batch_size * i
+                        )
                         break
                 else:
                     new_batch_sizes = [samples_per_batch] * min_batch_size
 
-                batch_sizes = batch_sizes[0:whole_batches*min_batch_size] + new_batch_sizes
+                batch_sizes = (
+                    batch_sizes[0 : whole_batches * min_batch_size] + new_batch_sizes
+                )
                 assert len(batch_sizes) % min_batch_size == 0
                 assert old_total_samples >= sum(batch_sizes)
             else:
-                batch_sizes = batch_sizes[0:whole_batches*min_batch_size]
+                batch_sizes = batch_sizes[0 : whole_batches * min_batch_size]
 
         # Set mini-batch
         self.batch_list = []
@@ -200,7 +205,9 @@ class GroupedNumElementsBatchSampler(AbsSampler):
             batch_list_grouped.append(batch)
         else:
             if len(batch_list_grouped) > 0:
-                assert len(batch_list_grouped) == min_batch_size, f"{len(batch_list_grouped), min_batch_size}"
+                assert (
+                    len(batch_list_grouped) == min_batch_size
+                ), f"{len(batch_list_grouped), min_batch_size}"
                 new_batch_list.append(batch_list_grouped)
         self.batch_list = new_batch_list
         for batch in self.batch_list:

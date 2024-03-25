@@ -7,6 +7,7 @@ from torch import Tensor, nn
 
 from espnet2.ssl.mask.abs_mask import AbsMasker
 
+
 class HubertMasker(AbsMasker):
     """Generate the masks for masked prediction.
     Args:
@@ -17,7 +18,7 @@ class HubertMasker(AbsMasker):
             will be smaller (unless no_overlap is True).
         mask_selection (str): How to choose the mask length.
             Options: [``static``, ``uniform``, ``normal``, ``poisson``].
-        mask_other (float): Secondary mask argument 
+        mask_other (float): Secondary mask argument
             (used for more complex distributions).
         mask_length (int): The lengths of the mask.
         no_mask_overlap (bool):  Whether to allow masks to overlap.
@@ -27,7 +28,7 @@ class HubertMasker(AbsMasker):
             Options: [``static``, ``uniform``, ``normal``, ``poisson``].
         mask_channel_other (float): Secondary mask argument for channel masking
             (used for more complex distributions).
-        mask_channel_length (int): Minimum space between spans 
+        mask_channel_length (int): Minimum space between spans
             (if no overlap is enabled) for channel masking.
         no_mask_channel_overlap (bool):  Whether to allow channel masks to overlap.
         mask_channel_min_space (int): Minimum space between spans for channel masking
@@ -142,13 +143,13 @@ def _compute_mask_indices(
         mask_type (str): How to compute mask lengths.
             ``static``: Fixed size
             ``uniform``: Sample from uniform distribution [mask_other, mask_length*2]
-            ``normal``: Sample from normal dist with 
+            ``normal``: Sample from normal dist with
                 mean ``mask_length`` and stdev ``mask_other``.
             ``poisson``: Sample from possion distribution with lambda = ``mask_length``.
         min_masks (int): Minimum number of masked spans.
         no_overlap (bool): If false, will switch to an alternative recursive algorithm
             that prevents spans from overlapping.
-        min_space (int): How many frames to keep unmasked between spans 
+        min_space (int): How many frames to keep unmasked between spans
             (if no_overlap is True).
 
     Returns:

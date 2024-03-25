@@ -174,6 +174,17 @@ class HuBERTLossCrossEntropy(AbsLoss):
                 losses_u[i] if len(losses_u) > 0 else None
             )
 
-        del hs_m, hs_u, loss_m, correct_m, correct_u, targets_m, targets_u, xs_pad, ys_pad, x
+        del (
+            hs_m,
+            hs_u,
+            loss_m,
+            correct_m,
+            correct_u,
+            targets_m,
+            targets_u,
+            xs_pad,
+            ys_pad,
+            x,
+        )
 
         return total_loss, stats

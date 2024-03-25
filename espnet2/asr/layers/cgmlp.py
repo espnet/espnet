@@ -70,7 +70,9 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         x_r, x_g = x.chunk(2, dim=-1)
 
         if self.activation_ckpt:
-            x_g = torch.utils.checkpoint.checkpoint(self.norm, x_g, use_reentrant=False)  # (N, T, D/2)
+            x_g = torch.utils.checkpoint.checkpoint(
+                self.norm, x_g, use_reentrant=False
+            )  # (N, T, D/2)
         else:
             x_g = self.norm(x_g)
         x_g = self.conv(x_g.transpose(1, 2)).transpose(1, 2)  # (N, T, D/2)
@@ -129,7 +131,9 @@ class ConvolutionalGatingMLP(torch.nn.Module):
         del x
 
         if self.activation_ckpt:
-            xs_pad = torch.utils.checkpoint.checkpoint(self.channel_proj1, xs_pad, use_reentrant=False)
+            xs_pad = torch.utils.checkpoint.checkpoint(
+                self.channel_proj1, xs_pad, use_reentrant=False
+            )
         else:
             xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
         xs_pad = self.csgu(xs_pad)  # linear_units -> linear_units/2

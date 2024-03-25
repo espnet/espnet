@@ -151,7 +151,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         mask_info = None
         pad_masks = None
         if use_mask and self.masker is not None:
-            pad_masks = (make_pad_mask(feats_lengths, device=feats.device))
+            pad_masks = make_pad_mask(feats_lengths, device=feats.device)
             encoder_in, mask_info = self.masker(feats, pad_masks)
 
         # 5. Forward encoder
@@ -161,7 +161,7 @@ class ESPnetSSLModel(AbsESPnetModel):
             feats, feats_lengths, masks=pad_masks, return_all_hs=True
         )
 
-        encoder_out =  encoder_out[1][:-1] + [encoder_out[0]]
+        encoder_out = encoder_out[1][:-1] + [encoder_out[0]]
         del feats, feats_lengths, pad_masks
 
         return encoder_out, mask_info, features_pen
@@ -184,7 +184,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         else:
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
-        
+
         del speech, speech_lengths
         return feats, feats_lengths
 

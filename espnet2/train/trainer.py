@@ -32,9 +32,9 @@ from espnet2.schedulers.abs_scheduler import (
 )
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
@@ -43,6 +43,7 @@ from espnet2.utils.kwargs2args import kwargs2args
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
+
 import gc
 
 autocast_args = dict()
@@ -644,7 +645,7 @@ class Trainer:
                         optim_idx = None
                 del retval
                 stats = {k: v for k, v in stats.items() if v is not None}
-                
+
                 loss /= accum_grad
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 reporter.register(stats, weight)
@@ -776,12 +777,12 @@ class Trainer:
             # if last_iter / accum_grad != 0
             # we will have excess gradients
             for iopt, optimizer in enumerate(optimizers):
-                optimizer.zero_grad(set_to_none=True)    
+                optimizer.zero_grad(set_to_none=True)
 
         if distributed:
             iterator_stop.fill_(1)
             torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-            
+
         return all_steps_are_invalid
 
     @classmethod

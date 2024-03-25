@@ -95,7 +95,9 @@ class ConvLayerBlock(Module):
         """
         x = self.conv(x)
         if self.layer_norm is not None:
-            x = torch.utils.checkpoint.checkpoint(self.layer_norm, x, use_reentrant=False)
+            x = torch.utils.checkpoint.checkpoint(
+                self.layer_norm, x, use_reentrant=False
+            )
         x = nn.functional.gelu(x)
 
         if length is not None:
@@ -110,10 +112,11 @@ class ConvLayerBlock(Module):
 
 class CNNFrontend(AbsFrontend):
     """Convolutional feature extractor.
-    
+
     Typically used in SSL models.
     Uses raw waveforms as input.
     """
+
     def __init__(
         self,
         norm_mode: str,

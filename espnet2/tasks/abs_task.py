@@ -1000,7 +1000,10 @@ class AbsTask(ABC):
             if fairscale is None:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim = fairscale.optim.oss.OSS(
-                params=model.parameters(), optim=optim_class, broadcast_fp16=True, **args.optim_conf
+                params=model.parameters(),
+                optim=optim_class,
+                broadcast_fp16=True,
+                **args.optim_conf,
             )
         else:
             if args.exclude_weight_decay:
@@ -1714,9 +1717,9 @@ class AbsTask(ABC):
             if iter_options.batch_type == "grouped":
                 if iter_options.train:
                     np.random.RandomState().shuffle(batches)
-                batches =  [batch[rank] for batch in batches]
+                batches = [batch[rank] for batch in batches]
             else:
-                batches = batches[rank::world_size] 
+                batches = batches[rank::world_size]
 
         return SequenceIterFactory(
             dataset=dataset,
@@ -1727,7 +1730,7 @@ class AbsTask(ABC):
             shuffle_within_batch=args.shuffle_within_batch,
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
-            pin_memory=args.ngpu > 0
+            pin_memory=args.ngpu > 0,
         )
 
     @classmethod
@@ -1973,7 +1976,7 @@ class AbsTask(ABC):
         ]
         iters_per_epoch = iter_options.num_iters_per_epoch
         if not args.validate_each_iter_factory and iters_per_epoch is not None:
-            iters_per_epoch =  (iters_per_epoch + i ) // num_splits
+            iters_per_epoch = (iters_per_epoch + i) // num_splits
         num_iters_per_epoch_list = [
             iters_per_epoch if iter_options.num_iters_per_epoch is not None else None
             for i in range(num_splits)

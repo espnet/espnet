@@ -133,7 +133,9 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         if self.feed_forward_macaron is not None:
             residual = x
             if self.activation_ckpt:
-                x = torch.utils.checkpoint.checkpoint(self.norm_ff_macaron, x, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    self.norm_ff_macaron, x, use_reentrant=False
+                )
             else:
                 x = self.norm_ff_macaron(x)
             x = residual + self.ff_scale * self.dropout(self.feed_forward_macaron(x))
@@ -145,7 +147,9 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
         # Branch 1: multi-headed attention module
         if self.activation_ckpt:
-            x1 = torch.utils.checkpoint.checkpoint(self.norm_mha, x1, use_reentrant=False)
+            x1 = torch.utils.checkpoint.checkpoint(
+                self.norm_mha, x1, use_reentrant=False
+            )
         else:
             x1 = self.norm_mha(x1)
 
@@ -162,7 +166,9 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
         # Branch 2: convolutional gating mlp
         if self.activation_ckpt:
-            x2 = torch.utils.checkpoint.checkpoint(self.norm_mlp, x2, use_reentrant=False)
+            x2 = torch.utils.checkpoint.checkpoint(
+                self.norm_mlp, x2, use_reentrant=False
+            )
         else:
             x2 = self.norm_mlp(x2)
 
@@ -188,14 +194,18 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             # feed forward module
             residual = x
             if self.activation_ckpt:
-                x = torch.utils.checkpoint.checkpoint(self.norm_ff, x, use_reentrant=False)
+                x = torch.utils.checkpoint.checkpoint(
+                    self.norm_ff, x, use_reentrant=False
+                )
             else:
                 x = self.norm_ff(x)
             x = residual + self.ff_scale * self.dropout(self.feed_forward(x))
             del residual
 
         if self.activation_ckpt:
-            x = torch.utils.checkpoint.checkpoint(self.norm_final, x, use_reentrant=False)
+            x = torch.utils.checkpoint.checkpoint(
+                self.norm_final, x, use_reentrant=False
+            )
         else:
             x = self.norm_final(x)
 
@@ -513,7 +523,7 @@ class EBranchformerEncoder(AbsEncoder):
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
             for layer_idx, encoder_layer in enumerate(self.encoders):
-                xs_pad, masks = encoder_layer(xs_pad, masks) 
+                xs_pad, masks = encoder_layer(xs_pad, masks)
                 if return_all_hs:
                     if isinstance(xs_pad, tuple):
                         intermediate_outs.append(xs_pad[0])
