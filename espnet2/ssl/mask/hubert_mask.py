@@ -12,12 +12,13 @@ class HubertMasker(AbsMasker):
     Args:
         encoder_embed_dim (int): The dimension of the transformer embedding output.
         mask_prob (float): Prob for each token to be the start of a masked span.
-            This will be multiplied by num of timesteps divided by len of mask span to mask
+            Will be multiplied by num of timesteps divided by len of mask span to mask
             approx this % of all elements. However due to overlaps, the actual number
             will be smaller (unless no_overlap is True).
         mask_selection (str): How to choose the mask length.
             Options: [``static``, ``uniform``, ``normal``, ``poisson``].
-        mask_other (float): Secondary mask argument (used for more complex distributions).
+        mask_other (float): Secondary mask argument 
+            (used for more complex distributions).
         mask_length (int): The lengths of the mask.
         no_mask_overlap (bool):  Whether to allow masks to overlap.
         mask_min_space (int):  Minimum space between spans (if no overlap is enabled).

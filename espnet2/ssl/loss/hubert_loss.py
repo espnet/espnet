@@ -40,7 +40,7 @@ def _compute_logits(
     Args:
         proj_x (Tensor): The masked representations `[batch, frame, final_dim]`.
         target (Tensor): The target Tensor  `[batch, frame, final_dim]`.
-        label_embeddings (Parameter): The embeddings of target  `[num_class, final_dim]`.
+        label_embeddings (Parameter): Embeddings of target  `[num_class, final_dim]`.
 
     Returns:
         (Tensor): The logits of the inputs.

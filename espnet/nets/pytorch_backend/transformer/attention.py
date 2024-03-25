@@ -15,7 +15,7 @@ from torch import nn
 try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input, unpad_input
-except:
+except Exception:
     logging.info("Failed to import Flash Attention, using ESPnet default.")
 
 
@@ -188,7 +188,10 @@ class MultiHeadedAttention(nn.Module):
                     return out
 
                 else:
+                    del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
+                    del query, key, value
+
                     out = flash_attn_func(
                         q.transpose(1, 2),
                         k.transpose(1, 2),
@@ -196,6 +199,8 @@ class MultiHeadedAttention(nn.Module):
                         dropout_p=self.dropout_rate if self.training else 0.0,
                         causal=self.causal,
                     )  # (batch_size, seqlen, nheads, headdim)
+                    del q, k, v
+
                     out = out.reshape(out.shape[0], out.shape[1], -1)
                     out = self.linear_out(out)
                     return out
