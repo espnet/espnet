@@ -49,9 +49,9 @@ from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_non
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(cnn=CNNFrontend, default=DefaultFrontend),
+    classes=dict(wav2vec_cnn=CNNFrontend, default=DefaultFrontend),
     type_check=AbsFrontend,
-    default="cnn",
+    default="wav2vec_cnn",
 )
 specaug_choices = ClassChoices(
     name="specaug",
@@ -81,7 +81,7 @@ preencoder_choices = ClassChoices(
 )
 encoder_choices = ClassChoices(
     "encoder",
-    classes=dict(transformer=TransformerEncoder, ebranchformer=EBranchformerEncoder),
+    classes=dict(transformer=TransformerEncoder, e_branchformer=EBranchformerEncoder),
     type_check=AbsEncoder,
     default="transformer",
 )
@@ -318,8 +318,8 @@ class SSLTask(AbsTask):
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
             crop_audio=not args.collect_stats
             and args.collate_fn_conf.get("crop_audio", True),
-            window_size=window_size,
-            window_shift=window_shift,
+            window_size=args.collate_fn_conf.get("window_size",window_size),
+            window_shift=args.collate_fn_conf.get("window_shift",window_shift),
             sample_rate=sample_rate,
             train=train,
             mix_speech=args.collate_fn_conf.get("mix_speech", False),

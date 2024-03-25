@@ -426,22 +426,22 @@ class ESPnetASRModel(AbsESPnetModel):
                     self.encoder, "ctc_trim", False
                 ):
                     encoder_out, encoder_out_lens, _ = self.encoder(
-                        feats, feats_lengths, ctc=self.ctc, masks=pad_masks
+                        feats, feats_lengths, ctc=self.ctc
                     )
                 else:
                     encoder_out, encoder_out_lens, _ = self.encoder(
-                        feats, feats_lengths, masks=pad_masks
+                        feats, feats_lengths
                     )
         else:
             if self.encoder.interctc_use_conditioning or getattr(
                 self.encoder, "ctc_trim", False
             ):
                 encoder_out, encoder_out_lens, _ = self.encoder(
-                    feats, feats_lengths, ctc=self.ctc, masks=pad_masks
+                    feats, feats_lengths, ctc=self.ctc
                 )
             else:
                 encoder_out, encoder_out_lens, _ = self.encoder(
-                    feats, feats_lengths, masks=pad_masks
+                    feats, feats_lengths
                 )
 
         intermediate_outs = None

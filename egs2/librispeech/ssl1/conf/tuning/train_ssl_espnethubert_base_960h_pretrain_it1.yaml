@@ -1,10 +1,11 @@
 use_amp: true
 grad_clip: 5.0
 batch_type: numel
-batch_bins: 1500000
+batch_bins: 80000000
 num_workers: 8
-accum_grad: 2
+accum_grad: 1
 max_epoch: 250
+drop_last_iter: true
 patience: none
 # Use self-defined function for initialization
 init: none
@@ -26,15 +27,19 @@ collate_fn_conf:
 encoder: transformer
 encoder_conf:
     output_size: 768
-    attention_heads: 16
+    attention_heads: 12
     linear_units: 3072
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
     input_layer: linear_w2v
     normalize_before: false
     pos_enc_layer_type: conv
+
+model_conf:
+    feature_grad_mult: 0.1
+    extract_feats_in_collect_stats: false 
 
 optim: adam
 optim_conf:
@@ -43,7 +48,7 @@ scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 32000
 
-frontend: cnn
+frontend: wav2vec_cnn
 frontend_conf:
     norm_mode: group_norm
     conv_mode: standard
