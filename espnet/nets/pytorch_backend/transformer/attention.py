@@ -118,8 +118,9 @@ class MultiHeadedAttention(nn.Module):
         else:
             attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
 
-        if not self.training:
-            self.attn = attn
+        # This wastes a lot of GPU memory
+        # TO DO: add a flag to check if this should be saved
+        self.attn = attn
 
         p_attn = self.dropout(attn)
         x = torch.matmul(p_attn, value)  # (batch, head, time1, d_k)
