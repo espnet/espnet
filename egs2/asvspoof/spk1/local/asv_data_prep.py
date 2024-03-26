@@ -1,4 +1,5 @@
 # asv_data_prep.py
+# Makes the utt2spk, spk2utt, and wav.scp files for ASVspoofLA eval and dev
 
 import argparse
 import os
