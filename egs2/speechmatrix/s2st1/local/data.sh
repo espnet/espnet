@@ -116,6 +116,28 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --save-root ${FLORES_ROOT}/test
     log "Fleurs data paraparation done."
     )
+
+fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage2: Preparing data for speechmatrix"
+    ### Task dependent. You have to make data the following preparation part by yourself.
+
+    for part in "train" "test" "dev"; do
+
+        if [ "${part}" = train ]; then
+            # install missing packages for functions in data_prep.py
+            pip install bitarray
+            python local/data_prep.py \
+                --src_folder "${SPEECH_MATRIX}" \
+                --langs "${langs[@]}" \
+                --subset ${part} \
+                --tgt "data"
+
+        else
+            log "to be updated"
+        fi
+    done
 fi
 
 

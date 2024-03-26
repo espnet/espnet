@@ -87,13 +87,13 @@ case $filename in
       exit 1;
     fi
     ;;
-  *.zip)
-    # For .zip files, use unzip
-    if ! unzip $filename; then
-      echo "$0: error unzipping zip archive $filepath"
-      exit 1;
-    fi
-    ;;
+  # *.zip)
+  #   # For .zip files, use unzip
+  #   if ! unzip $filename; then
+  #     echo "$0: error unzipping zip archive $filepath"
+  #     exit 1;
+  #   fi
+  #   ;;
   *)
     # Report unsupported file types but don't exit
     echo "$0: '$filename' does not appear to be a supported archive format. No extraction performed."
@@ -108,7 +108,7 @@ if [ -f "$filepath" ]; then
     touch $data/$filename.complete
     echo "$0: Successfully downloaded $filepath"
 
-    if $remove_archive && [[ "$filename" =~ \.(tgz|tar\.gz|gz|zip|tsv\.gz)$ ]]; then
+    if $remove_archive && [[ "$filename" =~ \.(tgz|tar\.gz|gz|tsv\.gz)$ ]]; then
       echo "$0: removing $filepath file since --remove-archive option was supplied."
       rm $filepath
     fi
