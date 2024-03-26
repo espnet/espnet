@@ -48,15 +48,19 @@ if __name__ == "__main__":
                 )
 
                 # append lines to the existing files or create new ones
-                directory_path = os.path.join(args.tgt, args.subset)
-                os.makedirs(directory_path, exist_ok=True)
+                src_directory_path = os.path.join(args.tgt, args.subset, src_lang)
+                os.makedirs(src_directory_path, exist_ok=True)
 
-                src_wavscp = open(os.path.join(directory_path, f"wav.scp.{src_lang}"), "a", encoding="utf-8")
-                tgt_wavscp = open(os.path.join(directory_path, f"wav.scp.{tgt_lang}"), "a", encoding="utf-8")
-                src_text = open(os.path.join(directory_path, f"text.{src_lang}"), "a", encoding="utf-8")
-                tgt_text = open(os.path.join(directory_path, f"text.{tgt_lang}"), "a", encoding="utf-8")
-                src_utt2spk = open(os.path.join(directory_path, f"utt2spk.{src_lang}"), "a", encoding="utf-8")
-                tgt_utt2spk = open(os.path.join(directory_path, f"utt2spk.{tgt_lang}"), "a", encoding="utf-8")
+                src_wavscp = open(os.path.join(src_directory_path, f"wav.scp.{src_lang}"), "a", encoding="utf-8")
+                src_text = open(os.path.join(src_directory_path, f"text.{src_lang}"), "a", encoding="utf-8")
+                src_utt2spk = open(os.path.join(src_directory_path, f"utt2spk.{src_lang}"), "a", encoding="utf-8")
+                
+                tgt_directory_path = os.path.join(args.tgt, args.subset, tgt_lang)
+                os.makedirs(tgt_directory_path, exist_ok=True)
+
+                tgt_wavscp = open(os.path.join(tgt_directory_path, f"wav.scp.{tgt_lang}"), "a", encoding="utf-8")
+                tgt_text = open(os.path.join(tgt_directory_path, f"text.{tgt_lang}"), "a", encoding="utf-8")
+                tgt_utt2spk = open(os.path.join(tgt_directory_path, f"utt2spk.{tgt_lang}"), "a", encoding="utf-8")
 
                 with open(src_alignment_path, "r", encoding="utf-8") as src_alignment:
                     tsv_reader = csv.reader(src_alignment, delimiter='\t')
@@ -64,9 +68,9 @@ if __name__ == "__main__":
 
 
                     # prepare the index of the wav to be stored
-                    with open(os.path.join(directory_path, f"wav.scp.{src_lang}"), "r", encoding="utf-8") as file:
+                    with open(os.path.join(src_directory_path, f"wav.scp.{src_lang}"), "r", encoding="utf-8") as file:
                         count_src = sum(1 for _ in file)
-                    with open(os.path.join(directory_path, f"wav.scp.{tgt_lang}"), "r", encoding="utf-8") as file:
+                    with open(os.path.join(tgt_directory_path, f"wav.scp.{tgt_lang}"), "r", encoding="utf-8") as file:
                         count_tgt = sum(1 for _ in file) 
         
                     # go thru all lines in tsv
