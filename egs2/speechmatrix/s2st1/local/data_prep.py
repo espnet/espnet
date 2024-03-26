@@ -72,7 +72,7 @@ if __name__ == "__main__":
                     # go thru all lines in tsv
                     row_count = 0
                     for row in tsv_reader:
-                        row += 1
+                        row_count += 1
                         if len(row) == 3:
                             _, src_audio_zip, tgt_audio_zip = row # score src_audio   tgt_audio
 
