@@ -88,8 +88,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2, DONE."
 fi
 
-log "Successfully finished. [elapsed=${SECONDS}s]"
-
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Making Kaldi style files and trials"
 
@@ -97,7 +95,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Making Kaldi style files and making trials"
 
         mkdir -p data/test
-        # make kaldi-style files for ASV dev and test
+        # make kaldi-style files for ASV test
         python3 local/asv_data_prep.py --src "${data_dir_prefix}/LA_asv_eval/flac/" --dst "${trg_dir}/test"
         for f in wav.scp utt2spk spk2utt; do
             sort ${trg_dir}/test/${f} -o ${trg_dir}/test/${f}
