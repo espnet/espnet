@@ -35,8 +35,8 @@ if [ -z ${data_dir_prefix} ]; then
     log "Root dir for dataset not defined, setting to ${MAIN_ROOT}/egs2/asvspoof"
     data_dir_prefix=${MAIN_ROOT}/egs2/asvspoof
 else
-    log "Root dir set to ${ASVSpoof_LA}"
-    data_dir_prefix=${ASVSpoof_LA}
+    log "Root dir set to ${ASVSPOOF2019_LA}"
+    data_dir_prefix=${ASVSPOOF2019_LA}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
