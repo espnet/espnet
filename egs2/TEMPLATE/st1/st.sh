@@ -1620,7 +1620,7 @@ if ! "${skip_eval}"; then
             log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
 
             # process multi-references cases
-            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}".* || echo "")
+            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}"* || echo "")
             if [ "${multi_references}" != "" ]; then
                 case_sensitive_refs=""
                 case_insensitive_refs=""

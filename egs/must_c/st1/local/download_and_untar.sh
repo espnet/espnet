@@ -27,7 +27,7 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-langs="de_es_fr_it_nl_pt_ro_ru_zh"
+langs="de_es_fr_it_nl_pt_ro_ru_zh_ja"
 if [ ! "$(echo ${langs} | grep ${lang})" ]; then
     echo "$0: no such lang ${lang}"
     exit 1;
@@ -50,7 +50,15 @@ fi
 if [ ${version} = "v1" ]; then
     tar_path=${data}/MUSTC_v1.0_en-${lang}.tar.gz
 elif [ ${version} = "v2" ]; then
+  if [ "${lang}" = "de" ]; then
     tar_path=${data}/MUSTC_v2.0_en-${lang}.tar.gz
+  elif [ "${lang}" = "ja" ]; then
+    tar_path=${data}/MUSTC_v2.0__KSA__en-ja__without-H5.tar.gz
+  elif [ "${lang}" = "zh" ]; then
+    tar_path=${data}/MUST_v2.0_KSA__en-zh_without-H5.tar.gz
+  else  # other languages also use the default path
+    tar_path=${data}/MUSTC_v2.0_en-${lang}.tar.gz
+  fi
 fi
 
 
