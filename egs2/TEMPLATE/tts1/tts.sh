@@ -1130,8 +1130,8 @@ if [ -z "${download_model}" ]; then
         fi
         if "${use_spk_embed}"; then
             for dset in "${train_set}" ${test_sets}; do
-                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp"
-                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.ark"
+                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/spk_${spk_embed_tag}.scp"
+                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/spk_${spk_embed_tag}.ark"
             done
         fi
         if "${use_sid}"; then
@@ -1149,7 +1149,7 @@ if [ -z "${download_model}" ]; then
 
         # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
         #   % unzip ${packed_model}
-        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
+        #   % ./run.sh --stage 9 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
     fi
 fi
 
