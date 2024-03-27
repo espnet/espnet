@@ -32,7 +32,7 @@ def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
                 k, v = sps
 
             if k in data:
-                raise RuntimeError(f"{k} is duplicated ({path}:{linenum})")
+                logging.warning(f"{k} is duplicated ({path}:{linenum})")
             data[k] = v
     return data
 

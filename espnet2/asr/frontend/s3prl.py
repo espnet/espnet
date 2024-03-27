@@ -101,12 +101,10 @@ class S3prlFrontend(AbsFrontend):
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]
             return feats, feats_lens
-
         if self.multilayer_feature:
             feats, feats_lens = self.featurizer(feats, feats_lens)
         else:
             feats, feats_lens = self.featurizer(feats[-1:], feats_lens[-1:])
-
         if self.tile_factor != 1:
             feats = self._tile_representations(feats)
 

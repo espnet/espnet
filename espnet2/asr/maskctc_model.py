@@ -73,6 +73,7 @@ class MaskCTCModel(ESPnetASRModel):
             specaug=specaug,
             normalize=normalize,
             preencoder=preencoder,
+            masker=None,
             encoder=encoder,
             postencoder=postencoder,
             decoder=decoder,
