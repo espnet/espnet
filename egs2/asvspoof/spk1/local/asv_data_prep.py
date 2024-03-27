@@ -10,7 +10,7 @@ def process_files(src, dst, partition):
     # regex to match eval file names (skip ones used in enrollment)
     if partition == "eval":
         valid_file_regex = re.compile(r"^LA(_E)?_\d+\.flac$")
-    else: # dev
+    else:  # dev
         valid_file_regex = re.compile(r"^LA(_D)?_\d+\.flac$")
 
     spk2utt = {}
