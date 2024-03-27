@@ -134,13 +134,13 @@ def test_join_dumps():
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
 def test_task(task_name, task_class):
-    task = ez.task.get_easy_task(task_name)
+    task = ez.task.get_ez_task(task_name)
     assert issubclass(task, task_class)
 
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
 def test_task_with_dataset(task_name, task_class):
-    task = ez.task.get_easy_task_with_dataset(task_name)
+    task = ez.task.get_ez_task_with_dataset(task_name)
     assert issubclass(task, task_class)
 
 
@@ -175,10 +175,10 @@ def test_load_config(task_name, task_class):
         config_path = Path(temp_dir) / "config.yaml"
         config_path.write_text("""task: {task_name}""")
         default_config = task_class.get_default_config()
-        easy_config = ez.config.from_yaml(task_name, config_path)
+        ez_config = ez.config.from_yaml(task_name, config_path)
 
         for k in default_config.keys():
-            assert default_config[k] == easy_config[k]
+            assert default_config[k] == ez_config[k]
 
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
@@ -188,11 +188,11 @@ def test_update_finetune_config(task_name, task_class):
         config_path = Path(temp_dir) / "config.yaml"
         config_path.write_text("""use_lora: true""")
         pretrain_config = task_class.get_default_config()
-        easy_config = ez.config.update_finetune_config(
+        ez_config = ez.config.update_finetune_config(
             task_name, pretrain_config, config_path
         )
 
-        for k, v in easy_config.items():
+        for k, v in ez_config.items():
             if k != "use_lora":
                 assert v == pretrain_config[k]
             else:
