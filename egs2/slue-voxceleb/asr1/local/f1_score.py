@@ -24,6 +24,8 @@ def get_classification_result(hyp_file, ref_file):
     for line_count in range(len(hyp_lines)):
         hyp_intent = hyp_lines[line_count].split("\t")[0].split(" ")[0]
         ref_intent = ref_lines[line_count].split("\t")[0].split(" ")[0]
+        if ref_intent == "Disagreement":
+            continue
         hyp_intent_arr.append(hyp_intent)
         ref_intent_arr.append(ref_intent)
     print(classification_report(ref_intent_arr, hyp_intent_arr, digits=3))

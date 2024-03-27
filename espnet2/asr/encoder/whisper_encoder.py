@@ -1,12 +1,22 @@
 import copy
 from typing import Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
+
+
+def sinusoids(length, channels, max_timescale=10000):
+    """Returns sinusoids for positional embedding"""
+    assert channels % 2 == 0
+    log_timescale_increment = np.log(max_timescale) / (channels // 2 - 1)
+    inv_timescales = torch.exp(-log_timescale_increment * torch.arange(channels // 2))
+    scaled_time = torch.arange(length)[:, np.newaxis] * inv_timescales[np.newaxis, :]
+    return torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=1)
 
 
 class OpenAIWhisperEncoder(AbsEncoder):
@@ -24,6 +34,8 @@ class OpenAIWhisperEncoder(AbsEncoder):
         use_specaug: bool = False,
         specaug_conf: Union[dict, None] = None,
         do_pad_trim: bool = False,
+        no_truncate_fix: bool = False,
+        no_truncate_max: int = 6000,
     ):
         try:
             import whisper
@@ -65,6 +77,11 @@ class OpenAIWhisperEncoder(AbsEncoder):
 
         self.do_pad_trim = do_pad_trim
         self.pad_samples = N_SAMPLES
+        self.no_truncate_fix = no_truncate_fix
+        if self.no_truncate_fix:
+            self.register_buffer(
+                "positional_embedding", sinusoids(no_truncate_max, 1024)
+            )
 
     def output_size(self) -> int:
         return self.encoders.ln_post.normalized_shape[-1]
@@ -127,6 +144,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         self,
         input: torch.Tensor,
         ilens: torch.Tensor = None,
+        return_all_hs: bool = False,
     ) -> torch.Tensor:
         x = F.gelu(self.encoders.conv1(input))
         x = F.gelu(self.encoders.conv2(x))
@@ -134,20 +152,32 @@ class OpenAIWhisperEncoder(AbsEncoder):
 
         n_frames = x.size(1)
         max_pos = self.encoders.positional_embedding.size(0)
-        if n_frames <= max_pos:
-            x = (x + self.encoders.positional_embedding[: x.size(1), :]).to(x.dtype)
+        if self.no_truncate_fix:
+            if n_frames <= self.positional_embedding.size(0):
+                x = (x + self.positional_embedding[: x.size(1), :]).to(x.dtype)
+            else:
+                import pdb
+
+                pdb.set_trace()
         else:
-            # due to positional encoding, audios >30 sec won't be accepted
-            x = x[:, :max_pos, :] + self.encoders.positional_embedding
+            if n_frames <= max_pos:
+                x = (x + self.encoders.positional_embedding[: x.size(1), :]).to(x.dtype)
+            else:
+                # due to positional encoding, audios >30 sec won't be accepted
+                x = x[:, :max_pos, :] + self.encoders.positional_embedding
 
         x = self.dropout(x)
-
+        intermediate_outs = []
         for layer, block in enumerate(self.encoders.blocks):
             x = block(x)
             if layer < len(self.encoders.blocks) - 1:
                 x = self.dropout(x)
+                if return_all_hs:
+                    intermediate_outs.append(x)
 
         x = self.encoders.ln_post(x)
+        if return_all_hs:
+            intermediate_outs.append(x)
 
         if ilens is not None:
             olens = (
@@ -159,9 +189,15 @@ class OpenAIWhisperEncoder(AbsEncoder):
                 )
                 // self.encoders.conv2.stride[0]
             )
-            olens = torch.clamp(olens, max=max_pos)
+            if self.no_truncate_fix:
+                olens = torch.clamp(olens, max=no_truncate_max)
+            else:
+                olens = torch.clamp(olens, max=max_pos)
         else:
             olens = None
+
+        if len(intermediate_outs) > 0:
+            return (x, intermediate_outs), olens
 
         return x, olens
 
@@ -170,6 +206,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         if self.do_pad_trim:
             xs_pad = self.pad_or_trim(xs_pad, self.pad_samples)
@@ -181,6 +218,8 @@ class OpenAIWhisperEncoder(AbsEncoder):
             feats, feats_lens = self.specaug(feats, feats_lens)
             feats = torch.transpose(feats, 1, 2)
 
-        xs_pad, olens = self.whisper_encode(feats, feats_lens)
+        xs_pad, olens = self.whisper_encode(
+            feats, feats_lens, return_all_hs=return_all_hs
+        )
 
         return xs_pad, olens, None
