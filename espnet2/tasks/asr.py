@@ -489,6 +489,7 @@ class ASRTask(AbsTask):
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval = retval + ["prompt"]
+        retval += ["text_prev"]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval }")

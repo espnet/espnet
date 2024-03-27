@@ -24,6 +24,9 @@ export LC_ALL=C
 set -euo pipefail
 
 utt_extra_files=
+
+echo "$0 $@"  # Print the command line for logging
+
 . utils/parse_options.sh
 
 if [[ $# != 3 ]]; then
