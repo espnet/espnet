@@ -98,10 +98,14 @@ test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval s
 bpe_train_text=  # Text file path of bpe training set.
 lm_test_text_asr=    # Text file path of asr evaluation set.
 lm_test_text_tts=    # Text file path of tts evaluation set.
+lm_test_text_se=    # Text file path of se evaluation set.
+lm_test_text_vc=    # Text file path of vc evaluation set.
 lm_test_text_textlm="dummy"    # Text file path of textlm evaluation set.
 lm_test_text_speechlm="dummy"    # Text file path of unitlm evaluation set.
 lm_inference_asr_config=    # Config for decoding asr.
 lm_inference_tts_config=    # Config for decoding tts.
+lm_inference_vc_config=    # Config for decoding vc.
+lm_inference_se_config=    # Config for decoding se.
 lang=noinfo      # The language type of corpus.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
@@ -190,10 +194,14 @@ Options:
     --bpe_train_text # Text file path of bpe training set.
     --lm_test_text_asr    # Text file path of asr evaluation set.
     --lm_test_text_tts    # Text file path of tts evaluation set.
+    --lm_test_text_vc    # Text file path of vc evaluation set.
+    --lm_test_text_se    # Text file path of se evaluation set.
     --lm_test_text_textlm    # Text file path of textlm evaluation set.
     --lm_test_text_speechlm    # Text file path of unitlm evaluation set.
     --lm_inference_asr_config    # Config for decoding asr.
     --lm_inference_tts_config    # Config for decoding tts.
+    --lm_inference_vc_config    # Config for decoding vc.
+    --lm_inference_se_config    # Config for decoding se.
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --lang          # The language type of corpus (default=${lang}).
     --cleaner       # Text cleaner (default="${cleaner}").
@@ -914,9 +922,168 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 fi
 
 
-packed_model="${lm_exp}/${lm_exp##*/}_${inference_lm%.*}.zip"
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
-    log "Stage 11: Pack model: ${packed_model}"
+    if [ -f ${lm_test_text_vc} ]; then
+        log "Stage 10: LM decoding for voice conversion: ${lm_test_text_vc}"
+        _dir="${lm_exp}/decode_test_vc/$(basename ${lm_test_text_vc})"
+
+        _logdir="${_dir}/logdir"
+        mkdir -p "${_logdir}"
+
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
+
+        _opts=
+        if [ -n "${lm_inference_vc_config}" ]; then
+            _opts+="--config ${lm_inference_vc_config} "
+        fi
+
+        # 1. Split the key file
+        key_file=${lm_test_text_vc}
+        split_scps=""
+        _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/keys.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        # 2. Submit decoding jobs
+        log "Decoding started... log: '${_logdir}/lm_inference.*.log'"
+        rm -f "${_logdir}/*.log"
+        # shellcheck disable=SC2046,SC2086
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/lm_inference.JOB.log \
+            ${python} -m espnet2.bin.lm_inference \
+                --batch_size ${batch_size} \
+                --ngpu "${_ngpu}" \
+                --data_path_and_name_and_type "${lm_test_text_vc},text,text" \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}"/output.JOB \
+                --token_type "${token_type}" \
+                --bpemodel "${bpemodel}" \
+                --lm_train_config "${lm_exp}"/config.yaml \
+                --lm_file "${lm_exp}"/${inference_lm} \
+                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
+
+        # 3. Concatenate output files from each job
+        # shellcheck disable=SC2068
+        for f in token token_int score text; do
+            if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/${f}"
+                done | sort -k1 >"${_dir}/${f}"
+            fi
+        done
+
+        # 4. Postprocess
+        _scoredir="${_dir}/score_vc"
+        mkdir -p "${_scoredir}"
+
+        python3 local/postprocess.py \
+            --input ${_dir}/text \
+            --output ${_scoredir}/hyp.trn \
+            --sos "<generatespeech>" \
+            --prefix "vc_"
+
+        # Generate tokens for speech generation
+        python3 local/postprocess_speech.py \
+            --input ${_scoredir}/hyp.trn \
+            --output ${_scoredir}/hyp.tok \
+            --prefix "vc_"
+
+    fi
+
+fi
+
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
+    if [ -f ${lm_test_text_vc} ]; then
+        log "Stage 10: LM decoding for speech enhancement: ${lm_test_text_se}"
+        _dir="${lm_exp}/decode_test_se/$(basename ${lm_test_text_se})"
+
+        _logdir="${_dir}/logdir"
+        mkdir -p "${_logdir}"
+
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
+
+        _opts=
+        if [ -n "${lm_inference_se_config}" ]; then
+            _opts+="--config ${lm_inference_se_config} "
+        fi
+
+        # 1. Split the key file
+        key_file=${lm_test_text_se}
+        split_scps=""
+        _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/keys.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        # 2. Submit decoding jobs
+        log "Decoding started... log: '${_logdir}/lm_inference.*.log'"
+        rm -f "${_logdir}/*.log"
+        # shellcheck disable=SC2046,SC2086
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/lm_inference.JOB.log \
+            ${python} -m espnet2.bin.lm_inference \
+                --batch_size ${batch_size} \
+                --ngpu "${_ngpu}" \
+                --data_path_and_name_and_type "${lm_test_text_se},text,text" \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}"/output.JOB \
+                --token_type "${token_type}" \
+                --bpemodel "${bpemodel}" \
+                --lm_train_config "${lm_exp}"/config.yaml \
+                --lm_file "${lm_exp}"/${inference_lm} \
+                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
+
+        # 3. Concatenate output files from each job
+        # shellcheck disable=SC2068
+        for f in token token_int score text; do
+            if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/${f}"
+                done | sort -k1 >"${_dir}/${f}"
+            fi
+        done
+
+        # 4. Postprocess
+        _scoredir="${_dir}/score_se"
+        mkdir -p "${_scoredir}"
+
+        python3 local/postprocess.py \
+            --input ${_dir}/text \
+            --output ${_scoredir}/hyp.trn \
+            --sos "<generatespeech>" \
+            --prefix "se_"
+
+        # Generate tokens for speech generation
+        python3 local/postprocess_speech.py \
+            --input ${_scoredir}/hyp.trn \
+            --output ${_scoredir}/hyp.tok \
+            --prefix "se_"
+
+    fi
+
+fi
+
+packed_model="${lm_exp}/${lm_exp##*/}_${inference_lm%.*}.zip"
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
+    log "Stage 13: Pack model: ${packed_model}"
 
     _opts=
     if [ "${token_type}" = bpe ]; then
@@ -935,8 +1102,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
-    log "Stage 12: Upload model to Zenodo: ${packed_model}"
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then
+    log "Stage 14: Upload model to Zenodo: ${packed_model}"
     log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
     # To upload your model, you need to do:
@@ -991,11 +1158,11 @@ EOF
 fi
 
 
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
+if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~ [[:space:]]15[[:space:]] ]]; then
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
-    log "Stage 13: Upload model to HuggingFace: ${hf_repo}"
+    log "Stage 15: Upload model to HuggingFace: ${hf_repo}"
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
     [ -z "${gitlfs}" ] && \
