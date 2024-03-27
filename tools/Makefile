@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: showenv python conda_packages.done ffmpeg.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done mfa.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
@@ -75,7 +75,7 @@ endif
 
 ffmpeg.done: activate_python.sh
 ifneq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && { command -v ffmpeg || conda install -y ffmpeg -c conda-forge; }
+	. ./activate_python.sh && { command -v ffmpeg || ./installers/install_ffmpeg_conda.sh; }
 else
 	. ./activate_python.sh && { command -v ffmpeg || ./installers/install_ffmpeg.sh; }
 endif
@@ -165,9 +165,7 @@ speechbrain.done: espnet.done conda_packages.done
 
 mfa.done: espnet.done pyopenjtalk.done phonemizer.done conda_packages.done
 ifneq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && ./installers/install_mfa.sh "true"
-else
-	. ./activate_python.sh && ./installers/install_mfa.sh "false"
+	. ./activate_python.sh && { ./installers/install_mfa.sh || conda list; }
 endif
 	touch mfa.done
 
