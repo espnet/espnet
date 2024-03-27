@@ -1,4 +1,4 @@
-# ESPnet-Easy Task class
+# ESPnet-EZ Task class
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
@@ -64,13 +64,13 @@ TASK_CLASSES = dict(
 )
 
 
-def get_easy_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
+def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
 
     if use_custom_dataset:
-        return get_easy_task_with_dataset(task_name)
+        return get_ez_task_with_dataset(task_name)
 
-    class ESPnetEasyTask(task_class):
+    class ESPnetEZTask(task_class):
         build_model_fn = None
 
         @classmethod
@@ -80,13 +80,13 @@ def get_easy_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
             else:
                 return task_class.build_model(args=args)
 
-    return ESPnetEasyTask
+    return ESPnetEZTask
 
 
-def get_easy_task_with_dataset(task_name: str) -> AbsTask:
+def get_ez_task_with_dataset(task_name: str) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
 
-    class ESPnetEasyDataTask(task_class):
+    class ESPnetEZDataTask(task_class):
         build_model_fn = None
         train_dataset = None
         valid_dataset = None
@@ -317,4 +317,4 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 **kwargs,
             )
 
-    return ESPnetEasyDataTask
+    return ESPnetEZDataTask

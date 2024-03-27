@@ -1,6 +1,6 @@
 import yaml
 
-from espnetez.task import get_easy_task
+from espnetez.task import get_ez_task
 
 
 def convert_none_to_None(dic):
@@ -14,7 +14,7 @@ def convert_none_to_None(dic):
 
 
 def from_yaml(task, path):
-    task_class = get_easy_task(task)
+    task_class = get_ez_task(task)
     with open(path, "r") as f:
         config = yaml.load(f, Loader=yaml.Loader)
 
@@ -30,7 +30,7 @@ def from_yaml(task, path):
 def update_finetune_config(task, pretrain_config, path):
     with open(path, "r") as f:
         finetune_config = yaml.load(f, Loader=yaml.Loader)
-    default_config = get_easy_task(task).get_default_config()
+    default_config = get_ez_task(task).get_default_config()
 
     # update pretrain_config with finetune_config
     # and update distributed related configs to the default.

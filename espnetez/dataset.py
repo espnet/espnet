@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Union
 from espnet2.train.dataset import AbsDataset
 
 
-class ESPnetEasyDataset(AbsDataset):
+class ESPnetEZDataset(AbsDataset):
     def __init__(self, dataset, data_info):
         self.dataset = dataset
         self.data_info = data_info

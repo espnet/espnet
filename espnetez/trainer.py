@@ -2,7 +2,7 @@ import glob
 import os
 from argparse import Namespace
 
-from espnetez.task import get_easy_task
+from espnetez.task import get_ez_task
 
 
 def check_argument(
@@ -111,18 +111,18 @@ class Trainer:
             )
 
         if train_dataset is not None and valid_dataset is not None:
-            self.task_class = get_easy_task(task, use_custom_dataset=True)
+            self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataset = train_dataset
             self.task_class.valid_dataset = valid_dataset
         elif train_dataloader is not None and valid_dataloader is not None:
-            self.task_class = get_easy_task(task, use_custom_dataset=True)
+            self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataloader = train_dataloader
             self.task_class.valid_dataloader = valid_dataloader
         else:
             assert data_info is not None, "data_info should be provided."
             assert train_dump_dir is not None, "Please provide train_dump_dir."
             assert valid_dump_dir is not None, "Please provide valid_dump_dir."
-            self.task_class = get_easy_task(task)
+            self.task_class = get_ez_task(task)
             train_dpnt = []
             valid_dpnt = []
             for k, v in data_info.items():
