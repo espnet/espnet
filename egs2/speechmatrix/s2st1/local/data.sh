@@ -12,8 +12,18 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 
-langs=(cs de en es et fi fr hr hu it lt nl pl pt ro sk sl)
-# langs=(lt sl)
+# Full sequence of languages in the fixed order
+full_langs=(cs de en es et fi fr hr hu it lt nl pl pt ro sk sl)
+
+src_langs=(lt) # one or many
+tgt_langs=(sl) # one or many
+
+# Choose from flores and epst. 
+# Notice: epst only covers de, en, es, fr, it, nl, pl, pt, ro
+#         epst is s2t not s2s
+# TODO: if src and tgt lang not in this set, directly use flores
+test_dataset=flores 
+
 
 . utils/parse_options.sh || exit 1;
 
@@ -47,36 +57,63 @@ log "data preparation started"
 flores_raw_data_url=https://dl.fbaipublicfiles.com/flores101/dataset/flores101_dataset.tar.gz
 europarl_raw_data_url=https://www.mllp.upv.es/europarl-st/v1.1.tar.gz
 
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${SPEECH_MATRIX}"
     log "Prepare source aligned speech data from speech matrix for training"
 
     # audio files for each languages
-    for lang in "${langs[@]}"; do
-
+    for lang in "${src_langs[@]}"; do
         mkdir -p ${SPEECH_MATRIX}/audios/${lang}
-
         local/download_and_unzip.sh \
             ${SPEECH_MATRIX}/audios/${lang} \
             https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
             ${lang}_aud.zip
     done
 
-    # audio alignments for each language pairs
-    for i in {0..1}; do
-        for j in {0..1}; do
-            if [[ $i < $j ]]; then
+    for lang in "${tgt_langs[@]}"; do
+        mkdir -p ${SPEECH_MATRIX}/audios/${lang}
+        local/download_and_unzip.sh \
+            ${SPEECH_MATRIX}/audios/${lang} \
+            https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
+            ${lang}_aud.zip
+    done
 
-                mkdir -p ${SPEECH_MATRIX}/aligned_speech/${langs[i]}-${langs[j]}
-
-                local/download_and_unzip.sh \
-                    ${SPEECH_MATRIX}/aligned_speech/${langs[i]}-${langs[j]} \
-                    https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${langs[i]}-${langs[j]}.tsv.gz \
-                    ${langs[i]}-${langs[j]}.tsv.gz
+    # Function to get index of a language in the full_langs array
+    get_index() {
+        local lang=$1
+        for i in "${!full_langs[@]}"; do
+            if [[ "${full_langs[$i]}" == "$lang" ]]; then
+                echo $i
+                return
             fi
+        done
+        echo "-1"
+    }
+
+    # Iterate over source and target languages
+    for src_lang in "${src_langs[@]}"; do
+        for tgt_lang in "${tgt_langs[@]}"; do
+            src_index=$(get_index "$src_lang")
+            tgt_index=$(get_index "$tgt_lang")
+
+            # Determine the pair order based on the indices
+            if [ "$src_index" -lt "$tgt_index" ]; then
+                pair="${src_lang}-${tgt_lang}"
+            else
+                pair="${tgt_lang}-${src_lang}"
+            fi
+
+            mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
+
+            local/download_and_unzip.sh \
+                "${SPEECH_MATRIX}/aligned_speech/${pair}" \
+                "https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz" \
+                "${pair}.tsv.gz"
         done
     done
 
+    
     log "Download FLORES data to ${SPEECH_MATRIX}"
     local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
     log "Download EuroParl-ST data to ${SPEECH_MATRIX}"
@@ -121,22 +158,40 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage2: Preparing data for speechmatrix"
-    ### Task dependent. You have to make data the following preparation part by yourself.
+
+    # install missing packages for functions in data_prep.py
+    pip install bitarray
 
     for part in "train" "test" "dev"; do
+        log "Preparing ${part} data."
+        python local/data_prep.py \
+            --src_folder "${SPEECH_MATRIX}" \
+            --src_langs "${src_langs[@]}" \
+            --tgt_langs "${tgt_langs[@]}" \
+            --subset ${part} \
+            --test_dataset "${test_dataset}" \
+            --save_folder "data"
 
-        if [ "${part}" = train ]; then
-            # install missing packages for functions in data_prep.py
-            pip install bitarray
-            python local/data_prep.py \
-                --src_folder "${SPEECH_MATRIX}" \
-                --langs "${langs[@]}" \
-                --subset ${part} \
-                --tgt "data"
 
-        else
-            log "to be updated"
-        fi
+        for src_lang in "${src_langs[@]}"; do
+            for tgt_lang in "${tgt_langs[@]}"; do
+                # Skip if source language is the same as target language
+                if [[ "$src_lang" == "$tgt_lang" ]]; then
+                    continue
+                fi
+
+                ln -sf text.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/text
+                ln -sf wav.scp.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/wav.scp
+
+                # # TODO: fix the issues that fix_data_dir.sh have exit 1 executed then terminate everything
+                # utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
+                # utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}_${tgt_lang}
+
+
+                utils/utt2spk_to_spk2utt.pl data/${part}_${src_lang}_${tgt_lang}/utt2spk >data/${part}_${src_lang}_${tgt_lang}/spk2utt
+            done
+        done
+
     done
 fi
 
