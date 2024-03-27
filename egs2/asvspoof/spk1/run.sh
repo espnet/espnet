@@ -7,8 +7,8 @@ set -o pipefail
 spk_config=conf/train_rawnet3.yaml
 
 train_set="train"
-valid_set="test"
-cohort_set="test"
+valid_set="dev"
+cohort_set="dev"
 test_sets="test"
 skip_train=false
 

@@ -6,9 +6,12 @@ import os
 import re
 
 
-def process_files(src, dst):
+def process_files(src, dst, partition):
     # regex to match eval file names (skip ones used in enrollment)
-    valid_file_regex = re.compile(r"^LA(_E)?_\d+\.flac$")
+    if partition == "eval":
+        valid_file_regex = re.compile(r"^LA(_E)?_\d+\.flac$")
+    else: # dev
+        valid_file_regex = re.compile(r"^LA(_D)?_\d+\.flac$")
 
     spk2utt = {}
     utt2spk = []
@@ -44,6 +47,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get spk utt mapping")
     parser.add_argument("--src", type=str, required=True, help="src dir")
     parser.add_argument("--dst", type=str, required=True, help="dest dir")
+    parser.add_argument("--partition", type=str, required=True, help="partition")
     args = parser.parse_args()
 
-    process_files(args.src, args.dst)
+    process_files(args.src, args.dst, args.partition)
