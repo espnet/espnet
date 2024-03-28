@@ -32,11 +32,8 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
+SPEECH_MATRIX="${PWD}/data/local/speech_matrix_data"
 mkdir -p ${SPEECH_MATRIX}
-if [ -z "${SPEECH_MATRIX}" ]; then
-    log "Fill the value of 'SPEECH_MATRIX' of db.sh"
-    exit 1
-fi
 
 FLORES_ROOT="${SPEECH_MATRIX}/flores"
 mkdir -p ${FLORES_ROOT}
