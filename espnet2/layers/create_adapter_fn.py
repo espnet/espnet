@@ -146,7 +146,8 @@ def create_lora_adapter(
         )
 
     # Set the model (originally in train mode) to eval mode
-    # This step can avoid merging LoRA weights again when loading pre-trained checkpoints
+    # This step can avoid merging LoRA weights again
+    # when loading pre-trained checkpoints
     model.eval()
 
 
