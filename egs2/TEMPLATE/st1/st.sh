@@ -38,6 +38,7 @@ gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
+sacrebleu_opt_extra=  # Specify additional sacrebleu options (e.g. for ja, --smooth-method exp -tok ja-mecab -l en-ja)
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -263,6 +264,7 @@ Options:
     --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
     --st_text_fold_length   # fold_length for text data during ST training (default="${st_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
+    --sacrebleu_opt_extra  # additional option passed to sacrebleu (e.g. for ja, --smooth-method exp -tok ja-mecab -l en-ja)
 EOF
 )
 
@@ -1603,7 +1605,7 @@ if ! "${skip_eval}"; then
                 echo "Case sensitive BLEU result (single-reference)" > ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
-                          -m bleu chrf ter \
+                          -m bleu chrf ter ${sacrebleu_opt_extra} \
                           >> ${_scoredir}/result.tc.txt
 
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
@@ -1615,7 +1617,7 @@ if ! "${skip_eval}"; then
             echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
-                      -m bleu chrf ter \
+                      -m bleu chrf ter ${sacrebleu_opt_extra} \
                       >> ${_scoredir}/result.lc.txt
             log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
 
@@ -1649,14 +1651,14 @@ if ! "${skip_eval}"; then
                 if [ ${tgt_case} = "tc" ]; then
                     echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
                     sacrebleu ${case_sensitive_refs} \
-                        -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                        -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter ${sacrebleu_opt_extra} \
                         >> ${_scoredir}/result.tc.txt
                     log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
                 fi
 
                 echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
                 sacrebleu -lc ${case_insensitive_refs} \
-                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter ${sacrebleu_opt_extra} \
                     >> ${_scoredir}/result.lc.txt
                 log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
             fi
