@@ -3,7 +3,7 @@
 import copy
 from io import StringIO
 from pathlib import Path
-from typing import Callable, Collection, Dict, Iterator, Tuple, Union
+from typing import Callable, Collection, Dict, Iterator, Optional, Tuple, Union
 
 import kaldiio
 import numpy as np
@@ -85,7 +85,7 @@ class IterableESPnetDataset(IterableDataset):
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
-        key_file: str = None,
+        key_file: Optional[str] = None,
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(

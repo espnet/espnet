@@ -1,6 +1,6 @@
 import warnings
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import Iterable, List, Union, Optional
 
 from typeguard import typechecked
 
@@ -11,7 +11,7 @@ class WordTokenizer(AbsTokenizer):
     @typechecked
     def __init__(
         self,
-        delimiter: str = None,
+        delimiter: Optional[str] = None,
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         remove_non_linguistic_symbols: bool = False,
     ):

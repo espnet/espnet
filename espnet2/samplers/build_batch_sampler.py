@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 from typeguard import typechecked
 
@@ -81,7 +81,7 @@ def build_batch_sampler(
     min_batch_size: int = 1,
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
-    utt2category_file: str = None,
+    utt2category_file: Optional[str] = None,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 

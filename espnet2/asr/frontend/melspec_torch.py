@@ -4,7 +4,7 @@
 
 """Torchaudio MFCC"""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -33,7 +33,7 @@ class MelSpectrogramTorch(AbsFrontend):
         n_mels: int = 80,
         window_fn: str = "hamming",
         mel_scale: str = "htk",
-        normalize: str = None,
+        normalize: Optional[str] = None,
     ):
         super().__init__()
 

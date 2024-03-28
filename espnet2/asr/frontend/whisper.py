@@ -1,5 +1,5 @@
 import contextlib
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -19,7 +19,7 @@ class WhisperFrontend(AbsFrontend):
         self,
         whisper_model: str = "small",
         freeze_weights: bool = True,
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
     ):
         try:
             import whisper

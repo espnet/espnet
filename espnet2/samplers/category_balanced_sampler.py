@@ -15,7 +15,7 @@
 #     utterance_id_c 512,80\n",
 import random
 from collections import Counter
-from typing import Iterator, List, Sequence, Tuple, Union
+from typing import Iterator, Optional, List, Sequence, Tuple, Union
 
 from typeguard import typechecked
 
@@ -34,7 +34,7 @@ class CategoryBalancedSampler(AbsSampler):
         batch_size: int,
         min_batch_size: int = 1,
         drop_last: bool = False,
-        category2utt_file: str = None,
+        category2utt_file: Optional[str] = None,
         epoch: int = 1,
         **kwargs,
     ):

@@ -1993,7 +1993,7 @@ class AbsTask(ABC):
         data_path_and_name_and_type,
         preprocess_fn,
         collate_fn,
-        key_file: str = None,
+        key_file: Optional[str] = None,
         batch_size: int = 1,
         dtype: str = np.float32,
         num_workers: int = 1,
@@ -2035,8 +2035,8 @@ class AbsTask(ABC):
     @typechecked
     def build_model_from_file(
         cls,
-        config_file: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        config_file: Optional[Union[Path, str]] = None,
+        model_file: Optional[Union[Path, str]] = None,
         device: str = "cpu",
     ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
         """Build model from the files.

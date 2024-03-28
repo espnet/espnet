@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 from typeguard import typechecked
 
@@ -15,18 +15,18 @@ from espnet2.text.word_tokenizer import WordTokenizer
 @typechecked
 def build_tokenizer(
     token_type: str,
-    bpemodel: Union[Path, str, Iterable[str]] = None,
-    non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+    bpemodel: Optional[Union[Path, str, Iterable[str]]] = None,
+    non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
     remove_non_linguistic_symbols: bool = False,
     space_symbol: str = "<space>",
-    delimiter: str = None,
-    g2p_type: str = None,
-    nonsplit_symbol: Iterable[str] = None,
+    delimiter: Optional[str] = None,
+    g2p_type: Optional[str] = None,
+    nonsplit_symbol: Optional[Iterable[str]] = None,
     # tokenization encode (text2token) args, e.g. BPE dropout, only applied in training
-    encode_kwargs: Dict = None,
+    encode_kwargs: Optional[Dict] = None,
     # only use for whisper
-    whisper_language: str = None,
-    whisper_task: str = None,
+    whisper_language: Optional[str] = None,
+    whisper_task: Optional[str] = None,
     sot_asr: bool = False,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""

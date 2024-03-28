@@ -1,5 +1,5 @@
 import copy
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
 from typeguard import typechecked
@@ -51,7 +51,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         encoder_output_size: int,
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
         load_origin_token_embedding=False,
     ):
         try:

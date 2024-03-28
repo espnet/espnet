@@ -538,7 +538,7 @@ class Reporter:
         return plt
 
     def tensorboard_add_scalar(
-        self, summary_writer, epoch: int = None, key1: str = None
+        self, summary_writer, epoch: int = None, key1: Optional[str] = None
     ):
         if epoch is None:
             epoch = self.get_epoch()

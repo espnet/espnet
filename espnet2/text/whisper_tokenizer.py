@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from typeguard import typechecked
 
@@ -44,7 +44,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         task: str = "transcribe",
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
-        added_tokens_txt: str = None,
+        added_tokens_txt: Optional[str] = None,
     ):
 
         try:

@@ -21,7 +21,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         input_size: int = 1,
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
         use_specaug: bool = False,
         specaug_conf: Union[dict, None] = None,
         do_pad_trim: bool = False,

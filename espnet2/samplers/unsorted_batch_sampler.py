@@ -1,5 +1,5 @@
 import logging
-from typing import Iterator, Tuple
+from typing import Iterator, Optional, Tuple
 
 from typeguard import typechecked
 
@@ -26,7 +26,7 @@ class UnsortedBatchSampler(AbsSampler):
         batch_size: int,
         key_file: str,
         drop_last: bool = False,
-        utt2category_file: str = None,
+        utt2category_file: Optional[str] = None,
     ):
         assert batch_size > 0
         self.batch_size = batch_size

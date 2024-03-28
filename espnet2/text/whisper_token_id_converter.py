@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Iterable, List, Union
+from typing import Iterable, List, Optional, Union
 
 import numpy as np
 from typeguard import typechecked
@@ -24,7 +24,7 @@ class OpenAIWhisperTokenIDConverter:
         model_type: str,
         language: str = "en",
         task: str = "transcribe",
-        added_tokens_txt: str = None,
+        added_tokens_txt: Optional[str] = None,
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
     ):

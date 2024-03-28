@@ -71,7 +71,7 @@ class singing_tacotron(AbsSVS):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
-        output_activation: str = None,
+        output_activation: Optional[str] = None,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,

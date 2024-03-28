@@ -1,4 +1,4 @@
-from typing import Iterator, List, Sequence, Tuple, Union
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
 from typeguard import typechecked
 
@@ -17,7 +17,7 @@ class FoldedBatchSampler(AbsSampler):
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
-        utt2category_file: str = None,
+        utt2category_file: Optional[str] = None,
     ):
         assert batch_size > 0
         if sort_batch != "ascending" and sort_batch != "descending":
