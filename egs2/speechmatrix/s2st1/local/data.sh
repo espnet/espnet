@@ -16,13 +16,13 @@ SECONDS=0
 full_langs=(cs de en es et fi fr hr hu it lt nl pl pt ro sk sl)
 
 src_langs=(lt) # one or many
-tgt_langs=(sl) # one or many
+tgt_langs=(en) # one or many
 
 # Choose from flores and epst. 
 # Notice: epst only covers de, en, es, fr, it, nl, pl, pt, ro
 #         epst is s2t not s2s
 # TODO: if src and tgt lang not in this set, directly use flores
-test_dataset=flores 
+test_dataset=epst
 
 
 . utils/parse_options.sh || exit 1;

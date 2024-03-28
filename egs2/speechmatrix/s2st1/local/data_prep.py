@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 tgt_text = open(os.path.join(src_directory_path, f"text.{tgt_lang}"), "w", encoding="utf-8")
                 utt2spk = open(os.path.join(src_directory_path, f"utt2spk"), "w", encoding="utf-8")
 
-                alignment_doc_path, (src_lang, tgt_lang) = get_alignment_doc_path(args.src_folder, src_lang, tgt_lang)
+                alignment_doc_path, _ = get_alignment_doc_path(args.src_folder, src_lang, tgt_lang)
 
                 with open(alignment_doc_path, "r", encoding="utf-8") as alignment_doc:
                     tsv_reader = csv.reader(alignment_doc, delimiter='\t')
