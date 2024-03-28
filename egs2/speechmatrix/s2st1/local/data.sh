@@ -59,6 +59,32 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${SPEECH_MATRIX}"
     log "Prepare source aligned speech data from speech matrix for training"
 
+        log "Install Fairseq package for preparing valid and test data"
+
+    # Check for the existence of the Fairseq directory
+    if [ ! -d "fairseq" ]; then
+        log "Fairseq package not found. Cloning Fairseq repository."
+        git clone --branch ust --depth 1 https://github.com/facebookresearch/fairseq.git
+    else
+        log "Fairseq package already exists. Skipping clone."
+    fi
+
+    # Notify the user to check and modify the file
+    log "Please check the fairseq/examples/speech_matrix/valid_test_sets/preproc_fleurs_data.py file."
+    log "Change 'data = load_dataset(\"fleurs\", lang)' in line 12 to 'data = load_dataset(\"google/fleurs\", lang)'."
+    log "After checking/modifying, press 'y' and [Enter] to continue, or press [Ctrl+C] to abort."
+
+    # Wait for user confirmation
+    read -p "Have you checked and modified the file? (y/n): " confirmation
+
+    # Check if the user input is 'y'
+    if [ "$confirmation" != "y" ]; then
+        log "Script paused. Please check the file and run the script again when ready."
+        exit 1
+    fi
+
+    log "Continuing with script execution..."
+
     # audio files for each languages
     for lang in "${src_langs[@]}"; do
         mkdir -p ${SPEECH_MATRIX}/audios/${lang}
@@ -116,31 +142,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Download EuroParl-ST data to ${SPEECH_MATRIX}"
     local/download_and_unzip.sh ${EPST_DIR} ${europarl_raw_data_url} v1.1.tar.gz
 
-    log "Install Fairseq package for preparing valid and test data"
-
-    # Check for the existence of the Fairseq directory
-    if [ ! -d "fairseq" ]; then
-        log "Fairseq package not found. Cloning Fairseq repository."
-        git clone --branch ust --depth 1 https://github.com/facebookresearch/fairseq.git
-    else
-        log "Fairseq package already exists. Skipping clone."
-    fi
-
-    # Notify the user to check and modify the file
-    log "Please check the fairseq/examples/speech_matrix/valid_test_sets/preproc_fleurs_data.py file."
-    log "Change 'data = load_dataset(\"fleurs\", lang)' in line 12 to 'data = load_dataset(\"google/fleurs\", lang)'."
-    log "After checking/modifying, press 'y' and [Enter] to continue, or press [Ctrl+C] to abort."
-
-    # Wait for user confirmation
-    read -p "Have you checked and modified the file? (y/n): " confirmation
-
-    # Check if the user input is 'y'
-    if [ "$confirmation" != "y" ]; then
-        log "Script paused. Please check the file and run the script again when ready."
-        exit 1
-    fi
-
-    log "Continuing with script execution..."
 
     # Temparally change the PYTHONPATH for running fairseq python scripts
     (export PYTHONPATH="${PYTHONPATH}:$(pwd)/fairseq/"
