@@ -105,15 +105,16 @@ if __name__ == "__main__":
                             sf.write(src_seg_path, src_wf, 16000)
                             sf.write(tgt_seg_path, tgt_wf, 16000)
 
+                            # using the name src_audio_zip directly as uttid
                             src_wavscp.write("{} {}\n".format(src_audio_zip, src_seg_path))
                             tgt_wavscp.write("{} {}\n".format(src_audio_zip, tgt_seg_path))
 
                             # no text, so set all to "0"
-                            src_text.write("{} {}\n".format(tgt_audio_zip, "0"))
-                            tgt_text.write("{} {}\n".format(tgt_audio_zip, "0"))
+                            src_text.write("{} {}\n".format(src_audio_zip, "0"))
+                            tgt_text.write("{} {}\n".format(src_audio_zip, "0"))
 
                             # no speaker id, so set all to the same as uttid
-                            utt2spk.write("{} {}\n".format(tgt_audio_zip, tgt_audio_zip))
+                            utt2spk.write("{} {}\n".format(src_audio_zip, src_audio_zip))
                     
                         if row_count % 1000 == 0:
                             print(f"{row_count} language pairs between {src_lang} and {tgt_lang} are prepared.")

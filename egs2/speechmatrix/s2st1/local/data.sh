@@ -120,7 +120,30 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/download_and_unzip.sh ${EPST_DIR} ${europarl_raw_data_url} v1.1.tar.gz
 
     log "Install Fairseq package for preparing valid and test data"
-    git clone --branch ust --depth 1 https://github.com/facebookresearch/fairseq.git
+
+    # Check for the existence of the Fairseq directory
+    if [ ! -d "fairseq" ]; then
+        log "Fairseq package not found. Cloning Fairseq repository."
+        git clone --branch ust --depth 1 https://github.com/facebookresearch/fairseq.git
+    else
+        log "Fairseq package already exists. Skipping clone."
+    fi
+
+    # Notify the user to check and modify the file
+    log "Please check the fairseq/examples/speech_matrix/valid_test_sets/preproc_fleurs_data.py file."
+    log "Change 'data = load_dataset(\"fleurs\", lang)' in line 12 to 'data = load_dataset(\"google/fleurs\", lang)'."
+    log "After checking/modifying, press 'y' and [Enter] to continue, or press [Ctrl+C] to abort."
+
+    # Wait for user confirmation
+    read -p "Have you checked and modified the file? (y/n): " confirmation
+
+    # Check if the user input is 'y'
+    if [ "$confirmation" != "y" ]; then
+        log "Script paused. Please check the file and run the script again when ready."
+        exit 1
+    fi
+
+    log "Continuing with script execution..."
 
     # Temparally change the PYTHONPATH for running fairseq python scripts
     (export PYTHONPATH="${PYTHONPATH}:$(pwd)/fairseq/"
@@ -130,7 +153,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python fairseq/examples/speech_matrix/valid_test_sets/prep_epst_test_data.py \
         --epst-dir ${EPST_DIR}/v1.1 \
         --proc-epst-dir ${EPST_DIR} \
-        --save-root ${EPST_DIR}/test
+        --save-root ${EPST_DIR}/test > /dev/null 2>&1
 
     log "Epst data paraparation done."
     
@@ -139,18 +162,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # "data = load_dataset("fleurs", lang)" in line 12 to "data = load_dataset("google/fleurs", lang)"
     pip install datasets
     python fairseq/examples/speech_matrix/valid_test_sets/preproc_fleurs_data.py \
-        --proc-fleurs-dir ${FLORES_ROOT}
+        --proc-fleurs-dir ${FLORES_ROOT} > /dev/null 2>&1
 
     log "Start align fleur data."
     python fairseq/examples/speech_matrix/valid_test_sets/align_fleurs_data.py \
         --flores-root ${FLORES_ROOT}/flores101_dataset \
         --proc-fleurs-dir ${FLORES_ROOT} \
-        --save-root ${FLORES_ROOT}/align 
+        --save-root ${FLORES_ROOT}/align > /dev/null 2>&1
     log "Fleurs data alignment done."
 
     python fairseq/examples/speech_matrix/valid_test_sets/prep_fleurs_test_data.py  \
         --proc-fleurs-dir ${FLORES_ROOT} \
-        --save-root ${FLORES_ROOT}/test
+        --save-root ${FLORES_ROOT}/test > /dev/null 2>&1
     log "Fleurs data paraparation done."
     )
 
@@ -183,12 +206,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ln -sf text.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/text
                 ln -sf wav.scp.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/wav.scp
 
-                # # TODO: fix the issues that fix_data_dir.sh have exit 1 executed then terminate everything
-                # utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
-                # utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}_${tgt_lang}
-
-
-                utils/utt2spk_to_spk2utt.pl data/${part}_${src_lang}_${tgt_lang}/utt2spk >data/${part}_${src_lang}_${tgt_lang}/spk2utt
+                utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}_${tgt_lang}
             done
         done
 
