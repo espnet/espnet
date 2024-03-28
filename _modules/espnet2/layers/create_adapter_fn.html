@@ -356,7 +356,12 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_traget_module_exists</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Target modules </span><span class="si">{</span><span class="n">target_modules</span><span class="si">}</span><span class="s2"> not found in the base model.&quot;</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+
+    <span class="c1"># Set the model (originally in train mode) to eval mode</span>
+    <span class="c1"># This step can avoid merging LoRA weights again</span>
+    <span class="c1"># when loading pre-trained checkpoints</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="create_new_houlsby_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_new_houlsby_module">[docs]</a><span class="k">def</span> <span class="nf">create_new_houlsby_module</span><span class="p">(</span><span class="n">target_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">bottleneck</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
