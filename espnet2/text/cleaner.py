@@ -1,4 +1,4 @@
-from typing import Collection
+from typing import Collection, Optional
 
 import tacotron_cleaner.cleaners
 from jaconv import jaconv
@@ -28,7 +28,7 @@ class TextCleaner:
     """
 
     @typechecked
-    def __init__(self, cleaner_types: Collection[str] = None):
+    def __init__(self, cleaner_types: Optional[Collection[str]] = None):
 
         if cleaner_types is None:
             self.cleaner_types = []
