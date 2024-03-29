@@ -23,7 +23,7 @@ _reserved = {"time", "total_count"}
 
 
 @typechecked
-def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
+def to_reported_value(v: Num, weight: Optional[Num] = None) -> "ReportedValue":
     if isinstance(v, (torch.Tensor, np.ndarray)):
         if np.prod(v.shape) != 1:
             raise ValueError(f"v must be 0 or 1 dimension: {len(v.shape)}")
@@ -153,7 +153,7 @@ class SubReporter:
     def register(
         self,
         stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
-        weight: Num = None,
+        weight: Optional[Num] = None,
     ) -> None:
         if self._finished:
             raise RuntimeError("Already finished")
