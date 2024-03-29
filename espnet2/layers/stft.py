@@ -19,7 +19,7 @@ class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 128,
         window: Optional[str] = "hann",
         center: bool = True,

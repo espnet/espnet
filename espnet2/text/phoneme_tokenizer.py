@@ -440,7 +440,7 @@ class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
         g2p_type: Union[None, str],
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        non_linguistic_symbols: Union[None, Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):

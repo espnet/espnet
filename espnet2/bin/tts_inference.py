@@ -66,8 +66,8 @@ class Text2Speech:
     @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -78,8 +78,8 @@ class Text2Speech:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_file: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_file: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -149,11 +149,11 @@ class Text2Speech:
     def __call__(
         self,
         text: Union[str, torch.Tensor, np.ndarray],
-        speech: Union[torch.Tensor, np.ndarray] = None,
-        durations: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        speech: Union[torch.Tensor, np.ndarray, None] = None,
+        durations: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run text-to-speech."""

@@ -161,12 +161,12 @@ class Speech2Text:
     @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
+        ngram_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",
@@ -194,8 +194,8 @@ class Speech2Text:
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        quantize_modules: List = list(set([getattr(torch.nn, q) for q in quantize_modules]))
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(

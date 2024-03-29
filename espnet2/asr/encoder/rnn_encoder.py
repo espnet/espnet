@@ -50,7 +50,7 @@ class RNNEncoder(AbsEncoder):
         else:
             subsample = subsample[:num_layers]
             # Append 1 at the beginning because the second or later is used
-            subsample = np.pad(
+            subsample: np.ndarray = np.pad(
                 np.array(subsample, dtype=np.int64),
                 [1, num_layers - len(subsample)],
                 mode="constant",

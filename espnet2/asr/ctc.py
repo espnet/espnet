@@ -2,6 +2,7 @@ import logging
 
 import torch
 import torch.nn.functional as F
+from typing import Optional
 from typeguard import typechecked
 
 
@@ -26,7 +27,7 @@ class CTC(torch.nn.Module):
         dropout_rate: float = 0.0,
         ctc_type: str = "builtin",
         reduce: bool = True,
-        ignore_nan_grad: bool = None,
+        ignore_nan_grad: Optional[bool] = None,
         zero_infinity: bool = True,
         brctc_risk_strategy: str = "exp",
         brctc_group_strategy: str = "end",

@@ -41,7 +41,7 @@ class EcapaTdnnEncoder(AbsEncoder):
     ):
         super().__init__()
         if block == "EcapaBlock":
-            block = EcapaBlock
+            block: type = EcapaBlock
         else:
             raise ValueError(f"unsupported block, got: {block}")
         self._output_size = output_size

@@ -55,10 +55,10 @@ class GenerateText:
     @typechecked
     def __init__(
         self,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
+        ngram_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",
@@ -240,10 +240,10 @@ class GenerateText:
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
-            text = None
+            _text = None
             if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            results.append((text, token, token_int, hyp))
+                _text = self.tokenizer.tokens2text(token)
+            results.append((_text, token, token_int, hyp))
 
         return results
 

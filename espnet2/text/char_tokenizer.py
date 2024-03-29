@@ -14,7 +14,7 @@ class CharTokenizer(AbsTokenizer):
         non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
-        nonsplit_symbols: Iterable[str] = None,
+        nonsplit_symbols: Optional[Iterable[str]] = None,
     ):
         self.space_symbol = space_symbol
         if non_linguistic_symbols is None:

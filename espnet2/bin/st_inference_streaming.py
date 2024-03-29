@@ -61,9 +61,9 @@ class Speech2TextStreaming:
     def __init__(
         self,
         st_train_config: Union[Path, str],
-        st_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        st_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",
@@ -84,7 +84,7 @@ class Speech2TextStreaming:
         incremental_decode: bool = False,
         blank_penalty: float = 1.0,
         hold_n: int = 0,
-        transducer_conf: dict = None,
+        transducer_conf: Optional[dict] = None,
         hugging_face_decoder: bool = False,
     ):
 

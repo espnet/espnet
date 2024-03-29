@@ -37,7 +37,7 @@ class RawNet3Encoder(AbsEncoder):
     ):
         super().__init__()
         if block == "Bottle2neck":
-            block = Bottle2neck
+            block: type = Bottle2neck
         else:
             raise ValueError(f"unsupported block, got: {block}")
 

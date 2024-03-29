@@ -50,13 +50,13 @@ class Speech2Understand:
     @typechecked
     def __init__(
         self,
-        slu_train_config: Union[Path, str] = None,
-        slu_model_file: Union[Path, str] = None,
-        transducer_conf: dict = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        slu_train_config: Union[Path, str, None] = None,
+        slu_model_file: Union[Path, str, None] = None,
+        transducer_conf: Optional[dict] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
+        ngram_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",
@@ -89,8 +89,8 @@ class Speech2Understand:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        quantize_modules: list = list(set([getattr(torch.nn, q) for q in quantize_modules]))
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build ASR model
         scorers = {}

@@ -51,7 +51,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         joint_network: Optional[torch.nn.Module],
         postdecoder: Optional[AbsPostDecoder] = None,
         deliberationencoder: Optional[AbsPostEncoder] = None,
-        transcript_token_list: Union[Tuple[str, ...], List[str]] = None,
+        transcript_token_list: Union[Tuple[str, ...], List[str], None] = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,

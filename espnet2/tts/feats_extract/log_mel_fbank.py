@@ -20,7 +20,7 @@ class LogMelFbank(AbsFeatsExtract):
         self,
         fs: Union[int, str] = 16000,
         n_fft: int = 1024,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 256,
         window: Optional[str] = "hann",
         center: bool = True,

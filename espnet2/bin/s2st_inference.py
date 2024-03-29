@@ -39,8 +39,8 @@ class Speech2Speech:
     @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -59,8 +59,8 @@ class Speech2Speech:
         st_subtask_nbest: int = 1,
         st_subtask_token_type: Optional[str] = None,
         st_subtask_bpemodel: Optional[str] = None,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_file: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_file: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -239,12 +239,12 @@ class Speech2Speech:
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
-        src_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
-        tgt_speech: Union[torch.Tensor, np.ndarray] = None,
-        tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        src_speech_lengths: Union[torch.Tensor, np.ndarray, None] = None,
+        tgt_speech: Union[torch.Tensor, np.ndarray, None] = None,
+        tgt_speech_lengths: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run speech-to-speech."""
@@ -613,7 +613,7 @@ def inference(
     )
 
     # 6. Start for-loop
-    output_dir = Path(output_dir)
+    output_dir: Path = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)

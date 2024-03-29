@@ -12,7 +12,7 @@ class WordTokenizer(AbsTokenizer):
     def __init__(
         self,
         delimiter: Optional[str] = None,
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        non_linguistic_symbols: Union[Path, str, Iterable[str], None] = None,
         remove_non_linguistic_symbols: bool = False,
     ):
         self.delimiter = delimiter

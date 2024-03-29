@@ -1,6 +1,6 @@
 """Sequential implementation of Recurrent Neural Network Language Model."""
 
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -22,7 +22,7 @@ class SequentialRNNLM(AbsLM):
         self,
         vocab_size: int,
         unit: int = 650,
-        nhid: int = None,
+        nhid: Optional[int] = None,
         nlayers: int = 2,
         dropout_rate: float = 0.0,
         tie_weights: bool = False,

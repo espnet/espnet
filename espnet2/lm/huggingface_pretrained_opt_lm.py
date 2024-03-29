@@ -5,19 +5,19 @@ from typing import Any, List, Tuple
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.lm.abs_model import AbsLM
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class HuggingfaceOPTModel(AbsLM):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
         opt_name: str,
     ):
-        assert check_argument_types()
         super().__init__()
         try:
             from transformers import OPTModel

@@ -51,7 +51,7 @@ class ESPnetASRModel(AbsESPnetModel):
         decoder: Optional[AbsDecoder],
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
-        aux_ctc: dict = None,
+        aux_ctc: Optional[dict] = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,

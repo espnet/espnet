@@ -17,7 +17,7 @@ class LogSpectrogram(AbsFeatsExtract):
     def __init__(
         self,
         n_fft: int = 1024,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 256,
         window: Optional[str] = "hann",
         center: bool = True,

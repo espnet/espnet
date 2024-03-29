@@ -2024,7 +2024,7 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
-        mode: str = None,
+        mode: Optional[str] = None,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         # For backward compatibility for pytorch DataLoader

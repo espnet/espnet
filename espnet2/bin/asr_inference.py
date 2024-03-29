@@ -463,6 +463,7 @@ class Speech2Text:
     @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
         ListOfHypothesis,
+        List[ListOfHypothesis],
         Tuple[
             ListOfHypothesis,
             Optional[Dict[int, List[str]]],
@@ -550,7 +551,8 @@ class Speech2Text:
 
         return res
 
-    def _decode_single_sample(self, enc: torch.Tensor):
+    @typechecked
+    def _decode_single_sample(self, enc: torch.Tensor) -> ListOfHypothesis:
         if self.beam_search_transducer:
             logging.info("encoder output length: " + str(enc.shape[0]))
             nbest_hyps = self.beam_search_transducer(enc)
