@@ -145,6 +145,11 @@ def create_lora_adapter(
             f"Target modules {target_modules} not found in the base model."
         )
 
+    # Set the model (originally in train mode) to eval mode
+    # This step can avoid merging LoRA weights again
+    # when loading pre-trained checkpoints
+    model.eval()
+
 
 @typechecked
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
