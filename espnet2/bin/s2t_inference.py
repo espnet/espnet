@@ -194,7 +194,9 @@ class Speech2Text:
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
-        quantize_modules: List = list(set([getattr(torch.nn, q) for q in quantize_modules]))
+        quantize_modules: List = list(
+            set([getattr(torch.nn, q) for q in quantize_modules])
+        )
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model
