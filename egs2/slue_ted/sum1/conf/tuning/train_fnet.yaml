@@ -79,5 +79,4 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 10
-
-use_amp: true
+    
