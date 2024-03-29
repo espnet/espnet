@@ -229,5 +229,4 @@ class LMTask(AbsTask):
             # loading opt parameters
             model.lm.reload_pretrained_parameters()
 
-        assert check_return_type(model)
         return model
