@@ -96,7 +96,7 @@ def tokenize(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    cleaner = TextCleaner(cleaner)
+    cleaner: TextCleaner = TextCleaner(cleaner)
     tokenizer = build_tokenizer(
         token_type=token_type,
         bpemodel=bpemodel,
@@ -110,7 +110,7 @@ def tokenize(
 
     counter = Counter()
     if field is not None:
-        field = field2slice(field)
+        field: slice = field2slice(field)
 
     for line in fin:
         line = line.rstrip()
