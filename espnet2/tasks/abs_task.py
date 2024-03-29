@@ -167,6 +167,13 @@ optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
 
 
+CONFIG_REPLACE_MAP = [
+    ("text_cleaner", "cleaner"),
+    ("g2p_type", "g2p"),
+    ("aux_task_names", "aux_ctc_tasks"),
+]
+
+
 @dataclass
 class IteratorOptions:
     preprocess_fn: callable
@@ -1040,6 +1047,21 @@ class AbsTask(ABC):
             if getattr(args, class_choices.name) is not None:
                 class_obj = class_choices.get_class(getattr(args, class_choices.name))
                 conf = get_default_kwargs(class_obj)
+
+                # remove duplicate arguments
+                for k in CONFIG_REPLACE_MAP:
+                    if k[0] in conf and k[1] in config:
+                        conf.pop(k[0])
+                    elif k[0] in conf:
+                        conf[k[1]] = conf.pop(k[0])
+
+                remove_keys = []
+                for k in conf:
+                    if k in config:
+                        remove_keys.append(k)
+                for k in remove_keys:
+                    conf.pop(k)
+
                 name = class_choices.name
                 # Overwrite the default by the arguments,
                 conf.update(config[f"{name}_conf"])
@@ -1338,6 +1360,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    mode="train",
                 ),
                 valid_iter=cls.build_streaming_iterator(
                     data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -1349,6 +1372,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    mode="valid",
                 ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
@@ -2000,6 +2024,7 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
+        mode: str = None,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         # For backward compatibility for pytorch DataLoader
