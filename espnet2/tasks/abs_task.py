@@ -1558,7 +1558,7 @@ class AbsTask(ABC):
         args: argparse.Namespace,
         distributed_option: DistributedOption,
         mode: str,
-        kwargs: dict = None,
+        kwargs: Optional[dict] = None,
     ) -> AbsIterFactory:
         """Build a factory object of mini-batch iterator.
 
