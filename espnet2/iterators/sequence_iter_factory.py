@@ -1,7 +1,7 @@
 import itertools
 import random
 from functools import partial
-from typing import Any, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -48,7 +48,7 @@ class SequenceIterFactory(AbsIterFactory):
         self,
         dataset,
         batches: Union[AbsSampler, Sequence[Sequence[Any]]],
-        num_iters_per_epoch: int = None,
+        num_iters_per_epoch: Optional[int] = None,
         seed: int = 0,
         shuffle: bool = False,
         shuffle_within_batch: bool = False,
