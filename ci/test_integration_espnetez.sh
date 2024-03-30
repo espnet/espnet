@@ -283,7 +283,7 @@ fi
 
 # [ESPnet Easy] test enh-asr recipe with coverage
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
-    cd ./egs2/mini_an4/enh_asr1
+    cd ${cwd}/egs2/mini_an4/enh_asr1
     rm -rf exp data dump
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH_ASR ==="
@@ -310,6 +310,40 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --config_path ./conf/train_debug.yaml \
         --run_finetune
     
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
+# [ESPnet Easy] test ssl recipe with coverage
+if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
+    cd ${cwd}/egs2/mini_an4/ssl1
+    rm -rf exp data dump
+    gen_dummy_coverage
+    echo "==== [ESPnet2] SSL1/HUBERT ==="
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 5 --feats-type "raw" \
+        --token_type "word" --hubert-args "--num_workers 0" --train_stop_iter 0
+    
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task hubert \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_ssl_torchaudiohubert_base_pretrain_it0_debug.yaml \
+        --run_collect_stats \
+        --run_train
+
+    # It seems there is no inference class for HubertTask?
+    # python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    #     --task hubert \
+    #     --data_path data \
+    #     --train_dump_path dump/raw/train_nodev \
+    #     --valid_dump_path dump/raw/train_dev \
+    #     --exp_path ./exp \
+    #     --config_path ./conf/train_ssl_torchaudiohubert_base_pretrain_it0_debug.yaml \
+    #     --run_finetune
+
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"

@@ -9,7 +9,7 @@ TASK_CLASSES = [
     "enh",
     "enh_tse",
     "enh_s2t",
-    # "hubert",
+    "hubert",
     "lm",
     # "s2t",
     "slu",
@@ -120,7 +120,12 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
-
+    elif args.task == "hubert":
+        data_info['text'] = [
+            "text.km.kmeans_iter0_mfcc_train_nodev_portion1.0",
+            "text"
+        ]
+        training_config['num_classes'] = 10
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -161,6 +166,13 @@ if __name__ == "__main__":
     
     if (args.data_path / "spm/bpemodel/tokens.txt").is_file():
         with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+    elif args.task == "hubert":
+        training_config['bpemodel'] = None
+        training_config['token_type'] = "word"
+        token_folder = "noinfo_token_list_kmeans_iter0_mfcc_10clusters"
+        with open(args.data_path / token_folder / "word/tokens.txt", "r") as f:
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["token_list"] = tokens
     else:
