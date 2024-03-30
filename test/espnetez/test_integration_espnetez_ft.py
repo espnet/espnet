@@ -7,6 +7,7 @@ from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
+from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -15,6 +16,7 @@ TASK_CLASSES = {
     "slu": SLUInference,
     "tts": TTSInference,
     "uasr": UASRInference,
+    "enh": ENHInference,
 }
 
 CONFIG_NAMES = {
@@ -23,14 +25,21 @@ CONFIG_NAMES = {
     "slu": "asr_train_args",
     "tts": "train_args",
     "uasr": "uasr_train_args",
+    "enh": "enh_train_args",
 }
 
-LORA_TARGET = ["w_1", "w_2", "merge_proj"]
+LORA_TARGET = [
+    "w_1",
+    "w_2",
+    "merge_proj",  # for tfm and ebf
+    "l_last",
+    "linear",  # for enh
+]
 
 
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
-    if args.task == "tts":
+    if args.task in ("tts", "enh"):
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
@@ -56,6 +65,8 @@ def build_model_fn(args):
         model = pretrained_model.tts
     elif args.task == "uasr":
         model = pretrained_model.uasr_model
+    elif args.task == "enh":
+        model = pretrained_model.enh_model
 
     model.train()
     # apply lora
@@ -136,11 +147,18 @@ if __name__ == "__main__":
     if args.task == "lm":
         data_info.pop("speech")
 
-    if args.task == "tts":
+    elif args.task == "tts":
         training_config = ez.config.from_yaml(args.task, args.config_path)
         finetune_config["normalize"] = training_config["normalize"]
         finetune_config["pitch_normalize"] = training_config["pitch_normalize"]
         finetune_config["energy_normalize"] = training_config["energy_normalize"]
+
+    elif args.task == "enh":
+        data_info = {
+            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            for i in range(finetune_config["separator_conf"]["num_spk"])
+        }
+        data_info["speech_mix"] = ["wav.scp", "sound"]
 
     trainer = ez.Trainer(
         task=args.task,

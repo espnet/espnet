@@ -6,6 +6,7 @@ import espnetez as ez
 TASK_CLASSES = [
     "asr",
     "gan_tts",
+    "enh",
     # "hubert",
     "lm",
     # "s2t",
@@ -136,6 +137,14 @@ if __name__ == "__main__":
         training_config["pitch_normalize"] = None
         energy_normalize = training_config["energy_normalize"]
         training_config["energy_normalize"] = None
+
+    # set data_info for specific tasks
+    if args.task == "enh":
+        data_info = {
+            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            for i in range(training_config["separator_conf"]["num_spk"])
+        }
+        data_info["speech_mix"] = ["wav.scp", "sound"]
 
     trainer = ez.Trainer(
         task=args.task,
