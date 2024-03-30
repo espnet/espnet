@@ -33,14 +33,12 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import (
+from espnet.nets.pytorch_backend.transformer.subsampling import (  # TooShortUttError,; check_short_utt,
     Conv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
     Conv2dSubsampling6,
     Conv2dSubsampling8,
-    # TooShortUttError,
-    # check_short_utt,
 )
 
 

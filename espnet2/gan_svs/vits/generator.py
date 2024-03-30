@@ -15,12 +15,12 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-from typeguard import typechecked
 from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
 from espnet2.gan_svs.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator

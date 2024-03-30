@@ -7,8 +7,7 @@ from packaging.version import parse as V
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.layers.create_adapter_fn import create_houlsby_adapter, create_lora_adapter
-from espnet2.layers.houlsby_adapter_layer import (
-    # Houlsby_Adapter,
+from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
     HoulsbyTransformerSentenceEncoderLayer,
 )
 

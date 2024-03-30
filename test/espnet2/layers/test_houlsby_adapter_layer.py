@@ -1,13 +1,17 @@
 import sys
-# from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
 from packaging.version import parse as V
 
+# from unittest.mock import MagicMock, patch
+
+
 try:
     import s3prl  # noqa
-    from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer  # noqa
+    from s3prl.upstream.wav2vec2.wav2vec2_model import (  # noqa
+        TransformerSentenceEncoderLayer,
+    )
 
     is_s3prl_available = True
 except ImportError:

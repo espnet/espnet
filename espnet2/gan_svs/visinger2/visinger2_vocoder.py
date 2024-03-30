@@ -9,24 +9,21 @@ This code is based on https://github.com/zhangyongmao/VISinger2
 
 import logging
 import math
-from typeguard import typechecked
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
 from espnet2.gan_svs.visinger2.ddsp import (
     remove_above_nyquist,
     scale_function,
     upsample,
 )
-from espnet2.gan_tts.hifigan import (
+from espnet2.gan_tts.hifigan import (  # HiFiGANMultiScaleMultiPeriodDiscriminator,; HiFiGANPeriodDiscriminator,; HiFiGANScaleDiscriminator,
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
-    # HiFiGANMultiScaleMultiPeriodDiscriminator,
-    # HiFiGANPeriodDiscriminator,
-    # HiFiGANScaleDiscriminator,
 )
 from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
 

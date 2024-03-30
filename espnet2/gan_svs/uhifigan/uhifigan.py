@@ -8,12 +8,12 @@ and https://github.com/kan-bayashi/ParallelWaveGAN.
 """
 
 import logging
-from typeguard import typechecked
 from typing import List, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
 try:
     from parallel_wavegan.layers import CausalConv1d, CausalConvTranspose1d

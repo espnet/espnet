@@ -6,10 +6,9 @@
 from typing import Optional
 
 import numpy as np
-
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer

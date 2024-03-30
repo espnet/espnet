@@ -7,13 +7,13 @@ import logging
 import shutil
 import sys
 import time
-from packaging.version import parse as V
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import soundfile as sf
 import torch
+from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter

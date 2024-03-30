@@ -12,8 +12,8 @@ from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class UnitYSynthesizer(AbsSynthesizer):

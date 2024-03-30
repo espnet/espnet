@@ -1,9 +1,8 @@
 # Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typeguard import typechecked
-
 import torch
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 
