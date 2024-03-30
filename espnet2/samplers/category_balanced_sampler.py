@@ -15,11 +15,11 @@
 #     utterance_id_c 512,80\n",
 import random
 from collections import Counter
-from typing import Iterator, Optional, List, Sequence, Tuple, Union
+from typing import Iterator, Optional, Tuple
 
 from typeguard import typechecked
 
-from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
