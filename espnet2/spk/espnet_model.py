@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 from typeguard import typechecked
@@ -68,7 +68,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> Union[
+        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
+    ]:
         """Feed-forward through encoder layers and aggregate into utterance-level
 
         feature.

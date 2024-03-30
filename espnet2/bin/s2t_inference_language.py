@@ -38,8 +38,8 @@ class Speech2Language:
         last_lang_sym: str = "<zul>",
     ):
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
             s2t_train_config, s2t_model_file, device
@@ -50,7 +50,7 @@ class Speech2Language:
             logging.info("Use quantized s2t model for decoding.")
 
             s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         logging.info(f"Decoding device={device}, dtype={dtype}")

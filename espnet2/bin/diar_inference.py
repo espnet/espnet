@@ -123,7 +123,7 @@ class DiarizeSpeech:
     @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> List[torch.Tensor]:
+    ) -> Union[List[torch.Tensor], Tuple]:
         """Inference
 
         Args:

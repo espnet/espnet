@@ -46,13 +46,13 @@ class RNNEncoder(AbsEncoder):
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         if subsample is None:
-            subsample = np.ones(num_layers + 1, dtype=np.int64)
+            _subsample = np.ones(num_layers + 1, dtype=np.int64)
         else:
-            subsample = subsample[:num_layers]
+            _subsample = subsample[:num_layers]
             # Append 1 at the beginning because the second or later is used
-            subsample: np.ndarray = np.pad(
-                np.array(subsample, dtype=np.int64),
-                [1, num_layers - len(subsample)],
+            _subsample = np.pad(
+                np.array(_subsample, dtype=np.int64),
+                [1, num_layers - len(_subsample)],
                 mode="constant",
                 constant_values=1,
             )
@@ -66,7 +66,7 @@ class RNNEncoder(AbsEncoder):
                         num_layers,
                         hidden_size,
                         output_size,
-                        subsample,
+                        _subsample,
                         dropout,
                         typ=rnn_type,
                     )

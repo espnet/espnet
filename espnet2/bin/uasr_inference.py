@@ -75,7 +75,7 @@ class Speech2Text:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
 
         # 1. Build UASR model
@@ -91,7 +91,7 @@ class Speech2Text:
             logging.info("Use quantized uasr model for decoding.")
 
             uasr_model = torch.quantization.quantize_dynamic(
-                uasr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                uasr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = UASRPrefixScorer(eos=uasr_model.eos)
@@ -109,7 +109,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm

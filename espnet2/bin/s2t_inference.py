@@ -194,9 +194,7 @@ class Speech2Text:
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
-        quantize_modules: List = list(
-            set([getattr(torch.nn, q) for q in quantize_modules])
-        )
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model
@@ -209,7 +207,7 @@ class Speech2Text:
             logging.info("Use quantized s2t model for decoding.")
 
             s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = s2t_model.decoder
@@ -245,7 +243,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -356,7 +354,7 @@ class Speech2Text:
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
-        text_prev: Optional[Union[torch.Tensor, np.ndarray, str]] = None,
+        text_prev: Optional[Union[torch.Tensor, np.ndarray, str, List]] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         predict_time: Optional[bool] = None,

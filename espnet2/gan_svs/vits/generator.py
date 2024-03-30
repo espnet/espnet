@@ -105,7 +105,7 @@ class VISingerGenerator(torch.nn.Module):
         vocoder_generator_type: str = "hifigan",
         fs: int = 22050,
         hop_length: int = 256,
-        win_length: int = 1024,
+        win_length: Optional[int] = 1024,
         n_fft: int = 1024,
         use_phoneme_predictor: bool = False,
         expand_f0_method: str = "repeat",

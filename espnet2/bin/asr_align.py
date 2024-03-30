@@ -177,7 +177,7 @@ class CTCSegmentation:
     def __init__(
         self,
         asr_train_config: Union[Path, str],
-        asr_model_file: Union[Path, str] = None,
+        asr_model_file: Union[Path, str, None] = None,
         fs: int = 16000,
         ngpu: int = 0,
         batch_size: int = 1,

@@ -89,9 +89,7 @@ class Speech2Understand:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules: list = list(
-            set([getattr(torch.nn, q) for q in quantize_modules])
-        )
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build ASR model
@@ -105,7 +103,7 @@ class Speech2Understand:
             logging.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
-                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = asr_model.decoder
@@ -128,7 +126,7 @@ class Speech2Understand:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -244,7 +242,9 @@ class Speech2Understand:
     @torch.no_grad()
     @typechecked
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray], transcript: torch.Tensor = None
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        transcript: Optional[torch.Tensor] = None,
     ) -> List[
         Tuple[
             Optional[str],
