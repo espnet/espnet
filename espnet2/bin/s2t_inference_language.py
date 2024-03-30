@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -25,8 +25,8 @@ class Speech2Language:
     @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import math
 import sys
 from itertools import chain
 from pathlib import Path
@@ -10,7 +9,6 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import humanfriendly
 import numpy as np
 import torch
-import torch_complex
 import yaml
 from typeguard import typechecked
 
@@ -24,7 +22,6 @@ from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
@@ -57,9 +54,9 @@ class SeparateSpeechStreaming:
     @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
-        inference_config: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
+        inference_config: Union[Path, str, None] = None,
         ref_channel: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",

@@ -1,6 +1,5 @@
 import copy
 import logging
-import re
 from typing import Any, List, Tuple
 
 import torch
@@ -129,10 +128,10 @@ class HuggingfaceOPTModel(AbsLM):
         n_batch = len(ys)
         n_layers = len(self.decoder.decoder.layers)
         if states[0] is None:
-            batch_state = None
+            # batch_state = None
             _use_cache = True
         else:
-            batch_state = None
+            # batch_state = None
             _use_cache = False
 
         # batch decoding

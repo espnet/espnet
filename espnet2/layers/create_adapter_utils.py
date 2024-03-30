@@ -12,7 +12,7 @@ def replace_module(
     new_module: torch.nn.Module,
 ):
     """Replace the target module with the new module."""
-    # TODO add hook and whether requires_grad to them
+    # TODO(gituser) add hook and whether requires_grad to them
     device = old_module.weight.device
     setattr(parent_module, child_name, new_module)
 

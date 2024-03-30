@@ -1,7 +1,6 @@
 """Enhancement model module."""
 
-import contextlib
-from typing import Dict, List, Optional, OrderedDict, Tuple
+from typing import Dict, Tuple
 
 import torch
 from typeguard import typechecked
@@ -10,12 +9,14 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.extractor.abs_extractor import AbsExtractor
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
-from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
-from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
+
+# from espnet2.enh.extractor.abs_extractor import AbsExtractor
+# from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
+# from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
+# from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+# from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -48,7 +49,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         self.diffusion = diffusion
         self.decoder = decoder
 
-        # TODO: Extending the model to separation tasks.
+        # TODO(gituser): Extending the model to separation tasks.
         assert (
             num_spk == 1
         ), "only enhancement models are supported now, num_spk must be 1"

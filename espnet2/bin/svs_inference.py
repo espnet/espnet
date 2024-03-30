@@ -7,6 +7,7 @@ import logging
 import shutil
 import sys
 import time
+from packaging.version import parse as V
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
@@ -40,8 +41,8 @@ class SingingGenerate:
     @typechecked
     def __init__(
         self,
-        train_config: Optional[Union[Path, str]],
-        model_file: Optional[Union[Path, str]] = None,
+        train_config: Union[Path, str, None],
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -53,8 +54,8 @@ class SingingGenerate:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_checkpoint: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_checkpoint: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,

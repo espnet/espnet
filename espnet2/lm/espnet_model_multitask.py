@@ -50,6 +50,7 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         max_length: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute negative log likelihood (nll)
+
         NOTE(yifan): We only use nll to calculate perplexity,
             so there is no condition in each sentence.
 

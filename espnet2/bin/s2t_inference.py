@@ -834,7 +834,7 @@ def inference(
 
             # Write intermediate predictions to
             # encoder_interctc_layer<layer_idx>.txt
-            ibest_writer = writer[f"1best_recog"]
+            ibest_writer = writer["1best_recog"]
             if encoder_interctc_res is not None:
                 for idx, text in encoder_interctc_res.items():
                     ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = " ".join(

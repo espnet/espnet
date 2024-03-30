@@ -39,7 +39,8 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+
+# from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -80,13 +81,13 @@ class Speech2Text:
     @typechecked
     def __init__(
         self,
-        asr_train_config: Optional[Union[Path, str]] = None,
-        asr_model_file: Optional[Union[Path, str]] = None,
+        asr_train_config: Union[Path, str, None] = None,
+        asr_model_file: Union[Path, str, None] = None,
         transducer_conf: Optional[Dict] = None,
-        lm_train_config: Optional[Union[Path, str]] = None,
-        lm_file: Optional[Union[Path, str]] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Optional[Union[Path, str]] = None,
+        ngram_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",
@@ -864,7 +865,7 @@ def inference(
 
                 # Write intermediate predictions to
                 # encoder_interctc_layer<layer_idx>.txt
-                ibest_writer = writer[f"1best_recog"]
+                ibest_writer = writer["1best_recog"]
                 if encoder_interctc_res is not None:
                     for idx, text in encoder_interctc_res.items():
                         ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (

@@ -21,7 +21,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.reporter import Reporter
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.nested_dict_action import NestedDictAction

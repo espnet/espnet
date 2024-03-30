@@ -7,7 +7,6 @@
 from typing import Optional, Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio as ta
 from typeguard import typechecked
@@ -16,9 +15,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 
 class MelSpectrogramTorch(AbsFrontend):
-    """
-    Mel-Spectrogram using Torchaudio Implementation.
-    """
+    """Mel-Spectrogram using Torchaudio Implementation."""
 
     @typechecked
     def __init__(

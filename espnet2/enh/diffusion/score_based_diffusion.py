@@ -4,9 +4,6 @@
 
 
 import math
-from abc import ABC, abstractmethod
-from collections import OrderedDict
-from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -39,7 +36,7 @@ class ScoreModel(AbsDiffusion):
     def __init__(self, **kwargs):
         super().__init__()
 
-        score_model = kwargs["score_model"]
+        # score_model = kwargs["score_model"]
         score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
         self.sde = sde_choices.get_class(kwargs["sde"])(**kwargs["sde_conf"])

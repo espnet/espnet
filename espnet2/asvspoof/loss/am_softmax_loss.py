@@ -1,7 +1,8 @@
 import torch
 
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
-from espnet.nets.pytorch_backend.nets_utils import to_device
+
+# from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
@@ -25,6 +26,7 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
 
     def forward(self, label: torch.Tensor, emb: torch.Tensor, **kwargs):
         """Forward.
+
         Args:
             label (torch.Tensor): ground truth label [Batch, 1]
             emb   (torch.Tensor): encoder embedding output [Batch, T, enc_dim]
@@ -49,6 +51,7 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
 
     def score(self, emb: torch.Tensor):
         """Prediction.
+
         Args:
             emb (torch.Tensor): encoder embedding output [Batch, T, enc_dim]
         """

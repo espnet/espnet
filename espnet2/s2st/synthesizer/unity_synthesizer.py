@@ -4,8 +4,7 @@
 
 """Translatotron Synthesizer related modules for ESPnet2."""
 
-import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -15,6 +14,7 @@ from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+
 
 class UnitYSynthesizer(AbsSynthesizer):
     """UnitY Synthesizer related modules for speech-to-speech translation.

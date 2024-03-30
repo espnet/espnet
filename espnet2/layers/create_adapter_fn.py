@@ -24,7 +24,7 @@ except ImportError:
     is_transformers_available = False
 
 try:
-    import s3prl
+    import s3prl  # noqa
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
 
     is_s3prl_available = True
@@ -125,7 +125,7 @@ def create_lora_adapter(
         if not check_target_module_exists(key, target_modules):
             continue
 
-        # TODO is this a good way to check the target module?
+        # TODO(gituser) is this a good way to check the target module?
         # check_target_module_exists needs only one of the target modules
         # to be in the key, but what if one key exists and another doesn't?
         # Should this case raise an error?
@@ -153,7 +153,8 @@ def create_lora_adapter(
 
 @typechecked
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
-    """Create a new houlsby adapter module for the given target module\n.
+    """Create a new houlsby adapter module for the given target module.
+
     Currently, only support:
     Wav2Vec2EncoderLayerStableLayerNorm &
     TransformerSentenceEncoderLayer

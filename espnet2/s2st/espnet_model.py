@@ -1010,7 +1010,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ctc = self.st_ctc
         else:
             raise RuntimeError(
-                "Cannot recognize the ctc-type (need 'src'/'tgt', but found ".format(
+                "Cannot recognize the ctc-type: need 'src'/'tgt', but found {}".format(
                     ctc_type
                 )
             )

@@ -27,7 +27,8 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+
+# from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
@@ -214,7 +215,7 @@ class Speech2Speech:
                 if st_subtask_token_type is None:
                     st_subtask_token_type = train_args.tgt_token_type
                 elif st_subtask_token_type == "bpe":
-                    if st_subtask_tokenizer is not None:
+                    if st_subtask_bpemodel is not None:
                         self.st_subtask_tokenizer = build_tokenizer(
                             token_type=st_subtask_token_type,
                             bpemodel=st_subtask_bpemodel,
@@ -745,12 +746,14 @@ def inference(
                 )
 
             if output_dict.get("st_subtask_token") is not None:
-                writer["token"][key] = " ".join(output_dict["st_subtask_token"])
-                writer["token_int"][key] == " ".join(
+                st_subtask_wrtier["token"][key] = " ".join(
+                    output_dict["st_subtask_token"]
+                )
+                st_subtask_wrtier["token_int"][key] == " ".join(
                     map(str, output_dict["st_subtask_token_int"])
                 )
                 if output_dict.get("st_subtask_text") is not None:
-                    writer["text"][key] = output_dict["st_subtask_text"]
+                    st_subtask_wrtier["text"][key] = output_dict["st_subtask_text"]
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:

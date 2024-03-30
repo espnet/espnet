@@ -1,5 +1,3 @@
-import itertools
-import logging
 import random
 from functools import partial
 from typing import Any, Sequence, Union
@@ -88,7 +86,7 @@ class CategoryIterFactory(AbsIterFactory):
             if self.sampler_args["num_batches"] is not None:
                 batches = batches[: self.sampler_args.num_batches]
 
-            bs_list = [len(batch) for batch in batches]
+            # bs_list = [len(batch) for batch in batches]
 
             if self.sampler_args["distributed"]:
                 world_size = torch.distributed.get_world_size()

@@ -57,7 +57,7 @@ class CTC(torch.nn.Module):
 
         elif self.ctc_type == "brctc":
             try:
-                import k2
+                import k2  # noqa
             except ImportError:
                 raise ImportError("You should install K2 to use Bayes Risk CTC")
 

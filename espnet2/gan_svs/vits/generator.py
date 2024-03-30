@@ -15,6 +15,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
+from typeguard import typechecked
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -46,6 +47,7 @@ from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 class VISingerGenerator(torch.nn.Module):
     """Generator module in VISinger."""
 
+    @typechecked
     def __init__(
         self,
         vocabs: int,
@@ -552,8 +554,8 @@ class VISingerGenerator(torch.nn.Module):
         predict_dur = predict_dur * self.sample_rate / self.hop_length
 
         # LR
-        decoder_input, mel_len = self.lr(x, gt_dur, use_state_info=True)
-        decoder_input_pitch, mel_len = self.lr(x_pitch, gt_dur, use_state_info=True)
+        decoder_input, _ = self.lr(x, gt_dur, use_state_info=True)
+        decoder_input_pitch, _ = self.lr(x_pitch, gt_dur, use_state_info=True)
 
         LF0 = 2595.0 * torch.log10(1.0 + pitch / 700.0)
         LF0 = LF0 / 500
@@ -644,7 +646,7 @@ class VISingerGenerator(torch.nn.Module):
                 -1, pitch_segments_expended.shape[-1], 1
             )
 
-            sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
+            sine_waves, _, _ = self.sine_generator(pitch_segments_expended)
 
             sine_waves = sine_waves.transpose(1, 2)
 
@@ -666,7 +668,7 @@ class VISingerGenerator(torch.nn.Module):
             decoder_condition = self.sin_prenet(sin)
 
             # dsp based HiFiGAN vocoder
-            F0_slice = get_segments(pitch, z_start_idxs, self.segment_size)
+            # F0_slice = get_segments(pitch, z_start_idxs, self.segment_size)
             dsp_slice = get_segments(
                 dsp_o,
                 z_start_idxs * self.hop_length,
@@ -780,7 +782,7 @@ class VISingerGenerator(torch.nn.Module):
 
         if use_teacher_forcing:
             # forward posterior encoder
-            z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
+            z, _, _, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
 
             # forward flow
             if self.use_flow:
@@ -796,7 +798,7 @@ class VISingerGenerator(torch.nn.Module):
                 pitch_segments_expended = pitch_segments_expended.reshape(
                     -1, pitch_segments_expended.shape[-1], 1
                 )
-                sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
+                sine_waves, _, _ = self.sine_generator(pitch_segments_expended)
                 sine_waves = sine_waves.transpose(1, 2)
                 wav = self.decoder(
                     (z * y_mask)[:, :, :max_len], excitation=sine_waves, g=g
@@ -813,7 +815,7 @@ class VISingerGenerator(torch.nn.Module):
                 harm_x = self.dec_harm(pitch, z, y_mask)
 
                 # dsp waveform
-                dsp_o = torch.cat([harm_x, noise_x], axis=1)
+                # dsp_o = torch.cat([harm_x, noise_x], axis=1)
 
                 # decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)
                 decoder_condition = self.sin_prenet(sin)
@@ -837,18 +839,16 @@ class VISingerGenerator(torch.nn.Module):
             y_lengths = torch.clamp_min(torch.sum(predict_dur, [1]), 1).long()
 
             # LR
-            decoder_input, mel_len = self.lr(x, predict_dur, use_state_info=True)
-            decoder_input_pitch, mel_len = self.lr(
-                x_pitch, predict_dur, use_state_info=True
-            )
+            decoder_input, _ = self.lr(x, predict_dur, use_state_info=True)
+            decoder_input_pitch, _ = self.lr(x_pitch, predict_dur, use_state_info=True)
 
             # aam
-            predict_lf0, predict_bn_mask = self.f0_decoder(
+            predict_lf0, _ = self.f0_decoder(
                 decoder_input + decoder_input_pitch, y_lengths, g=g
             )
 
             if self.generator_type == "visinger2":
-                predict_mel, predict_bn_mask = self.mel_decoder(
+                predict_mel, _ = self.mel_decoder(
                     decoder_input + self.f0_prenet(predict_lf0),
                     y_lengths,
                     g=g,
@@ -911,7 +911,7 @@ class VISingerGenerator(torch.nn.Module):
                 harm_x = self.dec_harm(F0, z, y_mask)
 
                 # dsp waveform
-                dsp_o = torch.cat([harm_x, noise_x], axis=1)
+                _ = torch.cat([harm_x, noise_x], axis=1)
 
                 # decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)
                 decoder_condition = self.sin_prenet(sin)

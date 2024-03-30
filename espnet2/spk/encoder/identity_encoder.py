@@ -6,6 +6,7 @@
 import torch
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+
 # from espnet2.spk.layers.rawnet_block import Bottle2neck
 
 

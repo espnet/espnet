@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
@@ -38,6 +37,7 @@ class S2STAttentionLoss(AbsS2STLoss):
         token_y: torch.Tensor,
     ):
         """Forward.
+
         Args:
         """
         if self.weight > 0:

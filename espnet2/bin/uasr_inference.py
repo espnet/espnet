@@ -45,12 +45,12 @@ class Speech2Text:
     @typechecked
     def __init__(
         self,
-        uasr_train_config: Union[Path, str] = None,
-        uasr_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        uasr_train_config: Union[Path, str, None] = None,
+        uasr_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
+        ngram_file: Union[Path, str, None] = None,
         token_type: Optional[str] = None,
         bpemodel: Optional[str] = None,
         device: str = "cpu",

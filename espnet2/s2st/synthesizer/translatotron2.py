@@ -3,30 +3,35 @@
 
 """Translatotron2 related modules for ESPnet2."""
 
-import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Optional
+
+import numpy as np
 
 import torch
+from torch import nn
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.torch_utils.initialize import initialize
-from espnet2.tts.fastspeech2.loss import FastSpeech2Loss
-from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
-from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-    ScaledPositionalEncoding,
+
+# from espnet2.tts.fastspeech2.loss import FastSpeech2Loss
+# from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
+# from espnet2.tts.gst.style_encoder import StyleEncoder
+# from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictor as FastDurationPredictor,
 )
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,
-)
+
+# from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
+# from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+# from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
+# from espnet.nets.pytorch_backend.transformer.embedding import (
+#     PositionalEncoding,
+#     ScaledPositionalEncoding,
+# )
+# from espnet.nets.pytorch_backend.transformer.encoder import (
+#     Encoder as TransformerEncoder,
+# )
 
 
 class Translatotron2(AbsSynthesizer):
@@ -103,7 +108,7 @@ class Prenet(nn.Module):
             ]
         )
 
-        self.dropout = nn.Dropout(p=dropout_p)
+        self.dropout = nn.Dropout(p=dropout)
         self.activation = nn.ReLU()
 
     def forward(self, x):
@@ -116,21 +121,22 @@ class DurationPredictor(nn.Module):
     """Non-Attentive Tacotron (NAT) Duration Predictor module."""
 
     def __init__(self, cfg):
-        super(DurationPredictor, self).__init__()
+        super(FastDurationPredictor, self).__init__()
 
         self.lstm = nn.LSTM(
-            units,
+            cfg.units,
             int(cfg.duration_lstm_dim / 2),
             2,
             batch_first=True,
             bidirectional=True,
         )
 
-        self.proj = LinearNorm(cfg.duration_lstm_dim, 1)
+        self.proj = nn.LinearNorm(cfg.duration_lstm_dim, 1)
         self.relu = nn.ReLU()
 
     def forward(self, encoder_outputs, input_lengths=None):
-        """
+        """Forward Duration Predictor
+
         :param encoder_outputs: [batch_size, hidden_length, encoder_lstm_dim]
         :param input_lengths: [batch_size, hidden_length]
         :return: [batch_size, hidden_length]
@@ -157,7 +163,8 @@ class DurationPredictor(nn.Module):
 
 
 class GaussianUpsampling(nn.Module):
-    """
+    """Gaussian Upsample.
+
     Non-attention Tacotron:
         - https://arxiv.org/abs/2010.04301
     this source code is implemenation of the ExpressiveTacotron from BridgetteSong

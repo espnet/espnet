@@ -2,10 +2,8 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
-from itertools import groupby
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -16,7 +14,7 @@ from espnet2.tasks.spk import SpeakerTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet2.utils.types import str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -34,8 +32,8 @@ class Speech2Embedding:
     @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
         device: str = "cpu",
         dtype: str = "float32",
         batch_size: int = 1,
@@ -136,10 +134,10 @@ def inference(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if ngpu >= 1:
-        device = "cuda"
-    else:
-        device = "cpu"
+    # if ngpu >= 1:
+    #     device = "cuda"
+    # else:
+    #     device = "cpu"
 
     # 1. Set random-seed
     set_all_random_seed(seed)
