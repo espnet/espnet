@@ -45,12 +45,12 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     warprnnt_confs='[ "egs2/librispeech/asr1/conf/train_asr_rnnt.yaml" ]'
 
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        if [[ "\"${s3prl_confs}\"" =~ "${f}" ]]; then
+        if [[ ${s3prl_confs} =~ \"${f}\" ]]; then
             if ! python3 -c "import s3prl" &> /dev/null; then
                 continue
             fi
         fi
-        if [[ "\"${warprnnt_confs}\"" =~ "${f}" ]]; then
+        if [[ ${warprnnt_confs} =~ \"${f}\" ]]; then
             if ! python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
                 continue
             fi
