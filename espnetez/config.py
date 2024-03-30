@@ -44,10 +44,9 @@ def update_finetune_config(task, pretrain_config, path):
         if k not in pretrain_config:
             pretrain_config[k] = default_config[k]
 
-    if "preprocessor_conf" in pretrain_config:
-        pretrain_config["preprocessor_conf"] = finetune_config.get(
-            "preprocessor_conf", {}
-        )
+    if "preprocessor_conf" in finetune_config:
+        for k,v in finetune_config["preprocessor_conf"].items():
+            pretrain_config["preprocessor_conf"][k] = v
 
     pretrain_config = convert_none_to_None(pretrain_config)
 
