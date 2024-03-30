@@ -19,6 +19,7 @@ TASK_CLASSES = {
     "uasr": UASRInference,
     "enh": ENHInference,
     "enh_tse": ENHTSEInference,
+    "enh_s2t": ASRInference,
 }
 
 CONFIG_NAMES = {
@@ -28,7 +29,8 @@ CONFIG_NAMES = {
     "tts": "train_args",
     "uasr": "uasr_train_args",
     "enh": "enh_train_args",
-    "enh_tse": "enh_train_args"
+    "enh_tse": "enh_train_args",
+    "enh_s2t": "asr_train_args",
 }
 
 LORA_TARGET = [
@@ -47,6 +49,14 @@ def get_pretrained_model(args):
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
         )
+    elif args.task == "enh_s2t":
+        return ASRInference(
+            exp_dir / "config.yaml",
+            exp_dir / "1epoch.pth",
+            token_type="bpe",
+            bpemodel=str(args.data_path / "spm/bpemodel/bpe.model"),
+            enh_s2t_task=True,
+        )
     else:
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
@@ -58,7 +68,7 @@ def get_pretrained_model(args):
 
 def build_model_fn(args):
     pretrained_model = get_pretrained_model(args)
-    if args.task == "asr":
+    if args.task in ("asr", "enh_s2t"):
         model = pretrained_model.asr_model
     elif args.task == "lm":
         model = pretrained_model.lm
@@ -169,6 +179,13 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
+    
+    elif args.task == "enh_s2t":
+        data_info = {
+            "text_spk1": ["text_spk1", "text"],
+            "speech_ref1": ["spk1.scp", "sound"],
+            "speech": ["wav.scp", "sound"],
+        }
 
 
     trainer = ez.Trainer(

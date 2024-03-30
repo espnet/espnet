@@ -8,6 +8,7 @@ TASK_CLASSES = [
     "gan_tts",
     "enh",
     "enh_tse",
+    "enh_s2t",
     # "hubert",
     "lm",
     # "s2t",
@@ -113,6 +114,12 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
+    elif args.task == "enh_s2t":
+        data_info = {
+            "text_spk1": ["text_spk1", "text"],
+            "speech_ref1": ["spk1.scp", "sound"],
+            "speech": ["wav.scp", "sound"],
+        }
 
 
     # Tokenize if tts

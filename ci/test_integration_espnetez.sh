@@ -281,6 +281,40 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     rm -rf exp dump data
 fi
 
+# [ESPnet Easy] test enh-asr recipe with coverage
+if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
+    cd ./egs2/mini_an4/enh_asr1
+    rm -rf exp data dump
+    gen_dummy_coverage
+    echo "==== [ESPnet2] ENH_ASR ==="
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --spk-num 1 \
+        --enh_asr_args "--enh_separator_conf num_spk=1 --num_workers 0"
+    
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task enh_s2t \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_debug.yaml \
+        --train_sentencepiece_model \
+        --run_collect_stats \
+        --run_train
+
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+        --task enh_s2t \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_debug.yaml \
+        --run_finetune
+    
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
 cd "${cwd}" || exit
 
 
