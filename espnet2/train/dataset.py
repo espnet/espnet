@@ -432,9 +432,9 @@ class ESPnetDataset(AbsDataset):
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
-        preprocess: Optional[Callable[
-            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
-        ]] = None,
+        preprocess: Optional[
+            Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]
+        ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,

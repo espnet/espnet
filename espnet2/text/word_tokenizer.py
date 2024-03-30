@@ -1,6 +1,6 @@
 import warnings
 from pathlib import Path
-from typing import Iterable, List, Union, Optional
+from typing import Iterable, List, Optional, Union
 
 from typeguard import typechecked
 

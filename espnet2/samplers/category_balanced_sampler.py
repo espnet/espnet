@@ -15,7 +15,7 @@
 #     utterance_id_c 512,80\n",
 import random
 from collections import Counter
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
 from typeguard import typechecked
 

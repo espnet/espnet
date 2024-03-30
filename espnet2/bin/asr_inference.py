@@ -128,7 +128,9 @@ class Speech2Text:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules: List = list(set([getattr(torch.nn, q) for q in quantize_modules]))
+        quantize_modules: List = list(
+            set([getattr(torch.nn, q) for q in quantize_modules])
+        )
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build ASR model
