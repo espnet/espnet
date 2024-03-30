@@ -211,7 +211,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
             --train_sentencepiece_model \
             --run_collect_stats \
             --run_train
-        
+
         python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
             --task enh \
             --data_path data \
@@ -235,7 +235,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --train_sentencepiece_model \
         --run_collect_stats \
         --run_train
-    
+
     python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
         --task enh \
         --data_path data \
@@ -268,7 +268,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --train_sentencepiece_model \
         --run_collect_stats \
         --run_train
-    
+
     python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
         --task enh_tse \
         --data_path data \
@@ -289,7 +289,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     echo "==== [ESPnet2] ENH_ASR ==="
     ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --spk-num 1 \
         --enh_asr_args "--enh_separator_conf num_spk=1 --num_workers 0"
-    
+
     python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
         --task enh_s2t \
         --data_path data \
@@ -309,7 +309,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --exp_path ./exp \
         --config_path ./conf/train_debug.yaml \
         --run_finetune
-    
+
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
@@ -323,7 +323,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     echo "==== [ESPnet2] SSL1/HUBERT ==="
     ./run.sh --ngpu 0 --stage 1 --stop-stage 5 --feats-type "raw" \
         --token_type "word" --hubert-args "--num_workers 0" --train_stop_iter 0
-    
+
     python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
         --task hubert \
         --data_path data \

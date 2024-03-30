@@ -3,12 +3,12 @@ from pathlib import Path
 
 import espnetez as ez
 from espnet2.bin.asr_inference import Speech2Text as ASRInference
+from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
+from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
-from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
-from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -172,21 +172,20 @@ if __name__ == "__main__":
             for i in range(finetune_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
-    
+
     elif args.task == "enh_tse":
         data_info = {
             "enroll_ref1": ["enroll_spk1.scp", "text"],
             "speech_ref1": ["spk1.scp", "sound"],
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
-    
+
     elif args.task == "enh_s2t":
         data_info = {
             "text_spk1": ["text_spk1", "text"],
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
-
 
     trainer = ez.Trainer(
         task=args.task,
