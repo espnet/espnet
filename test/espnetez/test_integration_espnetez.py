@@ -7,6 +7,7 @@ TASK_CLASSES = [
     "asr",
     "gan_tts",
     "enh",
+    "enh_tse",
     # "hubert",
     "lm",
     # "s2t",
@@ -78,12 +79,41 @@ if __name__ == "__main__":
         "text": ["text", "text"],
     }
 
-    # Train sentencepiece model
+    # configuration
+    training_config = ez.config.from_yaml(args.task, args.config_path)
+    training_config["max_epoch"] = 1
+    training_config["ngpu"] = 0
+    training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
+
+    # Task specific settings
     if args.task == "lm":
         user_defined_symbols = ["<generatetext>"]
         data_info.pop("speech")
     else:
         user_defined_symbols = []
+    
+    if args.task == "tts" or args.task == "gan_tts":
+        normalize = training_config["normalize"]
+        training_config["normalize"] = None
+        pitch_normalize = training_config["pitch_normalize"]
+        training_config["pitch_normalize"] = None
+        energy_normalize = training_config["energy_normalize"]
+        training_config["energy_normalize"] = None
+
+    # set data_info for specific tasks
+    if args.task == "enh":
+        data_info = {
+            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            for i in range(training_config["separator_conf"]["num_spk"])
+        }
+        data_info["speech_mix"] = ["wav.scp", "sound"]
+    elif args.task == "enh_tse":
+        data_info = {
+            "enroll_ref1": ["enroll_spk1.scp", "text"],
+            "speech_ref1": ["spk1.scp", "sound"],
+        }
+        data_info["speech_mix"] = ["wav.scp", "sound"]
+
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -121,30 +151,13 @@ if __name__ == "__main__":
     # Prepare configurations
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
-
-    training_config = ez.config.from_yaml(args.task, args.config_path)
-    training_config["max_epoch"] = 1
-    training_config["ngpu"] = 0
-    training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
-    with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
-        tokens = [t.replace("\n", "") for t in f.readlines()]
-        training_config["token_list"] = tokens
-
-    if args.task == "tts" or args.task == "gan_tts":
-        normalize = training_config["normalize"]
-        training_config["normalize"] = None
-        pitch_normalize = training_config["pitch_normalize"]
-        training_config["pitch_normalize"] = None
-        energy_normalize = training_config["energy_normalize"]
-        training_config["energy_normalize"] = None
-
-    # set data_info for specific tasks
-    if args.task == "enh":
-        data_info = {
-            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
-            for i in range(training_config["separator_conf"]["num_spk"])
-        }
-        data_info["speech_mix"] = ["wav.scp", "sound"]
+    
+    if (args.data_path / "spm/bpemodel/tokens.txt").is_file():
+        with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+    else:
+        training_config['token_list'] = []
 
     trainer = ez.Trainer(
         task=args.task,

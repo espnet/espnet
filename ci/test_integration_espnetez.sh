@@ -248,6 +248,38 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     cd "${cwd}"
 fi
 
+# # [ESPnet Easy] test enh-tse recipe with coverage
+if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
+    cd ${cwd}/egs2/mini_an4/tse1
+    rm -rf exp data dump
+    gen_dummy_coverage
+    echo "==== [ESPnet2] ENH_TSE ==="
+    feats_types="raw"
+
+    # simple pattern
+    ./run.sh --stage 1 --stop-stage 4 --ref-num 1
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task enh_tse \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_debug.yaml \
+        --train_sentencepiece_model \
+        --run_collect_stats \
+        --run_train
+    
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+        --task enh_tse \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_debug.yaml \
+        --run_finetune
+
+    rm -rf exp dump data
+fi
 
 cd "${cwd}" || exit
 

@@ -8,6 +8,7 @@ from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
 from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
+from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -17,6 +18,7 @@ TASK_CLASSES = {
     "tts": TTSInference,
     "uasr": UASRInference,
     "enh": ENHInference,
+    "enh_tse": ENHTSEInference,
 }
 
 CONFIG_NAMES = {
@@ -26,6 +28,7 @@ CONFIG_NAMES = {
     "tts": "train_args",
     "uasr": "uasr_train_args",
     "enh": "enh_train_args",
+    "enh_tse": "enh_train_args"
 }
 
 LORA_TARGET = [
@@ -39,7 +42,7 @@ LORA_TARGET = [
 
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
-    if args.task in ("tts", "enh"):
+    if args.task in ("tts", "enh", "enh_tse"):
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
@@ -65,7 +68,7 @@ def build_model_fn(args):
         model = pretrained_model.tts
     elif args.task == "uasr":
         model = pretrained_model.uasr_model
-    elif args.task == "enh":
+    elif args.task in ("enh", "enh_tse"):
         model = pretrained_model.enh_model
 
     model.train()
@@ -159,6 +162,14 @@ if __name__ == "__main__":
             for i in range(finetune_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
+    
+    elif args.task == "enh_tse":
+        data_info = {
+            "enroll_ref1": ["enroll_spk1.scp", "text"],
+            "speech_ref1": ["spk1.scp", "sound"],
+        }
+        data_info["speech_mix"] = ["wav.scp", "sound"]
+
 
     trainer = ez.Trainer(
         task=args.task,
