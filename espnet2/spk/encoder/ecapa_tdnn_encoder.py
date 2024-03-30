@@ -14,8 +14,8 @@ from espnet2.spk.layers.ecapa_block import EcapaBlock
 
 
 class EcapaTdnnEncoder(AbsEncoder):
-    """
-    ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+    """ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+
     mel-filterbank energy or MFCC features.
     Paper: B Desplanques at el., ``ECAPA-TDNN: Emphasized Channel Attention,
         Propagation and Aggregation in TDNN Based Speaker Verification,''

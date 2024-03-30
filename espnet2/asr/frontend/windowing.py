@@ -4,7 +4,7 @@
 
 """Sliding Window for raw audio input data."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from typeguard import typechecked
@@ -32,7 +32,7 @@ class SlidingWindow(AbsFrontend):
         win_length: int = 400,
         hop_length: int = 160,
         channels: int = 1,
-        padding: int = None,
+        padding: Optional[int] = None,
         fs=None,
     ):
         """Initialize.

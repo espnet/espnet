@@ -12,8 +12,8 @@ from espnet2.spk.layers.rawnet_block import Bottle2neck
 
 
 class RawNet3Encoder(AbsEncoder):
-    """
-    RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
+    """RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
+
     paper: J. Jung et al., "Pushing the limits of raw waveform speaker
         recognition", in Proc. INTERSPEECH, 2022.
 

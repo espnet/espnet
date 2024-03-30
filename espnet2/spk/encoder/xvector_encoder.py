@@ -1,13 +1,8 @@
-#! /usr/bin/python
-# -*- encoding: utf-8 -*-
 # x-vector, cross checked with SpeechBrain implementation:
 # https://github.com/speechbrain/speechbrain/blob/develop/speechbrain/lobes/models/Xvector.py
 # adapted for ESPnet-SPK by Jee-weon Jung
-import math
-from collections import OrderedDict
 from typing import List
 
-import torch
 import torch.nn as nn
 from typeguard import typechecked
 
@@ -15,8 +10,8 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class XvectorEncoder(AbsEncoder):
-    """
-    x-vector encoder. Extracts frame-level x-vector embeddings from features.
+    """X-vector encoder. Extracts frame-level x-vector embeddings from features.
+
     Paper: D. Snyder et al., "X-vectors: Robust dnn embeddings for speaker recognition,"
     in Proc. IEEE ICASSP, 2018.
 

@@ -1,5 +1,4 @@
 import argparse
-import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -8,7 +7,7 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
-# TODO1 (checkpoint 2): import conformer class class
+# TODO(checkpoint1): import conformer class class
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -82,7 +81,7 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        # TODO2 (checkpoint 2): add conformer option in encoder
+        # TODO(checkpoint2): add conformer option in encoder
         transformer=TransformerEncoder,
     ),
     type_check=AbsEncoder,

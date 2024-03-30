@@ -7,10 +7,8 @@
 import logging
 from typing import Dict, Optional, Sequence, Tuple
 
-import six
 import torch
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS

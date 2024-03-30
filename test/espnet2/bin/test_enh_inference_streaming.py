@@ -84,4 +84,4 @@ def test_SeparateSpeech(
             output_chunks[channel].append(output[channel])
 
     separate_speech.reset()
-    waves = [separate_speech.merge(chunks, ilens) for chunks in output_chunks]
+    _ = [separate_speech.merge(chunks, ilens) for chunks in output_chunks]

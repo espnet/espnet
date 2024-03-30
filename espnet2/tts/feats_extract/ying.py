@@ -1,16 +1,24 @@
 # modified from https://github.com/dhchoi99/NANSY
 # We have modified the implementation of dhchoi99 to be fully differentiable.
 import math
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
+from typeguard import typechecked
 
 import torch
+import torch.nn.functional as F
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.tts.feats_extract.yin import *
+from espnet2.tts.feats_extract.yin import (
+    differenceFunctionTorch,
+    cumulativeMeanNormalizedDifferenceFunctionTorch
+)
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Ying(AbsFeatsExtract):
+    """Extact Ying-based Features."""
+
+    @typechecked
     def __init__(
         self,
         fs: int = 22050,
@@ -65,7 +73,8 @@ class Ying(AbsFeatsExtract):
         return lag
 
     def yingram_from_cmndf(self, cmndfs: torch.Tensor) -> torch.Tensor:
-        """yingram calculator from cMNDFs
+        """yingram calculator from cMNDFs.
+
         (cumulative Mean Normalized Difference Functions)
 
         Args:
@@ -78,7 +87,6 @@ class Ying(AbsFeatsExtract):
         Returns:
             y:
                 calculated batch yingram
-
 
         """
         # c_ms = np.asarray([Pitch.midi_to_lag(m, fs) for m in ms])
@@ -107,7 +115,6 @@ class Ying(AbsFeatsExtract):
         """
         # x.shape: t -> B,T, B,T = x.shape
         B, T = x.shape
-        w_len = self.W
 
         frames = self.unfold(x.view(B, 1, 1, T))
         frames = frames.permute(0, 2, 1).contiguous().view(-1, self.W)  # [B* frames, W]
@@ -141,13 +148,14 @@ class Ying(AbsFeatsExtract):
             x = x[:num_frames]
         return x
 
+    @typechecked
     def forward(
         self,
         input: torch.Tensor,
-        input_lengths: torch.Tensor = None,
-        feats_lengths: torch.Tensor = None,
-        durations: torch.Tensor = None,
-        durations_lengths: torch.Tensor = None,
+        input_lengths: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        durations_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         if input_lengths is None:
             input_lengths = (

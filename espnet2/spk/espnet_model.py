@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 import torch
 from typeguard import typechecked
@@ -10,7 +10,6 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
@@ -19,8 +18,8 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):
-    """
-    Speaker embedding extraction model.
+    """Speaker embedding extraction model.
+
     Core model for diverse speaker-related tasks (e.g., verification, open-set
     identification, diarization)
 
@@ -61,16 +60,17 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.projector = projector
         self.loss = loss
 
+    @typechecked
     def forward(
         self,
         speech: torch.Tensor,
-        spk_labels: torch.Tensor = None,
-        task_tokens: torch.Tensor = None,
+        spk_labels: Optional[torch.Tensor] = None,
+        task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """
-        Feed-forward through encoder layers and aggregate into utterance-level
+        """Feed-forward through encoder layers and aggregate into utterance-level
+
         feature.
 
         Args:

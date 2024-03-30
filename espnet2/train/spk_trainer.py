@@ -7,54 +7,29 @@ Thus, we measure open set equal error rate (EER) using unknown speakers by
 overriding validate_one_epoch.
 """
 
-import argparse
-import dataclasses
-import logging
-from contextlib import contextmanager
-from dataclasses import is_dataclass
-from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Iterable
 
-import humanfriendly
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim
-from packaging.version import parse as V
 from typeguard import typechecked
 
-from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.main_funcs.average_nbest_models import average_nbest_models
-from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
-from espnet2.schedulers.abs_scheduler import (
-    AbsBatchStepScheduler,
-    AbsEpochStepScheduler,
-    AbsScheduler,
-    AbsValEpochStepScheduler,
-)
-from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
-from espnet2.torch_utils.recursive_op import recursive_average
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
-from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer, TrainerOptions
-from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore
-from espnet2.utils.kwargs2args import kwargs2args
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
 
 class SpkTrainer(Trainer):
-    """
-    Trainer.
-    Designed for speaker recognition.
+    """Trainer designed for speaker recognition.
+
     Training will be done as closed set classification.
     Validation will be open set EER calculation.
-
     """
 
     def __init__(self):
@@ -72,7 +47,6 @@ class SpkTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> None:
         ngpu = options.ngpu
-        no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
 
         model.eval()
@@ -193,7 +167,7 @@ class SpkTrainer(Trainer):
             ]
             torch.distributed.all_gather(labels_all, labels)
             labels = torch.cat(labels_all)
-            rank = torch.distributed.get_rank()
+            # rank = torch.distributed.get_rank()
             torch.distributed.barrier()
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
@@ -259,24 +233,19 @@ class SpkTrainer(Trainer):
         average: bool = False,
     ) -> None:
         ngpu = options.ngpu
-        no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
 
         model.eval()
-
-        scores = []
-        labels = []
         spk_embd_dic = {}
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
-        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+        # iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         # fill dictionary with speech samples
         utt_id_list = []
         utt_id_whole_list = []
         speech_list = []
-        task_token_list = []
         task_token = None
         if distributed:
             rank = torch.distributed.get_rank()

@@ -1,7 +1,7 @@
 import pytest
 import torch
-from packaging.version import parse as V
-from torch import Tensor
+# from packaging.version import parse as V
+# from torch import Tensor
 
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 

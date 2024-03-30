@@ -13,9 +13,8 @@ from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 class UnitYSynthesizer(AbsSynthesizer):
     """UnitY Synthesizer related modules for speech-to-speech translation.

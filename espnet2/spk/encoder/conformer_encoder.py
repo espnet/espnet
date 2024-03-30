@@ -39,14 +39,14 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv2dSubsampling2,
     Conv2dSubsampling6,
     Conv2dSubsampling8,
-    TooShortUttError,
-    check_short_utt,
+    # TooShortUttError,
+    # check_short_utt,
 )
 
 
 class MfaConformerEncoder(AbsEncoder):
-    """
-    Conformer encoder module for MFA-Conformer.
+    """Conformer encoder module for MFA-Conformer.
+
     Paper: Y. Zhang et al., ``Mfa-conformer: Multi-scale feature aggregation
     conformer for automatic speaker verification,'' in Proc. INTERSPEECH, 2022.
 
@@ -104,6 +104,7 @@ class MfaConformerEncoder(AbsEncoder):
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
+        padding_idx: Optional[int] = None,
     ):
         super().__init__()
         self._output_size = output_size * num_blocks
@@ -308,7 +309,7 @@ class MfaConformerEncoder(AbsEncoder):
             xs_pad, _ = self.embed(x, masks)
         else:
             raise NotImplementedError(
-                f"Supposed to be one of the Conv" f"subsampling layers"
+                "Supposed to be one of the Conv subsampling layers"
             )
 
         intermediate_outs = []
