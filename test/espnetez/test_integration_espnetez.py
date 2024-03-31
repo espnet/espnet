@@ -14,6 +14,7 @@ TASK_CLASSES = [
     "lm",
     "mt",
     "s2t",
+    "s2st",
     "slu",
     "st",
     "tts",
@@ -73,6 +74,11 @@ if __name__ == "__main__":
         "--run_train",
         action="store_true",
         help="Flag to test training",
+    )
+    parser.add_argument(
+        "--use_discrete_unit",
+        action="store_true",
+        help="Flag to use discrete unit. Only used for s2st task",
     )
     args = parser.parse_args()
 
@@ -141,6 +147,19 @@ if __name__ == "__main__":
         data_info['speech'] = ['wav.scp', 'kaldi_ark']
         data_info["text_prev"] = ["text.prev", "text"]
         data_info["text_ctc"] = ["text.ctc", "text"]
+    elif args.task == "s2st":
+        data_info = {
+            "src_speech": ['wav.scp.en', 'kaldi_ark'],
+            "tgt_speech": ['wav.scp.es', 'kaldi_ark'],
+            "tgt_text": ["text.es", "text"],
+            "src_text": ["text.en", "text"],
+        }
+        if args.use_discrete_unit:
+            discrete_file = "text.km.hubert_layer6_5.es.unique"
+            data_info["tgt_speech"] = [discrete_file, "text"]
+            discrete_folder = "en_es_token_list/discrete_unit.hubert_layer6_5"
+            token_text = args.data_path / discrete_folder / "tokens.txt"
+            training_config['unit_token_list'] = str(token_text)
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -223,6 +242,21 @@ if __name__ == "__main__":
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["token_list"] = tokens
         with open(src_file / "src_tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["src_token_list"] = tokens
+    elif args.task == "s2st":
+        token_folder = args.data_path / "en_es_token_list/char"
+        training_config["bpemodel"] = None
+        training_config["src_bpemodel"] = None
+        training_config["token_type"] = "char"
+        training_config["tgt_token_type"] = "char"
+        training_config["src_token_type"] = "char"
+
+        with open(token_folder / "tgt_tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["tgt_token_list"] = tokens
+            training_config["token_list"] = tokens
+        with open(token_folder / "src_tokens.txt", "r") as f:
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["src_token_list"] = tokens
     else:

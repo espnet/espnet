@@ -13,6 +13,7 @@ from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
 from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.bin.s2t_inference import Speech2Text as S2TInference
+from espnet2.bin.s2st_inference import Speech2Speech as S2STInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -28,6 +29,7 @@ TASK_CLASSES = {
     "enh_s2t": ASRInference,
     "st": STInference,
     "s2t": S2TInference,
+    "s2st": S2STInference
 }
 
 CONFIG_NAMES = {
@@ -43,6 +45,7 @@ CONFIG_NAMES = {
     "enh_s2t": "asr_train_args",
     "st": "st_train_args",
     "s2t": "s2t_train_args",
+    "s2st": "train_args"
 }
 
 LORA_TARGET = [
@@ -56,7 +59,7 @@ LORA_TARGET = [
 
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
-    if args.task in ("tts", "enh", "enh_tse"):
+    if args.task in ("tts", "enh", "enh_tse", "s2st"):
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
@@ -98,6 +101,8 @@ def build_model_fn(args):
         model = pretrained_model.st_model
     elif args.task == "s2t":
         model = pretrained_model.s2t_model
+    elif args.task == "s2st":
+        model = pretrained_model.model
 
     model.train()
     # apply lora
@@ -147,6 +152,11 @@ if __name__ == "__main__":
         "--run_finetune",
         action="store_true",
         help="Flag to test finetuning",
+    )
+    parser.add_argument(
+        "--use_discrete_unit",
+        action="store_true",
+        help="Flag to use discrete unit. Only used for s2st task",
     )
     args = parser.parse_args()
 
@@ -218,6 +228,17 @@ if __name__ == "__main__":
         data_info['speech'] = ['wav.scp', 'kaldi_ark']
         data_info["text_prev"] = ["text.prev", "text"]
         data_info["text_ctc"] = ["text.ctc", "text"]
+    
+    elif args.task == "s2st":
+        data_info = {
+            "src_speech": ['wav.scp.en', 'kaldi_ark'],
+            "tgt_speech": ['wav.scp.es', 'kaldi_ark'],
+            "tgt_text": ["text.es", "text"],
+            "src_text": ["text.en", "text"],
+        }
+        if args.use_discrete_unit:
+            discrete_file = "text.km.hubert_layer6_5.es.unique"
+            data_info["tgt_speech"] = [discrete_file, "text"]
 
     trainer = ez.Trainer(
         task=args.task,
