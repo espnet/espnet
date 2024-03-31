@@ -5,6 +5,7 @@ import espnetez as ez
 
 TASK_CLASSES = [
     "asr",
+    "asr_transducer",
     "gan_tts",
     "enh",
     "enh_tse",

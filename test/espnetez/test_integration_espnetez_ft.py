@@ -3,6 +3,7 @@ from pathlib import Path
 
 import espnetez as ez
 from espnet2.bin.asr_inference import Speech2Text as ASRInference
+from espnet2.bin.asr_transducer_inference import Speech2Text as RNNTInference
 from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
 from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
@@ -14,6 +15,7 @@ from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
     "asr": ASRInference,
+    "asr_transducer": RNNTInference,
     "lm": LMInference,
     "slu": SLUInference,
     "tts": TTSInference,
@@ -26,6 +28,7 @@ TASK_CLASSES = {
 
 CONFIG_NAMES = {
     "asr": "asr_train_args",
+    "asr_transducer": "asr_train_args",
     "lm": "lm_train_args",
     "slu": "asr_train_args",
     "tts": "train_args",
@@ -71,7 +74,7 @@ def get_pretrained_model(args):
 
 def build_model_fn(args):
     pretrained_model = get_pretrained_model(args)
-    if args.task in ("asr", "enh_s2t"):
+    if args.task in ("asr", "asr_transducer", "enh_s2t"):
         model = pretrained_model.asr_model
     elif args.task == "lm":
         model = pretrained_model.lm
