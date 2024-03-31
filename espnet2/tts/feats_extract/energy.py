@@ -3,7 +3,7 @@
 
 """Energy extractor."""
 
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import humanfriendly
 import torch
@@ -23,14 +23,14 @@ class Energy(AbsFeatsExtract):
         self,
         fs: Union[int, str] = 22050,
         n_fft: int = 1024,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 256,
         window: str = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
         use_token_averaged_energy: bool = True,
-        reduction_factor: int = None,
+        reduction_factor: Optional[int] = None,
     ):
         super().__init__()
         if isinstance(fs, str):

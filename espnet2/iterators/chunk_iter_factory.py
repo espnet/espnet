@@ -1,5 +1,6 @@
 import logging
 import re
+from copy import deepcopy
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -102,13 +103,14 @@ class ChunkIterFactory(AbsIterFactory):
         #  - exactly match one of the prefixes in `excluded_key_prefixes`
         #  - have one of the prefixes in `excluded_key_prefixes` and end with numbers
         if excluded_key_prefixes is None:
-            excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
+            _excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
         else:
+            _excluded_key_prefixes = deepcopy(excluded_key_prefixes)
             for k in DEFAULT_EXCLUDED_KEY_PREFIXES:
-                if k not in excluded_key_prefixes:
-                    excluded_key_prefixes.append(k)
+                if k not in _excluded_key_prefixes:
+                    _excluded_key_prefixes.append(k)
         self.excluded_key_pattern = (
-            "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
+            "(" + "[0-9]*)|(".join(_excluded_key_prefixes) + "[0-9]*)"
         )
         if self.excluded_key_pattern:
             logging.info(

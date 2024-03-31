@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import torch
 from typeguard import typechecked
@@ -89,7 +89,7 @@ def create_lora_adapter(
     alpha: int = 8,
     dropout_rate: float = 0.0,
     target_modules: List[str] = ["query"],
-    bias_type: str = "none",
+    bias_type: Optional[str] = "none",
 ):
     """Create LoRA adapter for the base model.
 

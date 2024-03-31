@@ -22,7 +22,7 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str,
-        language: str = "en",
+        language: Optional[str] = "en",
         task: str = "transcribe",
         added_tokens_txt: Optional[str] = None,
         sot: bool = False,

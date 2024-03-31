@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 from typeguard import typechecked
 
@@ -18,7 +19,7 @@ dirname = os.path.dirname(__file__)
 def export_vocabulary(
     output: str,
     whisper_model: str,
-    whisper_language: str = "en",
+    whisper_language: Optional[str] = "en",
     whisper_task: str = "transcribe",
     log_level: str = "INFO",
     add_token_file_name: str = "none",

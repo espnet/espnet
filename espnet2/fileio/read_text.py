@@ -129,9 +129,7 @@ def load_num_sequence_text(
 
 
 @typechecked
-def read_label(
-    path: Union[Path, str]
-) -> Dict[str, List[List[Union[str, float, int]]]]:
+def read_label(path: Union[Path, str]) -> Dict[str, List[List[Union[str, float, int]]]]:
     """Read a text file indicating sequences of number
 
     Examples:
