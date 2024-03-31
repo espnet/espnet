@@ -13,7 +13,7 @@ TASK_CLASSES = [
     "lm",
     # "s2t",
     "slu",
-    # "st",
+    "st",
     "tts",
     "uasr",
 ]
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         data_info.pop("speech")
     else:
         user_defined_symbols = []
-
+    
     if args.task == "tts" or args.task == "gan_tts":
         normalize = training_config["normalize"]
         training_config["normalize"] = None
@@ -121,8 +121,42 @@ if __name__ == "__main__":
             "speech": ["wav.scp", "sound"],
         }
     elif args.task == "hubert":
-        data_info["text"] = ["text.km.kmeans_iter0_mfcc_train_nodev_portion1.0", "text"]
-        training_config["num_classes"] = 10
+        data_info['text'] = [
+            "text.km.kmeans_iter0_mfcc_train_nodev_portion1.0",
+            "text"
+        ]
+        training_config['num_classes'] = 10
+    elif args.task == "st":
+        data_info['text'] = ["text.lc.rm.en", "text"]
+        data_info['src_text'] = ['text', "text"]
+    
+    # token related configurations
+    if (args.data_path / "spm/bpemodel/tokens.txt").is_file():
+        with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+    elif args.task == "hubert":
+        training_config['bpemodel'] = None
+        training_config['token_type'] = "word"
+        token_folder = "noinfo_token_list_kmeans_iter0_mfcc_10clusters"
+        with open(args.data_path / token_folder / "word/tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+    elif args.task == "st":
+        bpe_file = args.data_path / "en_en_token_list/tgt_bpe_unigram30"
+        src_file = args.data_path / "en_en_token_list/src_bpe_unigram30"
+        training_config['src_token_type'] = "bpe"
+        training_config['bpemodel'] = str(bpe_file / "bpe.model")
+        training_config['src_bpemodel'] = str(src_file / "bpe.model")
+
+        with open(bpe_file / "tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+        with open(src_file / "tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["src_token_list"] = tokens
+    else:
+        training_config['token_list'] = []
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -160,20 +194,6 @@ if __name__ == "__main__":
     # Prepare configurations
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
-
-    if (args.data_path / "spm/bpemodel/tokens.txt").is_file():
-        with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
-            tokens = [t.replace("\n", "") for t in f.readlines()]
-            training_config["token_list"] = tokens
-    elif args.task == "hubert":
-        training_config["bpemodel"] = None
-        training_config["token_type"] = "word"
-        token_folder = "noinfo_token_list_kmeans_iter0_mfcc_10clusters"
-        with open(args.data_path / token_folder / "word/tokens.txt", "r") as f:
-            tokens = [t.replace("\n", "") for t in f.readlines()]
-            training_config["token_list"] = tokens
-    else:
-        training_config["token_list"] = []
 
     trainer = ez.Trainer(
         task=args.task,

@@ -9,6 +9,7 @@ from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
+from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -20,6 +21,7 @@ TASK_CLASSES = {
     "enh": ENHInference,
     "enh_tse": ENHTSEInference,
     "enh_s2t": ASRInference,
+    "st": STInference,
 }
 
 CONFIG_NAMES = {
@@ -31,6 +33,7 @@ CONFIG_NAMES = {
     "enh": "enh_train_args",
     "enh_tse": "enh_train_args",
     "enh_s2t": "asr_train_args",
+    "st": "st_train_args",
 }
 
 LORA_TARGET = [
@@ -80,6 +83,8 @@ def build_model_fn(args):
         model = pretrained_model.uasr_model
     elif args.task in ("enh", "enh_tse"):
         model = pretrained_model.enh_model
+    elif args.task == "st":
+        model = pretrained_model.st_model
 
     model.train()
     # apply lora
@@ -186,6 +191,10 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
+    
+    elif args.task == "st":
+        data_info['text'] = ["text.lc.rm.en", "text"]
+        data_info['src_text'] = ['text', "text"]
 
     trainer = ez.Trainer(
         task=args.task,
