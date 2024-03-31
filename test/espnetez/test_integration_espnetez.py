@@ -140,17 +140,17 @@ if __name__ == "__main__":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
     elif args.task == "mt":
-        data_info.pop('speech')
+        data_info.pop("speech")
         data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
         data_info["text"] = ["text.ts.en", "text"]
     elif args.task == "s2t":
-        data_info['speech'] = ['wav.scp', 'kaldi_ark']
+        data_info["speech"] = ["wav.scp", "kaldi_ark"]
         data_info["text_prev"] = ["text.prev", "text"]
         data_info["text_ctc"] = ["text.ctc", "text"]
     elif args.task == "s2st":
         data_info = {
-            "src_speech": ['wav.scp.en', 'kaldi_ark'],
-            "tgt_speech": ['wav.scp.es', 'kaldi_ark'],
+            "src_speech": ["wav.scp.en", "kaldi_ark"],
+            "tgt_speech": ["wav.scp.es", "kaldi_ark"],
             "tgt_text": ["text.es", "text"],
             "src_text": ["text.en", "text"],
         }
@@ -159,7 +159,7 @@ if __name__ == "__main__":
             data_info["tgt_speech"] = [discrete_file, "text"]
             discrete_folder = "en_es_token_list/discrete_unit.hubert_layer6_5"
             token_text = args.data_path / discrete_folder / "tokens.txt"
-            training_config['unit_token_list'] = str(token_text)
+            training_config["unit_token_list"] = str(token_text)
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -191,7 +191,7 @@ if __name__ == "__main__":
             ez.preprocess.prepare_sentences(
                 [args.train_dump_path / "text"], args.data_path / "spm"
             )
-        
+
         if args.task == "s2t":
             vocab_size = 50 + 5 + 1501
         else:

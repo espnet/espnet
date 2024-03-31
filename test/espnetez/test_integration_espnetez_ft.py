@@ -8,13 +8,12 @@ from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
 from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.mt_inference import Text2Text as MTInference
+from espnet2.bin.s2st_inference import Speech2Speech as S2STInference
+from espnet2.bin.s2t_inference import Speech2Text as S2TInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
-from espnet2.bin.st_inference import Speech2Text as STInference
-from espnet2.bin.s2t_inference import Speech2Text as S2TInference
-from espnet2.bin.s2st_inference import Speech2Speech as S2STInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -30,7 +29,7 @@ TASK_CLASSES = {
     "enh_s2t": ASRInference,
     "st": STInference,
     "s2t": S2TInference,
-    "s2st": S2STInference
+    "s2st": S2STInference,
 }
 
 CONFIG_NAMES = {
@@ -46,7 +45,7 @@ CONFIG_NAMES = {
     "enh_s2t": "asr_train_args",
     "st": "st_train_args",
     "s2t": "s2t_train_args",
-    "s2st": "train_args"
+    "s2st": "train_args",
 }
 
 LORA_TARGET = [
@@ -223,19 +222,19 @@ if __name__ == "__main__":
         finetune_config['bpemodel'] = str(src_file / "bpe.model")
     
     elif args.task == "mt":
-        data_info.pop('speech')
+        data_info.pop("speech")
         data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
         data_info["text"] = ["text.ts.en", "text"]
-        
+
     elif args.task == "s2t":
-        data_info['speech'] = ['wav.scp', 'kaldi_ark']
+        data_info["speech"] = ["wav.scp", "kaldi_ark"]
         data_info["text_prev"] = ["text.prev", "text"]
         data_info["text_ctc"] = ["text.ctc", "text"]
-    
+
     elif args.task == "s2st":
         data_info = {
-            "src_speech": ['wav.scp.en', 'kaldi_ark'],
-            "tgt_speech": ['wav.scp.es', 'kaldi_ark'],
+            "src_speech": ["wav.scp.en", "kaldi_ark"],
+            "tgt_speech": ["wav.scp.es", "kaldi_ark"],
             "tgt_text": ["text.es", "text"],
             "src_text": ["text.en", "text"],
         }
