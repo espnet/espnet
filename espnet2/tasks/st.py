@@ -509,7 +509,7 @@ class STTask(AbsTask):
 
             text_name = ["text", "src_text"]
             if "text_name" in args.preprocessor_conf:
-                text_name = args.preprocessor_conf.pop('text_name')
+                text_name = args.preprocessor_conf.pop("text_name")
 
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,

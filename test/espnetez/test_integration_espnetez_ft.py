@@ -8,9 +8,9 @@ from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
 from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
+from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
-from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
