@@ -255,7 +255,7 @@ if __name__ == "__main__":
         with open(token_folder / "src_tokens.txt", "r") as f:
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["src_token_list"] = tokens
-            
+
     elif (args.data_path / "spm/bpemodel/tokens.txt").is_file():
         with open(args.data_path / "spm/bpemodel/tokens.txt", "r") as f:
             tokens = [t.replace("\n", "") for t in f.readlines()]
