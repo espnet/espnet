@@ -432,6 +432,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     cd "${cwd}"
 fi
 
+# [ESPnet Easy] test st recipe with coverage
 cd ${cwd}/egs2/mini_an4/st1
 echo "==== [ESPnet2] ST ==="
 rm -rf exp data dump
@@ -480,6 +481,36 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
+
+# [ESPnet Easy] test s2t1 recipe with coverage
+cd ${cwd}/egs2/mini_an4/s2t1
+rm -rf exp dump data
+gen_dummy_coverage
+echo "==== [ESPnet2] S2T1 ==="
+./run.sh --ngpu 0 --stage 1 --stop_stage 4 --feats_type raw --audio_format flac.ark --token_type bpe
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+    --task s2t \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ./conf/train_transformer.yaml \
+    --train_sentencepiece_model \
+    --run_collect_stats \
+    --run_train
+
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    --task s2t \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ./conf/train_transformer.yaml \
+    --run_finetune
+
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
 
 cd "${cwd}" || exit
 

@@ -13,7 +13,7 @@ TASK_CLASSES = [
     "hubert",
     "lm",
     "mt",
-    # "s2t",
+    "s2t",
     "slu",
     "st",
     "tts",
@@ -92,6 +92,11 @@ if __name__ == "__main__":
     if args.task == "lm":
         user_defined_symbols = ["<generatetext>"]
         data_info.pop("speech")
+    elif args.task == "s2t":
+        user_defined_symbols = ["<sos>", "<eos>", "<sop>", "<na>"]
+        # add timestamps
+        user_defined_symbols += ["<notimestamps>"]
+        user_defined_symbols += [f"<{i*0.02:.2f}>" for i in range(1501)]
     else:
         user_defined_symbols = []
 
@@ -132,6 +137,10 @@ if __name__ == "__main__":
         data_info.pop('speech')
         data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
         data_info["text"] = ["text.ts.en", "text"]
+    elif args.task == "s2t":
+        data_info['speech'] = ['wav.scp', 'kaldi_ark']
+        data_info["text_prev"] = ["text.prev", "text"]
+        data_info["text_ctc"] = ["text.ctc", "text"]
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -163,10 +172,16 @@ if __name__ == "__main__":
             ez.preprocess.prepare_sentences(
                 [args.train_dump_path / "text"], args.data_path / "spm"
             )
+        
+        if args.task == "s2t":
+            vocab_size = 50 + 5 + 1501
+        else:
+            vocab_size = 50
+
         ez.preprocess.train_sentencepiece(
             args.data_path / "spm/train.txt",
             args.data_path / "spm/bpemodel",
-            vocab_size=50,
+            vocab_size=vocab_size,
             character_coverage=0.9995,
             user_defined_symbols=user_defined_symbols,
         )
