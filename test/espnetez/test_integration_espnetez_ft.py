@@ -194,10 +194,10 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
-    
+
     elif args.task == "st":
-        data_info['text'] = ["text.lc.rm.en", "text"]
-        data_info['src_text'] = ['text', "text"]
+        data_info["text"] = ["text.lc.rm.en", "text"]
+        data_info["src_text"] = ["text", "text"]
 
     trainer = ez.Trainer(
         task=args.task,
