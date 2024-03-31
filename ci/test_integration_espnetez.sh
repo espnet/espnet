@@ -48,6 +48,9 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --config_path conf/train_asr_transformer_debug.yaml \
     --run_finetune
 
+# Remove generated files in order to reduce the disk usage
+rm -rf exp data/spm
+
 # [ESPnet Easy] test streaming asr recipe with coverage
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task asr \
@@ -94,6 +97,9 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --exp_path ./exp \
     --config_path conf/train_asr_transducer_debug.yaml \
     --run_finetune
+
+# Remove generated files in order to reduce the disk usage
+rm -rf exp data/spm
 
 # [ESPnet Easy] test conformer RNNT recipe with coverage
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
@@ -230,7 +236,40 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_finetune
 
 # Remove generated files in order to reduce the disk usage
-rm -rf exp data/spm
+rm -rf exp data dump
+
+
+# [ESPnet Easy] test asr2 recipe with coverage
+cd ${cwd}/egs2/mini_an4/asr2
+rm -rf exp data dump
+gen_dummy_coverage
+echo "==== [ESPnet2] ASR2 ==="
+# data preparation
+./run.sh --ngpu 0 --stage 1 --stop-stage 7 --use-lm false --asr-args "--num_workers 0"
+
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+    --task mt \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_transformer_debug.yaml \
+    --run_collect_stats \
+    --run_train
+
+# finetune
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    --task mt \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_transformer_debug.yaml \
+    --run_finetune
+
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
 
 
 # [ESPnet Easy] test enh recipe with coverage

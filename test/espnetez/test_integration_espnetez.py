@@ -12,6 +12,7 @@ TASK_CLASSES = [
     "enh_s2t",
     "hubert",
     "lm",
+    "mt",
     # "s2t",
     "slu",
     "st",
@@ -127,6 +128,10 @@ if __name__ == "__main__":
     elif args.task == "st":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
+    elif args.task == "mt":
+        data_info.pop('speech')
+        data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
+        data_info["text"] = ["text.ts.en", "text"]
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -150,9 +155,14 @@ if __name__ == "__main__":
             )
 
     elif args.train_sentencepiece_model:
-        ez.preprocess.prepare_sentences(
-            [args.train_dump_path / "text"], args.data_path / "spm"
-        )
+        if args.task == "mt":
+            ez.preprocess.prepare_sentences(
+                [args.train_dump_path / "text.ts.en"], args.data_path / "spm"
+            )
+        else:
+            ez.preprocess.prepare_sentences(
+                [args.train_dump_path / "text"], args.data_path / "spm"
+            )
         ez.preprocess.train_sentencepiece(
             args.data_path / "spm/train.txt",
             args.data_path / "spm/bpemodel",
@@ -184,6 +194,20 @@ if __name__ == "__main__":
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["token_list"] = tokens
         with open(src_file / "tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["src_token_list"] = tokens
+    elif args.task == "mt":
+        bpe_file = args.data_path / "token_list/char"
+        src_file = args.data_path / "token_list/char_mfcc_km10"
+        training_config["token_type"] = "char"
+        training_config["src_token_type"] = "char"
+        training_config["bpemodel"] = None
+        training_config["src_bpemodel"] = None
+
+        with open(bpe_file / "tgt_tokens.txt", "r") as f:
+            tokens = [t.replace("\n", "") for t in f.readlines()]
+            training_config["token_list"] = tokens
+        with open(src_file / "src_tokens.txt", "r") as f:
             tokens = [t.replace("\n", "") for t in f.readlines()]
             training_config["src_token_list"] = tokens
     else:

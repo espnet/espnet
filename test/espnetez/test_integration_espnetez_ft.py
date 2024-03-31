@@ -7,6 +7,7 @@ from espnet2.bin.asr_transducer_inference import Speech2Text as RNNTInference
 from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
 from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
 from espnet2.bin.lm_inference import GenerateText as LMInference
+from espnet2.bin.mt_inference import Text2Text as MTInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
@@ -17,6 +18,7 @@ TASK_CLASSES = {
     "asr": ASRInference,
     "asr_transducer": RNNTInference,
     "lm": LMInference,
+    "mt": MTInference,
     "slu": SLUInference,
     "tts": TTSInference,
     "uasr": UASRInference,
@@ -30,6 +32,7 @@ CONFIG_NAMES = {
     "asr": "asr_train_args",
     "asr_transducer": "asr_train_args",
     "lm": "lm_train_args",
+    "mt": "mt_train_args",
     "slu": "asr_train_args",
     "tts": "train_args",
     "uasr": "uasr_train_args",
@@ -78,6 +81,8 @@ def build_model_fn(args):
         model = pretrained_model.asr_model
     elif args.task == "lm":
         model = pretrained_model.lm
+    elif args.task == "mt":
+        model = pretrained_model.mt_model
     elif args.task == "slu":
         model = pretrained_model.asr_model
     elif args.task == "tts":
@@ -198,6 +203,11 @@ if __name__ == "__main__":
     elif args.task == "st":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
+    
+    elif args.task == "mt":
+        data_info.pop('speech')
+        data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
+        data_info["text"] = ["text.ts.en", "text"]
 
     trainer = ez.Trainer(
         task=args.task,
