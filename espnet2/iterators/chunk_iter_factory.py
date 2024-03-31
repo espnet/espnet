@@ -1,7 +1,7 @@
 import logging
 import re
-from copy import deepcopy
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np

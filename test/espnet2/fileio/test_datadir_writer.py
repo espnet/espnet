@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
+from typeguard import TypeCheckError
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from typeguard import TypeCheckError
 
 
 def test_DatadirWriter(tmp_path: Path):
