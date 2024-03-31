@@ -19,13 +19,13 @@ python3 -m pip uninstall -y chainer
 
 # Download mini_an4 as test data and prepare flac data
 cd ./egs2/mini_an4/asr1 || exit
+rm -rf exp data dump
 ./run.sh --stage 1 --stop-stage 1
 ./run.sh --stage 2 --stop-stage 4 --feats-type "raw"
 
 # Now we have flac files under dump/org/train_*/data/format.*/
 # and wav.scp files under dump/train_*/
 
-rm -rf exp data/spm
 # [ESPnet Easy] test asr recipe with coverage
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task asr \
@@ -46,6 +46,28 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --valid_dump_path dump/raw/train_dev \
     --exp_path ./exp \
     --config_path conf/train_asr_transformer_debug.yaml \
+    --run_finetune
+
+# streaming
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+    --task asr \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_streaming_debug.yaml \
+    --train_sentencepiece_model \
+    --run_collect_stats \
+    --run_train
+
+# finetuning
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    --task asr \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_asr_streaming_debug.yaml \
     --run_finetune
 
 # Remove generated files in order to reduce the disk usage
