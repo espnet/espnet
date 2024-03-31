@@ -219,6 +219,8 @@ if __name__ == "__main__":
     elif args.task == "st":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
+        src_file = args.data_path / "en_en_token_list/src_bpe_unigram30"
+        finetune_config['bpemodel'] = str(src_file / "bpe.model")
     
     elif args.task == "mt":
         data_info.pop('speech')

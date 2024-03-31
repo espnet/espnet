@@ -127,7 +127,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp data/spm
 
 # [ESPnet Easy] test lm recipe with coverage
-cd ${cwd}/egs2/mini_an4/lm1
+cd ${cwd}/egs2/mini_an4/lm1 || exit
 ln -sf ../asr1/data data
 ln -sf ../asr1/dump dump
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
@@ -156,7 +156,7 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test slu recipe with coverage
-cd ${cwd}/egs2/mini_an4/s2t1
+cd ${cwd}/egs2/mini_an4/s2t1 || exit
 ln -sf ../asr1/data data
 ln -sf ../asr1/dump dump
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
@@ -185,9 +185,12 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test tts recipe with coverage
-cd ${cwd}/egs2/mini_an4/tts1
-ln -sf ../asr1/data data
-ln -sf ../asr1/dump dump
+cd ${cwd}/egs2/mini_an4/tts1 || exit
+rm -rf exp data dump
+
+echo "==== [ESPnet2] TTS ==="
+# data preparation
+./run.sh --ngpu 0 --stage 1 --stop-stage 4 --skip-upload false --python "${python}" --train-args "--num_workers 0"
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task tts \
     --data_path data \
@@ -209,11 +212,14 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --config_path ../tts1/conf/train_tacotron2_debug.yaml \
     --run_finetune
 
-# Remove generated files in order to reduce the disk usage
-rm -rf exp data/spm
+Remove generated files in order to reduce the disk usage
+rm -rf exp data dump
 
 
 # [ESPnet Easy] test gan-tts recipe with coverage
+./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
+        --ngpu 0 --stop-stage 4
+
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task tts \
     --data_path data \
@@ -240,7 +246,7 @@ rm -rf exp data dump
 
 
 # [ESPnet Easy] test asr2 recipe with coverage
-cd ${cwd}/egs2/mini_an4/asr2
+cd ${cwd}/egs2/mini_an4/asr2 || exit
 rm -rf exp data dump
 gen_dummy_coverage
 echo "==== [ESPnet2] ASR2 ==="
@@ -269,21 +275,20 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
-cd "${cwd}"
+cd "${cwd}" || exit
 
 
 # [ESPnet Easy] test enh recipe with coverage
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
-    cd ${cwd}/egs2/mini_an4/enh1
+    cd ${cwd}/egs2/mini_an4/enh1 || exit
     rm -rf exp data dump
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH ==="
     ./run.sh --stage 1 --stop-stage 4 --python "${python}" --extra_wav_list "rirs.scp noises.scp"
-    feats_types="raw"
 
     configs=("train_with_preprocessor_debug" "train_with_data_aug_debug" "train_debug")
-    for conf in ${configs[@]}; do
-        rm -rf exp
+    for conf in "${configs[@]}"; do
+        rm -rf exp data/spm
         python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
             --task enh \
             --data_path data \
@@ -328,16 +333,15 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --config_path ./conf/train_with_dynamic_mixing_debug.yaml \
         --run_finetune
 
-    cd "${cwd}"
+    cd "${cwd}" || exit
 fi
 
-# # [ESPnet Easy] test enh-tse recipe with coverage
+# [ESPnet Easy] test enh-tse recipe with coverage
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
-    cd ${cwd}/egs2/mini_an4/tse1
+    cd ${cwd}/egs2/mini_an4/tse1 || exit
     rm -rf exp data dump
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH_TSE ==="
-    feats_types="raw"
 
     # simple pattern
     ./run.sh --stage 1 --stop-stage 4 --ref-num 1
@@ -366,7 +370,7 @@ fi
 
 # [ESPnet Easy] test enh-asr recipe with coverage
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
-    cd ${cwd}/egs2/mini_an4/enh_asr1
+    cd ${cwd}/egs2/mini_an4/enh_asr1 || exit
     rm -rf exp data dump
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH_ASR ==="
@@ -395,12 +399,12 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
 
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
-    cd "${cwd}"
+    cd "${cwd}" || exit
 fi
 
 # [ESPnet Easy] test ssl recipe with coverage
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
-    cd ${cwd}/egs2/mini_an4/ssl1
+    cd ${cwd}/egs2/mini_an4/ssl1 || exit
     rm -rf exp data dump
     gen_dummy_coverage
     echo "==== [ESPnet2] SSL1/HUBERT ==="
@@ -429,11 +433,11 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
 
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
-    cd "${cwd}"
+    cd "${cwd}" || exit
 fi
 
 # [ESPnet Easy] test st recipe with coverage
-cd ${cwd}/egs2/mini_an4/st1
+cd ${cwd}/egs2/mini_an4/st1 || exit
 echo "==== [ESPnet2] ST ==="
 rm -rf exp data dump
 ./run.sh --stage 1 --stop-stage 5 --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe"
@@ -445,7 +449,6 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --valid_dump_path dump/raw/train_dev \
     --exp_path ./exp \
     --config_path ./conf/train_st_debug.yaml \
-    --train_sentencepiece_model \
     --run_collect_stats \
     --run_train
 
@@ -459,6 +462,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_finetune
 
 # streaming
+rm -rf exp data/spm
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task st \
     --data_path data \
@@ -483,7 +487,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp dump data
 
 # [ESPnet Easy] test s2t1 recipe with coverage
-cd ${cwd}/egs2/mini_an4/s2t1
+cd ${cwd}/egs2/mini_an4/s2t1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] S2T1 ==="
@@ -513,7 +517,7 @@ rm -rf exp dump data
 
 
 # [ESPnet Easy] test s2st1 recipe with coverage
-cd ${cwd}/egs2/mini_an4/s2st1
+cd ${cwd}/egs2/mini_an4/s2st1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] S2ST ==="
