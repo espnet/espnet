@@ -467,7 +467,7 @@ class Speech2Text:
         List[ListOfHypothesis],
         Tuple[
             ListOfHypothesis,
-            Optional[Dict[int, List[str]]],
+            Union[Dict[int, List[str]], None],
         ],
     ]:
         """Inference
