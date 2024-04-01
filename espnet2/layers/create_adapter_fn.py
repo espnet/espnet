@@ -1,5 +1,6 @@
-from typing import List
 import warnings
+from typing import List
+
 import torch
 from typeguard import check_argument_types
 
