@@ -7,6 +7,7 @@ from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConve
 def hugging_face_token_id_converter(request):
     return HuggingFaceTokenIDConverter(request.param)
 
+
 @pytest.mark.execution_timeout(10)
 def test_init_pythia():
     id_converter = HuggingFaceTokenIDConverter("EleutherAI/pythia-410m-deduped")
