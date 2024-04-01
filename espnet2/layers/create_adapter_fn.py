@@ -1,3 +1,4 @@
+import warnings
 from typing import List
 
 import torch
@@ -88,6 +89,7 @@ def create_lora_adapter(
     alpha: int = 8,
     dropout_rate: float = 0.0,
     target_modules: List[str] = ["query"],
+    lora_only: bool = True,
     bias_type: str = "none",
 ):
     """Create LoRA adapter for the base model.
@@ -149,6 +151,11 @@ def create_lora_adapter(
     # This step can avoid merging LoRA weights again
     # when loading pre-trained checkpoints
     model.eval()
+    if lora_only:
+        warnings.warn(
+            "Only LoRA layers will be updated. Should not be used for s3prl frontend"
+        )
+        lora.mark_only_lora_as_trainable(model, bias=bias_type)
 
 
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):

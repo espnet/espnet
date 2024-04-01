@@ -115,6 +115,7 @@ adapter_conf:
     rank: 4
     alpha: 4
     dropout_rate: 0.1
+    lora_only: true # Only LoRA layers will be updated. Should not be used for s3prl frontend
     target_modules:
     - fc1
     - fc2
