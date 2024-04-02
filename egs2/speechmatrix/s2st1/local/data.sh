@@ -138,9 +138,6 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Preparing data for speechmatrix"
 
-    # install missing packages for functions in data_prep.py
-    pip install bitarray
-
     for part in "train" "test" "dev"; do
         log "Preparing ${part} data."
         python local/data_prep.py \
