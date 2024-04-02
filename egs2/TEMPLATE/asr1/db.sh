@@ -213,8 +213,8 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
-SPEECH_MATRIX=downloads
-EUROPARL_ST=downloads
+SPEECH_MATRIX=
+EUROPARL_ST=
 
 
 # For only CMU TIR environment
