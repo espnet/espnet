@@ -843,7 +843,9 @@ class VISingerGenerator(torch.nn.Module):
             y_lengths = torch.clamp_min(torch.sum(predict_dur, [1]), 1).long()
 
             # LR
-            decoder_input, mel_len = self.lr(x, predict_dur, use_state_info=True)  # noqa
+            decoder_input, mel_len = self.lr(
+                x, predict_dur, use_state_info=True
+            )  # noqa
             decoder_input_pitch, mel_len = self.lr(  # noqa
                 x_pitch, predict_dur, use_state_info=True
             )  # noqa
