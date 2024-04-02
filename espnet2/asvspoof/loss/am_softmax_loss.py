@@ -2,8 +2,6 @@ import torch
 
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
 
-# from espnet.nets.pytorch_backend.nets_utils import to_device
-
 
 class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
     """Binary loss for ASV Spoofing."""
