@@ -61,47 +61,47 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Download data to ${SPEECH_MATRIX} and ${EUROPARL_ST}"
     log "Prepare source aligned speech data from speech matrix for training"
 
-    # # audio files for each languages
-    # for lang in "${src_langs[@]}"; do
-    #     mkdir -p ${SPEECH_MATRIX}/audios/${lang}
-    #     local/download_and_unzip.sh \
-    #         ${SPEECH_MATRIX}/audios/${lang} \
-    #         https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
-    #         ${lang}_aud.zip
-    # done
+    # audio files for each languages
+    for lang in "${src_langs[@]}"; do
+        mkdir -p ${SPEECH_MATRIX}/audios/${lang}
+        local/download_and_unzip.sh \
+            ${SPEECH_MATRIX}/audios/${lang} \
+            https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
+            ${lang}_aud.zip
+    done
 
-    # for lang in "${tgt_langs[@]}"; do
-    #     mkdir -p ${SPEECH_MATRIX}/audios/${lang}
-    #     local/download_and_unzip.sh \
-    #         ${SPEECH_MATRIX}/audios/${lang} \
-    #         https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
-    #         ${lang}_aud.zip
-    # done
+    for lang in "${tgt_langs[@]}"; do
+        mkdir -p ${SPEECH_MATRIX}/audios/${lang}
+        local/download_and_unzip.sh \
+            ${SPEECH_MATRIX}/audios/${lang} \
+            https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
+            ${lang}_aud.zip
+    done
 
-    # # Iterate over source and target languages
-    # for src_lang in "${src_langs[@]}"; do
-    #     for tgt_lang in "${tgt_langs[@]}"; do
-    #         src_index=$(dict_get full_langs_indices "$src_lang")
-    #         tgt_index=$(dict_get full_langs_indices "$tgt_lang")
+    # Iterate over source and target languages
+    for src_lang in "${src_langs[@]}"; do
+        for tgt_lang in "${tgt_langs[@]}"; do
+            src_index=$(dict_get full_langs_indices "$src_lang")
+            tgt_index=$(dict_get full_langs_indices "$tgt_lang")
 
-    #         # Determine the pair order based on the indices
-    #         if [ "$src_index" -lt "$tgt_index" ]; then
-    #             pair="${src_lang}-${tgt_lang}"
-    #         else
-    #             pair="${tgt_lang}-${src_lang}"
-    #         fi
+            # Determine the pair order based on the indices
+            if [ "$src_index" -lt "$tgt_index" ]; then
+                pair="${src_lang}-${tgt_lang}"
+            else
+                pair="${tgt_lang}-${src_lang}"
+            fi
 
-    #         mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
+            mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
 
-    #         local/download_and_unzip.sh \
-    #             "${SPEECH_MATRIX}/aligned_speech/${pair}" \
-    #             "https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz" \
-    #             "${pair}.tsv.gz"
-    #     done
-    # done
+            local/download_and_unzip.sh \
+                "${SPEECH_MATRIX}/aligned_speech/${pair}" \
+                "https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz" \
+                "${pair}.tsv.gz"
+        done
+    done
 
-    # log "Download FLORES data to ${SPEECH_MATRIX}"
-    # local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
+    log "Download FLORES data to ${SPEECH_MATRIX}"
+    local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
 
     log "Download EuroParl-ST data to ${EUROPARL_ST}"
     local/download_and_unzip.sh ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
