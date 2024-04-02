@@ -101,8 +101,7 @@ def extract_loudness(signal, sampling_rate, block_size, n_fft=2048):
 #  maybe we can remove them later or only import used functions.
 def extract_pitch(signal, sampling_rate, block_size):
     length = signal.shape[-1] // block_size
-    # TODO(gituser): Change np with crepe. Replaced to avoid flake8 issues.
-    f0 = np.predict(
+    f0 = crepe.predict(  # noqa
         signal,
         sampling_rate,
         step_size=int(1000 * block_size / sampling_rate),

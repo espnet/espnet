@@ -51,7 +51,7 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
             emb (torch.Tensor): encoder embedding output [Batch, T, enc_dim]
         """
         emb = torch.mean(emb, dim=1)
-        _ = torch.nn.functional.normalize(self.center, p=2, dim=1)
-        _ = torch.nn.functional.normalize(emb, p=2, dim=1)
+        w = torch.nn.functional.normalize(self.center, p=2, dim=1)  # noqa
+        x = torch.nn.functional.normalize(emb, p=2, dim=1)  # noqa
 
         # TODO(exercise 2): compute scores

@@ -84,7 +84,7 @@ class WKVLinearAttention(torch.autograd.Function):
 
         """
         time_decay, time_first, key, value, output = ctx.saved_tensors
-        # grad_dtype = ctx.input_dtype
+        grad_dtype = ctx.input_dtype  # noqa
 
         batch, _, dim = key.size()
 

@@ -125,7 +125,7 @@ class STFTDecoder(AbsDecoder):
         window_func = getattr(torch, f"{self.window}_window")
         window = window_func(self.win_length)
         n_pad_left = (self.n_fft - window.shape[0]) // 2
-        _ = self.n_fft - window.shape[0] - n_pad_left
+        n_pad_right = self.n_fft - window.shape[0] - n_pad_left  # noqa
         return window
 
     def spec_back(self, spec):
