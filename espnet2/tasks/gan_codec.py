@@ -89,7 +89,7 @@ class GANCodecTask(AbsTask):
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
-                token_type=None, # disable the text process
+                token_type=None,  # disable the text process
             )
         else:
             retval = None

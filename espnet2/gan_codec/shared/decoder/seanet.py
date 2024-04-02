@@ -3,7 +3,7 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-import typing as tp
+from typing import List, Dict, Any, Optional, Tuple
 
 import numpy as np
 import torch
@@ -11,26 +11,41 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm, weight_norm
 
-from espnet2.gan_codec.shared.encoder.seanet import apply_parametrization_norm, get_norm_module, SEANetResnetBlock, SConv1d, SLSTM
+from espnet2.gan_codec.shared.encoder.seanet import (
+    apply_parametrization_norm,
+    get_norm_module,
+    SEANetResnetBlock,
+    SConv1d,
+    SLSTM,
+)
 
 
-def unpad1d(x: torch.Tensor, paddings: tp.Tuple[int, int]):
+def unpad1d(x: torch.Tensor, paddings: Tuple[int, int]):
     """Remove padding from x, handling properly zero padding. Only for 1d!"""
     padding_left, padding_right = paddings
     assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
     assert (padding_left + padding_right) <= x.shape[-1]
     end = x.shape[-1] - padding_right
-    return x[..., padding_left: end]
+    return x[..., padding_left:end]
 
 
 class NormConvTranspose1d(nn.Module):
     """Wrapper around ConvTranspose1d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
-    def __init__(self, *args, causal: bool = False, norm: str = 'none',
-                 norm_kwargs: tp.Dict[str, tp.Any] = {}, **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        causal: bool = False,
+        norm: str = "none",
+        norm_kwargs: Dict[str, Any] = {},
+        **kwargs
+    ):
         super().__init__()
-        self.convtr = apply_parametrization_norm(nn.ConvTranspose1d(*args, **kwargs), norm)
+        self.convtr = apply_parametrization_norm(
+            nn.ConvTranspose1d(*args, **kwargs), norm
+        )
         self.norm = get_norm_module(self.convtr, causal, norm, **norm_kwargs)
         self.norm_type = norm
 
@@ -44,18 +59,34 @@ class SConvTranspose1d(nn.Module):
     """ConvTranspose1d with some builtin handling of asymmetric or causal padding
     and normalization.
     """
-    def __init__(self, in_channels: int, out_channels: int,
-                 kernel_size: int, stride: int = 1, causal: bool = False,
-                 norm: str = 'none', trim_right_ratio: float = 1.,
-                 norm_kwargs: tp.Dict[str, tp.Any] = {}):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        causal: bool = False,
+        norm: str = "none",
+        trim_right_ratio: float = 1.0,
+        norm_kwargs: Dict[str, Any] = {},
+    ):
         super().__init__()
-        self.convtr = NormConvTranspose1d(in_channels, out_channels, kernel_size, stride,
-                                          causal=causal, norm=norm, norm_kwargs=norm_kwargs)
+        self.convtr = NormConvTranspose1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            causal=causal,
+            norm=norm,
+            norm_kwargs=norm_kwargs,
+        )
         self.causal = causal
         self.trim_right_ratio = trim_right_ratio
-        assert self.causal or self.trim_right_ratio == 1., \
-            "`trim_right_ratio` != 1.0 only makes sense for causal convolutions"
-        assert self.trim_right_ratio >= 0. and self.trim_right_ratio <= 1.
+        assert (
+            self.causal or self.trim_right_ratio == 1.0
+        ), "`trim_right_ratio` != 1.0 only makes sense for causal convolutions"
+        assert self.trim_right_ratio >= 0.0 and self.trim_right_ratio <= 1.0
 
     def forward(self, x):
         kernel_size = self.convtr.convtr.kernel_size[0]
@@ -109,13 +140,31 @@ class SEANetDecoder(nn.Module):
         trim_right_ratio (float): Ratio for trimming at the right of the transposed convolution under the causal setup.
             If equal to 1.0, it means that all the trimming is done at the right.
     """
-    def __init__(self, channels: int = 1, dimension: int = 128, n_filters: int = 32, n_residual_layers: int = 1,
-                 ratios: tp.List[int] = [8, 5, 4, 2], activation: str = 'ELU', activation_params: dict = {'alpha': 1.0},
-                 final_activation: tp.Optional[str] = None, final_activation_params: tp.Optional[dict] = None,
-                 norm: str = 'weight_norm', norm_params: tp.Dict[str, tp.Any] = {}, kernel_size: int = 7,
-                 last_kernel_size: int = 7, residual_kernel_size: int = 3, dilation_base: int = 2, causal: bool = False,
-                 pad_mode: str = 'reflect', true_skip: bool = False, compress: int = 2, lstm: int = 2,
-                 trim_right_ratio: float = 1.0):
+
+    def __init__(
+        self,
+        channels: int = 1,
+        dimension: int = 128,
+        n_filters: int = 32,
+        n_residual_layers: int = 1,
+        ratios: List[int] = [8, 5, 4, 2],
+        activation: str = "ELU",
+        activation_params: dict = {"alpha": 1.0},
+        final_activation: Optional[str] = None,
+        final_activation_params: Optional[dict] = None,
+        norm: str = "weight_norm",
+        norm_params: Dict[str, Any] = {},
+        kernel_size: int = 7,
+        last_kernel_size: int = 7,
+        residual_kernel_size: int = 3,
+        dilation_base: int = 2,
+        causal: bool = False,
+        pad_mode: str = "reflect",
+        true_skip: bool = False,
+        compress: int = 2,
+        lstm: int = 2,
+        trim_right_ratio: float = 1.0,
+    ):
         super().__init__()
         self.dimension = dimension
         self.channels = channels
@@ -127,9 +176,16 @@ class SEANetDecoder(nn.Module):
 
         act = getattr(nn, activation)
         mult = int(2 ** len(self.ratios))
-        model: tp.List[nn.Module] = [
-            SConv1d(dimension, mult * n_filters, kernel_size, norm=norm, norm_kwargs=norm_params,
-                    causal=causal, pad_mode=pad_mode)
+        model: List[nn.Module] = [
+            SConv1d(
+                dimension,
+                mult * n_filters,
+                kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=causal,
+                pad_mode=pad_mode,
+            )
         ]
 
         if lstm:
@@ -140,35 +196,55 @@ class SEANetDecoder(nn.Module):
             # Add upsampling layers
             model += [
                 act(**activation_params),
-                SConvTranspose1d(mult * n_filters, mult * n_filters // 2,
-                                 kernel_size=ratio * 2, stride=ratio,
-                                 norm=norm, norm_kwargs=norm_params,
-                                 causal=causal, trim_right_ratio=trim_right_ratio),
+                SConvTranspose1d(
+                    mult * n_filters,
+                    mult * n_filters // 2,
+                    kernel_size=ratio * 2,
+                    stride=ratio,
+                    norm=norm,
+                    norm_kwargs=norm_params,
+                    causal=causal,
+                    trim_right_ratio=trim_right_ratio,
+                ),
             ]
             # Add residual layers
             for j in range(n_residual_layers):
                 model += [
-                    SEANetResnetBlock(mult * n_filters // 2, kernel_sizes=[residual_kernel_size, 1],
-                                      dilations=[dilation_base ** j, 1],
-                                      activation=activation, activation_params=activation_params,
-                                      norm=norm, norm_params=norm_params, causal=causal,
-                                      pad_mode=pad_mode, compress=compress, true_skip=true_skip)]
+                    SEANetResnetBlock(
+                        mult * n_filters // 2,
+                        kernel_sizes=[residual_kernel_size, 1],
+                        dilations=[dilation_base**j, 1],
+                        activation=activation,
+                        activation_params=activation_params,
+                        norm=norm,
+                        norm_params=norm_params,
+                        causal=causal,
+                        pad_mode=pad_mode,
+                        compress=compress,
+                        true_skip=true_skip,
+                    )
+                ]
 
             mult //= 2
 
         # Add final layers
         model += [
             act(**activation_params),
-            SConv1d(n_filters, channels, last_kernel_size, norm=norm, norm_kwargs=norm_params,
-                    causal=causal, pad_mode=pad_mode)
+            SConv1d(
+                n_filters,
+                channels,
+                last_kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=causal,
+                pad_mode=pad_mode,
+            ),
         ]
         # Add optional final activation to decoder (eg. tanh)
         if final_activation is not None:
             final_act = getattr(nn, final_activation)
             final_activation_params = final_activation_params or {}
-            model += [
-                final_act(**final_activation_params)
-            ]
+            model += [final_act(**final_activation_params)]
         self.model = nn.Sequential(*model)
 
     def forward(self, z):
