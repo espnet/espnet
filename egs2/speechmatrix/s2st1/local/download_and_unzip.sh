@@ -87,13 +87,9 @@ case $filename in
       exit 1;
     fi
     ;;
-  # *.zip)
-  #   # For .zip files, use unzip
-  #   if ! unzip $filename; then
-  #     echo "$0: error unzipping zip archive $filepath"
-  #     exit 1;
-  #   fi
-  #   ;;
+  *.zip)
+    echo "$0: intentionally skip unzipping zip file $filepath"
+    ;;
   *)
     # Report unsupported file types but don't exit
     echo "$0: '$filename' does not appear to be a supported archive format. No extraction performed."
