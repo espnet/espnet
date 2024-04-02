@@ -94,17 +94,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
 
             local/download_and_unzip.sh \
-                "${SPEECH_MATRIX}/aligned_speech/${pair}" \
-                "https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz" \
-                "${pair}.tsv.gz"
+                --remove-archive \
+                ${SPEECH_MATRIX}/aligned_speech/${pair} \
+                https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz \
+                ${pair}.tsv.gz
         done
     done
 
-    log "Download FLORES data to ${SPEECH_MATRIX}"
-    local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
+    # log "Download FLORES data to ${SPEECH_MATRIX}"
+    # local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
 
     log "Download EuroParl-ST data to ${EUROPARL_ST}"
-    local/download_and_unzip.sh ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
+    local/download_and_unzip.sh --remove-archive ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
 fi
 
 
@@ -143,12 +144,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for part in "train" "test" "dev"; do
         log "Preparing ${part} data."
         python local/data_prep.py \
-            --src_folder "${SPEECH_MATRIX}" \
-            --src_langs "${src_langs[@]}" \
-            --tgt_langs "${tgt_langs[@]}" \
+            --src_folder ${SPEECH_MATRIX} \
+            --src_langs ${src_langs[@]} \
+            --tgt_langs ${tgt_langs[@]} \
             --subset ${part} \
-            --test_dataset "${test_dataset}" \
-            --save_folder "data"
+            --test_dataset ${test_dataset} \
+            --save_folder data
 
 
         for src_lang in "${src_langs[@]}"; do
