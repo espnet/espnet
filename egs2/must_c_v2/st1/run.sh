@@ -26,9 +26,11 @@ fi
 
 
 ngpu=1
+locale_specific_opt=
 # ja needs more GPU memories
 if [ "${tgt_lang}" = "ja" ]; then
     ngpu=2
+    locale_specific_opt="--sacrebleu_opt_extra -tok ja-mecab -l en-ja --smooth-method exp "
 fi
 
 
@@ -62,4 +64,4 @@ tgt_case=tc
     --test_sets "${test_set}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$locale_specific_opt" "$@"
