@@ -9,6 +9,8 @@ set -o pipefail
 src_lang=lt 
 tgt_lang=en 
 
+stage=1
+stop_stage=5
 
 # kmeans related
 clustering_portion=1
@@ -27,6 +29,8 @@ vocoder_file=
 score_asr_model_tag=
 
 ./s2st.sh \
+    --stage ${stage} \
+    --stop_stage ${stop_stage} \
     --ngpu 2 \
     --nj 64 \
     --inference_nj 64 \
