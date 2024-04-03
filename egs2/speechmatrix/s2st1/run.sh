@@ -36,6 +36,8 @@ score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_r
     --nj 64 \
     --inference_nj 64 \
     --use_discrete_unit true \
+    --kmeans_opts "--skip_train_kmeans true --km_dir dump/pretrained_kmeans" \
+    --km_tag pretrained_kmeans \
     --feats_type raw \
     --audio_format "wav" \
     --use_src_lang ${use_src_lang} \

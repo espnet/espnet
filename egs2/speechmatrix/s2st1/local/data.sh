@@ -52,6 +52,7 @@ log "data preparation started"
 # url for download FLORES data (for aligning speech in FLEURS with texts in FLORES)
 europarl_raw_data_url=https://www.mllp.upv.es/europarl-st/v1.1.tar.gz
 flores_raw_data_url=https://dl.fbaipublicfiles.com/flores101/dataset/flores101_dataset.tar.gz
+kmeans_model_url=https://dl.fbaipublicfiles.com/hubert/mhubert_base_vp_en_es_fr_it3_L11_km1000.bin
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -104,6 +105,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     log "Download EuroParl-ST data to ${EUROPARL_ST}"
     local/download_and_unzip.sh --remove-archive ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
+
+    log "Download pre-trained k-means model to dump/pretrained_kmeans"
+    mkdir -p dump/pretrained_kmeans
+    wget ${kmeans_model_url} -O dump/pretrained_kmeans/km_1000.mdl
 fi
 
 

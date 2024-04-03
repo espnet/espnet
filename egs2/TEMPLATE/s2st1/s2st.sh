@@ -78,6 +78,7 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 
 # Discrete unit-related
 use_discrete_unit=false         # Whether to use discrete unit
+kmeans_opts=                    # The options given to scripts/feats/perform_kmeans.sh
 clustering_stage=1              # clustering stage
 clustering_stop_stage=100       # clustering stop stage
 clustering_num_threads=20       # Number of threads used for kmeans clustering
@@ -213,6 +214,7 @@ Options:
 
     # Discrete unit related
     --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --kmeans_opts              # The options given to kmeans step (default="${kmeans_opts}").
     --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
     --km_tag=                  # KMeans tagging (default="${km_tag}")
     --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
@@ -501,7 +503,7 @@ if ! "${skip_data_prep}"; then
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp.${src_lang},wav.scp,wav.scp.${tgt_lang},reco2file_and_channel,reco2dur}
 
                 _src_opts=
-		_tgt_opts=
+                _tgt_opts=
                 if [ -e data/"${dset}"/segments.${src_lang} ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
                     # into utterances. The file format of segments:
@@ -532,7 +534,7 @@ if ! "${skip_data_prep}"; then
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${src_lang}" \
-		    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
+                    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
                     "data/${dset}/wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}"
                 ln -sf "wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}/wav.scp"
 
@@ -883,7 +885,7 @@ if ! "${skip_data_prep}"; then
                 _dir=${kmeans_data_dir}/${dset}
                 mkdir -p ${_dir}
                 cp ${data_feats}/${dset}/{feats_type,spk2utt,utt2spk} ${_dir}
-                cp ${data_feats}/${dset}/text.${tgt_lang} ${_dir}/text
+                [[ -e ${data_feats}/${dset}/text.${tgt_lang} ]] && cp ${data_feats}/${dset}/text.${tgt_lang} ${_dir}/text
                 cp ${data_feats}/${dset}/utt2num_samples.${tgt_lang} ${_dir}/utt2num_samples
                 cp ${data_feats}/${dset}/wav.scp.${tgt_lang} ${_dir}/wav.scp
             done
@@ -909,7 +911,8 @@ if ! "${skip_data_prep}"; then
                 --num_threads ${clustering_num_threads} \
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
-                --dictdir "${unit_tokendir}"
+                --dictdir "${unit_tokendir}" \
+                ${kmeans_opts}
 
             # Copy generated pseudo labels to original dump dir
             for dset in ${train_set} ${valid_set} ${test_sets}; do
