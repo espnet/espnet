@@ -11,6 +11,7 @@ from typeguard import check_argument_types
 
 import numpy as np
 import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -409,6 +410,8 @@ class SoundStreamGenerator(nn.Module):
         Args:
             TODO(jiatong)
         """
+        assert check_argument_types()
+        super().__init__()
 
         # Initialize encoder
         self.encoder = SEANetEncoder(
@@ -434,7 +437,7 @@ class SoundStreamGenerator(nn.Module):
 
         # Initialize quantizer
         self.quantizer = ResidualVectorQuantizer(
-            dimention=hidden_dim,
+            dimension=hidden_dim,
             n_q=quantizer_n_q,
             bins=quantizer_bins,
             decay=quantizer_decay,

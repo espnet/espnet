@@ -6,7 +6,7 @@
 
 import numpy as np
 import math
-from typiing import List, Dict, Any, Optional, Union, Tuple
+from typing import List, Dict, Any, Optional, Union, Tuple
 import einops
 import logging
 

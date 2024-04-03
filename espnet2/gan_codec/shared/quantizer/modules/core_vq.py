@@ -41,7 +41,7 @@ from einops import rearrange
 from einops import repeat
 from torch import nn
 
-from academicodec.quantization.distrib import broadcast_tensors
+from espnet2.gan_codec.shared.quantizer.modules.distrib import broadcast_tensors
 
 
 def default(val: Any, d: Any) -> Any:
