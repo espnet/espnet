@@ -11,6 +11,7 @@ from espnet2.gan_svs.vits import VITS
 
 try:
     import parallel_wavegan
+
     module_found = True
 except ModuleNotFoundError:
     module_found = False
