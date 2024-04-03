@@ -124,9 +124,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --flores-root ${FLORES}/flores101_dataset \
         --proc-fleurs-dir ${FLEURS} \
         --save-root ${FLEURS}
-    # python local/fairseq_speechmatrix/prep_fleurs_test_data.py  \
-    #     --proc-fleurs-dir ${FLEURS} \
-    #     --save-root ${FLEURS}/test
     log "FLEURS data preparation done."
 fi
 
