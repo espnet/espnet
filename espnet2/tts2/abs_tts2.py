@@ -41,4 +41,4 @@ class AbsTTS2(torch.nn.Module, ABC):
     @property
     def require_vocoder(self):
         """Return whether or not vocoder is required."""
-        return False
+        return True

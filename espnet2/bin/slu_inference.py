@@ -69,6 +69,7 @@ class Speech2Understand:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         streaming: bool = False,
         quantize_asr_model: bool = False,
         quantize_lm: bool = False,
@@ -175,6 +176,7 @@ class Speech2Understand:
                 vocab_size=len(token_list),
                 token_list=token_list,
                 pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                normalize_length=normalize_length,
             )
 
             # TODO(karita): make all scorers batchfied
@@ -383,6 +385,7 @@ def inference(
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -446,6 +449,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         streaming=streaming,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
@@ -684,6 +688,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     return parser

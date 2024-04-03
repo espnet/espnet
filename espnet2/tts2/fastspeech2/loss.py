@@ -17,7 +17,12 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 class FastSpeech2LossDiscrete(torch.nn.Module):
     """Loss function module for FastSpeech2."""
 
-    def __init__(self, use_masking: bool = True, use_weighted_masking: bool = False, ignore_id: int = -1):
+    def __init__(
+        self,
+        use_masking: bool = True,
+        use_weighted_masking: bool = False,
+        ignore_id: int = -1,
+    ):
         """Initialize feed-forward Transformer loss module.
 
         Args:
@@ -36,7 +41,9 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
 
         # define criterions
         reduction = "none" if self.use_weighted_masking else "mean"
-        self.ce_criterion = torch.nn.CrossEntropyLoss(reduction=reduction, ignore_index=ignore_id)
+        self.ce_criterion = torch.nn.CrossEntropyLoss(
+            reduction=reduction, ignore_index=ignore_id
+        )
         self.mse_criterion = torch.nn.MSELoss(reduction=reduction)
         self.duration_criterion = DurationPredictorLoss(reduction=reduction)
 

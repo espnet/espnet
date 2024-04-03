@@ -5,10 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_no_dev
-train_dev=dev
+train_set=tr_no_dev_10min
+train_dev=dev_small
 eval_set=eval1
 
+# put your vocoder file and vocoder config file here
+vocoder_file=vocoder/vocoder.pkl
 
 ./tts2.sh \
     --nj 16 \
@@ -24,4 +26,5 @@ eval_set=eval1
     --valid_set ${train_dev} \
     --test_sets ${eval_set} \
     --write_collected_feats true \
+    --vocoder_file ${vocoder_file} \
     --srctexts "data/tr_no_dev/text" "$@"

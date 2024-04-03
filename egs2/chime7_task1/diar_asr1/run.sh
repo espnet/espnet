@@ -47,12 +47,12 @@ pyan_learning_rate="1e-5"
 
 
 # GSS config
-ngpu=4
+ngpu=2
 gss_max_batch_dur=90
 
 # ASR config
 use_pretrained=
-decode_only=""
+decode_train="dev"
 
 gss_asr_stage=
 gss_asr_stop_stage=10
@@ -66,16 +66,17 @@ if [ -z "$gss_asr_stage" ]; then
 fi
 
 
-if [ "${decode_only}" == "eval" ]; then
+if [ "${decode_train}" == "eval" ]; then
   diar_inf_dset="eval"
 fi
 
 
-if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
+if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
 then
-  log "decode_only argument should be either dev, eval or empty"
+  log "decode_train argument should be either dev, eval or train"
   exit
 fi
+
 
 
 if [ $download_baseline_diarization == 1 ]; then
@@ -188,7 +189,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   ./run_gss_asr.sh --chime7-root $chime7_root --stage $gss_asr_stage \
         --stop-stage $gss_asr_stop_stage --ngpu $ngpu \
         --use-pretrained $use_pretrained \
-        --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur \
+        --decode-train $decode_train --gss-max-batch-dur $gss_max_batch_dur \
         --gss-iterations 5 \
         --diar-score 1
 fi

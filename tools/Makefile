@@ -1,5 +1,5 @@
-# PyTorch version: 1.11.0, 1.12.1, 1.13.1, 2.0.1 are tested.
-TH_VERSION := 2.0.1
+# PyTorch version: 1.12.1, 1.13.1, 2.0.1, 2.1.0 are tested.
+TH_VERSION := 2.1.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -231,7 +231,6 @@ transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
 	touch transformers.done
 
-
 parallel-wavegan.done: espnet.done
 	. ./activate_python.sh && ./installers/install_parallel-wavegan.sh
 	touch parallel-wavegan.done
@@ -251,6 +250,10 @@ cauchy_mult.done: espnet.done
 rvad_fast.done: espnet.done
 	git clone https://github.com/zhenghuatan/rVADfast.git
 	touch rvad_fast.done
+
+discrete_speech_metrics.done: espnet.done
+	. ./activate_python.sh && ./installers/install_discrete_speech_metrics.sh
+	touch discrete_speech_metrics.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py

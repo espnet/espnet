@@ -1,0 +1,48 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+# batch_size: 128
+batch_size: 8
+iterator_type: chunk
+chunk_length: 32640
+num_workers: 4
+optim_conf:
+    lr: 1.0e-04
+    # eps: 1.0e-08
+    # weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+scheduler: steplr
+scheduler_conf:
+    step_size: 2
+    gamma: 0.97
+
+encoder: stft
+encoder_conf:
+    n_fft: 510
+    hop_length: 128
+    spec_transform_type: exponent
+decoder: stft
+decoder_conf:
+    n_fft: 510
+    hop_length: 128
+    spec_transform_type: exponent
+
+diffusion_model: sgmse
+diffusion_model_conf:
+    score_model: ncsnpp
+    score_model_conf: {}
+    loss_type: "mse"
+    sde: ouve
+    sde_conf:
+        sigma_min: 0.05
+        sigma_max: 0.5
+        N: 1000

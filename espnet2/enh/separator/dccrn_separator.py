@@ -82,9 +82,11 @@ class DCCRNSeparator(AbsSeparator):
                         stride=(2, 1),
                         padding=(2, 1),
                     ),
-                    nn.BatchNorm2d(self.kernel_num[idx + 1])
-                    if not use_cbn
-                    else ComplexBatchNorm(self.kernel_num[idx + 1]),
+                    (
+                        nn.BatchNorm2d(self.kernel_num[idx + 1])
+                        if not use_cbn
+                        else ComplexBatchNorm(self.kernel_num[idx + 1])
+                    ),
                     nn.PReLU(),
                 )
             )
@@ -98,15 +100,19 @@ class DCCRNSeparator(AbsSeparator):
             for idx in range(rnn_layer):
                 rnns.append(
                     NavieComplexLSTM(
-                        input_size=hidden_dim * self.kernel_num[-1]
-                        if idx == 0
-                        else self.rnn_units * fac,
+                        input_size=(
+                            hidden_dim * self.kernel_num[-1]
+                            if idx == 0
+                            else self.rnn_units * fac
+                        ),
                         hidden_size=self.rnn_units,
                         bidirectional=bidirectional,
                         batch_first=False,
-                        projection_dim=hidden_dim * self.kernel_num[-1]
-                        if idx == rnn_layer - 1
-                        else None,
+                        projection_dim=(
+                            hidden_dim * self.kernel_num[-1]
+                            if idx == rnn_layer - 1
+                            else None
+                        ),
                     )
                 )
                 self.enhance = nn.Sequential(*rnns)
@@ -135,9 +141,11 @@ class DCCRNSeparator(AbsSeparator):
                             padding=(2, 0),
                             output_padding=(1, 0),
                         ),
-                        nn.BatchNorm2d(self.kernel_num[idx - 1])
-                        if not use_cbn
-                        else ComplexBatchNorm(self.kernel_num[idx - 1]),
+                        (
+                            nn.BatchNorm2d(self.kernel_num[idx - 1])
+                            if not use_cbn
+                            else ComplexBatchNorm(self.kernel_num[idx - 1])
+                        ),
                         nn.PReLU(),
                     )
                 )
@@ -146,9 +154,11 @@ class DCCRNSeparator(AbsSeparator):
                     nn.Sequential(
                         ComplexConvTranspose2d(
                             self.kernel_num[idx] * 2,
-                            self.kernel_num[idx - 1] * (self._num_spk + 1)
-                            if self.use_noise_mask
-                            else self.kernel_num[idx - 1] * self._num_spk,
+                            (
+                                self.kernel_num[idx - 1] * (self._num_spk + 1)
+                                if self.use_noise_mask
+                                else self.kernel_num[idx - 1] * self._num_spk
+                            ),
                             kernel_size=(self.kernel_size, 2),
                             stride=(2, 1),
                             padding=(2, 0),

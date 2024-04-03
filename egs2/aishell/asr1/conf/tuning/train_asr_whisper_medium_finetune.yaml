@@ -28,7 +28,8 @@ decoder_conf:
 
 preprocessor: default
 preprocessor_conf:
-    tokenizer_language: "zh"
+    whisper_language: "zh"
+    whisper_task: "transcribe"
 
 model_conf:
     ctc_weight: 0.0

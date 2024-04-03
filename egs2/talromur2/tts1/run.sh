@@ -19,8 +19,7 @@ fi
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
-# g2p=g2p_en # Include word separator
-g2p=g2p_is # Include no word separator
+g2p=g2p_is
 
 ./tts.sh \
     --lang en \
