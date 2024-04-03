@@ -9,6 +9,12 @@ import torch
 
 from espnet2.gan_svs.vits import VITS
 
+try:
+    import parallel_wavegan
+    module_found = True
+except ModuleNotFoundError:
+    module_found = False
+
 
 def get_test_data():
     test_data = [
@@ -882,6 +888,7 @@ def make_vits_loss_args(**kwargs):
     reason="group conv in pytorch 1.6 has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
+@pytest.mark.skipif(not module_found, reason="Parallel_wavegan is not Installed.")
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
     get_test_data(),
@@ -1062,6 +1069,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     reason="Group conv in pytorch 1.6 has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
+@pytest.mark.skipif(not module_found, reason="Parallel_wavegan is not Installed.")
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict,",
     get_test_data(),
