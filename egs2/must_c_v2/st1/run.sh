@@ -30,7 +30,7 @@ locale_specific_opt=
 # ja needs more GPU memories
 if [ "${tgt_lang}" = "ja" ]; then
     ngpu=2
-    locale_specific_opt="--sacrebleu_opt_extra -tok ja-mecab -l en-ja --smooth-method exp "
+    locale_specific_opt="--sacrebleu_opt_extra \"-tok ja-mecab -l en-ja --smooth-method exp\" "
 fi
 
 
