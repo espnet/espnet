@@ -16,7 +16,7 @@ fairseq_path = os.path.abspath(fairseq_path)
 if fairseq_path not in sys.path:
     sys.path.append(fairseq_path)
 
-import fairseq.data.audio.audio_utils as au
+import fairseq_speechmatrix.audio_utils as au
 
 
 def get_alignment_doc_path(base_folder, lang1, lang2):

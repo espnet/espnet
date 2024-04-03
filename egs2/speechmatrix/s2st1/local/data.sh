@@ -40,7 +40,7 @@ log() {
 
 mkdir -p ${SPEECH_MATRIX}
 mkdir -p ${EUROPARL_ST}
-# mkdir -p ${FLORES_ROOT}
+mkdir -p ${FLORES_ROOT}
 
 
 # Set bash to 'debug' mode, it will exit on :
@@ -54,7 +54,7 @@ log "data preparation started"
 
 # url for download FLORES data (for aligning speech in FLEURS with texts in FLORES)
 europarl_raw_data_url=https://www.mllp.upv.es/europarl-st/v1.1.tar.gz
-# flores_raw_data_url=https://dl.fbaipublicfiles.com/flores101/dataset/flores101_dataset.tar.gz
+flores_raw_data_url=https://dl.fbaipublicfiles.com/flores101/dataset/flores101_dataset.tar.gz
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -101,8 +101,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
     done
 
-    # log "Download FLORES data to ${SPEECH_MATRIX}"
-    # local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
+    log "Download FLORES data to ${SPEECH_MATRIX}"
+    local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
 
     log "Download EuroParl-ST data to ${EUROPARL_ST}"
     local/download_and_unzip.sh --remove-archive ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
@@ -117,22 +117,22 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --save-root ${EUROPARL_ST}/test
     log "EUROPARL_ST data paraparation done."
 
-    # log "Start fleurs data paraparation."
-    # pip install datasets
-    # python fairseq/examples/speech_matrix/valid_test_sets/preproc_fleurs_data.py \
-    #     --proc-fleurs-dir ${FLORES_ROOT} > /dev/null 2>&1
+    log "Start fleurs data paraparation."
+    pip install datasets
+    python local/fairseq_speechmatrix/preproc_fleurs_data.py \
+        --proc-fleurs-dir ${FLORES_ROOT} > /dev/null 2>&1
 
-    # log "Start align fleur data."
-    # python fairseq/examples/speech_matrix/valid_test_sets/align_fleurs_data.py \
-    #     --flores-root ${FLORES_ROOT}/flores101_dataset \
-    #     --proc-fleurs-dir ${FLORES_ROOT} \
-    #     --save-root ${FLORES_ROOT}/align > /dev/null 2>&1
-    # log "Fleurs data alignment done."
+    log "Start align fleur data."
+    python local/fairseq_speechmatrix/align_fleurs_data.py \
+        --flores-root ${FLORES_ROOT}/flores101_dataset \
+        --proc-fleurs-dir ${FLORES_ROOT} \
+        --save-root ${FLORES_ROOT}/align > /dev/null 2>&1
+    log "Fleurs data alignment done."
 
-    # python fairseq/examples/speech_matrix/valid_test_sets/prep_fleurs_test_data.py  \
-    #     --proc-fleurs-dir ${FLORES_ROOT} \
-    #     --save-root ${FLORES_ROOT}/test > /dev/null 2>&1
-    # log "Fleurs data paraparation done."
+    python local/fairseq_speechmatrix/prep_fleurs_test_data.py  \
+        --proc-fleurs-dir ${FLORES_ROOT} \
+        --save-root ${FLORES_ROOT}/test > /dev/null 2>&1
+    log "Fleurs data paraparation done."
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
