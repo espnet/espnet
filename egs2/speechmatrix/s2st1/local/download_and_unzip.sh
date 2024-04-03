@@ -12,10 +12,17 @@ if [ "$1" == --remove-archive ]; then
   shift
 fi
 
+do_unzip=true
+if [ "$1" == --skip-unzip ]; then
+  do_unzip=false
+  shift
+fi
+
 if [ $# -ne 3 ]; then
-  echo "Usage: $0 [--remove-archive] <data-base> <url> <filename>"
+  echo "Usage: $0 [--remove-archive] [--skip-unzip] <data-base> <url> <filename>"
   echo "e.g.: $0 /export/data/ https://us.openslr.org/resources/108/FR.tgz"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
+  echo "With --skip-unzip it will skip un-tarring it."
   exit 0;
 fi
 
@@ -71,30 +78,35 @@ fi
 
 cd $data
 
-# Determine the file extension and perform the corresponding extraction operation
-case $filename in
-  *.tgz|*.tar.gz)
-    # For .tgz and .tar.gz files, use tar to decompress
-    if ! tar -xzf $filename; then
-      echo "$0: error un-tarring gzip archive $filepath"
-      exit 1;
-    fi
-    ;;
-  *.gz)
-    # For .gz files, use gzip to decompress
-    if ! gzip -d $filename; then
-      echo "$0: error unzipping gzip file $filepath"
-      exit 1;
-    fi
-    ;;
-  *.zip)
-    echo "$0: intentionally skip unzipping zip file $filepath"
-    ;;
-  *)
-    # Report unsupported file types but don't exit
-    echo "$0: '$filename' does not appear to be a supported archive format. No extraction performed."
-    ;;
-esac
+if $do_unzip; then
+  # Determine the file extension and perform the corresponding extraction operation
+  case $filename in
+    *.tgz|*.tar.gz)
+      # For .tgz and .tar.gz files, use tar to decompress
+      if ! tar -xzf $filename; then
+        echo "$0: error un-tarring gzip archive $filepath"
+        exit 1;
+      fi
+      ;;
+    *.gz)
+      # For .gz files, use gzip to decompress
+      if ! gzip -d $filename; then
+        echo "$0: error unzipping gzip file $filepath"
+        exit 1;
+      fi
+      ;;
+    *.zip)
+      # For .zip files, use unzip
+      if ! unzip -q $filename; then
+        echo "$0: error unzipping zip archive $filepath"
+        exit 1;
+      fi
+      ;;
+    *)
+      # Report unsupported file types but don't exit
+      echo "$0: '$filename' does not appear to be a supported archive format. No extraction performed."
+      ;;
+  esac
 
 
 cd $workspace

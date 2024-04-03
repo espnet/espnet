@@ -24,13 +24,6 @@ done
 src_langs=(lt) # one or many
 tgt_langs=(en) # one or many
 
-# Choose from flores and epst. 
-# Notice: epst only covers de, en, es, fr, it, nl, pl, pt, ro
-#         epst is s2t not s2s
-# TODO: if src and tgt lang not in this set, directly use flores
-test_dataset=epst
-
-
 . utils/parse_options.sh || exit 1;
 
 log() {
@@ -38,9 +31,13 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
+FLORES=downloads/flores
+mkdir -p ${FLORES}
+
+# defined in db.sh
 mkdir -p ${SPEECH_MATRIX}
 mkdir -p ${EUROPARL_ST}
-mkdir -p ${FLORES_ROOT}
+mkdir -p ${FLEURS}
 
 
 # Set bash to 'debug' mode, it will exit on :
@@ -61,19 +58,20 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Download data to ${SPEECH_MATRIX} and ${EUROPARL_ST}"
     log "Prepare source aligned speech data from speech matrix for training"
 
+    mkdir -p ${SPEECH_MATRIX}/audios
     # audio files for each languages
     for lang in "${src_langs[@]}"; do
-        mkdir -p ${SPEECH_MATRIX}/audios/${lang}
         local/download_and_unzip.sh \
-            ${SPEECH_MATRIX}/audios/${lang} \
+            --skip-unzip \
+            ${SPEECH_MATRIX}/audios \
             https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
             ${lang}_aud.zip
     done
 
     for lang in "${tgt_langs[@]}"; do
-        mkdir -p ${SPEECH_MATRIX}/audios/${lang}
         local/download_and_unzip.sh \
-            ${SPEECH_MATRIX}/audios/${lang} \
+            --skip-unzip \
+            ${SPEECH_MATRIX}/audios \
             https://dl.fbaipublicfiles.com/speech_matrix/audios/${lang}_aud.zip \
             ${lang}_aud.zip
     done
@@ -94,15 +92,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
 
             local/download_and_unzip.sh \
-                --remove-archive \
+                --skip-unzip \
                 ${SPEECH_MATRIX}/aligned_speech/${pair} \
                 https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz \
                 ${pair}.tsv.gz
         done
     done
 
-    log "Download FLORES data to ${SPEECH_MATRIX}"
-    local/download_and_unzip.sh ${FLORES_ROOT} ${flores_raw_data_url} flores101_dataset.tar.gz
+    log "Download FLORES data to ./data"
+    local/download_and_unzip.sh --remove-archive ${FLORES} ${flores_raw_data_url} flores101_dataset.tar.gz
 
     log "Download EuroParl-ST data to ${EUROPARL_ST}"
     local/download_and_unzip.sh --remove-archive ${EUROPARL_ST} ${europarl_raw_data_url} v1.1.tar.gz
@@ -110,44 +108,42 @@ fi
 
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: EUROPARL_ST data preparation"
+    log "Stage 2: EUROPARL_ST + FLEURS data preparation"
+
+    log "EUROPARL_ST data preparation"
     python local/fairseq_speechmatrix/prep_epst_test_data.py \
         --epst-dir ${EUROPARL_ST}/v1.1 \
         --proc-epst-dir ${EUROPARL_ST} \
-        --save-root ${EUROPARL_ST}/test
-    log "EUROPARL_ST data paraparation done."
+        --save-root ${EUROPARL_ST}
+    log "EUROPARL_ST data preparation done."
 
-    log "Start fleurs data paraparation."
-    pip install datasets
+    log "Start FLEURS data paraparation."
     python local/fairseq_speechmatrix/preproc_fleurs_data.py \
-        --proc-fleurs-dir ${FLORES_ROOT} > /dev/null 2>&1
-
-    log "Start align fleur data."
+        --proc-fleurs-dir ${FLEURS}
     python local/fairseq_speechmatrix/align_fleurs_data.py \
-        --flores-root ${FLORES_ROOT}/flores101_dataset \
-        --proc-fleurs-dir ${FLORES_ROOT} \
-        --save-root ${FLORES_ROOT}/align > /dev/null 2>&1
-    log "Fleurs data alignment done."
-
-    python local/fairseq_speechmatrix/prep_fleurs_test_data.py  \
-        --proc-fleurs-dir ${FLORES_ROOT} \
-        --save-root ${FLORES_ROOT}/test > /dev/null 2>&1
-    log "Fleurs data paraparation done."
+        --flores-root ${FLORES}/flores101_dataset \
+        --proc-fleurs-dir ${FLEURS} \
+        --save-root ${FLEURS}
+    # python local/fairseq_speechmatrix/prep_fleurs_test_data.py  \
+    #     --proc-fleurs-dir ${FLEURS} \
+    #     --save-root ${FLEURS}/test
+    log "FLEURS data preparation done."
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Preparing data for speechmatrix"
 
-    for part in "train" "test" "dev"; do
+    for part in "test"; do
         log "Preparing ${part} data."
         python local/data_prep.py \
             --src_folder ${SPEECH_MATRIX} \
             --src_langs ${src_langs[@]} \
             --tgt_langs ${tgt_langs[@]} \
             --subset ${part} \
-            --test_dataset ${test_dataset} \
-            --save_folder data
-
+            --save_folder data \
+            --dump_folder dump \
+            --europarl_folder ${EUROPARL_ST} \
+            --fleurs_folder ${FLEURS}
 
         for src_lang in "${src_langs[@]}"; do
             for tgt_lang in "${tgt_langs[@]}"; do
@@ -155,15 +151,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 if [[ "$src_lang" == "$tgt_lang" ]]; then
                     continue
                 fi
+                for dataset in "epst" "fleurs"; do
+                    data_path=data/${part}_${dataset}_${src_lang}_${tgt_lang}
+                    if [ ! -d ${data_path} ]; then
+                        continue
+                    fi
 
-                ln -sf text.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/text
-                ln -sf wav.scp.${tgt_lang} data/${part}_${src_lang}_${tgt_lang}/wav.scp
+                    ln -sf text.${tgt_lang} ${data_path}/text
+                    ln -sf wav.scp.${tgt_lang} ${data_path}/wav.scp
 
-                utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
-                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}_${tgt_lang}
+                    utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
+                    utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${data_path}
+                done
             done
         done
-
     done
 fi
 

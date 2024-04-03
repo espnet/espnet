@@ -3,6 +3,7 @@ import argparse
 import torch
 import torchaudio
 import torchaudio.functional as F
+from tqdm import tqdm
 from datasets import load_dataset
 
 from data_cfg import FLEURS_LANGS
@@ -10,8 +11,7 @@ from data_cfg import FLEURS_LANGS
 
 def get_lang_data(lang, out_audio_dir, out_manifest_dir, split, out_sr=16000):
     lang_code = lang[:2]
-    data = load_dataset("google/fleurs", lang)
-    data_size = len(data[split])
+    data = load_dataset("google/fleurs", lang, streaming=True, trust_remote_code=True)
     os.makedirs(out_audio_dir, exist_ok=True)
     os.makedirs(out_manifest_dir, exist_ok=True)
 
@@ -29,9 +29,9 @@ def get_lang_data(lang, out_audio_dir, out_manifest_dir, split, out_sr=16000):
     raw_trans_fn = os.path.join(out_manifest_dir, f"{save_split}_{lang_code}.raw.trans")
     out_raw_trans = open(raw_trans_fn, "w")
 
-    for idx in range(data_size):
+    for row in tqdm(data[split], desc=f"lang {lang} split {split}"):
         # aud: {'path', 'array', 'sampling_rate'}
-        aud = data[split][idx]["audio"]
+        aud = row["audio"]
         waveform = torch.Tensor(aud["array"].reshape(1, len(aud["array"])))
         in_sr = aud["sampling_rate"]
         # resample audio
@@ -39,14 +39,14 @@ def get_lang_data(lang, out_audio_dir, out_manifest_dir, split, out_sr=16000):
             F.resample(waveform, in_sr, out_sr)
         nf = waveform.size(-1)
         fn = ".".join(os.path.basename(aud["path"]).split(".")[:-1])
-        save_fn = os.path.join(out_audio_dir, fn + ".flac")
+        save_fn = os.path.join(out_audio_dir, fn + ".wav")
         # save audio
         if not os.path.exists(save_fn):
             torchaudio.save(save_fn, waveform, out_sr)
 
-        out_aud_manifest.write(f"{fn}.flac\t{nf}\n")
-        text = data[split][idx]["transcription"]
-        raw_text = data[split][idx]["raw_transcription"]
+        out_aud_manifest.write(f"{fn}.wav\t{nf}\n")
+        text = row["transcription"]
+        raw_text = row["raw_transcription"]
         out_trans.write(text + "\n")
         out_raw_trans.write(raw_text + "\n")
     out_aud_manifest.close()
