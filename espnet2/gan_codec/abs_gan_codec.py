@@ -9,7 +9,7 @@ from typing import Dict, Union
 import torch
 
 
-class AbsGANCodec(ABC):
+class AbsGANCodec(ABC, torch.nn.Module):
     """GAN-based Neural Codec model abstract class."""
 
     @abstractmethod

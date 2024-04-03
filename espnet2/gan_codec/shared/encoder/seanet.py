@@ -13,7 +13,13 @@ import logging
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.nn.utils import spectral_norm, weight_norm
+from torch.nn.utils import spectral_norm
+from packaging.version import parse as V
+
+if V(torch.__version__) >= V("2.1.0"):
+    from torch.nn.utils.parametrizations import weight_norm
+else:
+    from torch.nn.utils import weight_norm
 
 
 CONV_NORMALIZATIONS = frozenset(

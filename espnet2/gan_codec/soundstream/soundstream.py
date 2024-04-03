@@ -24,6 +24,13 @@ from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    FeatureMatchLoss,
+    GeneratorAdversarialLoss,
+    MelSpectrogramLoss,
+)
+from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class SoundStream(AbsGANCodec):
@@ -33,7 +40,6 @@ class SoundStream(AbsGANCodec):
         self,
         sampling_rate: int = 24000,
         generator_params: Dict[str, Any] = {
-            "sample_rate": 24000,
             "hidden_dim": 128,
             "encdec_channels": 1,
             "encdec_n_filters": 32,
@@ -92,7 +98,7 @@ class SoundStream(AbsGANCodec):
                 "n_fft": 1024,
                 "hop_length": 256,
                 "win_length": 1024,
-                "stft_nbormalized": False,
+                "stft_normalized": False,
             },
         },
         # loss related
@@ -152,6 +158,7 @@ class SoundStream(AbsGANCodec):
                 **feat_match_loss_params,
             )
         self.use_mel_loss = use_mel_loss
+        mel_loss_params.update(fs=sampling_rate)
         if self.use_mel_loss:
             self.mel_loss = MelSpectrogramLoss(
                 **mel_loss_params,
@@ -229,8 +236,7 @@ class SoundStream(AbsGANCodec):
 
         """
         # setup
-        batch_size = text.size(0)
-        audio = audio.unsqueeze(1)
+        batch_size = audio.size(0)
 
         # calculate generator outputs
         reuse_cache = True
@@ -239,6 +245,8 @@ class SoundStream(AbsGANCodec):
             audio_hat, codec_commit_loss = self.generator(audio)
         else:
             audio_hat, codec_commit_loss = self._cache
+        
+        print(audio.shape. audio_hat.shape)
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
@@ -307,8 +315,7 @@ class SoundStream(AbsGANCodec):
         """
 
         # setup
-        batch_size = text.size(0)
-        audio = audio.unsqueeze(1)
+        batch_size = audio.size(0)
 
         # calculate generator outputs
         reuse_cache = True
@@ -569,7 +576,7 @@ class SoundStreamDiscriminator(nn.Module):
             "n_fft": 1024,
             "hop_length": 256,
             "win_length": 1024,
-            "stft_nbormalized": False,
+            "stft_normalized": False,
         },
     ):
         """Initialize SoundStream Discriminator module.
@@ -595,7 +602,7 @@ class SoundStreamDiscriminator(nn.Module):
             downsample_pooling=scale_downsample_pooling,
             downsample_pooling_params=scale_downsample_pooling_params,
             discriminator_params=scale_discriminator_params,
-            follow_official_norm=follow_official_norm,
+            follow_official_norm=scale_follow_official_norm,
         )
         self.complex_stft_d = ComplexSTFTDiscriminator(
             **complexstft_discriminator_params
