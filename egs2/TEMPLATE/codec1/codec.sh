@@ -59,7 +59,7 @@ train_args=""      # Arguments for training, e.g., "--max_epoch 1".
 tag=""             # Suffix for training directory.
 codec_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
 codec_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
-num_splits=1       # Number of splitting for tts corpus.
+num_splits=1       # Number of splitting for codec corpus.
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -78,7 +78,7 @@ download_model=""  # Download a model from Model Zoo and use it for decoding.
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-audio_fold_length=800 # fold_length for speech data.
+audio_fold_length=256000 # fold_length for speech data.
 # Upload model related
 hf_repo=
 
@@ -122,7 +122,7 @@ Options:
                     # If this option is specified, tag is ignored (default="${codec_exp}").
     --codec_stats_dir # Specify the directory path for statistics.
                     # If empty, automatically decided (default="${codec_stats_dir}").
-    --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
+    --num_splits    # Number of splitting for codec corpus (default="${num_splits}").
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
@@ -282,7 +282,7 @@ if ! "${skip_train}"; then
         _opts=
         if [ -n "${train_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+            #   % python3 -m espnet2.bin.gan_codec_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -322,7 +322,7 @@ if ! "${skip_train}"; then
         mkdir -p "${codec_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${codec_stats_dir}/run.sh"; chmod +x "${codec_stats_dir}/run.sh"
 
         # 3. Submit jobs
-        log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
+        log "Codec collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m "espnet2.bin.gan_codec_train" \
@@ -340,18 +340,18 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
-        ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats --output_dir "${codec_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${codec_stats_dir}"
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 5: Codec Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+            #   % python3 -m espnet2.bin.gan_codec_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -362,20 +362,18 @@ if ! "${skip_train}"; then
             # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
-        _fold_length="$((audio_fold_length * n_shift))"
 
-
-        log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${tts_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
+        log "Generate '${codec_exp}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${codec_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${codec_exp}/run.sh"; chmod +x "${codec_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
-        log "Neural codec training started... log: '${tts_exp}/train.log'"
+        log "Neural codec training started... log: '${codec_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
-            jobname="$(basename ${tts_exp})"
+            jobname="$(basename ${codec_exp})"
         else
-            jobname="${tts_exp}/train.log"
+            jobname="${codec_exp}/train.log"
         fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
@@ -383,16 +381,16 @@ if ! "${skip_train}"; then
             --log "${codec_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${tts_exp}"/.dist_init_ \
+            --init_file_prefix "${codec_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m "espnet2.bin.${tts_task}_train" \
+            ${python} -m "espnet2.bin.gan_codec_train" \
                 --use_preprocessor true \
                 --resume true \
-                --fold_length "${_fold_length}" \
+                --fold_length "${audio_fold_length}" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},audio,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},audio,${_type}" \
-                --train_shape_file ${tts_stats_dir}/train/audio_shape \
-                --valid_shape_file ${tts_stats_dir}/valid/audio_shape \
+                --train_shape_file ${codec_stats_dir}/train/audio_shape \
+                --valid_shape_file ${codec_stats_dir}/valid/audio_shape \
                 --output_dir "${codec_exp}" \
                 ${_opts} ${train_args}
 
@@ -404,19 +402,19 @@ fi
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    tts_exp="${expdir}/${download_model}"
-    mkdir -p "${tts_exp}"
+    codec_exp="${expdir}/${download_model}"
+    mkdir -p "${codec_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${tts_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${codec_exp}/config.txt"
 
     # Get the path of each file
-    _model_file=$(<"${tts_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
-    _train_config=$(<"${tts_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
+    _model_file=$(<"${codec_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
+    _train_config=$(<"${codec_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
 
     # Create symbolic links
-    ln -sf "${_model_file}" "${tts_exp}"
-    ln -sf "${_train_config}" "${tts_exp}"
+    ln -sf "${_model_file}" "${codec_exp}"
+    ln -sf "${_train_config}" "${codec_exp}"
     inference_model=$(basename "${_model_file}")
 
 fi
