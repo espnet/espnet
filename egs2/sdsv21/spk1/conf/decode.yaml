@@ -1,0 +1,16 @@
+# embedding extraction
+num_workers: 2
+valid_batch_size: 40
+target_duration: 8.0  # seconds
+num_eval: 2
+
+# score norm
+num_cohort_spk: 5994
+num_utt_per_spk: 20
+utt_select_sec: 2
+adaptive_cohort_size: 500
+average_spk: true
+
+# quality measure function
+qmf_dur_thresh: 6
+qmf_num_trial_per_condition: 5000
