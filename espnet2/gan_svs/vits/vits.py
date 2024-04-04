@@ -131,6 +131,7 @@ class VITS(AbsGANSVS):
             "use_only_mean_in_flow": True,
             "expand_f0_method": "repeat",
             "use_phoneme_predictor": False,
+            "hubert_channels": 1024,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -486,15 +487,17 @@ class VITS(AbsGANSVS):
         # ).transpose(1, 2)
         # print("adjusted_asr_feats", adjusted_asr_feats.shape)
         # concatenated_feats = torch.cat([feats, adjusted_asr_feats], dim=2)
-        if asr_feats.shape[1] > feats.shape[1]:
-            asr_feats = asr_feats[:, : feats.shape[1], :]
-        elif asr_feats.shape[1] < feats.shape[1]:
-            padding = (0, 0, 0, feats.shape[1] - asr_feats.shape[1], 0, 0)
-            asr_feats = torch.nn.functional.pad(asr_feats, padding)
 
-        concatenated_feats = torch.cat([feats, asr_feats], dim=2)
-        # print("concatenated_feats", concatenated_feats.shape)
-        # raise ValueError
+        if asr_feats is not None:
+            if asr_feats.shape[1] > feats.shape[1]:
+                asr_feats = asr_feats[:, : feats.shape[1], :]
+            elif asr_feats.shape[1] < feats.shape[1]:
+                padding = (0, 0, 0, feats.shape[1] - asr_feats.shape[1], 0, 0)
+                asr_feats = torch.nn.functional.pad(asr_feats, padding)
+
+            concatenated_feats = torch.cat([feats, asr_feats], dim=2)
+        else:
+            concatenated_feats = feats
 
         score_dur = duration["score_syb"]
         gt_dur = duration["lab"]

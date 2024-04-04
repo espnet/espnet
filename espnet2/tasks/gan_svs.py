@@ -40,23 +40,17 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
-from espnet2.asr.frontend.whisper import WhisperFrontend
-from espnet2.asr.frontend.windowing import SlidingWindow
 
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
         fused=FusedFrontends,
-        whisper=WhisperFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
 )
 feats_extractor_choices = ClassChoices(
     "feats_extract",
@@ -361,7 +355,7 @@ class GANSVSTask(AbsTask):
             odim = args.odim
 
         # 1. frontend
-        if args.input_size is None:
+        if args.input_size is None and args.frontend is not None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
@@ -382,6 +376,7 @@ class GANSVSTask(AbsTask):
 
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
+        args.svs_conf["generator_params"].update({"hubert_channels": input_size})
         svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
         # 4. Extra components

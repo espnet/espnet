@@ -340,6 +340,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(singing=singing, singing_lengths=singing_lengths)
         if self.frontend is not None:
             batch.update(asr_feats=asr_feats, asr_feats_lengths=asr_feats_lengths)
+        else:
+            batch.update(asr_feats=None, asr_feats_lengths=None)
         return self.svs(**batch)
 
     def collect_feats(

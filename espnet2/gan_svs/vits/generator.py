@@ -107,6 +107,8 @@ class VISingerGenerator(torch.nn.Module):
         n_fft: int = 1024,
         use_phoneme_predictor: bool = False,
         expand_f0_method: str = "repeat",
+        # hubert
+        hubert_channels: int = 1024,
     ):
         """Initialize VITS generator module.
 
@@ -310,9 +312,10 @@ class VISingerGenerator(torch.nn.Module):
             raise ValueError(
                 f"Not supported vocoder generator type: {vocoder_generator_type}"
             )
+        if hubert_channels is None:
+            hubert_channels = 0
         self.posterior_encoder = PosteriorEncoder(
-            in_channels=1104,  # mel 80 + hubert 1024 = 1104
-            # TODO (hard coded)
+            in_channels=hubert_channels + aux_channels,
             out_channels=hidden_channels,
             hidden_channels=hidden_channels,
             kernel_size=posterior_encoder_kernel_size,
