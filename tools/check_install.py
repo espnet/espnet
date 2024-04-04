@@ -31,6 +31,7 @@ module_list = [
     ("s3prl", None, "installers/install_s3prl.sh"),
     ("transformers", None, "installers/install_transformers.sh"),
     ("speechbrain", None, "installers/install_speechbrain.sh"),
+    ("speechbrain", None, "installers/install_mfa.sh"),
     ("k2", None, "installers/install_k2.sh"),
     ("longformer", None, "installers/install_longformer.sh"),
     ("nlg-eval", None, "installers/install_longformer.sh"),
