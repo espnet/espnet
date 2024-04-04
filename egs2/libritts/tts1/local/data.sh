@@ -12,7 +12,7 @@ SECONDS=0
 
 stage=-1
 stop_stage=1
-trim_all_silence=false
+trim_all_silence=true
 
 log "$0 $*"
 . utils/parse_options.sh
