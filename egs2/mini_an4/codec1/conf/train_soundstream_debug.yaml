@@ -7,7 +7,7 @@ codec_conf:
 
     # generator related
     generator_params:
-        hidden_dim: 10
+        hidden_dim: 8
         encdec_channels: 1
         encdec_n_filters: 2
         encdec_n_residual_layers: 1
@@ -26,8 +26,8 @@ codec_conf:
         encdec_compress: 2
         encdec_lstm: 1
         decoder_trim_right_ratio: 1.0
-        decoder_final_activation: None
-        decoder_final_activation_params: None
+        decoder_final_activation: null
+        decoder_final_activation_params: null
         quantizer_n_q: 2
         quantizer_bins: 1024
         quantizer_decay: 0.99
@@ -62,9 +62,9 @@ codec_conf:
         # complex stft discriminator related
         complexstft_discriminator_params:
             in_channels: 1
-            channels: 32,
-            strides: ((1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2))
-            chan_mults: (1, 2, 4, 4, 8, 8)
+            channels: 32
+            strides: [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]]
+            chan_mults: [1, 2, 4, 4, 8, 8]
             n_fft: 1024
             hop_length: 256
             win_length: 1024
@@ -129,20 +129,20 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 1000           # number of epochs
+num_iters_per_epoch: 2    # number of iterations per epoch
+max_epoch: 2              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 5000000       # batch bins (feats_type=raw)
+batch_bins: 1000000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
-num_workers: 4            # number of workers of data loader
+num_workers: 1            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
-log_interval: 50          # log interval in iterations
-keep_nbest_models: 5      # number of models to keep
-num_att_plot: 3           # number of attention figures to be saved in every check
+log_interval: 1          # log interval in iterations
+keep_nbest_models: 1      # number of models to keep
+num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case
