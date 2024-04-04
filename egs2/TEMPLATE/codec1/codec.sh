@@ -418,4 +418,3 @@ if [ -n "${download_model}" ]; then
     inference_model=$(basename "${_model_file}")
 
 fi
-

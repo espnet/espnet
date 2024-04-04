@@ -13,7 +13,7 @@ codec_conf:
         encdec_n_residual_layers: 1
         encdec_ratios: [8, 5, 4, 2]
         encdec_activation: ELU
-        encdec_activation_params: 
+        encdec_activation_params:
             alpha: 1.0
         encdec_norm: weight_norm
         encdec_kernel_size: 7
@@ -69,7 +69,7 @@ codec_conf:
             hop_length: 256
             win_length: 1024
             stft_normalized: False
-    
+
     # loss function related
     generator_adv_loss_params:
         average_by_discriminators: false # whether to average loss value by #discriminators
