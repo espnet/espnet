@@ -134,7 +134,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                 getattr(torch.nn, nonlinear_activation)(**nonlinear_activation_params),
                 torch.nn.Dropout(dropout),
             )
-        # hidden_channels = channels
+
         for i in range(len(downsample_scales)):
             for j in range(len(resblock_kernel_sizes)):
                 self.downsamples_mrf += [

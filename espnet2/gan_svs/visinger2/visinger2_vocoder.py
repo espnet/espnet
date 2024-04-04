@@ -22,8 +22,6 @@ from espnet2.gan_svs.visinger2.ddsp import (
     upsample,
 )
 
-# HiFiGANMultiScaleMultiPeriodDiscriminator,;
-# HiFiGANPeriodDiscriminator,; HiFiGANScaleDiscriminator,
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,

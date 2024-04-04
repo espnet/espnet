@@ -3,11 +3,7 @@ import torch
 
 from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
 
-# from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
-
-# from espnet.nets.batch_beam_search import BatchBeamSearch
-# from espnet.nets.beam_search import BeamSearch
 
 
 @pytest.mark.parametrize("arch", [TransformerLM])

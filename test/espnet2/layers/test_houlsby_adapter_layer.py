@@ -4,8 +4,6 @@ import pytest
 import torch
 from packaging.version import parse as V
 
-# from unittest.mock import MagicMock, patch
-
 
 try:
     import s3prl  # noqa

@@ -670,7 +670,6 @@ class VISingerGenerator(torch.nn.Module):
             decoder_condition = self.sin_prenet(sin)
 
             # dsp based HiFiGAN vocoder
-            # F0_slice = get_segments(pitch, z_start_idxs, self.segment_size)
             dsp_slice = get_segments(
                 dsp_o,
                 z_start_idxs * self.hop_length,

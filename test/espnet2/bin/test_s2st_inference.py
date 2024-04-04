@@ -9,8 +9,6 @@ import torch
 from espnet2.bin.s2st_inference import Speech2Speech, get_parser, main
 from espnet2.tasks.s2st import S2STTask
 
-# from espnet.nets.beam_search import Hypothesis
-
 
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
