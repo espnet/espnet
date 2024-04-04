@@ -4,7 +4,6 @@ import pytest
 import torch
 from packaging.version import parse as V
 
-
 try:
     import s3prl  # noqa
     from s3prl.upstream.wav2vec2.wav2vec2_model import (  # noqa

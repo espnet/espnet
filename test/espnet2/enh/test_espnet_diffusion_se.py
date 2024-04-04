@@ -6,7 +6,6 @@ from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
-
 stft_encoder = STFTEncoder(n_fft=128, hop_length=64)
 stft_decoder = STFTDecoder(n_fft=128, hop_length=64)
 

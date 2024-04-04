@@ -2,7 +2,6 @@ import pytest
 import torch
 
 from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
-
 from espnet2.lm.transformer_lm import TransformerLM
 
 
