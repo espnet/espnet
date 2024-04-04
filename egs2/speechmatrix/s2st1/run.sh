@@ -6,11 +6,8 @@ set -u
 set -o pipefail
 
 # language related
-src_lang=lt 
+src_lang=lt
 tgt_lang=en 
-
-stage=1
-stop_stage=5
 
 # kmeans related
 ssl_model=mhubert_base_vp_en_es_fr_it3
@@ -30,8 +27,6 @@ vocoder_file=none  # TODO: Have to retrain the vocoder with discrete units
 score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best"
 
 ./s2st.sh \
-    --stage ${stage} \
-    --stop_stage ${stop_stage} \
     --ngpu 1 \
     --nj 64 \
     --inference_nj 64 \
