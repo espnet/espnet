@@ -4,17 +4,17 @@
 """Encodec SEANet-based encoder and decoder implementation."""
 
 
-import numpy as np
-import math
-from typing import List, Dict, Any, Optional, Union, Tuple
-import einops
 import logging
+import math
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import einops
+import numpy as np
 import torch
+from packaging.version import parse as V
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm
-from packaging.version import parse as V
 
 if V(torch.__version__) >= V("2.1.0"):
     from torch.nn.utils.parametrizations import weight_norm

@@ -33,12 +33,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 """Core vector quantization implementation."""
-from typing import Any, Callable, Union, Optional
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.nn.functional as F
-from einops import rearrange
-from einops import repeat
+from einops import rearrange, repeat
 from torch import nn
 
 from espnet2.gan_codec.shared.quantizer.modules.distrib import broadcast_tensors

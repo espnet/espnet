@@ -5,25 +5,24 @@
 
 import copy
 import logging
+import math
+import random
 from typing import Any, Dict, List, Optional
-from typeguard import check_argument_types
-
 
 import numpy as np
 import torch
-import math
 import torch.nn as nn
 import torch.nn.functional as F
-
+from typeguard import check_argument_types
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
-from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
-from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
+from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
+from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
+from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -99,6 +98,7 @@ class SoundStream(AbsGANCodec):
                 "hop_length": 256,
                 "win_length": 1024,
                 "stft_normalized": False,
+                "logits_abs": True,
             },
         },
         # loss related
@@ -238,6 +238,9 @@ class SoundStream(AbsGANCodec):
         # setup
         batch_size = audio.size(0)
 
+        # TODO(jiatong): double check the multi-channel input
+        audio = audio.unsqueeze(1)
+
         # calculate generator outputs
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
@@ -245,8 +248,6 @@ class SoundStream(AbsGANCodec):
             audio_hat, codec_commit_loss = self.generator(audio)
         else:
             audio_hat, codec_commit_loss = self._cache
-        
-        print(audio.shape. audio_hat.shape)
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
@@ -263,6 +264,10 @@ class SoundStream(AbsGANCodec):
         adv_loss = adv_loss * self.lambda_adv
         codec_commit_loss = codec_commit_loss * self.lambda_codec
         loss = adv_loss + codec_commit_loss
+        stats = dict(
+            adv_loss=adv_loss.item(),
+            codec_commit_loss=codec_commit_loss.item(),
+        )
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p)
             feat_match_loss = feat_match_loss * self.lambda_feat_match
@@ -274,11 +279,7 @@ class SoundStream(AbsGANCodec):
             loss = loss + mel_loss
             stats.update(mel_loss=mel_loss.item())
 
-        stats.update(
-            adv_loss=adv_loss.item(),
-            codec_commit_loss=codec_commit_loss.item(),
-            loss=loss.item(),
-        )
+        stats.update(loss=loss.item())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -316,6 +317,7 @@ class SoundStream(AbsGANCodec):
 
         # setup
         batch_size = audio.size(0)
+        audio = audio.unsqueeze(1)
 
         # calculate generator outputs
         reuse_cache = True
@@ -571,8 +573,8 @@ class SoundStreamDiscriminator(nn.Module):
         complexstft_discriminator_params: Dict[str, Any] = {
             "in_channels": 1,
             "channels": 32,
-            "strides": ((1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2)),
-            "chan_mults": (1, 2, 4, 4, 8, 8),
+            "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
+            "chan_mults": [1, 2, 4, 4, 8, 8],
             "n_fft": 1024,
             "hop_length": 256,
             "win_length": 1024,

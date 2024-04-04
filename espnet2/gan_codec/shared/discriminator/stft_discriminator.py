@@ -11,11 +11,11 @@ import copy
 import logging
 from typing import Any, Dict, List, Optional
 
-from einops import rearrange
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import rearrange
 
 
 class ModReLU(nn.Module):
@@ -84,12 +84,13 @@ class ComplexSTFTDiscriminator(nn.Module):
         *,
         in_channels=1,
         channels=32,
-        strides=((1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2)),
-        chan_mults=(1, 2, 4, 4, 8, 8),
+        strides=[[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
+        chan_mults=[1, 2, 4, 4, 8, 8],
         n_fft=1024,
         hop_length=256,
         win_length=1024,
         stft_normalized=False,
+        logits_abs=True,
     ):
         """Initialize Complex STFT Discriminator used in SoundStream.
 
@@ -98,8 +99,8 @@ class ComplexSTFTDiscriminator(nn.Module):
         Args:
             in_channels (int): Input channel.
             channels (int): Output channel.
-            strides (Tuple[Tuple(int, int)]): detailed strides in conv2d modules.
-            chan_mults (Tuple[int]): Channel multiplers.
+            strides (List[List(int, int)]): detailed strides in conv2d modules.
+            chan_mults (List[int]): Channel multiplers.
             n_fft (int): n_fft in the STFT.
             hop_length (int): hop_length in the STFT.
             stft_normalized (bool): whether to normalize the stft output.
@@ -123,6 +124,7 @@ class ComplexSTFTDiscriminator(nn.Module):
 
         # stft settings
         self.stft_normalized = stft_normalized
+        self.logits_abs = logits_abs
 
         self.n_fft = n_fft
         self.hop_length = hop_length
@@ -159,4 +161,8 @@ class ComplexSTFTDiscriminator(nn.Module):
         for layer in self.layers:
             x = layer(x)
 
+        if self.logits_abs:
+            x = torch.abs(x)
+        else:
+            x = torch.view_as_real(x)
         return [[x]]

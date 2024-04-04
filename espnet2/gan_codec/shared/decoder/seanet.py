@@ -3,7 +3,7 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -12,11 +12,11 @@ from torch.nn import functional as F
 from torch.nn.utils import spectral_norm, weight_norm
 
 from espnet2.gan_codec.shared.encoder.seanet import (
+    SLSTM,
+    SConv1d,
+    SEANetResnetBlock,
     apply_parametrization_norm,
     get_norm_module,
-    SEANetResnetBlock,
-    SConv1d,
-    SLSTM,
 )
 
 

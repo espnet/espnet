@@ -6,7 +6,7 @@
 # All rights reserved.
 
 """Torch distributed utilities."""
-from typing import List, Iterable, Dict
+from typing import Dict, Iterable, List
 
 import torch
 
