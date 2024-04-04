@@ -38,10 +38,13 @@ model_conf:
     num_spk: 2
     share_encoder: true
 
+# preprocessor-related arguments
+# see TSEPreprocessor in https://github.com/espnet/espnet/blob/master/espnet2/train/preprocessor.py
 train_spk2enroll: data/train-100/spk2enroll.json
 enroll_segment: 48000
 load_spk_embedding: false
-load_all_speakers: false
+load_all_speakers: true
+num_skp: 2
 
 encoder: conv
 encoder_conf:
