@@ -26,7 +26,7 @@ st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=false  # TODO: 
 use_tgt_lang=false  # TODO:
 inference_config=conf/decode_s2st.yaml
-vocoder_file=none  # TODO: Have to retrain the vocoder with discrete units
+vocoder_file=dump/pretrained_HifiGAN/g_00500000.pt
 score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best"
 
 ./s2st.sh \

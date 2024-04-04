@@ -71,6 +71,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
+from espnet2.tts.utils import FairseqHifiGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -874,5 +875,12 @@ class S2STTask(STTask):
             )
             return vocoder.to(device)
 
+        elif str(vocoder_file).endswith(".pkl"):
+            # If the extension is ".pt", the model is trained with HifiGAN
+            vocoder = FairseqHifiGANPretrainedVocoder(
+                vocoder_file, vocoder_config_file
+            )
+            return vocoder.to(device)
+        
         else:
             raise ValueError(f"{vocoder_file} is not supported format.")
