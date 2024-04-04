@@ -19,7 +19,8 @@ train_set=train_${src_lang}_${tgt_lang}
 valid_set=dev_${src_lang}_${tgt_lang}
 test_sets="test_fleurs_${src_lang}_${tgt_lang}"
 
-st_config=conf/train_s2st_discrete_unit.yaml
+s2st_config=conf/train_s2st_discrete_unit.yaml
+# st_config=conf/train_s2st_discrete_unit_bigger_batch.yaml
 use_src_lang=false
 use_tgt_lang=false
 inference_config=conf/decode_s2st.yaml
@@ -28,8 +29,9 @@ score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins
 
 ./s2st.sh \
     --ngpu 1 \
-    --nj 16 \
-    --inference_nj 16 \
+    --nj 32 \
+    --inference_nj 32 \
+    --s2st_config ${s2st_config} \
     --use_discrete_unit true \
     --kmeans_opts "--skip_train_kmeans true --km_dir dump/pretrained_kmeans" \
     --km_tag pretrained_kmeans \
@@ -46,8 +48,6 @@ score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins
     --clustering_num_threads 60 \
     --clustering_portion ${clustering_portion} \
     --feature_num_clusters ${clustering_num_clusters} \
-    --src_token_type "char" \
-    --tgt_token_type "char" \
     --inference_config "${inference_config}" \
     --vocoder_file "${vocoder_file}" \
     --score_asr_model_tag "${score_asr_model_tag}" \
