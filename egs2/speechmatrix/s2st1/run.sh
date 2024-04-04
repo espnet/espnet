@@ -20,16 +20,16 @@ valid_set=dev_${src_lang}_${tgt_lang}
 test_sets="test_fleurs_${src_lang}_${tgt_lang}"
 
 st_config=conf/train_s2st_discrete_unit.yaml
-use_src_lang=false  # TODO: 
-use_tgt_lang=false  # TODO:
+use_src_lang=false
+use_tgt_lang=false
 inference_config=conf/decode_s2st.yaml
 vocoder_file=none  # TODO: Have to retrain the vocoder with discrete units
-score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best"
+score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp"
 
 ./s2st.sh \
     --ngpu 1 \
-    --nj 64 \
-    --inference_nj 64 \
+    --nj 16 \
+    --inference_nj 16 \
     --use_discrete_unit true \
     --kmeans_opts "--skip_train_kmeans true --km_dir dump/pretrained_kmeans" \
     --km_tag pretrained_kmeans \
