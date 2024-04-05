@@ -31,7 +31,8 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
             config_file = os.path.join(dirname, "config.yml")
 
         with open(config_file) as f:
-            config = yaml.load(f, Loader=yaml)
+            config = yaml.safe_load(f)
+        self.fs = config["sampling_rate"]
         self.vocoder = CodeHiFiGANVocoder(model_file, config)
         
 
