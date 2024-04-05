@@ -24,7 +24,7 @@ s2st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=false
 use_tgt_lang=false
 inference_config=conf/decode_s2st.yaml
-vocoder_file=none  # TODO: Have to retrain the vocoder with discrete units
+vocoder_file=dump/pretrained_HifiGAN/g_00500000.pt
 score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp"
 
 ./s2st.sh \
