@@ -6,11 +6,8 @@ set -u
 set -o pipefail
 
 # language related
-src_lang=lt 
+src_lang=lt
 tgt_lang=en 
-
-stage=1
-stop_stage=5
 
 # kmeans related
 ssl_model=mhubert_base_vp_en_es_fr_it3
@@ -22,19 +19,19 @@ train_set=train_${src_lang}_${tgt_lang}
 valid_set=dev_${src_lang}_${tgt_lang}
 test_sets="test_fleurs_${src_lang}_${tgt_lang}"
 
-st_config=conf/train_s2st_discrete_unit.yaml
-use_src_lang=false  # TODO: 
-use_tgt_lang=false  # TODO:
+s2st_config=conf/train_s2st_discrete_unit.yaml
+# st_config=conf/train_s2st_discrete_unit_bigger_batch.yaml
+use_src_lang=false
+use_tgt_lang=false
 inference_config=conf/decode_s2st.yaml
 vocoder_file=dump/pretrained_HifiGAN/g_00500000.pt
-score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_raw_bpe_sp_valid.acc.best"
+score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp"
 
 ./s2st.sh \
-    --stage ${stage} \
-    --stop_stage ${stop_stage} \
     --ngpu 1 \
-    --nj 64 \
-    --inference_nj 64 \
+    --nj 32 \
+    --inference_nj 32 \
+    --s2st_config ${s2st_config} \
     --use_discrete_unit true \
     --kmeans_opts "--skip_train_kmeans true --km_dir dump/pretrained_kmeans" \
     --km_tag pretrained_kmeans \
@@ -51,8 +48,6 @@ score_asr_model_tag="Shinji Watanabe/librispeech_asr_train_asr_transformer_e18_r
     --clustering_num_threads 60 \
     --clustering_portion ${clustering_portion} \
     --feature_num_clusters ${clustering_num_clusters} \
-    --src_token_type "char" \
-    --tgt_token_type "char" \
     --inference_config "${inference_config}" \
     --vocoder_file "${vocoder_file}" \
     --score_asr_model_tag "${score_asr_model_tag}" \

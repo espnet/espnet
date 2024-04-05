@@ -85,7 +85,7 @@ frontend_choices = ClassChoices(
         s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
-    default=None,
+    default="default",
 )
 tgt_feats_extract_choices = ClassChoices(
     name="tgt_feats_extract",
@@ -517,16 +517,28 @@ class S2STTask(STTask):
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=[args.tgt_token_type, args.src_token_type, unit_token_type],
+                token_type=[
+                    # args.tgt_token_type,
+                    # args.src_token_type,
+                    unit_token_type,
+                ],
                 token_list=[
-                    args.tgt_token_list,
-                    args.src_token_list,
+                    # args.tgt_token_list,
+                    # args.src_token_list,
                     args.unit_token_list,
                 ],
-                bpemodel=[args.tgt_bpemodel, args.src_bpemodel, None],
+                bpemodel=[
+                    # args.tgt_bpemodel,
+                    # args.src_bpemodel,
+                    None,
+                ],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=[args.tgt_g2p, args.src_g2p, None],
+                g2p_type=[
+                    # args.tgt_g2p,
+                    # args.src_g2p,
+                    None,
+                ],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
                 rir_apply_prob=(
@@ -550,7 +562,11 @@ class S2STTask(STTask):
                     else None
                 ),
                 speech_name="src_speech",
-                text_name=["tgt_text", "src_text", "tgt_speech"],
+                text_name=[
+                    # "tgt_text",
+                    # "src_text",
+                    "tgt_speech",
+                ],
             )
         else:
             retval = None

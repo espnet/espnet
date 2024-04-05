@@ -336,12 +336,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         pad="<pad>"
         sos_eos="<sos/eos>" # sos and eos symbole
 
-        <${datadir}/${train_set}/text.km.${km_tag} cut -d" " -f2- | \
-            awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
-                sort -n -r -k 2  | \
-                awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
-                    '{print($1)} END{print(oov); print(sos_eos)}' \
-                > ${dictdir}/tokens.txt
+        # <${datadir}/${train_set}/text.km.${km_tag} cut -d" " -f2- | \
+        #     awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
+        #         sort -n -r -k 2  | \
+        #         awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
+        #             '{print($1)} END{print(oov); print(sos_eos)}' \
+        #         > ${dictdir}/tokens.txt
+        python3 -c "print('\n'.join([str(i) for i in range($nclusters)]));print('<unk>\n<sos/eos>')" \
+            > ${dictdir}/tokens.txt
 
         log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
     fi

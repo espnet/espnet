@@ -727,6 +727,10 @@ if ! "${skip_data_prep}"; then
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
+            # Need to filter twice to get the intersection
+            cp "${data_feats}/${dset}/wav.scp.${src_lang}" "${data_feats}/${dset}/wav.scp"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+            cp "${data_feats}/${dset}/wav.scp.${tgt_lang}" "${data_feats}/${dset}/wav.scp"
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
