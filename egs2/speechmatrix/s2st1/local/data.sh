@@ -53,8 +53,8 @@ log "data preparation started"
 europarl_raw_data_url=https://www.mllp.upv.es/europarl-st/v1.1.tar.gz
 flores_raw_data_url=https://dl.fbaipublicfiles.com/flores101/dataset/flores101_dataset.tar.gz
 kmeans_model_url=https://dl.fbaipublicfiles.com/hubert/mhubert_base_vp_en_es_fr_it3_L11_km1000.bin
-HifiGAN_ckpt_url=https://dl.fbaipublicfiles.com/fairseq/speech_to_speech/vocoder/code_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj/g_00500000
-HifiGAN_config_url=https://dl.fbaipublicfiles.com/fairseq/speech_to_speech/vocoder/code_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj/config.json
+hifigan_ckpt_url=https://dl.fbaipublicfiles.com/fairseq/speech_to_speech/vocoder/code_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj/g_00500000
+hifigan_config_url=https://dl.fbaipublicfiles.com/fairseq/speech_to_speech/vocoder/code_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj/config.json
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -113,9 +113,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     wget ${kmeans_model_url} -O dump/pretrained_kmeans/km_1000.mdl
 
     log "Download pre-trained HifiGAN ckpt and config" # only english for now
-    mkdir -p dump/pretrained_HifiGAN
-    wget ${HifiGAN_ckpt_url} -O dump/pretrained_HifiGAN/g_00500000.pt
-    wget ${HifiGAN_config_url} -O dump/pretrained_HifiGAN/config.yml
+    mkdir -p dump/pretrained_hifigan
+    wget ${hifigan_ckpt_url} -O dump/pretrained_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj.pt
+    wget ${hifigan_config_url} -O dump/pretrained_hifigan/config.yml
 fi
 
 

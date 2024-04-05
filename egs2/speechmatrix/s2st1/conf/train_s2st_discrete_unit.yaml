@@ -113,7 +113,7 @@ sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
 # num_iters_per_epoch: 1000
-max_epoch: 10
+max_epoch: 25
 num_workers: 2
 log_interval: null
 seed: 0
