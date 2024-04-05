@@ -1,9 +1,8 @@
-import os
 import argparse
+import os
 
 from data_cfg import FLEURS_LANGS, manifest_key
 from test_data_helper import gen_manifest
-
 
 domain = "fleurs"
 

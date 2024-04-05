@@ -1,14 +1,9 @@
-import os
 import argparse
+import os
 from collections import defaultdict
 
-from data_cfg import (
-    FLEURS_LANGS,
-    FLORES_LANG_MAP,
-    manifest_key,
-)
 from cleaners import text_cleaners
-
+from data_cfg import FLEURS_LANGS, FLORES_LANG_MAP, manifest_key
 
 domain = "fleurs"
 

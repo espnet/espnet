@@ -1,12 +1,12 @@
-import os
 import argparse
+import os
+
 import torch
 import torchaudio
 import torchaudio.functional as F
-from tqdm import tqdm
-from datasets import load_dataset
-
 from data_cfg import FLEURS_LANGS
+from datasets import load_dataset
+from tqdm import tqdm
 
 
 def get_lang_data(lang, out_audio_dir, out_manifest_dir, split, out_sr=16000):

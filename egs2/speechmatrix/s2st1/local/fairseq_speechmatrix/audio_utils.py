@@ -4,9 +4,9 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import io
 import mmap
 from pathlib import Path
-import io
 from typing import BinaryIO, List, Optional, Tuple, Union
 
 import numpy as np

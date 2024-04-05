@@ -893,10 +893,8 @@ class S2STTask(STTask):
 
         elif str(vocoder_file).endswith(".pt"):
             # If the extension is ".pt", the model is trained with HifiGAN
-            vocoder = FairseqHifiGANPretrainedVocoder(
-                vocoder_file, vocoder_config_file
-            )
+            vocoder = FairseqHifiGANPretrainedVocoder(vocoder_file, vocoder_config_file)
             return vocoder.to(device)
-        
+
         else:
             raise ValueError(f"{vocoder_file} is not supported format.")

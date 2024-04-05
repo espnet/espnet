@@ -7,7 +7,7 @@ set -o pipefail
 
 # language related
 src_lang=lt
-tgt_lang=en 
+tgt_lang=en
 
 # kmeans related
 ssl_model=mhubert_base_vp_en_es_fr_it3

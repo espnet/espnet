@@ -2,12 +2,11 @@
 Modified from https://github.com/keithito/tacotron
 """
 
-
-from functools import partial
-import inflect
 import re
-from num2words import num2words
+from functools import partial
 
+import inflect
+from num2words import num2words
 
 _inflect = inflect.engine()
 _comma_number_re = re.compile(r"([0-9][0-9\,]+[0-9])")

@@ -1,13 +1,12 @@
-import os
 import argparse
+import os
+
 import torchaudio
 import torchaudio.functional as F
-from tqdm import tqdm
-
-from data_cfg import EP_LANGS, manifest_key
 from cleaners import text_cleaners
+from data_cfg import EP_LANGS, manifest_key
 from test_data_helper import gen_manifest
-
+from tqdm import tqdm
 
 domain = "epst"
 
@@ -68,7 +67,11 @@ def segment_epst_aud(
                 aud_path = os.path.join(src_aud_dir, aud + ".m4a")
                 tmp_aud_path = os.path.join(tmp_out_aud_dir, aud + ".wav")
                 if not os.path.exists(tmp_aud_path):
-                    os.system("ffmpeg -hide_banner -loglevel error -y -i {} {}".format(aud_path, tmp_aud_path))
+                    os.system(
+                        "ffmpeg -hide_banner -loglevel error -y -i {} {}".format(
+                            aud_path, tmp_aud_path
+                        )
+                    )
 
                 seg_fn = "_".join([aud, st, et]) + ".wav"
                 seg_path = os.path.join(out_aud_dir, seg_fn)

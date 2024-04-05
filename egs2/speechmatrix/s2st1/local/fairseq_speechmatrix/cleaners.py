@@ -2,14 +2,12 @@
 Modified from https://github.com/keithito/tacotron
 """
 
-
-import string
 import re
-from unidecode import unidecode
-from typing import List, Callable
+import string
+from typing import Callable, List
 
 from numbers_cleaners import normalize_numbers
-
+from unidecode import unidecode
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")

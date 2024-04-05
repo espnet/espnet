@@ -14,7 +14,6 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
         model_file: Union[Path, str],
         config_file: Optional[Union[Path, str]] = None,
     ):
-        
         """Initialize ParallelWaveGANPretrainedVocoder module."""
         super().__init__()
         try:
@@ -22,10 +21,12 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
 
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
-            print("The version provided by espnet is not up-to-dated, not covering these")
+            print(
+                "The version provided by espnet is not up-to-dated, not covering these"
+            )
             print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
             raise e
-        
+
         if config_file is None:
             dirname = os.path.dirname(str(model_file))
             config_file = os.path.join(dirname, "config.yml")
@@ -34,7 +35,6 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
             config = yaml.safe_load(f)
         self.fs = config["sampling_rate"]
         self.vocoder = CodeHiFiGANVocoder(model_file, config)
-        
 
     @torch.no_grad()
     def forward(self, feats: torch.Tensor) -> torch.Tensor:
@@ -51,5 +51,5 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
         }
         if torch.cuda.is_available():
             x = {k: v.cuda() for k, v in x.items()}
-        
+
         return self.vocoder.forward(x).detach()
