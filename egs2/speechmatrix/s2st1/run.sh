@@ -20,11 +20,11 @@ valid_set=dev_${src_lang}_${tgt_lang}
 test_sets="test_fleurs_${src_lang}_${tgt_lang}"
 
 s2st_config=conf/train_s2st_discrete_unit.yaml
-# st_config=conf/train_s2st_discrete_unit_bigger_batch.yaml
 use_src_lang=false
 use_tgt_lang=false
 inference_config=conf/decode_s2st.yaml
-vocoder_file=dump/pretrained_HifiGAN/g_00500000.pt
+vocoder_file=dump/pretrained_hifigan/mhubert_vp_en_es_fr_it3_400k_layer11_km1000_lj.pt
+inference_args="--vocoder_config dump/pretrained_hifigan/config.yml"
 score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp"
 
 ./s2st.sh \
@@ -50,6 +50,7 @@ score_asr_model_tag="byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins
     --feature_num_clusters ${clustering_num_clusters} \
     --inference_config "${inference_config}" \
     --vocoder_file "${vocoder_file}" \
+    --inference_args "${inference_args}" \
     --score_asr_model_tag "${score_asr_model_tag}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from torch.utils.tensorboard.writer import SummaryWriter
 from espnet2.tasks.s2st import S2STTask
 
 

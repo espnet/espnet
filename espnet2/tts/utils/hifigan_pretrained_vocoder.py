@@ -19,7 +19,6 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
         super().__init__()
         try:
             from fairseq.models.text_to_speech.vocoder import CodeHiFiGANVocoder
-            from fairseq import utils
 
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
@@ -33,7 +32,6 @@ class FairseqHifiGANPretrainedVocoder(torch.nn.Module):
 
         with open(config_file) as f:
             config = yaml.load(f, Loader=yaml)
-        self.fs = config["sampling_rate"]
         self.vocoder = CodeHiFiGANVocoder(model_file, config)
         
 
