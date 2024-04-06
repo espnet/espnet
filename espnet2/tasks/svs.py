@@ -288,7 +288,7 @@ class SVSTask(AbsTask):
             )
         else:
             retval = None
-        print(type(retval))
+
         return retval
 
     @classmethod
