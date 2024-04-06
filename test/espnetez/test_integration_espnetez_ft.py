@@ -14,6 +14,7 @@ from espnet2.bin.slu_inference import Speech2Understand as SLUInference
 from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
+from espnet2.bin.spk_inference import Speech2Embedding as SPKInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
@@ -30,6 +31,7 @@ TASK_CLASSES = {
     "st": STInference,
     "s2t": S2TInference,
     "s2st": S2STInference,
+    "spk": SPKInference,
 }
 
 CONFIG_NAMES = {
@@ -46,6 +48,7 @@ CONFIG_NAMES = {
     "st": "st_train_args",
     "s2t": "s2t_train_args",
     "s2st": "train_args",
+    "spk": "spk_train_args",
 }
 
 LORA_TARGET = [
@@ -59,7 +62,7 @@ LORA_TARGET = [
 
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
-    if args.task in ("tts", "enh", "enh_tse", "s2st"):
+    if args.task in ("tts", "enh", "enh_tse", "s2st", "spk"):
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
@@ -103,6 +106,8 @@ def build_model_fn(args):
         model = pretrained_model.s2t_model
     elif args.task == "s2st":
         model = pretrained_model.model
+    elif args.task == "spk":
+        model = pretrained_model.spk_model
 
     model.train()
     # apply lora
@@ -241,6 +246,19 @@ if __name__ == "__main__":
         if args.use_discrete_unit:
             discrete_file = "text.km.hubert_layer6_5.es.unique"
             data_info["tgt_speech"] = [discrete_file, "text"]
+
+    elif args.task == "spk":
+        data_info = {
+            "train": {
+                "speech": ["wav.scp", "sound"],
+                "spk_labels": ["utt2spk", "text"]
+            },
+            "valid": {
+                "speech": ["trial.scp", "sound"],
+                "speech2": ["trial2.scp", "sound"],
+                "spk_labels": ["trial_label", "text"]
+            }
+        }
 
     trainer = ez.Trainer(
         task=args.task,

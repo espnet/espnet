@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# set -euo pipefail
+set -euo pipefail
 
 source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
@@ -570,6 +570,41 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data ckpt .cache
+
+# [ESPnet Easy] test spk recipe with coverage
+cd ${cwd}/egs2/mini_an4/spk1 || exit
+rm -rf exp dump data
+gen_dummy_coverage
+echo "==== [ESPnet2] SPK1 ==="
+
+# data preparation
+./run.sh --ngpu 0 --stage 0 --stop-stage 3 --feats-type "raw" --spk-args "--num_workers 0"
+
+spk_configs=("train_rawnet3_dataaug_debug" "train_rawnet3_sampler" "train_ecapa" \
+"train_xvector" "train_ska" "train_identity" "train_conformer" "train_rawnet3_sampler")
+
+for conf in "${spk_configs[@]}"; do
+    rm -rf exp
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task spk \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev_sp \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_rawnet3_dataaug_debug.yaml \
+        --run_collect_stats \
+        --run_train 
+
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+        --task spk \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev_sp \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_rawnet3_dataaug_debug.yaml \
+        --run_finetune
+
+    done
 
 cd "${cwd}" || exit
 

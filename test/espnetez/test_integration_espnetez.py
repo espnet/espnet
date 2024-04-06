@@ -1,4 +1,5 @@
 import argparse
+import yaml
 from pathlib import Path
 
 import espnetez as ez
@@ -19,6 +20,7 @@ TASK_CLASSES = [
     "st",
     "tts",
     "uasr",
+    "spk",
 ]
 
 
@@ -160,6 +162,23 @@ if __name__ == "__main__":
             discrete_folder = "en_es_token_list/discrete_unit.hubert_layer6_5"
             token_text = args.data_path / discrete_folder / "tokens.txt"
             training_config["unit_token_list"] = str(token_text)
+    elif args.task == "spk":
+        data_info = {
+            "train": {
+                "speech": ["wav.scp", "sound"],
+            },
+            "valid": {
+                "speech": ["trial.scp", "sound"],
+            }
+        }
+        training_config['spk2utt'] = str(args.train_dump_path / "spk2utt")
+        training_config['spk_num'] = 9
+        training_config['use_preprocessor'] = False
+        
+        # load spk config
+        with open("conf/train_rawnet3_debug.yaml", "r") as f:
+            spk_config = yaml.load(f, Loader=yaml.FullLoader)
+        training_config.update(spk_config)
 
     # Tokenize if tts
     if args.task == "tts" or args.task == "gan_tts":
@@ -294,6 +313,35 @@ if __name__ == "__main__":
             stats_dir=stats_dir,
             ngpu=0,
         )
+    elif args.task == "spk":
+        data_info = {
+            "train": {
+                "speech": ["wav.scp", "sound"],
+                "spk_labels": ["utt2spk", "text"]
+            },
+            "valid": {
+                "speech": ["trial.scp", "sound"],
+                "speech2": ["trial2.scp", "sound"],
+                "spk_labels": ["trial_label", "text"]
+            }
+        }
+        training_config = ez.config.from_yaml(args.task, args.config_path)
+        training_config["ngpu"] = 0
+        training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
+        training_config["token_list"] = []
+        training_config['spk2utt'] = str(args.train_dump_path / "spk2utt")
+        training_config['spk_num'] = 9
+        trainer = ez.Trainer(
+            task=args.task,
+            train_config=training_config,
+            train_dump_dir=args.train_dump_path,
+            valid_dump_dir=args.valid_dump_path,
+            data_info=data_info,
+            output_dir=exp_dir,
+            stats_dir=stats_dir,
+            ngpu=0,
+        )
+        
 
     if args.run_train:
         trainer.train()
