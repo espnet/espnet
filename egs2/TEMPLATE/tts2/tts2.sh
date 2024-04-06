@@ -565,7 +565,7 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
 
-        # Jinchuan: also build the tgt_vocab even though this is quite naive.
+	# NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
         # We may include more control token here to imporve it.
         (for n in `seq 1 ${feature_num_clusters}`; do
             echo "<auido_token_${n}>"
