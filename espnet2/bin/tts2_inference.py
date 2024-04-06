@@ -18,16 +18,12 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 
-# from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
-# from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 
-# from espnet2.tts.tacotron2 import Tacotron2
-# from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -38,23 +34,14 @@ class Text2Speech:
     """Text2Speech class.
 
     Examples:
-        >>> from espnet2.bin.tts_inference import Text2Speech
-        >>> # Case 1: Load the local model and use Griffin-Lim vocoder
-        >>> text2speech = Text2Speech(
-        >>>     train_config="/path/to/config.yml",
-        >>>     model_file="/path/to/model.pth",
-        >>> )
-        >>> # Case 2: Load the local model and the pretrained vocoder
+        >>> from espnet2.bin.tts2_inference import Text2Speech
+        >>> # Case 1: Load the local model and the pretrained vocoder
         >>> text2speech = Text2Speech.from_pretrained(
         >>>     train_config="/path/to/config.yml",
         >>>     model_file="/path/to/model.pth",
         >>>     vocoder_tag="kan-bayashi/ljspeech_tacotron2",
         >>> )
-        >>> # Case 3: Load the pretrained model and use Griffin-Lim vocoder
-        >>> text2speech = Text2Speech.from_pretrained(
-        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
-        >>> )
-        >>> # Case 4: Load the pretrained model and the pretrained vocoder
+        >>> # Case 2: Load the pretrained model and the pretrained vocoder
         >>> text2speech = Text2Speech.from_pretrained(
         >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
         >>>     vocoder_tag="parallel_wavegan/ljspeech_parallel_wavegan.v1",
@@ -108,20 +95,19 @@ class Text2Speech:
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.tts.require_vocoder:
-            vocoder = TTS2Task.build_vocoder_from_file(
-                vocoder_config, vocoder_file, model, device
-            )
-            if isinstance(vocoder, torch.nn.Module):
-                vocoder.to(dtype=getattr(torch, dtype)).eval()
-            self.vocoder = vocoder
+
+        assert vocoder is not None, "TTS2 must have a vocoder, but None is provided."
+        vocoder = TTS2Task.build_vocoder_from_file(
+            vocoder_config, vocoder_file, model, device
+        )
+        if isinstance(vocoder, torch.nn.Module):
+             vocoder.to(dtype=getattr(torch, dtype)).eval()
+        self.vocoder = vocoder
         logging.info(f"Extractor:\n{self.feats_extract}")
         logging.info(f"Normalizer:\n{self.normalize}")
         logging.info(f"TTS:\n{self.tts}")
-        if self.vocoder is not None:
-            logging.info(f"Vocoder:\n{self.vocoder}")
+        logging.info(f"Vocoder:\n{self.vocoder}")
 
         # setup decoding config
         decode_conf = {}
@@ -186,11 +172,10 @@ class Text2Speech:
             duration, focus_rate = self.duration_calculator(output_dict["att_w"])
             output_dict.update(duration=duration, focus_rate=focus_rate)
 
-        # apply vocoder (mel-to-wav)
-        if self.vocoder is not None:
-            input_feat = output_dict["feat_gen"].unsqueeze(1)
-            wav = self.vocoder(input_feat)
-            output_dict.update(wav=wav)
+        # apply vocoder (discrete-to-wav)
+        input_feat = output_dict["feat_gen"].unsqueeze(1)
+        wav = self.vocoder(input_feat)
+        output_dict.update(wav=wav)
 
         return output_dict
 

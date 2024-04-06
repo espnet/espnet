@@ -10,11 +10,6 @@ import torch
 import yaml
 from typeguard import check_argument_types, check_return_type
 
-# from espnet2.gan_tts.jets import JETS
-# from espnet2.gan_tts.joint import JointText2Wav
-# from espnet2.gan_tts.vits import VITS
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
@@ -24,22 +19,13 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
 
-# from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 
 # TTS continuous feature extraction operators
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.tts.feats_extract.dio import Dio
-from espnet2.tts.feats_extract.energy import Energy
-from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
-from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
-from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tasks.tts import feats_extractor_choices, pitch_extractor_choices, energy_extractor_choices, normalize_choices, pitch_normalize_choices, energy_normalize_choices
 
-# from espnet2.tts.prodiff import ProDiff
-# from espnet2.tts.tacotron2 import Tacotron2
-# from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -53,51 +39,6 @@ discrete_feats_extractor_choices = ClassChoices(
     ),
     type_check=AbsFeatsExtractDiscrete,
     default="identity",
-)
-feats_extractor_choices = ClassChoices(
-    "feats_extract",
-    classes=dict(
-        fbank=LogMelFbank,
-        spectrogram=LogSpectrogram,
-        linear_spectrogram=LinearSpectrogram,
-    ),
-    type_check=AbsFeatsExtract,
-    default="fbank",
-)
-pitch_extractor_choices = ClassChoices(
-    "pitch_extract",
-    classes=dict(dio=Dio),
-    type_check=AbsFeatsExtract,
-    default=None,
-    optional=True,
-)
-energy_extractor_choices = ClassChoices(
-    "energy_extract",
-    classes=dict(energy=Energy),
-    type_check=AbsFeatsExtract,
-    default=None,
-    optional=True,
-)
-normalize_choices = ClassChoices(
-    "normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default="global_mvn",
-    optional=True,
-)
-pitch_normalize_choices = ClassChoices(
-    "pitch_normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default=None,
-    optional=True,
-)
-energy_normalize_choices = ClassChoices(
-    "energy_normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default=None,
-    optional=True,
 )
 tts_choices = ClassChoices(
     "tts",
@@ -419,26 +360,9 @@ class TTS2Task(AbsTask):
         device: str = "cpu",
     ):
         # Build vocoder
-        if vocoder_file is None:
-            # If vocoder file is not provided, use griffin-lim as a vocoder
-            vocoder_conf = {}
-            if vocoder_config_file is not None:
-                vocoder_config_file = Path(vocoder_config_file)
-                with vocoder_config_file.open("r", encoding="utf-8") as f:
-                    vocoder_conf = yaml.safe_load(f)
-            if model.feats_extract is not None:
-                vocoder_conf.update(model.feats_extract.get_parameters())
-            if (
-                "n_fft" in vocoder_conf
-                and "n_shift" in vocoder_conf
-                and "fs" in vocoder_conf
-            ):
-                return Spectrogram2Waveform(**vocoder_conf)
-            else:
-                logging.warning("Vocoder is not available. Skipped its building.")
-                return None
+        assert vocoder_file is not None, "TTS2 model must have a vocoder."
 
-        elif str(vocoder_file).endswith(".pkl"):
+        if str(vocoder_file).endswith(".pkl"):
             # If the extension is ".pkl", the model is trained with parallel_wavegan
             vocoder = ParallelWaveGANPretrainedVocoder(
                 vocoder_file, vocoder_config_file
