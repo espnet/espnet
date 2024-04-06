@@ -1,6 +1,7 @@
 import argparse
-import yaml
 from pathlib import Path
+
+import yaml
 
 import espnetez as ez
 

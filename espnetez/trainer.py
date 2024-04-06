@@ -1,7 +1,7 @@
 import glob
 import os
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 
 from espnetez.task import get_ez_task
 

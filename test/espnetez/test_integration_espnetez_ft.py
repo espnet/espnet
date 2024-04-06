@@ -11,10 +11,10 @@ from espnet2.bin.mt_inference import Text2Text as MTInference
 from espnet2.bin.s2st_inference import Speech2Speech as S2STInference
 from espnet2.bin.s2t_inference import Speech2Text as S2TInference
 from espnet2.bin.slu_inference import Speech2Understand as SLUInference
+from espnet2.bin.spk_inference import Speech2Embedding as SPKInference
 from espnet2.bin.st_inference import Speech2Text as STInference
 from espnet2.bin.tts_inference import Text2Speech as TTSInference
 from espnet2.bin.uasr_inference import Speech2Text as UASRInference
-from espnet2.bin.spk_inference import Speech2Embedding as SPKInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
 TASK_CLASSES = {
