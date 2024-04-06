@@ -4,22 +4,35 @@ from espnet2.train.dataset import AbsDataset
 
 
 class ESPnetEZDataset(AbsDataset):
-    def __init__(self, dataset, data_info):
+    def __init__(self, dataset, data_info, phase=None):
         self.dataset = dataset
         self.data_info = data_info
+        self.phase = phase
 
     def has_name(self, name) -> bool:
-        return name in self.data_info
+        if self.phase is not None:
+            return name in self.data_info[self.phase]
+        else: 
+            return name in self.data_info
 
     def names(self) -> Tuple[str, ...]:
-        return tuple(self.data_info.keys())
+        if self.phase is not None:
+            return tuple(self.data_info[self.phase].keys())
+        else:
+            return tuple(self.data_info.keys())
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
         idx = int(uid)
-        return (
-            str(uid),
-            {k: v(self.dataset[idx]) for k, v in self.data_info.items()},
-        )
+        if self.phase is not None:
+            return (
+                str(uid),
+                {k: v(self.dataset[idx]) for k, v in self.data_info[self.phase].items()},
+            )
+        else:
+            return (
+                str(uid),
+                {k: v(self.dataset[idx]) for k, v in self.data_info.items()},
+            )
 
     def __len__(self) -> int:
         return len(self.dataset)

@@ -1,5 +1,6 @@
 import glob
 import os
+from pathlib import Path
 from argparse import Namespace
 
 from espnetez.task import get_ez_task
@@ -96,6 +97,8 @@ class Trainer:
             train_dataloader,
             valid_dataloader,
         )
+        train_dump_dir = Path(train_dump_dir)
+        valid_dump_dir = Path(valid_dump_dir)
 
         if type(self.train_config) is dict:
             self.train_config.update(kwargs)
@@ -125,9 +128,15 @@ class Trainer:
             self.task_class = get_ez_task(task)
             train_dpnt = []
             valid_dpnt = []
-            for k, v in data_info.items():
-                train_dpnt.append((os.path.join(train_dump_dir, v[0]), k, v[1]))
-                valid_dpnt.append((os.path.join(valid_dump_dir, v[0]), k, v[1]))
+            if "train" in data_info and "valid" in data_info:
+                for k, v in data_info["train"].items():
+                    train_dpnt.append((str(train_dump_dir / v[0]), k, v[1]))
+                for k, v in data_info["valid"].items():
+                    valid_dpnt.append((str(valid_dump_dir / v[0]), k, v[1]))
+            else:
+                for k, v in data_info.items():
+                    train_dpnt.append((str(train_dump_dir / v[0]), k, v[1]))
+                    valid_dpnt.append((str(valid_dump_dir /  v[0]), k, v[1]))
 
             self.train_config.train_data_path_and_name_and_type = train_dpnt
             self.train_config.valid_data_path_and_name_and_type = valid_dpnt
