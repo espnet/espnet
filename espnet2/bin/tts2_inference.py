@@ -17,13 +17,10 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
-
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
-
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -102,7 +99,7 @@ class Text2Speech:
             vocoder_config, vocoder_file, model, device
         )
         if isinstance(vocoder, torch.nn.Module):
-             vocoder.to(dtype=getattr(torch, dtype)).eval()
+            vocoder.to(dtype=getattr(torch, dtype)).eval()
         self.vocoder = vocoder
         logging.info(f"Extractor:\n{self.feats_extract}")
         logging.info(f"Normalizer:\n{self.normalize}")

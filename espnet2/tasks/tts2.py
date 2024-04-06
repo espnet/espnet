@@ -11,6 +11,16 @@ import yaml
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.tasks.abs_task import AbsTask
+
+# TTS continuous feature extraction operators
+from espnet2.tasks.tts import (
+    energy_extractor_choices,
+    energy_normalize_choices,
+    feats_extractor_choices,
+    normalize_choices,
+    pitch_extractor_choices,
+    pitch_normalize_choices,
+)
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -18,14 +28,9 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
-
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
-
-# TTS continuous feature extraction operators
-from espnet2.tasks.tts import feats_extractor_choices, pitch_extractor_choices, energy_extractor_choices, normalize_choices, pitch_normalize_choices, energy_normalize_choices
-
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
