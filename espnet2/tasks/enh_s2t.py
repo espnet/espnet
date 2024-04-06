@@ -479,7 +479,6 @@ class EnhS2TTask(AbsTask):
                     token_list=args.token_list,
                     bpemodel=args.bpemodel,
                     non_linguistic_symbols=args.non_linguistic_symbols,
-                    text_name=getattr(args, "text_name", ["text"]),
                     text_cleaner=args.cleaner,
                     g2p_type=args.g2p,
                     **getattr(args, "preprocessor_conf", {}),

@@ -1,0 +1,29 @@
+# This is a debug config for CI
+batch_type: unsorted
+batch_size: 2
+accum_grad: 1
+max_epoch: 1
+num_iters_per_epoch: 1
+patience:
+# The initialization method for model parameters
+init: null
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+encoder_conf:
+    body_conf:
+        - block_type: conformer
+          hidden_size: 2
+          linear_size: 4
+          heads: 2
+          conv_mod_kernel_size: 3
+
+decoder_conf:
+    embed_size: 4
+    hidden_size: 4
+
+joint_network_conf:
+    joint_space_size: 4

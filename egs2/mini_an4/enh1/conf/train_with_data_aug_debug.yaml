@@ -64,4 +64,7 @@ criterions:
 max_epoch: 1
 num_iters_per_epoch: 1
 batch_type: folded
+fold_length:
+  - 2
+  - 2
 batch_size: 2

@@ -37,6 +37,8 @@ criterions:
       weight: 1.0
 
 optim: adam
+optim_conf:
+  lr: 1.0e-3
 
 iterator_type: chunk
 

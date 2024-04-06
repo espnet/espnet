@@ -28,6 +28,8 @@ extractor_conf:
     adapt_enroll_dim: 2
 
 optim: adam
+optim_conf:
+    lr: 0.005
 
 model_conf:
     num_spk: 1
@@ -53,6 +55,8 @@ chunk_length: 5000
 # from the length consistency check in ChunkIterFactory
 chunk_excluded_key_prefixes:
 - "enroll_ref"
+- "speech_ref"
+- "speech_mix"
 
 max_epoch: 1
 num_iters_per_epoch: 1
