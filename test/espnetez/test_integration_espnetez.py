@@ -144,11 +144,11 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
-        
+
     elif args.task == "hubert":
         data_info["text"] = ["text.km.kmeans_iter0_mfcc_train_nodev_portion1.0", "text"]
         training_config["num_classes"] = 10
-        
+
     elif args.task == "st":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
@@ -184,12 +184,12 @@ if __name__ == "__main__":
             },
             "valid": {
                 "speech": ["trial.scp", "sound"],
-            }
+            },
         }
-        training_config['spk2utt'] = str(args.train_dump_path / "spk2utt")
-        training_config['spk_num'] = 9
-        training_config['use_preprocessor'] = False
-        
+        training_config["spk2utt"] = str(args.train_dump_path / "spk2utt")
+        training_config["spk_num"] = 9
+        training_config["use_preprocessor"] = False
+
         # load spk config
         with open("conf/train_rawnet3_debug.yaml", "r") as f:
             spk_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -313,7 +313,7 @@ if __name__ == "__main__":
     )
     if args.run_collect_stats:
         trainer.collect_stats()
-    
+
     update_trainer = False
     if args.task == "tts":
         update_trainer = True
@@ -325,20 +325,20 @@ if __name__ == "__main__":
         data_info = {
             "train": {
                 "speech": ["wav.scp", "sound"],
-                "spk_labels": ["utt2spk", "text"]
+                "spk_labels": ["utt2spk", "text"],
             },
             "valid": {
                 "speech": ["trial.scp", "sound"],
                 "speech2": ["trial2.scp", "sound"],
-                "spk_labels": ["trial_label", "text"]
-            }
+                "spk_labels": ["trial_label", "text"],
+            },
         }
         training_config = ez.config.from_yaml(args.task, args.config_path)
         training_config["ngpu"] = 0
         training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
         training_config["token_list"] = []
-        training_config['spk2utt'] = str(args.train_dump_path / "spk2utt")
-        training_config['spk_num'] = 9  # 3 spk * (0.9, 1.0, 1.1)
+        training_config["spk2utt"] = str(args.train_dump_path / "spk2utt")
+        training_config["spk_num"] = 9  # 3 spk * (0.9, 1.0, 1.1)
 
     elif args.task == "enh_s2t" and args.variable_num_refs:
         update_trainer = True

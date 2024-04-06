@@ -251,13 +251,13 @@ if __name__ == "__main__":
         data_info = {
             "train": {
                 "speech": ["wav.scp", "sound"],
-                "spk_labels": ["utt2spk", "text"]
+                "spk_labels": ["utt2spk", "text"],
             },
             "valid": {
                 "speech": ["trial.scp", "sound"],
                 "speech2": ["trial2.scp", "sound"],
-                "spk_labels": ["trial_label", "text"]
-            }
+                "spk_labels": ["trial_label", "text"],
+            },
         }
 
     trainer = ez.Trainer(

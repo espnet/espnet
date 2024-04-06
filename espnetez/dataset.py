@@ -12,7 +12,7 @@ class ESPnetEZDataset(AbsDataset):
     def has_name(self, name) -> bool:
         if self.phase is not None:
             return name in self.data_info[self.phase]
-        else: 
+        else:
             return name in self.data_info
 
     def names(self) -> Tuple[str, ...]:
@@ -24,15 +24,14 @@ class ESPnetEZDataset(AbsDataset):
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
         idx = int(uid)
         if self.phase is not None:
-            return (
-                str(uid),
-                {k: v(self.dataset[idx]) for k, v in self.data_info[self.phase].items()},
-            )
+            data_info = self.data_info[self.phase]
         else:
-            return (
-                str(uid),
-                {k: v(self.dataset[idx]) for k, v in self.data_info.items()},
-            )
+            data_info = self.data_info
+
+        return (
+            str(uid),
+            {k: v(self.dataset[idx]) for k, v in data_info.items()},
+        )
 
     def __len__(self) -> int:
         return len(self.dataset)

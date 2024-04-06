@@ -136,7 +136,7 @@ class Trainer:
             else:
                 for k, v in data_info.items():
                     train_dpnt.append((str(train_dump_dir / v[0]), k, v[1]))
-                    valid_dpnt.append((str(valid_dump_dir /  v[0]), k, v[1]))
+                    valid_dpnt.append((str(valid_dump_dir / v[0]), k, v[1]))
 
             self.train_config.train_data_path_and_name_and_type = train_dpnt
             self.train_config.valid_data_path_and_name_and_type = valid_dpnt
