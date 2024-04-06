@@ -12,7 +12,6 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import (
     AttForward,
