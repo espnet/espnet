@@ -593,7 +593,7 @@ for conf in "${spk_configs[@]}"; do
         --exp_path ./exp \
         --config_path ./conf/train_rawnet3_dataaug_debug.yaml \
         --run_collect_stats \
-        --run_train 
+        --run_train
 
     python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
         --task spk \

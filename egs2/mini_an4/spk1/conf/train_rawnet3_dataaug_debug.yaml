@@ -39,7 +39,7 @@ loss_conf:
 optim: adam
 optim_conf:
   lr: 0.001
-  
+
 num_att_plot: 0
 
 max_epoch: 1
