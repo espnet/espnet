@@ -1157,6 +1157,9 @@ if [ -z "${download_model}" ]; then
         if "${use_lid}"; then
             _opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
         fi
+
+	_km_dir="${km_dir}/${s3prl_upstream_name}_layer6${feature_layer}_${feature_num_clusters}"
+        _opts+=" --option ${_km_dir}/km_${feature_num_clusters}.mdl "
         ${python} -m espnet2.bin.pack tts2 \
             --train_config "${tts2_exp}"/config.yaml \
             --model_file "${tts2_exp}"/"${inference_model}" \
