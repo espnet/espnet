@@ -82,6 +82,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Flag to use discrete unit. Only used for s2st task",
     )
+    parser.add_argument(
+        "--variable_num_refs",
+        action="store_true",
+        help="Flag to use variable_num_refs. Only used for ENH task",
+    )
     args = parser.parse_args()
 
     # In this test we assume that we use mini_an4 dataset.
@@ -123,32 +128,41 @@ if __name__ == "__main__":
             for i in range(training_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
+
     elif args.task == "enh_tse":
         data_info = {
             "enroll_ref1": ["enroll_spk1.scp", "text"],
             "speech_ref1": ["spk1.scp", "sound"],
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
+        if args.variable_num_refs:
+            data_info["speech_ref1"] = ["spk1.scp", "variable_columns_sound"]
+
     elif args.task == "enh_s2t":
         data_info = {
             "text_spk1": ["text_spk1", "text"],
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
+        
     elif args.task == "hubert":
         data_info["text"] = ["text.km.kmeans_iter0_mfcc_train_nodev_portion1.0", "text"]
         training_config["num_classes"] = 10
+        
     elif args.task == "st":
         data_info["text"] = ["text.lc.rm.en", "text"]
         data_info["src_text"] = ["text", "text"]
+
     elif args.task == "mt":
         data_info.pop("speech")
         data_info["src_text"] = ["text.ts.mfcc_km10", "text"]
         data_info["text"] = ["text.ts.en", "text"]
+
     elif args.task == "s2t":
         data_info["speech"] = ["wav.scp", "kaldi_ark"]
         data_info["text_prev"] = ["text.prev", "text"]
         data_info["text_ctc"] = ["text.ctc", "text"]
+
     elif args.task == "s2st":
         data_info = {
             "src_speech": ["wav.scp.en", "kaldi_ark"],
@@ -162,6 +176,7 @@ if __name__ == "__main__":
             discrete_folder = "en_es_token_list/discrete_unit.hubert_layer6_5"
             token_text = args.data_path / discrete_folder / "tokens.txt"
             training_config["unit_token_list"] = str(token_text)
+
     elif args.task == "spk":
         data_info = {
             "train": {
@@ -298,22 +313,15 @@ if __name__ == "__main__":
     )
     if args.run_collect_stats:
         trainer.collect_stats()
-
+    
+    update_trainer = False
     if args.task == "tts":
+        update_trainer = True
         training_config["normalize"] = normalize
         training_config["pitch_normalize"] = pitch_normalize
         training_config["energy_normalize"] = energy_normalize
-        trainer = ez.Trainer(
-            task=args.task,
-            train_config=training_config,
-            train_dump_dir=args.train_dump_path,
-            valid_dump_dir=args.valid_dump_path,
-            data_info=data_info,
-            output_dir=exp_dir,
-            stats_dir=stats_dir,
-            ngpu=0,
-        )
     elif args.task == "spk":
+        update_trainer = True
         data_info = {
             "train": {
                 "speech": ["wav.scp", "sound"],
@@ -330,7 +338,13 @@ if __name__ == "__main__":
         training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
         training_config["token_list"] = []
         training_config['spk2utt'] = str(args.train_dump_path / "spk2utt")
-        training_config['spk_num'] = 9
+        training_config['spk_num'] = 9  # 3 spk * (0.9, 1.0, 1.1)
+
+    elif args.task == "enh_s2t" and args.variable_num_refs:
+        update_trainer = True
+        data_info["category"] = ["utt2category", "text"]
+
+    if update_trainer:
         trainer = ez.Trainer(
             task=args.task,
             train_config=training_config,
@@ -341,7 +355,6 @@ if __name__ == "__main__":
             stats_dir=stats_dir,
             ngpu=0,
         )
-        
 
     if args.run_train:
         trainer.train()
