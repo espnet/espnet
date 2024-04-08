@@ -5,19 +5,13 @@
 """Translatotron Synthesizer related modules for ESPnet2."""
 
 import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    GuidedAttentionLoss,
-    Tacotron2Loss,
-)
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import (
     AttForward,
@@ -26,7 +20,6 @@ from espnet.nets.pytorch_backend.rnn.attentions import (
     AttMultiHeadAdd,
 )
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 
 
 class Translatotron(AbsSynthesizer):
@@ -41,6 +34,7 @@ class Translatotron(AbsSynthesizer):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -60,7 +54,7 @@ class Translatotron(AbsSynthesizer):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
-        output_activation: str = None,
+        output_activation: Optional[str] = None,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
@@ -106,7 +100,6 @@ class Translatotron(AbsSynthesizer):
             dropout_rate (float): Dropout rate.
             zoneout_rate (float): Zoneout rate.
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters

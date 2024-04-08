@@ -1,5 +1,3 @@
-import itertools
-import logging
 import random
 from functools import partial
 from typing import Any, Sequence, Union
@@ -7,7 +5,7 @@ from typing import Any, Sequence, Union
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
@@ -46,6 +44,7 @@ class CategoryIterFactory(AbsIterFactory):
 
     """
 
+    @typechecked
     def __init__(
         self,
         dataset,
@@ -58,7 +57,6 @@ class CategoryIterFactory(AbsIterFactory):
         collate_fn=None,
         pin_memory: bool = False,
     ):
-        assert check_argument_types()
 
         if not isinstance(batches, AbsSampler):
             self.sampler = RawSampler(batches)
@@ -87,8 +85,6 @@ class CategoryIterFactory(AbsIterFactory):
 
             if self.sampler_args["num_batches"] is not None:
                 batches = batches[: self.sampler_args.num_batches]
-
-            bs_list = [len(batch) for batch in batches]
 
             if self.sampler_args["distributed"]:
                 world_size = torch.distributed.get_world_size()

@@ -48,8 +48,9 @@ def logp(
     u: int,
     v: int,
 ):
-    """
-    Compute the sum of log probability from the activation tensor and its denominator.
+    """Compute the sum of log probability from the activation tensor
+
+    and its denominator.
 
     Args:
         denom: Tensor of shape [B, T, U] flattened. Represents the denominator of the
@@ -89,8 +90,7 @@ def compute_alphas_kernel(
     alphabet_size: int,
     blank_: int,
 ):
-    """
-    Compute alpha (forward variable) probabilities over the transduction step.
+    """Compute alpha (forward variable) probabilities over the transduction step.
 
     Args:
         acts: Tensor of shape [B, T, U, V+1] flattened.
@@ -200,8 +200,7 @@ def compute_betas_kernel(
     alphabet_size: int,
     blank_: int,
 ):
-    """
-    Compute beta (backward variable) probabilities over the transduction step.
+    """Compute beta (backward variable) probabilities over the transduction step.
 
     Args:
         acts: Tensor of shape [B, T, U, V+1] flattened.
@@ -314,8 +313,7 @@ def compute_grad_kernel(
     fastemit_lambda: float,
     clamp: float,
 ):
-    """
-    Compute gradients over the transduction step.
+    """Compute gradients over the transduction step.
 
     Args:
         grads: Zero Tensor of shape [B, T, U, V+1]. Is updated by this kernel to
@@ -477,9 +475,9 @@ def compute_multiblank_alphas_kernel(
     big_blank_duration: torch.Tensor,
     num_big_blanks: int,
 ):
-    """
-    Compute alpha (forward variable) probabilities for multi-blank transducuer loss
-        (https://arxiv.org/pdf/2211.03541).
+    """Compute alpha (forward variable) probabilities for multi-blank transducuer loss
+
+    (https://arxiv.org/pdf/2211.03541).
 
     Args:
         acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.
@@ -693,9 +691,9 @@ def compute_multiblank_betas_kernel(
     big_blank_duration: torch.Tensor,
     num_big_blanks: int,
 ):
-    """
-    Compute beta (backward variable) probabilities for multi-blank transducer loss
-        (https://arxiv.org/pdf/2211.03541).
+    """Compute beta (backward variable) probabilities for multi-blank transducer loss
+
+    (https://arxiv.org/pdf/2211.03541).
 
     Args:
         acts: Tensor of shape [B, T, U, V + 1 + num-big-blanks] flattened.
@@ -894,9 +892,9 @@ def compute_multiblank_grad_kernel(
     fastemit_lambda: float,
     clamp: float,
 ):
-    """
-    Compute gradients for multi-blank transducer loss
-        (https://arxiv.org/pdf/2211.03541).
+    """Compute gradients for multi-blank transducer loss
+
+    (https://arxiv.org/pdf/2211.03541).
 
     Args:
         grads: Zero Tensor of shape [B, T, U, V + 1 + num_big_blanks].

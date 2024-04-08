@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 
@@ -8,13 +8,13 @@ from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 class UASRSmoothnessPenalty(AbsUASRLoss):
     """smoothness penalty for UASR."""
 
+    @typechecked
     def __init__(
         self,
         weight: float = 1.0,
         reduction: str = "none",
     ):
         super().__init__()
-        assert check_argument_types()
 
         self.weight = weight
         self.reduction = reduction

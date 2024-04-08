@@ -13,6 +13,7 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
 try:
     from parallel_wavegan.layers import CausalConv1d, CausalConvTranspose1d
@@ -27,6 +28,7 @@ except ImportError:
 class UHiFiGANGenerator(torch.nn.Module):
     """UHiFiGAN generator module."""
 
+    @typechecked
     def __init__(
         self,
         in_channels=80,
@@ -132,7 +134,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                 getattr(torch.nn, nonlinear_activation)(**nonlinear_activation_params),
                 torch.nn.Dropout(dropout),
             )
-        hidden_channels = channels
+
         for i in range(len(downsample_scales)):
             for j in range(len(resblock_kernel_sizes)):
                 self.downsamples_mrf += [

@@ -26,7 +26,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import torch
 from torch.autograd import Function
 from torch.nn import Module
@@ -50,7 +49,8 @@ class _RNNTNumba(Function):
         fastemit_lambda,
         clamp,
     ):
-        """
+        """RNNTNumba Forward.
+
         log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
             containing output from network
         labels: 2 dimensional Tensor containing all the targets of
@@ -107,8 +107,9 @@ class _RNNTNumba(Function):
 
 
 class _MultiblankRNNTNumba(Function):
-    """
-    Numba class for multi-blank transducer loss (https://arxiv.org/pdf/2211.03541.pdf)
+    """Numba class for multi-blank transducer loss
+
+    (https://arxiv.org/pdf/2211.03541.pdf)
     """
 
     @staticmethod
@@ -125,7 +126,8 @@ class _MultiblankRNNTNumba(Function):
         clamp,
         sigma,
     ):
-        """
+        """MultiblankRNNTNumba Forward.
+
         big_blank_durations: list of durations for multi-blank transducer, e.g.
             [2, 4, 8].
         sigma: hyper-parameter for logit under-normalization method for training
@@ -207,6 +209,7 @@ def rnnt_loss(
     clamp: float = 0.0,
 ):
     """RNN Transducer Loss (functional form)
+
     Args:
         acts: Tensor of (batch x seqLength x labelLength x outputDim)
             containing output from network
@@ -253,9 +256,9 @@ def multiblank_rnnt_loss(
     fastemit_lambda: float = 0.0,
     clamp: float = 0.0,
 ):
-    """
-    Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)
-        Loss (functional form)
+    """Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)
+
+    Loss (functional form)
     Args:
         acts: Tensor of (batch x seqLength x labelLength x outputDim) containing
         output from network
@@ -306,7 +309,8 @@ def multiblank_rnnt_loss(
 
 
 class RNNTLossNumba(Module):
-    """
+    """RNNT Loss Numba
+
     Parameters:
         blank (int, optional): blank label. Default: 0.
         reduction (string, optional): Specifies the reduction to apply to the output:
@@ -331,7 +335,8 @@ class RNNTLossNumba(Module):
         self.loss = _RNNTNumba.apply
 
     def forward(self, acts, labels, act_lens, label_lens):
-        """
+        """Forward RNNTLossNumba.
+
         log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
             containing output from network
         labels: 2 dimensional Tensor containing all the targets of the
@@ -369,7 +374,8 @@ class RNNTLossNumba(Module):
 
 
 class MultiblankRNNTLossNumba(Module):
-    """
+    """Multiblank RNNT Loss Numba
+
     Parameters:
         blank (int): standard blank label.
         big_blank_durations: list of durations for multi-blank transducer, e.g.
@@ -408,7 +414,8 @@ class MultiblankRNNTLossNumba(Module):
         self.sigma = sigma
 
     def forward(self, acts, labels, act_lens, label_lens):
-        """
+        """MultiblankRNNTLossNumba Forward.
+
         log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
             containing output from network
         labels: 2 dimensional Tensor containing all the targets of

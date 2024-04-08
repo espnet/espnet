@@ -15,11 +15,11 @@
 #     utterance_id_c 512,80\n",
 import random
 from collections import Counter
-from typing import Iterator, List, Sequence, Tuple, Union
+from typing import Iterator, Optional, Tuple
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
-from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -28,16 +28,16 @@ def round_down(num, divisor):
 
 
 class CategoryBalancedSampler(AbsSampler):
+    @typechecked
     def __init__(
         self,
         batch_size: int,
         min_batch_size: int = 1,
         drop_last: bool = False,
-        category2utt_file: str = None,
+        category2utt_file: Optional[str] = None,
         epoch: int = 1,
         **kwargs,
     ):
-        assert check_argument_types()
         assert batch_size > 0
         random.seed(epoch)
 

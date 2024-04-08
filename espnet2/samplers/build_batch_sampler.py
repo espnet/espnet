@@ -1,6 +1,6 @@
-from typing import List, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
@@ -69,6 +69,7 @@ BATCH_TYPES = dict(
 )
 
 
+@typechecked
 def build_batch_sampler(
     type: str,
     batch_size: int,
@@ -80,7 +81,7 @@ def build_batch_sampler(
     min_batch_size: int = 1,
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
-    utt2category_file: str = None,
+    utt2category_file: Optional[str] = None,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 
@@ -100,7 +101,6 @@ def build_batch_sampler(
         padding: Whether sequences are input as a padded tensor or not.
             used for "numel" mode
     """
-    assert check_argument_types()
     if len(shape_files) == 0:
         raise ValueError("No shape file are given")
 
@@ -160,5 +160,4 @@ def build_batch_sampler(
 
     else:
         raise ValueError(f"Not supported: {type}")
-    assert check_return_type(retval)
     return retval

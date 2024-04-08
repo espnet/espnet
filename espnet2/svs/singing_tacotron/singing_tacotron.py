@@ -7,11 +7,9 @@
 import logging
 from typing import Dict, Optional, Sequence, Tuple
 
-import six
 import torch
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.singing_tacotron.decoder import Decoder
@@ -45,6 +43,7 @@ class singing_tacotron(AbsSVS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -70,7 +69,7 @@ class singing_tacotron(AbsSVS):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
-        output_activation: str = None,
+        output_activation: Optional[str] = None,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
@@ -156,7 +155,6 @@ class singing_tacotron(AbsSVS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters
