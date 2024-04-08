@@ -128,7 +128,9 @@ class SoundStream(AbsGANCodec):
             "fmax": None,
             "log_base": None,
         },
-        lambda_codec: float = 1.0,
+        lambda_quantization: float = 1.0,
+        lambda_reconstruct: float = 1.0,
+        lambda_commit: float = 1.0,
         lambda_adv: float = 1.0,
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
@@ -149,6 +151,7 @@ class SoundStream(AbsGANCodec):
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
         )
+        self.generator_reconstruct_loss = torch.nn.L1Loss(reduction="mean")
         self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
             **discriminator_adv_loss_params,
         )
@@ -165,7 +168,9 @@ class SoundStream(AbsGANCodec):
             )
 
         # coefficients
-        self.lambda_codec = lambda_codec
+        self.lambda_quantization = lambda_quantization
+        self.lambda_reconstruct = lambda_reconstruct
+        self.lambda_commit = lambda_commit
         self.lambda_adv = lambda_adv
         if self.use_feat_match_loss:
             self.lambda_feat_match = lambda_feat_match
@@ -183,7 +188,6 @@ class SoundStream(AbsGANCodec):
     def forward(
         self,
         audio: torch.Tensor,
-        audio_lengths: torch.Tensor,
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
@@ -191,7 +195,6 @@ class SoundStream(AbsGANCodec):
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
-            audio_lengths (Tensor): Audio length tensor (B,).
             forward_generator (bool): Whether to forward generator.
 
         Returns:
@@ -205,27 +208,23 @@ class SoundStream(AbsGANCodec):
         if forward_generator:
             return self._forward_generator(
                 audio=audio,
-                audio_lengths=audio_lengths,
                 **kwargs,
             )
         else:
             return self._forward_discrminator(
                 audio=audio,
-                audio_lengths=audio_lengths,
                 **kwargs,
             )
 
     def _forward_generator(
         self,
         audio: torch.Tensor,
-        audio_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward.
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
-            audio_lengths (Tensor): Audio length tensor (B,).
 
         Returns:
             Dict[str, Any]:
@@ -245,13 +244,13 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss = self.generator(audio)
+            audio_hat, codec_commit_loss, quantization_loss = self.generator(audio)
         else:
-            audio_hat, codec_commit_loss = self._cache
+            audio_hat, codec_commit_loss, quantization_loss = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss)
+            self._cache = (audio_hat, codec_commit_loss, quantization_loss)
 
         # calculate discriminator outputs
         p_hat = self.discriminator(audio_hat)
@@ -262,11 +261,19 @@ class SoundStream(AbsGANCodec):
         # calculate losses
         adv_loss = self.generator_adv_loss(p_hat)
         adv_loss = adv_loss * self.lambda_adv
-        codec_commit_loss = codec_commit_loss * self.lambda_codec
-        loss = adv_loss + codec_commit_loss
+        codec_commit_loss = codec_commit_loss * self.lambda_commit
+        codec_quantization_loss = quantization_loss * self.lambda_quantization
+        reconstruct_loss = (
+            self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
+        )
+        codec_loss = codec_commit_loss + codec_quantization_loss
+        loss = adv_loss + codec_loss + reconstruct_loss
         stats = dict(
             adv_loss=adv_loss.item(),
+            codec_loss=codec_loss.item(),
             codec_commit_loss=codec_commit_loss.item(),
+            codec_quantization_loss=codec_quantization_loss.item(),
+            reconstruct_loss=reconstruct_loss.item(),
         )
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p)
@@ -297,14 +304,12 @@ class SoundStream(AbsGANCodec):
     def _forward_discrminator(
         self,
         audio: torch.Tensor,
-        audio_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward.
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
-            audio_lengths (Tensor): Audio length tensor (B,).
 
         Returns:
             Dict[str, Any]:
@@ -323,13 +328,15 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss = self.generator(audio)
+            audio_hat, codec_commit_loss, codec_quantization_loss = self.generator(
+                audio
+            )
         else:
-            audio_hat, codec_commit_loss = self._cache
+            audio_hat, codec_commit_loss, codec_quantization_loss = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss)
+            self._cache = (audio_hat, codec_commit_loss, codec_quantization_loss)
 
         # calculate discriminator outputs
         p_hat = self.discriminator(audio_hat.detach())
@@ -483,6 +490,10 @@ class SoundStreamGenerator(nn.Module):
             final_activation_params=decoder_final_activation_params,
         )
 
+        # quantization loss
+        self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
+        self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
+
     def forward(self, x: torch.Tensor):
         """Soundstream forward propagation.
 
@@ -503,8 +514,12 @@ class SoundStreamGenerator(nn.Module):
             encoder_out, self.frame_rate, bw
         )
 
+        quantization_loss = self.l1_quantization_loss(
+            encoder_out, quantized
+        ) + self.l2_quantization_loss(encoder_out, quantized)
+
         resyn_audio = self.decoder(quantized)
-        return resyn_audio, commit_loss
+        return resyn_audio, commit_loss, quantization_loss
 
     def encode(
         self,

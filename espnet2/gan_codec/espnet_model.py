@@ -43,7 +43,6 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
     def forward(
         self,
         audio: torch.Tensor,
-        audio_lengths: torch.Tensor,
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
@@ -51,7 +50,6 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
-            audio_lengths (Tensor): Audio length tensor (B,).
             forward_generator (bool): Whether to forward generator.
             kwargs: "utt_id" is among the input.
 
@@ -66,7 +64,6 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         # Make the batch for codec inputs
         batch = dict(
             audio=audio,
-            audio_lengths=audio_lengths,
             forward_generator=forward_generator,
         )
 
@@ -75,14 +72,12 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
     def collect_feats(
         self,
         audio: torch.Tensor,
-        audio_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Calculate features and return them as a dict.
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
-            audio_lengths (Tensor): Audio length tensor (B,).
 
         Returns:
             Dict[str, Tensor]: Dict of features.
@@ -90,5 +85,5 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """
 
         feats_dict = {}
-        feats_dict.update(audio=audio, audio_lengths=audio_lengths)
+        feats_dict.update(audio=audio)
         return feats_dict
