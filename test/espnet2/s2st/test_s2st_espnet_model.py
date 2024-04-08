@@ -9,7 +9,6 @@ from espnet2.s2st.aux_attention.multihead import MultiHeadAttention
 from espnet2.s2st.espnet_model import ESPnetS2STModel
 from espnet2.s2st.losses.attention_loss import S2STAttentionLoss
 from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
-from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.discrete_synthesizer import TransformerDiscreteSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron

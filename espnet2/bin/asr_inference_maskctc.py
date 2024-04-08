@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.maskctc_model import MaskCTCInference
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -35,19 +35,19 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str],
-        asr_model_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        asr_model_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
         maskctc_n_iterations: int = 10,
         maskctc_threshold_probability: float = 0.99,
     ):
-        assert check_argument_types()
 
         # 1. Build ASR model
         asr_model, asr_train_args = ASRTask.build_model_from_file(
@@ -90,6 +90,7 @@ class Speech2Text:
         self.dtype = dtype
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -101,7 +102,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -141,7 +141,6 @@ class Speech2Text:
             text = None
         results = [(text, token, token_int, hyp)]
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -175,6 +174,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -194,7 +194,6 @@ def inference(
     maskctc_n_iterations: int,
     maskctc_threshold_probability: float,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

@@ -14,7 +14,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
@@ -61,9 +61,9 @@ class UASRTrainer(Trainer):
     """
 
     @classmethod
+    @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()."""
-        assert check_argument_types()
         return build_dataclass(UASRTrainerOptions, args)
 
     @classmethod
@@ -83,6 +83,7 @@ class UASRTrainer(Trainer):
         )
 
     @classmethod
+    @typechecked
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -96,7 +97,6 @@ class UASRTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> bool:
         """Train one epoch for UASR."""
-        assert check_argument_types()
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
@@ -310,6 +310,7 @@ class UASRTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -319,7 +320,6 @@ class UASRTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> None:
         """Validate one epoch."""
-        assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
