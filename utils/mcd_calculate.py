@@ -176,7 +176,6 @@ def get_basename(path):
 
 
 def calculate(file_list, gt_file_list, args, MCD):
-
     for i, cvt_path in enumerate(file_list):
         corresponding_list = list(
             filter(lambda gt_path: get_basename(gt_path) in cvt_path, gt_file_list)
@@ -210,7 +209,6 @@ def calculate(file_list, gt_file_list, args, MCD):
 
 
 def get_parser():
-
     parser = argparse.ArgumentParser(description="calculate MCD.")
     parser.add_argument(
         "--wavdir",

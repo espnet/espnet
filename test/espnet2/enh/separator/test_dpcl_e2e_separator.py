@@ -125,7 +125,6 @@ def test_dpcl_e2e_separator_invalid_type():
 
 
 def test_dpcl_e2e_separator_output():
-
     x = torch.rand(1, 10, 10)
     x_lens = torch.tensor([10], dtype=torch.long)
 

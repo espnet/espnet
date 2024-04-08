@@ -1,10 +1,9 @@
-import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -36,6 +35,7 @@ else:
 class ESPnetSLUModel(ESPnetASRModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -51,7 +51,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         joint_network: Optional[torch.nn.Module],
         postdecoder: Optional[AbsPostDecoder] = None,
         deliberationencoder: Optional[AbsPostEncoder] = None,
-        transcript_token_list: Union[Tuple[str, ...], List[str]] = None,
+        transcript_token_list: Union[Tuple[str, ...], List[str], None] = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,
@@ -65,7 +65,6 @@ class ESPnetSLUModel(ESPnetASRModel):
         two_pass: bool = False,
         pre_postencoder_norm: bool = False,
     ):
-        assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
@@ -309,16 +308,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         transcript_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        if self.extract_feats_in_collect_stats:
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        else:
-            # Generate dummy stats if extract_feats_in_collect_stats is False
-            logging.warning(
-                "Generating dummy stats for feats and feats_lengths, "
-                "because encoder_conf.extract_feats_in_collect_stats is "
-                f"{self.extract_feats_in_collect_stats}"
-            )
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(

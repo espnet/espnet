@@ -1,6 +1,6 @@
 # Talrómur recipe
 
-This is a recipe for the [Talrómur corpus](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/104), which contains a large amount of studio recorded speech data from 8 Icelandic speakers, 4 male and 4 female. 
+This is a recipe for the [Talrómur corpus](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/104), which contains a large amount of studio recorded speech data from 8 Icelandic speakers, 4 male and 4 female.
 
 
 ## Corpus
@@ -24,7 +24,7 @@ First download the data by running the following:
 local/data_download.sh ${TALROMUR}
 ```
 Now, to train a Tacotron 2 model, simply run `./train_tacotron2.sh <spk_id>` with the desired speaker ID.
-Once a Tacotron model has been trained, you can run `./train_fastspeech2.sh <spk_id>` to obtain a FastSpeech 2 model. 
+Once a Tacotron model has been trained, you can run `./train_fastspeech2.sh <spk_id>` to obtain a FastSpeech 2 model.
 
 
 ---

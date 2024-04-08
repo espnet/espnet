@@ -19,7 +19,6 @@ postnet-layers: 5
 postnet-filts: 5
 postnet-chans: 256
 use-masking: True
-bce-pos-weight: 5.0
 use-batch-norm: True
 use-scaled-pos-enc: True
 encoder-normalize-before: False

@@ -470,7 +470,6 @@ def test_invalid_input_layer_type():
 
 
 def test_invalid_architecture_layer_type():
-
     with pytest.raises(NotImplementedError):
         _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "foo"}])
 
@@ -628,6 +627,7 @@ def test_invalid_block_io():
         {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.float16},
     ],
 )
+@pytest.mark.execution_timeout(4)
 def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# This file is a configuration fle for the commond setting
+# and set the environment variable for the extra tools installed by tools/installers/*.sh.
+# This file is mainly sourced in egs2/*/*/path.sh. e.g. egs2/mini_an4/asr1/path.sh
+
 if [ -n "${BASH_VERSION:-}" ]; then
     # shellcheck disable=SC2046
     TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
@@ -13,8 +18,12 @@ else
     TOOL_DIR="$(pwd)"
 fi
 
-export PATH="${TOOL_DIR}"/sph2pipe_v2.5:"${PATH:-}"
-export PATH="${TOOL_DIR}"/sctk-2.4.10/bin:"${PATH:-}"
+KALDI_ROOT="${TOOL_DIR}"/kaldi
+[ -f "${KALDI_ROOT}"/tools/config/common_path.sh ] && . "${KALDI_ROOT}"/tools/config/common_path.sh
+
+export PATH="${TOOL_DIR}"/sentencepiece_commands:"${PATH:-}"
+export PATH="${TOOL_DIR}"/sph2pipe:"${PATH:-}"
+export PATH="${TOOL_DIR}"/sctk/bin:"${PATH:-}"
 export PATH="${TOOL_DIR}"/mwerSegmenter:"${PATH:-}"
 export PATH="${TOOL_DIR}"/moses/scripts/tokenizer:"${TOOL_DIR}"/moses/scripts/generic:"${TOOL_DIR}"/tools/moses/scripts/recaser:"${TOOL_DIR}"/moses/scripts/training:"${PATH:-}"
 export PATH="${TOOL_DIR}"/nkf/nkf-2.1.4:"${PATH:-}"
@@ -24,6 +33,7 @@ export PATH="${TOOL_DIR}"/BeamformIt:"${PATH:-}"
 export PATH="${TOOL_DIR}"/espeak-ng/bin:"${PATH:-}"
 export PATH="${TOOL_DIR}"/MBROLA/Bin:"${PATH:-}"
 export PATH="${TOOL_DIR}"/festival/bin:"${PATH:-}"
+export PATH="${TOOL_DIR}"/ffmpeg-release:"${PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/lib:"${TOOL_DIR}"/lib64:"${LD_LIBRARY_PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/espeak-ng/lib:"${LD_LIBRARY_PATH:-}"
-export PYTHONPATH="${TOOL_DIR}"/s3prl:"${PYTHONPATH:-}"
+export PYTHONPATH="${TOOL_DIR}"/RawNet/python/RawNet3:"${TOOL_DIR}"/RawNet/python/RawNet3/models:"${PYTHONPATH:-}"

@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import six
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -15,11 +14,11 @@ class CTC(torch.nn.Module):
     :param int odim: dimension of outputs
     :param int eprojs: number of encoder projection units
     :param float dropout_rate: dropout rate (0.0 ~ 1.0)
-    :param str ctc_type: builtin or warpctc
+    :param str ctc_type: builtin
     :param bool reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim, eprojs, dropout_rate, ctc_type="warpctc", reduce=True):
+    def __init__(self, odim, eprojs, dropout_rate, ctc_type="builtin", reduce=True):
         super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -41,17 +40,13 @@ class CTC(torch.nn.Module):
         elif self.ctc_type == "cudnnctc":
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
-        elif self.ctc_type == "warpctc":
-            import warpctc_pytorch as warp_ctc
-
-            self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
         elif self.ctc_type == "gtnctc":
             from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
             self.ctc_loss = GTNCTCLossFunction.apply
         else:
             raise ValueError(
-                'ctc_type must be "builtin" or "warpctc": {}'.format(self.ctc_type)
+                'ctc_type must be "builtin" or "gtnctc": {}'.format(self.ctc_type)
             )
 
         self.ignore_id = -1
@@ -67,8 +62,6 @@ class CTC(torch.nn.Module):
             # Batch-size average
             loss = loss / th_pred.size(1)
             return loss
-        elif self.ctc_type == "warpctc":
-            return self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
         elif self.ctc_type == "gtnctc":
             targets = [t.tolist() for t in th_target]
             log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
@@ -110,10 +103,6 @@ class CTC(torch.nn.Module):
             # get ctc loss
             # expected shape of seqLength x batchSize x alphabet_size
             dtype = ys_hat.dtype
-            if self.ctc_type == "warpctc" or dtype == torch.float16:
-                # warpctc only supports float32
-                # torch.ctc does not support float16 (#1751)
-                ys_hat = ys_hat.to(dtype=torch.float32)
             if self.ctc_type == "cudnnctc":
                 # use GPU when using the cuDNN implementation
                 ys_true = to_device(hs_pad, ys_true)
@@ -137,9 +126,6 @@ class CTC(torch.nn.Module):
         )
 
         if self.reduce:
-            # NOTE: sum() is needed to keep consistency
-            # since warpctc return as tensor w/ shape (1,)
-            # but builtin return as tensor w/o shape (scalar).
             self.loss = self.loss.sum()
             logging.info("ctc loss:" + str(float(self.loss)))
 
@@ -205,8 +191,8 @@ class CTC(torch.nn.Module):
         logdelta[0, 0] = lpz[0][y_int[0]]
         logdelta[0, 1] = lpz[0][y_int[1]]
 
-        for t in six.moves.range(1, lpz.size(0)):
-            for s in six.moves.range(len(y_int)):
+        for t in range(1, lpz.size(0)):
+            for s in range(len(y_int)):
                 if y_int[s] == blank_id or s < 2 or y_int[s] == y_int[s - 2]:
                     candidates = np.array([logdelta[t - 1, s], logdelta[t - 1, s - 1]])
                     prev_state = [s, s - 1]
@@ -229,11 +215,11 @@ class CTC(torch.nn.Module):
         )
         prev_state = [len(y_int) - 1, len(y_int) - 2]
         state_seq[-1] = prev_state[np.argmax(candidates)]
-        for t in six.moves.range(lpz.size(0) - 2, -1, -1):
+        for t in range(lpz.size(0) - 2, -1, -1):
             state_seq[t] = state_path[t + 1, state_seq[t + 1, 0]]
 
         output_state_seq = []
-        for t in six.moves.range(0, lpz.size(0)):
+        for t in range(0, lpz.size(0)):
             output_state_seq.append(y_int[state_seq[t, 0]])
 
         return output_state_seq

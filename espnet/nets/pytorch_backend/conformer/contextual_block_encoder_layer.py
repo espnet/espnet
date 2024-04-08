@@ -208,14 +208,14 @@ class ContextualBlockEncoderLayer(nn.Module):
 
         Args:
             x_input (torch.Tensor): Input tensor (#batch, time, size).
-            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
             past_ctx (torch.Tensor): Previous contexutal vector
             next_ctx (torch.Tensor): Next contexutal vector
             cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
 
         Returns:
             torch.Tensor: Output tensor (#batch, time, size).
-            torch.Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Mask tensor (#batch, 1, time).
             cur_ctx (torch.Tensor): Current contexutal vector
             next_ctx (torch.Tensor): Next contexutal vector
             layer_idx (int): layer index number

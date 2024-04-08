@@ -38,7 +38,6 @@ def ExtractAudioID(audioname, wav_spk_info=None):
 
 
 def XMLRefine(input_xml, output_xml, readable=False):
-
     """refine trs file into
 
     :param input_xml: original transcriber xml

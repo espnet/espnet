@@ -163,4 +163,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_ihm_devdecode_lm_valid.loss.best_asr_model_valid.acc.best|12900|451698|80.4|7.6|11.9|3.9|23.5|70.1|
 |decode_ihm_evaldecode_lm_valid.loss.best_asr_model_valid.acc.best|12479|431533|79.2|8.9|11.9|4.1|24.9|67.7|
-

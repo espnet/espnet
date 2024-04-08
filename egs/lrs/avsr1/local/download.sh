@@ -1,4 +1,4 @@
-#! /usr/bin/env bash 
+#! /usr/bin/env bash
 
 # Copyright 2020 Ruhr-University (Wentao Yu)
 

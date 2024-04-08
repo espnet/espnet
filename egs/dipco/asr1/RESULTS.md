@@ -27,4 +27,3 @@
 |decode_dipco_dev_worn_decode_lm|3673|29966|50.3|42.5|7.2|14.3|64.0|78.3|
 |decode_dipco_eval_beamformit_ref_decode_lm|17020|143960|22.3|51.8|25.9|13.1|90.8|94.4|
 |decode_dipco_eval_worn_decode_lm|3404|28792|46.9|44.5|8.6|12.5|65.7|75.8|
-

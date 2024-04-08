@@ -74,7 +74,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         grep "P4-" data/tmp/${file} > data/valid/${file}
         grep -e "S1-" -e "S2-" -e "S3-" -e "S4-" data/tmp/${file} > data/test/${file}
     done
-    for dset in test valid train; do 
+    for dset in test valid train; do
         utils/validate_data_dir.sh --no-feats --non-print data/${dset} || exit 1
     done
 fi

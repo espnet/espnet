@@ -22,7 +22,7 @@ decoder_conf:
         aheads: 4
         aconv_chans: 10
         aconv_filts: 100
-    
+
 
 # hybrid CTC/attention
 model_conf:

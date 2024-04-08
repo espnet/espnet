@@ -36,9 +36,9 @@ separator_conf:
     model_name: ConvTasNet
     pretrained_path: mpariente/ConvTasNet_WHAM!_sepclean # choose the pretrained model
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: pit

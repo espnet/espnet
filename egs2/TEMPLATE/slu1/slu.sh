@@ -237,7 +237,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -270,7 +270,11 @@ else
     exit 2
 fi
 
-utt_extra_files="transcript"
+if [ $use_transcript = true ]; then
+    utt_extra_files="transcript"
+else
+    utt_extra_files=""
+fi
 
 # Use the same text as SLU for bpe training if not specified.
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
@@ -453,7 +457,7 @@ if ! "${skip_data_prep}"; then
         if [ -n "${speed_perturb_factors}" ]; then
            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
            for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                    scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
                         "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                    _dirs+="data/${train_set}_sp${factor} "
@@ -573,7 +577,13 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                if [ ! -f data/"${dset}"/wav.scp ]; then
+		            if [ ! -f data/"${dset}"/segments ]; then
+		                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                    else
+		                <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
+		            fi
+		        fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # Derive the the frame length and feature dimension
@@ -603,7 +613,7 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-            
+
             for utt_extra_file in ${utt_extra_files}; do
                 cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
             done
@@ -721,22 +731,22 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
-            if "${use_transcript}"; then
-                ${python} -m espnet2.bin.tokenize_text  \
-                    --token_type "${token_type}" \
-                    --input "${data_feats}/lm_train_transcript.txt" --output "${transcript_token_list}" ${_opts} \
-                    --field 2- \
-                    --cleaner "${cleaner}" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary true \
-                    --add_symbol "${blank}:0" \
-                    --add_symbol "${oov}:1" \
-                    --add_symbol "${sos_eos}:-1"
-            fi
-
         else
             log "Error: not supported --token_type '${token_type}'"
             exit 2
+        fi
+        _opts="--non_linguistic_symbols ${nlsyms_txt}"
+        if "${use_transcript}"; then
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "word" \
+                --input "${data_feats}/lm_train_transcript.txt" --output "${transcript_token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
         fi
 
         # Create word-list for word-LM training
@@ -829,6 +839,10 @@ if ! "${skip_train}"; then
             for i in $(seq "${_nj}"); do
                 _opts+="--input_dir ${_logdir}/stats.${i} "
             done
+            if [ "${feats_normalize}" != global_mvn ]; then
+                # Skip summerizaing stats if not using global MVN
+                _opts+="--skip_sum_stats"
+            fi
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
 
@@ -948,8 +962,8 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1042,7 +1056,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/valid.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${slu_args} || { cat "${_logdir}"/stats.1.log; exit 1; }    
+                    ${_opts} ${slu_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
         else
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.slu_train \
@@ -1338,7 +1352,7 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            
+
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
             slu_inference_tool="espnet2.bin.slu_inference"
 

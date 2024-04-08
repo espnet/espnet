@@ -18,7 +18,6 @@ parser.add_argument(
 
 
 def prepare_data(clarity_root, samplerate):
-
     output_folder = "./data"
     ids = {"train": set(), "dev": set()}
 

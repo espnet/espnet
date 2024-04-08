@@ -12,7 +12,7 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `62a7dd6d5f08c4c7b1c72a8785820fc70c9ad603`
   - Commit date: `Mon Aug 2 14:15:45 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5154341 
+- Pretrained Model: https://zenodo.org/record/5154341
 
 ## Conformer+Transformer LM
 ### asr_train_asr_conformer8_n_fft512_hop_length256_raw_kr_bpe2309
@@ -34,4 +34,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_transformer3_kr_bpe2309_valid.loss.ave_asr_model_valid.acc.best/eval_clean|3000|20401|82.3|14.5|3.2|4.0|21.7|60.4|
 |decode_asr_lm_lm_train_lm_transformer3_kr_bpe2309_valid.loss.ave_asr_model_valid.acc.best/eval_other|3000|26621|79.0|18.0|3.0|5.6|26.6|74.0|
-

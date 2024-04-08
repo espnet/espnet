@@ -1,0 +1,1 @@
+../../asr1/local/get_lhotse_manifests.py

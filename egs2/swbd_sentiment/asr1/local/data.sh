@@ -49,14 +49,14 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log " Data Formatting"
-     # remove ._ . _1 symbols from text  
+     # remove ._ . _1 symbols from text
      cp data/train/text data/train/text.backup
      sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train/text
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log " Concatenate Sentiment with Transcription"
-    # Concatenate sentiment (Positive, Negative, Neutral) with transcription. 
+    # Concatenate sentiment (Positive, Negative, Neutral) with transcription.
     # Using sentiment annotation reconciliation strategy based on majority voting as in
     # https://catalog.ldc.upenn.edu/docs/LDC2020T14/LREC_2020_Switchboard_Senti.pdf
     # This stage may take a while

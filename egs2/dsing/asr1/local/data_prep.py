@@ -19,7 +19,6 @@ class DataSet:
         self.db_path = db_path
 
     def add_utterance(self, utt, recording):
-
         text = utt["text"]
         arrangement, performance, country, gender, user = recording[:-4].split("-")
 

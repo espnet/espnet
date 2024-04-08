@@ -20,7 +20,7 @@ do_delta=false
 # here we use models trained with the LibriSpeech Transformer recipe
 # https://github.com/espnet/espnet/blob/master/egs/librispeech/asr1/RESULTS.md#pytorch-large-transformer-with-specaug-4-gpus--transformer-lm-4-gpus
 # they are downloaded by the local/download_asr.sh script
-asr_url="https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p"
+asr_url="https://drive.google.com/open?id=1RHYAhcnlKz08amATrf0ZOWFLzoQphtoc"
 recog_model=model.val5.avg.best  # set a model to be used for decoding
 lang_model=rnnlm.model.best # set a language model to be used for decoding
 

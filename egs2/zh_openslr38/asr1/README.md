@@ -1,5 +1,5 @@
 # Corpus
-**Free ST Chinese Mandarin Corpus**: a free Mandarin Chinese corpus collected by Surfingtech (www.surfing.ai). The dataset contains 102600 utterances from 855 speakers, for a total of 109.73 hours of speech. 
+**Free ST Chinese Mandarin Corpus**: a free Mandarin Chinese corpus collected by Surfingtech (www.surfing.ai). The dataset contains 102600 utterances from 855 speakers, for a total of 109.73 hours of speech.
 
 Since all speakers have 120 utterances, we manually divide the data into train, dev, and test split with a ratio of 90-5-5 using speaker IDs, resulting in 769, 43, and 43 speakers in our train, dev, test split respectively. Utterances with the same speaker ID are kept in the same split.
 

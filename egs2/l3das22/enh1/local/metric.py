@@ -33,7 +33,6 @@ def wer(clean_speech, denoised_speech):
     """
 
     def _transcription(clean_speech, denoised_speech):
-
         # transcribe clean audio
         input_values = wer_tokenizer(clean_speech, return_tensors="pt").input_values
         logits = wer_model(input_values).logits

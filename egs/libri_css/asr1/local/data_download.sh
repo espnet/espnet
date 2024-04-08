@@ -25,7 +25,7 @@ set -e -o pipefail
 
 # If data is not already present, then download and unzip
 if [ ! -d $corpus_dir/for_release ]; then
-    echo "Downloading and unpacking LibriCSS data."    
+    echo "Downloading and unpacking LibriCSS data."
     CWD=`pwd`
     mkdir -p $corpus_dir
 
@@ -34,7 +34,7 @@ if [ ! -d $corpus_dir/for_release ]; then
     tmp_dir=$(mktemp -d -p downloads)
 
     # Download the data. If the data has already been downloaded, it
-    # does nothing. (See wget -c) 
+    # does nothing. (See wget -c)
     wget -c --load-cookies ${tmp_dir}/cookies.txt \
       "https://docs.google.com/uc?export=download&confirm=$(wget --quiet \
       --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate \
@@ -50,4 +50,3 @@ if [ ! -d $corpus_dir/for_release ]; then
     cd for_release
     python3 segment_libricss.py -data_path .
 fi
-

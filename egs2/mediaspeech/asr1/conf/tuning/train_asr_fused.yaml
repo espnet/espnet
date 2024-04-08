@@ -15,18 +15,18 @@ decoder_conf:
     linear_units: 2048
     dropout_rate: 0.1
 
-#frontend related 
-freeze_param: ["frontend.upstream"] 
+#frontend related
+freeze_param: ["frontend.upstream"]
 
 frontend: fused
-frontend_conf: 
+frontend_conf:
   frontends:
     - frontend_type: s3prl
       frontend_conf:
         upstream: hubert_large_ll60k
       download_dir: ./hub
       multilayer_feature: True
-      
+
     - frontend_type: default
       n_fft: 512
       win_length: 400
@@ -39,7 +39,7 @@ frontend_conf:
       multilayer_feature: True
 
   align_method: linear_projection
-  proj_dim: 100     
+  proj_dim: 100
 
 preencoder: linear
 preencoder_conf:

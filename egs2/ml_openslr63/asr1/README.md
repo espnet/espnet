@@ -8,7 +8,7 @@
 - Git hash: `d2410457152872f63c51ee76ed746a6ea3153f09`
   - Commit date: `Sat Mar 19 09:04:54 2022 +0000`
 - Pretrained Model
-  - Hugging Face Hub: 
+  - Hugging Face Hub:
   https://huggingface.co/espnet/ml_openslr63
 
 ## asr_train_asr_conformer_s3prlfrontend_hubert_fused_raw_ml_bpe150_sp
@@ -96,4 +96,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_ml_bpe150_valid.loss.ave_asr_model_valid.acc.ave/dev_ml|369|13402|90.7|6.2|3.1|1.4|10.6|72.9|
 |decode_asr_lm_lm_train_lm_ml_bpe150_valid.loss.ave_asr_model_valid.acc.ave/test_ml|1062|35911|86.7|8.6|4.6|1.6|14.8|71.8|
-

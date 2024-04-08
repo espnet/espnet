@@ -60,9 +60,9 @@ separator_conf:
     bdropout_rate: 0.0
 
 
-criterions: 
+criterions:
   # The first criterion
-  - name: mse 
+  - name: mse
     conf:
       compute_on_mask: True
       mask_type: PSM^2

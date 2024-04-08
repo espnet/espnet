@@ -10,7 +10,7 @@ train_set="tr_${lang}"
 valid_set="dt_${lang}"
 test_sets="dt_${lang} et_${lang}"
 
-asr_config=conf/train_asr_rnn.yaml
+asr_config=conf/train_asr_e_branchformer.yaml
 inference_config=conf/decode_asr.yaml
 
 # FIXME(kamo):

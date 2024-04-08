@@ -1,0 +1,73 @@
+
+
+##########################################################
+#                  SVS MODEL SETTING                     #
+##########################################################
+svs: xiaoice                     # model architecture
+svs_conf:                        # keyword arguments for the selected model
+    midi_dim: 129                # midi embedding range (note number + silence)
+    duration_dim: 500            # duration embedding range
+    adim: 384
+    aheads: 4
+    elayers: 6                   # number of lstm layers in encoder
+    eunits: 1536                 # number of lstm units
+    dlayers: 6                   # number of lstm layers in decoder
+    dunits: 1536                 # number of lstm units in decoder
+    postnet_layers: 5            # number of layers in postnet
+    postnet_chans: 512           # number of channels in postnet
+    postnet_filts: 5             # filter size of postnet layer
+    postnet_dropout_rate: 0.5    # postnet dropout_rate
+    use_batch_norm: true         # whether to use batch normalization in postnet
+    reduction_factor: 1          # reduction factor
+    init_type: pytorch           # parameter initialization
+    use_masking: true            # whether to apply masking for padded part in loss calculation
+    loss_function: XiaoiceSing2  # Loss funtions (FastSpeech1 or XiaoiceSing2)
+    loss_type: L1                # mel loss type ("L1", "L2" or "L1+L2")
+    lambda_mel: 1                # Loss scaling coefficient for Mel loss.
+    lambda_dur: 0.1              # Loss scaling coefficient for duration loss.
+    lambda_pitch: 0.01           # Loss scaling coefficient for pitch loss.
+    lambda_vuv: 0.01             # Loss scaling coefficient for VUV loss.
+
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+    use_token_averaged_f0: false
+pitch_normalize: global_mvn  # normalizer for the pitch feature
+
+
+##########################################################
+#                  OPTIMIZER SETTING                     #
+##########################################################
+optim: adam           # optimizer type
+optim_conf:           # keyword arguments for selected optimizer
+    lr: 1.0e-03       # learning rate
+    eps: 1.0e-06      # epsilon
+    weight_decay: 0.0 # weight decay coefficient
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+num_iters_per_epoch: 500    # number of iterations per epoch
+max_epoch: 500              # number of epochs
+grad_clip: 1.0              # gradient clipping norm
+grad_noise: false           # whether to use gradient noise injection
+accum_grad: 1               # gradient accumulation
+
+batch_type: sorted
+batch_size: 16
+
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+num_workers: 10              # number of workers of data loader
+train_dtype: float32        # dtype in training
+log_interval: null          # log interval in iterations
+keep_nbest_models: 5        # number of models to keep
+num_att_plot: 3             # number of attention figures to be saved in every check
+seed: 0                     # random seed number
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+-   - train
+    - loss
+    - min

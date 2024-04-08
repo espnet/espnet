@@ -11,7 +11,7 @@ db_root=""
 backend=pytorch
 wer=true
 api=v2
-help_message="Usage: $0 <asr_model_dir> <expdir> <wavdir> <list> <transcription>" 
+help_message="Usage: $0 <asr_model_dir> <expdir> <wavdir> <list> <transcription>"
 
 . utils/parse_options.sh
 
@@ -56,7 +56,7 @@ asr_dict="${asr_data_dir}/decode_dict/X.txt"
 echo "step 1: Data preparation for ASR"
 # Data preparation for ASR
 local/data_prep_for_asr_english.sh ${wavdir} ${asr_data_dir} ${spk} ${list} ${transcription}
-utils/validate_data_dir.sh --no-text --no-feats ${asr_data_dir} 
+utils/validate_data_dir.sh --no-text --no-feats ${asr_data_dir}
 
 echo "step 2: Feature extraction for ASR"
 # Feature extraction for ASR
@@ -95,7 +95,7 @@ cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr
 # split data
 splitjson.py --parts ${nj} ${asr_feat_dir}/data.json
 
-# set batchsize 0 to disable batch decoding    
+# set batchsize 0 to disable batch decoding
 ${decode_cmd} JOB=1:${nj} ${asr_result_dir}/log/decode.JOB.log \
     asr_recog.py \
       --config ${asr_decode_config} \

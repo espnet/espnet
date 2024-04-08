@@ -31,4 +31,3 @@ This is the baseline setup for the ASR task of
 |decode_asr_asr_model_valid.cer_ctc.best/dev_gvc|253|13453|64.7|15.5|19.9|10.2|45.6|99.6|
 |decode_asr_asr_model_valid.cer_ctc.best/dev_quy|250|95334|78.6|8.0|13.4|10.1|31.5|100.0|
 |decode_asr_asr_model_valid.cer_ctc.best/dev_tav|250|8606|57.5|19.9|22.7|12.0|54.5|99.6|
-

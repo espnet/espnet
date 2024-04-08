@@ -52,7 +52,7 @@ rm -r ${data}/tt_synthetic_{with,no}_reverb 2>/dev/null || true
 
 tmpdir=data/temp
 rm -r  $tmpdir 2>/dev/null || true
-mkdir -p $tmpdir 
+mkdir -p $tmpdir
 
 mixwav_dir=${dns_wav}/noisy
 
@@ -75,7 +75,7 @@ for x in tr cv; do
   ddir=${x}_synthetic
   mkdir -p ${data}/${ddir}
   cp $tmpdir/${x}.scp ${data}/${ddir}/wav.scp
-  
+
   awk '{split($1, lst, "_"); spk=lst[1]"_"lst[2]; print($1, spk)}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
@@ -109,7 +109,7 @@ for x in tt; do
     > $tmpdir/${x}_${rev}.uttids
 
     paste $tmpdir/${x}_${rev}.uttids $tmpdir/${x}_${rev}.flist \
-    | sort -k1,1 >  ${data}/${ddir}/wav.scp 
+    | sort -k1,1 >  ${data}/${ddir}/wav.scp
 
 
     awk '{print($1, $1)}' ${data}/${ddir}/wav.scp | \
@@ -132,12 +132,12 @@ for x in tt; do
   real_dir=${dns_test_wav}/real_recordings
 
   find $real_dir -iname '*.wav' > $tmpdir/${x}_real_recordings.flist
-  
+
   sed -e 's:.*\/\(.*\).wav$:\1:i' $tmpdir/${x}_real_recordings.flist \
   > $tmpdir/${x}_real_recordings.uttids
 
   paste $tmpdir/${x}_real_recordings.uttids $tmpdir/${x}_real_recordings.flist \
-  | sort -k1,1 >  ${data}/${ddir}/wav.scp 
+  | sort -k1,1 >  ${data}/${ddir}/wav.scp
 
 
   awk '{print($1, $1)}' ${data}/${ddir}/wav.scp | \
@@ -148,7 +148,6 @@ for x in tt; do
   sort -u> ${data}/${ddir}/text
 
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
-  
+
 
 done
-

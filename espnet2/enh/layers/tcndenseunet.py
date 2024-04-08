@@ -96,7 +96,6 @@ class DenseBlock(torch.nn.Module):
         activation=torch.nn.ELU,
         hid_chans=32,
     ):
-
         super(DenseBlock, self).__init__()
 
         assert post_blocks >= 1
@@ -407,7 +406,6 @@ class TCNDenseUNet(torch.nn.Module):
         self.decoder.append(last)
 
     def _get_depth(self, num_freq):
-
         n_layers = 0
         freqs = []
         while num_freq > 15:

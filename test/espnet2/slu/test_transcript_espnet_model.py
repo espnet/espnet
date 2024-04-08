@@ -1,5 +1,6 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
@@ -12,10 +13,14 @@ from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
 from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 
+is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
 @pytest.mark.execution_timeout(50)
 def test_slu_testing(encoder_arch):
+    if not is_torch_1_8_plus:
+        return
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
@@ -69,6 +74,8 @@ def test_slu_testing(encoder_arch):
 @pytest.mark.parametrize("decoder_post", [None, HuggingFaceTransformersPostDecoder])
 @pytest.mark.execution_timeout(50)
 def test_slu_training(encoder_arch, encoder_del, decoder_post):
+    if not is_torch_1_8_plus:
+        return
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
@@ -134,6 +141,8 @@ def test_slu_training(encoder_arch, encoder_del, decoder_post):
 @pytest.mark.parametrize("encoder_post", [TransformerPostEncoder])
 @pytest.mark.execution_timeout(100)
 def test_slu_training_nlu_postencoder(encoder_arch, encoder_post):
+    if not is_torch_1_8_plus:
+        return
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
@@ -192,6 +201,8 @@ def test_slu_training_nlu_postencoder(encoder_arch, encoder_post):
 @pytest.mark.parametrize("ctc_weight", [0.0, 1.0])
 @pytest.mark.execution_timeout(50)
 def test_slu_no_ctc_training(encoder_arch, ctc_weight):
+    if not is_torch_1_8_plus:
+        return
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
@@ -240,6 +251,8 @@ def test_slu_no_ctc_training(encoder_arch, ctc_weight):
 
 @pytest.mark.parametrize("extract_feats", [True, False])
 def test_collect_feats(extract_feats):
+    if not is_torch_1_8_plus:
+        return
     vocab_size = 5
     enc_out = 20
     encoder = TransformerEncoder(

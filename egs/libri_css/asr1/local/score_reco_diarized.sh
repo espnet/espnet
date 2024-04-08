@@ -20,7 +20,7 @@ if [ $# -ne 2 ]; then
     echo "This script provides CHiME-6 style SA-WER scoring for LibriCSS"
     echo " Options:"
     echo "    --cmd (run.pl|queue.pl...)            # specify how to run the sub-processes."
-    
+
     exit 1;
 fi
 
@@ -65,6 +65,6 @@ cat $wer_dir/best_wer_all | awk '
 # printing dev and eval wer
 echo "$datadir WERs:"
 cat $decodedir/scoring_kaldi_multispeaker/best_wer
-echo "Average $datadir WER:" 
+echo "Average $datadir WER:"
 cat $decodedir/scoring_kaldi_multispeaker/best_wer_average
 echo

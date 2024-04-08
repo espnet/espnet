@@ -12,7 +12,7 @@ import pyworld
 import torch
 import torch.nn.functional as F
 from scipy.interpolate import interp1d
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -36,6 +36,7 @@ class Dio(AbsFeatsExtract):
 
     """
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -48,7 +49,6 @@ class Dio(AbsFeatsExtract):
         use_log_f0: bool = True,
         reduction_factor: int = None,
     ):
-        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
@@ -150,7 +150,7 @@ class Dio(AbsFeatsExtract):
     @staticmethod
     def _convert_to_continuous_f0(f0: np.array) -> np.array:
         if (f0 == 0).all():
-            logging.warn("All frames seems to be unvoiced.")
+            logging.warning("All frames seems to be unvoiced.")
             return f0
 
         # padding start and end of f0 sequence
@@ -174,9 +174,11 @@ class Dio(AbsFeatsExtract):
         assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
-            x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
-            if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
-            else x.new_tensor(0.0)
+            (
+                x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
+                if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
+                else x.new_tensor(0.0)
+            )
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
         return torch.stack(x_avg)

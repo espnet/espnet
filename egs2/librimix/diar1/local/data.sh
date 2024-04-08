@@ -34,15 +34,15 @@ set -o pipefail
 log "data preparation started"
 
 # Github LibriMix : https://github.com/s3prl/LibriMix.git
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then  
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     URL=https://github.com/YushiUeda/LibriMix.git
-    # our fork 
+    # our fork
     if [ ! -d "$FOLDER" ] ; then
         git clone "$URL" "$FOLDER"
         log "git successfully downloaded"
         # Not installing matplotlib to avoid conflict with ESPnet
         sed -i -e "s/matplotlib>=3\.1\.3//" $FOLDER/requirements.txt
-        pip install -r "$FOLDER"/requirements.txt 
+        pip install -r "$FOLDER"/requirements.txt
     fi
 fi
 
@@ -74,6 +74,7 @@ done
 
 for file in reco2dur rttm segments spk2utt utt2spk wav.scp; do
     for dir in data/test data/train data/dev; do
+        mkdir -p ${dir}
         echo -n "" > ${dir}/${file}
         for i in $num_spk; do
             cat ${dir}${i}/${file} >> ${dir}/${file}

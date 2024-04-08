@@ -62,7 +62,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p data/{train,valid,test}
     python3 local/prepare_slurp_data.py ${SLURP}
     cp -r data/test data/test_qut
-    
+
     for x in test test_qut devel train; do
         # Write wav.scp base on raw_wav.scp
         log "Data Preparation stage 3: Data Preparation ${x}"

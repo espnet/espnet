@@ -83,7 +83,7 @@ for x in dev test tr; do
   awk '{split($1, lst, "-"); spk=lst[1]; print($1, spk)}' $data/${ddir}_multich/wav.scp | \
     sort -u> $data/${ddir}_multich/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}_multich/utt2spk > $data/${ddir}_multich/spk2utt
-  
+
   if [ "$x" = "tr" ]; then
     cat $tmpdir/${x}100.trans $tmpdir/${x}360.trans | \
       sort -u >  $data/${ddir}_multich/text
@@ -101,6 +101,3 @@ for x in dev test tr; do
   cp $data/${ddir}_multich/* $data/${ddir}_singlech
   cp $tmpdir/${ddir}/wav_micA_ch1.scp $data/${ddir}_singlech/wav.scp
 done
-
-
-

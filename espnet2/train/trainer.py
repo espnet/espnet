@@ -1,4 +1,5 @@
 """Trainer module."""
+
 import argparse
 import dataclasses
 import logging
@@ -14,7 +15,7 @@ import torch
 import torch.nn
 import torch.optim
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -38,8 +39,16 @@ from espnet2.utils.kwargs2args import kwargs2args
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
+autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
+
+    if (
+        V(torch.__version__) >= V("1.10.0")
+        and torch.cuda.is_available()
+        and torch.cuda.is_bf16_supported()
+    ):
+        autocast_args = dict(dtype=torch.bfloat16)
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -52,6 +61,16 @@ try:
     import fairscale
 except ImportError:
     fairscale = None
+
+try:
+    import loralib as lora
+except Exception:
+    lora = None
+
+try:
+    import s3prl
+except Exception:
+    s3prl = None
 
 
 @dataclasses.dataclass
@@ -69,6 +88,9 @@ class TrainerOptions:
     use_matplotlib: bool
     use_tensorboard: bool
     use_wandb: bool
+    adapter: str
+    use_adapter: bool
+    save_strategy: str
     output_dir: Union[Path, str]
     max_epoch: int
     seed: int
@@ -111,9 +133,9 @@ class Trainer:
         raise RuntimeError("This class can't be instantiated.")
 
     @classmethod
+    @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()"""
-        assert check_argument_types()
         return build_dataclass(TrainerOptions, args)
 
     @classmethod
@@ -130,12 +152,13 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         ngpu: int = 0,
+        strict: bool = True,
     ):
         states = torch.load(
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
         )
-        model.load_state_dict(states["model"])
+        model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
         for optimizer, state in zip(optimizers, states["optimizers"]):
             optimizer.load_state_dict(state)
@@ -151,6 +174,7 @@ class Trainer:
         logging.info(f"The training was resumed using {checkpoint}")
 
     @classmethod
+    @typechecked
     def run(
         cls,
         model: AbsESPnetModel,
@@ -163,7 +187,6 @@ class Trainer:
         distributed_option: DistributedOption,
     ) -> None:
         """Perform training. This method performs the main process of training."""
-        assert check_argument_types()
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
@@ -194,6 +217,17 @@ class Trainer:
         else:
             scaler = None
 
+        adapter = getattr(trainer_options, "adapter", None)
+        use_adapter = getattr(trainer_options, "use_adapter", False)
+        save_strategy = getattr(trainer_options, "save_strategy", "all")
+        if use_adapter:
+            if adapter == "lora" and lora is None:
+                raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
+            elif adapter == "houlsby" and s3prl is None:
+                print("Error: S3PRL is not properly installed.")
+                print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
+                raise RuntimeError("Requiring S3PRL. ")
+
         if trainer_options.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -203,6 +237,7 @@ class Trainer:
                 reporter=reporter,
                 scaler=scaler,
                 ngpu=trainer_options.ngpu,
+                strict=not use_adapter,
             )
 
         start_epoch = reporter.get_epoch() + 1
@@ -337,9 +372,29 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
+                model_state_dict = model.state_dict()
+                if use_adapter:
+                    if save_strategy == "all":
+                        model_state_dict = model_state_dict
+                    elif save_strategy == "adapter_only":
+                        if adapter == "lora":
+                            model_state_dict = lora.lora_state_dict(model)
+                        elif adapter == "houlsby":
+                            model_state_dict = {
+                                k: v
+                                for k, v in model_state_dict.items()
+                                if "adapter" in k
+                            }
+                        else:
+                            raise ValueError(f"Adapter type {adapter} not supported")
+                    else:  # save_strategy == "required_grad_only"
+                        for n, p in model.named_parameters():
+                            if not p.requires_grad:
+                                model_state_dict.pop(n)
+
                 torch.save(
                     {
-                        "model": model.state_dict(),
+                        "model": model_state_dict,
                         "reporter": reporter.state_dict(),
                         "optimizers": [o.state_dict() for o in optimizers],
                         "schedulers": [
@@ -352,7 +407,7 @@ class Trainer:
                 )
 
                 # 5. Save and log the model and update the link to the best model
-                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
+                torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
                 p = output_dir / "latest.pth"
@@ -461,6 +516,7 @@ class Trainer:
             )
 
     @classmethod
+    @typechecked
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -473,7 +529,6 @@ class Trainer:
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
-        assert check_argument_types()
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
@@ -551,7 +606,10 @@ class Trainer:
                         )
                 del _model
 
-            with autocast(scaler is not None):
+            with autocast(
+                scaler is not None,
+                **autocast_args,
+            ):
                 with reporter.measure_time("forward_time"):
                     retval = model(**batch)
 
@@ -667,6 +725,17 @@ class Trainer:
                             scaler.update()
 
                 else:
+                    reporter.register(
+                        {
+                            "grad_norm": grad_norm,
+                            "clip": torch.where(
+                                grad_norm > grad_clip,
+                                grad_norm.new_tensor(100),
+                                grad_norm.new_tensor(0),
+                            ),
+                            "loss_scale": scaler.get_scale() if scaler else 1.0,
+                        }
+                    )
                     all_steps_are_invalid = False
                     with reporter.measure_time("optim_step_time"):
                         for iopt, (optimizer, scheduler) in enumerate(
@@ -721,6 +790,7 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -729,7 +799,6 @@ class Trainer:
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> None:
-        assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
@@ -739,7 +808,7 @@ class Trainer:
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
-        for (utt_id, batch) in iterator:
+        for utt_id, batch in iterator:
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -773,6 +842,7 @@ class Trainer:
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def plot_attention(
         cls,
         model: torch.nn.Module,
@@ -782,7 +852,6 @@ class Trainer:
         reporter: SubReporter,
         options: TrainerOptions,
     ) -> None:
-        assert check_argument_types()
         import matplotlib
 
         ngpu = options.ngpu
@@ -814,14 +883,18 @@ class Trainer:
             for k, att_list in att_dict.items():
                 assert len(att_list) == len(ids), (len(att_list), len(ids))
                 for id_, att_w in zip(ids, att_list):
-
                     if isinstance(att_w, torch.Tensor):
                         att_w = att_w.detach().cpu().numpy()
 
                     if att_w.ndim == 2:
                         att_w = att_w[None]
-                    elif att_w.ndim > 3 or att_w.ndim == 1:
-                        raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
+                    elif att_w.ndim == 4:
+                        # In multispkr_asr model case, the dimension could be 4.
+                        att_w = np.concatenate(
+                            [att_w[i] for i in range(att_w.shape[0])], axis=0
+                        )
+                    elif att_w.ndim > 4 or att_w.ndim == 1:
+                        raise RuntimeError(f"Must be 2, 3 or 4 dimension: {att_w.ndim}")
 
                     w, h = plt.figaspect(1.0 / len(att_w))
                     fig = plt.Figure(figsize=(w * 1.3, h * 1.3))

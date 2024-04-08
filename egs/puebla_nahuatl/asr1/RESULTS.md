@@ -65,5 +65,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_dev_elan_p_272_up_466_reserve_decode_rnn_elan_p_272_up_466_reserve|11848|85261|76.5|17.8|5.7|4.1|27.6|70.4|
 |decode_test_elan_p_272_up_466_reserve_decode_rnn_elan_p_272_up_466_reserve|8828|82153|77.7|16.4|5.8|3.4|25.7|75.4|
-
-

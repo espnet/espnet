@@ -22,4 +22,3 @@ sed -e '
 '
 
 #| uconv -f  utf-8  -t utf-8 -x Latin-ASCII
-

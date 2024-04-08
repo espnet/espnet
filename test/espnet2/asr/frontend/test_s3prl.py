@@ -7,10 +7,8 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 
 
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 def test_frontend_init():
-    if not is_torch_1_8_plus:
-        return
-
     frontend = S3prlFrontend(
         fs=16000,
         frontend_conf=dict(upstream="mel"),
@@ -19,11 +17,8 @@ def test_frontend_init():
     assert frontend.output_size() > 0
 
 
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 def test_frontend_output_size():
-    # Skip some testing cases
-    if not is_torch_1_8_plus:
-        return
-
     frontend = S3prlFrontend(
         fs=16000,
         frontend_conf=dict(upstream="mel"),
@@ -36,23 +31,23 @@ def test_frontend_output_size():
     assert feats.shape[-1] == frontend.output_size()
 
 
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 @pytest.mark.parametrize(
-    "fs, frontend_conf, multilayer_feature",
+    "fs, frontend_conf, multilayer_feature, layer",
     [
-        (16000, dict(upstream="mel"), True),
-        (16000, dict(upstream="mel"), False),
-        (16000, dict(upstream="mel", tile_factor=1), False),
+        (16000, dict(upstream="mel"), True, -1),
+        (16000, dict(upstream="mel"), False, -1),
+        (16000, dict(upstream="mel", tile_factor=1), False, -1),
+        (16000, dict(upstream="mel"), False, 0),
     ],
 )
-def test_frontend_backward(fs, frontend_conf, multilayer_feature):
-    if not is_torch_1_8_plus:
-        return
-
+def test_frontend_backward(fs, frontend_conf, multilayer_feature, layer):
     frontend = S3prlFrontend(
         fs=fs,
         frontend_conf=frontend_conf,
         download_dir="./hub",
         multilayer_feature=multilayer_feature,
+        layer=layer,
     )
     wavs = torch.randn(2, 1600, requires_grad=True)
     lengths = torch.LongTensor([1600, 1600])

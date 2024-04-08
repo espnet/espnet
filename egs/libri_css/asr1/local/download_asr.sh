@@ -14,7 +14,7 @@ if [ $# -ne 2 ] ; then
   echo >&2 "$0" "$@"
   echo >&2 "$0: Error: wrong number of arguments"
   echo -e >&2 "Usage:\n  $0 <asr-url> <asr-dir>"
-  echo -e >&2 "eg:\n  $0 'https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p' download/asr_librispeech"
+  echo -e >&2 "eg:\n  $0 'https://drive.google.com/open?id=1RHYAhcnlKz08amATrf0ZOWFLzoQphtoc' download/asr_librispeech"
   exit 1
 fi
 

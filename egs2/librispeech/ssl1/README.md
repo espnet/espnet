@@ -2,59 +2,47 @@
 
 This recipe trains a [Hubert](https://arxiv.org/pdf/2106.07447.pdf)pretrain model, using data Librispeech 960hr data, including the k-means-based pseudo label generation and mask-prediction training.
 
-This recipe requires fairseq installed, please run:
-
-    cd ${MAIN_ROOT}/tools && make fairseq.done
-
-Run.sh calls hubert.sh, and there are 7 stages in total. First, we need to do some data preparation to build espnet-style data/dump folders(stage 0-4). 
-
-    ./run.sh --stage 1 --stop-stage 4
-
-Then stage 5 calls script/km.sh to generate pseudo labels used in pretraining. To run this stage, please specify:
-    train/valid set, 
-    number of k-means clusters, 
-    feature type(could be mfcc or hubert extracted feature, will explain later), 
-    the percentage you want to used to train the k-means model.
-These parameters can be settled in run.sh and pass to hubert.sh
-
-    ./run.sh --stage 5 --stop-stage 5
-	
-Stage 6 and 7 collect stats of train/valid set and train the hubert model respectively. These two stages have the same functionality as stage 10 and 11 of asr recipes. The only difference is we call `espnet2.bin.hubert_train` instead of `espnet2.bin.train` for training.
-
-    ./run.sh --stage 6 --stop-stage 7
-	
-Note that stage 5-7 could run multiple times, which is specified by `pretrain_start_iter` and `pretrain_start_iter`. You may find the default value in run.sh:
-
-    pretrain_start_iter=0
-    pretrain_stop_iter=2
-	
-That refers to 3 iterations, n_clusters_iter[0-2] and feature_iter[0-2] specify the number of clusters and the feature type used for k-means clustering of different iterations. Follow the [Hubert](https://arxiv.org/pdf/2106.07447.pdf) settings of base model, we use mfcc and 100 clusters for the iteration 0, and extract the latent features from transformer layer 6 of HuBERT model(HuBERT6) pre-trained in previous iteration, 500 clusters for iteration 1, and (HuBERT9) 500 clusters for iteration 2. Each iteration has a different config file. Please refer to conf/tuning/train_asr_hubert_base_960h_pretrain_it*.yaml
-
-This is the end of Hubert pretraining. After the pretraining finish, you can run the finetuning stage with run.sh under any asr recipes. An example finetuning config file is egs2/librilight_limited/asr1/conf/tuning/train_asr_hubert_base_10h_finetuning.yaml:
-
-    cd ../../librilight_limited/asr1/
-	./run.sh
-
 ================================================
 
 ## RESULTS
+Detailed information, e.g. kmeans performance, accuracies, training curves, etc, can be found in the [PR page](https://github.com/espnet/espnet/pull/4747) and the following HuggingFace repos.
 
-The `CER` and `WER` in following result is got after librilight_limited-10hr finetuning:
+### iteration 0 pretrained model:
+#### Environments
+- date: `Wed Jan 4 08:48:57 EST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59) [GCC 11.2.0]`
+- espnet version: `202209`
+- pytorch version: `pytorch 1.13.0+cu117`
+- Git hash: `753f40d61813436d4e76660904d02eaed7a6649e`
+  - Commit date: `Wed Jan 4 06:52:27 2023 -0600`
+- SSL config: [conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it0.yaml](conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it0.yaml)
+- Pretrained model: [https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter0_train_ssl_torchaudiohubert_base_960h_pretrain_it0_raw](https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter0_train_ssl_torchaudiohubert_base_960h_pretrain_it0_raw)
+- Finetuning performance on [LibriLight_Limited 10 hr](https://dl.fbaipublicfiles.com/librilight/data/librispeech_finetuning.tgz)
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_asr_model_valid.loss.ave/dev_clean|2694|53635|85.8|13.6|0.6|1.2|15.5|85.6|
+  |decode_asr_model_valid.loss.ave/dev_other|2864|50948|78.1|20.4|1.5|2.0|23.9|91.5|
+  |decode_asr_model_valid.loss.ave/test_clean|2620|52576|85.4|13.9|0.7|1.3|15.9|84.5|
+  |decode_asr_model_valid.loss.ave/test_other|2939|52343|78.0|20.6|1.5|2.1|24.1|91.6|
 
-### iteration 0 without language model:
-- Model files
-    - model link: (TO BE ADDED)
-    - training config file: `conf/tuning/train_asr_hubert_base_960h_pretrain_it0.yaml` 
-    - e2e file: `exp/pretrain_train_asr_hubert_base_960h_pretrain_it0_raw_iter0/valid.acc.best.pth`    
-    - e2e JSON file: `exp/pretrain_train_asr_hubert_base_960h_pretrain_it0_raw_iter0/config.yaml`    
-  - Results
-  (TO BE ADDED)
-
-  (MORE RESULT PENDING TO BE ADDED)
-  
-### iteration 0 with 4-gram language model:
-### iteration 0 without language model:
-### iteration 1 with 4-gram language model:
+### iteration 1 pretrained model:
+#### Environments
+- date: `Wed Jan 10 01:20:10 EST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59) [GCC 11.2.0]`
+- espnet version: `202209`
+- pytorch version: `pytorch 1.13.0+cu117`
+- Git hash: `753f40d61813436d4e76660904d02eaed7a6649e`
+  - Commit date: `Wed Jan 4 06:52:27 2023 -0600`
+- SSL config: [conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml](conf/tuning/train_ssl_torchaudiohubert_base_960h_pretrain_it1.yaml)
+- Pretrained model: [https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw](https://huggingface.co/espnet/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw)
+- Finetuning performance on [LibriLight_Limited 10 hr](https://dl.fbaipublicfiles.com/librilight/data/librispeech_finetuning.tgz)
+  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+  |---|---|---|---|---|---|---|---|---|
+  |decode_asr_model_valid.loss.ave/dev_clean|2694|53635|90.3|9.3|0.5|0.7|10.4|74.8|
+  |decode_asr_model_valid.loss.ave/dev_other|2864|50948|83.8|15.1|1.1|1.2|17.4|83.9|
+  |decode_asr_model_valid.loss.ave/test_clean|2620|52576|90.2|9.4|0.4|0.7|10.5|75.2|
+  |decode_asr_model_valid.loss.ave/test_other|2939|52343|83.6|15.2|1.1|1.3|17.6|85.3|
+  - Pretrained model: [https://huggingface.co/espnet/simpleoier_librilight_limited_asr_train_asr_hubert_base_10h_finetuning_raw_en_char](https://huggingface.co/espnet/simpleoier_librilight_limited_asr_train_asr_hubert_base_10h_finetuning_raw_en_char)
 
 ================================================
 
@@ -64,9 +52,15 @@ The original Hubert paper, code and model can be found in:
 paper: https://arxiv.org/pdf/2106.07447.pdf
 code and model: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
+## HUBERT IN TORCHAUDIO
+
+code and results: https://github.com/pytorch/audio/tree/main/examples/hubert
+
 ================================================
 
 ## ACKNOWLEDGEMENT
 
 We would like to thank Wei-Ning Hsu(Facebook) and Abdelrahman Mohamed(Facebook) for their work on Hubert and valuable
 information/kind help of this implementation.
+
+We would also like to thank Zhaoheng Ni @nateanl (Meta) for his substantial support in using Torchaudio HuBERT implementaion and in reproducing the similar results as in Torchaudio.

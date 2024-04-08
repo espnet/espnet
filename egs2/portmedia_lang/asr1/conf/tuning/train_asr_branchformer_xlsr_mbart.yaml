@@ -1,0 +1,78 @@
+encoder: branchformer
+encoder_conf:
+    output_size: 1024
+    use_attn: true
+    attention_heads: 8
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    use_cgmlp: true
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    merge_method: concat
+    cgmlp_weight: 0.5               # used only if merge_method is "fixed_ave"
+    attn_branch_drop_rate: 0.0      # used only if merge_method is "learned_ave"
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    stochastic_depth_rate: 0.0
+
+postencoder: hugging_face_transformers
+postencoder_conf:
+    model_name_or_path: "akreal/mbart-large-50-finetuned-portmedia-lang"
+    length_adaptor_n_layers: 1
+    lang_token_id: 250011
+
+decoder: hugging_face_transformers
+decoder_conf:
+    model_name_or_path: "akreal/mbart-large-50-finetuned-portmedia-lang"
+
+use_amp: true
+optim: adam
+batch_type: length
+batch_bins: 250000
+optim_conf:
+    lr: 0.00002
+    weight_decay: 0.000001
+scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler_conf:
+    warmup_steps: 25000
+max_epoch: 100
+
+freeze_param: [
+    "frontend.upstream"
+]
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: xls_r_300m  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+    # mBART dictionary customizations
+    ignore_id: 1
+    sym_blank: "<pad>"
+    sym_sos: "<s>"
+    sym_eos: "</s>"
+    lang_token_id: 250011
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10

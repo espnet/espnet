@@ -1,5 +1,95 @@
 - [Lightweight Sinc Convolutions](./README_LightweightSincConvs.md)
 
+# E-Branchformer
+## Environments
+- date: `Thu Dec 29 01:48:29 EST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `bf8c8f00194bdfed8ca388d8b20d14791b7d270e`
+  - Commit date: `Wed Dec 28 22:43:13 2022 -0500`
+
+## asr_train_asr_e_branchformer_e12_mlp1024_linear1024_raw_it_char_normalize_confnorm_varsFalse
+- ASR config: [conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024.yaml](conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024.yaml)
+- Params: 34.65M
+- Model link: [https://huggingface.co/pyf98/voxforge_it_e_branchformer](https://huggingface.co/pyf98/voxforge_it_e_branchformer)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|12587|71.3|24.0|4.7|3.8|32.5|95.5|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|13699|72.8|22.7|4.5|3.1|30.2|91.7|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|75494|93.2|3.7|3.1|2.0|8.8|95.5|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|81228|93.8|3.5|2.7|1.8|8.0|91.7|
+
+
+
+# Conformer: 12 layers, 2048 linear units
+## Environments
+- date: `Thu Dec 29 01:45:02 EST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `bf8c8f00194bdfed8ca388d8b20d14791b7d270e`
+  - Commit date: `Wed Dec 28 22:43:13 2022 -0500`
+
+## asr_train_asr_conformer_e12_linear2048_raw_it_char_normalize_confnorm_varsFalse
+- ASR config: [conf/tuning/train_asr_conformer_e12_linear2048.yaml](conf/tuning/train_asr_conformer_e12_linear2048.yaml)
+- Params: 43.02M
+- Model link: [https://huggingface.co/pyf98/voxforge_it_conformer_e12_linear2048](https://huggingface.co/pyf98/voxforge_it_conformer_e12_linear2048)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|12587|70.3|24.6|5.1|3.3|33.0|95.4|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|13699|72.4|22.5|5.1|2.9|30.5|91.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|75494|92.9|3.9|3.2|1.8|8.9|95.4|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|81228|93.7|3.5|2.8|1.7|8.0|91.5|
+
+
+
+# Conformer: 15 layers, 1024 linear units
+## Environments
+- date: `Thu Dec 29 01:59:25 EST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `bf8c8f00194bdfed8ca388d8b20d14791b7d270e`
+  - Commit date: `Wed Dec 28 22:43:13 2022 -0500`
+
+## asr_train_asr_conformer_e15_linear1024_raw_it_char_normalize_confnorm_varsFalse
+- ASR config: [conf/tuning/train_asr_conformer_e15_linear1024.yaml](conf/tuning/train_asr_conformer_e15_linear1024.yaml)
+- Params: 35.18M
+- Model link: [https://huggingface.co/pyf98/voxforge_it_conformer_e15_linear1024](https://huggingface.co/pyf98/voxforge_it_conformer_e15_linear1024)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|12587|70.2|24.6|5.2|3.3|33.1|94.7|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|13699|71.9|23.3|4.8|2.9|31.0|92.4|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dt_it|1035|75494|92.9|3.9|3.2|1.8|9.0|94.7|
+|decode_asr_asr_model_valid.acc.ave/et_it|1103|81228|93.6|3.6|2.8|1.7|8.1|92.4|
+
+
+
 # The second results
 ## Environments
 - date: `Mon Feb 17 18:11:26 JST 2020`

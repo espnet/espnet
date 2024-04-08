@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
@@ -37,6 +37,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv2dSubsampling,
+    Conv2dSubsampling1,
     Conv2dSubsampling2,
     Conv2dSubsampling6,
     Conv2dSubsampling8,
@@ -141,7 +142,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
             x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
                 - w/o pos emb: Tensor (#batch, time, size).
-            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
             cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
 
         Returns:
@@ -295,6 +296,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
 class BranchformerEncoder(AbsEncoder):
     """Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -321,7 +323,6 @@ class BranchformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -361,6 +362,13 @@ class BranchformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
+        elif input_layer == "conv2d1":
+            self.embed = Conv2dSubsampling1(
                 input_size,
                 output_size,
                 dropout_rate,
@@ -481,9 +489,11 @@ class BranchformerEncoder(AbsEncoder):
             num_blocks,
             lambda lnum: BranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args)
-                if use_attn
-                else None,
+                (
+                    encoder_selfattn_layer(*encoder_selfattn_layer_args)
+                    if use_attn
+                    else None
+                ),
                 cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
                 dropout_rate,
                 merge_method,
@@ -521,6 +531,7 @@ class BranchformerEncoder(AbsEncoder):
 
         if (
             isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv2dSubsampling1)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)

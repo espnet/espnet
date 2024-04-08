@@ -1,0 +1,201 @@
+# This EXPERIMENTAL configuration is for ESPnet2 to train
+# Xiaoice + HiFiGAN vocoder jointly. To run this config,
+# you need to specify "--svs_task gan_svs" option for
+# svs.sh at least and use 24000 hz audio as the training
+# data (mainly tested on Ofuton).
+# This configuration tested on 4 GPUs with 12GB GPU memory.
+# It takes around 1.5 weeks to finish the training but 100k
+# iters model should generate reasonable results.
+
+##########################################################
+#                  SVS MODEL SETTING                     #
+##########################################################
+svs: joint_score2wav                     # model architecture
+svs_conf:
+  # score2mel related
+  score2mel_type: xiaoice
+  score2mel_params:              # keyword arguments for the selected model
+    midi_dim: 129                # midi embedding range (note number + silence)
+    duration_dim: 500            # duration embedding range
+    adim: 384
+    aheads: 4
+    elayers: 6                   # number of lstm layers in encoder
+    eunits: 1536                 # number of lstm units
+    dlayers: 6                   # number of lstm layers in decoder
+    dunits: 1536                 # number of lstm units in decoder
+    postnet_layers: 5            # number of layers in postnet
+    postnet_chans: 512           # number of channels in postnet
+    postnet_filts: 5             # filter size of postnet layer
+    postnet_dropout_rate: 0.5    # postnet dropout_rate
+    use_batch_norm: true         # whether to use batch normalization in postnet
+    reduction_factor: 1          # reduction factor
+    init_type: pytorch           # parameter initialization
+    use_masking: true            # whether to apply masking for padded part in loss calculation
+    loss_function: XiaoiceSing2  # Loss funtions (FastSpeech1 or XiaoiceSing2)
+    loss_type: L1                # mel loss type ("L1", "L2" or "L1+L2")
+    lambda_mel: 1                # Loss scaling coefficient for Mel loss.
+    lambda_dur: 0.1              # Loss scaling coefficient for duration loss.
+    lambda_pitch: 0.01           # Loss scaling coefficient for pitch loss.
+    lambda_vuv: 0.01             # Loss scaling coefficient for VUV loss.
+
+  # vocoder related
+  vocoder_type: hifigan_generator
+  vocoder_params:
+    in_channels: 80                       # Number of input channels.
+    out_channels: 1                       # Number of output channels.
+    channels: 512                         # Number of initial channels.
+    kernel_size: 7                        # Kernel size of initial and final conv layers.
+    upsample_scales: [5, 5, 4, 3]         # Upsampling scales.
+    upsample_kernel_sizes: [10, 10, 8, 6] # Kernel size for upsampling layers.
+    resblock_kernel_sizes: [3, 7, 11]     # Kernel size for residual blocks.
+    resblock_dilations:                   # Dilations for residual blocks.
+      - [1, 3, 5]
+      - [1, 3, 5]
+      - [1, 3, 5]
+    use_additional_convs: true            # Whether to use additional conv layer in residual blocks.
+    bias: true                            # Whether to use bias parameter in conv.
+    nonlinear_activation: "LeakyReLU"     # Nonlinear activation type.
+    nonlinear_activation_params:          # Nonlinear activation paramters.
+      negative_slope: 0.1
+    use_weight_norm: true                 # Whether to apply weight normalization.
+
+  # discriminator related
+  discriminator_type: hifigan_multi_scale_multi_period_discriminator
+  discriminator_params:
+    scales: 1                              # Number of multi-scale discriminator.
+    scale_downsample_pooling: "AvgPool1d"  # Pooling operation for scale discriminator.
+    scale_downsample_pooling_params:
+      kernel_size: 4                     # Pooling kernel size.
+      stride: 2                          # Pooling stride.
+      padding: 2                         # Padding size.
+    scale_discriminator_params:
+      in_channels: 1                     # Number of input channels.
+      out_channels: 1                    # Number of output channels.
+      kernel_sizes: [15, 41, 5, 3]       # List of kernel sizes.
+      channels: 128                      # Initial number of channels.
+      max_downsample_channels: 1024      # Maximum number of channels in downsampling conv layers.
+      max_groups: 16                     # Maximum number of groups in downsampling conv layers.
+      bias: true
+      downsample_scales: [2, 2, 4, 4, 1] # Downsampling scales.
+      nonlinear_activation: "LeakyReLU"  # Nonlinear activation.
+      nonlinear_activation_params:
+        negative_slope: 0.1
+    follow_official_norm: true             # Whether to follow the official norm setting.
+    periods: [2, 3, 5, 7, 11]              # List of period for multi-period discriminator.
+    period_discriminator_params:
+      in_channels: 1                     # Number of input channels.
+      out_channels: 1                    # Number of output channels.
+      kernel_sizes: [5, 3]               # List of kernel sizes.
+      channels: 32                       # Initial number of channels.
+      downsample_scales: [3, 3, 3, 3, 1] # Downsampling scales.
+      max_downsample_channels: 1024      # Maximum number of channels in downsampling conv layers.
+      bias: true                         # Whether to use bias parameter in conv layer."
+      nonlinear_activation: "LeakyReLU"  # Nonlinear activation.
+      nonlinear_activation_params:       # Nonlinear activation paramters.
+        negative_slope: 0.1
+      use_weight_norm: true              # Whether to apply weight normalization.
+      use_spectral_norm: false           # Whether to apply spectral normalization.
+
+  # loss function related
+  generator_adv_loss_params:
+    average_by_discriminators: false # whether to average loss value by #discriminators
+    loss_type: mse                   # loss type, "mse" or "hinge"
+  discriminator_adv_loss_params:
+    average_by_discriminators: false # whether to average loss value by #discriminators
+    loss_type: mse                   # loss type, "mse" or "hinge"
+  use_feat_match_loss: true          # whether to use feat match loss
+  feat_match_loss_params:
+    average_by_discriminators: false # whether to average loss value by #discriminators
+    average_by_layers: false         # whether to average loss value by #layers of each discriminator
+    include_final_outputs: true      # whether to include final outputs for loss calculation (NOTE!!)
+  use_mel_loss: true     # whether to use mel-spectrogram loss
+  mel_loss_params:
+    fs: 24000          # must be the same as the training data
+    n_fft: 2048        # fft points
+    hop_length: 300    # hop size
+    win_length: 1200   # window length
+    window: hann       # window type
+    n_mels: 80         # number of Mel basis
+    fmin: 0            # minimum frequency for Mel basis
+    fmax: null         # maximum frequency for Mel basis
+    log_base: null     # null represent natural log
+
+  lambda_score2mel: 1.0  # loss scaling coefficient for score2mel loss
+  lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
+  lambda_mel: 45.0       # loss scaling coefficient for Mel loss
+  lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
+
+  # others
+  sampling_rate: 24000          # needed in the inference for saving wav
+  segment_size: 16              # segment size for random windowed discriminator
+  cache_generator_outputs: true # whether to cache generator outputs in the training
+
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+  reduction_factor: 1
+  use_token_averaged_f0: false
+pitch_normalize: global_mvn  # normalizer for the pitch feature
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# optimizer setting for generator
+optim: adamw
+optim_conf:
+  lr: 2.0e-4
+  betas: [0.8, 0.99]
+  eps: 1.0e-9
+  weight_decay: 0.0
+scheduler: exponentiallr
+scheduler_conf:
+  gamma: 0.999875
+# optimizer setting for discriminator
+optim2: adamw
+optim2_conf:
+  lr: 2.0e-4
+  betas: [0.8, 0.99]
+  eps: 1.0e-9
+  weight_decay: 0.0
+scheduler2: exponentiallr
+scheduler2_conf:
+  gamma: 0.999875
+generator_first: true # whether to start updating generator first
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+num_iters_per_epoch: 500    # number of iterations per epoch
+max_epoch: 500              # number of epochs
+grad_clip: -1               # gradient clipping norm
+grad_noise: false           # whether to use gradient noise injection
+accum_grad: 1               # gradient accumulation
+
+batch_type: sorted
+batch_size: 16
+
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+num_workers: 10             # number of workers of data loader
+train_dtype: float32        # dtype in training
+use_amp: false              # whether to use pytorch amp
+log_interval: 50            # log interval in iterations
+keep_nbest_models: 5        # number of models to keep
+num_att_plot: 3             # number of attention figures to be saved in every check
+seed: 777                   # random seed number
+patience: null              # patience for early stopping
+unused_parameters: true     # needed for multi gpu case
+best_model_criterion:       # criterion to save the best models
+-   - valid
+    - score2mel_loss
+    - min
+-   - train
+    - score2mel_loss
+    - min
+-   - train
+    - total_count
+    - max
+cudnn_deterministic: false  # setting to false accelerates the training speed but makes it non-deterministic
+                            # in the case of GAN-TTS training, we strongly recommend setting to false
+cudnn_benchmark: false      # setting to true might acdelerate the training speed but sometimes decrease it
+                            # therefore, we set to false as a default (recommend trying both cases)

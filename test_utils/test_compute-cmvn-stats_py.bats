@@ -82,5 +82,3 @@ valid = kaldiio.load_mat('${tmpdir}/valid.mat')
 np.testing.assert_allclose(test, valid, rtol=1e-3)
 EOF
 }
-
-

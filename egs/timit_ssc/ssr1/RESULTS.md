@@ -8,7 +8,7 @@
 - pytorch version: `pytorch 1.0.1.post2`
 - Git hash: `6f273659699513924e2f72a370bab5ecf2d1807e`
   - Commit date: `Wed May 13 12:19:55 2020 +0000`
-  
+
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
     - model link: https://drive.google.com/file/d/1uYj3aY33ssOF_aFnAJ5RXh1_1B6tpAg9/view?usp=sharing
     - training config file: `conf/tuning/train_pytorch_transformer.yaml`
@@ -23,10 +23,9 @@
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_decode_lm_word65000|100|5767|89.9|4.2|5.9|1.9|12.0|73.0 
+  |decode_test_decode_lm_word65000|100|5767|89.9|4.2|5.9|1.9|12.0|73.0
 ### WER
 
   |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
   |---|---|---|---|---|---|---|---|---|
-  |decode_test_decode_lm_word65000|100|886|79.5|15.5|5.0|2.2|22.8|73.0 
-
+  |decode_test_decode_lm_word65000|100|886|79.5|15.5|5.0|2.2|22.8|73.0

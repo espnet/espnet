@@ -159,7 +159,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then  
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
     log "Stage 1: Simulate RIRs"
 
     mkdir -p "${outdir}/data/rirs"

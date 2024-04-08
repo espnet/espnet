@@ -1,8 +1,8 @@
-from typing import Collection
+from typing import Collection, Optional
 
 import tacotron_cleaner.cleaners
 from jaconv import jaconv
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 try:
     from vietnamese_cleaner import vietnamese_cleaners
@@ -10,6 +10,11 @@ except ImportError:
     vietnamese_cleaners = None
 
 from espnet2.text.korean_cleaner import KoreanCleaner
+
+try:
+    from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
+except (ImportError, SyntaxError):
+    BasicTextNormalizer = None
 
 
 class TextCleaner:
@@ -22,8 +27,8 @@ class TextCleaner:
 
     """
 
-    def __init__(self, cleaner_types: Collection[str] = None):
-        assert check_argument_types()
+    @typechecked
+    def __init__(self, cleaner_types: Optional[Collection[str]] = None):
 
         if cleaner_types is None:
             self.cleaner_types = []
@@ -31,6 +36,14 @@ class TextCleaner:
             self.cleaner_types = [cleaner_types]
         else:
             self.cleaner_types = list(cleaner_types)
+
+        self.whisper_cleaner = None
+        if BasicTextNormalizer is not None:
+            for t in self.cleaner_types:
+                if t == "whisper_en":
+                    self.whisper_cleaner = EnglishTextNormalizer()
+                elif t == "whisper_basic":
+                    self.whisper_cleaner = BasicTextNormalizer()
 
     def __call__(self, text: str) -> str:
         for t in self.cleaner_types:
@@ -44,6 +57,8 @@ class TextCleaner:
                 text = vietnamese_cleaners.vietnamese_cleaner(text)
             elif t == "korean_cleaner":
                 text = KoreanCleaner.normalize_text(text)
+            elif "whisper" in t and self.whisper_cleaner is not None:
+                text = self.whisper_cleaner(text)
             else:
                 raise RuntimeError(f"Not supported: type={t}")
 

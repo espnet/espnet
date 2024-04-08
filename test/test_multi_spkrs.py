@@ -14,41 +14,41 @@ import torch
 
 def make_arg(**kwargs):
     defaults = dict(
-        aconv_chans=10,
-        aconv_filts=100,
-        adim=320,
+        aconv_chans=2,
+        aconv_filts=20,
+        adim=20,
         aheads=4,
         apply_uttmvn=False,
         atype="location",
         awin=5,
-        badim=320,
+        badim=20,
         batch_bins=0,
         batch_count="auto",
         batch_frames_in=0,
         batch_frames_inout=0,
         batch_frames_out=0,
-        batch_size=10,
+        batch_size=2,
         bdropout_rate=0.0,
         beam_size=3,
         blayers=2,
         bnmask=3,
-        bprojs=300,
+        bprojs=10,
         btype="blstmp",
-        bunits=300,
+        bunits=10,
         char_list=["a", "i", "u", "e", "o"],
         context_residual=False,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         ctc_weight=0.2,
         dlayers=1,
         dropout_rate=0.0,
         dropout_rate_decoder=0.0,
         dtype="lstm",
-        dunits=300,
+        dunits=10,
         elayers_sd=1,
         elayers=2,
         etype="vggblstmp",
-        eprojs=100,
-        eunits=100,
+        eprojs=10,
+        eunits=10,
         fbank_fmax=None,
         fbank_fmin=0.0,
         fbank_fs=16000,
@@ -86,9 +86,9 @@ def make_arg(**kwargs):
         wlayers=2,
         wpe_delay=3,
         wpe_taps=5,
-        wprojs=300,
+        wprojs=10,
         wtype="blstmp",
-        wunits=300,
+        wunits=10,
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -181,6 +181,7 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     assert torch.equal(min_perm, true_perm[data_idx])
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     ("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"),
     [(True, True, 3, 2, "espnet.nets.pytorch_backend.e2e_asr_mix")],
@@ -214,7 +215,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
 
     # dnn_beamformer
     enhanced, ilens, mask_speeches = beamformer(feat, ilens)
-    assert (bnmask - 1) == len(mask_speeches)
+    assert bnmask == len(mask_speeches)
     assert (bnmask - 1) == len(enhanced)
 
     # beamforming by hand
@@ -222,7 +223,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     masks, _ = mask_estimator(feat, ilens)
     mask_speech1, mask_speech2, mask_noise = masks
 
-    b = importlib.import_module("espnet.nets.pytorch_backend.frontends.beamformer")
+    b = importlib.import_module("espnet2.enh.layers.beamformer")
 
     psd_speech1 = b.get_power_spectral_density_matrix(feat, mask_speech1)
     psd_speech2 = b.get_power_spectral_density_matrix(feat, mask_speech2)
@@ -239,7 +240,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     enhanced1 = b.apply_beamforming_vector(ws1, feat).transpose(-1, -2)
     enhanced2 = b.apply_beamforming_vector(ws2, feat).transpose(-1, -2)
 
-    assert torch.equal(enhanced1.real, enhanced[0].real)
-    assert torch.equal(enhanced2.real, enhanced[1].real)
-    assert torch.equal(enhanced1.imag, enhanced[0].imag)
-    assert torch.equal(enhanced2.imag, enhanced[1].imag)
+    torch.testing.assert_close(enhanced1.real, enhanced[0].real)
+    torch.testing.assert_close(enhanced2.real, enhanced[1].real)
+    torch.testing.assert_close(enhanced1.imag, enhanced[0].imag)
+    torch.testing.assert_close(enhanced2.imag, enhanced[1].imag)

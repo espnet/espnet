@@ -43,4 +43,3 @@ best_model_criterion:
 keep_nbest_models: 1
 
 init: xavier_uniform
-

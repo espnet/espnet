@@ -13,7 +13,7 @@ test_set="sbn_test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
-lm_config=conf/train_lm.yaml 
+lm_config=conf/train_lm.yaml
 ngpu=1
 
 ./asr.sh \

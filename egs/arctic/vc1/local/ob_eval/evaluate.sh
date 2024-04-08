@@ -23,7 +23,7 @@ help_message="Usage: $0 <outdir> <subset> <srcspk> <trgspk>"
 . utils/parse_options.sh
 
 outdir=$1
-set_name=$2  # <srcspk>_<trgspk>_<name> 
+set_name=$2  # <srcspk>_<trgspk>_<name>
 
 if [ $# != 2 ]; then
     echo "${help_message}"
@@ -36,7 +36,7 @@ set -euo pipefail
 srcspk=$(echo ${set_name} | awk -F"_" '{print $1}')
 trgspk=$(echo ${set_name} | awk -F"_" '{print $2}')
 name=$(echo ${set_name} | awk -F"_" '{print $3}')
-    
+
 # Decide wavdir depending on vocoder
 if [ ! -z ${vocoder} ]; then
     # select vocoder type (GL, PWG)
@@ -67,7 +67,7 @@ ${decode_cmd} ${mcd_file} \
         --f0max ${maxf0}
 
 echo "step 0: Model preparation"
-# ASR model selection for CER/WER objective evaluation 
+# ASR model selection for CER/WER objective evaluation
 asr_model_dir="exp/${asr_model}_asr"
     case "${asr_model}" in
         "librispeech.transformer.ngpu4") asr_url="https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6" \
@@ -134,7 +134,7 @@ cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr
 # split data
 splitjson.py --parts ${nj} ${asr_feat_dir}/${set_name}/data.json
 
-# set batchsize 0 to disable batch decoding    
+# set batchsize 0 to disable batch decoding
 ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${set_name}/log/decode.JOB.log \
     asr_recog.py \
       --config ${asr_decode_config} \

@@ -6,7 +6,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -14,7 +14,9 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
@@ -63,7 +65,9 @@ normalize_choices = ClassChoices(
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
+        mega=MEGADecoder,
         rnn=RNNDecoder,
+        rwkv=RWKVDecoder,
         stateless=StatelessDecoder,
     ),
     type_check=AbsDecoder,
@@ -135,7 +139,9 @@ class ASRTransducerTask(AbsTask):
             default={},
             help="The keyword arguments for the joint network class.",
         )
+
         group = parser.add_argument_group(description="Preprocess related.")
+
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
@@ -155,56 +161,56 @@ class ASRTransducerTask(AbsTask):
             default=None,
             help="The path of the sentencepiece model.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
             help="The 'non_linguistic_symbols' file path.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--cleaner",
             type=str_or_none,
             choices=[None, "tacotron", "jaconv", "vietnamese"],
             default=None,
             help="Text cleaner to use.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
             help="g2p method to use if --token_type=phn.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
             help="Normalization value for maximum amplitude scaling.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_scp",
             type=str_or_none,
             default=None,
             help="The RIR SCP file path.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_apply_prob",
             type=float,
             default=1.0,
             help="The probability of the applied RIR convolution.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_scp",
             type=str_or_none,
             default=None,
             help="The path of noise SCP file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_apply_prob",
             type=float,
             default=1.0,
             help="The probability of the applied noise addition.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_db_range",
             type=str,
             default="13_15",
@@ -217,9 +223,8 @@ class ASRTransducerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -234,11 +239,11 @@ class ASRTransducerTask(AbsTask):
             : Callable collate function.
 
         """
-        assert check_argument_types()
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
@@ -253,7 +258,6 @@ class ASRTransducerTask(AbsTask):
             : Callable pre-processing function.
 
         """
-        assert check_argument_types()
 
         if args.use_preprocessor:
             retval = CommonPreprocessor(
@@ -265,24 +269,23 @@ class ASRTransducerTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
             )
         else:
             retval = None
 
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -323,11 +326,11 @@ class ASRTransducerTask(AbsTask):
 
         """
         retval = ()
-        assert check_return_type(retval)
 
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRTransducerModel:
         """Required data depending on task mode.
 
@@ -339,7 +342,6 @@ class ASRTransducerTask(AbsTask):
             model: ASR Transducer model.
 
         """
-        assert check_argument_types()
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -352,6 +354,12 @@ class ASRTransducerTask(AbsTask):
         else:
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
+
+        if hasattr(args, "scheduler_conf"):
+            args.model_conf["warmup_steps"] = args.scheduler_conf.get(
+                "warmup_steps", 25000
+            )
+
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
@@ -385,6 +393,7 @@ class ASRTransducerTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
+
         decoder = decoder_class(
             vocab_size,
             **args.decoder_conf,
@@ -418,7 +427,5 @@ class ASRTransducerTask(AbsTask):
                 "Currently not supported.",
                 "Initialization part will be reworked in a short future.",
             )
-
-        assert check_return_type(model)
 
         return model

@@ -48,7 +48,7 @@ train_set=train.en
 train_dev=dev.en
 recog_set=test.jp
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     local/download_data.sh
 fi
@@ -86,7 +86,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             # normalize punctuation
             normalize-punctuation.perl -l ${lang} < ${dst}/${lang}.org > ${dst}/${lang}.norm
 
-            # lowercasing        
+            # lowercasing
             lowercase.perl < ${dst}/${lang}.norm > ${dst}/${lang}.norm.lc
             cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 

@@ -91,4 +91,3 @@
 |decode_transformer_lm_lm_train_lm_rnn_te_bpe150_valid.loss.ave_asr_model_valid.acc.ave_10best/test_te|3040|146657|91.1|5.8|3.1|2.0|10.9|82.7|
 |decode_transformer_lm_lm_train_lm_rnn_te_bpe150_valid.loss.best_asr_model_valid.acc.ave_10best/test_te|3040|146657|91.3|5.7|3.1|2.0|10.7|82.2|
 |decode_transformer_lm_lm_train_lm_transformer_te_bpe150_valid.loss.ave_asr_model_valid.acc.ave_10best/test_te|3040|146657|91.4|5.5|3.1|1.9|10.6|82.6|
-

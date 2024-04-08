@@ -1,6 +1,5 @@
 import chainer
 import numpy
-import six
 
 # from chainer.functions.connection import embed_id
 from chainer import cuda, function_node, link, variable
@@ -80,7 +79,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         if xp is numpy:
             # It is equivalent to `numpy.add.at(gW, x, gy)` but ufunc.at is
             # too slow.
-            for ix, igy in six.moves.zip(x.ravel(), gy.reshape(x.size, -1)):
+            for ix, igy in zip(x.ravel(), gy.reshape(x.size, -1)):
                 if ix == self.ignore_label:
                     continue
                 gW[ix] += igy

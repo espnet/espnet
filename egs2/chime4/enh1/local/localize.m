@@ -40,7 +40,7 @@ end
 pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
 center_factor=0.05; % weight given to the prior that the speaker's horizontal position is close to the center
 smoothing_factor=3; % weight given to the transition probabilities
-            
+
 % Remove zero frequency
 % NOTE (Wangyou): also remove the unused channels from X to avoid Error "Index exceeds matrix dimensions" in line 87.
 X = X(2:end,:,chanlist);
@@ -99,7 +99,7 @@ for p=1:npairs,
     tau_grid(p,:)=(d_grid(c2,:)-d_grid(c1,:))/343/100;
 end
 
-% Compute the SRP-PHAT pseudo-spectrum 
+% Compute the SRP-PHAT pseudo-spectrum
 srp=zeros(nfram,ngrid);
 for p=1:npairs, % Loop over front pairs
     c1=pairs(1,p);

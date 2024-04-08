@@ -2,7 +2,7 @@
 +++ /Users/wyz/Downloads/generate_rir_trainingdata.new.py	2022-03-26 22:31:53.000000000 +0800
 @@ -13,6 +13,7 @@
  import os
- 
+
  def run(args):
 +    np.random.seed(args.seed)
      if not os.path.exists(args.output_dir):
@@ -11,7 +11,7 @@
 @@ -25,11 +26,31 @@
      nb_src = 3  # Number of sources
      nb_rcv = 8 # Number of receivers
- 
+
 -    for i in range(num_room):
 +    if args.idx < 1 or args.nj < 1 or args.idx > args.nj:
 +        raise ValueError("Invalid arguments for multi-processing")
@@ -45,17 +45,17 @@
 @@ -55,21 +76,6 @@
              mic_pattern = "omnidirectional" # Receiver polar pattern
              T60 = np.random.uniform(0.2, 0.8)    # Time for the RIR to reach 60dB of attenuation [s]
- 
--            RIRs1 = pyrirgen.generateRir(room_sz, pos_src1, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
+
+-            RIRs1 = pyrirgen.generateRir(room_sz, pos_src1, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 -                                        micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
--            RIRs2 = pyrirgen.generateRir(room_sz, pos_src2, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
+-            RIRs2 = pyrirgen.generateRir(room_sz, pos_src2, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 -                                        micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
--            RIRs3 = pyrirgen.generateRir(room_sz, pos_src3, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
+-            RIRs3 = pyrirgen.generateRir(room_sz, pos_src3, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 -                                        micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
 -            RIRs1=np.array(RIRs1)
 -            RIRs2=np.array(RIRs2)
 -            RIRs3=np.array(RIRs3)
--            
+-
 -            out = np.zeros([24, 8000])
 -            out[0:8]= RIRs1
 -            out[8:16]= RIRs2
@@ -78,16 +78,16 @@
                             ('%.2f' % distance[0]) + '_' + ('%.2f' % distance[1]) + '_' + \
                             ('%.4f' % angle[0]) + '_' + ('%.4f' % angle[1])+ '_' + ('%.4f' % T60) + '.wav'
 +
-+                RIRs1 = pyrirgen.generateRir(room_sz, pos_src1, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
++                RIRs1 = pyrirgen.generateRir(room_sz, pos_src1, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 +                                        micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
-+                RIRs2 = pyrirgen.generateRir(room_sz, pos_src2, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
++                RIRs2 = pyrirgen.generateRir(room_sz, pos_src2, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 +                                            micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
-+                RIRs3 = pyrirgen.generateRir(room_sz, pos_src3, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000, 
++                RIRs3 = pyrirgen.generateRir(room_sz, pos_src3, pos_rcv, soundVelocity=c, fs=fs, reverbTime = T60, nSamples = 8000,
 +                                            micType = mic_pattern, nOrder=-1, nDim=3, isHighPassFilter=True) #source * mic * time
 +                RIRs1=np.array(RIRs1)
 +                RIRs2=np.array(RIRs2)
 +                RIRs3=np.array(RIRs3)
-+                
++
 +                out = np.zeros([24, 8000])
 +                out[0:8]= RIRs1
 +                out[8:16]= RIRs2
@@ -95,7 +95,7 @@
 +                out = out.transpose(1,0)
 +
                  sf.write(wav_name,out,16000)
- 
+
 +
  if __name__ == '__main__':
      parser = argparse.ArgumentParser()

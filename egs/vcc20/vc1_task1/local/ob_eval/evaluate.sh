@@ -95,7 +95,7 @@ cat < ${asr_pre_decode_config} | sed -e 's/beam-size: 60/beam-size: 10/' > ${asr
 # split data
 splitjson.py --parts ${nj} ${asr_feat_dir}/${set_name}/data.json
 
-# set batchsize 0 to disable batch decoding    
+# set batchsize 0 to disable batch decoding
 ${decode_cmd} JOB=1:${nj} ${asr_result_dir}.${api}/${set_name}/log/decode.JOB.log \
     asr_recog.py \
       --config ${asr_decode_config} \

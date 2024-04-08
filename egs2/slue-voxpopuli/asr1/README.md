@@ -25,3 +25,12 @@
 |dataset|Snt|Macro F1(%)|Micro F1 (%)|Macro Label F1(%)|Micro Label F1 (%)| WER|
 |---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|61.0|74.5|81.6|88.0|9.3|
+
+## Using WavLM pretrained speech Encoder and mBART-50 Large pretrained text Encoder-Decoder
+
+- Recipe shell script: [local/run_hf.sh](local/run_hf.sh)
+- Model link: [https://zenodo.org/record/7377091#.Y4YGKNLMJp8](https://zenodo.org/record/7377091#.Y4YGKNLMJp8)
+
+|dataset|Snt|Macro F1(%)|Micro F1 (%)|Macro Label F1(%)|Micro Label F1 (%)| WER|
+|---|---|---|---|---|---|---|
+|decode_asr_hf_asr_model_valid.acc.ave/devel|1742|60.35|74.57|82.93|88.06|11.3|

@@ -7,15 +7,17 @@
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
+import humanfriendly
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.hubert_encoder import (  # noqa: H301
     FairseqHubertPretrainEncoder,
+    TorchAudioHuBERTPretrainEncoder,
 )
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -24,18 +26,21 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.hubert.espnet_model import HubertPretrainModel
+from espnet2.hubert.espnet_model import (
+    HubertPretrainModel,
+    TorchAudioHubertPretrainModel,
+)
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.collate_fn import HuBERTCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
@@ -75,9 +80,19 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        torchaudio_hubert=TorchAudioHuBERTPretrainEncoder,
     ),
     type_check=AbsEncoder,
     default="hubert_pretrain",
+)
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        fairseq=HubertPretrainModel,
+        torchaudio=TorchAudioHubertPretrainModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="fairseq",
 )
 
 
@@ -97,6 +112,8 @@ class HubertTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --model and --model_conf
+        model_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -131,6 +148,12 @@ class HubertTask(AbsTask):
                 None,
             ],
         )
+        group.add_argument(
+            "--collate_fn_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for collate_fn class.",
+        )
 
         group.add_argument(
             "--input_size",
@@ -140,10 +163,10 @@ class HubertTask(AbsTask):
         )
 
         group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(HubertPretrainModel),
-            help="The keyword arguments for model class.",
+            "--num_classes",
+            type=int,
+            default=None,
+            help="The number of classes in hubert",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -239,12 +262,6 @@ class HubertTask(AbsTask):
             default=0.0,
             help="weights for additional loss terms (not first one)",
         )
-        parser.add_argument(
-            "--hubert_dict",
-            type=str,
-            default="./dict.txt",
-            help="word-based target dictionary for Hubert pretraining stage",
-        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -252,20 +269,49 @@ class HubertTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
-        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
+
+        # default sampling rate is 16000
+        fs = args.frontend_conf.get("fs", 16000)
+        if isinstance(fs, str):
+            fs = humanfriendly.parse_size(fs)
+        sample_rate = fs / 1000
+
+        if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
+            # corresponding to default conv extractor
+            # refer to espnet2/asr/encoder/hubert_encoder.py
+            reception_field = 400
+            stride_field = 320
+        else:
+            stride_field, reception_field = 1, 1
+            for conv_config in args.encoder_conf["extractor_conv_layer_config"][::-1]:
+                _, kernel, stride = conv_config
+                stride_field *= stride
+                reception_field = stride * (reception_field - 1) + kernel
+
+        window_size = reception_field / sample_rate
+        window_shift = stride_field / sample_rate
+        return HuBERTCollateFn(
+            float_pad_value=0.0,
+            int_pad_value=-1,
+            label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
+            pad=args.collate_fn_conf.get("pad", False),
+            rand_crop=args.collate_fn_conf.get("rand_crop", True),
+            crop_audio=not args.collect_stats,
+            window_size=window_size,
+            window_shift=window_shift,
+            sample_rate=sample_rate,
+        )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -276,27 +322,17 @@ class HubertTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
-                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                rir_scp=getattr(args, "rir_scp", None),
+                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+                noise_scp=getattr(args, "noise_scp", None),
+                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+                noise_db_range=getattr(args, "noise_db_range", "13_15"),
+                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+                speech_volume_normalize=getattr(args, "rir_scp", None),
+                **getattr(args, "preprocessor_conf", {}),
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -315,12 +351,13 @@ class HubertTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         retval = ()
-        assert check_return_type(retval)
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> HubertPretrainModel:
-        assert check_argument_types()
+    @typechecked
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -342,7 +379,7 @@ class HubertTask(AbsTask):
         else:
             # Give features from data-loader
             args.frontend = None
-            args.frontend_conf = {}
+            args.frontend_conf = {**args.frontend_conf}
             frontend = None
             input_size = args.input_size
 
@@ -373,13 +410,16 @@ class HubertTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(
             input_size=input_size,
-            use_amp=args.use_amp,
-            hubert_dict=args.hubert_dict,
+            num_classes=args.num_classes,
             **args.encoder_conf,
         )
 
         # 8. Build model
-        model = HubertPretrainModel(
+        try:
+            model_class = model_choices.get_class(args.model)
+        except AttributeError:
+            model_class = model_choices.get_class("fairseq")
+        model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
@@ -394,5 +434,4 @@ class HubertTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model

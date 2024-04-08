@@ -104,4 +104,3 @@ echo "Prepend ${l} to data dir"
 
 ./utils/copy_data_dir.sh --spk-prefix "${l}_" --utt-prefix "${l}_" \
   data/dev10h.pem data/eval_${l}
-

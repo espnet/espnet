@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -22,6 +22,7 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -36,28 +37,30 @@ class Text2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        mt_train_config: Union[Path, str] = None,
-        mt_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        mt_train_config: Union[Path, str, None] = None,
+        mt_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
         batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
+        ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
     ):
-        assert check_argument_types()
 
         # 1. Build MT model
         scorers = {}
@@ -67,9 +70,15 @@ class Text2Text:
         mt_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = mt_model.decoder
+        ctc = (
+            CTCPrefixScorer(ctc=mt_model.ctc, eos=mt_model.eos)
+            if ctc_weight != 0.0
+            else None
+        )
         token_list = mt_model.token_list
         scorers.update(
             decoder=decoder,
+            ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
         )
 
@@ -95,8 +104,10 @@ class Text2Text:
         scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
+
         weights = dict(
-            decoder=1.0,
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
             lm=lm_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
@@ -109,7 +120,8 @@ class Text2Text:
             eos=mt_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key="full",
+            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+            normalize_length=normalize_length,
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -163,6 +175,7 @@ class Text2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, src_text: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -174,7 +187,6 @@ class Text2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(src_text, np.ndarray):
@@ -191,6 +203,9 @@ class Text2Text:
 
         # b. Forward Encoder
         enc, _ = self.mt_model.encode(**batch)
+        # self-condition case
+        if isinstance(enc, tuple):
+            enc = enc[0]
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
@@ -222,7 +237,6 @@ class Text2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -255,6 +269,7 @@ class Text2Text:
         return Text2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -264,10 +279,12 @@ def inference(
     beam_size: int,
     ngpu: int,
     seed: int,
+    ctc_weight: float,
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -284,7 +301,6 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
@@ -319,10 +335,12 @@ def inference(
         minlenratio=minlenratio,
         dtype=dtype,
         beam_size=beam_size,
+        ctc_weight=ctc_weight,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
     )
     text2text = Text2Text.from_pretrained(
         model_tag=model_tag,
@@ -492,6 +510,12 @@ def get_parser():
         default=0.0,
         help="Input length ratio to obtain min output length",
     )
+    group.add_argument(
+        "--ctc_weight",
+        type=float,
+        default=0.0,
+        help="CTC weight in joint decoding",
+    )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
 
@@ -510,6 +534,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, pruning is based on length-normalized scores",
     )
 
     return parser

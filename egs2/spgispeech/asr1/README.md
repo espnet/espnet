@@ -42,4 +42,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_en_bpe10000_valid.loss.ave_asr_model_valid.acc.ave/dev_4k|4000|95401|97.7|1.6|0.7|0.6|2.9|38.7|
 |decode_asr_lm_lm_train_lm_en_bpe10000_valid.loss.ave_asr_model_valid.acc.ave/val|39341|946469|97.6|1.7|0.8|0.6|3.0|39.2|
-

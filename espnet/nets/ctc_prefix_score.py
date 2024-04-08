@@ -4,7 +4,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import numpy as np
-import six
 import torch
 
 
@@ -181,8 +180,9 @@ class CTCPrefixScoreTH(object):
         for si in range(n_bh):
             log_psi[si, self.eos] = r_sum[self.end_frames[si // n_hyps], si]
 
-        # exclude blank probs
-        log_psi[:, self.blank] = self.logzero
+        if self.eos != self.blank:
+            # exclude blank probs
+            log_psi[:, self.blank] = self.logzero
 
         return (log_psi - s_prev), (r, log_psi, f_min, f_max, scoring_idmap)
 
@@ -263,7 +263,7 @@ class CTCPrefixScoreTH(object):
             )
             start = max(r_prev.shape[0], 1)
             r_prev_new[0:start] = r_prev
-            for t in six.moves.range(start, self.input_length):
+            for t in range(start, self.input_length):
                 r_prev_new[t, 1] = r_prev_new[t - 1, 1] + self.x[0, t, :, self.blank]
 
             return (r_prev_new, s_prev, f_min_prev, f_max_prev)
@@ -296,7 +296,7 @@ class CTCPrefixScore(object):
         # superscripts n and b (non-blank and blank), respectively.
         r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
         r[0, 1] = self.x[0, self.blank]
-        for i in six.moves.range(1, self.input_length):
+        for i in range(1, self.input_length):
             r[i, 1] = r[i - 1, 1] + self.x[i, self.blank]
         return r
 
@@ -327,7 +327,7 @@ class CTCPrefixScore(object):
         last = y[-1]
         if output_length > 0 and last in cs:
             log_phi = self.xp.ndarray((self.input_length, len(cs)), dtype=np.float32)
-            for i in six.moves.range(len(cs)):
+            for i in range(len(cs)):
                 log_phi[:, i] = r_sum if cs[i] != last else r_prev[:, 1]
         else:
             log_phi = r_sum
@@ -336,7 +336,7 @@ class CTCPrefixScore(object):
         # and log prefix probabilities log(psi)
         start = max(output_length, 1)
         log_psi = r[start - 1, 0]
-        for t in six.moves.range(start, self.input_length):
+        for t in range(start, self.input_length):
             r[t, 0] = self.xp.logaddexp(r[t - 1, 0], log_phi[t - 1]) + xs[t]
             r[t, 1] = (
                 self.xp.logaddexp(r[t - 1, 0], r[t - 1, 1]) + self.x[t, self.blank]
@@ -348,10 +348,11 @@ class CTCPrefixScore(object):
         if len(eos_pos) > 0:
             log_psi[eos_pos] = r_sum[-1]  # log(r_T^n(g) + r_T^b(g))
 
-        # exclude blank probs
-        blank_pos = self.xp.where(cs == self.blank)[0]
-        if len(blank_pos) > 0:
-            log_psi[blank_pos] = self.logzero
+        if self.eos != self.blank:
+            # exclude blank probs
+            blank_pos = self.xp.where(cs == self.blank)[0]
+            if len(blank_pos) > 0:
+                log_psi[blank_pos] = self.logzero
 
         # return the log prefix probability and CTC states, where the label axis
         # of the CTC states is moved to the first axis to slice it easily

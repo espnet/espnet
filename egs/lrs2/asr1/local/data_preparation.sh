@@ -1,8 +1,8 @@
-#! /usr/bin/env bash 
+#! /usr/bin/env bash
 
 # Copyright 2020 Ruhr-University (Wentao Yu)
 
-# hand over parameters 
+# hand over parameters
 sdir=$1					# source directory of the data
 dset=$2					# dataset part (Train, Test, Val, pretrain)
 segment=$3				# if do segmentation for pretrain set
@@ -12,10 +12,10 @@ nj=$4  		                       	# if multi cpu processing, default is true
 stage=0                                 # set starting stage
 stop_stage=100                          # set stop stage
 sourcedir=$sdir/data/lrs2_v1/mvlrs_v1   # main data dir of LRS2 dataset, source for Video data
-datadir=data/$dset     			# datadir of the clean audio dataset 
+datadir=data/$dset     			# datadir of the clean audio dataset
 metadir=data/METADATA			# datadir of the metadata
 
-mkdir -p $datadir  
+mkdir -p $datadir
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # copy the Dataset metadata
@@ -26,10 +26,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ "$dset" = Val ] ; then
 	if [ ! -f "$metadir/Filelist_Val" ]; then
 	    cp $sdir/Filelist_${dset} $metadir
-	fi	 	    
+	fi
     else
 	cp -f $sdir/Filelist_${dset} $metadir
-    fi	
+    fi
     if [ "$dset" = Test ] ; then
 	mv $metadir/Filelist_Test ${tmpdir}/filelists/Filelist_Test
 	cat ${tmpdir}/filelists/Filelist_Test | cut -d " " -f1 > $metadir/Filelist_Test

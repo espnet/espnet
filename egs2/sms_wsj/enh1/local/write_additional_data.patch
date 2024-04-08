@@ -5,7 +5,7 @@ index 1e31bec..c641f5d 100644
 @@ -44,11 +44,12 @@ def create_json(db_dir, intermediate_json_path, write_all, snr_range=(20, 30)):
                          for k in range(len(ex['speaker_id']))
                      ]
- 
+
 -            ex['audio_path']['speech_source'] = [
 -                # .../sms_wsj/cache/wsj_8k_zeromean/13-11.1/wsj1/si_tr_s/4ax/4axc0218.wav
 -                str(db_dir.joinpath(*Path(rir).parts[-6:]))
@@ -17,7 +17,7 @@ index 1e31bec..c641f5d 100644
 +                    str(db_dir.joinpath(*Path(rir).parts[-6:]))
 +                    for rir in ex['audio_path']['speech_source']
 +                ]
- 
+
              ex['audio_path']['rir'] = [
                  # .../sms_wsj/cache/rirs/train_si284/0/h_0.wav
 @@ -101,7 +102,9 @@ def main(db_dir, intermed_json_path , write_all, json_path, snr_range):
@@ -42,8 +42,8 @@ index 6fb7051..4fe3594 100644
 +    'speech_image': 'reverb_source',
 +    'speech_source': 'source_signal',
  }
- 
- 
+
+
 @@ -104,11 +106,23 @@ def write_wavs(dst_dir, json_path, write_all=False, snr_range=(20, 30)):
                  del audio_dict['speech_reverberation_early']
                  del audio_dict['speech_reverberation_tail']
@@ -51,7 +51,7 @@ index 6fb7051..4fe3594 100644
 -            assert (
 -                all([np.max(np.abs(v)) <= 1 for v in audio_dict.values()])
 -            ), (
-+            
++
 +            def get_abs_max(a):
 +                if isinstance(a, np.ndarray):
 +                    if a.dtype == np.object:
@@ -73,7 +73,7 @@ index 6fb7051..4fe3594 100644
              )
              for key, value in audio_dict.items():
 @@ -132,10 +146,11 @@ def write_wavs(dst_dir, json_path, write_all=False, snr_range=(20, 30)):
- 
+
      if dlp_mpi.IS_MASTER:
          created_files = check_files(dst_dir)
 +        num_speakers = next(iter(db.get_dataset('train_si284')))['num_speakers']

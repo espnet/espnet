@@ -27,7 +27,7 @@ set -e -o pipefail
 mkdir -p data/local/data/
 local/prepare_data.py --srcpath $corpus_dir/for_release --tgtpath data/local/data --mics 0
 
-# Create dev and eval splits based on sessions. In total we have 10 sessions (session0 to 
+# Create dev and eval splits based on sessions. In total we have 10 sessions (session0 to
 # session9) of approximately 1 hour each. In the below strings, separate each session by
 # '\|' to perform grep at once.
 dev_sessions="session0"
@@ -35,12 +35,12 @@ eval_sessions="session1\|session2\|session3\|session4\|session5\|session6\|sessi
 
 mkdir -p data/dev
 for file in wav.scp utt2spk text segments; do
-  grep $dev_sessions data/local/data/"$file" | sort > data/dev/"$file" 
+  grep $dev_sessions data/local/data/"$file" | sort > data/dev/"$file"
 done
 
 mkdir -p data/eval
 for file in wav.scp utt2spk text segments; do
-  grep $eval_sessions data/local/data/"$file" | sort > data/eval/"$file" 
+  grep $eval_sessions data/local/data/"$file" | sort > data/eval/"$file"
 done
 
 # Move the utt2spk, segments, and text file to .bak so that they are only used

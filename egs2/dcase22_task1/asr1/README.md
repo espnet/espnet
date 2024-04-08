@@ -39,4 +39,3 @@ test.pt2es|BLEU|21.2
 |decode_asr_asr_model_valid.acc.ave_5best/test|street_traffic|47.5|
 |decode_asr_asr_model_valid.acc.ave_5best/test|tram|25.8|
 |decode_asr_asr_model_valid.acc.ave_5best/test|overall|26.8|
-

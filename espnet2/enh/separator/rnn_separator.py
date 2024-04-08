@@ -122,3 +122,36 @@ class RNNSeparator(AbsSeparator):
     @property
     def num_spk(self):
         return self._num_spk
+
+    def forward_streaming(self, input_frame: torch.Tensor, states=None):
+        # input_frame # B, 1, N
+
+        # if complex spectrum,
+        if is_complex(input_frame):
+            feature = abs(input_frame)
+        else:
+            feature = input_frame
+
+        ilens = torch.ones(feature.shape[0], device=feature.device)
+
+        x, _, states = self.rnn(feature, ilens, states)
+
+        masks = []
+
+        for linear in self.linear:
+            y = linear(x)
+            y = self.nonlinear(y)
+            masks.append(y)
+
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
+        masked = [input_frame * m for m in masks]
+
+        others = OrderedDict(
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
+        )
+        if self.predict_noise:
+            others["noise1"] = input * mask_noise
+
+        return masked, states, others

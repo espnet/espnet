@@ -5,11 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_noeng  
+train_set=train_noeng
 valid_set=dev_ios
 test_sets="dev_ios test_android test_ios test_mic"
 
-asr_config=conf/train_asr_conformer.yaml 
+asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr_rnn.yaml
 
 lm_config=conf/train_lm_transformer.yaml

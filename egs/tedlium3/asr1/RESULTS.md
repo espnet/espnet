@@ -89,7 +89,7 @@ exp/train_trim_sp_pytorch_nbpe500_ngpu8_train_pytorch_transformer.v2_specaug/dec
     - cmvn file: `./data/train_trim_sp/cmvn.ark`
     - e2e file: `./exp/train_trim_sp_pytorch_train/results/model.acc.best`
     - e2e JSON file: `./exp/train_trim_sp_pytorch_train/results/model.json`
-    
+
 - Results
 
 ```

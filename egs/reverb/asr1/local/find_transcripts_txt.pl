@@ -44,7 +44,7 @@ while(<F>) {
 }
 
 
-while(<STDIN>){ 
+while(<STDIN>){
     chop;
     my $uttid = $_;
     $uttid =~ m:\w+: || die "Bad utterance id $_";
@@ -54,5 +54,3 @@ while(<STDIN>){
         print "$uttid $utt2trans{$uttid}\n";
     }
 }
-
-

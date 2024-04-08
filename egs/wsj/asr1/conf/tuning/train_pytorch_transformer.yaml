@@ -25,8 +25,8 @@ sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epoch
 opt: noam
 accum-grad: 2
 grad-clip: 5
-patience: 3 
-epochs: 100 
+patience: 3
+epochs: 100
 dropout-rate: 0.1
 
 # transformer specific setting

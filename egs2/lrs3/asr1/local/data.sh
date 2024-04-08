@@ -49,7 +49,7 @@ done
 
 # generate the utt2spk, wav.scp and text files
 log "Generating the utt2spk, wav.scp and text files"
-python3 ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test 
+python3 ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test
 
 log "Generating the spk2utt files"
 utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt

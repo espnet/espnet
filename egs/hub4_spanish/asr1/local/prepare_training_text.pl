@@ -56,4 +56,3 @@ while(<$text>) {
   print "$utt $line\n";
 }
 close($text);
-

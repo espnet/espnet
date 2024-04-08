@@ -119,4 +119,3 @@
 |---|---|---|---|---|---|
 |dt05_simu_isolated_6ch_track_multich|1.963|1.675|1.788|2|1.8564|
 |et05_simu_isolated_6ch_track_multich|1.841|1.765|1.821|2.03|1.86422|
-

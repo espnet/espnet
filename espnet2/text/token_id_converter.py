@@ -2,16 +2,16 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class TokenIDConverter:
+    @typechecked
     def __init__(
         self,
         token_list: Union[Path, str, Iterable[str]],
         unk_symbol: str = "<unk>",
     ):
-        assert check_argument_types()
 
         if isinstance(token_list, (Path, str)):
             token_list = Path(token_list)
@@ -20,7 +20,7 @@ class TokenIDConverter:
 
             with token_list.open("r", encoding="utf-8") as f:
                 for idx, line in enumerate(f):
-                    line = line.rstrip()
+                    line = line[0] + line[1:].rstrip()
                     self.token_list.append(line)
 
         else:

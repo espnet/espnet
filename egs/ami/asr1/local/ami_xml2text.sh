@@ -45,4 +45,3 @@ fi
 grep -e '^Found' -e '^Obs' -i -v $wdir/transcripts0 > $wdir/transcripts1
 
 exit 0;
-

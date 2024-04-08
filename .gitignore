@@ -4,6 +4,8 @@
 \#*\#
 .\#*
 *DS_Store
+dummy_token_list
+empty.py
 out.txt
 espnet.egg-info/
 doc/_build
@@ -18,7 +20,9 @@ check_autopep8
 .coverage
 htmlcov
 coverage.xml*
-bats-core/
+test_utils/bats-core/
+test_utils/bats-support/
+test_utils/bats-assert/
 shellcheck*
 check_shellcheck*
 test_spm.vocab
@@ -27,6 +31,9 @@ test_spm.model
 *.vim
 *.swp
 *.nfs*
+constraints.txt
+
+out/config.yaml
 
 # recipe related
 egs*/*/*/data*
@@ -40,10 +47,12 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs*/*/*/score*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
+egs2/test/*
 
 # tools related
 tools/chainer
@@ -82,4 +91,14 @@ tools/py3mmseg
 tools/anaconda
 tools/ice-g2p
 tools/fairseq
+tools/RawNet
 tools/._*
+tools/ice-g2p*
+tools/fairseq*
+tools/featbin*
+tools/Miniconda*
+tools/miniconda
+tools/ffmpeg-*-static
+tools/ffmpeg-release
+tools/ffmpeg-release-*.tar.xz
+tools/Miniconda3-latest-*.sh

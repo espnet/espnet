@@ -20,7 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-preprocess_config=conf/specaug.yaml 
+preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 
 lm_config=conf/lm.yaml

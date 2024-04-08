@@ -6,7 +6,7 @@
 from typing import Any, Dict, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.hifigan import (
@@ -50,6 +50,7 @@ class JETS(AbsGANTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # generator related
@@ -212,6 +213,8 @@ class JETS(AbsGANTTS):
         lambda_var: float = 1.0,
         lambda_align: float = 2.0,
         cache_generator_outputs: bool = True,
+        plot_pred_mos: bool = False,
+        mos_pred_tool: str = "utmos",
     ):
         """Initialize JETS module.
 
@@ -238,9 +241,9 @@ class JETS(AbsGANTTS):
             lambda_var (float): Loss scaling coefficient for variance loss.
             lambda_align (float): Loss scaling coefficient for alignment loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
-
+            plot_pred_mos (bool): Whether to plot predicted MOS during the training.
+            mos_pred_tool (str): MOS prediction tool name.
         """
-        assert check_argument_types()
         super().__init__()
 
         # define modules
@@ -287,6 +290,20 @@ class JETS(AbsGANTTS):
         self.spks = self.generator.spks
         self.langs = self.generator.langs
         self.spk_embed_dim = self.generator.spk_embed_dim
+        self.use_gst = getattr(self.generator, "use_gst", False)
+
+        # plot pseudo mos during training
+        self.plot_pred_mos = plot_pred_mos
+        if plot_pred_mos:
+            if mos_pred_tool == "utmos":
+                # Load predictor for UTMOS22 (https://arxiv.org/abs/2204.02152)
+                self.predictor = torch.hub.load(
+                    "tarepan/SpeechMOS:v1.2.0", "utmos22_strong"
+                )
+            else:
+                raise NotImplementedError(
+                    f"Not supported mos_pred_tool: {mos_pred_tool}"
+                )
 
     @property
     def require_raw_speech(self):
@@ -478,6 +495,13 @@ class JETS(AbsGANTTS):
             generator_align_bin_loss=bin_loss.item(),
         )
 
+        if self.plot_pred_mos:
+            # Caltulate predicted MOS from generated speech waveform.
+            with torch.no_grad():
+                # speech_hat_: (B, 1, T)
+                pmos = self.predictor(speech_hat_.squeeze(1), self.fs).mean()
+            stats["generator_predicted_mos"] = pmos.item()
+
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         # reset cache
@@ -617,6 +641,9 @@ class JETS(AbsGANTTS):
         )
         if "spembs" in kwargs:
             kwargs["spembs"] = kwargs["spembs"][None]
+        if self.use_gst and "speech" in kwargs:
+            # NOTE(kan-bayashi): Workaround for the use of GST
+            kwargs.pop("speech")
 
         # inference
         if use_teacher_forcing:
@@ -646,6 +673,7 @@ class JETS(AbsGANTTS):
             wav, dur = self.generator.inference(
                 text=text,
                 text_lengths=text_lengths,
+                feats=feats[None] if self.use_gst else None,
                 **kwargs,
             )
         return dict(wav=wav.view(-1), duration=dur[0])

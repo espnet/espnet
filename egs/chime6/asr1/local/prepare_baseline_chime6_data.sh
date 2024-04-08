@@ -118,7 +118,7 @@ if [ $stage -le 3 ]; then
 		data/lang $LM data/local/dict/lexicon.txt data/lang
 
 fi
-  
+
 
 #########################################################################################
 # In stages 4 to 7, we augment and fix train data for our training purpose. point source
@@ -142,7 +142,7 @@ if [ $stage -le 5 ]; then
   local/make_noise_list.py distant_noises > distant_noise_list
 
   noise_list=distant_noise_list
-  
+
   if [ ! -d RIRS_NOISES/ ]; then
     # Download the package that includes the real RIRs, simulated RIRs, isotropic noises and point-source noises
     wget --no-check-certificate http://www.openslr.org/resources/28/rirs_noises.zip
@@ -312,7 +312,7 @@ if [ $stage -le 15 ] && [[ ${enhancement} == *gss* ]]; then
 
   local/prepare_data.sh --mictype gss ${enhanced_dir}/audio/dev \
       ${json_dir}/dev data/dev_${enhancement} || exit 1
-  
+
   # make segments file
   utils/data/get_utt2dur.sh --nj 1 data/dev_${enhancement}
   awk '{ print $1, $1, 0, $2 }' data/dev_${enhancement}/utt2dur > data/dev_${enhancement}/segments

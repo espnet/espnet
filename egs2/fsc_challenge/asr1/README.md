@@ -41,5 +41,3 @@
 |inference_asr_model_valid.acc.ave_5best/spk_test|3349|14588|98.7|0.9|0.4|0.6|1.9|4.7|
 |inference_asr_model_valid.acc.ave_5best/utt_test|4201|18330|87.1|10.6|2.3|3.8|16.7|44.6|
 |inference_asr_model_valid.acc.ave_5best/valid|2597|1185|98.9|0.6|0.5|0.3|1.3|2.9 |
-
-

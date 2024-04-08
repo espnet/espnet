@@ -45,4 +45,3 @@ teardown() {
     python $utils/mix-mono-wav-scp.py ${tmpdir}/a.scp ${tmpdir}/b.scp ${tmpdir}/c.scp > ${tmpdir}/out.scp
     diff ${tmpdir}/out.scp ${tmpdir}/valid.scp
 }
-

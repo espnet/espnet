@@ -33,4 +33,3 @@
 |decode_asr_lm_lm_train_lm_transformer_ru_bpe100_valid.loss.ave_asr_model_valid.acc.ave/asr_calls_2_val|12950|305580|82.1|5.9|11.9|1.2|19.1|73.6|
 |decode_asr_lm_lm_train_lm_transformer_ru_bpe100_valid.loss.ave_asr_model_valid.acc.ave/buriy_audiobooks_2_val|7850|169662|94.9|2.2|2.9|2.0|7.1|63.7|
 |decode_asr_lm_lm_train_lm_transformer_ru_bpe100_valid.loss.ave_asr_model_valid.acc.ave/public_youtube700_val|7311|174265|92.0|2.8|5.2|0.9|8.9|56.9|
-

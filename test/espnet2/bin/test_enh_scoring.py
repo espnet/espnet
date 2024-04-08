@@ -26,7 +26,8 @@ def spk_scp(tmp_path):
 
 
 @pytest.mark.parametrize("flexible_numspk", [True, False])
-def test_scoring(tmp_path, spk_scp, flexible_numspk):
+@pytest.mark.parametrize("is_tse", [True, False])
+def test_scoring(tmp_path, spk_scp, flexible_numspk, is_tse):
     scoring(
         output_dir=str(tmp_path / "output"),
         dtype="float32",
@@ -36,4 +37,13 @@ def test_scoring(tmp_path, spk_scp, flexible_numspk):
         inf_scp=[spk_scp],
         ref_channel=0,
         flexible_numspk=flexible_numspk,
+        is_tse=is_tse,
+        use_dnsmos=False,
+        dnsmos_args={
+            "mode": "local",
+            "auth_key": "",
+            "primary_model": "",
+            "p808_model": "",
+        },
+        use_pesq=False,
     )

@@ -40,19 +40,19 @@ cat $AURORA/lists/training_multicondition_16k.list \
 #Dev Set
 for x in $(seq -f "%02g" 01 14); do
   # Dev-set 1 (330x14 utterances)
-  cat $AURORA/lists/devtest${x}_0330_16k.list | perl -e ' 
+  cat $AURORA/lists/devtest${x}_0330_16k.list | perl -e '
     while(<STDIN>) {
-      @A=split("/", $_);        
+      @A=split("/", $_);
       @B=split("_", $A[0]);
-      print $B[0].$B[1]."_".$B[2]."/".$_;  
+      print $B[0].$B[1]."_".$B[2]."/".$_;
     }
   ' | $local/aurora2flist.pl $AURORA | sort -u > dev_0330_${x}.flist
   # Dev-set 2 (1206x14 utterances)
   cat $AURORA/lists/devtest${x}_1206_16k.list | perl -e '
     while(<STDIN>) {
-      @A=split("/", $_);        
+      @A=split("/", $_);
       @B=split("_", $A[0]);
-      print $B[0].$B[1]."_".$B[2]."/".$_;  
+      print $B[0].$B[1]."_".$B[2]."/".$_;
     }
   ' | $local/aurora2flist.pl $AURORA | sort -u > dev_1206_${x}.flist
 done
@@ -61,7 +61,7 @@ done
 for x in $(seq -f "%02g" 01 14); do
   # test set 1 (166x14 utterances)
   cat $AURORA/lists/test${x}_0166_16k.list \
-  | $local/aurora2flist.pl $AURORA | sort -u > test_0166_${x}.flist 
+  | $local/aurora2flist.pl $AURORA | sort -u > test_0166_${x}.flist
   cat $AURORA/lists/test${x}_0330_16k.list \
   | $local/aurora2flist.pl $AURORA | sort -u > test_eval92_${x}.flist
 done
@@ -70,7 +70,7 @@ done
 find -L $CORPUS -iname '*.dot' > dot_files.flist
 
 # Convert the transcripts into our format (no normalization yet)
-# adding suffix to utt_id 
+# adding suffix to utt_id
 # 0 for clean condition
 
 # Trans and sph for Train Set
@@ -100,93 +100,93 @@ for x in $(seq -f "%02g" 01 14); do
   cat dev_0330_${x}_sph_tmp.scp | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition\n";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
-      print $A[0].$suffix." ".$A[1]."\n"; 
+      @A=split(" ", $_);
+      print $A[0].$suffix." ".$A[1]."\n";
     }
-  ' $x > dev_0330_${x}_sph.scp 
-  
+  ' $x > dev_0330_${x}_sph.scp
+
   cat dev_1206_${x}_sph_tmp.scp | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix." ".$A[1]."\n";
     }
   ' $x > dev_1206_${x}_sph.scp
-  
+
   cat dev_0330_${x}_tmp.trans1 | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix;
       for ($i=1; $i < @A; $i++) {print " ".$A[$i];}
       print "\n";
     }
   ' $x > dev_0330_${x}.trans1
- 
+
   cat dev_1206_${x}_tmp.trans1 | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix;
       for ($i=1; $i < @A; $i++) {print " ".$A[$i];}
       print "\n";
@@ -195,7 +195,7 @@ for x in $(seq -f "%02g" 01 14); do
 
 done
 
-cat dev_0330_*_sph.scp | sort -k1 > dev_0330_sph.scp 
+cat dev_0330_*_sph.scp | sort -k1 > dev_0330_sph.scp
 cat dev_1206_*_sph.scp | sort -k1 > dev_1206_sph.scp
 cat dev_0330_??.trans1 | sort -k1 > dev_0330.trans1
 cat dev_1206_??.trans1 | sort -k1 > dev_1206.trans1
@@ -212,93 +212,93 @@ for x in $(seq -f "%02g" 01 14); do
   cat test_0166_${x}_sph_tmp.scp | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix." ".$A[1]."\n";
     }
-  ' $x > test_0166_${x}_sph.scp 
-  
+  ' $x > test_0166_${x}_sph.scp
+
   cat test_eval92_${x}_sph_tmp.scp | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix." ".$A[1]."\n";
     }
   ' $x > test_eval92_${x}_sph.scp
-  
+
   cat test_0166_${x}_tmp.trans1 | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix;
       for ($i=1; $i < @A; $i++) {print " ".$A[$i];}
       print "\n";
     }
   ' $x > test_0166_${x}.trans1
- 
+
   cat test_eval92_${x}_tmp.trans1 | perl -e \
   ' $condition="$ARGV[0]";
     if ($condition eq "01") {$suffix=0;}
-    elsif ($condition eq "02") {$suffix=1;} 
-    elsif ($condition eq "03") {$suffix=2;} 
-    elsif ($condition eq "04") {$suffix=3;} 
-    elsif ($condition eq "05") {$suffix=4;} 
-    elsif ($condition eq "06") {$suffix=5;} 
-    elsif ($condition eq "07") {$suffix=6;} 
-    elsif ($condition eq "08") {$suffix=7;} 
-    elsif ($condition eq "09") {$suffix=8;} 
-    elsif ($condition eq "10") {$suffix=9;} 
-    elsif ($condition eq "11") {$suffix=a;} 
-    elsif ($condition eq "12") {$suffix=b;} 
-    elsif ($condition eq "13") {$suffix=c;} 
-    elsif ($condition eq "14") {$suffix=d;} 
+    elsif ($condition eq "02") {$suffix=1;}
+    elsif ($condition eq "03") {$suffix=2;}
+    elsif ($condition eq "04") {$suffix=3;}
+    elsif ($condition eq "05") {$suffix=4;}
+    elsif ($condition eq "06") {$suffix=5;}
+    elsif ($condition eq "07") {$suffix=6;}
+    elsif ($condition eq "08") {$suffix=7;}
+    elsif ($condition eq "09") {$suffix=8;}
+    elsif ($condition eq "10") {$suffix=9;}
+    elsif ($condition eq "11") {$suffix=a;}
+    elsif ($condition eq "12") {$suffix=b;}
+    elsif ($condition eq "13") {$suffix=c;}
+    elsif ($condition eq "14") {$suffix=d;}
     else {print STDERR "error condition $condition";}
     while(<STDIN>) {
-      @A=split(" ", $_);  
+      @A=split(" ", $_);
       print $A[0].$suffix;
       for ($i=1; $i < @A; $i++) {print " ".$A[$i];}
       print "\n";
@@ -307,7 +307,7 @@ for x in $(seq -f "%02g" 01 14); do
 
 done
 
-cat test_0166_*_sph.scp | sort -k1 > test_0166_sph.scp 
+cat test_0166_*_sph.scp | sort -k1 > test_0166_sph.scp
 cat test_eval92_*_sph.scp | sort -k1 > test_eval92_sph.scp
 cat test_0166_??.trans1 | sort -k1 > test_0166.trans1
 cat test_eval92_??.trans1 | sort -k1 > test_eval92.trans1
@@ -344,14 +344,14 @@ fi
 
 if [ ! -f wsj0-train-spkrinfo.txt ]; then
   echo "Could not get the spkrinfo.txt file from LDC website (moved)?"
-  echo "This is possibly omitted from the training disks; couldn't find it." 
+  echo "This is possibly omitted from the training disks; couldn't find it."
   echo "Everything else may have worked; we just may be missing gender info"
   echo "which is only needed for VTLN-related diagnostics anyway."
   exit 1
 fi
 # Note: wsj0-train-spkrinfo.txt doesn't seem to be on the disks but the
 # LDC put it on the web.  Perhaps it was accidentally omitted from the
-# disks.  
+# disks.
 
 cat $CORPUS/11-13.1/wsj0/doc/spkrinfo.txt \
     ./wsj0-train-spkrinfo.txt  | \

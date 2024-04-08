@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
@@ -47,17 +47,18 @@ class Speech2Understand:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        slu_train_config: Union[Path, str] = None,
-        slu_model_file: Union[Path, str] = None,
-        transducer_conf: dict = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        slu_train_config: Union[Path, str, None] = None,
+        slu_model_file: Union[Path, str, None] = None,
+        transducer_conf: Optional[dict] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -69,13 +70,13 @@ class Speech2Understand:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         streaming: bool = False,
         quantize_asr_model: bool = False,
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         task = SLUTask
 
@@ -88,8 +89,8 @@ class Speech2Understand:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build ASR model
         scorers = {}
@@ -102,7 +103,7 @@ class Speech2Understand:
             logging.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
-                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = asr_model.decoder
@@ -125,7 +126,7 @@ class Speech2Understand:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -175,6 +176,7 @@ class Speech2Understand:
                 vocab_size=len(token_list),
                 token_list=token_list,
                 pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                normalize_length=normalize_length,
             )
 
             # TODO(karita): make all scorers batchfied
@@ -238,8 +240,11 @@ class Speech2Understand:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray], transcript: torch.Tensor = None
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        transcript: Optional[torch.Tensor] = None,
     ) -> List[
         Tuple[
             Optional[str],
@@ -256,7 +261,6 @@ class Speech2Understand:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -335,7 +339,6 @@ class Speech2Understand:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -369,6 +372,7 @@ class Speech2Understand:
         return Speech2Understand(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -383,6 +387,7 @@ def inference(
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -405,7 +410,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
@@ -446,6 +450,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         streaming=streaming,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
@@ -684,6 +689,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     return parser

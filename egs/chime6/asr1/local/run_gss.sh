@@ -41,7 +41,7 @@ session_id=$1
 log_dir=$2
 enhanced_dir=$3
 if [ ! -d pb_chime5/ ]; then
-  echo "Missing pb_chime5, run 'local/install_pb_chime5'" 
+  echo "Missing pb_chime5, run 'local/install_pb_chime5'"
   exit 1
 fi
 

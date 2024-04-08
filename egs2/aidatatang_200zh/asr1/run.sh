@@ -9,7 +9,7 @@ train_set=train
 valid_set=dev
 test_sets="dev test"
 
-asr_config=conf/train_asr_conformer.yaml
+asr_config=conf/train_asr_e_branchformer.yaml
 inference_config=conf/decode_asr.yaml
 
 lm_config=conf/train_lm_transformer.yaml
@@ -20,6 +20,7 @@ use_lm=true
 speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
+    --ngpu 2                                           \
     --lang zh                                          \
     --audio_format wav                                 \
     --feats_type raw                                   \

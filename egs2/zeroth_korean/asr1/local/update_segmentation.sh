@@ -28,4 +28,3 @@ cut -d' ' -f2- $trans".old" |\
 	--nosplit-re '[0-9\[\]\(\){}a-zA-Z&.,\-]+' \
 	| paste -d" " $trans"_tmp_index" - > $trans
 rm -f $trans"_tmp_index"
-

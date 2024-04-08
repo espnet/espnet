@@ -42,7 +42,7 @@ rnn_args = Namespace(
     streaming_offset_margin=2,
     verbose=2,
     outdir=None,
-    ctc_type="warpctc",
+    ctc_type="builtin",
     report_cer=False,
     report_wer=False,
     sym_space="<space>",
@@ -71,7 +71,7 @@ transformer_args = Namespace(
     transformer_length_normalized_loss=True,
     report_cer=False,
     report_wer=False,
-    ctc_type="warpctc",
+    ctc_type="builtin",
     lsm_weight=0.001,
 )
 

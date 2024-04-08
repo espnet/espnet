@@ -1,0 +1,58 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size:  32
+num_workers: 4
+optim_conf:
+    lr: 5.0e-04
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+
+encoder: conv
+encoder_conf:
+    channel: 512
+    kernel_size: 960   # 20ms for 48k sample rate
+    stride: 480        # 10ms for 48k sample rate
+decoder: conv
+decoder_conf:
+    channel: 512
+    kernel_size: 960   # 20ms for 48k sample rate
+    stride: 480        # 10ms for 48k sample rate
+separator: tcn
+separator_conf:
+    num_spk: 1
+    layer: 8
+    stack: 3
+    bottleneck_dim: 128
+    hidden_dim: 512
+    kernel: 3
+    causal: True
+    norm_type: "gLN"
+    nonlinear: "relu"
+
+criterions:
+  # The first criterion
+  - name: si_snr
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

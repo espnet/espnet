@@ -15,6 +15,9 @@ fi
 
 dns=$1
 dns_wav=$2
+total_hours=100
+snr_lower=0
+snr_upper=40
 
 rm -r data/ 2>/dev/null || true
 mkdir -p data/
@@ -41,12 +44,15 @@ if [ -z "$configure" ]; then
   log_dir=data/log
 
   #modify the input paths for "\" separated paths
-  sed -e "/^noisy_destination/s#.*#noisy_destination:${noisy_wav}#g"  \
-      -e "/^clean_destination/s#.*#clean_destination:${clean_wav}#g"  \
-      -e "/^noise_destination/s#.*#noise_destination:${noise_wav}#g"  \
-      -e "/^noise_dir/s#.*#noise_dir:${noise_dir}#g"  \
-      -e "/^speech_dir/s#.*#speech_dir:${speech_dir}#g"  \
-      -e "/^log_dir/s#.*#log_dir:${log_dir}#g" ${configure} \
+  sed -e "/^noisy_destination/s#.*#noisy_destination: ${noisy_wav}#g"  \
+      -e "/^clean_destination/s#.*#clean_destination: ${clean_wav}#g"  \
+      -e "/^noise_destination/s#.*#noise_destination: ${noise_wav}#g"  \
+      -e "/^total_hours/s#.*#total_hours: ${total_hours}#g"  \
+      -e "/^snr_lower/s#.*#snr_lower: ${snr_lower}#g"  \
+      -e "/^snr_upper/s#.*#snr_upper: ${snr_upper}#g"  \
+      -e "/^noise_dir/s#.*#noise_dir: ${noise_dir}#g"  \
+      -e "/^speech_dir/s#.*#speech_dir: ${speech_dir}#g"  \
+      -e "/^log_dir/s#.*#log_dir: ${log_dir}#g" ${configure} \
     > ${train_cfg}
 else
   cp ${configure} ${train_cfg}
@@ -59,7 +65,6 @@ if [ ! -f ${configure} -a -f ${mix_script} ]; then
   exit 1;
 fi
 
+# Default configuration will generate 33GB data under "${dns_wav}"
 echo "Creating Mixtures for Training and Validation Data."
 python ${mix_script} --cfg ${PWD}/${train_cfg} >/dev/null || exit 1;
-
-

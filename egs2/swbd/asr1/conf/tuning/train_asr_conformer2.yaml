@@ -52,7 +52,7 @@ optim: adam
 optim_conf:
     lr: 0.006
 scheduler: warmuplr
-scheduler_conf: 
+scheduler_conf:
     warmup_steps: 25000
 ctc_conf:
         ignore_nan_grad: true

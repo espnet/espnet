@@ -44,8 +44,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     wget https://www.openslr.org/resources/64/mr_in_female.zip
     unzip -o mr_in_female.zip
     rm -f mr_in_female.zip
-    
-    cd $workspace    
+
+    cd $workspace
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

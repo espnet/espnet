@@ -16,7 +16,7 @@ index 1cd05c1..d1cb9b6 100644
              tgt[st:st+data.shape[0]] += data
              st = segment_length//3 * 2
              tgt[st:st+data.shape[0]] += data
--        
+-
 -        else:
 +
 +        elif data_len < segment_length//2:
@@ -27,7 +27,7 @@ index 1cd05c1..d1cb9b6 100644
              tgt[:segment_length//2] += data
              st = segment_length//2
              tgt[st:st+data.shape[0]] += data
--    
+-
 +
 +        elif data_len < segment_length:
 +            # (wangyou) in case of outliers
@@ -66,7 +66,7 @@ index 1cd05c1..d1cb9b6 100644
 -            tgt[-data_len:] += data
 -        elif data_len % 4 == 3:
 -            tgt[(segment_length-data_len)//2:(segment_length-data_len)//2+data_len] += data
--    
+-
 +        if data_len < segment_length:
 +            if data_len % 4 == 0:
 +                tgt[:data_len] += data
@@ -91,8 +91,8 @@ index 1cd05c1..d1cb9b6 100644
 +        if start + segment_length > data_len:
 +            data = np.pad(data, [0, start + segment_length - data_len], 'constant')
          tgt += data[start:start+segment_length]
--    
+-
 +
      return tgt
- 
+
  def rms(data):

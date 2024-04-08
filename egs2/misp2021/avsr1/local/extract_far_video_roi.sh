@@ -77,7 +77,7 @@ if [ $stage -le 2 ]; then
   if [[ ! -f $video_dir/extract.done ]]; then
     mkdir -p $visual_embedding_dir/log
     #notice: -g 0 1 2 3 pay attention to your GPU numbers
-    python local/prepare_visual_embedding_extractor.py $video_dir -nj $nj -g 0 1 2 
+    python local/prepare_visual_embedding_extractor.py $video_dir -nj $nj -g 0 1 2
     chmod a+x $visual_embedding_dir/log/extract.*.sh
     $train_cmd JOB=1:$nj $visual_embedding_dir/log/extract.JOB.log $visual_embedding_dir/log/extract.JOB.sh
     rm -f $visual_embedding_dir/log/extract.*.sh
@@ -94,7 +94,7 @@ if [ $stage -le 3 ]; then
   if [ ! -f $video_dir/concatenate.done ]; then
     mkdir -p $av_dir/data
     mkdir -p $av_dir/log
-      
+
     cat $data_set/segments > $av_dir/segments
     cat $data_set/spk2utt > $av_dir/spk2utt
     cat $data_set/utt2spk > $av_dir/utt2spk
@@ -105,7 +105,7 @@ if [ $stage -le 3 ]; then
     python local/concatenate_feature.py --ji 0 --nj 1 $audio_dir $video_dir $av_dir/data
 
     cat $av_dir/data/raw_av_embedding.*.scp | sort -k 1 | uniq > $av_dir/feats.scp
-    steps/compute_cmvn_stats.sh $av_dir || exit 1; 
+    steps/compute_cmvn_stats.sh $av_dir || exit 1;
     utils/fix_data_dir.sh $av_dir || exit 1;
     echo 'concatenate done'
     touch $video_dir/concatenate.done

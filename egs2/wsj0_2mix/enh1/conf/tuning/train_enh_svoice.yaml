@@ -40,9 +40,9 @@ separator_conf:
     segment_size: 128
     input_normalize: False
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: multilayer_pit

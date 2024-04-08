@@ -15,11 +15,11 @@
   - Decoding results:
 ```
 CER (or TER) result in exp/train_worn_simu_u400k_cleaned_trim_sp_pytorch_train/decode_dev_gss12.ep.10/result.txt
-|  SPKR    |  # Snt    # Wrd   |  Corr      Sub       Del      Ins      Err    S.Err  |                         
-|  Sum/Avg |  7437     280767  |  69.3     13.1      17.7      9.2     39.9     82.4  |                         
-WER result in exp/train_worn_simu_u400k_cleaned_trim_sp_pytorch_train/decode_dev_gss12.ep.10/result.wrd.txt     
-|  SPKR     |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |                     
-|  Sum/Avg  |  7437     58881   |  52.2      32.4     15.4       7.4      55.3     81.1   |                     
+|  SPKR    |  # Snt    # Wrd   |  Corr      Sub       Del      Ins      Err    S.Err  |
+|  Sum/Avg |  7437     280767  |  69.3     13.1      17.7      9.2     39.9     82.4  |
+WER result in exp/train_worn_simu_u400k_cleaned_trim_sp_pytorch_train/decode_dev_gss12.ep.10/result.wrd.txt
+|  SPKR     |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |
+|  Sum/Avg  |  7437     58881   |  52.2      32.4     15.4       7.4      55.3     81.1   |
 ```
 
 # Default transformer - rnn transducer
@@ -39,9 +39,9 @@ WER result in exp/train_worn_simu_u400k_cleaned_trim_sp_pytorch_train/decode_dev
   - Decoding results:
 ```
 CER (or TER) result in exp/train_worn_simu_u400k_cleaned_trim_nonpos_sp_transformer_rnn_transducer/decode_dev_gss12.ep.10/result.txt
-|  SPKR    |  # Snt    # Wrd   |  Corr      Sub       Del      Ins      Err    S.Err  |                                             
-|  Sum/Avg |  7437     280767  |  67.3     15.2      17.5     10.9     43.6     81.3  |                                             
-WER result in exp/train_worn_simu_u400k_cleaned_trim_nonpos_sp_transformer_rnn_transducer/decode_dev_gss12.ep.10/result.wrd.txt     
-|  SPKR     |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |                                         
-|  Sum/Avg  |  7437     58881   |  48.6      36.7     14.7       8.9      60.3     78.6   |                                         
+|  SPKR    |  # Snt    # Wrd   |  Corr      Sub       Del      Ins      Err    S.Err  |
+|  Sum/Avg |  7437     280767  |  67.3     15.2      17.5     10.9     43.6     81.3  |
+WER result in exp/train_worn_simu_u400k_cleaned_trim_nonpos_sp_transformer_rnn_transducer/decode_dev_gss12.ep.10/result.wrd.txt
+|  SPKR     |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |
+|  Sum/Avg  |  7437     58881   |  48.6      36.7     14.7       8.9      60.3     78.6   |
 ```

@@ -36,4 +36,3 @@ if [ "$num_sph" != 1514 ]; then
 fi
 
 exit 0
-

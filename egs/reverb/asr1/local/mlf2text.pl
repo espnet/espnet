@@ -12,7 +12,7 @@ while (<>) {
     #if (/"(.+)"/) {
         $utt = lc $1;
         #print "utterance: $utt\n";
-    } 
+    }
     elsif (!/^\.$/) {
         if ($text{$utt}) {
             $text{$utt} .= " ";
@@ -21,7 +21,7 @@ while (<>) {
     }
 }
 
-for my $utt (sort keys %text) 
+for my $utt (sort keys %text)
 {
     print "$utt $text{$utt}\n";
 }

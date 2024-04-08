@@ -26,7 +26,7 @@ tgt_case="df"
 
 mkdir -p ${text} ${text}/logs || exit 1;
 
-# 1) get original transcription 
+# 1) get original transcription
 for x in train dev eval_clean eval_other; do
     [ ! -f ${db}/scripts/${x}.trn ] && echo "$0: no such transcription scripts/${x}.trn" && exit 1;
     mkdir -p ${text}/${x} && cp -a ${db}/scripts/${x}.trn ${text}/${x}/text.raw
@@ -37,9 +37,8 @@ echo "$0: get transcription files for KsponSpeech"
 for task in train dev eval_clean eval_other; do
     python local/get_transcriptions.py --verbose 1 --clear \
         --type $tgt_case --log-dir ${text}/logs/get_transcription --unk-sym '[unk]' \
-        --raw-trans ${text}/${task}/text.raw --out-fn ${text}/${task}/text.trn 
+        --raw-trans ${text}/${task}/text.raw --out-fn ${text}/${task}/text.trn
 done
 
 echo "$0: successfully prepared transcription files for KsponSpeech dataset"
 touch ${text}/.done && exit 0;
-

@@ -34,7 +34,7 @@ from espnet.nets.asr_interface import dynamic_import_asr
                     elayers=2,
                     dlayers=2,
                     mtlalpha=0.5,
-                    ctc_type="warpctc",
+                    ctc_type="builtin",
                 ),
             ),
             (
@@ -62,7 +62,7 @@ from espnet.nets.asr_interface import dynamic_import_asr
                     elayers=2,
                     dlayers=2,
                     mtlalpha=0.5,
-                    ctc_type="warpctc",
+                    ctc_type="builtin",
                 ),
             ),
         ]

@@ -35,7 +35,7 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to"
-    local/download_and_untar.sh 
+    local/download_and_untar.sh
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -62,7 +62,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    cut -f 1,2 -d " " data/tmp/wav_sem.2  > data/tmp/wav_intent
    paste -d " " data/tmp/wav_intent data/tmp/pure_text_norm > data/text
    mkdir -p data/all
-   mv data/utt2spk data/text data/wav.scp data/all 
+   mv data/utt2spk data/text data/wav.scp data/all
    utils/fix_data_dir.sh data/all
    rm -r data/tmp
 fi

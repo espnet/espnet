@@ -1,4 +1,5 @@
 """Tests for asr_align.py."""
+
 import string
 from argparse import ArgumentParser
 from pathlib import Path
@@ -47,6 +48,8 @@ def asr_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--decoder",
+            "rnn",
         ]
     )
     return tmp_path / "asr" / "config.yaml"

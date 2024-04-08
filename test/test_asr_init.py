@@ -49,7 +49,7 @@ def get_rnn_args(**kwargs):
         verbose=2,
         char_list=["a", "e", "i", "o", "u"],
         outdir=None,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         report_cer=False,
         report_wer=False,
         sym_space="<space>",

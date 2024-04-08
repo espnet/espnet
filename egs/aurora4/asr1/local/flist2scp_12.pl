@@ -28,4 +28,3 @@ while(<>){
     $id =~ tr/A-Z/a-z/;  # Necessary because of weirdness on disk 13-16.1 (uppercase filenames)
     print "$id $_";
 }
-

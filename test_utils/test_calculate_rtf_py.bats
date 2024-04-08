@@ -4,8 +4,8 @@ setup() {
     tmpdir=/tmp/espnet2-test-calculate-rtf-${RANDOM}
     # Create dummy data
     mkdir -p ${tmpdir}/asr_results/logdir
-    cp test_utils/asr_inference.1.log ${tmpdir}/asr_results/logdir/ 
-    _sample_shift=$(python3 -c "print(1 / 16000 * 1000)") # in ms   
+    cp test_utils/asr_inference.1.log ${tmpdir}/asr_results/logdir/
+    _sample_shift=$(python3 -c "print(1 / 16000 * 1000)") # in ms
 
     cat << EOF > $tmpdir/valid
 Total audio duration: 693.700 [sec]

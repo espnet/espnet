@@ -5,30 +5,27 @@ import numpy as np
 import torch
 from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
-from typeguard import check_argument_types
+from typeguard import typechecked
 
-from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import to_complex
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-
-
-is_torch_1_7_plus = V(torch.__version__) >= V("1.7")
+is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
+    @typechecked
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 128,
         window: Optional[str] = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self.n_fft = n_fft
         if win_length is None:
@@ -89,8 +86,11 @@ class Stft(torch.nn.Module, InversibleInterface):
             window = None
 
         # For the compatibility of ARM devices, which do not support
-        # torch.stft() due to the lake of MKL.
-        if input.is_cuda or torch.backends.mkl.is_available():
+        # torch.stft() due to the lack of MKL (on older pytorch versions),
+        # there is an alternative replacement implementation with librosa.
+        # Note: pytorch >= 1.10.0 now has native support for FFT and STFT
+        # on all cpu targets including ARM.
+        if input.is_cuda or torch.backends.mkl.is_available() or is_torch_1_10_plus:
             stft_kwargs = dict(
                 n_fft=self.n_fft,
                 win_length=self.win_length,
@@ -100,9 +100,9 @@ class Stft(torch.nn.Module, InversibleInterface):
                 normalized=self.normalized,
                 onesided=self.onesided,
             )
-            if is_torch_1_7_plus:
-                stft_kwargs["return_complex"] = False
+            stft_kwargs["return_complex"] = True
             output = torch.stft(input, **stft_kwargs)
+            output = torch.view_as_real(output)
         else:
             if self.training:
                 raise NotImplementedError(
@@ -111,12 +111,15 @@ class Stft(torch.nn.Module, InversibleInterface):
                 )
 
             # use stft_kwargs to flexibly control different PyTorch versions' kwargs
+            # note: librosa does not support a win_length that is < n_ftt
+            # but the window can be manually padded (see below).
             stft_kwargs = dict(
                 n_fft=self.n_fft,
-                win_length=self.win_length,
+                win_length=self.n_fft,
                 hop_length=self.hop_length,
                 center=self.center,
                 window=window,
+                pad_mode="reflect",
             )
 
             if window is not None:
@@ -161,7 +164,10 @@ class Stft(torch.nn.Module, InversibleInterface):
                 pad = self.n_fft // 2
                 ilens = ilens + 2 * pad
 
-            olens = (ilens - self.n_fft) // self.hop_length + 1
+            olens = (
+                torch.div(ilens - self.n_fft, self.hop_length, rounding_mode="trunc")
+                + 1
+            )
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None
@@ -180,39 +186,18 @@ class Stft(torch.nn.Module, InversibleInterface):
             wavs: (batch, samples)
             ilens: (batch,)
         """
-        if V(torch.__version__) >= V("1.6.0"):
-            istft = torch.functional.istft
-        else:
-            try:
-                import torchaudio
-            except ImportError:
-                raise ImportError(
-                    "Please install torchaudio>=0.3.0 or use torch>=1.6.0"
-                )
-
-            if not hasattr(torchaudio.functional, "istft"):
-                raise ImportError(
-                    "Please install torchaudio>=0.3.0 or use torch>=1.6.0"
-                )
-            istft = torchaudio.functional.istft
+        input = to_complex(input)
 
         if self.window is not None:
             window_func = getattr(torch, f"{self.window}_window")
-            if is_complex(input):
-                datatype = input.real.dtype
-            else:
-                datatype = input.dtype
+            datatype = input.real.dtype
             window = window_func(self.win_length, dtype=datatype, device=input.device)
         else:
             window = None
 
-        if is_complex(input):
-            input = torch.stack([input.real, input.imag], dim=-1)
-        elif input.shape[-1] != 2:
-            raise TypeError("Invalid input type")
         input = input.transpose(1, 2)
 
-        wavs = istft(
+        wavs = torch.functional.istft(
             input,
             n_fft=self.n_fft,
             hop_length=self.hop_length,
@@ -222,6 +207,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             normalized=self.normalized,
             onesided=self.onesided,
             length=ilens.max() if ilens is not None else ilens,
+            return_complex=False,
         )
 
         return wavs, ilens

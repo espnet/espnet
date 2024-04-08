@@ -27,8 +27,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         mkdir -p data/${dataset}
         awk  -v lrs2=${LRS2} -F '[/ ]' '{print $1"_"$2, lrs2"/main/"$1"/"$2".mp4"}' ${LRS2}/${dataset}.txt | sort > data/${dataset}/video.scp
         awk '{print $1, "ffmpeg -i " $2 " -ar 16000 -ac 1  -f wav pipe:1 |" }' data/${dataset}/video.scp > data/${dataset}/wav.scp
-        awk '{print $2}' data/${dataset}/video.scp | sed -e 's/.mp4/.txt/g' | while read -r line 
-        do 
+        awk '{print $2}' data/${dataset}/video.scp | sed -e 's/.mp4/.txt/g' | while read -r line
+        do
             grep 'Text:' $line | sed -e 's/Text:  //g'
         done > data/${dataset}/text_tmp
         paste  <(awk '{print $1}' data/${dataset}/wav.scp)  data/${dataset}/text_tmp >  data/${dataset}/text
@@ -41,8 +41,8 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # Download the pretrained model to extract visual features.
-    # The model was trained by Chenda Li (lichenda1996@sjtu.edu.cn), 
-    # following the paper by Stafylakis, T., & Tzimiropoulos, G. (2017). 
+    # The model was trained by Chenda Li (lichenda1996@sjtu.edu.cn),
+    # following the paper by Stafylakis, T., & Tzimiropoulos, G. (2017).
     # "Combining residual networks with LSTMs for lipreading".
     if [ ! -f ./local/feature_extract/lipread_lrw_pretrain.pt.tgz ]; then
         wget https://zenodo.org/record/5090353/files/lipread_lrw_pretrain.pt.tgz -O ./local/feature_extract/lipread_lrw_pretrain.pt.tgz
@@ -52,7 +52,7 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    
+
   if python -c "import skvideo, skimage, face_alignment" &> /dev/null; then
     echo 'requirements installed'
   else
@@ -62,7 +62,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     for dataset in train val test; do
         echo "extracting visual feature for [${dataset}]"
-        
+
         log_dir=data/${dataset}/split_${nj}
         split_scps=""
         mkdir -p ${log_dir}

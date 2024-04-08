@@ -9,7 +9,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       
+stage=0
 stop_stage=100
 ngpu=4         # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32
@@ -134,7 +134,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --user_defined_symbols='[unk]' --character_coverage=1.0 \
-              --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 
+              --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -283,7 +283,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --api v2
-            
+
         local/score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model \
             --wer true --space-norm true ${expdir}/${decode_dir} ${dict}
     ) &
@@ -293,4 +293,3 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

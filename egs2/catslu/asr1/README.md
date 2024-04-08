@@ -15,7 +15,7 @@
  | Dataset						| Intent Classification (%) |
  | ---------------------------------------------------- | ------------------------- |
  | inference_asr_model_valid.acc.ave_5best/valid	| 80.89	  	       	    |
- | inference_asr_model_valid.acc.ave_5best/test	       	| 78.82	  		    |		   
+ | inference_asr_model_valid.acc.ave_5best/test	       	| 78.82	  		    |
 
 - ASR Result: /inference_asr_model_valid.acc.ave_5best/valid/score_wer//result_asr.txt
 

@@ -2,7 +2,7 @@
 
 This is the recipe of Japanese female single speaker TTS model with [J-KAC dataset](https://sites.google.com/site/shinnosuketakamichi/research-topics/j-kac_corpus).
 
-Before running the recipe, please download from https://sites.google.com/site/shinnosuketakamichi/research-topics/j-kac_corpus.  
+Before running the recipe, please download from https://sites.google.com/site/shinnosuketakamichi/research-topics/j-kac_corpus.
 Then, edit 'JKAC' in `db.sh` and locate unzipped dataset as follows:
 
 ```bash

@@ -101,7 +101,6 @@ for subset in subsets.keys():
     with open(odir + "/text", "w", encoding="utf-8") as text, open(
         odir + "/wav.scp", "w"
     ) as wavscp, open(odir + "/utt2spk", "w") as utt2spk:
-
         for utt in subsets[subset]["all"]:
             [uttid, words, wav] = utt
             text.write("{} {}\n".format(uttid, words))

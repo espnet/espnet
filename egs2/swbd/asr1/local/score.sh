@@ -36,14 +36,14 @@ for dir in ${asr_expdir}/decode_*/${name}/score_wer; do
     stm=${data}/stm
     mkdir -p ${score_dir}
     if [ ${stage} -le 0 ]; then
-        
+
             # Assuming trn files exist
             #ref=${dir}/ref.wrd.trn
             hyp=${dir}/hyp.trn
             # The WER seems to be lower without converting stm
             #trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
             trn2ctm.py ${hyp} ${ctm}
-        
+
     fi
 
     if [ ${stage} -le 1 ]; then

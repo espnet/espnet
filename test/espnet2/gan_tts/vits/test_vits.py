@@ -9,6 +9,134 @@ import torch
 from espnet2.gan_tts.vits import VITS
 
 
+def get_test_data():
+    test_data = [
+        ({}, {}, {}),
+        ({}, {}, {"cache_generator_outputs": True}),
+        ({}, {}, {"plot_pred_mos": True}),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "scales": 2,
+                    "downsample_pooling": "AvgPool1d",
+                    "downsample_pooling_params": {
+                        "kernel_size": 4,
+                        "stride": 2,
+                        "padding": 2,
+                    },
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [15, 41, 5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "max_groups": 16,
+                        "bias": True,
+                        "downsample_scales": [2, 2, 1],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_multi_period_discriminator",
+                "discriminator_params": {
+                    "periods": [2, 3],
+                    "discriminator_params": {
+                        "in_channels": 1,
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "downsample_scales": [3, 3, 1],
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.1},
+                        "use_weight_norm": True,
+                        "use_spectral_norm": False,
+                    },
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_period_discriminator",
+                "discriminator_params": {
+                    "period": 2,
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "downsample_scales": [3, 3, 1],
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                "discriminator_type": "hifigan_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {},
+            {
+                "generator_adv_loss_params": {
+                    "average_by_discriminators": True,
+                    "loss_type": "mse",
+                },
+                "discriminator_adv_loss_params": {
+                    "average_by_discriminators": True,
+                    "loss_type": "mse",
+                },
+            },
+        ),
+        (
+            {},
+            {},
+            {
+                "generator_adv_loss_params": {
+                    "average_by_discriminators": False,
+                    "loss_type": "hinge",
+                },
+                "discriminator_adv_loss_params": {
+                    "average_by_discriminators": False,
+                    "loss_type": "hinge",
+                },
+            },
+        ),
+    ]
+    return test_data
+
+
 def make_vits_generator_args(**kwargs):
     defaults = dict(
         generator_type="vits_generator",
@@ -146,6 +274,7 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
@@ -153,129 +282,7 @@ def make_vits_loss_args(**kwargs):
 )
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
-    [
-        ({}, {}, {}),
-        ({}, {}, {"cache_generator_outputs": True}),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_scale_discriminator",
-                "discriminator_params": {
-                    "scales": 2,
-                    "downsample_pooling": "AvgPool1d",
-                    "downsample_pooling_params": {
-                        "kernel_size": 4,
-                        "stride": 2,
-                        "padding": 2,
-                    },
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [15, 41, 5, 3],
-                        "channels": 16,
-                        "max_downsample_channels": 32,
-                        "max_groups": 16,
-                        "bias": True,
-                        "downsample_scales": [2, 2, 1],
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_period_discriminator",
-                "discriminator_params": {
-                    "periods": [2, 3],
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [5, 3],
-                        "channels": 16,
-                        "downsample_scales": [3, 3, 1],
-                        "max_downsample_channels": 32,
-                        "bias": True,
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                        "use_weight_norm": True,
-                        "use_spectral_norm": False,
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-            },
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-            },
-        ),
-    ],
+    get_test_data(),
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     idim = 10
@@ -330,7 +337,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
-        # check inference with teachder forcing
+        # check inference with teacher forcing
         inputs = dict(
             text=torch.randint(
                 0,
@@ -343,6 +350,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="Group conv in pytorch 1.6 has an issue. "
@@ -350,129 +358,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
 )
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict,",
-    [
-        ({}, {}, {}),
-        ({}, {}, {"cache_generator_outputs": True}),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_scale_discriminator",
-                "discriminator_params": {
-                    "scales": 2,
-                    "downsample_pooling": "AvgPool1d",
-                    "downsample_pooling_params": {
-                        "kernel_size": 4,
-                        "stride": 2,
-                        "padding": 2,
-                    },
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [15, 41, 5, 3],
-                        "channels": 16,
-                        "max_downsample_channels": 32,
-                        "max_groups": 16,
-                        "bias": True,
-                        "downsample_scales": [2, 2, 1],
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_period_discriminator",
-                "discriminator_params": {
-                    "periods": [2, 3],
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [5, 3],
-                        "channels": 16,
-                        "downsample_scales": [3, 3, 1],
-                        "max_downsample_channels": 32,
-                        "bias": True,
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                        "use_weight_norm": True,
-                        "use_spectral_norm": False,
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-            },
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-            },
-        ),
-    ],
+    get_test_data(),
 )
 @pytest.mark.parametrize(
     "spks, spk_embed_dim, langs", [(10, -1, -1), (-1, 5, -1), (-1, -1, 3), (4, 5, 3)]
@@ -585,129 +471,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
 )
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
-    [
-        ({}, {}, {}),
-        ({}, {}, {"cache_generator_outputs": True}),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_scale_discriminator",
-                "discriminator_params": {
-                    "scales": 2,
-                    "downsample_pooling": "AvgPool1d",
-                    "downsample_pooling_params": {
-                        "kernel_size": 4,
-                        "stride": 2,
-                        "padding": 2,
-                    },
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [15, 41, 5, 3],
-                        "channels": 16,
-                        "max_downsample_channels": 32,
-                        "max_groups": 16,
-                        "bias": True,
-                        "downsample_scales": [2, 2, 1],
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_period_discriminator",
-                "discriminator_params": {
-                    "periods": [2, 3],
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [5, 3],
-                        "channels": 16,
-                        "downsample_scales": [3, 3, 1],
-                        "max_downsample_channels": 32,
-                        "bias": True,
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                        "use_weight_norm": True,
-                        "use_spectral_norm": False,
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-            },
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-            },
-        ),
-    ],
+    get_test_data(),
 )
 def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
     idim = 10
@@ -792,129 +556,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
 )
 @pytest.mark.parametrize(
     "gen_dict, dis_dict, loss_dict",
-    [
-        ({}, {}, {}),
-        ({}, {}, {"cache_generator_outputs": True}),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_scale_discriminator",
-                "discriminator_params": {
-                    "scales": 2,
-                    "downsample_pooling": "AvgPool1d",
-                    "downsample_pooling_params": {
-                        "kernel_size": 4,
-                        "stride": 2,
-                        "padding": 2,
-                    },
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [15, 41, 5, 3],
-                        "channels": 16,
-                        "max_downsample_channels": 32,
-                        "max_groups": 16,
-                        "bias": True,
-                        "downsample_scales": [2, 2, 1],
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_multi_period_discriminator",
-                "discriminator_params": {
-                    "periods": [2, 3],
-                    "discriminator_params": {
-                        "in_channels": 1,
-                        "out_channels": 1,
-                        "kernel_sizes": [5, 3],
-                        "channels": 16,
-                        "downsample_scales": [3, 3, 1],
-                        "max_downsample_channels": 32,
-                        "bias": True,
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.1},
-                        "use_weight_norm": True,
-                        "use_spectral_norm": False,
-                    },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": True,
-                    "loss_type": "mse",
-                },
-            },
-        ),
-        (
-            {},
-            {},
-            {
-                "generator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-                "discriminator_adv_loss_params": {
-                    "average_by_discriminators": False,
-                    "loss_type": "hinge",
-                },
-            },
-        ),
-    ],
+    get_test_data(),
 )
 @pytest.mark.parametrize(
     "spks, spk_embed_dim, langs", [(10, -1, -1), (-1, 5, -1), (-1, -1, 3), (4, 5, 3)]

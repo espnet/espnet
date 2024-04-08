@@ -43,7 +43,7 @@ for l in ${all_langs}; do
   cp ${cwd}/cmd.sh .
   cp ${cwd}/path.sh .
   sed -i 's/\.\.\/\.\.\/\.\./\.\.\/\.\.\/\.\.\/\.\.\/\.\./g' path.sh
-  
+
   cd ${cwd}
 done
 
@@ -76,4 +76,3 @@ done
 for l in ${recog}; do
   ln -s ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
 done
-

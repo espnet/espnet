@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1       		# start from stage 0, stage -1 (Data Download has to be done by the user) 
+stage=-1       		# start from stage 0, stage -1 (Data Download has to be done by the user)
 stop_stage=100		# stage at which to stop
 ngpu=1         		# number of gpus ("0" uses cpu, otherwise use gpu)
 nj=32
@@ -23,7 +23,7 @@ train_lm=false
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml 
+train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
@@ -43,11 +43,11 @@ lm_n_average=0               # the number of languge models to be averaged
 use_lm_valbest_average=false # if true, the validation `lm_n_average`-best language models will be averaged.
                              # if false, the last `lm_n_average` language models will be averaged.
 
-# The LRS2 Corpus requires vertification. You have to download the 
+# The LRS2 Corpus requires vertification. You have to download the
 # dataset and set your dataset dir here
 datadir=		     # The LRS2 dataset directory e.g. /home/foo/LRS2
 
-pretrain=true		     # if use LRS2 pretrain set 
+pretrain=true		     # if use LRS2 pretrain set
 segment=true  		     # if do segmentation for pretrain set
 
 # bpemode (unigram or bpe)
@@ -96,14 +96,14 @@ fi
 # Stage 0: Data preparation
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
-    for part in Test Val Train; do 
+    for part in Test Val Train; do
         local/data_preparation.sh $datadir $part $segment $nj || exit 1;
     done
     if [ "$pretrain" = true ] ; then
     	part=pretrain
     	local/data_preparation.sh $datadir $part $segment $nj || exit 1;
     fi
-    for part in pretrain Test Val Train; do 
+    for part in pretrain Test Val Train; do
     	mv data/${part} data/${part}_org || exit 1;
     done
     echo "stage 0: Data preparation finished"
@@ -176,11 +176,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
   	rm -rf model.v1
 	rm -rf model.v1.tar.gz
-	
+
 	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
     	textfilenames1=data/${train_set}/text
-   	textfilenames2=data/Test/text	
-    	textfilenames3=data/Val/text	
+   	textfilenames2=data/Test/text
+    	textfilenames3=data/Val/text
     	for textfilename in $textfilenames1 $textfilenames2 $textfilenames3
     	do
 	    sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' $textfilename > ${textfilename}1  || exit 1;

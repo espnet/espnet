@@ -49,7 +49,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         local/data_prep.sh "${MINI_LIBRISPEECH}"/LibriSpeech/dev-clean-2 data/dev_clean_2 || exit 1
         touch "${MINI_LIBRISPEECH}"/dev_clean_2.done
     fi
-    if [ ! -f "${MINI_LIBRISPEECH}"/train_clean_5.done ]; then    
+    if [ ! -f "${MINI_LIBRISPEECH}"/train_clean_5.done ]; then
         local/data_prep.sh "${MINI_LIBRISPEECH}"/LibriSpeech/train-clean-5 data/train_clean_5 || exit 1
         touch "${MINI_LIBRISPEECH}"/train_clean_5.done
     fi

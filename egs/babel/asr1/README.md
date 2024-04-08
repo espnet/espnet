@@ -9,7 +9,7 @@ from this directory ...
 This will copy all the necessary files for running an experiment to the created
 directory ../expname
 
-Possibly the most important of these files is 
+Possibly the most important of these files is
 
 `conf/lang.conf`
 
@@ -40,7 +40,7 @@ data there are a few datasets that are commonly used. The first is original
 training set. It is generally about 40h of data, but depending on the language
 it can be as high as 80h. It is called the Full-Language-Pack, FLP, or FullLP.
 The second dataset is a subset of the FLP. It is a 10h training set called the
-Limited-Language-Pack, LLP, or LimitedLP. The last set is a 10h testset 
+Limited-Language-Pack, LLP, or LimitedLP. The last set is a 10h testset
 generally called the dev10h.
 
 You can specify which training set to use with the --FLP [true/false] flag,
@@ -48,7 +48,7 @@ which set a variable $FLP with default value of true.
 
 ### /export/*
 The second type of path references the location of the data your local machine
-and will hencefor each language you use in training you will have to set these 
+and will hencefor each language you use in training you will have to set these
 to the correct paths for your setup (Depending on where your LDC distribution
 resides). The path to the lexicon file is required to determine the vocabulary,
 but the pronunciations are not used. Some lexicons for languages written in
@@ -58,7 +58,7 @@ the variable lexiconFlags_*.
 
 
 ## Running Experiments
-To run the experiment do 
+To run the experiment do
 
 `cd ../expname`
 
@@ -76,11 +76,10 @@ language ids.
 ## Training / Decoding with RNNLM
 
 The transcript can be used to train a grapheme level language model.
-It looks for the created train directory and trains a language model on the 
-data/train/text file, for instance present in the path specified by 
+It looks for the created train directory and trains a language model on the
+data/train/text file, for instance present in the path specified by
 
 data/${train_set} (see run.sh)
 
 If a byte-pair encoded version of this file is provided in this path than the
 RNNLM can be trained on byte-pairs (word-pieces).
-

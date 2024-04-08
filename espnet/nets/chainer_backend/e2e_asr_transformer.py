@@ -9,7 +9,6 @@ from distutils.util import strtobool
 import chainer
 import chainer.functions as F
 import numpy as np
-import six
 from chainer import reporter
 
 from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
@@ -183,14 +182,9 @@ class E2E(ChainerASRInterface):
                 if args.ctc_type == "builtin":
                     logging.info("Using chainer CTC implementation")
                     self.ctc = ctc.CTC(odim, args.adim, args.dropout_rate)
-                elif args.ctc_type == "warpctc":
-                    logging.info("Using warpctc CTC implementation")
-                    self.ctc = ctc.WarpCTC(odim, args.adim, args.dropout_rate)
                 else:
                     raise ValueError(
-                        'ctc_type must be "builtin" or "warpctc": {}'.format(
-                            args.ctc_type
-                        )
+                        'ctc_type must be "builtin": {}'.format(args.ctc_type)
                     )
             else:
                 self.ctc = None
@@ -431,7 +425,7 @@ class E2E(ChainerASRInterface):
         hyps = [hyp]
         ended_hyps = []
 
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
             hyps_best_kept = []
@@ -474,7 +468,7 @@ class E2E(ChainerASRInterface):
                     ]
                     local_best_scores = local_scores[:, local_best_ids]
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     new_hyp["score"] = hyp["score"] + float(local_best_scores[0, j])
                     new_hyp["yseq"] = [0] * (1 + len(hyp["yseq"]))

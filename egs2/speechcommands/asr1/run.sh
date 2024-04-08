@@ -50,4 +50,4 @@ speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
     --valid_set "${valid_set}"                          \
     --test_sets "${test_sets}"                          \
     --local_score_opts "--inference_tag ${inference_tag}" \
-    --lm_train_text "data/${train_set}/text" "$@"           
+    --lm_train_text "data/${train_set}/text" "$@"

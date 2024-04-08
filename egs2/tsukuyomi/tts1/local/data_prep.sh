@@ -39,7 +39,7 @@ utils/utt2spk_to_spk2utt.pl "${utt2spk}" > "${spk2utt}"
 echo "Successfully finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-find "${db_root}" -name "*.txt" | grep "補足なし台本" | while read -r filename; do
+find "${db_root}/" -name "*.txt" | grep "補足なし台本" | while read -r filename; do
     awk -F ":" -v spk=tsukuyomi '{print spk "_" $1 " " $2}' < "${filename}" | sort >> "${text}"
 done
 echo "Successfully finished making text."

@@ -20,7 +20,7 @@ dst_dir="data/tedx-jp-10k"
 
 mkdir -p ${dst_dir}
 
-# Copy necessary files to data directory                                                                                      
+# Copy necessary files to data directory
 echo "$0: Copying segments, spk2utt, text and utt2spk to $dst_dir."
 cp ${RAW_DATA_DIR}/{segments,spk2utt,text,utt2spk} ${dst_dir}
 

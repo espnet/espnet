@@ -8,7 +8,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
@@ -35,6 +35,7 @@ class Tacotron2(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -58,7 +59,7 @@ class Tacotron2(AbsTTS):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
-        output_activation: str = None,
+        output_activation: Optional[str] = None,
         use_batch_norm: bool = True,
         use_concate: bool = True,
         use_residual: bool = False,
@@ -144,7 +145,6 @@ class Tacotron2(AbsTTS):
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters
@@ -368,7 +368,12 @@ class Tacotron2(AbsTTS):
             # NOTE(kan-bayashi): length of output for auto-regressive
             # input will be changed when r > 1
             if self.reduction_factor > 1:
-                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+                olens_in = olens.new(
+                    [
+                        torch.div(olen, self.reduction_factor, rounding_mode="trunc")
+                        for olen in olens
+                    ]
+                )
             else:
                 olens_in = olens
             attn_loss = self.attn_loss(att_ws, ilens, olens_in)

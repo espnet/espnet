@@ -38,9 +38,9 @@ frontend_conf:
     hop_length: 160
 
 seed: 2022
-log_interval: 400   
-num_att_plot: 0     
-num_workers: 4      
+log_interval: 400
+num_att_plot: 0
+num_workers: 4
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
@@ -55,9 +55,9 @@ best_model_criterion:
     - max
 keep_nbest_models: 10
 
-use_amp: true      
-cudnn_deterministic: false  
-cudnn_benchmark: false      
+use_amp: true
+cudnn_deterministic: false
+cudnn_benchmark: false
 
 optim: adam
 optim_conf:

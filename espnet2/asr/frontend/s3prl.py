@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -14,12 +14,14 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 class S3prlFrontend(AbsFrontend):
     """Speech Pretrained Representation frontend structure for ASR."""
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
         multilayer_feature: bool = False,
+        layer: int = -1,
     ):
         try:
             import s3prl
@@ -29,7 +31,6 @@ class S3prlFrontend(AbsFrontend):
             print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
             raise e
 
-        assert check_argument_types()
         super().__init__()
 
         if isinstance(fs, str):
@@ -46,18 +47,25 @@ class S3prlFrontend(AbsFrontend):
         upstream = S3PRLUpstream(
             frontend_conf.get("upstream"),
             path_or_url=frontend_conf.get("path_or_url", None),
+            normalize=frontend_conf.get("normalize", False),
+            extra_conf=frontend_conf.get("extra_conf", None),
         )
+        if getattr(upstream.upstream, "model", None):
+            if getattr(upstream.upstream.model, "feature_grad_mult", None) is not None:
+                upstream.upstream.model.feature_grad_mult = 1.0
         upstream.eval()
-        if getattr(
-            upstream, "model", None
-        ) is not None and upstream.model.__class__.__name__ in [
-            "Wav2Vec2Model",
-            "HubertModel",
-        ]:
-            upstream.model.encoder.layerdrop = 0.0
-        featurizer = Featurizer(upstream)
+
+        if layer != -1:
+            layer_selections = [layer]
+            assert (
+                not multilayer_feature
+            ), "multilayer feature will be deactivated, when specific layer used"
+        else:
+            layer_selections = None
+        featurizer = Featurizer(upstream, layer_selections=layer_selections)
 
         self.multilayer_feature = multilayer_feature
+        self.layer = layer
         self.upstream, self.featurizer = upstream, featurizer
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.frontend_type = "s3prl"
@@ -89,6 +97,11 @@ class S3prlFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         feats, feats_lens = self.upstream(input, input_lengths)
+        if self.layer != -1:
+            layer = self.layer
+            feats, feats_lens = feats[layer], feats_lens[layer]
+            return feats, feats_lens
+
         if self.multilayer_feature:
             feats, feats_lens = self.featurizer(feats, feats_lens)
         else:

@@ -35,7 +35,7 @@ elif [ ${task} = "task2" ]; then
         "SEF1" "SEF2" "SEM1" "SEM2" "TFF1" "TFM1" "TGF1" "TGM1" "TMF1" "TMM1"
     )
     available_langs=(
-        "Eng" "Ger" "Fin" "Man" 
+        "Eng" "Ger" "Fin" "Man"
     )
 else
     echo "Task can only be either task1 or task2."
@@ -64,7 +64,7 @@ do
         echo "${id} ${filename}" >> "${scp}"
     done
 done
-    
+
 # make train/dev set
 for lang in "${available_langs[@]}"
 do

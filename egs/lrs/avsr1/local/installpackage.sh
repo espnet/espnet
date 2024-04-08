@@ -1,13 +1,13 @@
-#! /usr/bin/env bash 
+#! /usr/bin/env bash
 
-#! /usr/bin/env bash 
+#! /usr/bin/env bash
 
 # Copyright 2020 Ruhr-University (Wentao Yu)
 
 . ./cmd.sh
 . ./path.sh
 
-# hand over parameters 
+# hand over parameters
 OPENFACE_DIR=$1			# Path to OpenFace build directory
 VIDAUG_DIR=$2 			# Path to vidaug directory
 DEEPXI_DIR=$3			# DeepXi directory
@@ -23,7 +23,7 @@ else
     while true
     do
         read -r -p "Have you already installed OpenFace on your computer [Y/n] " input
-        case $input in 
+        case $input in
 	    [yY][eE][sS]|[yY])
 		echo "Please path OpenFace directory"
 		exit 1;
@@ -34,7 +34,7 @@ else
 		cd ../..
      		break
 		;;
-        esac      
+        esac
     done
 fi
 
@@ -44,7 +44,7 @@ else
     while true
     do
         read -r -p "Have you already installed Vidaug on your computer [Y/n] " input
-        case $input in 
+        case $input in
 	    [yY][eE][sS]|[yY])
 		echo "Please path Vidaug directory"
 		exit 1;
@@ -55,7 +55,7 @@ else
 		cd ../..
      		break
 		;;
-       	 esac      
+       	 esac
     done
 fi
 
@@ -65,7 +65,7 @@ else
     while true
     do
         read -r -p "Have you already installed DeepXi on your computer [Y/n] " input
-        case $input in 
+        case $input in
 	    [yY][eE][sS]|[yY])
 		echo "Please path DeepXi directory"
 		exit 1;
@@ -76,7 +76,7 @@ else
 		cd ../..
      		break
 		;;
-        esac      
+        esac
     done
 fi
 exit 0

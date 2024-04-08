@@ -1,7 +1,7 @@
 # This script is called in data preparation step by local/data.sh
 # It takes the data prepared using token type word as input
 # It then trains a bpe model with "nbpe" number of tokens on the train transcript i.e. text after first word (intent)
-# It then encodes the transcript for train, valid and test using the trained bpe model 
+# It then encodes the transcript for train, valid and test using the trained bpe model
 nbpe=1000 #try 100, 500, 1000
 bpemode=bpe #try unigram, bpe
 
@@ -23,9 +23,9 @@ spm_train --input=${new_data}/input.txt \
             --input_sentence_size=100000000 \
             --bos_id=-1 \
             --eos_id=-1 \
-            --unk_id=0 
+            --unk_id=0
 
-for split in train devel test; do 
+for split in train devel test; do
     cut -d' ' -f-2 data/${split}/text > ${new_data}/tmp_${split}_utt
     cut -d' ' -f3- data/${split}/text > ${new_data}/tmp_${split}_transcript
     spm_encode --model=${bpemodel}.model --output_format=piece < ${new_data}/tmp_${split}_transcript > ${new_data}/new_${split}_transcript

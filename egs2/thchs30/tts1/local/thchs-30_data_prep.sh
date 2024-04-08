@@ -3,7 +3,7 @@
 #           2016  LeSpeech (Author: Xingyu Na)
 #           2021  Carnegie Mellon University (Author: Jiatong Shi)
 
-#This script pepares the data directory for thchs30 recipe. 
+#This script pepares the data directory for thchs30 recipe.
 #It reads the corpus and get wav.scp and transcriptions.
 
 dir=$1
@@ -36,7 +36,7 @@ for x in train dev test; do
       echo $uttid $spkid >> "${subset_dir}"/utt2spk
       echo $uttid `sed -n 1p $corpus_dir/data/$nn.wav.trn` >> "${subset_dir}"/word.txt
       echo $uttid `sed -n 3p $corpus_dir/data/$nn.wav.trn` >> "${subset_dir}"/phone.txt
-  done 
+  done
 
   cp "${subset_dir}"/word.txt "${subset_dir}"/text
   for f in wav.scp utt2spk text phone.txt; do
@@ -52,4 +52,3 @@ for x in train dev test train_phn dev_phn test_phn; do
     utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
     utils/fix_data_dir.sh data/${x}
 done
-

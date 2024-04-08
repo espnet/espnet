@@ -27,7 +27,7 @@ Please make sure the parameters are carefully set:
 2. Specify `trans_type` depending on `lang`. If `lang` is `Man`, set to `phn`; if `Ger/Fin`, set to `char`.
 3. Specify `pretrained_model_dir`. If you wish to use the pretrained model we provide, leave `pretrained_model_dir` to the default value (`downloads`). If it does not exist, it will be automatically downloaded. If you wish to use your own trained model, set `pretrained_model_dir` to (`../tts1_en_[de/fi/zh]`).
 4. Specify `pretrained_model_name` depending on `lang`: `tts1_en_[de/fi/zh]`.
-5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
+5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`.
 6. Specify `stop_stage` to no larger than 6.
 
 With this main script, a full procedure of TTS finetuning is performed:
@@ -73,7 +73,7 @@ Please make sure the parameters are carefully set:
 2. Specify `trans_type` depending on the language of the TTS model.
 3. Specify `tts_model_dir` to the finetuned TTS experiment directory. If you wish to use your own trained model, set to `exp/<expdir>`. If you wish to use the finetuned model we provide, set to, for example, `downloads/tts1_en_[de/fi/zh]_[trgspk]/exp/<expdir>`.
 4. Specify `pretrained_model`. The dictionary for tokenization and stats for normalization are used. **Note that this is still necessary even if you choose to use the finetuned model we provide.**
-5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`. 
+5. Specify `voc`. If you wish to use the Griffin-Lim algorithm, set to `GL`; if wish to use the trained PWG, set to `PWG`.
 6. Specify `stage` to larger than 11.
 
 With this main script, conversion is performed as follows:

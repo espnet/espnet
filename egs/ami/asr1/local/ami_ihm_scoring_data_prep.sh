@@ -120,4 +120,3 @@ cp local/english.glm $odir/glm
 utils/validate_data_dir.sh --no-feats $odir || exit 1;
 
 echo AMI $SET set data preparation succeeded.
-

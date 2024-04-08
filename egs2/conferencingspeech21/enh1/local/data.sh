@@ -345,7 +345,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         python local/prepare_test_data.py \
             --audiodirs "${official_data_dir}"/Evaluation_set/eval_data/task2/${name} \
             --outdir "${tmpdir}"/test_${name} \
-            --uttid_prefix "task2_${name}" 
+            --uttid_prefix "task2_${name}"
     done
     for f in spk1.scp utt2spk wav.scp; do
         cat "${tmpdir}"/test_{real-recording,semi-real-playback,semi-real-realspk}/${f} | sort > data/test/${f}

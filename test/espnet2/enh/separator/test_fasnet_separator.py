@@ -57,7 +57,6 @@ def test_fasnet_separator_forward_backward_real(
 
 @pytest.mark.parametrize("fasnet_type", ["fasnet", "ifasnet"])
 def test_fasnet_separator_output(fasnet_type):
-
     x = torch.rand(2, 800, 4)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 

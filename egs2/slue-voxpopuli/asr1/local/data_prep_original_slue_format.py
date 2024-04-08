@@ -41,13 +41,16 @@ for x in dir_dict:
     with open(os.path.join("data", x, "text"), "w") as text_f, open(
         os.path.join("data", x, "wav.scp"), "w"
     ) as wav_scp_f, open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f:
-
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
+            if str(row[3]) == "nan":
+                row[3] = "None"
+            else:
+                row[3] = str(int(row[3]))
             uttid = row[3] + "_" + row[0]
             speaker = row[3]
             if x == "train":
@@ -60,7 +63,7 @@ for x in dir_dict:
             transcript = row[2].lower()
             entities = []
             if x != "test":  # blind test set
-                if str(row[6]) != "None":
+                if str(row[6]) != "None" and str(row[6]) != "nan":
                     for slot in row[6].split("], "):
                         ent_type = (
                             slot.split(",")[0]

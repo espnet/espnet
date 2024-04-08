@@ -4,4 +4,3 @@ beam-size: 5
 search-type: nsc
 nstep: 2
 prefix-alpha: 2
-

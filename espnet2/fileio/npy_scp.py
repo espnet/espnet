@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 
 
 class NpyScpWriter:
@@ -24,8 +24,8 @@ class NpyScpWriter:
 
     """
 
+    @typechecked
     def __init__(self, outdir: Union[Path, str], scpfile: Union[Path, str]):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
@@ -72,10 +72,10 @@ class NpyScpReader(collections.abc.Mapping):
 
     """
 
+    @typechecked
     def __init__(self, fname: Union[Path, str]):
-        assert check_argument_types()
         self.fname = Path(fname)
-        self.data = read_2column_text(fname)
+        self.data = read_2columns_text(fname)
 
     def get_path(self, key):
         return self.data[key]

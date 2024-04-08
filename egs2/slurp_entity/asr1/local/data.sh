@@ -14,6 +14,7 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
+token_type_bpe=true
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -33,7 +34,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${SLURP}/LICENSE.txt" ]; then
-	echo "stage 1: Download data to ${SLURP}"
+        echo "stage 1: Download data to ${SLURP}"
     else
         log "stage 1: ${SLURP}/LICENSE.txt is already existing. Skip data downloading"
     fi
@@ -56,7 +57,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     python local/prepare_entity_type.py
     for x in test devel train; do
         mv data/${x}/text data/${x}/text_old
-	mv data/${x}/text_new data/${x}/text
+        mv data/${x}/text_new data/${x}/text
+        if ! "${token_type_bpe}"; then
+            cp -a data_old/${x} data/${x}_char
+        fi
     done
 fi
 

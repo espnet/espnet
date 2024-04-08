@@ -1,0 +1,88 @@
+# network architecture
+# encoder related
+encoder: transformer
+encoder_conf:
+    output_size: 256    # dimension of attention
+    attention_heads: 4
+    linear_units: 2048  # the number of units of position-wise feed forward
+    num_blocks: 12      # the number of encoder blocks
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d # encoder architecture type
+    normalize_before: true
+
+deliberationencoder: transformer
+deliberationencoder_conf:
+    output_size: 256    # dimension of attention
+    attention_heads: 4
+    linear_units: 2048  # the number of units of position-wise feed forward
+    num_blocks: 4      # the number of encoder blocks
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: linear # encoder architecture type
+    normalize_before: true
+
+# decoder related
+
+postdecoder: hugging_face_transformers
+postdecoder_conf:
+    # pick up a model from https://huggingface.co/models?filter=transformers
+    # most of models should work, but maybe some don't
+    # known to work: bert, gpt2, xlnet, roberta, mpnet, t5, bart
+    # xlnet currently works for single gpu only
+    model_name_or_path: "bert-base-cased"
+    output_size: 256
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+optim: adam
+optim_conf:
+    lr: 0.0002
+scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler_conf:
+    warmup_steps: 25000
+max_epoch: 25
+keep_nbest_models: 5
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+freeze_param: [
+"encoder",
+"postdecoder.model",
+"frontend.upstream"
+]
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2

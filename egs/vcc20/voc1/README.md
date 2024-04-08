@@ -1,4 +1,4 @@
-# Usage 
+# Usage
 
 This recipe trains a neural waveform generation module (vocoder) called [Parallel WaveGAN](https://arxiv.org/abs/1910.11480) (PWG) based on the [open source project](https://github.com/kan-bayashi/ParallelWaveGAN) developed by [kan-bayashi](https://github.com/kan-bayashi). It provides high-fidelity, faster-than-real-time synthesis, which is suitable for fast experiment cycles.
 

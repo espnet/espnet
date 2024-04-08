@@ -1,0 +1,83 @@
+# Trained with A100 (40 GB) x 8 GPUs. It takes 40 minutes per epoch.
+encoder: e_branchformer
+encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 3072
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 17
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.1
+    linear_units: 1024
+    positionwise_layer_type: linear
+    macaron_ffn: true
+    use_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.2
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+frontend_conf:
+    n_fft: 512
+    hop_length: 160
+
+use_amp: true
+unused_parameters: true
+num_workers: 8
+batch_type: numel
+batch_bins: 140000000
+accum_grad: 1
+max_epoch: 80
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+nbest_averaging_interval: 10
+
+optim: adam
+optim_conf:
+    lr: 0.002
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 40000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10

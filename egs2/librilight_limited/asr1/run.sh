@@ -12,13 +12,13 @@ valid_set="dev_clean"
 test_sets="test_clean test_other dev_clean dev_other"
 
 asr_config=conf/tuning/train_asr_hubert_base_10h_finetuning.yaml
-inference_config=conf/decode_asr.yaml
+inference_config=conf/decode.yaml
 
 
 ./asr.sh \
     --lang en \
-    --ngpu 0 \
-    --nj 4 \
+    --ngpu 1 \
+    --nj 8 \
     --max_wav_duration 30 \
     --asr_config "${asr_config}" \
     --use_lm false \

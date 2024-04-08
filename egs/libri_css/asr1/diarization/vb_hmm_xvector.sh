@@ -72,7 +72,7 @@ fi
 
 if [ $stage -le 0 ]; then
   # Mean subtraction (If original x-vectors are high-dim, e.g. 512, you should
-  # consider also applying LDA to reduce dimensionality to, say, 200) 
+  # consider also applying LDA to reduce dimensionality to, say, 200)
   $cmd $xvec_dir/log/transform.log \
     ivector-subtract-global-mean scp:$xvec_dir/xvector.scp ark:$xvec_dir/xvector_norm.ark
 fi

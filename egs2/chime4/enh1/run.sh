@@ -24,7 +24,7 @@ test_sets="et05_simu_isolated_1ch_track"
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 2 \
-    --spk_num 1 \
+    --ref_num 1 \
     --ref_channel 3 \
     --local_data_opts "--extra-annotations ${extra_annotations} --stage 1 --stop-stage 2" \
     --enh_config conf/tuning/train_enh_conv_tasnet.yaml \

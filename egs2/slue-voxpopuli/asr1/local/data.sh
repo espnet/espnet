@@ -45,7 +45,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/{train,devel,test}
     python3 local/data_prep_original_slue_format.py ${VOXPOPULI}
     for x in test devel train; do
-        for f in text wav.scp utt2spk transcript; do
+        for f in text wav.scp utt2spk ; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"

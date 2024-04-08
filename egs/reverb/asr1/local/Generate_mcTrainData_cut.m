@@ -2,7 +2,7 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
 %
 % Input variables:
 %    WSJ_dir_name: string name of WAV file directory converted from original wsjcam0 SPHERE files
-%                  (*Directory structure for wsjcam0 corpus to be kept as it is after obtaining it from LDC. 
+%                  (*Directory structure for wsjcam0 corpus to be kept as it is after obtaining it from LDC.
 %                    Otherwise this script does not work.)
 %
 % This function generates multi-condition traiing data
@@ -10,14 +10,14 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
 %  1. wsjcam0 corpus (WAV files)
 %  2. room impulse responses (ones under ./RIR/)
 %  3. noise (ones under ./NOISE/).
-% Generated data has the same directory structure as original wsjcam0 corpus. 
+% Generated data has the same directory structure as original wsjcam0 corpus.
 %
 
 if nargin<2
-   error('Usage: Generate_mcTrainData(WSJCAM0_data_path, save_dir)  *Note that the input variable WSJCAM0_data_path should indicate the directory name of your clean WSJCAM0 corpus. '); 
+   error('Usage: Generate_mcTrainData(WSJCAM0_data_path, save_dir)  *Note that the input variable WSJCAM0_data_path should indicate the directory name of your clean WSJCAM0 corpus. ');
 end
 if exist([WSJ_dir_name,'/data/'])==0
-   error(['Could not find wsjcam0 corpus : Please confirm if ',WSJ_dir_name,' is a correct path to your clean WSJCAM0 corpus']); 
+   error(['Could not find wsjcam0 corpus : Please confirm if ',WSJ_dir_name,' is a correct path to your clean WSJCAM0 corpus']);
 end
 
 if ~exist('save_dir', 'var')
@@ -37,34 +37,34 @@ flist1='etc/audio_si_tr.lst';
 % List of RIRs
 %
 num_RIRvar=24;
-RIR_sim1='./RIR/RIR_SmallRoom1_near_AnglA.wav'; 
-RIR_sim2='./RIR/RIR_SmallRoom1_near_AnglB.wav'; 
-RIR_sim3='./RIR/RIR_SmallRoom1_far_AnglA.wav';  
-RIR_sim4='./RIR/RIR_SmallRoom1_far_AnglB.wav';  
+RIR_sim1='./RIR/RIR_SmallRoom1_near_AnglA.wav';
+RIR_sim2='./RIR/RIR_SmallRoom1_near_AnglB.wav';
+RIR_sim3='./RIR/RIR_SmallRoom1_far_AnglA.wav';
+RIR_sim4='./RIR/RIR_SmallRoom1_far_AnglB.wav';
 RIR_sim5='./RIR/RIR_MediumRoom1_near_AnglA.wav';
 RIR_sim6='./RIR/RIR_MediumRoom1_near_AnglB.wav';
-RIR_sim7='./RIR/RIR_MediumRoom1_far_AnglA.wav'; 
-RIR_sim8='./RIR/RIR_MediumRoom1_far_AnglB.wav'; 
-RIR_sim9='./RIR/RIR_LargeRoom1_near_AnglA.wav'; 
+RIR_sim7='./RIR/RIR_MediumRoom1_far_AnglA.wav';
+RIR_sim8='./RIR/RIR_MediumRoom1_far_AnglB.wav';
+RIR_sim9='./RIR/RIR_LargeRoom1_near_AnglA.wav';
 RIR_sim10='./RIR/RIR_LargeRoom1_near_AnglB.wav';
-RIR_sim11='./RIR/RIR_LargeRoom1_far_AnglA.wav'; 
-RIR_sim12='./RIR/RIR_LargeRoom1_far_AnglB.wav'; 
+RIR_sim11='./RIR/RIR_LargeRoom1_far_AnglA.wav';
+RIR_sim12='./RIR/RIR_LargeRoom1_far_AnglB.wav';
 RIR_sim13='./RIR/RIR_SmallRoom2_near_AnglA.wav';
 RIR_sim14='./RIR/RIR_SmallRoom2_near_AnglB.wav';
-RIR_sim15='./RIR/RIR_SmallRoom2_far_AnglA.wav'; 
-RIR_sim16='./RIR/RIR_SmallRoom2_far_AnglB.wav'; 
+RIR_sim15='./RIR/RIR_SmallRoom2_far_AnglA.wav';
+RIR_sim16='./RIR/RIR_SmallRoom2_far_AnglB.wav';
 RIR_sim17='./RIR/RIR_MediumRoom2_near_AnglA.wav';
 RIR_sim18='./RIR/RIR_MediumRoom2_near_AnglB.wav';
-RIR_sim19='./RIR/RIR_MediumRoom2_far_AnglA.wav'; 
-RIR_sim20='./RIR/RIR_MediumRoom2_far_AnglB.wav'; 
-RIR_sim21='./RIR/RIR_LargeRoom2_near_AnglA.wav'; 
-RIR_sim22='./RIR/RIR_LargeRoom2_near_AnglB.wav'; 
-RIR_sim23='./RIR/RIR_LargeRoom2_far_AnglA.wav';  
-RIR_sim24='./RIR/RIR_LargeRoom2_far_AnglB.wav';  
+RIR_sim19='./RIR/RIR_MediumRoom2_far_AnglA.wav';
+RIR_sim20='./RIR/RIR_MediumRoom2_far_AnglB.wav';
+RIR_sim21='./RIR/RIR_LargeRoom2_near_AnglA.wav';
+RIR_sim22='./RIR/RIR_LargeRoom2_near_AnglB.wav';
+RIR_sim23='./RIR/RIR_LargeRoom2_far_AnglA.wav';
+RIR_sim24='./RIR/RIR_LargeRoom2_far_AnglB.wav';
 
 %
 % List of noise
-% 
+%
 num_NOISEvar=6;
 noise_sim1='./NOISE/Noise_SmallRoom1';
 noise_sim2='./NOISE/Noise_MediumRoom1';
@@ -97,35 +97,35 @@ for nlist=1:1
     eval(['fid=fopen(flist',num2str(nlist),',''r'');']);
 
     while 1
-        
+
         % Set data file name
         fname=fgetl(fid);
         if ~ischar(fname);
             break;
         end
-        
-        idx1=find(fname=='/');  
-        
+
+        idx1=find(fname=='/');
+
         % Make directory if there isn't any
         if ~strcmp(prev_fname,fname(1:idx1(end)))
             mkdir([save_dir_tr fname(1:idx1(end))])
         end
         prev_fname=fname(1:idx1(end));
-       
+
         % load speech signal
         x=audioread([WSJ_dir_name, '/data/', fname, '.wav'])';
-        
+
         % load RIR and noise for "THIS" utterance
         eval(['RIR=audioread(RIR_sim',num2str(rcount),');']);
         eval(['NOISE=audioread([noise_sim',num2str(ceil(rcount/4)),',''_',num2str(ncount),'.wav'']);']);
 
-        % Generate 8ch noisy reverberant data        
+        % Generate 8ch noisy reverberant data
         y=gen_obs(x,RIR,NOISE,SNRdB);
 
         % cut to length of original signal
         y = y(1:size(x,2),:);
-        
-        % rotine to cyclicly switch RIRs and noise, utterance by utterance 
+
+        % rotine to cyclicly switch RIRs and noise, utterance by utterance
         rcount=rcount+1;
         if rcount>num_RIRvar;rcount=1;ncount=ncount+1;end
         if ncount>10;ncount=1;end
@@ -140,7 +140,7 @@ for nlist=1:1
             %eval(['audiowrite(y(:,',num2str(ch),'),16000,''',save_dir_tr fname,'_ch',num2str(ch),'.wav'');']);
             eval(['audiowrite(outfilename, y(:,',num2str(ch),'), 16000);']);
         end
-           
+
         display(['sentence ',num2str(fcount),' (out of 7861) finished! (Multi-condition training data)'])
         fcount=fcount+1;
 
@@ -181,12 +181,12 @@ y = y(delay:end,:);
 %%%%
 function [y]=fconv(x, h)
 %FCONV Fast Convolution
-%   [y] = FCONV(x, h) convolves x and h, and normalizes the output  
+%   [y] = FCONV(x, h) convolves x and h, and normalizes the output
 %         to +-1.
 %
 %      x = input vector
 %      h = input vector
-% 
+%
 %      See also CONV
 %
 %   NOTES:
@@ -213,10 +213,10 @@ function [y]=fconv(x, h)
 %ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %POSSIBILITY OF SUCH DAMAGE.
 
-Ly=length(x)+length(h)-1;  % 
+Ly=length(x)+length(h)-1;  %
 Ly2=pow2(nextpow2(Ly));    % Find smallest power of 2 that is > Ly
 X=fft(x, Ly2);		   % Fast Fourier transform
 H=fft(h, Ly2);	           % Fast Fourier transform
-Y=X.*H;        	           % 
+Y=X.*H;        	           %
 y=real(ifft(Y, Ly2));      % Inverse fast Fourier transform
 y=y(1:1:Ly);               % Take just the first N elements

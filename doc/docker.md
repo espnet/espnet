@@ -53,7 +53,7 @@ $ cd docker
 $ ./run.sh --docker-gpu -1 --docker-egs an4/asr1 --ngpu 0
 ```
 
-The script will build a docker if your are using a `user` different from `root` user. To use containers with `root` access 
+The script will build a docker if your are using a `user` different from `root` user. To use containers with `root` access
 add the flag `--is-root` to the command line.
 
 

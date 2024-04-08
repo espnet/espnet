@@ -23,4 +23,3 @@ teardown() {
     python $utils/mcd_calculate.py --wavdir test_utils/ --gtwavdir test_utils/ --f0min 40 --f0max 700  > $tmpdir/out
     diff $tmpdir/out $tmpdir/valid
 }
-

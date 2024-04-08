@@ -45,54 +45,54 @@ src=${LIBRILIGHT_LIMITED}/librispeech_finetuning
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Data Download to ${LIBRILIGHT_LIMITED}"
     if [ ! -d ${src}/1h ] && [ ! -d ${src}/9h ]; then
-	mkdir -p "${LIBRILIGHT_LIMITED}"
-	wget "${ll_data_url}" -P "${LIBRILIGHT_LIMITED}"
-	tar vxfz "${LIBRILIGHT_LIMITED}/librispeech_finetuning.tgz" -C "${LIBRILIGHT_LIMITED}"
+        mkdir -p "${LIBRILIGHT_LIMITED}"
+        wget "${ll_data_url}" -P "${LIBRILIGHT_LIMITED}"
+        tar vxfz "${LIBRILIGHT_LIMITED}/librispeech_finetuning.tgz" -C "${LIBRILIGHT_LIMITED}"
     else
-	log "${LIBRILIGHT_LIMITED}/librispeech_finetuning is already existing. Skip data downloading"
+        log "${LIBRILIGHT_LIMITED}/librispeech_finetuning is already existing. Skip data downloading"
     fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     for part in 1h/{0..5}/{clean,other} 9h/{clean,other}; do
-	dataname=$(echo ${part} | sed 's/\//_/g')
-	
-	data_part=$(./utils/make_absolute.sh ${src}/${part})
-	data_new_path="data/train_${dataname}"
-	mkdir -p "${data_new_path}"
-	files=( "$(find -L ${data_part}/ -name '*.flac')" )
+        dataname=$(echo ${part} | sed 's/\//_/g')
 
-	for f in "${files[@]}"; do
-	    filename=$(basename "$f")
-	    filename=${filename%%.flac}
-	    echo "${filename} flac -c -d -s ${f} |" 
-	done | sort | uniq > ${data_new_path}/wav.scp
-	
-	paste -d' ' <(awk '{print $1}' ${data_new_path}/wav.scp) \
-              <(awk '{print $1}' "${data_new_path}/wav.scp" | cut -d'-' -f1) \
-              > "${data_new_path}/utt2spk"
-	./utils/utt2spk_to_spk2utt.pl "${data_new_path}/utt2spk" > "${data_new_path}/spk2utt"
-	text_files=( "$(find -L ${data_part}/ -name '*.trans.txt')" )
-	echo "${text_files[@]}"
-	for f in "${text_files[@]}"; do
-	    cat ${f}
-	done | sort | uniq > "${data_new_path}/text"
+        data_part=$(./utils/make_absolute.sh ${src}/${part})
+        data_new_path="data/train_${dataname}"
+        mkdir -p "${data_new_path}"
+        files=( "$(find -L ${data_part}/ -name '*.flac')" )
+        # shellcheck disable=SC2068
+        for wave_f in ${files[@]}; do
+            filename=$(basename ${wave_f})
+            filename=${filename%%.flac}
+            echo "${filename} flac -c -d -s ${wave_f} |"
+        done | sort | uniq > ${data_new_path}/wav.scp
+
+        paste -d' ' <(awk '{print $1}' ${data_new_path}/wav.scp) \
+            <(awk '{print $1}' "${data_new_path}/wav.scp" | cut -d'-' -f1) \
+            > "${data_new_path}/utt2spk"
+        ./utils/utt2spk_to_spk2utt.pl "${data_new_path}/utt2spk" > "${data_new_path}/spk2utt"
+        text_files=( "$(find -L ${data_part}/ -name '*.trans.txt')" )
+        # shellcheck disable=SC2068
+        for text_f in ${text_files[@]}; do
+            cat ${text_f}
+        done | sort | uniq > "${data_new_path}/text"
     done
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: combine 10hr training sets"
     ./utils/combine_data.sh \
-	data/${train_set} data/train_1h_{0..5}_{clean,other} data/train_9h_{clean,other}
+        data/${train_set} data/train_1h_{0..5}_{clean,other} data/train_9h_{clean,other}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
-	echo "stage 4: Evaluation Data Download to ${LIBRISPEECH}"
-	for part in dev-clean test-clean dev-other test-other; do
+        echo "stage 4: Evaluation Data Download to ${LIBRISPEECH}"
+        for part in dev-clean test-clean dev-other test-other; do
             local/download_and_untar_eval.sh "${LIBRISPEECH}" "${ls_data_url}" "${part}"
-	done
+        done
     else
         log "stage 4: ${LIBRISPEECH}/LibriSpeech/LICENSE.TXT is already existing. Skip data downloading"
     fi

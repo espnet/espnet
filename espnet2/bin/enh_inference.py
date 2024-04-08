@@ -11,8 +11,9 @@ import numpy as np
 import torch
 import yaml
 from tqdm import trange
-from typeguard import check_argument_types
+from typeguard import typechecked
 
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -94,11 +95,12 @@ class SeparateSpeech:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
-        inference_config: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
+        inference_config: Union[Path, str, None] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -109,7 +111,6 @@ class SeparateSpeech:
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        assert check_argument_types()
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -172,6 +173,8 @@ class SeparateSpeech:
                 "Overwrite enh_model.separator.ref_channel with {}".format(ref_channel)
             )
             enh_model.separator.ref_channel = ref_channel
+            if hasattr(enh_model.separator, "beamformer"):
+                enh_model.separator.beamformer.ref_channel = ref_channel
             self.ref_channel = ref_channel
         else:
             self.ref_channel = enh_model.ref_channel
@@ -188,9 +191,10 @@ class SeparateSpeech:
             logging.info("Perform direct speech %s on the input" % task)
 
     @torch.no_grad()
+    @typechecked
     def __call__(
-        self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> List[torch.Tensor]:
+        self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000, **kwargs
+    ) -> List[Union[torch.Tensor, np.array]]:
         """Inference
 
         Args:
@@ -200,7 +204,6 @@ class SeparateSpeech:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -217,6 +220,37 @@ class SeparateSpeech:
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
         lengths = to_device(lengths, device=self.device)
+
+        ###################################
+        # Normalize the signal variance
+        if getattr(self.enh_model, "normalize_variance_per_ch", False):
+            dim = 1
+            mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
+            speech_mix = speech_mix / mix_std_  # RMS normalization
+        elif getattr(self.enh_model, "normalize_variance", False):
+            if speech_mix.ndim > 2:
+                dim = (1, 2)
+            else:
+                dim = 1
+            mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
+            speech_mix = speech_mix / mix_std_  # RMS normalization
+
+        category = kwargs.get("utt2category", None)
+        if (
+            self.enh_model.categories
+            and category is not None
+            and category[0].item() not in self.enh_model.categories
+        ):
+            raise ValueError(f"Category '{category}' is not listed in self.categories")
+
+        additional = {}
+        if category is not None:
+            cat = self.enh_model.categories[category[0].item()]
+            print(f"category: {cat}", flush=True)
+            if cat.endswith("_reverb"):
+                additional["mode"] = "dereverb"
+            else:
+                additional["mode"] = "no_dereverb"
 
         if self.segmenting and lengths[0] > self.segment_size * fs:
             # Segment-wise speech enhancement/separation
@@ -246,7 +280,10 @@ class SeparateSpeech:
                 )
                 # b. Enhancement/Separation Forward
                 feats, f_lens = self.enh_model.encoder(speech_seg, lengths_seg)
-                feats, _, _ = self.enh_model.separator(feats, f_lens)
+                if isinstance(self.enh_model, ESPnetDiffusionModel):
+                    feats = [self.enh_model.enhance(feats)]
+                else:
+                    feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
                 processed_wav = [
                     self.enh_model.decoder(f, lengths_seg)[0] for f in feats
                 ]
@@ -303,8 +340,22 @@ class SeparateSpeech:
         else:
             # b. Enhancement/Separation Forward
             feats, f_lens = self.enh_model.encoder(speech_mix, lengths)
-            feats, _, _ = self.enh_model.separator(feats, f_lens)
+            if isinstance(self.enh_model, ESPnetDiffusionModel):
+                feats = [self.enh_model.enhance(feats)]
+            else:
+                feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
             waves = [self.enh_model.decoder(f, lengths)[0] for f in feats]
+
+        ###################################
+        # De-normalize the signal variance
+        if getattr(self.enh_model, "normalize_variance_per_ch", False):
+            if mix_std_.ndim > 2:
+                mix_std_ = mix_std_[:, :, self.ref_channel]
+            waves = [w * mix_std_ for w in waves]
+        elif getattr(self.enh_model, "normalize_variance", False):
+            if mix_std_.ndim > 2:
+                mix_std_ = mix_std_.squeeze(2)
+            waves = [w * mix_std_ for w in waves]
 
         assert len(waves) == self.num_spk, len(waves) == self.num_spk
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
@@ -375,6 +426,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -399,7 +451,6 @@ def inference(
     normalize_output_wav: bool,
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -456,14 +507,16 @@ def inference(
     )
 
     # 4. Start for-loop
-    output_dir = Path(output_dir).expanduser().resolve()
+    output_dir: Path = Path(output_dir).expanduser().resolve()
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(
             SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
         )
 
-    for i, (keys, batch) in enumerate(loader):
+    import tqdm
+
+    for i, (keys, batch) in tqdm.tqdm(enumerate(loader)):
         logging.info(f"[{i}] Enhancing {keys}")
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
@@ -471,8 +524,8 @@ def inference(
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
-        waves = separate_speech(**batch)
-        for (spk, w) in enumerate(waves):
+        waves = separate_speech(**batch, fs=fs)
+        for spk, w in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
 
@@ -592,7 +645,7 @@ def get_parser():
     group.add_argument(
         "--normalize_segment_scale",
         type=str2bool,
-        default=False,
+        default=True,
         help="Whether to normalize the energy of the separated streams in each segment",
     )
     group.add_argument(

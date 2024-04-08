@@ -3,7 +3,7 @@
 # Copyright 2012  Johns Hopkins University (Author: Daniel Povey).  Apache 2.0.
 #           2013  University of Edinburgh (Author: Pawel Swietojanski)
 
-# This takes as standard input path to directory containing all the usual 
+# This takes as standard input path to directory containing all the usual
 # data files - segments, text, utt2spk and reco2file_and_channel and creates stm
 
 if (@ARGV < 1 || @ARGV > 2) {
@@ -43,8 +43,8 @@ close(R);
 open(T, "<$text") || die "open text file $text";
 while(<T>) {
   @A = split(" ", $_);
-  $utt = shift @A;  
-  $utt2text{$utt} = "@A"; 
+  $utt = shift @A;
+  $utt2text{$utt} = "@A";
 }
 close(T);
 
@@ -66,13 +66,13 @@ foreach $utt (sort keys(%utt2reco)) {
   if (!defined $recording_id) { die "Utterance-id $utt not defined in segments file $segments"; }
   $file = $reco2file{$recording_id};
   $channel = $reco2channel{$recording_id};
-  if (!defined $file || !defined $channel) { 
-    die "convert2stm: Recording-id $recording_id not defined in reco2file_and_channel file $reco2file_and_channel"; 
+  if (!defined $file || !defined $channel) {
+    die "convert2stm: Recording-id $recording_id not defined in reco2file_and_channel file $reco2file_and_channel";
   }
- 
+
   $speaker = $utt2spk{$utt};
-  $transcripts = $utt2text{$utt};  
-  
+  $transcripts = $utt2text{$utt};
+
   if (!defined $speaker) { die "convert2stm: Speaker-id for utterance $utt not defined in utt2spk file $utt2spk_file"; }
   if (!defined $transcripts) { die "convert2stm: Transcript for $utt not defined in text file $text"; }
 
@@ -95,7 +95,3 @@ echo utt spk > tmpdir/utt2spk
 echo file A spk 10.0 20.00 word > stm_tst
 utils/convert2stm.pl tmpdir | cmp - stm_tst || echo error
 rm -r tmpdir stm_tst
-
-
-
-

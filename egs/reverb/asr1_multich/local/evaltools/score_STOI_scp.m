@@ -1,7 +1,7 @@
 %% score_SimData.m
 %%
 %% Evaluate speech enhancement results for SimData. This is
-%% designed for use in the REVERB challenge. 
+%% designed for use in the REVERB challenge.
 %%
 %% Written and distributed by the REVERB challenge organizers on 1 July, 2013
 %% Inquiries to the challenge organizers (REVERB-challenge@lab.ntt.co.jp)
@@ -36,10 +36,10 @@ else
 end
 
 for i1 = 1 : length(dists)
-  for i2 = 1 : length(rooms)    
+  for i2 = 1 : length(rooms)
     dist = dists{i1};
     room = rooms{i2};
-    
+
     name = ['et_', dist, '_', room, '_senh'];
 
     tmp = strsplit(name,'_');

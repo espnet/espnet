@@ -1,1 +1,1 @@
-tuning/train_asr_wav2vec_960h_transformer.yaml
+tuning/train_asr_conformer_scctc.yaml

@@ -95,7 +95,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     utils/subset_data_dir.sh data/${lang} 500 data/dev-test-${lang}
     utils/subset_data_dir.sh data/dev-test-${lang} 250 data/dev_${lang}
     utils/copy_data_dir.sh data/dev-test-${lang} data/test_${lang}
-    utils/filter_scp.pl --exclude data/dev_${lang}/wav.scp 
+    utils/filter_scp.pl --exclude data/dev_${lang}/wav.scp
         data/dev-test-${lang}/wav.scp > data/test_${lang}/wav.scp
     utils/fix_data_dir.sh data/test_${lang}
 
@@ -106,4 +106,3 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-

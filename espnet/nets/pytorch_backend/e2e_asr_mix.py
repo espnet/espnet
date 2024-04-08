@@ -15,7 +15,6 @@ import sys
 from itertools import groupby
 
 import numpy as np
-import six
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
@@ -269,7 +268,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.dec.embed.weight.data.normal_(0, 1)
         # forget-bias = 1.0
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
-        for i in six.moves.range(len(self.dec.decoder)):
+        for i in range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[i].bias_ih)
 
     def forward(self, xs_pad, ilens, ys_pad):

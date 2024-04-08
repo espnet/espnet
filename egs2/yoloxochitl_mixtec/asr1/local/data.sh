@@ -46,7 +46,7 @@ annodir=${YOLOXOCHITL_MIXTEC}/Yoloxochitl-Mixtec-for-ASR/Transcriptions-for-ASR/
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Download data to ${YOLOXOCHITL_MIXTEC}"
     mkdir -p ${YOLOXOCHITL_MIXTEC}
     local/download_and_untar.sh ${YOLOXOCHITL_MIXTEC} http://www.openslr.org/resources/89/Yoloxochitl-Mixtec-Data.tgz Yoloxochitl-Mixtec-Data.tgz

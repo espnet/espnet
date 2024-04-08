@@ -35,7 +35,8 @@ def test_error_calculator_transducer(report_opts, decoder_class, decoder_opts):
     )
 
     enc_out = torch.randn(4, 30, encoder_size)
+    enc_out_lens = torch.tensor([30, 29, 28, 27])
     target = torch.randint(0, vocab_size, [4, 20], dtype=torch.int32)
 
     with torch.no_grad():
-        _, _ = error_calc(enc_out, target)
+        _, _ = error_calc(enc_out, target, enc_out_lens)

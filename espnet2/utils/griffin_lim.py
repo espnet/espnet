@@ -13,18 +13,19 @@ import librosa
 import numpy as np
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 EPS = 1e-10
 
 
+@typechecked
 def logmel2linear(
     lmspc: np.ndarray,
     fs: int,
     n_fft: int,
     n_mels: int,
-    fmin: int = None,
-    fmax: int = None,
+    fmin: Optional[int] = None,
+    fmax: Optional[int] = None,
 ) -> np.ndarray:
     """Convert log Mel filterbank to linear spectrogram.
 
@@ -51,11 +52,12 @@ def logmel2linear(
     return np.maximum(EPS, np.dot(inv_mel_basis, mspc.T).T)
 
 
+@typechecked
 def griffin_lim(
     spc: np.ndarray,
     n_fft: int,
     n_shift: int,
-    win_length: int = None,
+    win_length: Optional[int] = None,
     window: Optional[str] = "hann",
     n_iter: Optional[int] = 32,
 ) -> np.ndarray:
@@ -111,16 +113,17 @@ def griffin_lim(
 class Spectrogram2Waveform(object):
     """Spectrogram to waveform conversion module."""
 
+    @typechecked
     def __init__(
         self,
         n_fft: int,
         n_shift: int,
-        fs: int = None,
-        n_mels: int = None,
-        win_length: int = None,
+        fs: Optional[int] = None,
+        n_mels: Optional[int] = None,
+        win_length: Optional[int] = None,
         window: Optional[str] = "hann",
-        fmin: int = None,
-        fmax: int = None,
+        fmin: Optional[int] = None,
+        fmax: Optional[int] = None,
         griffin_lim_iters: Optional[int] = 8,
     ):
         """Initialize module.
@@ -137,7 +140,6 @@ class Spectrogram2Waveform(object):
             griffin_lim_iters: The number of iterations.
 
         """
-        assert check_argument_types()
         self.fs = fs
         self.logmel2linear = (
             partial(

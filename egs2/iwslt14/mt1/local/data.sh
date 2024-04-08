@@ -83,7 +83,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 sed -e 's/<seg id="[0-9]*">\s*//g' | \
                 sed -e 's/\s*<\/seg>\s*//g' | \
                 sed -e "s/\’/\'/g" > $f
-            tokenizer.perl -threads 8 -l $l < $f > $f.tok 
+            tokenizer.perl -threads 8 -l $l < $f > $f.tok
             lowercase.perl < $f.tok > $f.tok.lc
             remove_punctuation.pl < $f.tok > $f.tok.rm
             remove_punctuation.pl < $f.tok.lc > $f.tok.lc.rm

@@ -1,3 +1,22 @@
+# E-Branchformer
+
+- ASR config: [conf/tuning/train_asr_e_branchformer_e12_mlp3072_linear1024_layerdrop.yaml](conf/tuning/train_asr_e_branchformer_e12_mlp3072_linear1024_layerdrop.yaml)
+- Params: 110.21M
+- Model link: [https://huggingface.co/pyf98/slurp_entity_e_branchformer](https://huggingface.co/pyf98/slurp_entity_e_branchformer)
+
+### Intent Classification
+
+- Valid Intent Classification Result: 0.8781357882623706
+- Test Intent Classification Result: 0.8743691695977979
+
+### Entity
+
+|Slu f1|Precision|Recall|F-Measure|
+|:---:|:---:|:---:|:---:|
+| test | 0.7940 | 0.7582 | 0.7757 |
+
+
+
 # Branchformer: init
 
 - ASR config: [conf/tuning/train_asr_branchformer_e18_d6_size512_lr1e-3_warmup35k.yaml](conf/tuning/train_asr_branchformer_e18_d6_size512_lr1e-3_warmup35k.yaml)
@@ -47,6 +66,28 @@
 |test|0.7956|0.7443|0.7691|
 
 
+
+# Using XLS-R pretrained speech Encoder and mBART-50 Large pretrained text Encoder-Decoder
+
+- Recipe shell script: [local/run_hf.sh](local/run_hf.sh)
+- Model link: [https://zenodo.org/record/7377716#.Y4YlX9LMJp8](https://zenodo.org/record/7377716#.Y4YlX9LMJp8)
+
+## Environments
+- date: `Wed Sep  7 01:16:08 CEST 2022`
+- python version: `3.9.13 (main, Jun  9 2022, 00:00:00)  [GCC 11.3.1 20220421 (Red Hat 11.3.1-2)]`
+- espnet version: `espnet 202207`
+- pytorch version: `pytorch 1.12.1+cu116`
+- Git hash: `c9cb7c424c90e9d3a59ace324308793b91fedbe1`
+- Commit date: `Tue Aug 23 16:22:24 2022 +0200`
+
+## Intent Classification
+- Valid Intent Classification Result: 0.8933256616800921
+- Test Intent Classification Result: 0.8811744915124636
+
+## Entity
+|Slu f1|Precision|Recall|F-Measure|
+|:---:|:---:|:---:|:---:|
+|test|0.7949|0.7788|0.7868|
 
 # Initial Result
 

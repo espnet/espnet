@@ -80,18 +80,18 @@ for x in train dev test; do
     # both and grepping for the speakers will work correctly.
     find $1/{$train_dir,$test_dir} -not \( -iname 'SA*' \) -iname '*.WAV' \
     | grep -f $tmpdir/${x}_spk > ${x}_sph.flist
-    
+
     sed -e 's:.*/\(.*\)/\(.*\).WAV$:\1_\2:i' ${x}_sph.flist \
     > $tmpdir/${x}_sph.uttids
     paste $tmpdir/${x}_sph.uttids ${x}_sph.flist \
     | sort -k1,1 > ${x}_sph.scp
-    
+
     cat ${x}_sph.scp | awk '{print $1}' > ${x}.uttids
-    
+
     # Now, Convert the transcripts into our format (no normalization yet)
     # Get the transcripts: each line of the output contains an utterance
     # ID followed by the transcript.
-    
+
     if [ $trans_type = "phn" ]
     then
         echo "phone transcript!"
@@ -105,7 +105,7 @@ for x in train dev test; do
         done < $tmpdir/${x}_phn.flist > $tmpdir/${x}_phn.trans
         paste $tmpdir/${x}_phn.uttids $tmpdir/${x}_phn.trans \
         | sort -k1,1 > ${x}.trans
-        
+
     elif [ $trans_type = "char" ]
     then
         echo "char transcript!"
@@ -124,20 +124,20 @@ for x in train dev test; do
         echo $trans_type
         exit 0;
     fi
-    
+
     # Do normalization steps.
     cat ${x}.trans | $local/timit_norm_trans.pl -i - -m $conf/phones.60-48-39.map -to 39 | sort > $x.text || exit 1;
-    
+
     # Create wav.scp
     awk '{printf("%s '$sph2pipe' -f wav %s |\n", $1, $2);}' < ${x}_sph.scp > ${x}_wav.scp
-    
+
     # Make the utt2spk and spk2utt files.
     cut -f1 -d'_'  $x.uttids | paste -d' ' $x.uttids - > $x.utt2spk
     cat $x.utt2spk | $utils/utt2spk_to_spk2utt.pl > $x.spk2utt || exit 1;
-    
+
     # Prepare gender mapping
     cat $x.spk2utt | awk '{print $1}' | perl -ane 'chop; m:^.:; $g = lc($&); print "$_ $g\n";' > $x.spk2gender
-    
+
     # Prepare STM file for sclite:
     wav-to-duration --read-entire-file=true scp:${x}_wav.scp ark,t:${x}_dur.ark || exit 1
     awk -v dur=${x}_dur.ark \
@@ -152,7 +152,7 @@ for x in train dev test; do
      printf("%s 1 %s 0.0 %f <O,%s> %s\n", wav, spk, durH[wav], gender, ref);
    }
     ' ${x}.text >${x}.stm || exit 1
-    
+
     # Create dummy GLM file for sclite:
     echo ';; empty.glm
   [FAKE]     =>  %HESITATION     / [ ] __ [ ] ;; hesitation token

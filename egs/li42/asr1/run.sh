@@ -100,7 +100,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	echo "cd ../../csj/asr1/; ./run.sh --stop_stage 2; cd -"
 	exit 1;
     fi
-    
+
     lang_code=en
     if [ -e ${aurora4} ]; then
 	utils/copy_data_dir.sh --utt-suffix -${lang_code}_aurora4 ${aurora4}/train_si84_multi data/tr_${lang_code}_aurora4
@@ -174,7 +174,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	      > ${x}/text
 	rm ${x}/text.org
     done
-    
+
     # Voxforge
     for lang_code in de es fr it nl pt ru; do
 	if [ -e ${voxforge}/tr_${lang_code} ]; then
@@ -188,7 +188,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 	fi
     done
 
-    # commonvoice 
+    # commonvoice
     if [ -e ${commonvoice} ]; then
         for lang_code in en de fr cy tt kab ca zh_TW it fa eu es ru; do
             utils/copy_data_dir.sh --utt-suffix -${lang_code}_commonvoice ${commonvoice}/valid_train_${lang_code} data/tr_${lang_code}_commonvoice
@@ -223,7 +223,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
     utils/combine_data.sh --skip_fix true data/${train_set} data/tr_*_trim
     utils/combine_data.sh --skip_fix true data/${train_dev} data/dt_*_trim
-    
+
     # normalize the case (lower to upper)
     for x in data/${train_set} data/${train_dev}; do
 	cp ${x}/text ${x}/text.org
@@ -233,7 +233,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 	      > ${x}/text
 	rm ${x}/text.org
     done
-    
+
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
@@ -291,7 +291,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	  <(cut -f 2- -d" " data/${train_dev_org}/text) | sed -e "s/\([^[]*\[[^]]*\]\)\s\(.*\)/\1\2/" \
 	  > data/${train_dev}/text
     fi
-    
+
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/

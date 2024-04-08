@@ -19,7 +19,7 @@ test_sets=testset
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 1 \
-    --spk_num 1 \
+    --ref_num 1 \
     --enh_config conf/tuning/train_enh_conv_tasnet.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \

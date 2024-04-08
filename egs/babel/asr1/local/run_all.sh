@@ -11,4 +11,3 @@ for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagal
     sleep 20m # to avoid too many disk access happened at the same time
     popd
 done
-

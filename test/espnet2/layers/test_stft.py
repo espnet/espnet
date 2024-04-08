@@ -38,3 +38,18 @@ def test_inverse():
     x_lengths = torch.IntTensor([400, 300])
     raw, _ = layer.inverse(y, x_lengths)
     raw, _ = layer.inverse(y)
+
+
+def test_librosa_stft():
+    mkl_is_available = torch.backends.mkl.is_available()
+    if not mkl_is_available:
+        raise RuntimeError("MKL is not available.")
+
+    layer = Stft()
+    layer.eval()
+    x = torch.randn(2, 16000, device="cpu")
+    y_torch, _ = layer(x)
+    torch._C.has_mkl = False
+    y_librosa, _ = layer(x)
+    assert torch.allclose(y_torch, y_librosa, atol=7e-6)
+    torch._C.has_mkl = True

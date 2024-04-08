@@ -14,7 +14,6 @@ args = parser.parse_args()
 
 
 def main():
-
     offlimit_spk_list = []
     with codecs.open(args.offlimit_list, "r", encoding="utf-8") as f:
         for line in f:

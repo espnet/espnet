@@ -9,7 +9,7 @@ import math
 from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer import (
@@ -63,6 +63,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         ctx_pos_enc: whether to use positional encoding to the context vectors
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -91,7 +92,6 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         init_average: bool = True,
         ctx_pos_enc: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.pos_enc = pos_enc_class(output_size, positional_dropout_rate)
@@ -501,7 +501,8 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
-            return xs_pad, None, None
+            return xs_pad, xs_pad.new_zeros(bsize), None
+            # return xs_pad, None, None
 
         # start block processing
         xs_chunk = xs_pad.new_zeros(
@@ -587,4 +588,9 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                 "past_encoder_ctx": past_encoder_ctx,
             }
 
-        return ys_pad, None, next_states
+        return (
+            ys_pad,
+            torch.tensor([y_length], dtype=xs_pad.dtype, device=ys_pad.device),
+            next_states,
+        )
+        # return ys_pad, None, next_states

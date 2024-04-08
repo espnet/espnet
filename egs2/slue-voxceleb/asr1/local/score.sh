@@ -50,4 +50,3 @@ echo "Write ASR result in ${asr_expdir}/${test_inference_folder}/score_wer/resul
                 grep -e Avg -e SPKR -m 2 "${asr_expdir}/${test_inference_folder}/score_wer/result_asr.txt"
 
 exit 0
-

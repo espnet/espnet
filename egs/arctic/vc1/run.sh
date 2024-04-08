@@ -33,7 +33,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 outdir=                     # In case not evaluation not executed together with decoding & synthesis stage
-model=                      # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint 
+model=                      # VC Model checkpoint for decoding. If not specified, automatically set to the latest checkpoint
 voc=PWG                     # vocoder used (GL or PWG)
 griffin_lim_iters=64        # The number of iterations of Griffin-Lim
 

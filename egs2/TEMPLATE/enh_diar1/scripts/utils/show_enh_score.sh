@@ -1,1 +1,0 @@
-../../../enh1/scripts/utils/show_enh_score.sh

@@ -31,7 +31,7 @@ rm -r ${data}/{cv, tt}_2spk 2>/dev/null || true
 
 tmpdir=data/temp
 rm -r  $tmpdir 2>/dev/null || true
-mkdir -p $tmpdir 
+mkdir -p $tmpdir
 
 train_dir=${NOISY_SPEECH}/clean_trainset_28spk_wav
 test_dir=${NOISY_SPEECH}/clean_testset_wav
@@ -49,7 +49,7 @@ for x in tr_no_dev dev eval1; do
       text_dir=${NOISY_SPEECH}/trainset_28spk_txt
   else
       text_dir=${NOISY_SPEECH}/testset_txt
-  fi      
+  fi
 
   sed -e 's:.*p\([0-9]*\)_\([0-9]*\).wav$:p\1_\2:i' $tmpdir/${x}.flist \
   > $tmpdir/${x}.uttids
@@ -58,7 +58,7 @@ for x in tr_no_dev dev eval1; do
   | sort -k1,1 >  $tmpdir/${x}.scp
   mkdir -p ${data}/${x}
   cp $tmpdir/${x}.scp ${data}/${x}/wav.scp
-  
+
   awk '{split($1, lst, "_"); spk=lst[1]; print($1, spk)}' ${data}/${x}/wav.scp | \
     sort -u> ${data}/${x}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${x}/utt2spk > ${data}/${x}/spk2utt
@@ -77,6 +77,3 @@ for x in tr_no_dev dev eval1; do
   sed -e "s#noisy_#clean_#g" ${data}/${x}/wav.scp \
     > ${data}/${x}/spk1.scp
 done
-
-
-

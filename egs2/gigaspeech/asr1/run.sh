@@ -9,7 +9,7 @@ train_set="train"
 valid_set="dev"
 test_sets="dev test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr_e_branchformer.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
@@ -20,9 +20,10 @@ speed_perturb_factors=""
 ./asr.sh \
     --audio_format flac.ark \
     --lang en \
-    --ngpu 4 \
-    --nj 128 \
-    --inference_nj 256 \
+    --ngpu 5 \
+    --nj 64 \
+    --gpu_inference true \
+    --inference_nj 5 \
     --use_lm false \
     --nbpe 5000 \
     --max_wav_duration 30 \
@@ -33,5 +34,5 @@ speed_perturb_factors=""
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "data/${train_set}/text" "$@" \
-    --local_score_opts "--inference_config ${inference_config} --use_lm false"
+    --bpe_train_text "data/${train_set}/text" \
+    --local_score_opts "--inference_config ${inference_config} --use_lm false" "$@"

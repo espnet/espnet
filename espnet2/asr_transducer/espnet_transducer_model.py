@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
@@ -31,8 +31,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     """ESPnet2ASRTransducerModel module definition.
 
     Args:
-        vocab_size: Size of complete vocabulary (w/ EOS and blank included).
-        token_list: List of token
+        vocab_size: Size of complete vocabulary (w/ SOS/EOS and blank included).
+        token_list: List of tokens in vocabulary (minus reserved tokens).
         frontend: Frontend module.
         specaug: SpecAugment module.
         normalize: Normalization module.
@@ -40,6 +40,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         decoder: Decoder module.
         joint_network: Joint Network module.
         transducer_weight: Weight of the Transducer loss.
+        use_k2_pruned_loss: Whether to use k2 pruned Transducer loss.
+        k2_pruned_loss_args: Arguments of the k2 loss pruned Transducer loss.
+        warmup_steps: Number of steps in warmup, used for pruned loss scaling.
+        validation_nstep: Maximum number of symbol expansions at each time step
+                          when reporting CER or/and WER using mAES.
         fastemit_lambda: FastEmit lambda value.
         auxiliary_ctc_weight: Weight of auxiliary CTC loss.
         auxiliary_ctc_dropout_rate: Dropout rate for auxiliary CTC loss inputs.
@@ -47,13 +52,14 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         auxiliary_lm_loss_smoothing: Smoothing rate for LM loss' label smoothing.
         ignore_id: Initial padding ID.
         sym_space: Space symbol.
-        sym_blank: Blank Symbol
+        sym_blank: Blank Symbol.
         report_cer: Whether to report Character Error Rate during validation.
         report_wer: Whether to report Word Error Rate during validation.
         extract_feats_in_collect_stats: Whether to use extract_feats stats collection.
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -65,11 +71,15 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         decoder: AbsDecoder,
         joint_network: JointNetwork,
         transducer_weight: float = 1.0,
+        use_k2_pruned_loss: bool = False,
+        k2_pruned_loss_args: Dict = {},
+        warmup_steps: int = 25000,
+        validation_nstep: int = 2,
         fastemit_lambda: float = 0.0,
         auxiliary_ctc_weight: float = 0.0,
         auxiliary_ctc_dropout_rate: float = 0.0,
         auxiliary_lm_loss_weight: float = 0.0,
-        auxiliary_lm_loss_smoothing: float = 0.0,
+        auxiliary_lm_loss_smoothing: float = 0.05,
         ignore_id: int = -1,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
@@ -80,9 +90,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         """Construct an ESPnetASRTransducerModel object."""
         super().__init__()
 
-        assert check_argument_types()
-
-        # The following labels ID are reserved: 0 (blank) and vocab_size - 1 (sos/eos)
+        # The following labels ID are reserved:
+        #    - 0: Blank symbol.
+        #    - 1: Unknown symbol.
+        #    - vocab_size - 1: SOS/EOS symbol.
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
@@ -104,13 +115,36 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.use_auxiliary_ctc = auxiliary_ctc_weight > 0
         self.use_auxiliary_lm_loss = auxiliary_lm_loss_weight > 0
 
+        if use_k2_pruned_loss:
+            self.am_proj = torch.nn.Linear(
+                encoder.output_size,
+                vocab_size,
+            )
+
+            self.lm_proj = torch.nn.Linear(
+                decoder.output_size,
+                vocab_size,
+            )
+
+            self.warmup_steps = warmup_steps
+            self.steps_num = -1
+
+            self.k2_pruned_loss_args = k2_pruned_loss_args
+            self.k2_loss_type = k2_pruned_loss_args.get("loss_type", "regular")
+
+        self.use_k2_pruned_loss = use_k2_pruned_loss
+
         if self.use_auxiliary_ctc:
             self.ctc_lin = torch.nn.Linear(encoder.output_size, vocab_size)
             self.ctc_dropout_rate = auxiliary_ctc_dropout_rate
 
         if self.use_auxiliary_lm_loss:
             self.lm_lin = torch.nn.Linear(decoder.output_size, vocab_size)
-            self.lm_loss_smoothing = auxiliary_lm_loss_smoothing
+
+            eps = auxiliary_lm_loss_smoothing / (vocab_size - 1)
+
+            self.lm_loss_smooth_neg = eps
+            self.lm_loss_smooth_pos = (1 - auxiliary_lm_loss_smoothing) + eps
 
         self.transducer_weight = transducer_weight
         self.fastemit_lambda = fastemit_lambda
@@ -120,6 +154,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         self.report_cer = report_cer
         self.report_wer = report_wer
+        self.validation_nstep = validation_nstep
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -171,20 +206,25 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.decoder.set_device(encoder_out.device)
         decoder_out = self.decoder(decoder_in)
 
-        # 4. Joint Network
-        joint_out = self.joint_network(
-            encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
-        )
+        # 4. Joint Network and RNNT loss computation
+        if self.use_k2_pruned_loss:
+            loss_trans = self._calc_k2_transducer_pruned_loss(
+                encoder_out, decoder_out, text, t_len, u_len, **self.k2_pruned_loss_args
+            )
+        else:
+            joint_out = self.joint_network(
+                encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
+            )
 
-        # 5. Losses
-        loss_trans, cer_trans, wer_trans = self._calc_transducer_loss(
-            encoder_out,
-            joint_out,
-            target,
-            t_len,
-            u_len,
-        )
+            loss_trans = self._calc_transducer_loss(
+                encoder_out,
+                joint_out,
+                target,
+                t_len,
+                u_len,
+            )
 
+        # 5. Auxiliary losses
         loss_ctc, loss_lm = 0.0, 0.0
 
         if self.use_auxiliary_ctc:
@@ -204,13 +244,38 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             + self.auxiliary_lm_loss_weight * loss_lm
         )
 
+        # 6. CER/WER computation.
+        if not self.training and (self.report_cer or self.report_wer):
+            if self.error_calculator is None:
+                from espnet2.asr_transducer.error_calculator import ErrorCalculator
+
+                if self.use_k2_pruned_loss and self.k2_loss_type == "modified":
+                    self.validation_nstep = 1
+
+                self.error_calculator = ErrorCalculator(
+                    self.decoder,
+                    self.joint_network,
+                    self.token_list,
+                    self.sym_space,
+                    self.sym_blank,
+                    nstep=self.validation_nstep,
+                    report_cer=self.report_cer,
+                    report_wer=self.report_wer,
+                )
+
+            cer_transducer, wer_transducer = self.error_calculator(
+                encoder_out, target, t_len
+            )
+        else:
+            cer_transducer, wer_transducer = None, None
+
         stats = dict(
             loss=loss.detach(),
             loss_transducer=loss_trans.detach(),
-            aux_ctc_loss=loss_ctc.detach() if loss_ctc > 0.0 else None,
-            aux_lm_loss=loss_lm.detach() if loss_lm > 0.0 else None,
-            cer_transducer=cer_trans,
-            wer_transducer=wer_trans,
+            loss_aux_ctc=loss_ctc.detach() if loss_ctc > 0.0 else None,
+            loss_aux_lm=loss_lm.detach() if loss_lm > 0.0 else None,
+            cer_transducer=cer_transducer,
+            wer_transducer=wer_transducer,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -329,7 +394,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         target: torch.Tensor,
         t_len: torch.Tensor,
         u_len: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Optional[float], Optional[float]]:
+    ) -> torch.Tensor:
         """Compute Transducer loss.
 
         Args:
@@ -341,8 +406,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         Return:
             loss_transducer: Transducer loss value.
-            cer_transducer: Character error rate for Transducer.
-            wer_transducer: Word Error Rate for Transducer.
 
         """
         if self.criterion_transducer is None:
@@ -355,37 +418,144 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 )
             except ImportError:
                 logging.error(
-                    "warp-rnnt was not installed."
+                    "warp-transducer was not installed. "
                     "Please consult the installation documentation."
                 )
                 exit(1)
 
-        loss_transducer = self.criterion_transducer(
-            joint_out,
-            target,
-            t_len,
-            u_len,
+        with autocast(False):
+            loss_transducer = self.criterion_transducer(
+                joint_out.float(),
+                target,
+                t_len,
+                u_len,
+            )
+
+        return loss_transducer
+
+    def _calc_k2_transducer_pruned_loss(
+        self,
+        encoder_out: torch.Tensor,
+        decoder_out: torch.Tensor,
+        labels: torch.Tensor,
+        encoder_out_len: torch.Tensor,
+        decoder_out_len: torch.Tensor,
+        prune_range: int = 5,
+        simple_loss_scaling: float = 0.5,
+        lm_scale: float = 0.0,
+        am_scale: float = 0.0,
+        loss_type: str = "regular",
+        reduction: str = "mean",
+        padding_idx: int = 0,
+    ) -> torch.Tensor:
+        """Compute k2 pruned Transducer loss.
+
+        Args:
+            encoder_out: Encoder output sequences. (B, T, D_enc)
+            decoder_out: Decoder output sequences. (B, T, D_dec)
+            labels: Label ID sequences. (B, L)
+            encoder_out_len: Encoder output sequences lengths. (B,)
+            decoder_out_len: Target label ID sequences lengths. (B,)
+            prune_range: How many tokens by frame are used compute the pruned loss.
+            simple_loss_scaling: The weight to scale the simple loss after warm-up.
+            lm_scale: The scale factor to smooth the LM part.
+            am_scale: The scale factor to smooth the AM part.
+            loss_type: Define the type of path to take for loss computation.
+                         (Either 'regular', 'smoothed' or 'constrained')
+            padding_idx: SOS/EOS + Padding index.
+
+        Return:
+            loss_transducer: Transducer loss value.
+
+        """
+        try:
+            import k2
+
+            if self.fastemit_lambda > 0.0:
+                logging.info(
+                    "Disabling FastEmit, it is not available with k2 Transducer loss. "
+                    "Please see delay_penalty option instead."
+                )
+        except ImportError:
+            logging.error(
+                "k2 was not installed. Please consult the installation documentation."
+            )
+            exit(1)
+
+        # Note (b-flo): We use a dummy scaling scheme until the training parts are
+        # revised (in a short future).
+        self.steps_num += 1
+
+        if self.steps_num < self.warmup_steps:
+            pruned_loss_scaling = 0.1 + 0.9 * (self.steps_num / self.warmup_steps)
+            simple_loss_scaling = 1.0 - (
+                (self.steps_num / self.warmup_steps) * (1.0 - simple_loss_scaling)
+            )
+        else:
+            pruned_loss_scaling = 1.0
+
+        labels_unpad = [y[y != self.ignore_id].tolist() for y in labels]
+
+        target = k2.RaggedTensor(labels_unpad).to(decoder_out.device)
+        target_padded = target.pad(mode="constant", padding_value=padding_idx)
+        target_padded = target_padded.to(torch.int64)
+
+        boundary = torch.zeros(
+            (encoder_out.size(0), 4),
+            dtype=torch.int64,
+            device=encoder_out.device,
+        )
+        boundary[:, 2] = decoder_out_len
+        boundary[:, 3] = encoder_out_len
+
+        lm = self.lm_proj(decoder_out)
+        am = self.am_proj(encoder_out)
+
+        with autocast(False):
+            simple_loss, (px_grad, py_grad) = k2.rnnt_loss_smoothed(
+                lm.float(),
+                am.float(),
+                target_padded,
+                padding_idx,
+                lm_only_scale=lm_scale,
+                am_only_scale=am_scale,
+                boundary=boundary,
+                rnnt_type=loss_type,
+                reduction=reduction,
+                return_grad=True,
+            )
+
+        ranges = k2.get_rnnt_prune_ranges(
+            px_grad,
+            py_grad,
+            boundary,
+            prune_range,
         )
 
-        if not self.training and (self.report_cer or self.report_wer):
-            if self.error_calculator is None:
-                from espnet2.asr_transducer.error_calculator import ErrorCalculator
+        am_pruned, lm_pruned = k2.do_rnnt_pruning(
+            self.joint_network.lin_enc(encoder_out),
+            self.joint_network.lin_dec(decoder_out),
+            ranges,
+        )
 
-                self.error_calculator = ErrorCalculator(
-                    self.decoder,
-                    self.joint_network,
-                    self.token_list,
-                    self.sym_space,
-                    self.sym_blank,
-                    report_cer=self.report_cer,
-                    report_wer=self.report_wer,
-                )
+        joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
-            cer_transducer, wer_transducer = self.error_calculator(encoder_out, target)
+        with autocast(False):
+            pruned_loss = k2.rnnt_loss_pruned(
+                joint_out.float(),
+                target_padded,
+                ranges,
+                padding_idx,
+                boundary,
+                rnnt_type=loss_type,
+                reduction=reduction,
+            )
 
-            return loss_transducer, cer_transducer, wer_transducer
+        loss_transducer = (
+            simple_loss_scaling * simple_loss + pruned_loss_scaling * pruned_loss
+        )
 
-        return loss_transducer, None, None
+        return loss_transducer
 
     def _calc_ctc_loss(
         self,
@@ -432,7 +602,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         decoder_out: torch.Tensor,
         target: torch.Tensor,
     ) -> torch.Tensor:
-        """Compute LM loss.
+        """Compute LM loss (i.e.: Cross-entropy with smoothing).
 
         Args:
             decoder_out: Decoder output sequences. (B, U, D_dec)
@@ -442,26 +612,21 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             loss_lm: LM loss value.
 
         """
-        lm_loss_in = self.lm_lin(decoder_out[:, :-1, :]).view(-1, self.vocab_size)
-        lm_target = target.view(-1).type(torch.int64)
+        batch_size = decoder_out.size(0)
+
+        logp = torch.log_softmax(
+            self.lm_lin(decoder_out[:, :-1, :]).view(-1, self.vocab_size),
+            dim=1,
+        )
+        target = target.view(-1).type(torch.int64)
+        ignore = (target == 0).unsqueeze(1)
 
         with torch.no_grad():
-            true_dist = lm_loss_in.clone()
-            true_dist.fill_(self.lm_loss_smoothing / (self.vocab_size - 1))
+            true_dist = logp.clone().fill_(self.lm_loss_smooth_neg)
 
-            # Ignore blank ID (0)
-            ignore = lm_target == 0
-            lm_target = lm_target.masked_fill(ignore, 0)
+            true_dist.scatter_(1, target.unsqueeze(1), self.lm_loss_smooth_pos)
 
-            true_dist.scatter_(1, lm_target.unsqueeze(1), (1 - self.lm_loss_smoothing))
-
-        loss_lm = torch.nn.functional.kl_div(
-            torch.log_softmax(lm_loss_in, dim=1),
-            true_dist,
-            reduction="none",
-        )
-        loss_lm = loss_lm.masked_fill(ignore.unsqueeze(1), 0).sum() / decoder_out.size(
-            0
-        )
+        loss_lm = torch.nn.functional.kl_div(logp, true_dist, reduction="none")
+        loss_lm = loss_lm.masked_fill(ignore, 0).sum() / batch_size
 
         return loss_lm

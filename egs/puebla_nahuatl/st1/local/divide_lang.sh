@@ -44,4 +44,3 @@ if [ -f data/${set}.na/feats.scp ]; then
 else
     utils/validate_data_dir.sh --no-feats --no-wav data/${set}.na || exit 1;
 fi
-

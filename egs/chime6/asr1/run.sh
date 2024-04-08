@@ -55,7 +55,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### trimming and speed pertrubation for training data
     echo "stage 1: trimming and speed pertrubation for training data"
     remove_longshortdata.sh --maxframes 2000 --maxchars 200 data/${train_set} data/${train_set}_trim
-    
+
     echo "[INFO]: Using standard speed data perturbation (0.9, 1.0, 1.1)"
     mkdir -p data/${train_set}_trim_sp
     utils/perturb_data_dir_speed.sh 0.9 data/${train_set}_trim data/${train_set}_trim/tmp_sp/temp1
@@ -78,10 +78,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
-    
+
     # subset of dev_set
     utils/subset_data_dir.sh data/${train_dev} 1000 data/${train_dev}_u1k
-    
+
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 fi
@@ -170,7 +170,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
            [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then 
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         recog_model=model.last${n_average}.avg.best
 
         average_checkpoints.py --backend ${backend} \
@@ -178,7 +178,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 			       --out ${expdir}/results/${recog_model} \
 			       --num ${n_average}
     fi
-    
+
     decode_dir=decode_${train_dev}
 
     # split data

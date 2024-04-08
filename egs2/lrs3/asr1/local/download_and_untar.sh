@@ -79,4 +79,3 @@ if $remove_archive; then
   rm ${data}/${lrs3_train_val_file}
   rm ${data}/${lrs3_test_file}
 fi
-

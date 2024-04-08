@@ -9,7 +9,6 @@ import os
 
 # chainer related
 import chainer
-import six
 from chainer import training
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
@@ -112,7 +111,7 @@ def train(args):
     elif ngpu > 1:
         gpu_id = 0
         devices = {"main": gpu_id}
-        for gid in six.moves.xrange(1, ngpu):
+        for gid in range(1, ngpu):
             devices["sub_%d" % gid] = gid
         logging.info("multi gpu calculation (#gpus = %d)." % ngpu)
         logging.warning(
@@ -217,7 +216,7 @@ def train(args):
             )
         # set up minibatches
         train_subsets = []
-        for gid in six.moves.xrange(ngpu):
+        for gid in range(ngpu):
             # make subset
             train_json_subset = {
                 k: v for i, (k, v) in enumerate(train_json.items()) if i % ngpu == gid
@@ -237,7 +236,7 @@ def train(args):
         maxlen = max([len(train_subset) for train_subset in train_subsets])
         for train_subset in train_subsets:
             if maxlen != len(train_subset):
-                for i in six.moves.xrange(maxlen - len(train_subset)):
+                for i in range(maxlen - len(train_subset)):
                     train_subset += [train_subset[i]]
 
         # hack to make batchsize argument as 1
@@ -252,7 +251,7 @@ def train(args):
                     maxtasksperchild=20,
                     shuffle=not use_sortagrad,
                 )
-                for gid in six.moves.xrange(ngpu)
+                for gid in range(ngpu)
             ]
         else:
             train_iters = [
@@ -261,7 +260,7 @@ def train(args):
                     batch_size=1,
                     shuffle=not use_sortagrad,
                 )
-                for gid in six.moves.xrange(ngpu)
+                for gid in range(ngpu)
             ]
 
         # set up updater
@@ -548,9 +547,11 @@ def recog(args):
         mode="asr",
         load_output=False,
         sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
+        preprocess_conf=(
+            train_args.preprocess_conf
+            if args.preprocess_conf is None
+            else args.preprocess_conf
+        ),
         preprocess_args={"train": False},  # Switch the mode of preprocessing
     )
 

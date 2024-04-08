@@ -78,7 +78,7 @@ local/create_database.sh \
 #  - cv_dev93:    982 samples   (02:31:51)
 #  - test_eval92: 1332 samples  (03:21:23)
 # The data files are generated based on the sms_wsj.json file,
-# and the utterance ids are slightly modified based those in sms_wsj.json. 
+# and the utterance ids are slightly modified based those in sms_wsj.json.
 python local/sms_wsj_data_prep.py \
     --num-spk ${num_spk} \
     --sample-rate ${sample_rate} \

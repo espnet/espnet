@@ -4,7 +4,7 @@ Multilingual Speech Dataset (Black et al., 2019).
 There are going to be two forms of this recipe:
 	1. Almost exactly similar setup to that used by Adams et al. (2019). Use
 	this to replicate the results of that paper. This involves checking out and
-	using an older version of ESPnet. 
+	using an older version of ESPnet.
 	2. A recipe that trains using the latest
 	version of ESPNet. Use this if you don't care about replication: You just
 	want a multilingual system that uses the CMU Wilderness data. This is still

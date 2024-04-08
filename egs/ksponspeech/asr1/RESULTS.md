@@ -94,4 +94,3 @@ exp/train_pytorch_train_pytorch_transformer_large_ngpu4_specaug/decode_eval_othe
 |    SPKR                  |    # Snt       # Wrd    |    Corr          Sub           Del          Ins          Err        S.Err    |
 |    Sum/Avg               |    3000        26621    |    86.0         12.6           1.4          1.5         15.5         61.9    |
 ```
-

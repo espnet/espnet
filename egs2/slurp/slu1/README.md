@@ -12,6 +12,9 @@
 ## Using Conformer based deliberation encoder with ground truth transcript
 - ASR config: [conf/tuning/train_asr_bert_conformer_deliberation.yaml](conf/tuning/train_asr_bert_conformer_deliberation.yaml)
 - token_type: word
+- local_data_opts: "--gt true"
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/slurp_slu_2pass_gt
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -21,6 +24,9 @@
 ## Using Conformer based deliberation encoder with ASR transcript
 - ASR config: [conf/tuning/train_asr_bert_conformer_deliberation.yaml](conf/tuning/train_asr_bert_conformer_deliberation.yaml)
 - token_type: word
+- local_data_opts: "--gt false"
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/slurp_slu_2pass/
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|

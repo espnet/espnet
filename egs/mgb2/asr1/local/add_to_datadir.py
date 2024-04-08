@@ -20,12 +20,10 @@ utt2spk_file = open(outdir + "/utt2spk", "a")
 text_file = open(outdir + "/text", "a")
 
 for line in sys.stdin:
-
     m = re.match(r"\w+speaker(\d+)\w+\s+(.*)", line)
     # print line
 
     if m:
-
         spk = int(m.group(1))
 
         t = m.group(2).split()

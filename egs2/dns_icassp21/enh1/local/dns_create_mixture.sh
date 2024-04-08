@@ -60,7 +60,7 @@ sed -e "/^noisy_destination/s#.*#noisy_destination:${noisy_wav}#g"  \
     -e "/^log_dir/s#.*#log_dir:${log_dir}#g" ${configure} \
   > ${train_cfg}
 
-# modify the path separator 
+# modify the path separator
 sed -i -e 's:\\:/:g' ${rir_table_csv}
 
 

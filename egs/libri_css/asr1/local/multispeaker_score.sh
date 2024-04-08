@@ -2,7 +2,7 @@
 # Copyright   2019   Ashish Arora, Yusuke Fujita
 #             2020   Desh Raj
 # Apache 2.0.
-# This script takes a reference and hypothesis text file, and performs 
+# This script takes a reference and hypothesis text file, and performs
 # multispeaker scoring.
 
 stage=0
@@ -80,7 +80,7 @@ if [ $stage -le 2 ]; then
     cat $wer_dir/summary_$reco_id \
       | local/best_wer_matching.py \
       > $wer_dir/best_wer_$reco_id
- 
+
   done
   rm $wer_dir/best_wer_all 2> /dev/null
   awk '

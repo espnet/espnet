@@ -42,7 +42,7 @@ dev_list=dev.list
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Prepare eval data with ${HUB4_SPANISH}"
 
     # Eval dataset preparation

@@ -34,5 +34,3 @@ local/write_kaldi_files.pl $out/audio.list $out/transcript.txt $out
 utils/utt2spk_to_spk2utt.pl $out/utt2spk > $out/spk2utt
 utils/fix_data_dir.sh $out
 utils/validate_data_dir.sh --no-feats $out
-
-

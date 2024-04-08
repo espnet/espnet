@@ -28,13 +28,13 @@ decoder_conf:
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
 
-#frontend related 
+#frontend related
 freeze_param: [
 "frontend.upstream"
 ]
 
 frontend: fused
-frontend_conf: 
+frontend_conf:
   frontends:
     - frontend_type: default
       n_fft: 512
@@ -48,7 +48,7 @@ frontend_conf:
       multilayer_feature: True
 
   align_method: linear_projection
-  proj_dim: 200     
+  proj_dim: 200
 
 preencoder: linear
 preencoder_conf:

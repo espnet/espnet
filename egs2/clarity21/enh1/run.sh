@@ -21,7 +21,7 @@ test_sets="dev"
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 1 \
-    --spk_num 1 \
+    --ref_num 1 \
     --ref_channel 0 \
     --local_data_opts "--clarity_root ${clarity_root} --sample_rate ${sample_rate}" \
     --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \

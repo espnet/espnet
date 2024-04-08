@@ -57,7 +57,7 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=["あ", "い", "う", "え", "お"],
         outdir=None,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         report_bleu=False,
         report_cer=False,
         report_wer=False,

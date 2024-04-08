@@ -1,8 +1,8 @@
 --- generate_isotropic_noise.old.py
 +++ generate_isotropic_noise.new.py
 @@ -227,6 +227,7 @@
- 
- 
+
+
  def run(args):
 +    np.random.seed(args.seed)
      if not os.path.exists(args.output_dir):

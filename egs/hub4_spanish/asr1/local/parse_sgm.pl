@@ -30,11 +30,11 @@ sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 sub parse_sgml_tag {
   my $tag = shift(@_);
   my %ret;
-  
+
   if ($tag !~ /=/) {
     return %ret;
   }
-  
+
   $tag =~ s/<[a-zA-Z]+ //;
   $tag =~ s/> *$//;
   #print $tag . "\n";
@@ -125,7 +125,7 @@ foreach my $file (@files) {
       die "Unaligned tags: " . $p->[0] . " vs $line" if $p->[0] ne $line;
       #print "ES: $line\n";
       ;
-    } elsif ($line =~ /<turn/) { 
+    } elsif ($line =~ /<turn/) {
       #print "BT: $line\n";
       my %tags = parse_sgml_tag $line;
       $turn_speaker = $tags{'speaker'};

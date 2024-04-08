@@ -73,7 +73,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         spk_id=$(basename $(dirname $(dirname ${filepath})))
         filename=$(basename $filepath)
         if [ ! -e data/alignments/${spk_id}_$filename ]; then
-            ln -s $filepath data/alignments/${spk_id}_$filename 
+            ln -s $filepath data/alignments/${spk_id}_$filename
         fi
     done
 

@@ -45,9 +45,7 @@ separator_conf:
     layer: 6
     rnn_type: lstm
     bidirectional: True  # this is for the inter-block rnn
-    nonlinear: relu
     unit: 128
     segment_size: 250
     dropout: 0.1
     nonlinear: relu
-

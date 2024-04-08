@@ -43,4 +43,4 @@ optim_conf:
     lr: 0.005
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 25000 
+    warmup_steps: 25000

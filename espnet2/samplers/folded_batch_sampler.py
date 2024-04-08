@@ -1,12 +1,13 @@
-from typing import Iterator, List, Sequence, Tuple, Union
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
+from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class FoldedBatchSampler(AbsSampler):
+    @typechecked
     def __init__(
         self,
         batch_size: int,
@@ -16,9 +17,8 @@ class FoldedBatchSampler(AbsSampler):
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
-        utt2category_file: str = None,
+        utt2category_file: Optional[str] = None,
     ):
-        assert check_argument_types()
         assert batch_size > 0
         if sort_batch != "ascending" and sort_batch != "descending":
             raise ValueError(
@@ -57,7 +57,7 @@ class FoldedBatchSampler(AbsSampler):
 
         category2utt = {}
         if utt2category_file is not None:
-            utt2category = read_2column_text(utt2category_file)
+            utt2category = read_2columns_text(utt2category_file)
             if set(utt2category) != set(first_utt2shape):
                 raise RuntimeError(
                     "keys are mismatched between "

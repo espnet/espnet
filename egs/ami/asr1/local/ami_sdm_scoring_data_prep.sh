@@ -139,4 +139,3 @@ cp local/english.glm $dir/glm
 utils/validate_data_dir.sh --no-feats $dir
 
 echo AMI $DSET scenario and $SET set data preparation succeeded.
-

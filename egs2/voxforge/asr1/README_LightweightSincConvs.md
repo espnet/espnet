@@ -101,4 +101,3 @@ To cite this work:
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/dt_it|1082|79133|87.5|6.4|6.1|2.4|14.8|97.9|
 |decode_asr_asr_model_valid.acc.ave/et_it|1055|77966|87.1|6.6|6.3|2.4|15.3|98.3|
-

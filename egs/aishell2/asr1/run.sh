@@ -61,7 +61,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     for x in Android iOS Mic; do
         local/prepare_data.sh ${dev_tst_dir}/${x}/dev data/local/dev_${x,,} data/dev_${x,,} || exit 1;
         local/prepare_data.sh ${dev_tst_dir}/${x}/test data/local/test_${x,,} data/test_${x,,} || exit 1;
-    done 
+    done
     # Normalize text to capital letters
     for x in train dev_android dev_ios dev_mic test_android test_ios test_mic; do
         mv data/${x}/text data/${x}/text.org
@@ -85,12 +85,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in android ios mic; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
             data/dev_${x} exp/make_fbank/dev_${x} ${fbankdir}
-        utils/fix_data_dir.sh data/dev_${x}     
+        utils/fix_data_dir.sh data/dev_${x}
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
             data/test_${x} exp/make_fbank/test_${x} ${fbankdir}
         utils/fix_data_dir.sh data/test_${x}
     done
-    
+
     # speed-perturbed
     utils/perturb_data_dir_speed.sh 0.9 data/train data/temp1
     utils/perturb_data_dir_speed.sh 1.0 data/train data/temp2
@@ -118,7 +118,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     dump.sh --cmd "$train_cmd" --nj 100 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-        
+
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 20 --do_delta ${do_delta} \
@@ -147,7 +147,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
 		     data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-    done   
+    done
 fi
 
 # you can skip this and remove --rnnlm option in the recognition (stage 5)

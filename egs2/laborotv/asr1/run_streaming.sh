@@ -35,4 +35,3 @@ speed_perturb_factors="0.9 1.0 1.1"
     --speed_perturb_factors "${speed_perturb_factors}" \
     --lm_train_text "data/${train_set}/text" "$@" \
     --inference_asr_model ${inference_asr_model}
-

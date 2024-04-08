@@ -28,4 +28,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_batch_size1_asr_model_valid.acc.best/java_test|1740|26604|84.6|10.6|4.8|1.2|16.6|52.3|
-

@@ -17,17 +17,17 @@ use warnings; #sed replacement for -w perl parameter
 # limitations under the License.
 
 
-# This script normalizes the TIMIT phonetic transcripts that have been 
-# extracted in a format where each line contains an utterance ID followed by 
+# This script normalizes the TIMIT phonetic transcripts that have been
+# extracted in a format where each line contains an utterance ID followed by
 # the transcript, e.g.:
 # fcke0_si1111 h# hh ah dx ux w iy dcl d ix f ay n ih q h#
 
 my $usage = "Usage: timit_norm_trans.pl -i transcript -m phone_map -from [60|48] -to [48|39] > normalized\n
-Normalizes phonetic transcriptions for TIMIT, by mapping the phones to a 
-smaller set defined by the -m option. This script assumes that the mapping is 
-done in the \"standard\" fashion, i.e. to 48 or 39 phones.  The input is 
+Normalizes phonetic transcriptions for TIMIT, by mapping the phones to a
+smaller set defined by the -m option. This script assumes that the mapping is
+done in the \"standard\" fashion, i.e. to 48 or 39 phones.  The input is
 assumed to have 60 phones (+1 for glottal stop, which is deleted), but that can
-be changed using the -from option. The input format is assumed to be utterance 
+be changed using the -from option. The input format is assumed to be utterance
 ID followed by transcript on the same line.\n";
 
 use strict;
@@ -40,7 +40,7 @@ GetOptions ("i=s" => \$in_trans,          # Input transcription
 	    "from=i" => \$num_phones_in,  # Input #phones: must be 60 or 48
 	    "to=i" => \$num_phones_out ); # Output #phones: must be 48 or 39
 
-die $usage unless(defined($in_trans) && defined($phone_map) && 
+die $usage unless(defined($in_trans) && defined($phone_map) &&
 		  defined($num_phones_out));
 if ($num_phones_in != 60 && $num_phones_in != 48) {
   die "Can only used 60 or 48 for -from (used $num_phones_in)."

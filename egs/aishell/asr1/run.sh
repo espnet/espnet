@@ -188,7 +188,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
         --dict ${dict}
-    
+
     lmplz --discount_fallback -o ${n_gram} <${lmdatadir}/train.txt > ${ngramexpdir}/${n_gram}gram.arpa
     build_binary -s ${ngramexpdir}/${n_gram}gram.arpa ${ngramexpdir}/${n_gram}gram.bin
 fi

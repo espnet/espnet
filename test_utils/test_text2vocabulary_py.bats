@@ -32,4 +32,3 @@ teardown() {
     python $utils/text2vocabulary.py $tmpdir/text > $tmpdir/vocab
     diff $tmpdir/vocab $tmpdir/valid
 }
-

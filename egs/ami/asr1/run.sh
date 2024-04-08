@@ -114,7 +114,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utils/perturb_data_dir_speed.sh 1.1 data/${mic}/train_orig data/${mic}_tmp3
     rm -r data/${mic}/train_orig
     utils/combine_data.sh --extra-files utt2uniq data/${mic}/train_orig data/${mic}_tmp1 data/${mic}_tmp2 data/${mic}_tmp3
-    
+
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} dev
     local/ami_${base_mic}_scoring_data_prep.sh ${PROCESSED_AMI_DIR} ${mic} eval
     for dset in train dev eval; do

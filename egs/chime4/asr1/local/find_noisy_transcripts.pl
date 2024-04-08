@@ -21,9 +21,9 @@
 # It takes as
 # Extracts from the dot files the transcripts for a given
 # dataset (represented by a file list).
-# 
+#
 
-@ARGV == 1 || die "find_transcripts.pl dot_files_flist < utterance_ids > transcripts";
+@ARGV == 1 || die "find_noisy_transcripts.pl dot_files_flist < utterance_ids > transcripts";
 $dot_flist = shift @ARGV;
 
 open(L, "<$dot_flist") || die "Opening file list of dot files: $dot_flist\n";
@@ -36,10 +36,10 @@ while(<L>){
 
 
 
-while(<STDIN>){ 
+while(<STDIN>){
     chop;
     $uttid_orig = $_;
-    $uttid = substr $uttid_orig, 0, 8; 
+    $uttid = substr $uttid_orig, 0, 8;
     $uttid =~ m:(\w{6})\w\w: || die "Bad utterance id $_";
     $spk = $1;
     if($spk ne $curspk) {
@@ -61,5 +61,3 @@ while(<STDIN>){
         print "$uttid_orig $utt2trans{$uttid}\n";
     }
 }
-
-

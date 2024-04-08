@@ -45,4 +45,3 @@ decoder_conf:
     num_layers: 1
     hidden_size: 320
     dropout: 0.0
-

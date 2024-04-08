@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set="train"
 valid_set="valid"
-test_sets="test valid"
+test_sets="utt_test spk_test valid"
 
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.7.0")' &> /dev/null;  then
 	asr_config=conf/train_asr.yaml

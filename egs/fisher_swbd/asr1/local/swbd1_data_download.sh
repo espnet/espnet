@@ -15,8 +15,8 @@
 #check existing directories
 if [ $# != 1 ]; then
   echo "Usage: swbd1_data_download.sh /path/to/SWBD"
-  exit 1; 
-fi 
+  exit 1;
+fi
 
 SWBD_DIR=$1
 
@@ -26,15 +26,15 @@ mkdir -p $dir
 # Audio data directory check
 if [ ! -d $SWBD_DIR ]; then
   echo "Error: run.sh requires a directory argument"
-  exit 1; 
-fi  
+  exit 1;
+fi
 
 # Trans directory check
 if [ ! -d $SWBD_DIR/transcriptions/swb_ms98_transcriptions ]; then
-  ( 
+  (
     cd $dir;
     if [ ! -d swb_ms98_transcriptions ]; then
-      echo " *** Downloading trascriptions and dictionary ***" 
+      echo " *** Downloading trascriptions and dictionary ***"
       wget http://www.openslr.org/resources/5/switchboard_word_alignments.tar.gz ||
       wget http://www.isip.piconepress.com/projects/switchboard/releases/switchboard_word_alignments.tar.gz
       tar -xf switchboard_word_alignments.tar.gz

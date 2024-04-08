@@ -74,12 +74,12 @@ RealData_et_far_room1:
 --------------------------------------
             	   enh	   enh
 --------------------------------------
-  et_far_room1	  8.42	     -	     
-  et_far_room2	  7.34	     -	     
-  et_far_room3	  6.53	     -	     
- et_near_room1	  7.62	     -	     
- et_near_room2	  6.76	     -	     
- et_near_room3	  7.04	     -	     
+  et_far_room1	  8.42	     -
+  et_far_room2	  7.34	     -
+  et_far_room3	  6.53	     -
+ et_near_room1	  7.62	     -
+ et_near_room2	  6.76	     -
+ et_near_room3	  7.04	     -
 --------------------------------------
        average	  7.29	     -
 ======================================
@@ -141,8 +141,8 @@ Frequency-weighted segmental SNR in dB
 ### 2.1 Description
 In the pipeline enhancement approach, we still use the training data (2ch-REVERB, WSJ0 and WSJ1) described above.
 Instead of using the end-to-end fashion to achieve the speech enhancement, conventional pipeline strategy has been
-performed. 
-WPE and BeamformIt have been employed to enhance the noisy signals. 
+performed.
+WPE and BeamformIt have been employed to enhance the noisy signals.
 The enhanced speeches were then fed into the encoder-decoder based backend.
 
 ### 2.2 WER
@@ -212,72 +212,72 @@ RealData_et_far_room1:
 ```
 
 ==============================================
-           Cepstral distance in dB            
+           Cepstral distance in dB
 ----------------------------------------------
             	      	  mean	      	median
 ----------------------------------------------
             	   org	   enh	   org	   enh
 ----------------------------------------------
-  et_far_room1	  2.67	  2.10	  2.38	  1.84	
-  et_far_room2	  5.21	  4.94	  5.04	  4.56	
-  et_far_room3	  4.96	  4.49	  4.73	  4.10	
- et_near_room1	  1.99	  1.72	  1.68	  1.39	
- et_near_room2	  4.63	  4.43	  4.24	  3.90	
- et_near_room3	  4.38	  4.00	  4.04	  3.54	
+  et_far_room1	  2.67	  2.10	  2.38	  1.84
+  et_far_room2	  5.21	  4.94	  5.04	  4.56
+  et_far_room3	  4.96	  4.49	  4.73	  4.10
+ et_near_room1	  1.99	  1.72	  1.68	  1.39
+ et_near_room2	  4.63	  4.43	  4.24	  3.90
+ et_near_room3	  4.38	  4.00	  4.04	  3.54
 ----------------------------------------------
        average	  3.97	  3.61	  3.69	  3.22
 ==============================================
 
 
 ==============================================
-            SRMR  (only mean used)            
+            SRMR  (only mean used)
 ----------------------------------------------
             	      	  mean	      	median
 ----------------------------------------------
             	   org	   enh	   org	   enh
 ----------------------------------------------
-  et_far_room1	  4.58	  5.19	     -	     -	
-  et_far_room2	  2.97	  4.88	     -	     -	
-  et_far_room3	  2.73	  4.13	     -	     -	
- et_near_room1	  4.50	  4.73	     -	     -	
- et_near_room2	  3.74	  4.39	     -	     -	
- et_near_room3	  3.57	  4.45	     -	     -	
+  et_far_room1	  4.58	  5.19	     -	     -
+  et_far_room2	  2.97	  4.88	     -	     -
+  et_far_room3	  2.73	  4.13	     -	     -
+ et_near_room1	  4.50	  4.73	     -	     -
+ et_near_room2	  3.74	  4.39	     -	     -
+ et_near_room3	  3.57	  4.45	     -	     -
 ----------------------------------------------
        average	  3.68	  4.63	     -	     -
 ==============================================
 
 
 ==============================================
-             Log likelihood ratio             
+             Log likelihood ratio
 ----------------------------------------------
             	      	  mean	      	median
 ----------------------------------------------
             	   org	   enh	   org	   enh
 ----------------------------------------------
-  et_far_room1	  0.38	  0.33	  0.35	  0.30	
-  et_far_room2	  0.75	  0.60	  0.63	  0.48	
-  et_far_room3	  0.84	  0.64	  0.76	  0.57	
- et_near_room1	  0.35	  0.34	  0.33	  0.32	
- et_near_room2	  0.49	  0.48	  0.40	  0.32	
- et_near_room3	  0.65	  0.54	  0.59	  0.46	
+  et_far_room1	  0.38	  0.33	  0.35	  0.30
+  et_far_room2	  0.75	  0.60	  0.63	  0.48
+  et_far_room3	  0.84	  0.64	  0.76	  0.57
+ et_near_room1	  0.35	  0.34	  0.33	  0.32
+ et_near_room2	  0.49	  0.48	  0.40	  0.32
+ et_near_room3	  0.65	  0.54	  0.59	  0.46
 ----------------------------------------------
        average	  0.58	  0.49	  0.51	  0.41
 ==============================================
 
 
 ==============================================
-    Frequency-weighted segmental SNR in dB    
+    Frequency-weighted segmental SNR in dB
 ----------------------------------------------
             	      	  mean	      	median
 ----------------------------------------------
             	   org	   enh	   org	   enh
 ----------------------------------------------
-  et_far_room1	  6.68	  8.85	  9.24	 11.33	
-  et_far_room2	  1.04	  3.17	  1.77	  5.29	
-  et_far_room3	  0.24	  2.03	  0.89	  3.77	
- et_near_room1	  8.12	  9.33	 10.72	 11.48	
- et_near_room2	  3.35	  4.75	  5.52	  7.93	
- et_near_room3	  2.27	  3.87	  4.21	  6.86	
+  et_far_room1	  6.68	  8.85	  9.24	 11.33
+  et_far_room2	  1.04	  3.17	  1.77	  5.29
+  et_far_room3	  0.24	  2.03	  0.89	  3.77
+ et_near_room1	  8.12	  9.33	 10.72	 11.48
+ et_near_room2	  3.35	  4.75	  5.52	  7.93
+ et_near_room3	  2.27	  3.87	  4.21	  6.86
 ----------------------------------------------
        average	  3.62	  5.33	  5.39	  7.78
 ==============================================
@@ -292,8 +292,8 @@ RealData_et_far_room1:
 ------------------------------
             	   org	   enh
 ------------------------------
-  et_far_room1	  3.19	  4.47	
- et_near_room1	  3.17	  4.16	
+  et_far_room1	  3.19	  4.47
+ et_near_room1	  3.17	  4.16
 ------------------------------
        average	  3.18	  4.31
 ==============================

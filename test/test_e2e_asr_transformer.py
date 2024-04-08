@@ -65,7 +65,7 @@ def make_arg(**kwargs):
         mtlalpha=0.0,
         lsm_weight=0.001,
         char_list=["<blank>", "a", "e", "i", "o", "u"],
-        ctc_type="warpctc",
+        ctc_type="builtin",
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

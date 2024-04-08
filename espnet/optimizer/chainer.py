@@ -1,4 +1,5 @@
 """Chainer optimizer builders."""
+
 import argparse
 
 import chainer

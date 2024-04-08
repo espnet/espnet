@@ -47,4 +47,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_transformer_asr_model_valid.acc.best/dev|166|2664|57.4|24.8|17.8|9.3|51.9|76.5|
 |decode_asr_transformer_asr_model_valid.acc.best/test|166|2504|69.7|20.2|10.0|12.2|42.5|71.1|
-

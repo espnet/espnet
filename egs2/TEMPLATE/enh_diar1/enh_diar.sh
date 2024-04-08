@@ -156,7 +156,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -737,7 +737,7 @@ if ! "${skip_eval}"; then
                         ${_ref_scp} \
                         ${_inf_scp} \
                         --ref_channel ${ref_channel} \
-                        --flexible_numspk True
+                        --flexible_numspk true
 
                 for spk in $(seq "${spk_num}"); do
                     for protocol in ${scoring_protocol}; do
