@@ -292,7 +292,7 @@
 <span id="espnet2-asr-espnet-model"></span><h2>espnet2.asr.espnet_model<a class="headerlink" href="#espnet2-asr-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.espnet_model"></span><dl class="class">
 <dt id="espnet2.asr.espnet_model.ESPnetASRModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: Optional[espnet2.asr.decoder.abs_decoder.AbsDecoder], ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], aux_ctc: dict = None, ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', transducer_multi_blank_durations: List = [], transducer_multi_blank_sigma: float = 0.05, sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: Optional[espnet2.asr.decoder.abs_decoder.AbsDecoder], ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], aux_ctc: Optional[dict] = None, ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', transducer_multi_blank_durations: List = [], transducer_multi_blank_sigma: float = 0.05, sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>CTC-attention hybrid Encoder-Decoder model</p>
 <dl class="method">
@@ -548,7 +548,7 @@ GPU memory usage</p>
 <span id="espnet2-asr-ctc"></span><h2>espnet2.asr.ctc<a class="headerlink" href="#espnet2-asr-ctc-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.ctc"></span><dl class="class">
 <dt id="espnet2.asr.ctc.CTC">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.ctc.</code><code class="sig-name descname">CTC</code><span class="sig-paren">(</span><em class="sig-param">odim: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">ctc_type: str = 'builtin'</em>, <em class="sig-param">reduce: bool = True</em>, <em class="sig-param">ignore_nan_grad: bool = None</em>, <em class="sig-param">zero_infinity: bool = True</em>, <em class="sig-param">brctc_risk_strategy: str = 'exp'</em>, <em class="sig-param">brctc_group_strategy: str = 'end'</em>, <em class="sig-param">brctc_risk_factor: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/ctc.html#CTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.ctc.CTC" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.ctc.</code><code class="sig-name descname">CTC</code><span class="sig-paren">(</span><em class="sig-param">odim: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">ctc_type: str = 'builtin'</em>, <em class="sig-param">reduce: bool = True</em>, <em class="sig-param">ignore_nan_grad: Optional[bool] = None</em>, <em class="sig-param">zero_infinity: bool = True</em>, <em class="sig-param">brctc_risk_strategy: str = 'exp'</em>, <em class="sig-param">brctc_group_strategy: str = 'end'</em>, <em class="sig-param">brctc_risk_factor: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/ctc.html#CTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.ctc.CTC" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>CTC module.</p>
 <dl class="field-list simple">
@@ -704,7 +704,7 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.asr.frontend.melspec_torch"></span><p>Torchaudio MFCC</p>
 <dl class="class">
 <dt id="espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.melspec_torch.</code><code class="sig-name descname">MelSpectrogramTorch</code><span class="sig-paren">(</span><em class="sig-param">preemp: bool = True</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">log: bool = False</em>, <em class="sig-param">win_length: int = 400</em>, <em class="sig-param">hop_length: int = 160</em>, <em class="sig-param">f_min: int = 20</em>, <em class="sig-param">f_max: int = 7600</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">window_fn: str = 'hamming'</em>, <em class="sig-param">mel_scale: str = 'htk'</em>, <em class="sig-param">normalize: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/melspec_torch.html#MelSpectrogramTorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.melspec_torch.</code><code class="sig-name descname">MelSpectrogramTorch</code><span class="sig-paren">(</span><em class="sig-param">preemp: bool = True</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">log: bool = False</em>, <em class="sig-param">win_length: int = 400</em>, <em class="sig-param">hop_length: int = 160</em>, <em class="sig-param">f_min: int = 20</em>, <em class="sig-param">f_max: int = 7600</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">window_fn: str = 'hamming'</em>, <em class="sig-param">mel_scale: str = 'htk'</em>, <em class="sig-param">normalize: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/melspec_torch.html#MelSpectrogramTorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Mel-Spectrogram using Torchaudio Implementation.</p>
 <dl class="method">
@@ -793,7 +793,7 @@ where it decides the compression rate (Hz).</p></li>
 <span class="target" id="module-espnet2.asr.frontend.windowing"></span><p>Sliding Window for raw audio input data.</p>
 <dl class="class">
 <dt id="espnet2.asr.frontend.windowing.SlidingWindow">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.windowing.</code><code class="sig-name descname">SlidingWindow</code><span class="sig-paren">(</span><em class="sig-param">win_length: int = 400</em>, <em class="sig-param">hop_length: int = 160</em>, <em class="sig-param">channels: int = 1</em>, <em class="sig-param">padding: int = None</em>, <em class="sig-param">fs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/windowing.html#SlidingWindow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.windowing.SlidingWindow" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.windowing.</code><code class="sig-name descname">SlidingWindow</code><span class="sig-paren">(</span><em class="sig-param">win_length: int = 400</em>, <em class="sig-param">hop_length: int = 160</em>, <em class="sig-param">channels: int = 1</em>, <em class="sig-param">padding: Optional[int] = None</em>, <em class="sig-param">fs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/windowing.html#SlidingWindow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.windowing.SlidingWindow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Sliding Window.</p>
 <p>Provides a sliding window over a batched continuous raw audio tensor.
@@ -850,7 +850,7 @@ Tensor: Output lengths within batch.</p>
 <span id="espnet2-asr-frontend-default"></span><h2>espnet2.asr.frontend.default<a class="headerlink" href="#espnet2-asr-frontend-default-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.default"></span><dl class="class">
 <dt id="espnet2.asr.frontend.default.DefaultFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.default.</code><code class="sig-name descname">DefaultFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: int = None</em>, <em class="sig-param">fmax: int = None</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">apply_stft: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/default.html#DefaultFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.default.DefaultFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.default.</code><code class="sig-name descname">DefaultFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: Optional[int] = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = None</em>, <em class="sig-param">fmax: Optional[int] = None</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">apply_stft: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/default.html#DefaultFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.default.DefaultFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Conventional frontend structure for ASR.</p>
 <p>Stft -&gt; WPE -&gt; MVDR-Beamformer -&gt; Power-spec -&gt; Log-Mel-Fbank</p>
@@ -880,7 +880,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="espnet2-asr-frontend-whisper"></span><h2>espnet2.asr.frontend.whisper<a class="headerlink" href="#espnet2-asr-frontend-whisper-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.whisper"></span><dl class="class">
 <dt id="espnet2.asr.frontend.whisper.WhisperFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.whisper.</code><code class="sig-name descname">WhisperFrontend</code><span class="sig-paren">(</span><em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">freeze_weights: bool = True</em>, <em class="sig-param">download_dir: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/whisper.html#WhisperFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.whisper.WhisperFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.whisper.</code><code class="sig-name descname">WhisperFrontend</code><span class="sig-paren">(</span><em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">freeze_weights: bool = True</em>, <em class="sig-param">download_dir: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/whisper.html#WhisperFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.whisper.WhisperFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Speech Representation Using Encoder Outputs from OpenAI’s Whisper Model:</p>
 <p>URL: <a class="reference external" href="https://github.com/openai/whisper">https://github.com/openai/whisper</a></p>
@@ -920,7 +920,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="espnet2-asr-frontend-s3prl"></span><h2>espnet2.asr.frontend.s3prl<a class="headerlink" href="#espnet2-asr-frontend-s3prl-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.s3prl"></span><dl class="class">
 <dt id="espnet2.asr.frontend.s3prl.S3prlFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.s3prl.</code><code class="sig-name descname">S3prlFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">download_dir: str = None</em>, <em class="sig-param">multilayer_feature: bool = False</em>, <em class="sig-param">layer: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/s3prl.html#S3prlFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.s3prl.S3prlFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.s3prl.</code><code class="sig-name descname">S3prlFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">download_dir: Optional[str] = None</em>, <em class="sig-param">multilayer_feature: bool = False</em>, <em class="sig-param">layer: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/s3prl.html#S3prlFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.s3prl.S3prlFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Speech Pretrained Representation frontend structure for ASR.</p>
 <dl class="method">
@@ -1328,7 +1328,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="class">
 <dt id="espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.whisper_decoder.</code><code class="sig-name descname">OpenAIWhisperDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">download_dir: str = None</em>, <em class="sig-param">load_origin_token_embedding=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/whisper_decoder.html#OpenAIWhisperDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.whisper_decoder.</code><code class="sig-name descname">OpenAIWhisperDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">download_dir: Optional[str] = None</em>, <em class="sig-param">load_origin_token_embedding=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/whisper_decoder.html#OpenAIWhisperDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.whisper_decoder.OpenAIWhisperDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface" title="espnet.nets.scorer_interface.BatchScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.BatchScorerInterface</span></code></a></p>
 <p>Transformer-based Speech-to-Text Decoder from OpenAI’s Whisper Model:</p>
 <p>URL: <a class="reference external" href="https://github.com/openai/whisper">https://github.com/openai/whisper</a></p>
@@ -2856,9 +2856,9 @@ until further modifications.</p>
 <span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.rnnt"></span><dl class="function">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt.multiblank_rnnt_loss_gpu">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt.</code><code class="sig-name descname">multiblank_rnnt_loss_gpu</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">blank_label: int</em>, <em class="sig-param">big_blank_durations: list</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">sigma: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt.html#multiblank_rnnt_loss_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt.multiblank_rnnt_loss_gpu" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Wrapper method for accessing GPU Multi-blank RNNT loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541.pdf">https://arxiv.org/pdf/2211.03541.pdf</a>).</p>
-</dd>
+<dd><p>Wrapper method for accessing GPU Multi-blank RNNT loss</p>
+<p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541.pdf">https://arxiv.org/pdf/2211.03541.pdf</a>).</p>
+<dl class="simple">
 <dt>CUDA implementation ported from [HawkAaron/warp-transducer]</dt><dd><p>(<a class="reference external" href="https://github.com/HawkAaron/warp-transducer">https://github.com/HawkAaron/warp-transducer</a>).</p>
 </dd>
 </dl>
@@ -2955,14 +2955,12 @@ gradient to [-clamp, clamp].</p></li>
 <span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank"></span><dl class="function">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.rnnt_loss">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">rnnt_loss</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em>, <em class="sig-param">blank=0</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#rnnt_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.rnnt_loss" title="Permalink to this definition">¶</a></dt>
-<dd><p>RNN Transducer Loss (functional form)
-:param acts: Tensor of (batch x seqLength x labelLength x outputDim)</p>
-<blockquote>
-<div><p>containing output from network</p>
-</div></blockquote>
+<dd><p>RNN Transducer Loss (functional form)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Tensor of (batch x seqLength x labelLength x outputDim)
+containing output from network</p></li>
 <li><p><strong>labels</strong> – 2 dimensional Tensor containing all the targets of
 the batch with zero padded</p></li>
 <li><p><strong>act_lens</strong> – Tensor of size (batch) containing size of each
@@ -2982,6 +2980,7 @@ then the mean over the batch is taken. Default: ‘mean’</p></li>
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">RNNTLossNumba</code><span class="sig-paren">(</span><em class="sig-param">blank=0</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#RNNTLossNumba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>RNNT Loss Numba</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3001,7 +3000,8 @@ gradient to [-clamp, clamp].</p></li>
 <dl class="method">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#RNNTLossNumba.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba.forward" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
+<dd><p>Forward RNNTLossNumba.</p>
+<dl class="simple">
 <dt>log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</dt><dd><p>containing output from network</p>
 </dd>
 <dt>labels: 2 dimensional Tensor containing all the targets of the</dt><dd><p>batch with zero padded</p>
@@ -3018,6 +3018,7 @@ gradient to [-clamp, clamp].</p></li>
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">MultiblankRNNTLossNumba</code><span class="sig-paren">(</span><em class="sig-param">blank</em>, <em class="sig-param">big_blank_durations</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = -1</em>, <em class="sig-param">sigma: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#MultiblankRNNTLossNumba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Multiblank RNNT Loss Numba</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3043,7 +3044,8 @@ gradient to [-clamp, clamp].</p></li>
 <dl class="method">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#MultiblankRNNTLossNumba.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba.forward" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
+<dd><p>MultiblankRNNTLossNumba Forward.</p>
+<dl class="simple">
 <dt>log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</dt><dd><p>containing output from network</p>
 </dd>
 <dt>labels: 2 dimensional Tensor containing all the targets of</dt><dd><p>the batch with zero padded</p>
@@ -3219,8 +3221,8 @@ gradient to [-clamp, clamp].</p></li>
 <dl class="method">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_betas_and_grads">
 <code class="sig-name descname">compute_betas_and_grads</code><span class="sig-paren">(</span><em class="sig-param">grad: torch.Tensor</em>, <em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">alphas: torch.Tensor</em>, <em class="sig-param">betas: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">logll: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.compute_betas_and_grads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_betas_and_grads" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute backward variable beta as well as gradients of the activation
-matrix wrt loglikelihood of forward variable.</p>
+<dd><p>Compute backward variable beta as well as gradients of the activation</p>
+<p>matrix wrt loglikelihood of forward variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3261,8 +3263,8 @@ matrix wrt loglikelihood of forward variable.</p>
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">CpuRNNT_index</code><span class="sig-paren">(</span><em class="sig-param">U: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">minibatch: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">batch_first: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CpuRNNT_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>A placeholder Index computation class that emits the resolved index in a
-flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.</p>
+<p>A placeholder Index computation class that emits the resolved index in a</p>
+<p>flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3452,8 +3454,8 @@ in parallel threads.</p></li>
 <dl class="function">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.ReduceHelper">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">ReduceHelper</code><span class="sig-paren">(</span><em class="sig-param">I_opid: int</em>, <em class="sig-param">R_opid: int</em>, <em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">output: torch.Tensor</em>, <em class="sig-param">num_rows: int</em>, <em class="sig-param">num_cols: int</em>, <em class="sig-param">minus: bool</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#ReduceHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.ReduceHelper" title="Permalink to this definition">¶</a></dt>
-<dd><p>CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes
-the result to <cite>output</cite> according to I_op id.</p>
+<dd><p>CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes</p>
+<p>the result to <cite>output</cite> according to I_op id.</p>
 <p>The result is stored in the blockIdx.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -3688,10 +3690,8 @@ gradient to [-clamp, clamp].</p></li>
 <dl class="attribute">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_alphas_kernel">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_alphas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_alphas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_alphas_kernel" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Compute alpha (forward variable) probabilities for multi-blank transducuer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
-</dd>
-</dl>
+<dd><p>Compute alpha (forward variable) probabilities for multi-blank transducuer loss</p>
+<p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3736,10 +3736,8 @@ Represents U in the logprobs tensor.</p></li>
 <dl class="attribute">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_betas_kernel">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_betas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_betas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_betas_kernel" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Compute beta (backward variable) probabilities for multi-blank transducer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
-</dd>
-</dl>
+<dd><p>Compute beta (backward variable) probabilities for multi-blank transducer loss</p>
+<p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3784,10 +3782,8 @@ Represents U in the logprobs tensor.</p></li>
 <dl class="attribute">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_grad_kernel">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_grad_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_grad_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_grad_kernel" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Compute gradients for multi-blank transducer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
-</dd>
-</dl>
+<dd><p>Compute gradients for multi-blank transducer loss</p>
+<p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3840,7 +3836,8 @@ the gradient to [-clamp, clamp].</p></li>
 <dl class="attribute">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.logp">
 <code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">logp</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#logp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.logp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute the sum of log probability from the activation tensor and its denominator.</p>
+<dd><p>Compute the sum of log probability from the activation tensor</p>
+<p>and its denominator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3937,8 +3934,8 @@ lengths of the target sequence.</p></li>
 <dl class="method">
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.log_softmax">
 <code class="sig-name descname">log_softmax</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">denom: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT.log_softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.log_softmax" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes the log softmax denominator of the input activation tensor
-and stores the result in denom.</p>
+<dd><p>Computes the log softmax denominator of the input activation tensor</p>
+<p>and stores the result in denom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3966,10 +3963,8 @@ allow pointer indexing.</p></li>
 <dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.</code><code class="sig-name descname">MultiblankGPURNNT</code><span class="sig-paren">(</span><em class="sig-param">sigma: float</em>, <em class="sig-param">num_big_blanks: int</em>, <em class="sig-param">minibatch: int</em>, <em class="sig-param">maxT: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">workspace</em>, <em class="sig-param">big_blank_workspace</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#MultiblankGPURNNT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT</span></code></a></p>
-<dl class="simple">
-<dt>Helper class to launch the CUDA Kernels to compute Multi-blank Transducer Loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
-</dd>
-</dl>
+<p>Helper class to launch the CUDA Kernels to compute Multi-blank</p>
+<p>Transducer Loss(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -4955,13 +4950,17 @@ torch.Tensor: Not to be used now.</p>
 <dl class="method">
 <dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.extract_finetune">
 <code class="sig-name descname">extract_finetune</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">mask=False</em>, <em class="sig-param">ret_conv=False</em>, <em class="sig-param">output_layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.extract_finetune"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.extract_finetune" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward AVHubert Pretrain Encoder.
-:param source[‘video’]: input tensor (B, 1, L, H, W)
-:param source[‘audio’]: input tensor (B, F, L)
-:param padding_mask: input tensor (B, L)</p>
+<dd><p>Forward AVHubert Pretrain Encoder.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>encoded tensor and mask</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong><strong>[</strong><strong>'video'</strong><strong>]</strong> – input tensor (B, 1, L, H, W)</p></li>
+<li><p><strong>source</strong><strong>[</strong><strong>'audio'</strong><strong>]</strong> – input tensor (B, F, L)</p></li>
+<li><p><strong>padding_mask</strong> – input tensor (B, L)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>encoded tensor and mask</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4984,8 +4983,8 @@ torch.Tensor: Not to be used now.</p>
 <dl class="method">
 <dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_transformer">
 <code class="sig-name descname">forward_transformer</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">output_layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_transformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_transformer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward AVHubert Pretrain Encoder (without frontend).
-Assume the source is already fused feature.
+<dd><p>Forward AVHubert Pretrain Encoder (without frontend).</p>
+<p>Assume the source is already fused feature.
 :param source: input tensor (B, L, D*2)
 :param padding_mask: input tensor (B, L)</p>
 <dl class="field-list simple">
@@ -5049,14 +5048,18 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: Dict[str, torch.Tensor], ilens: torch.Tensor, prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward AVHubert Encoder.
-:param xs_pad[video]: input tensor (B, 1, L, H, W)
-:param xs_pad[audio]: input tensor (B, D, L)
-:param ilens: input length (B)
-:param prev_states: Not to be used now.</p>
+<dd><p>Forward AVHubert Encoder.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>position embedded tensor and mask</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong><strong>[</strong><strong>video</strong><strong>]</strong> – input tensor (B, 1, L, H, W)</p></li>
+<li><p><strong>xs_pad</strong><strong>[</strong><strong>audio</strong><strong>]</strong> – input tensor (B, D, L)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5866,7 +5869,7 @@ i.e. x -&gt; x + att(x)</p></li>
 <span id="espnet2-asr-encoder-whisper-encoder"></span><h2>espnet2.asr.encoder.whisper_encoder<a class="headerlink" href="#espnet2-asr-encoder-whisper-encoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.whisper_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.whisper_encoder.OpenAIWhisperEncoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.whisper_encoder.</code><code class="sig-name descname">OpenAIWhisperEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">download_dir: str = None</em>, <em class="sig-param">use_specaug: bool = False</em>, <em class="sig-param">specaug_conf: Optional[dict] = None</em>, <em class="sig-param">do_pad_trim: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/whisper_encoder.html#OpenAIWhisperEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.whisper_encoder.OpenAIWhisperEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.whisper_encoder.</code><code class="sig-name descname">OpenAIWhisperEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">whisper_model: str = 'small'</em>, <em class="sig-param">download_dir: Optional[str] = None</em>, <em class="sig-param">use_specaug: bool = False</em>, <em class="sig-param">specaug_conf: Optional[dict] = None</em>, <em class="sig-param">do_pad_trim: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/whisper_encoder.html#OpenAIWhisperEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.whisper_encoder.OpenAIWhisperEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
 <p>Transformer-based Speech Encoder from OpenAI’s Whisper Model:</p>
 <p>URL: <a class="reference external" href="https://github.com/openai/whisper">https://github.com/openai/whisper</a></p>

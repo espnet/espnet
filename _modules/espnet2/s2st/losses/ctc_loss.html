@@ -211,9 +211,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.s2st.losses.ctc_loss</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span></span><span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.s2st.losses.abs_loss</span> <span class="kn">import</span> <span class="n">AbsS2STLoss</span>
 
@@ -221,6 +219,7 @@
 <div class="viewcode-block" id="S2STCTCLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.s2st.html#espnet2.s2st.losses.ctc_loss.S2STCTCLoss">[docs]</a><span class="k">class</span> <span class="nc">S2STCTCLoss</span><span class="p">(</span><span class="n">AbsS2STLoss</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;CTC-based loss for S2ST.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -228,7 +227,6 @@
         <span class="c1"># Note(Jiatong): dummy CTC loss, only providing weight</span>
         <span class="c1"># for final loss calculation</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
 
 <div class="viewcode-block" id="S2STCTCLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.s2st.html#espnet2.s2st.losses.ctc_loss.S2STCTCLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">loss</span><span class="p">):</span>

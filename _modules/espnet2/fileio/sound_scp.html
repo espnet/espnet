@@ -213,11 +213,11 @@
   <h1>Source code for espnet2.fileio.sound_scp</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">collections.abc</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">soundfile</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">read_2columns_text</span><span class="p">,</span> <span class="n">read_multi_columns_text</span>
 
@@ -328,6 +328,7 @@
 <span class="sd">        but it increases the required amount of memory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">fname</span><span class="p">,</span>
@@ -336,7 +337,6 @@
         <span class="n">multi_columns</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">concat_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">always_2d</span> <span class="o">=</span> <span class="n">always_2d</span>
@@ -410,6 +410,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">outdir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
@@ -418,9 +419,8 @@
         <span class="n">multi_columns</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">output_name_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{key}</span><span class="s2">.</span><span class="si">{audio_format}</span><span class="s2">&quot;</span><span class="p">,</span>
         <span class="n">output_name_format_multi_columns</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{key}</span><span class="s2">-CH</span><span class="si">{channel}</span><span class="s2">.</span><span class="si">{audio_format}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="n">subtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">subtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">scpfile</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">scpfile</span><span class="p">)</span>

@@ -215,13 +215,14 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.uasr.segmenter.abs_segmenter</span> <span class="kn">import</span> <span class="n">AbsSegmenter</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 
 
 <div class="viewcode-block" id="JoinSegmenter"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter">[docs]</a><span class="k">class</span> <span class="nc">JoinSegmenter</span><span class="p">(</span><span class="n">AbsSegmenter</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">cfg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -231,7 +232,6 @@
         <span class="n">remove_zeros</span><span class="p">:</span> <span class="n">str2bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cfg</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;segmentation&quot;</span><span class="p">])</span>
@@ -244,20 +244,20 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">mean_pool_join</span> <span class="o">=</span> <span class="n">mean_join_pool</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">remove_zeros</span> <span class="o">=</span> <span class="n">remove_zeros</span>
 
-<div class="viewcode-block" id="JoinSegmenter.pre_segment"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.pre_segment">[docs]</a>    <span class="k">def</span> <span class="nf">pre_segment</span><span class="p">(</span>
+<div class="viewcode-block" id="JoinSegmenter.pre_segment"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.pre_segment">[docs]</a>    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">pre_segment</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">padding_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">padding_mask</span></div>
 
-<div class="viewcode-block" id="JoinSegmenter.logit_segment"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.logit_segment">[docs]</a>    <span class="k">def</span> <span class="nf">logit_segment</span><span class="p">(</span>
+<div class="viewcode-block" id="JoinSegmenter.logit_segment"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.logit_segment">[docs]</a>    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">logit_segment</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">padding_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">preds</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">padding_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>

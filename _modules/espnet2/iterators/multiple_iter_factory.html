@@ -215,19 +215,19 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Iterator</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
 
 
 <div class="viewcode-block" id="MultipleIterFactory"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.multiple_iter_factory.MultipleIterFactory">[docs]</a><span class="k">class</span> <span class="nc">MultipleIterFactory</span><span class="p">(</span><span class="n">AbsIterFactory</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">build_funcs</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">AbsIterFactory</span><span class="p">]],</span>
         <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">build_funcs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">build_funcs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="n">shuffle</span>

@@ -229,8 +229,6 @@
 <span class="c1"># ncsnpp.py and ncsnpp_utils are taken from</span>
 <span class="c1"># https://github.com/sp-uhh/sgmse/</span>
 
-<span class="c1"># pylint: skip-file</span>
-
 <span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -251,7 +249,9 @@
 
 <div class="viewcode-block" id="NCSNpp"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.ncsnpp.NCSNpp">[docs]</a><span class="k">class</span> <span class="nc">NCSNpp</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;NCSN++ model, adapted from https://github.com/yang-song/score_sde and</span>
-<span class="sd">    https://github.com/sp-uhh/sgmse repository&quot;&quot;&quot;</span>
+
+<span class="sd">    https://github.com/sp-uhh/sgmse repository</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

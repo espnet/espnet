@@ -211,17 +211,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.spk.encoder.ska_tdnn_encoder</h1><div class="highlight"><pre>
-<span></span><span class="ch">#! /usr/bin/python</span>
-<span class="c1"># -*- encoding: utf-8 -*-</span>
-<span class="c1"># SKA-TDNN, original code from: https://github.com/msh9184/ska-tdnn</span>
+<span></span><span class="c1"># SKA-TDNN, original code from: https://github.com/msh9184/ska-tdnn</span>
 <span class="c1"># adapted for ESPnet-SPK by Jee-weon Jung</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 
@@ -381,7 +378,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SKAttentionModule.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">convs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward function.</span>
+
 <span class="sd">        Input: [B, C, T]</span>
 <span class="sd">        Split: [K, B, C, T]</span>
 <span class="sd">        Fues: [B, C, T]</span>
@@ -453,7 +451,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="fwSKAttention.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward function.</span>
+
 <span class="sd">        Input: [B, C, F, T]</span>
 <span class="sd">        Split: [K, B, C, F, T]</span>
 <span class="sd">        Fues: [B, C, F, T]</span>
@@ -525,7 +524,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="cwSKAttention.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Function.</span>
+
 <span class="sd">        Input: [B, C, F, T]</span>
 <span class="sd">        Split: [K, B, C, F, T]</span>
 <span class="sd">        Fuse: [B, C, F, T]</span>
@@ -552,8 +552,8 @@
 
 
 <div class="viewcode-block" id="SkaTdnnEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder">[docs]</a><span class="k">class</span> <span class="nc">SkaTdnnEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.</span>
+
 <span class="sd">    Paper: S. Mun, J. Jung et al., &quot;Frequency and Multi-Scale Selective Kernel</span>
 <span class="sd">        Attention for Speaker Verification,&#39; in Proc. IEEE SLT 2022.</span>
 
@@ -565,6 +565,7 @@
 <span class="sd">        output_size: ouptut embedding dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -576,11 +577,10 @@
         <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;Bottle2neck&quot;</span><span class="p">:</span>
-            <span class="n">block</span> <span class="o">=</span> <span class="n">Bottle2neck</span>
+            <span class="n">block</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="n">Bottle2neck</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported block, got: </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

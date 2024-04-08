@@ -226,18 +226,19 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-10</span>
 
 
-<div class="viewcode-block" id="logmel2linear"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.logmel2linear">[docs]</a><span class="k">def</span> <span class="nf">logmel2linear</span><span class="p">(</span>
+<div class="viewcode-block" id="logmel2linear"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.logmel2linear">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">logmel2linear</span><span class="p">(</span>
     <span class="n">lmspc</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_fft</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_mels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">fmin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">fmax</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">fmin</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">fmax</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert log Mel filterbank to linear spectrogram.</span>
 
@@ -264,11 +265,12 @@
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">EPS</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inv_mel_basis</span><span class="p">,</span> <span class="n">mspc</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="griffin_lim"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.griffin_lim">[docs]</a><span class="k">def</span> <span class="nf">griffin_lim</span><span class="p">(</span>
+<div class="viewcode-block" id="griffin_lim"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.griffin_lim">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">griffin_lim</span><span class="p">(</span>
     <span class="n">spc</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">n_fft</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_shift</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">win_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
     <span class="n">n_iter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -324,16 +326,17 @@
 <div class="viewcode-block" id="Spectrogram2Waveform"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.Spectrogram2Waveform">[docs]</a><span class="k">class</span> <span class="nc">Spectrogram2Waveform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Spectrogram to waveform conversion module.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">n_fft</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">n_shift</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">n_mels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">win_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_mels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
-        <span class="n">fmin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">fmax</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fmin</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fmax</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">griffin_lim_iters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize module.</span>
@@ -350,7 +353,6 @@
 <span class="sd">            griffin_lim_iters: The number of iterations.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logmel2linear</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">partial</span><span class="p">(</span>

@@ -212,7 +212,7 @@
              
   <h1>Source code for espnet2.uasr.loss.phoneme_diversity_loss</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.uasr.loss.abs_loss</span> <span class="kn">import</span> <span class="n">AbsUASRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
@@ -221,12 +221,12 @@
 <div class="viewcode-block" id="UASRPhonemeDiversityLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss">[docs]</a><span class="k">class</span> <span class="nc">UASRPhonemeDiversityLoss</span><span class="p">(</span><span class="n">AbsUASRLoss</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;phoneme diversity loss for UASR.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
 

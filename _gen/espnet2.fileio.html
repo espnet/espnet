@@ -284,7 +284,7 @@ key2 /some/path/b.wav</p>
 
 <dl class="function">
 <dt id="espnet2.fileio.read_text.read_label">
-<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_label</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[Union[float, int]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_label" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_label</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[List[Union[str, float, int]]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a text file indicating sequences of number</p>
 <p class="rubric">Examples</p>
 <p>key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ….</p>
@@ -390,7 +390,7 @@ but it increases the required amount of memory.</p>
 
 <dl class="class">
 <dt id="espnet2.fileio.sound_scp.SoundScpWriter">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str], format='wav', multi_columns: bool = False, output_name_format: str = '{key}.{audio_format}', output_name_format_multi_columns: str = '{key}-CH{channel}.{audio_format}', subtype: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpWriter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str], format='wav', multi_columns: bool = False, output_name_format: str = '{key}.{audio_format}', output_name_format_multi_columns: str = '{key}-CH{channel}.{audio_format}', subtype: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Writer class for ‘wav.scp’</p>
 <dl class="field-list simple">

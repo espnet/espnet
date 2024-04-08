@@ -211,9 +211,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.samplers.build_batch_sampler</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.folded_batch_sampler</span> <span class="kn">import</span> <span class="n">FoldedBatchSampler</span>
@@ -282,7 +282,8 @@
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="build_batch_sampler"><a class="viewcode-back" href="../../../_gen/espnet2.samplers.html#espnet2.samplers.build_batch_sampler.build_batch_sampler">[docs]</a><span class="k">def</span> <span class="nf">build_batch_sampler</span><span class="p">(</span>
+<div class="viewcode-block" id="build_batch_sampler"><a class="viewcode-back" href="../../../_gen/espnet2.samplers.html#espnet2.samplers.build_batch_sampler.build_batch_sampler">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">build_batch_sampler</span><span class="p">(</span>
     <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">batch_bins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -293,7 +294,7 @@
     <span class="n">min_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">fold_lengths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">padding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">utt2category_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">utt2category_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsSampler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to instantiate BatchSampler.</span>
 
@@ -313,7 +314,6 @@
 <span class="sd">        padding: Whether sequences are input as a padded tensor or not.</span>
 <span class="sd">            used for &quot;numel&quot; mode</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No shape file are given&quot;</span><span class="p">)</span>
 
@@ -373,7 +373,6 @@
 
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: </span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">retval</span></div>
 </pre></div>
 

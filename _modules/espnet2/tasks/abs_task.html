@@ -232,7 +232,7 @@
 <span class="kn">import</span> <span class="nn">yaml</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet</span> <span class="kn">import</span> <span class="n">__version__</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
@@ -491,8 +491,8 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="AbsTask.get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.get_parser">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">get_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">config_argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="k">class</span> <span class="nc">ArgumentDefaultsRawTextHelpFormatter</span><span class="p">(</span>
             <span class="n">argparse</span><span class="o">.</span><span class="n">RawTextHelpFormatter</span><span class="p">,</span>
@@ -1174,7 +1174,6 @@
         <span class="bp">cls</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">add_task_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_optimizers"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_optimizers">[docs]</a>    <span class="nd">@classmethod</span>
@@ -1217,6 +1216,7 @@
         <span class="k">return</span> <span class="s2">&quot;required&quot;</span><span class="p">,</span> <span class="s2">&quot;print_config&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="s2">&quot;ngpu&quot;</span></div>
 
 <div class="viewcode-block" id="AbsTask.get_default_config"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.get_default_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">get_default_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the configuration as dict.</span>
 
@@ -1230,7 +1230,6 @@
             <span class="k">return</span> <span class="n">_cls</span>
 
         <span class="c1"># This method is used only for --print_config</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_parser</span><span class="p">()</span>
         <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -1284,8 +1283,8 @@
         <span class="k">return</span> <span class="n">config</span></div>
 
 <div class="viewcode-block" id="AbsTask.check_required_command_args"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.check_required_command_args">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">check_required_command_args</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
             <span class="k">if</span> <span class="s2">&quot;-&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Use &quot;_&quot; instead of &quot;-&quot;: parser.get_parser(&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">&quot;)&#39;</span><span class="p">)</span>
@@ -1306,6 +1305,7 @@
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.check_task_requirements"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.check_task_requirements">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">check_task_requirements</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">dataset</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">AbsDataset</span><span class="p">,</span> <span class="n">IterableESPnetDataset</span><span class="p">],</span>
@@ -1314,7 +1314,6 @@
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the dataset satisfy the requirement of current Task&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">mes</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;If you intend to use an additional input, modify &quot;</span>
             <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">.required_data_names()&quot; or &#39;</span>
@@ -1340,15 +1339,19 @@
                     <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.print_config"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.print_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">print_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="c1"># Shows the config: e.g. python train.py asr --print_config</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_default_config</span><span class="p">()</span>
         <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">yaml_no_alias_safe_dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="AbsTask.main"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.main">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cmd</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">get_commandline_args</span><span class="p">(),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parser</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_parser</span><span class="p">()</span>
@@ -1418,8 +1421,8 @@
                 <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="AbsTask.main_worker"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.main_worker">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">main_worker</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="c1"># 0. Init distributed process</span>
         <span class="n">distributed_option</span> <span class="o">=</span> <span class="n">build_dataclass</span><span class="p">(</span><span class="n">DistributedOption</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -1786,12 +1789,13 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_iter_factory</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a factory object of mini-batch iterator.</span>
 
@@ -1817,7 +1821,6 @@
 <span class="sd">        - 4 epoch with &quot;--num_iters_per_epoch&quot; == 1</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">iter_options</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_iter_options</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">distributed_option</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
 
         <span class="c1"># Overwrite iter_options if any kwargs is given</span>
@@ -1858,10 +1861,10 @@
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: iterator_type=</span><span class="si">{</span><span class="n">iterator_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_sequence_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_sequence_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_sequence_iter_factory</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">iter_options</span><span class="p">:</span> <span class="n">IteratorOptions</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span>
             <span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">,</span>
@@ -1940,10 +1943,10 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_category_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_category_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_category_iter_factory</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">iter_options</span><span class="p">:</span> <span class="n">IteratorOptions</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span>
             <span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">,</span>
@@ -2024,13 +2027,13 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_chunk_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_chunk_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_chunk_iter_factory</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
         <span class="n">iter_options</span><span class="p">:</span> <span class="n">IteratorOptions</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span>
             <span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">,</span>
@@ -2135,10 +2138,10 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_multiple_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_multiple_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_multiple_iter_factory</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">iter_options</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_iter_options</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">distributed_option</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span>
             <span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span>
@@ -2221,22 +2224,22 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_streaming_iterator"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_streaming_iterator">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_streaming_iterator</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">data_path_and_name_and_type</span><span class="p">,</span>
         <span class="n">preprocess_fn</span><span class="p">,</span>
         <span class="n">collate_fn</span><span class="p">,</span>
-        <span class="n">key_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
         <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataLoader</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build DataLoader using iterable dataset&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="c1"># For backward compatibility for pytorch DataLoader</span>
         <span class="k">if</span> <span class="n">collate_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_fn</span><span class="p">)</span>
@@ -2267,10 +2270,11 @@
 
     <span class="c1"># ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~</span>
 <div class="viewcode-block" id="AbsTask.build_model_from_file"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_model_from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_model_from_file</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AbsESPnetModel</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build model from the files.</span>
@@ -2283,7 +2287,6 @@
 <span class="sd">            device: Device type, &quot;cpu&quot;, &quot;cuda&quot;, or &quot;cuda:N&quot;.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">config_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
                 <span class="s2">&quot;The argument &#39;model_file&#39; must be provided &quot;</span>

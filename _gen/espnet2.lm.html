@@ -248,11 +248,11 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.lm.espnet_model_multitask.ESPnetMultitaskLanguageModel.nll">
 <code class="sig-name descname">nll</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">max_length: Optional[int] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/espnet_model_multitask.html#ESPnetMultitaskLanguageModel.nll"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model_multitask.ESPnetMultitaskLanguageModel.nll" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute negative log likelihood (nll)
-NOTE(yifan): We only use nll to calculate perplexity,</p>
-<blockquote>
-<div><p>so there is no condition in each sentence.</p>
-</div></blockquote>
+<dd><p>Compute negative log likelihood (nll)</p>
+<dl class="simple">
+<dt>NOTE(yifan): We only use nll to calculate perplexity,</dt><dd><p>so there is no condition in each sentence.</p>
+</dd>
+</dl>
 <p>Normally, this function is called in batchify_nll.
 :param text: (Batch, Length)
 :param text_lengths: (Batch,)
@@ -422,7 +422,7 @@ and next state for ys</p>
 <span class="target" id="module-espnet2.lm.seq_rnn_lm"></span><p>Sequential implementation of Recurrent Neural Network Language Model.</p>
 <dl class="class">
 <dt id="espnet2.lm.seq_rnn_lm.SequentialRNNLM">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.seq_rnn_lm.</code><code class="sig-name descname">SequentialRNNLM</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">unit: int = 650</em>, <em class="sig-param">nhid: int = None</em>, <em class="sig-param">nlayers: int = 2</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">tie_weights: bool = False</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">ignore_id: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/seq_rnn_lm.html#SequentialRNNLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.seq_rnn_lm.SequentialRNNLM" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.seq_rnn_lm.</code><code class="sig-name descname">SequentialRNNLM</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">unit: int = 650</em>, <em class="sig-param">nhid: Optional[int] = None</em>, <em class="sig-param">nlayers: int = 2</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">tie_weights: bool = False</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">ignore_id: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/seq_rnn_lm.html#SequentialRNNLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.seq_rnn_lm.SequentialRNNLM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.lm.abs_model.AbsLM" title="espnet2.lm.abs_model.AbsLM"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.lm.abs_model.AbsLM</span></code></a></p>
 <p>Sequential RNNLM.</p>
 <div class="admonition seealso">

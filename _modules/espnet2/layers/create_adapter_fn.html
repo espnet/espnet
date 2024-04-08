@@ -211,10 +211,10 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.layers.create_adapter_fn</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.create_adapter_utils</span> <span class="kn">import</span> <span class="p">(</span>
@@ -237,7 +237,7 @@
     <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">False</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">s3prl</span>
+    <span class="kn">import</span> <span class="nn">s3prl</span>  <span class="c1"># noqa</span>
     <span class="kn">from</span> <span class="nn">s3prl.upstream.wav2vec2.wav2vec2_model</span> <span class="kn">import</span> <span class="n">TransformerSentenceEncoderLayer</span>
 
     <span class="n">is_s3prl_available</span> <span class="o">=</span> <span class="kc">True</span>
@@ -252,7 +252,8 @@
     <span class="n">is_lora_available</span> <span class="o">=</span> <span class="kc">False</span>
 
 
-<div class="viewcode-block" id="create_houlsby_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_houlsby_adapter">[docs]</a><span class="k">def</span> <span class="nf">create_houlsby_adapter</span><span class="p">(</span>
+<div class="viewcode-block" id="create_houlsby_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_houlsby_adapter">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">create_houlsby_adapter</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">bottleneck</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
     <span class="n">target_layers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
@@ -268,7 +269,6 @@
             <span class="s2">&quot;Error: S3PRL is not properly installed.&quot;</span>
             <span class="s2">&quot;Please install S3PRL: cd $</span><span class="si">{MAIN_ROOT}</span><span class="s2">/tools &amp;&amp; make s3prl.done&quot;</span>
         <span class="p">)</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;frontend&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
         <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="n">S3prlFrontend</span>
     <span class="p">),</span> <span class="s2">&quot;Only support S3PRL frontend now !!&quot;</span>
@@ -295,13 +295,14 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target layers </span><span class="si">{</span><span class="n">target_layers</span><span class="si">}</span><span class="s2"> not found in the base model.&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="create_lora_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_lora_adapter">[docs]</a><span class="k">def</span> <span class="nf">create_lora_adapter</span><span class="p">(</span>
+<div class="viewcode-block" id="create_lora_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_lora_adapter">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">create_lora_adapter</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">alpha</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">target_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">],</span>
-    <span class="n">bias_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="n">bias_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create LoRA adapter for the base model.</span>
 
@@ -324,7 +325,6 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_lora_available</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">&quot;Requiring loralib. Install loralib following: &quot;</span>
@@ -338,7 +338,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">check_target_module_exists</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_modules</span><span class="p">):</span>
             <span class="k">continue</span>
 
-        <span class="c1"># TODO is this a good way to check the target module?</span>
+        <span class="c1"># TODO(gituser) is this a good way to check the target module?</span>
         <span class="c1"># check_target_module_exists needs only one of the target modules</span>
         <span class="c1"># to be in the key, but what if one key exists and another doesn&#39;t?</span>
         <span class="c1"># Should this case raise an error?</span>
@@ -364,13 +364,14 @@
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="create_new_houlsby_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_new_houlsby_module">[docs]</a><span class="k">def</span> <span class="nf">create_new_houlsby_module</span><span class="p">(</span><span class="n">target_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">bottleneck</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new houlsby adapter module for the given target module\n.</span>
+<div class="viewcode-block" id="create_new_houlsby_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_new_houlsby_module">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">create_new_houlsby_module</span><span class="p">(</span><span class="n">target_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">bottleneck</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new houlsby adapter module for the given target module.</span>
+
 <span class="sd">    Currently, only support:</span>
 <span class="sd">    Wav2Vec2EncoderLayerStableLayerNorm &amp;</span>
 <span class="sd">    TransformerSentenceEncoderLayer</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">Wav2Vec2EncoderLayerStableLayerNorm</span><span class="p">):</span>
 
         <span class="n">input_size</span> <span class="o">=</span> <span class="n">target_module</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">normalized_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -432,11 +433,11 @@
     <span class="k">return</span> <span class="n">adapter_added_layer</span></div>
 
 
-<div class="viewcode-block" id="create_new_lora_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_new_lora_module">[docs]</a><span class="k">def</span> <span class="nf">create_new_lora_module</span><span class="p">(</span>
+<div class="viewcode-block" id="create_new_lora_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_fn.create_new_lora_module">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">create_new_lora_module</span><span class="p">(</span>
     <span class="n">target_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new lora module for the given target module.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="n">bias</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="s2">&quot;bias&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target_module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">):</span>

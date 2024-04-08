@@ -212,18 +212,17 @@
              
   <h1>Source code for espnet2.s2st.losses.tacotron_loss</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.s2st.losses.abs_loss</span> <span class="kn">import</span> <span class="n">AbsS2STLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2Loss</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
 
 
 <div class="viewcode-block" id="S2STTacotron2Loss"><a class="viewcode-back" href="../../../../_gen/espnet2.s2st.html#espnet2.s2st.losses.tacotron_loss.S2STTacotron2Loss">[docs]</a><span class="k">class</span> <span class="nc">S2STTacotron2Loss</span><span class="p">(</span><span class="n">AbsS2STLoss</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Tacotron-based loss for S2ST.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -233,7 +232,6 @@
         <span class="n">bce_pos_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">Tacotron2Loss</span><span class="p">(</span>

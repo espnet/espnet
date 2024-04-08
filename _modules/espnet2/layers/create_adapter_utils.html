@@ -214,18 +214,18 @@
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 
-<div class="viewcode-block" id="replace_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.replace_module">[docs]</a><span class="k">def</span> <span class="nf">replace_module</span><span class="p">(</span>
+<div class="viewcode-block" id="replace_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.replace_module">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">replace_module</span><span class="p">(</span>
     <span class="n">parent_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">child_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">old_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">new_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Replace the target module with the new module.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-    <span class="c1"># TODO add hook and whether requires_grad to them</span>
+    <span class="c1"># TODO(gituser) add hook and whether requires_grad to them</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">old_module</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">device</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">parent_module</span><span class="p">,</span> <span class="n">child_name</span><span class="p">,</span> <span class="n">new_module</span><span class="p">)</span>
 
@@ -238,15 +238,15 @@
     <span class="n">new_module</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="check_target_module_exists"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.check_target_module_exists">[docs]</a><span class="k">def</span> <span class="nf">check_target_module_exists</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<div class="viewcode-block" id="check_target_module_exists"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.check_target_module_exists">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">check_target_module_exists</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the target_modules matchs the given key.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">target_key</span><span class="p">)</span> <span class="k">for</span> <span class="n">target_key</span> <span class="ow">in</span> <span class="n">target_modules</span><span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="get_submodules"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.get_submodules">[docs]</a><span class="k">def</span> <span class="nf">get_submodules</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="get_submodules"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter_utils.get_submodules">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">get_submodules</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the submodules of the given key.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="n">parent_module</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_submodule</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
     <span class="n">target_name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">target_module</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_submodule</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>

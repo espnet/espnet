@@ -220,7 +220,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 
 <div class="viewcode-block" id="LogCompression"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.LogCompression">[docs]</a><span class="k">class</span> <span class="nc">LogCompression</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -261,6 +261,7 @@
 <span class="sd">    and not on the input values, which is different to traditional ASR.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -285,7 +286,6 @@
 <span class="sd">            window_func: Window function on the filter, one of [&quot;hamming&quot;, &quot;none&quot;].</span>
 <span class="sd">            fs (str, int, float): Sample rate of the input data</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">window_funcs</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;none&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">none_window</span><span class="p">,</span>
@@ -411,6 +411,7 @@
         <span class="k">return</span> <span class="mf">700.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1125.0</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MelScale.bank"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.MelScale.bank">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">bank</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain initialization values for the mel scale.</span>
 
@@ -422,7 +423,6 @@
 <span class="sd">            torch.Tensor: Filter start frequencíes.</span>
 <span class="sd">            torch.Tensor: Filter stop frequencies.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="c1"># min and max bandpass edge frequencies</span>
         <span class="n">min_frequency</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">30.0</span><span class="p">)</span>
         <span class="n">max_frequency</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">fs</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span>
@@ -460,6 +460,7 @@
         <span class="k">return</span> <span class="n">f</span> <span class="o">*</span> <span class="mf">1000.0</span></div>
 
 <div class="viewcode-block" id="BarkScale.bank"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.BarkScale.bank">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">bank</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain initialization values for the Bark scale.</span>
 
@@ -471,7 +472,6 @@
 <span class="sd">            torch.Tensor: Filter start frequencíes.</span>
 <span class="sd">            torch.Tensor: Filter stop frequencíes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="c1"># min and max BARK center frequencies by approximation</span>
         <span class="n">min_center_frequency</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">70.0</span><span class="p">)</span>
         <span class="n">max_center_frequency</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">fs</span> <span class="o">*</span> <span class="mf">0.45</span><span class="p">)</span>

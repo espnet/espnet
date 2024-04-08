@@ -220,15 +220,15 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.spk.layers.ecapa_block</span> <span class="kn">import</span> <span class="n">EcapaBlock</span>
 
 
 <div class="viewcode-block" id="EcapaTdnnEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder">[docs]</a><span class="k">class</span> <span class="nc">EcapaTdnnEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from</span>
+
 <span class="sd">    mel-filterbank energy or MFCC features.</span>
 <span class="sd">    Paper: B Desplanques at el., ``ECAPA-TDNN: Emphasized Channel Attention,</span>
 <span class="sd">        Propagation and Aggregation in TDNN Based Speaker Verification,&#39;&#39;</span>
@@ -242,6 +242,7 @@
 <span class="sd">        output_size: output embedding dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -251,10 +252,9 @@
         <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;EcapaBlock&quot;</span><span class="p">:</span>
-            <span class="n">block</span> <span class="o">=</span> <span class="n">EcapaBlock</span>
+            <span class="n">block</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="n">EcapaBlock</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported block, got: </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">output_size</span>

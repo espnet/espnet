@@ -218,19 +218,13 @@
 <span class="sd">&quot;&quot;&quot;Translatotron Synthesizer related modules for ESPnet2.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.s2st.synthesizer.abs_synthesizer</span> <span class="kn">import</span> <span class="n">AbsSynthesizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
-<span class="kn">from</span> <span class="nn">espnet2.tts.gst.style_encoder</span> <span class="kn">import</span> <span class="n">StyleEncoder</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">GuidedAttentionLoss</span><span class="p">,</span>
-    <span class="n">Tacotron2Loss</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AttForward</span><span class="p">,</span>
@@ -239,7 +233,6 @@
     <span class="n">AttMultiHeadAdd</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.decoder</span> <span class="kn">import</span> <span class="n">Decoder</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 
 
 <div class="viewcode-block" id="Translatotron"><a class="viewcode-back" href="../../../../_gen/espnet2.s2st.html#espnet2.s2st.synthesizer.translatotron.Translatotron">[docs]</a><span class="k">class</span> <span class="nc">Translatotron</span><span class="p">(</span><span class="n">AbsSynthesizer</span><span class="p">):</span>
@@ -254,6 +247,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="c1"># network structure related</span>
@@ -273,7 +267,7 @@
         <span class="n">postnet_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
         <span class="n">postnet_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
         <span class="n">postnet_filts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-        <span class="n">output_activation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">output_activation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">use_concate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">use_residual</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -319,7 +313,6 @@
 <span class="sd">            dropout_rate (float): Dropout rate.</span>
 <span class="sd">            zoneout_rate (float): Zoneout rate.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="c1"># store hyperparameters</span>

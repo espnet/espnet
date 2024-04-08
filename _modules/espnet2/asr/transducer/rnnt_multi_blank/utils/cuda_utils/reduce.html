@@ -254,18 +254,14 @@
 
 
 <div class="viewcode-block" id="I_Op"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op">[docs]</a><span class="k">class</span> <span class="nc">I_Op</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Represents an operation that is performed on the input tensor</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an operation that is performed on the input tensor&quot;&quot;&quot;</span>
 
     <span class="n">EXPONENTIAL</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">IDENTITY</span> <span class="o">=</span> <span class="mi">1</span></div>
 
 
 <div class="viewcode-block" id="R_Op"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op">[docs]</a><span class="k">class</span> <span class="nc">R_Op</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Represents a reduction operation performed on the input tensor</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a reduction operation performed on the input tensor&quot;&quot;&quot;</span>
 
     <span class="n">ADD</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">MAXIMUM</span> <span class="o">=</span> <span class="mi">1</span></div>
@@ -273,8 +269,7 @@
 
 <div class="viewcode-block" id="CTAReduce"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.CTAReduce">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">CTAReduce</span><span class="p">(</span><span class="n">tid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">storage</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">R_opid</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    CUDA Warp reduction kernel.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CUDA Warp reduction kernel.</span>
 
 <span class="sd">    It is a device kernel to be called by other kernels.</span>
 
@@ -336,8 +331,7 @@
 
 <span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">_reduce_rows</span><span class="p">(</span><span class="n">I_opid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">R_opid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">num_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    CUDA Warp reduction kernel which reduces via the R_Op.Maximum</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CUDA Warp reduction kernel which reduces via the R_Op.Maximum</span>
 
 <span class="sd">    Reduces the input data such that I_Op = Identity and R_op = Maximum.</span>
 <span class="sd">    The result is stored in the blockIdx, and is stored as an identity op.</span>
@@ -405,8 +399,7 @@
 
 <span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">_reduce_minus</span><span class="p">(</span><span class="n">I_opid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">R_opid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">num_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    CUDA Warp reduction kernel which reduces via the R_Op.Add</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CUDA Warp reduction kernel which reduces via the R_Op.Add</span>
 
 <span class="sd">    Reduces the input data such that I_Op = Exponential and R_op = Add.</span>
 <span class="sd">    The result is stored in the blockIdx, and is stored as an exp op.</span>
@@ -481,8 +474,8 @@
     <span class="n">minus</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">stream</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes</span>
+
 <span class="sd">    the result to `output` according to I_op id.</span>
 
 <span class="sd">    The result is stored in the blockIdx.</span>
@@ -527,8 +520,7 @@
 
 
 <div class="viewcode-block" id="reduce_exp"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_exp">[docs]</a><span class="k">def</span> <span class="nf">reduce_exp</span><span class="p">(</span><span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">denom</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minus</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Helper method to call the Warp Reduction Kernel to perform `exp` reduction.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper method to call the Warp Reduction Kernel to perform `exp` reduction.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Efficient warp occurs at input shapes of 2 ^ K.</span>
@@ -563,8 +555,7 @@
 
 
 <div class="viewcode-block" id="reduce_max"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_max">[docs]</a><span class="k">def</span> <span class="nf">reduce_max</span><span class="p">(</span><span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">denom</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minus</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Helper method to call the Warp Reduction Kernel to perform `max` reduction.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper method to call the Warp Reduction Kernel to perform `max` reduction.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Efficient warp occurs at input shapes of 2 ^ K.</span>

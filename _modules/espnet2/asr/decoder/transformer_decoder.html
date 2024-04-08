@@ -218,7 +218,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
@@ -260,6 +260,7 @@
 <span class="sd">            i.e. x -&gt; x + att(x)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -271,7 +272,6 @@
         <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">PositionalEncoding</span><span class="p">,</span>
         <span class="n">normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">attention_dim</span> <span class="o">=</span> <span class="n">encoder_output_size</span>
 
@@ -497,6 +497,7 @@
 
 
 <div class="viewcode-block" id="TransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -515,7 +516,6 @@
         <span class="n">concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">layer_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
@@ -548,6 +548,7 @@
 
 
 <div class="viewcode-block" id="LightweightConvolutionTransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.LightweightConvolutionTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">LightweightConvolutionTransformerDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -568,7 +569,6 @@
         <span class="n">conv_kernel_length</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span>
         <span class="n">conv_usebias</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_kernel_length</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;conv_kernel_length must have equal number of values to num_blocks: &quot;</span>
@@ -610,6 +610,7 @@
 
 
 <div class="viewcode-block" id="LightweightConvolution2DTransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.LightweightConvolution2DTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">LightweightConvolution2DTransformerDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -630,7 +631,6 @@
         <span class="n">conv_kernel_length</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span>
         <span class="n">conv_usebias</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_kernel_length</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;conv_kernel_length must have equal number of values to num_blocks: &quot;</span>
@@ -672,6 +672,7 @@
 
 
 <div class="viewcode-block" id="DynamicConvolutionTransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.DynamicConvolutionTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">DynamicConvolutionTransformerDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -692,7 +693,6 @@
         <span class="n">conv_kernel_length</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span>
         <span class="n">conv_usebias</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_kernel_length</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;conv_kernel_length must have equal number of values to num_blocks: &quot;</span>
@@ -734,6 +734,7 @@
 
 
 <div class="viewcode-block" id="DynamicConvolution2DTransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.DynamicConvolution2DTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">DynamicConvolution2DTransformerDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -754,7 +755,6 @@
         <span class="n">conv_kernel_length</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span>
         <span class="n">conv_usebias</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_kernel_length</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_blocks</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;conv_kernel_length must have equal number of values to num_blocks: &quot;</span>
@@ -796,6 +796,7 @@
 
 
 <div class="viewcode-block" id="TransformerMDDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerMDDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -814,7 +815,6 @@
         <span class="n">concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_speech_attn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>

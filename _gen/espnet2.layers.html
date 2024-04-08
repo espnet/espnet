@@ -873,13 +873,13 @@ e.g.  {“rank”: 8, “alpha”: 8, …} for lora</p></li>
 <dt id="espnet2.layers.houlsby_adapter_layer.HoulsbyTransformerSentenceEncoderLayer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.houlsby_adapter_layer.</code><code class="sig-name descname">HoulsbyTransformerSentenceEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">bottleneck: int = 32</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/houlsby_adapter_layer.html#HoulsbyTransformerSentenceEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.houlsby_adapter_layer.HoulsbyTransformerSentenceEncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">s3prl.upstream.wav2vec2.wav2vec2_model.TransformerSentenceEncoderLayer</span></code></p>
-<p>Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
-models.</p>
+<p>Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained</p>
+<p>models.</p>
 <dl class="method">
 <dt id="espnet2.layers.houlsby_adapter_layer.HoulsbyTransformerSentenceEncoderLayer.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">self_attn_mask: torch.Tensor = None</em>, <em class="sig-param">self_attn_padding_mask: torch.Tensor = None</em>, <em class="sig-param">need_weights: bool = False</em>, <em class="sig-param">att_args=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/houlsby_adapter_layer.html#HoulsbyTransformerSentenceEncoderLayer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.houlsby_adapter_layer.HoulsbyTransformerSentenceEncoderLayer.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>LayerNorm is applied either before or after the self-attention/ffn
-modules similar to the original Transformer imlementation.</p>
+<dd><p>LayerNorm is applied either before or after the self-attention/ffn</p>
+<p>modules similar to the original Transformer imlementation.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1020,7 +1020,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="function">
 <dt id="espnet2.layers.create_adapter_fn.create_lora_adapter">
-<code class="sig-prename descclassname">espnet2.layers.create_adapter_fn.</code><code class="sig-name descname">create_lora_adapter</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, rank: int = 8, alpha: int = 8, dropout_rate: float = 0.0, target_modules: List[str] = ['query'], bias_type: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_adapter_fn.html#create_lora_adapter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_adapter_fn.create_lora_adapter" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.layers.create_adapter_fn.</code><code class="sig-name descname">create_lora_adapter</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, rank: int = 8, alpha: int = 8, dropout_rate: float = 0.0, target_modules: List[str] = ['query'], bias_type: Optional[str] = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_adapter_fn.html#create_lora_adapter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_adapter_fn.create_lora_adapter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create LoRA adapter for the base model.</p>
 <p>See: <a class="reference external" href="https://arxiv.org/pdf/2106.09685.pdf">https://arxiv.org/pdf/2106.09685.pdf</a></p>
 <dl class="field-list simple">
@@ -1046,13 +1046,10 @@ one of [“none”, “all”, “lora_only”].
 <dl class="function">
 <dt id="espnet2.layers.create_adapter_fn.create_new_houlsby_module">
 <code class="sig-prename descclassname">espnet2.layers.create_adapter_fn.</code><code class="sig-name descname">create_new_houlsby_module</code><span class="sig-paren">(</span><em class="sig-param">target_module: torch.nn.modules.module.Module</em>, <em class="sig-param">bottleneck: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_adapter_fn.html#create_new_houlsby_module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_adapter_fn.create_new_houlsby_module" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a new houlsby adapter module for the given target module
-.</p>
-<blockquote>
-<div><p>Currently, only support:
+<dd><p>Create a new houlsby adapter module for the given target module.</p>
+<p>Currently, only support:
 Wav2Vec2EncoderLayerStableLayerNorm &amp;
 TransformerSentenceEncoderLayer</p>
-</div></blockquote>
 </dd></dl>
 
 <dl class="function">
@@ -1066,7 +1063,7 @@ TransformerSentenceEncoderLayer</p>
 <span id="espnet2-layers-stft"></span><h2>espnet2.layers.stft<a class="headerlink" href="#espnet2-layers-stft-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.stft"></span><dl class="class">
 <dt id="espnet2.layers.stft.Stft">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.stft.</code><code class="sig-name descname">Stft</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/stft.html#Stft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.stft.Stft" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.stft.</code><code class="sig-name descname">Stft</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: Optional[int] = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/stft.html#Stft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.stft.Stft" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <a class="reference internal" href="#espnet2.layers.inversible_interface.InversibleInterface" title="espnet2.layers.inversible_interface.InversibleInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.layers.inversible_interface.InversibleInterface</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.layers.stft.Stft.extra_repr">

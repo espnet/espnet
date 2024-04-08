@@ -227,6 +227,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.visinger2.ddsp</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">remove_above_nyquist</span><span class="p">,</span>
@@ -236,14 +237,13 @@
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">HiFiGANMultiPeriodDiscriminator</span><span class="p">,</span>
     <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
-    <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>
-    <span class="n">HiFiGANPeriodDiscriminator</span><span class="p">,</span>
-    <span class="n">HiFiGANScaleDiscriminator</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.residual_block</span> <span class="kn">import</span> <span class="n">ResidualBlock</span>
 
 
 <div class="viewcode-block" id="VISinger2VocoderGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.__init__.VISinger2VocoderGenerator">[docs]</a><span class="k">class</span> <span class="nc">VISinger2VocoderGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
@@ -626,7 +626,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hann_window</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_size</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Generator_Noise.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.__init__.Generator_Noise.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Generator Noise.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, hidden_channels, T).</span>
 <span class="sd">            mask (Tensor): Mask tensor (B, 1, T).</span>
@@ -675,8 +676,7 @@
         <span class="n">divisors</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialize Multi-Frequency Discriminator module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Multi-Frequency Discriminator module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hop_lengths (list): List of hop lengths.</span>
@@ -691,7 +691,7 @@
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-        <span class="c1"># TODO (Yifeng): Maybe use LogMelFbank instead of TorchSTFT</span>
+        <span class="c1"># TODO(Yifeng): Maybe use LogMelFbank instead of TorchSTFT</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stfts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">TorchSTFT</span><span class="p">(</span>
@@ -724,8 +724,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="MultiFrequencyDiscriminator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.__init__.MultiFrequencyDiscriminator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Forward pass of Multi-Frequency Discriminator module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass of Multi-Frequency Discriminator module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, 1, T * hop_size).</span>
@@ -755,7 +754,8 @@
         <span class="n">divisors</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Base Frequence Discriminator</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            in_channels (int): Number of input channels.</span>
 <span class="sd">            hidden_channels (int, optional): Number of channels in hidden layers.</span>
@@ -866,8 +866,7 @@
             <span class="s2">&quot;strides&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="p">},</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Discriminator module for VISinger2, including MSD, MPD, and MFD.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discriminator module for VISinger2, including MSD, MPD, and MFD.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            scales (int): Number of scales to be used in the multi-scale discriminator.</span>
@@ -1087,6 +1086,7 @@
 
 <div class="viewcode-block" id="MelScale"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.__init__.MelScale">[docs]</a><span class="k">class</span> <span class="nc">MelScale</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Turn a normal STFT into a mel frequency STFT, using a conversion</span>
+
 <span class="sd">    matrix.  This uses triangular filter banks.</span>
 <span class="sd">    User can control which device the filter bank (fb) is (e.g. fb.to(spec_f.device)).</span>
 <span class="sd">    Args:</span>
@@ -1131,7 +1131,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;fb&quot;</span><span class="p">,</span> <span class="n">fb</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MelScale.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.__init__.MelScale.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">specgram</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward MelScale</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            specgram (Tensor): A spectrogram STFT of dimension (..., freq, time).</span>
 <span class="sd">        Returns:</span>
@@ -1169,6 +1170,7 @@
     <span class="n">norm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a frequency bin conversion matrix.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        n_freqs (int): Number of frequencies to highlight/apply</span>
 <span class="sd">        f_min (float): Minimum frequency (Hz)</span>

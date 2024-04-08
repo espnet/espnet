@@ -323,11 +323,12 @@
 
     <span class="k">def</span> <span class="nf">_reconfig_for_fs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reconfigure iSTFT window and hop lengths for a new sampling rate</span>
+
 <span class="sd">        while keeping their duration fixed.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            fs (int): new sampling rate</span>
-<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">fs</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span> <span class="o">%</span> <span class="n">fs</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">*</span> <span class="n">fs</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft</span><span class="o">.</span><span class="n">win_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">*</span> <span class="n">fs</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span>
@@ -337,7 +338,7 @@
         <span class="n">window_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="si">}</span><span class="s2">_window&quot;</span><span class="p">)</span>
         <span class="n">window</span> <span class="o">=</span> <span class="n">window_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span><span class="p">)</span>
         <span class="n">n_pad_left</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">//</span> <span class="mi">2</span>
-        <span class="n">n_pad_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">n_pad_left</span>
+        <span class="n">n_pad_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">n_pad_left</span>  <span class="c1"># noqa</span>
         <span class="k">return</span> <span class="n">window</span>
 
 <div class="viewcode-block" id="STFTDecoder.spec_back"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.stft_decoder.STFTDecoder.spec_back">[docs]</a>    <span class="k">def</span> <span class="nf">spec_back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>

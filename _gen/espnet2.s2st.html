@@ -281,8 +281,8 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.s2st.aux_attention.abs_aux_attention.AbsS2STAuxAttention">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.aux_attention.abs_aux_attention.</code><code class="sig-name descname">AbsS2STAuxAttention</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/aux_attention/abs_aux_attention.html#AbsS2STAuxAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.aux_attention.abs_aux_attention.AbsS2STAuxAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
-<p>Base class for all S2ST auxiliary attention modules.
-Refer to <a class="reference external" href="https://arxiv.org/abs/2107.08661">https://arxiv.org/abs/2107.08661</a></p>
+<p>Base class for all S2ST auxiliary attention modules.</p>
+<p>Refer to <a class="reference external" href="https://arxiv.org/abs/2107.08661">https://arxiv.org/abs/2107.08661</a></p>
 <p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
 <dl class="method">
 <dt id="espnet2.s2st.aux_attention.abs_aux_attention.AbsS2STAuxAttention.forward">
@@ -316,23 +316,22 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.s2st.aux_attention.multihead.MultiHeadAttention.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">query: torch.Tensor</em>, <em class="sig-param">key: torch.Tensor</em>, <em class="sig-param">value: torch.Tensor</em>, <em class="sig-param">mask: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/aux_attention/multihead.html#MultiHeadAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.aux_attention.multihead.MultiHeadAttention.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-:param query: Query tensor (#batch, time1, size).
-:type query: torch.Tensor
-:param key: Key tensor (#batch, time2, size).
-:type key: torch.Tensor
-:param value: Value tensor (#batch, time2, size).
-:type value: torch.Tensor
-:param mask: Mask tensor (#batch, 1, time2) or</p>
-<blockquote>
-<div><p>(#batch, time1, time2).</p>
-</div></blockquote>
+<dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Output tensor (#batch, time1, d_model).</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> (<em>torch.Tensor</em>) – Query tensor (#batch, time1, size).</p></li>
+<li><p><strong>key</strong> (<em>torch.Tensor</em>) – Key tensor (#batch, time2, size).</p></li>
+<li><p><strong>value</strong> (<em>torch.Tensor</em>) – Value tensor (#batch, time2, size).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, 1, time2) or
+(#batch, time1, time2).</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>torch.Tensor</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor (#batch, time1, d_model).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -452,13 +451,120 @@ hlens</p>
 </section>
 <section id="espnet2-s2st-synthesizer-translatotron2-1">
 <span id="espnet2-s2st-synthesizer-translatotron2"></span><h2>espnet2.s2st.synthesizer.translatotron2<a class="headerlink" href="#espnet2-s2st-synthesizer-translatotron2-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.s2st.synthesizer.translatotron2"></span><p>Translatotron2 related modules for ESPnet2.</p>
+<dl class="class">
+<dt id="espnet2.s2st.synthesizer.translatotron2.DurationPredictor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron2.</code><code class="sig-name descname">DurationPredictor</code><span class="sig-paren">(</span><em class="sig-param">cfg</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#DurationPredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.DurationPredictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Non-Attentive Tacotron (NAT) Duration Predictor module.</p>
+<dl class="method">
+<dt id="espnet2.s2st.synthesizer.translatotron2.DurationPredictor.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">encoder_outputs</em>, <em class="sig-param">input_lengths=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#DurationPredictor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.DurationPredictor.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward Duration Predictor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – [batch_size, hidden_length, encoder_lstm_dim]</p></li>
+<li><p><strong>input_lengths</strong> – [batch_size, hidden_length]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[batch_size, hidden_length]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron2.</code><code class="sig-name descname">GaussianUpsampling</code><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#GaussianUpsampling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Gaussian Upsample.</p>
+<dl class="simple">
+<dt>Non-attention Tacotron:</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/2010.04301">https://arxiv.org/abs/2010.04301</a></p></li>
+</ul>
+</dd>
+<dt>this source code is implemenation of the ExpressiveTacotron from BridgetteSong</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="https://github.com/BridgetteSong/ExpressiveTacotron/">https://github.com/BridgetteSong/ExpressiveTacotron/</a></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">encoder_outputs</em>, <em class="sig-param">durations</em>, <em class="sig-param">vars</em>, <em class="sig-param">input_lengths=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#GaussianUpsampling.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gaussian upsampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – encoder outputs  [batch_size, hidden_length, dim]</p></li>
+<li><p><strong>durations</strong> – phoneme durations  [batch_size, hidden_length]</p></li>
+<li><p><strong>vars</strong> – phoneme attended ranges [batch_size, hidden_length]</p></li>
+<li><p><strong>input_lengths</strong> – [batch_size]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>upsampled encoder_output</dt><dd><p>[batch_size, frame_length, dim]</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>encoder_upsampling_outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling.get_mask_from_lengths">
+<code class="sig-name descname">get_mask_from_lengths</code><span class="sig-paren">(</span><em class="sig-param">lengths</em>, <em class="sig-param">max_len=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#GaussianUpsampling.get_mask_from_lengths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.GaussianUpsampling.get_mask_from_lengths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.s2st.synthesizer.translatotron2.Prenet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron2.</code><code class="sig-name descname">Prenet</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">units=128</em>, <em class="sig-param">num_layers=2</em>, <em class="sig-param">dropout=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#Prenet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.Prenet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Non-Attentive Tacotron (NAT) Prenet.</p>
+<dl class="method">
+<dt id="espnet2.s2st.synthesizer.translatotron2.Prenet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#Prenet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.Prenet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.s2st.synthesizer.translatotron2.Translatotron2">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron2.</code><code class="sig-name descname">Translatotron2</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">synthesizer_type: str = 'rnn'</em>, <em class="sig-param">layers: int = 2</em>, <em class="sig-param">units: int = 1024</em>, <em class="sig-param">prenet_layers: int = 2</em>, <em class="sig-param">prenet_units: int = 128</em>, <em class="sig-param">prenet_dropout_rate: float = 0.5</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_type: str = 'rnn'</em>, <em class="sig-param">duration_predictor_units: int = 128</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron2.html#Translatotron2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron2.Translatotron2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer" title="espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer</span></code></a></p>
+<p>Translatotron2 module.</p>
+<p>This is a module of the synthesizer in Translatotron2 described in <a href="#system-message-1"><span class="problematic" id="problematic-1">`Translatotron 2:
+High-quality direct speech-to-speech translation with voice preservation`_</span></a>.</p>
+<dl class="simple">
+<dt>High-quality direct speech-to-speech translation with voice preservation`:</dt><dd><p><a class="reference external" href="https://arxiv.org/pdf/2107.08661v5.pdf">https://arxiv.org/pdf/2107.08661v5.pdf</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="espnet2-s2st-synthesizer-translatotron-1">
 <span id="espnet2-s2st-synthesizer-translatotron"></span><h2>espnet2.s2st.synthesizer.translatotron<a class="headerlink" href="#espnet2-s2st-synthesizer-translatotron-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.s2st.synthesizer.translatotron"></span><p>Translatotron Synthesizer related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.s2st.synthesizer.translatotron.Translatotron">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron.</code><code class="sig-name descname">Translatotron</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">atype: str = 'multihead'</em>, <em class="sig-param">adim: int = 512</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">aconv_chans: int = 32</em>, <em class="sig-param">aconv_filts: int = 15</em>, <em class="sig-param">cumulate_att_w: bool = True</em>, <em class="sig-param">dlayers: int = 4</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">prenet_layers: int = 2</em>, <em class="sig-param">prenet_units: int = 32</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">output_activation: str = None</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">use_concate: bool = True</em>, <em class="sig-param">use_residual: bool = False</em>, <em class="sig-param">reduction_factor: int = 2</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'concat'</em>, <em class="sig-param">dropout_rate: float = 0.5</em>, <em class="sig-param">zoneout_rate: float = 0.1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron.html#Translatotron"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron.Translatotron" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.s2st.synthesizer.translatotron.</code><code class="sig-name descname">Translatotron</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">atype: str = 'multihead'</em>, <em class="sig-param">adim: int = 512</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">aconv_chans: int = 32</em>, <em class="sig-param">aconv_filts: int = 15</em>, <em class="sig-param">cumulate_att_w: bool = True</em>, <em class="sig-param">dlayers: int = 4</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">prenet_layers: int = 2</em>, <em class="sig-param">prenet_units: int = 32</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">output_activation: Optional[str] = None</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">use_concate: bool = True</em>, <em class="sig-param">use_residual: bool = False</em>, <em class="sig-param">reduction_factor: int = 2</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'concat'</em>, <em class="sig-param">dropout_rate: float = 0.5</em>, <em class="sig-param">zoneout_rate: float = 0.1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/translatotron.html#Translatotron"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.translatotron.Translatotron" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer" title="espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.s2st.synthesizer.abs_synthesizer.AbsSynthesizer</span></code></a></p>
 <p>TTranslatotron Synthesizer related modules for speech-to-speech translation.</p>
 <p>This is a module of Spectrogram prediction network in Translatotron described
@@ -661,7 +767,7 @@ hlens</p>
 
 <dl class="method">
 <dt id="espnet2.s2st.synthesizer.discrete_synthesizer.TransformerDiscreteSynthesizer.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">*</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/discrete_synthesizer.html#TransformerDiscreteSynthesizer.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.discrete_synthesizer.TransformerDiscreteSynthesizer.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/s2st/synthesizer/discrete_synthesizer.html#TransformerDiscreteSynthesizer.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.synthesizer.discrete_synthesizer.TransformerDiscreteSynthesizer.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -937,8 +1043,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.s2st.losses.attention_loss.S2STAttentionLoss.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_y: torch.Tensor</em>, <em class="sig-param">token_y: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/s2st/losses/attention_loss.html#S2STAttentionLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.s2st.losses.attention_loss.S2STAttentionLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-Args:</p>
+<dd><p>Forward.</p>
+<p>Args:</p>
 </dd></dl>
 
 </dd></dl>

@@ -215,7 +215,7 @@
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">s3prl</span>
+    <span class="kn">import</span> <span class="nn">s3prl</span>  <span class="c1"># noqa</span>
     <span class="kn">from</span> <span class="nn">s3prl.upstream.wav2vec2.wav2vec2_model</span> <span class="kn">import</span> <span class="n">TransformerSentenceEncoderLayer</span>
 
     <span class="n">is_s3prl_available</span> <span class="o">=</span> <span class="kc">True</span>
@@ -246,8 +246,8 @@
 <span class="k">else</span><span class="p">:</span>
 
 <div class="viewcode-block" id="HoulsbyTransformerSentenceEncoderLayer"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.houlsby_adapter_layer.HoulsbyTransformerSentenceEncoderLayer">[docs]</a>    <span class="k">class</span> <span class="nc">HoulsbyTransformerSentenceEncoderLayer</span><span class="p">(</span><span class="n">TransformerSentenceEncoderLayer</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained</span>
+
 <span class="sd">        models.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -272,8 +272,8 @@
             <span class="n">need_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
             <span class="n">att_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">):</span>
-<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">            LayerNorm is applied either before or after the self-attention/ffn</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;LayerNorm is applied either before or after the self-attention/ffn</span>
+
 <span class="sd">            modules similar to the original Transformer imlementation.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>

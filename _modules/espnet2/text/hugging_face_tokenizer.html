@@ -214,7 +214,7 @@
 <span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.abs_tokenizer</span> <span class="kn">import</span> <span class="n">AbsTokenizer</span>
 
@@ -227,8 +227,8 @@
 
 
 <div class="viewcode-block" id="HuggingFaceTokenizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.hugging_face_tokenizer.HuggingFaceTokenizer">[docs]</a><span class="k">class</span> <span class="nc">HuggingFaceTokenizer</span><span class="p">(</span><span class="n">AbsTokenizer</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_transformers_available</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>

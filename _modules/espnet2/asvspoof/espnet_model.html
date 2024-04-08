@@ -214,16 +214,12 @@
 <span></span><span class="c1"># Copyright 2022 Jiatong Shi (Carnegie Mellon University)</span>
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
@@ -234,7 +230,6 @@
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
 
 <span class="k">if</span> <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span>
@@ -247,9 +242,11 @@
 
 <div class="viewcode-block" id="ESPnetASVSpoofModel"><a class="viewcode-back" href="../../../_gen/espnet2.asvspoof.html#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetASVSpoofModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;ASV Spoofing model</span>
+
 <span class="sd">    A simple ASV Spoofing model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">frontend</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFrontend</span><span class="p">],</span>
@@ -260,7 +257,6 @@
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">losses</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AbsASVSpoofLoss</span><span class="p">],</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -280,6 +276,7 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, samples)</span>
 <span class="sd">            spk_labels: (Batch, )</span>
@@ -336,6 +333,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
 <span class="sd">            speech_lengths: (Batch,)</span>

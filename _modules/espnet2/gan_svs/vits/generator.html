@@ -233,6 +233,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.avocodo</span> <span class="kn">import</span> <span class="n">AvocodoGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.uhifigan</span> <span class="kn">import</span> <span class="n">UHiFiGANGenerator</span>
@@ -259,6 +260,7 @@
 <div class="viewcode-block" id="VISingerGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.generator.VISingerGenerator">[docs]</a><span class="k">class</span> <span class="nc">VISingerGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator module in VISinger.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocabs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -316,7 +318,7 @@
         <span class="n">vocoder_generator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hifigan&quot;</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">22050</span><span class="p">,</span>
         <span class="n">hop_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
-        <span class="n">win_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+        <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
         <span class="n">n_fft</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
         <span class="n">use_phoneme_predictor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">expand_f0_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;repeat&quot;</span><span class="p">,</span>
@@ -765,8 +767,10 @@
         <span class="n">predict_dur</span> <span class="o">=</span> <span class="n">predict_dur</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span>
 
         <span class="c1"># LR</span>
-        <span class="n">decoder_input</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gt_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">decoder_input_pitch</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span><span class="n">x_pitch</span><span class="p">,</span> <span class="n">gt_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">decoder_input</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gt_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># noqa</span>
+        <span class="n">decoder_input_pitch</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span>  <span class="c1"># noqa</span>
+            <span class="n">x_pitch</span><span class="p">,</span> <span class="n">gt_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>  <span class="c1"># noqa</span>
 
         <span class="n">LF0</span> <span class="o">=</span> <span class="mf">2595.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">pitch</span> <span class="o">/</span> <span class="mf">700.0</span><span class="p">)</span>
         <span class="n">LF0</span> <span class="o">=</span> <span class="n">LF0</span> <span class="o">/</span> <span class="mi">500</span>
@@ -857,7 +861,7 @@
                 <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pitch_segments_expended</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span>
             <span class="p">)</span>
 
-            <span class="n">sine_waves</span><span class="p">,</span> <span class="n">uv</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sine_generator</span><span class="p">(</span><span class="n">pitch_segments_expended</span><span class="p">)</span>
+            <span class="n">sine_waves</span><span class="p">,</span> <span class="n">uv</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sine_generator</span><span class="p">(</span><span class="n">pitch_segments_expended</span><span class="p">)</span>  <span class="c1"># noqa</span>
 
             <span class="n">sine_waves</span> <span class="o">=</span> <span class="n">sine_waves</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
@@ -879,7 +883,6 @@
             <span class="n">decoder_condition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sin_prenet</span><span class="p">(</span><span class="n">sin</span><span class="p">)</span>
 
             <span class="c1"># dsp based HiFiGAN vocoder</span>
-            <span class="n">F0_slice</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span><span class="n">pitch</span><span class="p">,</span> <span class="n">z_start_idxs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
             <span class="n">dsp_slice</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span>
                 <span class="n">dsp_o</span><span class="p">,</span>
                 <span class="n">z_start_idxs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">,</span>
@@ -993,7 +996,9 @@
 
         <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
             <span class="c1"># forward posterior encoder</span>
-            <span class="n">z</span><span class="p">,</span> <span class="n">m_q</span><span class="p">,</span> <span class="n">logs_q</span><span class="p">,</span> <span class="n">y_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior_encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">)</span>
+            <span class="n">z</span><span class="p">,</span> <span class="n">m_q</span><span class="p">,</span> <span class="n">logs_q</span><span class="p">,</span> <span class="n">y_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior_encoder</span><span class="p">(</span>  <span class="c1"># noqa</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span>
+            <span class="p">)</span>  <span class="c1"># noqa</span>
 
             <span class="c1"># forward flow</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_flow</span><span class="p">:</span>
@@ -1009,7 +1014,7 @@
                 <span class="n">pitch_segments_expended</span> <span class="o">=</span> <span class="n">pitch_segments_expended</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
                     <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pitch_segments_expended</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span>
                 <span class="p">)</span>
-                <span class="n">sine_waves</span><span class="p">,</span> <span class="n">uv</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sine_generator</span><span class="p">(</span><span class="n">pitch_segments_expended</span><span class="p">)</span>
+                <span class="n">sine_waves</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sine_generator</span><span class="p">(</span><span class="n">pitch_segments_expended</span><span class="p">)</span>
                 <span class="n">sine_waves</span> <span class="o">=</span> <span class="n">sine_waves</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
                 <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
                     <span class="p">(</span><span class="n">z</span> <span class="o">*</span> <span class="n">y_mask</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">max_len</span><span class="p">],</span> <span class="n">excitation</span><span class="o">=</span><span class="n">sine_waves</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span>
@@ -1026,7 +1031,7 @@
                 <span class="n">harm_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_harm</span><span class="p">(</span><span class="n">pitch</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y_mask</span><span class="p">)</span>
 
                 <span class="c1"># dsp waveform</span>
-                <span class="n">dsp_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">harm_x</span><span class="p">,</span> <span class="n">noise_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">dsp_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">harm_x</span><span class="p">,</span> <span class="n">noise_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># noqa</span>
 
                 <span class="c1"># decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)</span>
                 <span class="n">decoder_condition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sin_prenet</span><span class="p">(</span><span class="n">sin</span><span class="p">)</span>
@@ -1050,18 +1055,20 @@
             <span class="n">y_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predict_dur</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
 
             <span class="c1"># LR</span>
-            <span class="n">decoder_input</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">predict_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">decoder_input_pitch</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span>
+            <span class="n">decoder_input</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">predict_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>  <span class="c1"># noqa</span>
+            <span class="n">decoder_input_pitch</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">(</span>  <span class="c1"># noqa</span>
                 <span class="n">x_pitch</span><span class="p">,</span> <span class="n">predict_dur</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># noqa</span>
 
             <span class="c1"># aam</span>
-            <span class="n">predict_lf0</span><span class="p">,</span> <span class="n">predict_bn_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f0_decoder</span><span class="p">(</span>
+            <span class="n">predict_lf0</span><span class="p">,</span> <span class="n">predict_bn_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f0_decoder</span><span class="p">(</span>  <span class="c1"># noqa</span>
                 <span class="n">decoder_input</span> <span class="o">+</span> <span class="n">decoder_input_pitch</span><span class="p">,</span> <span class="n">y_lengths</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span>
-            <span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># noqa</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span> <span class="o">==</span> <span class="s2">&quot;visinger2&quot;</span><span class="p">:</span>
-                <span class="n">predict_mel</span><span class="p">,</span> <span class="n">predict_bn_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mel_decoder</span><span class="p">(</span>
+                <span class="n">predict_mel</span><span class="p">,</span> <span class="n">predict_bn_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mel_decoder</span><span class="p">(</span>  <span class="c1"># noqa</span>
                     <span class="n">decoder_input</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">f0_prenet</span><span class="p">(</span><span class="n">predict_lf0</span><span class="p">),</span>
                     <span class="n">y_lengths</span><span class="p">,</span>
                     <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">,</span>
@@ -1124,7 +1131,7 @@
                 <span class="n">harm_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_harm</span><span class="p">(</span><span class="n">F0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">y_mask</span><span class="p">)</span>
 
                 <span class="c1"># dsp waveform</span>
-                <span class="n">dsp_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">harm_x</span><span class="p">,</span> <span class="n">noise_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">dsp_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">harm_x</span><span class="p">,</span> <span class="n">noise_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># noqa</span>
 
                 <span class="c1"># decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)</span>
                 <span class="n">decoder_condition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sin_prenet</span><span class="p">(</span><span class="n">sin</span><span class="p">)</span>

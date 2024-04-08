@@ -218,10 +218,11 @@
 <span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 
-<div class="viewcode-block" id="read_2columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_2columns_text">[docs]</a><span class="k">def</span> <span class="nf">read_2columns_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="read_2columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_2columns_text">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">read_2columns_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file having 2 columns as dict object.</span>
 
 <span class="sd">    Examples:</span>
@@ -233,7 +234,6 @@
 <span class="sd">        {&#39;key1&#39;: &#39;/some/path/a.wav&#39;, &#39;key2&#39;: &#39;/some/path/b.wav&#39;}</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">with</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -250,7 +250,8 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="read_multi_columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_multi_columns_text">[docs]</a><span class="k">def</span> <span class="nf">read_multi_columns_text</span><span class="p">(</span>
+<div class="viewcode-block" id="read_multi_columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_multi_columns_text">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">read_multi_columns_text</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">return_unsplit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file having 2 or more columns as dict object.</span>
@@ -268,7 +269,6 @@
 <span class="sd">         &#39;key3&#39;: [&#39;/some/path/c1.wav&#39;]}</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -295,7 +295,8 @@
     <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">unsplit_data</span></div>
 
 
-<div class="viewcode-block" id="load_num_sequence_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.load_num_sequence_text">[docs]</a><span class="k">def</span> <span class="nf">load_num_sequence_text</span><span class="p">(</span>
+<div class="viewcode-block" id="load_num_sequence_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.load_num_sequence_text">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">load_num_sequence_text</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">loader_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;csv_int&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file indicating sequences of number</span>
@@ -307,7 +308,6 @@
 <span class="sd">        &gt;&gt;&gt; d = load_num_sequence_text(&#39;text&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; np.testing.assert_array_equal(d[&quot;key1&quot;], np.array([1, 2, 3]))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">loader_type</span> <span class="o">==</span> <span class="s2">&quot;text_int&quot;</span><span class="p">:</span>
         <span class="n">delimiter</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
         <span class="n">dtype</span> <span class="o">=</span> <span class="nb">int</span>
@@ -341,7 +341,8 @@
     <span class="k">return</span> <span class="n">retval</span></div>
 
 
-<div class="viewcode-block" id="read_label"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_label">[docs]</a><span class="k">def</span> <span class="nf">read_label</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
+<div class="viewcode-block" id="read_label"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_label">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">read_label</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file indicating sequences of number</span>
 
 <span class="sd">    Examples:</span>
@@ -351,7 +352,6 @@
 <span class="sd">        &gt;&gt;&gt; d = load_num_sequence_text(&#39;label&#39;)</span>
 <span class="sd">        &gt;&gt;&gt; np.testing.assert_array_equal(d[&quot;key1&quot;], [0.1, 0.2, &quot;啊&quot;]))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="n">label</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
 
     <span class="n">retval</span> <span class="o">=</span> <span class="p">{}</span>
@@ -393,11 +393,11 @@
 <span class="sd">            (text start at bytes 21 and end at bytes 30 (including &quot;\n&quot;))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text_and_scp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">text</span><span class="p">,</span> <span class="n">text_scp</span> <span class="o">=</span> <span class="n">text_and_scp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>

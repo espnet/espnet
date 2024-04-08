@@ -218,15 +218,15 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.spk.layers.rawnet_block</span> <span class="kn">import</span> <span class="n">Bottle2neck</span>
 
 
 <div class="viewcode-block" id="RawNet3Encoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder">[docs]</a><span class="k">class</span> <span class="nc">RawNet3Encoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.</span>
+
 <span class="sd">    paper: J. Jung et al., &quot;Pushing the limits of raw waveform speaker</span>
 <span class="sd">        recognition&quot;, in Proc. INTERSPEECH, 2022.</span>
 
@@ -238,6 +238,7 @@
 <span class="sd">        output_size: ouptut embedding dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -247,10 +248,9 @@
         <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">block</span> <span class="o">==</span> <span class="s2">&quot;Bottle2neck&quot;</span><span class="p">:</span>
-            <span class="n">block</span> <span class="o">=</span> <span class="n">Bottle2neck</span>
+            <span class="n">block</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="n">Bottle2neck</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported block, got: </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

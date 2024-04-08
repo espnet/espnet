@@ -310,11 +310,11 @@
     <span class="k">return</span> <span class="n">S</span></div>
 
 
-<span class="c1"># TODO (Yifeng): Some functions are not used here such as crepe,</span>
+<span class="c1"># TODO(Yifeng): Some functions are not used here such as crepe,</span>
 <span class="c1">#  maybe we can remove them later or only import used functions.</span>
 <div class="viewcode-block" id="extract_pitch"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.ddsp.extract_pitch">[docs]</a><span class="k">def</span> <span class="nf">extract_pitch</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">block_size</span><span class="p">):</span>
     <span class="n">length</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">block_size</span>
-    <span class="n">f0</span> <span class="o">=</span> <span class="n">crepe</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+    <span class="n">f0</span> <span class="o">=</span> <span class="n">crepe</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>  <span class="c1"># noqa</span>
         <span class="n">signal</span><span class="p">,</span>
         <span class="n">sampling_rate</span><span class="p">,</span>
         <span class="n">step_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mi">1000</span> <span class="o">*</span> <span class="n">block_size</span> <span class="o">/</span> <span class="n">sampling_rate</span><span class="p">),</span>

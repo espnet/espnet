@@ -217,7 +217,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.lm.abs_model</span> <span class="kn">import</span> <span class="n">AbsLM</span>
 <span class="kn">from</span> <span class="nn">espnet2.lm.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetLanguageModel</span>
@@ -233,8 +233,6 @@
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">CommonPreprocessor</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
 
 <span class="n">lm_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
@@ -274,9 +272,9 @@
     <span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span>
 
 <div class="viewcode-block" id="LMTask.add_task_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.add_task_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">add_task_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
         <span class="c1"># NOTE(kamo): Use &#39;_&#39; instead of &#39;-&#39; to avoid confusion</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Task related&quot;</span><span class="p">)</span>
 
         <span class="c1"># NOTE(kamo): add_arguments(..., required=True) can&#39;t be used</span>
@@ -350,22 +348,21 @@
             <span class="c1"># e.g. --encoder and --encoder_conf</span>
             <span class="n">class_choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="LMTask.build_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.build_collate_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_collate_fn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span>
         <span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">CommonCollateFn</span><span class="p">(</span><span class="n">int_pad_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LMTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="n">CommonPreprocessor</span><span class="p">(</span>
                 <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
@@ -378,7 +375,6 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="LMTask.required_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.required_data_names">[docs]</a>    <span class="nd">@classmethod</span>
@@ -396,10 +392,10 @@
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="LMTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">ESPnetLanguageModel</span><span class="p">,</span> <span class="n">ESPnetMultitaskLanguageModel</span><span class="p">]:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">token_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
@@ -444,7 +440,6 @@
             <span class="c1"># loading opt parameters</span>
             <span class="n">model</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span>
 
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span></div></div>
 </pre></div>
 

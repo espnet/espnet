@@ -251,9 +251,7 @@
 
 
 <div class="viewcode-block" id="log_sum_exp"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.log_sum_exp">[docs]</a><span class="k">def</span> <span class="nf">log_sum_exp</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Logsumexp with safety checks for infs.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Logsumexp with safety checks for infs.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">b</span>
 
@@ -270,8 +268,8 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">U</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        A placeholder Index computation class that emits the resolved index in a</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A placeholder Index computation class that emits the resolved index in a</span>
+
 <span class="sd">        flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.</span>
 
 <span class="sd">        Args:</span>
@@ -314,8 +312,7 @@
         <span class="n">log_probs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">idx</span><span class="p">:</span> <span class="n">CpuRNNT_index</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Metadata for CPU based RNNT loss calculation. Holds the working space memory.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Metadata for CPU based RNNT loss calculation. Holds the working space memory.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            T: Length of the acoustic sequence (without padding).</span>
@@ -404,8 +401,7 @@
         <span class="n">num_threads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Helper class to compute the Transducer Loss on CPU.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper class to compute the Transducer Loss on CPU.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            minibatch: Size of the minibatch b.</span>
@@ -483,8 +479,7 @@
 <div class="viewcode-block" id="CPURNNT.compute_alphas"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_alphas">[docs]</a>    <span class="k">def</span> <span class="nf">compute_alphas</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">U</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alphas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute the probability of the forward variable alpha.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the probability of the forward variable alpha.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            log_probs: Flattened tensor [B, T, U, V+1]</span>
@@ -532,8 +527,8 @@
         <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">logll</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute backward variable beta as well as gradients of the activation</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute backward variable beta as well as gradients of the activation</span>
+
 <span class="sd">        matrix wrt loglikelihood of forward variable.</span>
 
 <span class="sd">        Args:</span>

@@ -220,54 +220,29 @@
 <span class="sd">overriding validate_one_epoch.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">import</span> <span class="nn">dataclasses</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">is_dataclass</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span>
 
-<span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">import</span> <span class="nn">torch.optim</span>
-<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
-<span class="kn">from</span> <span class="nn">espnet2.main_funcs.average_nbest_models</span> <span class="kn">import</span> <span class="n">average_nbest_models</span>
-<span class="kn">from</span> <span class="nn">espnet2.main_funcs.calculate_all_attentions</span> <span class="kn">import</span> <span class="n">calculate_all_attentions</span>
-<span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AbsBatchStepScheduler</span><span class="p">,</span>
-    <span class="n">AbsEpochStepScheduler</span><span class="p">,</span>
-    <span class="n">AbsScheduler</span><span class="p">,</span>
-    <span class="n">AbsValEpochStepScheduler</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet2.torch_utils.add_gradient_noise</span> <span class="kn">import</span> <span class="n">add_gradient_noise</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
-<span class="kn">from</span> <span class="nn">espnet2.torch_utils.recursive_op</span> <span class="kn">import</span> <span class="n">recursive_average</span>
-<span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.distributed_utils</span> <span class="kn">import</span> <span class="n">DistributedOption</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span><span class="p">,</span> <span class="n">SubReporter</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">SubReporter</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span><span class="p">,</span> <span class="n">TrainerOptions</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.build_dataclass</span> <span class="kn">import</span> <span class="n">build_dataclass</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.eer</span> <span class="kn">import</span> <span class="n">ComputeErrorRates</span><span class="p">,</span> <span class="n">ComputeMinDcf</span><span class="p">,</span> <span class="n">tuneThresholdfromScore</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.kwargs2args</span> <span class="kn">import</span> <span class="n">kwargs2args</span>
 
 <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
     <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">ReduceOp</span>
 
 
 <div class="viewcode-block" id="SpkTrainer"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.spk.SpkTrainer">[docs]</a><span class="k">class</span> <span class="nc">SpkTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Trainer.</span>
-<span class="sd">    Designed for speaker recognition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trainer designed for speaker recognition.</span>
+
 <span class="sd">    Training will be done as closed set classification.</span>
 <span class="sd">    Validation will be open set EER calculation.</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -275,6 +250,7 @@
 
 <div class="viewcode-block" id="SpkTrainer.validate_one_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.spk.SpkTrainer.validate_one_epoch">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">validate_one_epoch</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
@@ -283,9 +259,7 @@
         <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
-        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
         <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>
 
         <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
@@ -406,7 +380,7 @@
             <span class="p">]</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">labels_all</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">labels_all</span><span class="p">)</span>
-            <span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+            <span class="c1"># rank = torch.distributed.get_rank()</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
         <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
@@ -459,6 +433,7 @@
 
 <div class="viewcode-block" id="SpkTrainer.extract_embed"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.spk.SpkTrainer.extract_embed">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">extract_embed</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
@@ -470,26 +445,20 @@
         <span class="n">custom_bs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
-        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
         <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>
 
         <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-
-        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">spk_embd_dic</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># [For distributed] Because iteration counts are not always equals between</span>
         <span class="c1"># processes, send stop-flag to the other processes if iterator is finished</span>
-        <span class="n">iterator_stop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+        <span class="c1"># iterator_stop = torch.tensor(0).to(&quot;cuda&quot; if ngpu &gt; 0 else &quot;cpu&quot;)</span>
 
         <span class="c1"># fill dictionary with speech samples</span>
         <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">utt_id_whole_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">task_token_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">task_token</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
             <span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>

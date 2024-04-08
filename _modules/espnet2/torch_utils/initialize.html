@@ -219,10 +219,11 @@
 <span class="kn">import</span> <span class="nn">math</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 
-<div class="viewcode-block" id="initialize"><a class="viewcode-back" href="../../../_gen/espnet2.torch_utils.html#espnet2.torch_utils.initialize.initialize">[docs]</a><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">init</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="initialize"><a class="viewcode-back" href="../../../_gen/espnet2.torch_utils.html#espnet2.torch_utils.initialize.initialize">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">init</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize weights of a neural network module.</span>
 
 <span class="sd">    Parameters are initialized using the given method or distribution.</span>
@@ -234,7 +235,6 @@
 <span class="sd">        model: Target.</span>
 <span class="sd">        init: Method of initialization.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">init</span> <span class="o">==</span> <span class="s2">&quot;chainer&quot;</span><span class="p">:</span>
         <span class="c1"># 1. lecun_normal_init_parameters</span>

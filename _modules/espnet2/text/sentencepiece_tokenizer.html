@@ -215,14 +215,14 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">sentencepiece</span> <span class="k">as</span> <span class="nn">spm</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.abs_tokenizer</span> <span class="kn">import</span> <span class="n">AbsTokenizer</span>
 
 
 <div class="viewcode-block" id="SentencepiecesTokenizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencepiecesTokenizer</span><span class="p">(</span><span class="n">AbsTokenizer</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">encode_kwargs</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
         <span class="c1"># NOTE(kamo):</span>
         <span class="c1"># Don&#39;t build SentencePieceProcessor in __init__()</span>

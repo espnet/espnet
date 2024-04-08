@@ -214,13 +214,14 @@
 <span></span><span class="kn">import</span> <span class="nn">math</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.uasr.segmenter.abs_segmenter</span> <span class="kn">import</span> <span class="n">AbsSegmenter</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 
 
 <div class="viewcode-block" id="RandomSegmenter"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter">[docs]</a><span class="k">class</span> <span class="nc">RandomSegmenter</span><span class="p">(</span><span class="n">AbsSegmenter</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">subsample_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
@@ -229,7 +230,6 @@
         <span class="n">remove_zeros</span><span class="p">:</span> <span class="n">str2bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subsample_rate</span> <span class="o">=</span> <span class="n">subsample_rate</span>
 
 <div class="viewcode-block" id="RandomSegmenter.pre_segment"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter.pre_segment">[docs]</a>    <span class="k">def</span> <span class="nf">pre_segment</span><span class="p">(</span>

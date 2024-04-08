@@ -216,7 +216,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
@@ -238,6 +238,7 @@
 <div class="viewcode-block" id="ESPnetS2TModel"><a class="viewcode-back" href="../../../_gen/espnet2.s2t.html#espnet2.s2t.espnet_model.ESPnetS2TModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetS2TModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;CTC-attention hybrid Encoder-Decoder model&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -265,7 +266,6 @@
         <span class="n">sym_na</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;na&gt;&quot;</span><span class="p">,</span>  <span class="c1"># not available</span>
         <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">ctc_weight</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ctc_weight</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">interctc_weight</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">interctc_weight</span>
 

@@ -316,10 +316,7 @@
 
     <span class="c1"># Check weight shape.</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
-    <span class="n">convH</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">convW</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">inC</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">outC</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">inC</span><span class="p">,</span> <span class="n">convH</span><span class="p">,</span> <span class="n">convW</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span>
 
     <span class="k">assert</span> <span class="n">convW</span> <span class="o">==</span> <span class="n">convH</span>
 

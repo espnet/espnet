@@ -213,11 +213,10 @@
   <h1>Source code for espnet2.asr_transducer.decoder.rwkv_decoder</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;RWKV decoder definition for Transducer models.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">Hypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
@@ -247,6 +246,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -265,8 +265,6 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a RWKVDecoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">norm_class</span><span class="p">,</span> <span class="n">norm_args</span> <span class="o">=</span> <span class="n">get_normalization</span><span class="p">(</span>
             <span class="n">normalization_type</span><span class="p">,</span> <span class="o">**</span><span class="n">normalization_args</span>

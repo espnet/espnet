@@ -225,7 +225,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
@@ -249,6 +249,7 @@
 <div class="viewcode-block" id="TorchAudioHubertPretrainModel"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel">[docs]</a><span class="k">class</span> <span class="nc">TorchAudioHubertPretrainModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;TorchAudio Hubert Pretrain model&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -260,7 +261,6 @@
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
@@ -479,6 +479,7 @@
 <div class="viewcode-block" id="HubertPretrainModel"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.HubertPretrainModel">[docs]</a><span class="k">class</span> <span class="nc">HubertPretrainModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Hubert Pretrain model&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -499,7 +500,6 @@
         <span class="n">pred_nomask_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">loss_weights</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="c1"># note that eos is the same as sos (equivalent ID)</span>

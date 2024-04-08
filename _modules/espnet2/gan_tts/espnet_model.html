@@ -221,7 +221,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
@@ -241,6 +241,7 @@
 <div class="viewcode-block" id="ESPnetGANTTSModel"><a class="viewcode-back" href="../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetGANTTSModel</span><span class="p">(</span><span class="n">AbsGANESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;ESPnet model for GAN-based text-to-speech task.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">feats_extract</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFeatsExtract</span><span class="p">],</span>
@@ -252,7 +253,6 @@
         <span class="n">tts</span><span class="p">:</span> <span class="n">AbsGANTTS</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize ESPnetGANTTSModel module.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="o">=</span> <span class="n">feats_extract</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>

@@ -211,25 +211,20 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.spk.encoder.xvector_encoder</h1><div class="highlight"><pre>
-<span></span><span class="ch">#! /usr/bin/python</span>
-<span class="c1"># -*- encoding: utf-8 -*-</span>
-<span class="c1"># x-vector, cross checked with SpeechBrain implementation:</span>
+<span></span><span class="c1"># x-vector, cross checked with SpeechBrain implementation:</span>
 <span class="c1"># https://github.com/speechbrain/speechbrain/blob/develop/speechbrain/lobes/models/Xvector.py</span>
 <span class="c1"># adapted for ESPnet-SPK by Jee-weon Jung</span>
-<span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 
 
 <div class="viewcode-block" id="XvectorEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.xvector_encoder.XvectorEncoder">[docs]</a><span class="k">class</span> <span class="nc">XvectorEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    x-vector encoder. Extracts frame-level x-vector embeddings from features.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;X-vector encoder. Extracts frame-level x-vector embeddings from features.</span>
+
 <span class="sd">    Paper: D. Snyder et al., &quot;X-vectors: Robust dnn embeddings for speaker recognition,&quot;</span>
 <span class="sd">    in Proc. IEEE ICASSP, 2018.</span>
 
@@ -239,6 +234,7 @@
 <span class="sd">        output_size: ouptut embedding dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -249,7 +245,6 @@
         <span class="n">dilations</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">output_size</span>
         <span class="n">in_channels</span> <span class="o">=</span> <span class="p">[</span><span class="n">input_size</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">ndim</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>

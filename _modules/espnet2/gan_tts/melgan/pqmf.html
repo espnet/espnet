@@ -223,7 +223,11 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">kaiser</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">kaiser</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">scipy.signal.windows</span> <span class="kn">import</span> <span class="n">kaiser</span>
 
 
 <div class="viewcode-block" id="design_prototype_filter"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.design_prototype_filter">[docs]</a><span class="k">def</span> <span class="nf">design_prototype_filter</span><span class="p">(</span>

@@ -226,15 +226,16 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">from</span> <span class="nn">filelock</span> <span class="kn">import</span> <span class="n">FileLock</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
@@ -291,6 +292,7 @@
 <span class="sd">        avhubert_dir_path: dir_path for downloading pre-trained avhubert model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -320,7 +322,6 @@
         <span class="n">max_noise_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">audio_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">encoder_embed_dim</span>
@@ -400,6 +401,7 @@
         <span class="n">prev_states</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward AVHubert Encoder.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            xs_pad[video]: input tensor (B, 1, L, H, W)</span>
 <span class="sd">            xs_pad[audio]: input tensor (B, D, L)</span>
@@ -414,7 +416,7 @@
             <span class="k">elif</span> <span class="s2">&quot;audio&quot;</span> <span class="ow">in</span> <span class="n">xs_pad</span><span class="p">:</span>
                 <span class="n">masks</span> <span class="o">=</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">length_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input should have video or audio&quot;</span><span class="p">)</span>
+                <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input should have video or audio&quot;</span><span class="p">)</span>
 
             <span class="n">ft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">freeze_finetune_updates</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_updates</span>
 
@@ -918,6 +920,7 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">padding_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ret_conv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_layer</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward AVHubert Pretrain Encoder.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            source[&#39;video&#39;]: input tensor (B, 1, L, H, W)</span>
 <span class="sd">            source[&#39;audio&#39;]: input tensor (B, F, L)</span>
@@ -1017,6 +1020,7 @@
 
 <div class="viewcode-block" id="AVHubertModel.forward_transformer"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_transformer">[docs]</a>    <span class="k">def</span> <span class="nf">forward_transformer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">padding_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward AVHubert Pretrain Encoder (without frontend).</span>
+
 <span class="sd">        Assume the source is already fused feature.</span>
 <span class="sd">        Args:</span>
 <span class="sd">            source: input tensor (B, L, D*2)</span>

@@ -261,8 +261,9 @@
     <span class="n">u</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the sum of log probability from the activation tensor and its denominator.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the sum of log probability from the activation tensor</span>
+
+<span class="sd">    and its denominator.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator of the</span>
@@ -302,8 +303,7 @@
     <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute alpha (forward variable) probabilities over the transduction step.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute alpha (forward variable) probabilities over the transduction step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
@@ -413,8 +413,7 @@
     <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute beta (backward variable) probabilities over the transduction step.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute beta (backward variable) probabilities over the transduction step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
@@ -527,8 +526,7 @@
     <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute gradients over the transduction step.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute gradients over the transduction step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        grads: Zero Tensor of shape [B, T, U, V+1]. Is updated by this kernel to</span>
@@ -690,9 +688,9 @@
     <span class="n">big_blank_duration</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">num_big_blanks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute alpha (forward variable) probabilities for multi-blank transducuer loss</span>
-<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute alpha (forward variable) probabilities for multi-blank transducuer loss</span>
+
+<span class="sd">    (https://arxiv.org/pdf/2211.03541).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.</span>
@@ -906,9 +904,9 @@
     <span class="n">big_blank_duration</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">num_big_blanks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute beta (backward variable) probabilities for multi-blank transducer loss</span>
-<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute beta (backward variable) probabilities for multi-blank transducer loss</span>
+
+<span class="sd">    (https://arxiv.org/pdf/2211.03541).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of shape [B, T, U, V + 1 + num-big-blanks] flattened.</span>
@@ -1107,9 +1105,9 @@
     <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute gradients for multi-blank transducer loss</span>
-<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute gradients for multi-blank transducer loss</span>
+
+<span class="sd">    (https://arxiv.org/pdf/2211.03541).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        grads: Zero Tensor of shape [B, T, U, V + 1 + num_big_blanks].</span>

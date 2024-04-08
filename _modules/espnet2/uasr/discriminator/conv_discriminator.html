@@ -215,7 +215,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.uasr.discriminator.abs_discriminator</span> <span class="kn">import</span> <span class="n">AbsDiscriminator</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
@@ -238,6 +238,7 @@
 <div class="viewcode-block" id="ConvDiscriminator"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator">[docs]</a><span class="k">class</span> <span class="nc">ConvDiscriminator</span><span class="p">(</span><span class="n">AbsDiscriminator</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;convolutional discriminator for UASR.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -255,7 +256,6 @@
         <span class="n">weight_norm</span><span class="p">:</span> <span class="n">str2bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">cfg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cfg</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">conv_channels</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">discriminator_dim</span>
@@ -359,8 +359,8 @@
             <span class="o">*</span><span class="n">inner_net</span><span class="p">,</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="ConvDiscriminator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">padding_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+<div class="viewcode-block" id="ConvDiscriminator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.uasr.html#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator.forward">[docs]</a>    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">padding_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
 
         <span class="c1"># (Batch, Time, Channel) -&gt; (Batch, Channel, Time)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>

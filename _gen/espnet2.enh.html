@@ -814,8 +814,8 @@ which require it (e.g., <cite>sde</cite> or <cite>marginal_prob</cite>).</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.OUVESDE.marginal_prob">
 <code class="sig-name descname">marginal_prob</code><span class="sig-paren">(</span><em class="sig-param">x0</em>, <em class="sig-param">t</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#OUVESDE.marginal_prob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.OUVESDE.marginal_prob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameters to determine the marginal distribution of
-the SDE, $p_t(x|args)$.</p>
+<dd><p>Parameters to determine the marginal distribution of</p>
+<p>the SDE, $p_t(x|args)$.</p>
 </dd></dl>
 
 <dl class="method">
@@ -836,8 +836,8 @@ the SDE, $p_t(x|args)$.</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.OUVESDE.prior_sampling">
 <code class="sig-name descname">prior_sampling</code><span class="sig-paren">(</span><em class="sig-param">shape</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#OUVESDE.prior_sampling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.OUVESDE.prior_sampling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate one sample from the prior distribution,
-$p_T(x|args)$ with shape <cite>shape</cite>.</p>
+<dd><p>Generate one sample from the prior distribution,</p>
+<p>$p_T(x|args)$ with shape <cite>shape</cite>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -851,6 +851,7 @@ $p_T(x|args)$ with shape <cite>shape</cite>.</p>
 <dt id="espnet2.enh.diffusion.sdes.OUVPSDE">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.diffusion.sdes.</code><code class="sig-name descname">OUVPSDE</code><span class="sig-paren">(</span><em class="sig-param">beta_min</em>, <em class="sig-param">beta_max</em>, <em class="sig-param">stiffness=1</em>, <em class="sig-param">N=1000</em>, <em class="sig-param">**ignored_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#OUVPSDE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.OUVPSDE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.diffusion.sdes.SDE" title="espnet2.enh.diffusion.sdes.SDE"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.diffusion.sdes.SDE</span></code></a></p>
+<p>OUVPSDE class.</p>
 <p>!!! SGMSE authors observed instabilities around t=0.2. !!!</p>
 <p>Construct an Ornstein-Uhlenbeck Variance Preserving SDE:</p>
 <p>dx = -1/2 * beta(t) * stiffness * (y-x) dt + sqrt(beta(t)) * dw</p>
@@ -883,8 +884,8 @@ require it (e.g., <cite>sde</cite> or <cite>marginal_prob</cite>).</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.OUVPSDE.marginal_prob">
 <code class="sig-name descname">marginal_prob</code><span class="sig-paren">(</span><em class="sig-param">x0</em>, <em class="sig-param">t</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#OUVPSDE.marginal_prob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.OUVPSDE.marginal_prob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameters to determine the marginal distribution of
-the SDE, $p_t(x|args)$.</p>
+<dd><p>Parameters to determine the marginal distribution of</p>
+<p>the SDE, $p_t(x|args)$.</p>
 </dd></dl>
 
 <dl class="method">
@@ -905,8 +906,8 @@ the SDE, $p_t(x|args)$.</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.OUVPSDE.prior_sampling">
 <code class="sig-name descname">prior_sampling</code><span class="sig-paren">(</span><em class="sig-param">shape</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#OUVPSDE.prior_sampling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.OUVPSDE.prior_sampling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate one sample from the prior distribution,
-$p_T(x|args)$ with shape <cite>shape</cite>.</p>
+<dd><p>Generate one sample from the prior distribution,</p>
+<p>$p_T(x|args)$ with shape <cite>shape</cite>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -960,8 +961,8 @@ Defaults to Euler-Maruyama discretization.</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.SDE.marginal_prob">
 <em class="property">abstract </em><code class="sig-name descname">marginal_prob</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">t</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#SDE.marginal_prob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.SDE.marginal_prob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parameters to determine the marginal distribution of
-the SDE, $p_t(x|args)$.</p>
+<dd><p>Parameters to determine the marginal distribution of</p>
+<p>the SDE, $p_t(x|args)$.</p>
 </dd></dl>
 
 <dl class="method">
@@ -982,8 +983,8 @@ the SDE, $p_t(x|args)$.</p>
 <dl class="method">
 <dt id="espnet2.enh.diffusion.sdes.SDE.prior_sampling">
 <em class="property">abstract </em><code class="sig-name descname">prior_sampling</code><span class="sig-paren">(</span><em class="sig-param">shape</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#SDE.prior_sampling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.SDE.prior_sampling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate one sample from the prior distribution,
-$p_T(x|args)$ with shape <cite>shape</cite>.</p>
+<dd><p>Generate one sample from the prior distribution,</p>
+<p>$p_T(x|args)$ with shape <cite>shape</cite>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1011,8 +1012,8 @@ used for probability flow sampling.</p></li>
 <dl class="function">
 <dt id="espnet2.enh.diffusion.sdes.batch_broadcast">
 <code class="sig-prename descclassname">espnet2.enh.diffusion.sdes.</code><code class="sig-name descname">batch_broadcast</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/diffusion/sdes.html#batch_broadcast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.diffusion.sdes.batch_broadcast" title="Permalink to this definition">¶</a></dt>
-<dd><p>Broadcasts a over all dimensions of x, except the batch dimension,
-which must match.</p>
+<dd><p>Broadcasts a over all dimensions of x, except the batch dimension,</p>
+<p>which must match.</p>
 </dd></dl>
 
 </section>
@@ -2265,7 +2266,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder.streaming_merge">
 <code class="sig-name descname">streaming_merge</code><span class="sig-paren">(</span><em class="sig-param">chunks: torch.Tensor</em>, <em class="sig-param">ilens: torch._VariableFunctionsClass.tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder.streaming_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder.streaming_merge" title="Permalink to this definition">¶</a></dt>
-<dd><p>streaming_merge. It merges the frame-level processed audio chunks
+<dd><p>Stream merge.</p>
+<p>It merges the frame-level processed audio chunks
 in the streaming <em>simulation</em>. It is noted that, in real applications,
 the processed audio should be sent to the output channel frame by frame.
 You may refer to this function to manage your streaming output buffer.</p>
@@ -2387,7 +2389,8 @@ You may refer to this function to manage your streaming output buffer.</p>
 <dl class="method">
 <dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder.streaming_merge">
 <code class="sig-name descname">streaming_merge</code><span class="sig-paren">(</span><em class="sig-param">chunks: torch.Tensor</em>, <em class="sig-param">ilens: torch._VariableFunctionsClass.tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder.streaming_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder.streaming_merge" title="Permalink to this definition">¶</a></dt>
-<dd><p>streaming_merge. It merges the frame-level processed audio chunks
+<dd><p>Stream Merge.</p>
+<p>It merges the frame-level processed audio chunks
 in the streaming <em>simulation</em>. It is noted that, in real applications,
 the processed audio should be sent to the output channel frame by frame.
 You may refer to this function to manage your streaming output buffer.</p>
@@ -2919,10 +2922,8 @@ see espnet2.enh.layers.adapt_layers for options</p></li>
 <dt id="espnet2.enh.layers.dcunet.ArgsComplexMultiplicationWrapper">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dcunet.</code><code class="sig-name descname">ArgsComplexMultiplicationWrapper</code><span class="sig-paren">(</span><em class="sig-param">module_cls</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dcunet.html#ArgsComplexMultiplicationWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dcunet.ArgsComplexMultiplicationWrapper" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<dl class="simple">
-<dt>Adapted from <cite>asteroid</cite>’s <cite>complex_nn.py</cite>, allowing</dt><dd><p>args/kwargs to be passed through forward().</p>
-</dd>
-</dl>
+<p>Adapted from <cite>asteroid</cite>’s <cite>complex_nn.py</cite>, allowing</p>
+<p>args/kwargs to be passed through forward().</p>
 <p>Make a complex-valued module <cite>F</cite> from a real-valued module <cite>f</cite> by applying
 complex multiplication rules:</p>
 <p>F(a + i b) = f1(a) - f1(b) + i (f2(b) + f2(a))</p>
@@ -3000,8 +3001,8 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.enh.layers.dcunet.ComplexLinear">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dcunet.</code><code class="sig-name descname">ComplexLinear</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">output_dim</em>, <em class="sig-param">complex_valued</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dcunet.html#ComplexLinear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dcunet.ComplexLinear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>A potentially complex-valued linear layer. Reduces to a regular linear
-layer if <cite>complex_valued=False</cite>.</p>
+<p>A potentially complex-valued linear layer. Reduces to a regular linear</p>
+<p>layer if <cite>complex_valued=False</cite>.</p>
 <dl class="method">
 <dt id="espnet2.enh.layers.dcunet.ComplexLinear.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dcunet.html#ComplexLinear.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dcunet.ComplexLinear.forward" title="Permalink to this definition">¶</a></dt>
@@ -3035,8 +3036,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.enh.layers.dcunet.DCUNet.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">spec</em>, <em class="sig-param">t</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/dcunet.html#DCUNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dcunet.DCUNet.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$
-divisible by $f_0 * f_1 * … * f_N$ where $f_k$ are the frequency strides
+<dd><p>Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$</p>
+<p>divisible by $f_0 * f_1 * … * f_N$ where $f_k$ are the frequency strides
 of the encoders, and $time - 1$ is divisible by $t_0 * t_1 * … * t_N$
 where $t_N$ are the time strides of the encoders.
 :param spec: complex spectrogram tensor. 1D, 2D or 3D tensor, time last.
@@ -3191,8 +3192,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="function">
 <dt id="espnet2.enh.layers.dcunet.unet_decoder_args">
 <code class="sig-prename descclassname">espnet2.enh.layers.dcunet.</code><code class="sig-name descname">unet_decoder_args</code><span class="sig-paren">(</span><em class="sig-param">encoders</em>, <em class="sig-param">*</em>, <em class="sig-param">skip_connections</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dcunet.html#unet_decoder_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dcunet.unet_decoder_args" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get list of decoder arguments for upsampling (right) side of a symmetric u-net,
-given the arguments used to construct the encoder.
+<dd><p>Get list of decoder arguments for upsampling (right) side of a symmetric u-net,</p>
+<p>given the arguments used to construct the encoder.
 :param encoders (tuple of length <cite>N</cite> of tuples of: (in_chan, out_chan, kernel_size, stride, padding)):</p>
 <blockquote>
 <div><p>List of arguments used to construct the encoders</p>
@@ -4923,8 +4924,8 @@ Many functions aren’t enough tested</p>
 <dt id="espnet2.enh.layers.ncsnpp.NCSNpp">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.ncsnpp.</code><code class="sig-name descname">NCSNpp</code><span class="sig-paren">(</span><em class="sig-param">scale_by_sigma=True, nonlinearity='swish', nf=128, ch_mult=(1, 1, 2, 2, 2, 2, 2), num_res_blocks=2, attn_resolutions=(16,), resamp_with_conv=True, conditional=True, fir=True, fir_kernel=[1, 3, 3, 1], skip_rescale=True, resblock_type='biggan', progressive='output_skip', progressive_input='input_skip', progressive_combine='sum', init_scale=0.0, fourier_scale=16, image_size=256, embedding_type='fourier', dropout=0.0, centered=True, **unused_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/ncsnpp.html#NCSNpp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.ncsnpp.NCSNpp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>NCSN++ model, adapted from <a class="reference external" href="https://github.com/yang-song/score_sde">https://github.com/yang-song/score_sde</a> and
-<a class="reference external" href="https://github.com/sp-uhh/sgmse">https://github.com/sp-uhh/sgmse</a> repository</p>
+<p>NCSN++ model, adapted from <a class="reference external" href="https://github.com/yang-song/score_sde">https://github.com/yang-song/score_sde</a> and</p>
+<p><a class="reference external" href="https://github.com/sp-uhh/sgmse">https://github.com/sp-uhh/sgmse</a> repository</p>
 <dl class="method">
 <dt id="espnet2.enh.layers.ncsnpp.NCSNpp.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">time_cond</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/ncsnpp.html#NCSNpp.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.ncsnpp.NCSNpp.forward" title="Permalink to this definition">¶</a></dt>
@@ -7879,11 +7880,9 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.enh.separator.tfgridnetv2_separator.TFGridNetV2">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnetv2_separator.</code><code class="sig-name descname">TFGridNetV2</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">n_srcs=2</em>, <em class="sig-param">n_fft=128</em>, <em class="sig-param">stride=64</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">n_imics=1</em>, <em class="sig-param">n_layers=6</em>, <em class="sig-param">lstm_hidden_units=192</em>, <em class="sig-param">attn_n_head=4</em>, <em class="sig-param">attn_approx_qk_dim=512</em>, <em class="sig-param">emb_dim=48</em>, <em class="sig-param">emb_ks=4</em>, <em class="sig-param">emb_hs=1</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em>, <em class="sig-param">use_builtin_complex=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv2_separator.html#TFGridNetV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv2_separator.TFGridNetV2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
-<dl class="simple">
-<dt>Offline TFGridNetV2. Compared with TFGridNet, TFGridNetV2 speeds up the code</dt><dd><p>by vectorizing multiple heads in self-attention, and better dealing with
+<p>Offline TFGridNetV2. Compared with TFGridNet, TFGridNetV2 speeds up the code</p>
+<p>by vectorizing multiple heads in self-attention, and better dealing with
 Deconv1D in each intra- and inter-block when emb_ks == emb_hs.</p>
-</dd>
-</dl>
 <p>Reference:
 [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
 “TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation”,
@@ -9176,7 +9175,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.streaming_frame">
 <code class="sig-name descname">streaming_frame</code><span class="sig-paren">(</span><em class="sig-param">audio: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/abs_encoder.html#AbsEncoder.streaming_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.streaming_frame" title="Permalink to this definition">¶</a></dt>
-<dd><p>streaming_frame. It splits the continuous audio into frame-level
+<dd><p>Stream frame.</p>
+<p>It splits the continuous audio into frame-level
 audio chunks in the streaming <em>simulation</em>. It is noted that this
 function takes the entire long audio as input for a streaming simulation.
 You may refer to this function to manage your streaming input
@@ -9238,7 +9238,8 @@ buffer in a real streaming application.</p>
 <dl class="method">
 <dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.streaming_frame">
 <code class="sig-name descname">streaming_frame</code><span class="sig-paren">(</span><em class="sig-param">audio: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/conv_encoder.html#ConvEncoder.streaming_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.streaming_frame" title="Permalink to this definition">¶</a></dt>
-<dd><p>streaming_frame. It splits the continuous audio into frame-level
+<dd><p>Stream frame.</p>
+<p>It splits the continuous audio into frame-level
 audio chunks in the streaming <em>simulation</em>. It is noted that this
 function takes the entire long audio as input for a streaming simulation.
 You may refer to this function to manage your streaming input

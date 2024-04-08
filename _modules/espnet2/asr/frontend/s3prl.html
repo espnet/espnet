@@ -217,7 +217,7 @@
 
 <span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
@@ -227,11 +227,12 @@
 <div class="viewcode-block" id="S3prlFrontend"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend">[docs]</a><span class="k">class</span> <span class="nc">S3prlFrontend</span><span class="p">(</span><span class="n">AbsFrontend</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Speech Pretrained Representation frontend structure for ASR.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
         <span class="n">frontend_conf</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">Frontend</span><span class="p">),</span>
-        <span class="n">download_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">download_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">multilayer_feature</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
@@ -243,7 +244,6 @@
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install S3PRL: cd $</span><span class="si">{MAIN_ROOT}</span><span class="s2">/tools &amp;&amp; make s3prl.done&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">e</span>
 
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>

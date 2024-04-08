@@ -215,7 +215,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
@@ -223,10 +223,10 @@
 
 
 <div class="viewcode-block" id="FusedFrontends"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.fused.FusedFrontends">[docs]</a><span class="k">class</span> <span class="nc">FusedFrontends</span><span class="p">(</span><span class="n">AbsFrontend</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">frontends</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">align_method</span><span class="o">=</span><span class="s2">&quot;linear_projection&quot;</span><span class="p">,</span> <span class="n">proj_dim</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">16000</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">align_method</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">align_method</span>  <span class="c1"># fusing method : linear_projection only for now</span>

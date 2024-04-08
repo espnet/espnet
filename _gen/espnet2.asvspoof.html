@@ -215,8 +215,8 @@
 <dt id="espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asvspoof.espnet_model.</code><code class="sig-name descname">ESPnetASVSpoofModel</code><span class="sig-paren">(</span><em class="sig-param">frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], decoder: espnet2.asvspoof.decoder.abs_decoder.AbsDecoder, losses: Dict[str, espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/espnet_model.html#ESPnetASVSpoofModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
-<p>ASV Spoofing model
-A simple ASV Spoofing model</p>
+<p>ASV Spoofing model</p>
+<p>A simple ASV Spoofing model</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.collect_feats">
 <code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asvspoof/espnet_model.html#ESPnetASVSpoofModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.collect_feats" title="Permalink to this definition">¶</a></dt>
@@ -225,19 +225,31 @@ A simple ASV Spoofing model</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.encode">
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asvspoof/espnet_model.html#ESPnetASVSpoofModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.encode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Frontend + Encoder
-:param speech: (Batch, Length, …)
-:param speech_lengths: (Batch,)
-:param bottleneck_feats: (Batch, Length, …): used for enh + diar</p>
+<dd><p>Frontend + Encoder</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
+<li><p><strong>speech_lengths</strong> – (Batch,)</p></li>
+<li><p><strong>bottleneck_feats</strong> – (Batch, Length, …): used for enh + diar</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor = None</em>, <em class="sig-param">label: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asvspoof/espnet_model.html#ESPnetASVSpoofModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Frontend + Encoder + Decoder + Calc loss
-:param speech: (Batch, samples)
-:param spk_labels: (Batch, )
-:param kwargs: “utt_id” is among the input.</p>
+<dd><p>Frontend + Encoder + Decoder + Calc loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech</strong> – (Batch, samples)</p></li>
+<li><p><strong>spk_labels</strong> – (Batch, )</p></li>
+<li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -256,19 +268,26 @@ A simple ASV Spoofing model</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">label: torch.Tensor</em>, <em class="sig-param">emb: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/loss/oc_softmax_loss.html#ASVSpoofOCSoftmaxLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-:param label: ground truth label [Batch, 1]
-:type label: torch.Tensor
-:param emb: encoder embedding output [Batch, T, enc_dim]
-:type emb: torch.Tensor</p>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<em>torch.Tensor</em>) – ground truth label [Batch, 1]</p></li>
+<li><p><strong>emb</strong> (<em>torch.Tensor</em>) – encoder embedding output [Batch, T, enc_dim]</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.score">
 <code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">emb: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/loss/oc_softmax_loss.html#ASVSpoofOCSoftmaxLoss.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.score" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prediction.
-:param emb: encoder embedding output [Batch, T, enc_dim]
-:type emb: torch.Tensor</p>
+<dd><p>Prediction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>emb</strong> (<em>torch.Tensor</em>) – encoder embedding output [Batch, T, enc_dim]</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -284,11 +303,15 @@ A simple ASV Spoofing model</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">pred: torch.Tensor</em>, <em class="sig-param">label: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/loss/binary_loss.html#ASVSpoofBinaryLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-:param pred: prediction probability [Batch, 2]
-:type pred: torch.Tensor
-:param label: ground truth label [Batch, 2]
-:type label: torch.Tensor</p>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pred</strong> (<em>torch.Tensor</em>) – prediction probability [Batch, 2]</p></li>
+<li><p><strong>label</strong> (<em>torch.Tensor</em>) – ground truth label [Batch, 2]</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -344,19 +367,26 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">label: torch.Tensor</em>, <em class="sig-param">emb: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/loss/am_softmax_loss.html#ASVSpoofAMSoftmaxLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-:param label: ground truth label [Batch, 1]
-:type label: torch.Tensor
-:param emb: encoder embedding output [Batch, T, enc_dim]
-:type emb: torch.Tensor</p>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<em>torch.Tensor</em>) – ground truth label [Batch, 1]</p></li>
+<li><p><strong>emb</strong> (<em>torch.Tensor</em>) – encoder embedding output [Batch, T, enc_dim]</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.score">
 <code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">emb: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/loss/am_softmax_loss.html#ASVSpoofAMSoftmaxLoss.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.score" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prediction.
-:param emb: encoder embedding output [Batch, T, enc_dim]
-:type emb: torch.Tensor</p>
+<dd><p>Prediction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>emb</strong> (<em>torch.Tensor</em>) – encoder embedding output [Batch, T, enc_dim]</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -375,11 +405,15 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.asvspoof.decoder.linear_decoder.LinearDecoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor, ilens: Optional[torch.Tensor]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asvspoof/decoder/linear_decoder.html#LinearDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asvspoof.decoder.linear_decoder.LinearDecoder.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward.
-:param input: hidden_space [Batch, T, F]
-:type input: torch.Tensor
-:param ilens: input lengths [Batch]
-:type ilens: torch.Tensor</p>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – hidden_space [Batch, T, F]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

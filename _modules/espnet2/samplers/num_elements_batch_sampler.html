@@ -214,13 +214,14 @@
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">load_num_sequence_text</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
 
 
 <div class="viewcode-block" id="NumElementsBatchSampler"><a class="viewcode-back" href="../../../_gen/espnet2.samplers.html#espnet2.samplers.num_elements_batch_sampler.NumElementsBatchSampler">[docs]</a><span class="k">class</span> <span class="nc">NumElementsBatchSampler</span><span class="p">(</span><span class="n">AbsSampler</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch_bins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -231,7 +232,6 @@
         <span class="n">drop_last</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">padding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">batch_bins</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">sort_batch</span> <span class="o">!=</span> <span class="s2">&quot;ascending&quot;</span> <span class="ow">and</span> <span class="n">sort_batch</span> <span class="o">!=</span> <span class="s2">&quot;descending&quot;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

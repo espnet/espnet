@@ -211,8 +211,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.enh.diffusion.sdes</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Abstract SDE classes, Reverse SDE, and VE/VP SDEs.</span>
+<span></span><span class="sd">&quot;&quot;&quot;Abstract SDE classes, Reverse SDE, and VE/VP SDEs.</span>
 
 <span class="sd">Taken and adapted from</span>
 <span class="sd">https://github.com/yang-song/score_sde_pytorch</span>
@@ -252,13 +251,17 @@
 <div class="viewcode-block" id="SDE.marginal_prob"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.SDE.marginal_prob">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span> <span class="nf">marginal_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parameters to determine the marginal distribution of</span>
-<span class="sd">        the SDE, $p_t(x|args)$.&quot;&quot;&quot;</span>
+
+<span class="sd">        the SDE, $p_t(x|args)$.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="SDE.prior_sampling"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.SDE.prior_sampling">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span> <span class="nf">prior_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate one sample from the prior distribution,</span>
-<span class="sd">        $p_T(x|args)$ with shape `shape`.&quot;&quot;&quot;</span>
+
+<span class="sd">        $p_T(x|args)$ with shape `shape`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="SDE.prior_logp"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.SDE.prior_logp">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
@@ -350,7 +353,9 @@
 
             <span class="k">def</span> <span class="nf">discretize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">                </span><span class="sd">&quot;&quot;&quot;Create discretized iteration rules for the reverse</span>
-<span class="sd">                diffusion sampler.&quot;&quot;&quot;</span>
+
+<span class="sd">                diffusion sampler.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
                 <span class="n">f</span><span class="p">,</span> <span class="n">G</span> <span class="o">=</span> <span class="n">discretize_fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
                 <span class="n">rev_f</span> <span class="o">=</span> <span class="n">f</span> <span class="o">-</span> <span class="n">G</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">score_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
                     <span class="mf">0.5</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">probability_flow</span> <span class="k">else</span> <span class="mf">1.0</span>
@@ -451,7 +456,8 @@
 
 <div class="viewcode-block" id="OUVPSDE"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.OUVPSDE">[docs]</a><span class="k">class</span> <span class="nc">OUVPSDE</span><span class="p">(</span><span class="n">SDE</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beta_min</span><span class="p">,</span> <span class="n">beta_max</span><span class="p">,</span> <span class="n">stiffness</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="o">**</span><span class="n">ignored_kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;OUVPSDE class.</span>
+
 <span class="sd">        !!! SGMSE authors observed instabilities around t=0.2. !!!</span>
 
 <span class="sd">        Construct an Ornstein-Uhlenbeck Variance Preserving SDE:</span>
@@ -523,7 +529,9 @@
 
 <div class="viewcode-block" id="batch_broadcast"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.batch_broadcast">[docs]</a><span class="k">def</span> <span class="nf">batch_broadcast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Broadcasts a over all dimensions of x, except the batch dimension,</span>
-<span class="sd">    which must match.&quot;&quot;&quot;</span>
+
+<span class="sd">    which must match.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>

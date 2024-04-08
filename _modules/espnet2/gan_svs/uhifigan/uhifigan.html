@@ -226,6 +226,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">parallel_wavegan.layers</span> <span class="kn">import</span> <span class="n">CausalConv1d</span><span class="p">,</span> <span class="n">CausalConvTranspose1d</span>
@@ -240,6 +241,7 @@
 <div class="viewcode-block" id="UHiFiGANGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.uhifigan.uhifigan.UHiFiGANGenerator">[docs]</a><span class="k">class</span> <span class="nc">UHiFiGANGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;UHiFiGAN generator module.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
@@ -345,7 +347,7 @@
                 <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="p">,</span> <span class="n">nonlinear_activation</span><span class="p">)(</span><span class="o">**</span><span class="n">nonlinear_activation_params</span><span class="p">),</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="n">hidden_channels</span> <span class="o">=</span> <span class="n">channels</span>
+
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">downsample_scales</span><span class="p">)):</span>
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">resblock_kernel_sizes</span><span class="p">)):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">downsamples_mrf</span> <span class="o">+=</span> <span class="p">[</span>

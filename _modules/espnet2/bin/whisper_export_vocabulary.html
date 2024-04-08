@@ -217,8 +217,9 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.whisper_tokenizer</span> <span class="kn">import</span> <span class="n">LANGUAGES_CODE_MAPPING</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
@@ -227,10 +228,11 @@
 <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="export_vocabulary"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.whisper_export_vocabulary.export_vocabulary">[docs]</a><span class="k">def</span> <span class="nf">export_vocabulary</span><span class="p">(</span>
+<div class="viewcode-block" id="export_vocabulary"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.whisper_export_vocabulary.export_vocabulary">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">export_vocabulary</span><span class="p">(</span>
     <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">whisper_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">whisper_language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;en&quot;</span><span class="p">,</span>
+    <span class="n">whisper_language</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;en&quot;</span><span class="p">,</span>
     <span class="n">whisper_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transcribe&quot;</span><span class="p">,</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
     <span class="n">add_token_file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
@@ -246,8 +248,6 @@
             <span class="s2">&quot;./installers/install_whisper.sh&quot;</span>
         <span class="p">)</span>
         <span class="k">raise</span> <span class="n">e</span>
-
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
         <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>

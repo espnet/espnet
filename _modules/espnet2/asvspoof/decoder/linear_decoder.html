@@ -226,19 +226,20 @@
         <span class="n">encoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="c1"># TODO1 (checkpoint3): initialize a linear projection layer</span>
+        <span class="c1"># TODO(checkpoint3): initialize a linear projection layer</span>
 
 <div class="viewcode-block" id="LinearDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asvspoof.html#espnet2.asvspoof.decoder.linear_decoder.LinearDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): hidden_space [Batch, T, F]</span>
 <span class="sd">            ilens (torch.Tensor): input lengths [Batch]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># TODO2 (checkpoint3): compute mean over time-domain (dimension 1)</span>
+        <span class="c1"># TODO(checkpoint3): compute mean over time-domain (dimension 1)</span>
 
-        <span class="c1"># TODO3 (checkpoint3): apply the projection layer</span>
+        <span class="c1"># TODO(checkpoint3): apply the projection layer</span>
 
-        <span class="c1"># TODO4 (checkpoint3): change the return value</span>
+        <span class="c1"># TODO(checkpoint3): change the return value</span>
         <span class="k">return</span> <span class="kc">None</span></div></div>
 </pre></div>
 

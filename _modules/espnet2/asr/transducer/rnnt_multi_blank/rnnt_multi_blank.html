@@ -239,7 +239,6 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 
-
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">Module</span>
@@ -263,7 +262,8 @@
         <span class="n">fastemit_lambda</span><span class="p">,</span>
         <span class="n">clamp</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;RNNTNumba Forward.</span>
+
 <span class="sd">        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</span>
 <span class="sd">            containing output from network</span>
 <span class="sd">        labels: 2 dimensional Tensor containing all the targets of</span>
@@ -320,8 +320,9 @@
 
 
 <span class="k">class</span> <span class="nc">_MultiblankRNNTNumba</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Numba class for multi-blank transducer loss (https://arxiv.org/pdf/2211.03541.pdf)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Numba class for multi-blank transducer loss</span>
+
+<span class="sd">    (https://arxiv.org/pdf/2211.03541.pdf)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
@@ -338,7 +339,8 @@
         <span class="n">clamp</span><span class="p">,</span>
         <span class="n">sigma</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;MultiblankRNNTNumba Forward.</span>
+
 <span class="sd">        big_blank_durations: list of durations for multi-blank transducer, e.g.</span>
 <span class="sd">            [2, 4, 8].</span>
 <span class="sd">        sigma: hyper-parameter for logit under-normalization method for training</span>
@@ -420,6 +422,7 @@
     <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;RNN Transducer Loss (functional form)</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of (batch x seqLength x labelLength x outputDim)</span>
 <span class="sd">            containing output from network</span>
@@ -466,9 +469,9 @@
     <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)</span>
-<span class="sd">        Loss (functional form)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)</span>
+
+<span class="sd">    Loss (functional form)</span>
 <span class="sd">    Args:</span>
 <span class="sd">        acts: Tensor of (batch x seqLength x labelLength x outputDim) containing</span>
 <span class="sd">        output from network</span>
@@ -519,7 +522,8 @@
 
 
 <div class="viewcode-block" id="RNNTLossNumba"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba">[docs]</a><span class="k">class</span> <span class="nc">RNNTLossNumba</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RNNT Loss Numba</span>
+
 <span class="sd">    Parameters:</span>
 <span class="sd">        blank (int, optional): blank label. Default: 0.</span>
 <span class="sd">        reduction (string, optional): Specifies the reduction to apply to the output:</span>
@@ -544,7 +548,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">_RNNTNumba</span><span class="o">.</span><span class="n">apply</span>
 
 <div class="viewcode-block" id="RNNTLossNumba.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">act_lens</span><span class="p">,</span> <span class="n">label_lens</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward RNNTLossNumba.</span>
+
 <span class="sd">        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</span>
 <span class="sd">            containing output from network</span>
 <span class="sd">        labels: 2 dimensional Tensor containing all the targets of the</span>
@@ -582,7 +587,8 @@
 
 
 <div class="viewcode-block" id="MultiblankRNNTLossNumba"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba">[docs]</a><span class="k">class</span> <span class="nc">MultiblankRNNTLossNumba</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multiblank RNNT Loss Numba</span>
+
 <span class="sd">    Parameters:</span>
 <span class="sd">        blank (int): standard blank label.</span>
 <span class="sd">        big_blank_durations: list of durations for multi-blank transducer, e.g.</span>
@@ -621,7 +627,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
 
 <div class="viewcode-block" id="MultiblankRNNTLossNumba.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">act_lens</span><span class="p">,</span> <span class="n">label_lens</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;MultiblankRNNTLossNumba Forward.</span>
+
 <span class="sd">        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</span>
 <span class="sd">            containing output from network</span>
 <span class="sd">        labels: 2 dimensional Tensor containing all the targets of</span>

@@ -221,7 +221,7 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">linear_sum_assignment</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.diar.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetDiarizationModel</span>
@@ -242,6 +242,7 @@
 <div class="viewcode-block" id="ESPnetEnhS2TModel"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetEnhS2TModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Joint model Enhancement and Speech to Text.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">enh_model</span><span class="p">:</span> <span class="n">ESPnetEnhancementModel</span><span class="p">,</span>
@@ -249,7 +250,6 @@
         <span class="n">calc_enh_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">bypass_enh_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># 0 means do not bypass enhancement for all data</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span> <span class="o">=</span> <span class="n">enh_model</span>
@@ -722,12 +722,12 @@
 
         <span class="k">return</span> <span class="n">hyp_perm</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">min_perm_loss</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ESPnetEnhS2TModel.inherite_attributes"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">[docs]</a>    <span class="k">def</span> <span class="nf">inherite_attributes</span><span class="p">(</span>
+<div class="viewcode-block" id="ESPnetEnhS2TModel.inherite_attributes"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">[docs]</a>    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">inherite_attributes</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inherite_enh_attrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">inherite_s2t_attrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inherite_enh_attrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">inherite_enh_attrs</span><span class="p">:</span>

@@ -215,12 +215,14 @@
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 
 
 <div class="viewcode-block" id="PriorDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.prior_decoder.PriorDecoder">[docs]</a><span class="k">class</span> <span class="nc">PriorDecoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">192</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
@@ -242,8 +244,7 @@
         <span class="n">attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">global_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialize prior decoder module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize prior decoder module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            out_channels (int): Output channels of the prior decoder. Defaults to 384.</span>
@@ -302,8 +303,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">global_channels</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PriorDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.prior_decoder.PriorDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_lengths</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Forward pass of the PriorDecoder module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass of the PriorDecoder module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, attention_dim + 2, T).</span>

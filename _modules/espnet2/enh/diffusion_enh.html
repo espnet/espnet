@@ -213,22 +213,21 @@
   <h1>Source code for espnet2.enh.diffusion_enh</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Enhancement model module.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.diffusion.abs_diffusion</span> <span class="kn">import</span> <span class="n">AbsDiffusion</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.extractor.abs_extractor</span> <span class="kn">import</span> <span class="n">AbsExtractor</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.extractor.abs_extractor</span> <span class="kn">import</span> <span class="n">AbsExtractor</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainLoss</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainLoss</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>  <span class="c1"># noqa</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>  <span class="c1"># noqa</span>
 
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
 
@@ -236,6 +235,7 @@
 <div class="viewcode-block" id="ESPnetDiffusionModel"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.diffusion_enh.ESPnetDiffusionModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetDiffusionModel</span><span class="p">(</span><span class="n">ESPnetEnhancementModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Target Speaker Extraction Frontend model&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
@@ -246,7 +246,6 @@
         <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
@@ -261,7 +260,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">diffusion</span> <span class="o">=</span> <span class="n">diffusion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
 
-        <span class="c1"># TODO: Extending the model to separation tasks.</span>
+        <span class="c1"># TODO(gituser): Extending the model to separation tasks.</span>
         <span class="k">assert</span> <span class="p">(</span>
             <span class="n">num_spk</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="p">),</span> <span class="s2">&quot;only enhancement models are supported now, num_spk must be 1&quot;</span>

@@ -222,7 +222,6 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.multiprocessing.spawn</span> <span class="kn">import</span> <span class="n">ProcessContext</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.samplers.build_batch_sampler</span> <span class="kn">import</span> <span class="n">BATCH_TYPES</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.spk</span> <span class="kn">import</span> <span class="n">SpeakerTask</span>
@@ -235,7 +234,7 @@
     <span class="n">get_num_nodes</span><span class="p">,</span>
     <span class="n">resolve_distributed_mode</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span><span class="p">,</span> <span class="n">SubReporter</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.build_dataclass</span> <span class="kn">import</span> <span class="n">build_dataclass</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>

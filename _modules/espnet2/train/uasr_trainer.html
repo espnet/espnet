@@ -227,7 +227,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsBatchStepScheduler</span><span class="p">,</span> <span class="n">AbsScheduler</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
@@ -274,9 +274,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="UASRTrainer.build_options"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.uasr.UASRTrainer.build_options">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrainerOptions</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build options consumed by train(), eval(), and plot_attention().&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">build_dataclass</span><span class="p">(</span><span class="n">UASRTrainerOptions</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="UASRTrainer.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.uasr.UASRTrainer.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
@@ -296,6 +296,7 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="UASRTrainer.train_one_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.uasr.UASRTrainer.train_one_epoch">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">train_one_epoch</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
@@ -309,7 +310,6 @@
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Train one epoch for UASR.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">grad_noise</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">grad_noise</span>
         <span class="n">accum_grad</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">accum_grad</span>
@@ -523,6 +523,7 @@
 
 <div class="viewcode-block" id="UASRTrainer.validate_one_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.uasr.UASRTrainer.validate_one_epoch">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">validate_one_epoch</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
@@ -532,7 +533,6 @@
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate one epoch.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
         <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
         <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>

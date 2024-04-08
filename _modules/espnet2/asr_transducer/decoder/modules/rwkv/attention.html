@@ -215,14 +215,15 @@
 
 <span class="sd">Based/Modified from https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py.</span>
 
-<span class="sd">Some variables are renamed according to https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.</span>
+<span class="sd">Some variables are renamed according to</span>
+<span class="sd">https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.</span>
 
-<span class="sd">&quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">importlib.util</span> <span class="kn">import</span> <span class="n">find_spec</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -296,7 +297,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">time_decay</span><span class="p">,</span> <span class="n">time_first</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
-        <span class="n">grad_dtype</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_dtype</span>
+        <span class="n">grad_dtype</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_dtype</span>  <span class="c1"># noqa</span>
 
         <span class="n">batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
 

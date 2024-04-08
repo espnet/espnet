@@ -221,7 +221,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
     <span class="n">DurationPredictorLoss</span><span class="p">,</span>
@@ -373,6 +373,7 @@
 <div class="viewcode-block" id="ProDiffLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.prodiff.loss.ProDiffLoss">[docs]</a><span class="k">class</span> <span class="nc">ProDiffLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for ProDiffLoss.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -387,7 +388,6 @@
 <span class="sd">                calculation.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="p">(</span><span class="n">use_masking</span> <span class="o">!=</span> <span class="n">use_weighted_masking</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_masking</span>

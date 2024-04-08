@@ -215,15 +215,15 @@
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 
 
 <div class="viewcode-block" id="PhonemePredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor">[docs]</a><span class="k">class</span> <span class="nc">PhonemePredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Phoneme Predictor module in VISinger.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Phoneme Predictor module in VISinger.&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocabs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -245,8 +245,7 @@
         <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialize PhonemePredictor module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize PhonemePredictor module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            vocabs (int): The number of vocabulary.</span>
@@ -295,8 +294,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_channels</span><span class="p">,</span> <span class="n">vocabs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PhonemePredictor.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Perform forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): The input tensor of shape (B, dim, length).</span>

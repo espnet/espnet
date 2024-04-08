@@ -234,7 +234,7 @@
     <span class="n">prepare_text</span><span class="p">,</span>
     <span class="n">prepare_token_list</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">ASRTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
@@ -386,10 +386,11 @@
     <span class="n">warned_about_misconfiguration</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">CtcSegmentationParameters</span><span class="p">()</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">asr_train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-        <span class="n">asr_model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">asr_model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
         <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -430,7 +431,6 @@
 <span class="sd">                longer audio files: &quot;auto&quot;.</span>
 <span class="sd">            **ctc_segmentation_args: Parameters for CTC segmentation.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="c1"># Basic settings</span>
         <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -744,6 +744,7 @@
         <span class="k">return</span> <span class="n">task</span></div>
 
 <div class="viewcode-block" id="CTCSegmentation.get_segments"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentation.get_segments">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">get_segments</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">CTCSegmentationTask</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain segments for given utterance texts and CTC log posteriors.</span>
 
@@ -755,7 +756,6 @@
 <span class="sd">            result: Dictionary with alignments. Combine this with the task</span>
 <span class="sd">                object to obtain a human-readable segments representation.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span>
         <span class="n">lpz</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">lpz</span>
@@ -781,6 +781,7 @@
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
@@ -800,7 +801,6 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            CTCSegmentationTask object with segments.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
         <span class="c1"># Get log CTC posterior probabilities</span>
@@ -810,11 +810,11 @@
         <span class="c1"># Apply CTC segmentation</span>
         <span class="n">segments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_segments</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
         <span class="n">task</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">segments</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">task</span></div>
 
 
-<div class="viewcode-block" id="ctc_align"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_align.ctc_align">[docs]</a><span class="k">def</span> <span class="nf">ctc_align</span><span class="p">(</span>
+<div class="viewcode-block" id="ctc_align"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_align.ctc_align">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">ctc_align</span><span class="p">(</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">asr_train_config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">asr_model_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -826,7 +826,6 @@
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provide the scripting interface to align text to audio.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
         <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> (</span><span class="si">%(module)s</span><span class="s2">:</span><span class="si">%(lineno)d</span><span class="s2">) </span><span class="si">%(levelname)s</span><span class="s2">: </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>

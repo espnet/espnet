@@ -221,10 +221,9 @@
 
 
 <div class="viewcode-block" id="differenceFunction"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.yin.differenceFunction">[docs]</a><span class="k">def</span> <span class="nf">differenceFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">tau_max</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute difference function of data x. This corresponds to equation (6) in [1]</span>
-<span class="sd">    This solution is implemented directly with torch rfft.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute difference function of data x. This corresponds to equation (6) in [1]</span>
 
+<span class="sd">    This solution is implemented directly with torch rfft.</span>
 
 <span class="sd">    :param x: audio data (Tensor)</span>
 <span class="sd">    :param N: length of data</span>
@@ -264,10 +263,9 @@
 
 
 <div class="viewcode-block" id="differenceFunction_np"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.yin.differenceFunction_np">[docs]</a><span class="k">def</span> <span class="nf">differenceFunction_np</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">tau_max</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute difference function of data x. This corresponds to equation (6) in [1]</span>
-<span class="sd">    This solution is implemented directly with Numpy fft.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute difference function of data x. This corresponds to equation (6) in [1]</span>
 
+<span class="sd">    This solution is implemented directly with Numpy fft.</span>
 
 <span class="sd">    :param x: audio data</span>
 <span class="sd">    :param N: length of data</span>
@@ -290,8 +288,7 @@
 
 
 <div class="viewcode-block" id="cumulativeMeanNormalizedDifferenceFunction"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.yin.cumulativeMeanNormalizedDifferenceFunction">[docs]</a><span class="k">def</span> <span class="nf">cumulativeMeanNormalizedDifferenceFunction</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute cumulative mean normalized difference function (CMND).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute cumulative mean normalized difference function (CMND).</span>
 
 <span class="sd">    This corresponds to equation (8) in [1]</span>
 
@@ -317,6 +314,7 @@
 
 <div class="viewcode-block" id="differenceFunctionTorch"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.yin.differenceFunctionTorch">[docs]</a><span class="k">def</span> <span class="nf">differenceFunctionTorch</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">tau_max</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;pytorch backend batch-wise differenceFunction</span>
+
 <span class="sd">    has 1e-4 level error with input shape of (32, 22050*1.5)</span>
 <span class="sd">    Args:</span>
 <span class="sd">        xs:</span>
@@ -329,7 +327,6 @@
     <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">tau_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">tau_max</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
-    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">x_cumsum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
         <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>

@@ -217,13 +217,12 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
-<span class="kn">from</span> <span class="nn">espnet2.spk.loss.aamsoftmax</span> <span class="kn">import</span> <span class="n">AAMSoftmax</span>
 <span class="kn">from</span> <span class="nn">espnet2.spk.loss.abs_loss</span> <span class="kn">import</span> <span class="n">AbsLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.spk.pooling.abs_pooling</span> <span class="kn">import</span> <span class="n">AbsPooling</span>
 <span class="kn">from</span> <span class="nn">espnet2.spk.projector.abs_projector</span> <span class="kn">import</span> <span class="n">AbsProjector</span>
@@ -232,8 +231,8 @@
 
 
 <div class="viewcode-block" id="ESPnetSpeakerModel"><a class="viewcode-back" href="../../../_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetSpeakerModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Speaker embedding extraction model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Speaker embedding extraction model.</span>
+
 <span class="sd">    Core model for diverse speaker-related tasks (e.g., verification, open-set</span>
 <span class="sd">    identification, diarization)</span>
 
@@ -252,6 +251,7 @@
 <span class="sd">    (e.g., ASR, SE, target speaker extraction).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">frontend</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFrontend</span><span class="p">],</span>
@@ -262,7 +262,6 @@
         <span class="n">projector</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsProjector</span><span class="p">],</span>
         <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsLoss</span><span class="p">],</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -274,16 +273,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">projector</span> <span class="o">=</span> <span class="n">projector</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
 
-<div class="viewcode-block" id="ESPnetSpeakerModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="ESPnetSpeakerModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">[docs]</a>    <span class="nd">@typechecked</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">spk_labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">task_tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spk_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">task_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extract_embd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Feed-forward through encoder layers and aggregate into utterance-level</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Feed-forward through encoder layers and aggregate into utterance-level</span>
+
 <span class="sd">        feature.</span>
 
 <span class="sd">        Args:</span>

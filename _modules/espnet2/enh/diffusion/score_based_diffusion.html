@@ -217,9 +217,6 @@
 
 
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -252,7 +249,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-        <span class="n">score_model</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;score_model&quot;</span><span class="p">]</span>
+        <span class="n">score_model</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;score_model&quot;</span><span class="p">]</span>  <span class="c1"># noqa</span>
         <span class="n">score_model_class</span> <span class="o">=</span> <span class="n">score_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;score_model&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dnn</span> <span class="o">=</span> <span class="n">score_model_class</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;score_model_conf&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sde</span> <span class="o">=</span> <span class="n">sde_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sde&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sde_conf&quot;</span><span class="p">])</span>

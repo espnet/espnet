@@ -216,7 +216,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
@@ -293,6 +293,7 @@
 
 
 <div class="viewcode-block" id="RNNDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder">[docs]</a><span class="k">class</span> <span class="nc">RNNDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">):</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -308,7 +309,6 @@
         <span class="n">att_conf</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">build_attention_list</span><span class="p">),</span>
     <span class="p">):</span>
         <span class="c1"># FIXME(kamo): The parts of num_spk should be refactored more more more</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">rnn_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span> <span class="s2">&quot;gru&quot;</span><span class="p">}:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: rnn_type=</span><span class="si">{</span><span class="n">rnn_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

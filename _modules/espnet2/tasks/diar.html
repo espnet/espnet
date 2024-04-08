@@ -216,7 +216,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
@@ -386,25 +386,24 @@
             <span class="n">class_choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DiarizationTask.build_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_collate_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_collate_fn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span>
         <span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="c1"># NOTE(kamo): int value = 0 is reserved by CTC-blank symbol</span>
         <span class="k">return</span> <span class="n">CommonCollateFn</span><span class="p">(</span><span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">int_pad_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DiarizationTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
             <span class="c1"># FIXME (jiatong): add more argument here</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="n">CommonPreprocessor</span><span class="p">(</span><span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="DiarizationTask.required_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.required_data_names">[docs]</a>    <span class="nd">@classmethod</span>
@@ -424,12 +423,11 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="c1"># (Note: jiatong): no optional data names for now</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="p">()</span>
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="DiarizationTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ESPnetDiarizationModel</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="c1"># 1. frontend</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">input_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -508,7 +506,6 @@
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span></div></div>
 </pre></div>
 

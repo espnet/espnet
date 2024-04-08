@@ -236,7 +236,9 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="AbsEncoder.streaming_frame"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.encoder.abs_encoder.AbsEncoder.streaming_frame">[docs]</a>    <span class="k">def</span> <span class="nf">streaming_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">audio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;streaming_frame. It splits the continuous audio into frame-level</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stream frame.</span>
+
+<span class="sd">        It splits the continuous audio into frame-level</span>
 <span class="sd">        audio chunks in the streaming *simulation*. It is noted that this</span>
 <span class="sd">        function takes the entire long audio as input for a streaming simulation.</span>
 <span class="sd">        You may refer to this function to manage your streaming input</span>
@@ -247,7 +249,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            chunked: List [(B, frame_size),]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="ne">NotImplementedError</span></div></div>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 </pre></div>
 
            </div>

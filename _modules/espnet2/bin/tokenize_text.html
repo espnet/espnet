@@ -219,7 +219,7 @@
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.cleaner</span> <span class="kn">import</span> <span class="n">TextCleaner</span>
@@ -273,7 +273,8 @@
     <span class="k">return</span> <span class="n">slic</span></div>
 
 
-<div class="viewcode-block" id="tokenize"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tokenize_text.tokenize">[docs]</a><span class="k">def</span> <span class="nf">tokenize</span><span class="p">(</span>
+<div class="viewcode-block" id="tokenize"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tokenize_text.tokenize">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">tokenize</span><span class="p">(</span>
     <span class="nb">input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">field</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -292,7 +293,6 @@
     <span class="n">g2p</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">add_nonsplit_symbol</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
 <span class="p">):</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
         <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
@@ -309,7 +309,7 @@
         <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">fout</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
 
-    <span class="n">cleaner</span> <span class="o">=</span> <span class="n">TextCleaner</span><span class="p">(</span><span class="n">cleaner</span><span class="p">)</span>
+    <span class="n">cleaner</span><span class="p">:</span> <span class="n">TextCleaner</span> <span class="o">=</span> <span class="n">TextCleaner</span><span class="p">(</span><span class="n">cleaner</span><span class="p">)</span>
     <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span>
         <span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span>
         <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
@@ -323,7 +323,7 @@
 
     <span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">field</span> <span class="o">=</span> <span class="n">field2slice</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">=</span> <span class="n">field2slice</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fin</span><span class="p">:</span>
         <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>

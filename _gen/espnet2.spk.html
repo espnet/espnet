@@ -231,8 +231,8 @@
 <dt id="espnet2.spk.espnet_model.ESPnetSpeakerModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.espnet_model.</code><code class="sig-name descname">ESPnetSpeakerModel</code><span class="sig-paren">(</span><em class="sig-param">frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], encoder: Optional[espnet2.asr.encoder.abs_encoder.AbsEncoder], pooling: Optional[espnet2.spk.pooling.abs_pooling.AbsPooling], projector: Optional[espnet2.spk.projector.abs_projector.AbsProjector], loss: Optional[espnet2.spk.loss.abs_loss.AbsLoss]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
-<p>Speaker embedding extraction model.
-Core model for diverse speaker-related tasks (e.g., verification, open-set
+<p>Speaker embedding extraction model.</p>
+<p>Core model for diverse speaker-related tasks (e.g., verification, open-set
 identification, diarization)</p>
 <p>The model architecture comprises mainly ‘encoder’, ‘pooling’, and
 ‘projector’.
@@ -275,9 +275,9 @@ a ‘decoder’, depending on the extension for joint usage of different tasks
 
 <dl class="method">
 <dt id="espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: torch.Tensor = None</em>, <em class="sig-param">task_tokens: torch.Tensor = None</em>, <em class="sig-param">extract_embd: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Feed-forward through encoder layers and aggregate into utterance-level
-feature.</p>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: Optional[torch.Tensor] = None</em>, <em class="sig-param">task_tokens: Optional[torch.Tensor] = None</em>, <em class="sig-param">extract_embd: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Feed-forward through encoder layers and aggregate into utterance-level</p>
+<p>feature.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -334,16 +334,16 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.aamsoftmax_subcenter_intertopk.</code><code class="sig-name descname">ArcMarginProduct_intertopk_subcenter</code><span class="sig-paren">(</span><em class="sig-param">nout</em>, <em class="sig-param">nclasses</em>, <em class="sig-param">scale=32.0</em>, <em class="sig-param">margin=0.2</em>, <em class="sig-param">easy_margin=False</em>, <em class="sig-param">K=3</em>, <em class="sig-param">mp=0.06</em>, <em class="sig-param">k_top=5</em>, <em class="sig-param">do_lm=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax_subcenter_intertopk.html#ArcMarginProduct_intertopk_subcenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.spk.loss.abs_loss.AbsLoss" title="espnet2.spk.loss.abs_loss.AbsLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.loss.abs_loss.AbsLoss</span></code></a></p>
-<p>Implement of large margin arc distance with intertopk and subcenter:
-Reference:</p>
-<blockquote>
-<div><p>MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
+<p>Implement of large margin arc distance with intertopk and subcenter:</p>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
 FOR SPEAKER VERIFICATION.
 <a class="reference external" href="https://arxiv.org/pdf/2110.05042.pdf">https://arxiv.org/pdf/2110.05042.pdf</a>
 Sub-center ArcFace: Boosting Face Recognition by
 Large-Scale Noisy Web Faces.
 <a class="reference external" href="https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf">https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf</a></p>
-</div></blockquote>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -521,11 +521,11 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.rawnet3_encoder.</code><code class="sig-name descname">RawNet3Encoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'Bottle2neck'</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
-paper: J. Jung et al., “Pushing the limits of raw waveform speaker</p>
-<blockquote>
-<div><p>recognition”, in Proc. INTERSPEECH, 2022.</p>
-</div></blockquote>
+<p>RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.</p>
+<dl class="simple">
+<dt>paper: J. Jung et al., “Pushing the limits of raw waveform speaker</dt><dd><p>recognition”, in Proc. INTERSPEECH, 2022.</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -566,8 +566,8 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.spk.encoder.identity_encoder.IdentityEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.identity_encoder.</code><code class="sig-name descname">IdentityEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/identity_encoder.html#IdentityEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.identity_encoder.IdentityEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>Identity encoder. Does nothing, just passes frontend feature to the pooling.
-Expected to be used for cases when frontend already has a good
+<p>Identity encoder. Does nothing, just passes frontend feature to the pooling.</p>
+<p>Expected to be used for cases when frontend already has a good
 representation (e.g., SSL features).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -601,10 +601,10 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.spk.encoder.conformer_encoder"></span><p>Conformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.conformer_encoder.</code><code class="sig-name descname">MfaConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d2'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/conformer_encoder.html#MfaConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.conformer_encoder.</code><code class="sig-name descname">MfaConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d2'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em>, <em class="sig-param">padding_idx: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/conformer_encoder.html#MfaConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>Conformer encoder module for MFA-Conformer.
-Paper: Y. Zhang et al., <a href="#system-message-1"><span class="problematic" id="problematic-1">``</span></a>Mfa-conformer: Multi-scale feature aggregation
+<p>Conformer encoder module for MFA-Conformer.</p>
+<p>Paper: Y. Zhang et al., <a href="#system-message-1"><span class="problematic" id="problematic-1">``</span></a>Mfa-conformer: Multi-scale feature aggregation
 conformer for automatic speaker verification,’’ in Proc. INTERSPEECH, 2022.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -667,8 +667,8 @@ in the future. More Details can be found in
 <dt id="espnet2.spk.encoder.xvector_encoder.XvectorEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.xvector_encoder.</code><code class="sig-name descname">XvectorEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int, ndim: int = 512, output_size: int = 1500, kernel_sizes: List = [5, 3, 3, 1, 1], paddings: List = [2, 1, 1, 0, 0], dilations: List = [1, 2, 3, 1, 1], **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/xvector_encoder.html#XvectorEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.xvector_encoder.XvectorEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>x-vector encoder. Extracts frame-level x-vector embeddings from features.
-Paper: D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker recognition,”
+<p>X-vector encoder. Extracts frame-level x-vector embeddings from features.</p>
+<p>Paper: D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker recognition,”
 in Proc. IEEE ICASSP, 2018.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -770,7 +770,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">convs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SKAttentionModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Input: [B, C, T]
+<dd><p>Forward function.</p>
+<p>Input: [B, C, T]
 Split: [K, B, C, T]
 Fues: [B, C, T]
 Attention weight: [B, C, 1]
@@ -783,11 +784,11 @@ Output: [B, C, T]</p>
 <dt id="espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">SkaTdnnEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'Bottle2neck'</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">skablock: str = 'ResBlock'</em>, <em class="sig-param">ska_dim: int = 128</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SkaTdnnEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.
-Paper: S. Mun, J. Jung et al., “Frequency and Multi-Scale Selective Kernel</p>
-<blockquote>
-<div><p>Attention for Speaker Verification,’ in Proc. IEEE SLT 2022.</p>
-</div></blockquote>
+<p>SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.</p>
+<dl class="simple">
+<dt>Paper: S. Mun, J. Jung et al., “Frequency and Multi-Scale Selective Kernel</dt><dd><p>Attention for Speaker Verification,’ in Proc. IEEE SLT 2022.</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -827,7 +828,8 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#cwSKAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Input: [B, C, F, T]
+<dd><p>Forward Function.</p>
+<p>Input: [B, C, F, T]
 Split: [K, B, C, F, T]
 Fuse: [B, C, F, T]
 Attention weight: [K, B, C, 1, 1]
@@ -843,7 +845,8 @@ Output: [B, C, F, T]</p>
 <dl class="method">
 <dt id="espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#fwSKAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Input: [B, C, F, T]
+<dd><p>Forward function.</p>
+<p>Input: [B, C, F, T]
 Split: [K, B, C, F, T]
 Fues: [B, C, F, T]
 Attention weight: [K, B, 1, F, 1]
@@ -860,8 +863,8 @@ Output: [B, C, F, T]</p>
 <dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ecapa_tdnn_encoder.</code><code class="sig-name descname">EcapaTdnnEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'EcapaBlock'</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
-<p>ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
-mel-filterbank energy or MFCC features.
+<p>ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from</p>
+<p>mel-filterbank energy or MFCC features.
 Paper: B Desplanques at el., <a href="#system-message-2"><span class="problematic" id="problematic-2">``</span></a>ECAPA-TDNN: Emphasized Channel Attention,</p>
 <blockquote>
 <div><p>Propagation and Aggregation in TDNN Based Speaker Verification,’’
@@ -912,8 +915,8 @@ in Proc. INTERSPEECH, 2020.</p>
 <dt id="espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.pooling.chn_attn_stat_pooling.</code><code class="sig-name descname">ChnAttnStatPooling</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1536</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/chn_attn_stat_pooling.html#ChnAttnStatPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.spk.pooling.abs_pooling.AbsPooling" title="espnet2.spk.pooling.abs_pooling.AbsPooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.pooling.abs_pooling.AbsPooling</span></code></a></p>
-<p>Aggregates frame-level features to single utterance-level feature.
-Proposed in B.Desplanques et al., “ECAPA-TDNN: Emphasized Channel
+<p>Aggregates frame-level features to single utterance-level feature.</p>
+<p>Proposed in B.Desplanques et al., “ECAPA-TDNN: Emphasized Channel
 Attention, Propagation and Aggregation in TDNN Based Speaker Verification”</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -951,8 +954,8 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.spk.pooling.stat_pooling.StatsPooling">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.pooling.stat_pooling.</code><code class="sig-name descname">StatsPooling</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1536</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/stat_pooling.html#StatsPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.stat_pooling.StatsPooling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.spk.pooling.abs_pooling.AbsPooling" title="espnet2.spk.pooling.abs_pooling.AbsPooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.pooling.abs_pooling.AbsPooling</span></code></a></p>
-<p>Aggregates frame-level features to single utterance-level feature.
-Proposed in D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker
+<p>Aggregates frame-level features to single utterance-level feature.</p>
+<p>Proposed in D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker
 recognition”</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

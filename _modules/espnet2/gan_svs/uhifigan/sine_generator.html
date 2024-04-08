@@ -217,6 +217,7 @@
 
 <div class="viewcode-block" id="SineGen"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.uhifigan.__init__.SineGen">[docs]</a><span class="k">class</span> <span class="nc">SineGen</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Definition of sine generator</span>
+
 <span class="sd">    SineGen(samp_rate, harmonic_num = 0,</span>
 <span class="sd">            sine_amp = 0.1, noise_std = 0.003,</span>
 <span class="sd">            voiced_threshold = 0,</span>
@@ -258,7 +259,9 @@
         <span class="k">return</span> <span class="n">uv</span>
 
     <span class="k">def</span> <span class="nf">_f02sine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f0_values</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;f0_values: (batchsize, length, dim)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;F02 sine.</span>
+
+<span class="sd">        f0_values: (batchsize, length, dim)</span>
 <span class="sd">        where dim indicates fundamental tone and overtones</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># convert to F0 in rad. The interger part n can be ignored</span>
@@ -319,7 +322,9 @@
         <span class="k">return</span> <span class="n">sines</span>
 
 <div class="viewcode-block" id="SineGen.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.uhifigan.__init__.SineGen.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f0</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;sine_tensor, uv = forward(f0)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward SineGen.</span>
+
+<span class="sd">        sine_tensor, uv = forward(f0)</span>
 <span class="sd">        input F0: tensor(batchsize=1, length, dim=1)</span>
 <span class="sd">                  f0 for unvoiced steps should be 0</span>
 <span class="sd">        output sine_tensor: tensor(batchsize=1, length, dim)</span>

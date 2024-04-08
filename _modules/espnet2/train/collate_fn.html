@@ -216,7 +216,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
 
@@ -224,13 +224,13 @@
 <div class="viewcode-block" id="CommonCollateFn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.CommonCollateFn">[docs]</a><span class="k">class</span> <span class="nc">CommonCollateFn</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Functor class of common_collate_fn()&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">float_pad_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">int_pad_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">32768</span><span class="p">,</span>
         <span class="n">not_sequence</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">float_pad_value</span> <span class="o">=</span> <span class="n">float_pad_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">int_pad_value</span> <span class="o">=</span> <span class="n">int_pad_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">not_sequence</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">not_sequence</span><span class="p">)</span>
@@ -255,6 +255,7 @@
 <div class="viewcode-block" id="HuBERTCollateFn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.HuBERTCollateFn">[docs]</a><span class="k">class</span> <span class="nc">HuBERTCollateFn</span><span class="p">(</span><span class="n">CommonCollateFn</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Functor class of common_collate_fn()&quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">float_pad_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -268,7 +269,6 @@
         <span class="n">window_shift</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
         <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">float_pad_value</span><span class="o">=</span><span class="n">float_pad_value</span><span class="p">,</span>
             <span class="n">int_pad_value</span><span class="o">=</span><span class="n">int_pad_value</span><span class="p">,</span>
@@ -392,7 +392,8 @@
     <span class="k">return</span> <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span>
 
 
-<div class="viewcode-block" id="common_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.common_collate_fn">[docs]</a><span class="k">def</span> <span class="nf">common_collate_fn</span><span class="p">(</span>
+<div class="viewcode-block" id="common_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.common_collate_fn">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">common_collate_fn</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]],</span>
     <span class="n">float_pad_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">int_pad_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">32768</span><span class="p">,</span>
@@ -415,7 +416,6 @@
 <span class="sd">        that of the dataset as they are.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="n">uttids</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
     <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
 
@@ -449,7 +449,6 @@
             <span class="n">output</span><span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;_lengths&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lens</span>
 
     <span class="n">output</span> <span class="o">=</span> <span class="p">(</span><span class="n">uttids</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
 

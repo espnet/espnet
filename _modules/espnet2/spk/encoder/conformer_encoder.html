@@ -220,7 +220,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.convolution</span> <span class="kn">import</span> <span class="n">ConvolutionModule</span>
@@ -252,14 +252,12 @@
     <span class="n">Conv2dSubsampling2</span><span class="p">,</span>
     <span class="n">Conv2dSubsampling6</span><span class="p">,</span>
     <span class="n">Conv2dSubsampling8</span><span class="p">,</span>
-    <span class="n">TooShortUttError</span><span class="p">,</span>
-    <span class="n">check_short_utt</span><span class="p">,</span>
 <span class="p">)</span>
 
 
 <div class="viewcode-block" id="MfaConformerEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder">[docs]</a><span class="k">class</span> <span class="nc">MfaConformerEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Conformer encoder module for MFA-Conformer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conformer encoder module for MFA-Conformer.</span>
+
 <span class="sd">    Paper: Y. Zhang et al., ``Mfa-conformer: Multi-scale feature aggregation</span>
 <span class="sd">    conformer for automatic speaker verification,&#39;&#39; in Proc. INTERSPEECH, 2022.</span>
 
@@ -291,6 +289,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -316,8 +315,8 @@
         <span class="n">stochastic_depth_rate</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">layer_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">max_pos_emb_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
+        <span class="n">padding_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">output_size</span> <span class="o">*</span> <span class="n">num_blocks</span>
 
@@ -521,7 +520,7 @@
             <span class="n">xs_pad</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Supposed to be one of the Conv&quot;</span> <span class="sa">f</span><span class="s2">&quot;subsampling layers&quot;</span>
+                <span class="s2">&quot;Supposed to be one of the Conv subsampling layers&quot;</span>
             <span class="p">)</span>
 
         <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="p">[]</span>

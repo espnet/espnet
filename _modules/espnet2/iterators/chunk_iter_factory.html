@@ -214,11 +214,12 @@
 <span></span><span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
@@ -247,6 +248,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">dataset</span><span class="p">,</span>
@@ -264,7 +266,6 @@
         <span class="n">excluded_key_prefixes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">default_fs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">),</span> <span class="s2">&quot;batch-size must be 1&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">per_sample_iter_factory</span> <span class="o">=</span> <span class="n">SequenceIterFactory</span><span class="p">(</span>
@@ -315,13 +316,14 @@
         <span class="c1">#  - exactly match one of the prefixes in `excluded_key_prefixes`</span>
         <span class="c1">#  - have one of the prefixes in `excluded_key_prefixes` and end with numbers</span>
         <span class="k">if</span> <span class="n">excluded_key_prefixes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">excluded_key_prefixes</span> <span class="o">=</span> <span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span>
+            <span class="n">_excluded_key_prefixes</span> <span class="o">=</span> <span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">_excluded_key_prefixes</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">excluded_key_prefixes</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excluded_key_prefixes</span><span class="p">:</span>
-                    <span class="n">excluded_key_prefixes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_excluded_key_prefixes</span><span class="p">:</span>
+                    <span class="n">_excluded_key_prefixes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">excluded_key_pattern</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)|(&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">excluded_key_prefixes</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)&quot;</span>
+            <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)|(&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_excluded_key_prefixes</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)&quot;</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluded_key_pattern</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>

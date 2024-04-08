@@ -219,7 +219,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">torch.nn.parallel</span> <span class="kn">import</span> <span class="n">data_parallel</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.fileio.npy_scp</span> <span class="kn">import</span> <span class="n">NpyScpWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.uasr</span> <span class="kn">import</span> <span class="n">UASRTask</span>
@@ -306,7 +306,8 @@
     <span class="k">return</span> <span class="n">parser</span></div>
 
 
-<div class="viewcode-block" id="extract_feature"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.uasr_extract_feature.extract_feature">[docs]</a><span class="k">def</span> <span class="nf">extract_feature</span><span class="p">(</span>
+<div class="viewcode-block" id="extract_feature"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.uasr_extract_feature.extract_feature">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">extract_feature</span><span class="p">(</span>
     <span class="n">uasr_train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">uasr_model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">data_path_and_name_and_type</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
@@ -320,7 +321,6 @@
     <span class="n">dset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
 <span class="p">):</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
         <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>

@@ -219,7 +219,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="p">(</span>
@@ -263,6 +263,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="c1"># generator related</span>
@@ -456,7 +457,6 @@
 <span class="sd">            plot_pred_mos (bool): Whether to plot predicted MOS during the training.</span>
 <span class="sd">            mos_pred_tool (str): MOS prediction tool name.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="c1"># define modules</span>

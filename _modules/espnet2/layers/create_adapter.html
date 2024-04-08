@@ -221,13 +221,10 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.layers.create_adapter_fn</span> <span class="kn">import</span> <span class="n">create_houlsby_adapter</span><span class="p">,</span> <span class="n">create_lora_adapter</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
 
 <span class="n">create_adapter_fn_table</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;lora&quot;</span><span class="p">:</span> <span class="n">create_lora_adapter</span><span class="p">,</span>
@@ -235,7 +232,8 @@
 <span class="p">}</span>
 
 
-<div class="viewcode-block" id="create_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter.create_adapter">[docs]</a><span class="k">def</span> <span class="nf">create_adapter</span><span class="p">(</span>
+<div class="viewcode-block" id="create_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_adapter.create_adapter">[docs]</a><span class="nd">@typechecked</span>
+<span class="k">def</span> <span class="nf">create_adapter</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
     <span class="n">adapter</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">adapter_conf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
@@ -250,7 +248,6 @@
 <span class="sd">            e.g.  {&quot;rank&quot;: 8, &quot;alpha&quot;: 8, ...} for lora</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">assert</span> <span class="n">adapter</span> <span class="ow">in</span> <span class="n">create_adapter_fn_table</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Adapter </span><span class="si">{</span><span class="n">adapter</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span>
     <span class="n">create_adapter_fn</span> <span class="o">=</span> <span class="n">create_adapter_fn_table</span><span class="p">[</span><span class="n">adapter</span><span class="p">]</span>
     <span class="n">create_adapter_fn</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">adapter_conf</span><span class="p">)</span></div>

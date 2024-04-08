@@ -231,7 +231,9 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="AbsDecoder.streaming_merge"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.abs_decoder.AbsDecoder.streaming_merge">[docs]</a>    <span class="k">def</span> <span class="nf">streaming_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;streaming_merge. It merges the frame-level processed audio chunks</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stream merge.</span>
+
+<span class="sd">        It merges the frame-level processed audio chunks</span>
 <span class="sd">        in the streaming *simulation*. It is noted that, in real applications,</span>
 <span class="sd">        the processed audio should be sent to the output channel frame by frame.</span>
 <span class="sd">        You may refer to this function to manage your streaming output buffer.</span>

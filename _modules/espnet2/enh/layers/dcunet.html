@@ -283,7 +283,9 @@
 
 <div class="viewcode-block" id="ComplexLinear"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dcunet.ComplexLinear">[docs]</a><span class="k">class</span> <span class="nc">ComplexLinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A potentially complex-valued linear layer. Reduces to a regular linear</span>
-<span class="sd">    layer if `complex_valued=False`.&quot;&quot;&quot;</span>
+
+<span class="sd">    layer if `complex_valued=False`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">complex_valued</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -321,7 +323,8 @@
 
 <div class="viewcode-block" id="ArgsComplexMultiplicationWrapper"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dcunet.ArgsComplexMultiplicationWrapper">[docs]</a><span class="k">class</span> <span class="nc">ArgsComplexMultiplicationWrapper</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Adapted from `asteroid`&#39;s `complex_nn.py`, allowing</span>
-<span class="sd">        args/kwargs to be passed through forward().</span>
+
+<span class="sd">    args/kwargs to be passed through forward().</span>
 
 <span class="sd">    Make a complex-valued module `F` from a real-valued module `f` by applying</span>
 <span class="sd">    complex multiplication rules:</span>
@@ -391,6 +394,7 @@
 
 <div class="viewcode-block" id="unet_decoder_args"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dcunet.unet_decoder_args">[docs]</a><span class="k">def</span> <span class="nf">unet_decoder_args</span><span class="p">(</span><span class="n">encoders</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">skip_connections</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of decoder arguments for upsampling (right) side of a symmetric u-net,</span>
+
 <span class="sd">    given the arguments used to construct the encoder.</span>
 <span class="sd">    Args:</span>
 <span class="sd">        encoders (tuple of length `N` of tuples of</span>
@@ -635,8 +639,8 @@
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
                 <span class="s2">&quot;sorry, mask bounding not implemented at the moment&quot;</span>
             <span class="p">)</span>
-            <span class="c1"># TODO we can&#39;t use nn.Sequential since the ComplexConvTranspose2d needs a</span>
-            <span class="c1"># second `output_size` argument</span>
+        <span class="c1"># TODO(gituser) we can&#39;t use nn.Sequential since the ComplexConvTranspose2d</span>
+        <span class="c1"># needs a second `output_size` argument</span>
         <span class="c1"># operations = (output_layer, complex_nn.BoundComplexMask(self.mask_bound))</span>
         <span class="c1"># output_layer = nn.Sequential(*[x for x in operations if x is not None])</span>
 
@@ -646,8 +650,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="o">=</span> <span class="n">output_layer</span> <span class="ow">or</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
 
 <div class="viewcode-block" id="DCUNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dcunet.DCUNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$</span>
+
 <span class="sd">        divisible by $f_0 * f_1 * ... * f_N$ where $f_k$ are the frequency strides</span>
 <span class="sd">        of the encoders, and $time - 1$ is divisible by $t_0 * t_1 * ... * t_N$</span>
 <span class="sd">        where $t_N$ are the time strides of the encoders.</span>
