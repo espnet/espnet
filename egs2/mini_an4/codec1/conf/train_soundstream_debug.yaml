@@ -3,7 +3,7 @@
 ##########################################################
 codec: soundstream
 codec_conf:
-    sampling_rate: 24000
+    sampling_rate: 16000
 
     # generator related
     generator_params:
@@ -132,8 +132,13 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 2    # number of iterations per epoch
 max_epoch: 2              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 1000000       # batch bins (feats_type=raw)
-batch_type: numel         # how to make batch
+batch_size: 2             # batch bins (feats_type=raw)
+batch_type: unsorted      # how to make batch
+
+iterator_type: chunk
+chunk_length: 8000
+num_cache_chunks: 64
+
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
