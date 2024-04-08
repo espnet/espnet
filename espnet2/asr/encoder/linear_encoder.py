@@ -3,10 +3,10 @@
 
 """Linear encoder definition."""
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -34,6 +34,7 @@ class LinearEncoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -43,7 +44,6 @@ class LinearEncoder(AbsEncoder):
         normalize_before: bool = True,
         padding_idx: int = -1,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 

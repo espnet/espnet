@@ -1,15 +1,14 @@
 import sys
-from typing import List
-from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
 
 try:
-    import s3prl
-    from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
+    import s3prl  # noqa
+    from s3prl.upstream.wav2vec2.wav2vec2_model import (  # noqa
+        TransformerSentenceEncoderLayer,
+    )
 
     is_s3prl_available = True
 except ImportError:

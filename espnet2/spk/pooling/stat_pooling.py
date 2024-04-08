@@ -4,8 +4,8 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
 class StatsPooling(AbsPooling):
-    """
-    Aggregates frame-level features to single utterance-level feature.
+    """Aggregates frame-level features to single utterance-level feature.
+
     Proposed in D. Snyder et al., "X-vectors: Robust dnn embeddings for speaker
     recognition"
 
