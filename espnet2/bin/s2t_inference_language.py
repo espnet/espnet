@@ -3,13 +3,13 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.s2t import S2TTask
@@ -22,10 +22,11 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Language:
+    @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
@@ -36,10 +37,9 @@ class Speech2Language:
         first_lang_sym: str = "<abk>",
         last_lang_sym: str = "<zul>",
     ):
-        assert check_argument_types()
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
             s2t_train_config, s2t_model_file, device
@@ -50,7 +50,7 @@ class Speech2Language:
             logging.info("Use quantized s2t model for decoding.")
 
             s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         logging.info(f"Decoding device={device}, dtype={dtype}")
@@ -67,6 +67,7 @@ class Speech2Language:
         self.last_lang_id = token_list.index(last_lang_sym)
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -83,8 +84,6 @@ class Speech2Language:
             List of (language, probability)
 
         """
-
-        assert check_argument_types()
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -136,7 +135,6 @@ class Speech2Language:
                 (self.s2t_model.token_list[idx + self.first_lang_id], val.item())
             )
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -170,6 +168,7 @@ class Speech2Language:
         return Speech2Language(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -191,7 +190,6 @@ def inference(
     first_lang_sym: str,
     last_lang_sym: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

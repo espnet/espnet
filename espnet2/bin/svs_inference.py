@@ -13,7 +13,8 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 import soundfile as sf
 import torch
-from typeguard import check_argument_types
+from packaging.version import parse as V
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
@@ -37,10 +38,11 @@ class SingingGenerate:
         >>> soundfile.write("out.wav", wav.numpy(), svs.fs, "PCM_16")
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Optional[Union[Path, str]],
-        model_file: Optional[Union[Path, str]] = None,
+        train_config: Union[Path, str, None],
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -52,8 +54,8 @@ class SingingGenerate:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_checkpoint: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_checkpoint: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -61,7 +63,6 @@ class SingingGenerate:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize SingingGenerate module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = SVSTask.build_model_from_file(
@@ -117,25 +118,25 @@ class SingingGenerate:
         self.decode_conf = decode_conf
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         text: Union[Dict[str, Tuple], torch.Tensor, np.ndarray],
-        singing: Union[torch.Tensor, np.ndarray] = None,
-        label: Union[torch.Tensor, np.ndarray] = None,
-        midi: Union[torch.Tensor, np.ndarray] = None,
-        duration_phn: Union[torch.Tensor, np.ndarray] = None,
-        duration_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
-        duration_syb: Union[torch.Tensor, np.ndarray] = None,
-        phn_cnt: Union[torch.Tensor, np.ndarray] = None,
-        slur: Union[torch.Tensor, np.ndarray] = None,
-        pitch: Union[torch.Tensor, np.ndarray] = None,
-        energy: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        singing: Union[torch.Tensor, np.ndarray, None] = None,
+        label: Union[torch.Tensor, np.ndarray, None] = None,
+        midi: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_phn: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_ruled_phn: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_syb: Union[torch.Tensor, np.ndarray, None] = None,
+        phn_cnt: Union[torch.Tensor, np.ndarray, None] = None,
+        slur: Union[torch.Tensor, np.ndarray, None] = None,
+        pitch: Union[torch.Tensor, np.ndarray, None] = None,
+        energy: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
-        assert check_argument_types()
 
         # check inputs
         if self.use_sids and sids is None:
@@ -307,6 +308,7 @@ class SingingGenerate:
         return SingingGenerate(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -328,7 +330,6 @@ def inference(
     vocoder_tag: Optional[str] = None,
 ):
     """Perform SVS model decoding."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:

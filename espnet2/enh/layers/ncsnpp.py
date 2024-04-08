@@ -16,8 +16,6 @@
 # ncsnpp.py and ncsnpp_utils are taken from
 # https://github.com/sp-uhh/sgmse/
 
-# pylint: skip-file
-
 import functools
 
 import numpy as np
@@ -38,7 +36,9 @@ default_initializer = layers.default_init
 
 class NCSNpp(nn.Module):
     """NCSN++ model, adapted from https://github.com/yang-song/score_sde and
-    https://github.com/sp-uhh/sgmse repository"""
+
+    https://github.com/sp-uhh/sgmse repository
+    """
 
     def __init__(
         self,

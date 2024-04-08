@@ -13,10 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: skip-file
-"""Common layers for defining score networks.
-"""
-import math
+"""Common layers for defining score networks."""
+
 import string
 from functools import partial
 

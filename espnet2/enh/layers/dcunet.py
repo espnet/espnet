@@ -70,7 +70,9 @@ class DiffusionStepEmbedding(nn.Module):
 
 class ComplexLinear(nn.Module):
     """A potentially complex-valued linear layer. Reduces to a regular linear
-    layer if `complex_valued=False`."""
+
+    layer if `complex_valued=False`.
+    """
 
     def __init__(self, input_dim, output_dim, complex_valued):
         super().__init__()
@@ -108,7 +110,8 @@ def torch_complex_from_reim(re, im):
 
 class ArgsComplexMultiplicationWrapper(nn.Module):
     """Adapted from `asteroid`'s `complex_nn.py`, allowing
-        args/kwargs to be passed through forward().
+
+    args/kwargs to be passed through forward().
 
     Make a complex-valued module `F` from a real-valued module `f` by applying
     complex multiplication rules:
@@ -178,6 +181,7 @@ class OnReIm(nn.Module):
 
 def unet_decoder_args(encoders, *, skip_connections):
     """Get list of decoder arguments for upsampling (right) side of a symmetric u-net,
+
     given the arguments used to construct the encoder.
     Args:
         encoders (tuple of length `N` of tuples of
@@ -422,8 +426,8 @@ class DCUNet(nn.Module):
             raise NotImplementedError(
                 "sorry, mask bounding not implemented at the moment"
             )
-            # TODO we can't use nn.Sequential since the ComplexConvTranspose2d needs a
-            # second `output_size` argument
+        # TODO(gituser) we can't use nn.Sequential since the ComplexConvTranspose2d
+        # needs a second `output_size` argument
         # operations = (output_layer, complex_nn.BoundComplexMask(self.mask_bound))
         # output_layer = nn.Sequential(*[x for x in operations if x is not None])
 
@@ -433,8 +437,8 @@ class DCUNet(nn.Module):
         self.output_layer = output_layer or nn.Identity()
 
     def forward(self, spec, t) -> Tensor:
-        """
-        Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$
+        """Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$
+
         divisible by $f_0 * f_1 * ... * f_N$ where $f_k$ are the frequency strides
         of the encoders, and $time - 1$ is divisible by $t_0 * t_1 * ... * t_N$
         where $t_N$ are the time strides of the encoders.

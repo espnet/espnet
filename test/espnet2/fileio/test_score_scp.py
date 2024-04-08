@@ -4,7 +4,6 @@ from pathlib import Path
 import miditoolkit
 import miditoolkit.midi.containers as ct
 import music21 as m21
-import numpy as np
 
 from espnet2.fileio.score_scp import (
     NOTE,
