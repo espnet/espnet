@@ -157,6 +157,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        *,
         cache: List[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.

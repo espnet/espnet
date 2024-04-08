@@ -6,16 +6,16 @@ from typing import Dict, List, Union
 
 def join_dumps(
     dump_paths: List[str],
+    dump_prefix: List[str],
     output_dir: Union[str, Path],
 ):
     """Create a joined dump file from a list of dump paths.
 
     Args:
         dump_paths (List[str]): List of paths for the dump directory.
+        dump_prefix (List[str]): List of prefixes for the dump files.
         output_dir (Union[str, Path]): Output directory of the joined dump file.
 
-    Raises:
-        ValueError: _description_
     """
     dump_file_names = [
         os.path.basename(g) for g in glob.glob(os.path.join(dump_paths[0], "*"))
@@ -25,7 +25,7 @@ def join_dumps(
 
     for dump_file_name in dump_file_names:
         lines = []
-        for dataset in dump_paths:
+        for idx_dataset, dataset in enumerate(dump_paths):
             if not os.path.exists(os.path.join(dataset, dump_file_name)):
                 raise ValueError(
                     f"Dump file {dump_file_name} does not exist in {dataset}."
@@ -33,7 +33,8 @@ def join_dumps(
 
             dump_file_path = os.path.join(dataset, dump_file_name)
             with open(dump_file_path, "r") as f:
-                lines += f.readlines()
+                for line in f.readlines():
+                    lines.append(f"{dump_prefix[idx_dataset]}-" + line)
 
         with open(os.path.join(output_dir, dump_file_name), "w") as f:
             f.write("\n".join([line.replace("\n", "") for line in lines]))
@@ -63,7 +64,7 @@ def create_dump_file(
     else:
         raise ValueError("dataset must be a dict or a list.")
 
-    for input_name in data_inputs.keys():
+    for input_name in data_inputs:
         file_path = os.path.join(dump_dir, data_inputs[input_name][0])
         text = []
         for key in keys:
