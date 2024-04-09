@@ -74,7 +74,6 @@ class Text2Speech:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = TTS2Task.build_model_from_file(
