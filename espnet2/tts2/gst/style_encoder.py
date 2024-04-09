@@ -6,7 +6,7 @@
 from typing import Sequence
 
 import torch
-from typeguard import typechecked 
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention as BaseMultiHeadedAttention,
