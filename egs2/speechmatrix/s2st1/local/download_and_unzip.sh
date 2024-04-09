@@ -108,7 +108,7 @@ if $do_unzip; then
       ;;
   esac
 
-
+fi
 cd $workspace
 
 
