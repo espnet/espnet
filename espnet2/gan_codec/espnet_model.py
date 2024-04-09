@@ -84,6 +84,4 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
 
         """
 
-        feats_dict = {}
-        feats_dict.update(audio=audio)
-        return feats_dict
+        return {}
