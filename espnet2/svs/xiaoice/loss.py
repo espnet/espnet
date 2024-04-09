@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
     DurationPredictorLoss,
@@ -18,6 +18,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 class XiaoiceSing2Loss(torch.nn.Module):
     """Loss function module for FastSpeech2."""
 
+    @typechecked
     def __init__(self, use_masking: bool = True, use_weighted_masking: bool = False):
         """Initialize feed-forward Transformer loss module.
 
@@ -28,7 +29,6 @@ class XiaoiceSing2Loss(torch.nn.Module):
                 calculation.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         assert (use_masking != use_weighted_masking) or not use_masking

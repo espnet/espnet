@@ -65,21 +65,23 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
                 --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
                 --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0"
 
-echo "==== Transducer, feats_type=raw, token_types=bpe ==="
-./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false \
-    --feats-type "raw" --token-type "bpe" --python "${python}" \
-    --asr-args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 --num_workers 0 \
-    --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth"
-
-if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
-    echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
-    ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 10 --stop-stage 13 --skip-upload false \
+if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
+    echo "==== Transducer, feats_type=raw, token_types=bpe ==="
+    ./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false \
         --feats-type "raw" --token-type "bpe" --python "${python}" \
-        --asr-tag "train_multi_black_transducer" \
-        --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
-                    --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2] \
-                    --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
-        --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer_debug.yaml"
+        --asr-args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 --num_workers 0 \
+        --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth"
+
+    if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
+        echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
+        ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 10 --stop-stage 13 --skip-upload false \
+            --feats-type "raw" --token-type "bpe" --python "${python}" \
+            --asr-tag "train_multi_black_transducer" \
+            --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
+                        --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2] \
+                        --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
+            --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer_debug.yaml"
+    fi
 fi
 
 if python3 -c "import k2" &> /dev/null; then
@@ -311,7 +313,9 @@ cd ./egs2/mini_an4/s2st1
 gen_dummy_coverage
 echo "==== [ESPnet2] S2ST ==="
 ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
-./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+if python3 -c "import s3prl" &> /dev/null; then
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+fi
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data ckpt .cache
 cd "${cwd}"

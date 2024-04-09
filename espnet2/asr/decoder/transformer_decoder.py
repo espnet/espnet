@@ -5,7 +5,7 @@
 from typing import Any, List, Sequence, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -47,6 +47,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             i.e. x -> x + att(x)
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -58,7 +59,6 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         attention_dim = encoder_output_size
 
@@ -165,6 +165,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        memory_mask: torch.Tensor = None,
+        *,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
@@ -176,6 +178,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                       dtype=torch.uint8 in PyTorch 1.2-
                       dtype=torch.bool in PyTorch 1.2+ (include 1.2)
             memory: encoded memory, float32  (batch, maxlen_in, feat)
+            memory_mask: encoded memory mask (batch, 1, maxlen_in)
             cache: cached output list of (batch, max_time_out-1, size)
             return_hs: dec hidden state corresponding to ys,
                 used for searchable hidden ints
@@ -189,7 +192,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
             x, tgt_mask, memory, memory_mask = decoder(
-                x, tgt_mask, memory, None, cache=c
+                x, tgt_mask, memory, memory_mask, cache=c
             )
             new_cache.append(x)
 
@@ -281,6 +284,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
 
 class TransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -299,7 +303,6 @@ class TransformerDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         layer_drop_rate: float = 0.0,
     ):
-        assert check_argument_types()
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,
@@ -332,6 +335,7 @@ class TransformerDecoder(BaseTransformerDecoder):
 
 
 class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -352,7 +356,6 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -394,6 +397,7 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
 
 
 class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -414,7 +418,6 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -456,6 +459,7 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
 
 
 class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -476,7 +480,6 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -518,6 +521,7 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
 
 
 class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -538,7 +542,6 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
         conv_kernel_length: Sequence[int] = (11, 11, 11, 11, 11, 11),
         conv_usebias: int = False,
     ):
-        assert check_argument_types()
         if len(conv_kernel_length) != num_blocks:
             raise ValueError(
                 "conv_kernel_length must have equal number of values to num_blocks: "
@@ -580,6 +583,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
 
 
 class TransformerMDDecoder(BaseTransformerDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -598,7 +602,6 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         use_speech_attn: bool = True,
     ):
-        assert check_argument_types()
         super().__init__(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,
@@ -714,7 +717,10 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        memory_mask: torch.Tensor = None,
+        *,
         speech: torch.Tensor = None,
+        speech_mask: torch.Tensor = None,
         cache: List[torch.Tensor] = None,
         return_hs: bool = False,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
@@ -726,7 +732,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                       dtype=torch.uint8 in PyTorch 1.2-
                       dtype=torch.bool in PyTorch 1.2+ (include 1.2)
             memory: encoded memory, float32  (batch, maxlen_in, feat)
+            memory_mask: encoded memory mask (batch, 1, maxlen_in)
             speech: encoded speech, float32  (batch, maxlen_in, feat)
+            speech_mask: encoded memory mask (batch, 1, maxlen_in)
             cache: cached output list of (batch, max_time_out-1, size)
             return_hs: dec hidden state corresponding to ys,
                 used for searchable hidden ints
@@ -741,11 +749,17 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         for c, decoder in zip(cache, self.decoders):
             if self.use_speech_attn:
                 x, tgt_mask, memory, memory_mask, _, speech, speech_mask = decoder(
-                    x, tgt_mask, memory, None, c, speech, None
+                    x,
+                    tgt_mask,
+                    memory,
+                    memory_mask,
+                    cache=c,
+                    pre_memory=speech,
+                    pre_memory_mask=speech_mask,
                 )
             else:
                 x, tgt_mask, memory, memory_mask = decoder(
-                    x, tgt_mask, memory, None, cache=c
+                    x, tgt_mask, memory, memory_mask, cache=c
                 )
             new_cache.append(x)
 
@@ -771,7 +785,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             ys.unsqueeze(0),
             ys_mask,
             x.unsqueeze(0),
-            speech.unsqueeze(0) if speech is not None else None,
+            speech=speech.unsqueeze(0) if speech is not None else None,
             cache=state,
         )
         return logp.squeeze(0), state
@@ -811,7 +825,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-        logp, states = self.forward_one_step(ys, ys_mask, xs, speech, cache=batch_state)
+        logp, states = self.forward_one_step(
+            ys, ys_mask, xs, speech=speech, cache=batch_state
+        )
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]

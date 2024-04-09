@@ -48,8 +48,7 @@ def rnnt_loss_cpu(
     clamp: float,
     num_threads: int,
 ):
-    """
-    Wrapper method for accessing CPU RNNT loss.
+    """Wrapper method for accessing CPU RNNT loss.
 
     CPU implementation ported from [HawkAaron/warp-transducer]
         (https://github.com/HawkAaron/warp-transducer).
@@ -157,8 +156,7 @@ def rnnt_loss_gpu(
     clamp: float,
     num_threads: int,
 ):
-    """
-    Wrapper method for accessing GPU RNNT loss.
+    """Wrapper method for accessing GPU RNNT loss.
 
     CUDA implementation ported from [HawkAaron/warp-transducer]
         (https://github.com/HawkAaron/warp-transducer).
@@ -272,9 +270,9 @@ def multiblank_rnnt_loss_gpu(
     num_threads: int,
     sigma: float,
 ):
-    """
-    Wrapper method for accessing GPU Multi-blank RNNT loss
-        (https://arxiv.org/pdf/2211.03541.pdf).
+    """Wrapper method for accessing GPU Multi-blank RNNT loss
+
+    (https://arxiv.org/pdf/2211.03541.pdf).
 
     CUDA implementation ported from [HawkAaron/warp-transducer]
         (https://github.com/HawkAaron/warp-transducer).

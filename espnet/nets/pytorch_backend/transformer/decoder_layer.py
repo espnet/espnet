@@ -84,7 +84,7 @@ class DecoderLayer(nn.Module):
             tgt (torch.Tensor): Input tensor (#batch, maxlen_out, size).
             tgt_mask (torch.Tensor): Mask for input tensor (#batch, maxlen_out).
             memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, size).
-            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+            memory_mask (torch.Tensor): Encoded memory mask (#batch, 1, maxlen_in).
             cache (List[torch.Tensor]): List of cached tensors.
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
             pre_memory (torch.Tensor): Encoded memory (#batch, maxlen_in, size).

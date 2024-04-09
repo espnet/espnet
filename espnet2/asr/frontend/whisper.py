@@ -1,9 +1,9 @@
 import contextlib
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -14,11 +14,12 @@ class WhisperFrontend(AbsFrontend):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         whisper_model: str = "small",
         freeze_weights: bool = True,
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
     ):
         try:
             import whisper
@@ -31,7 +32,6 @@ class WhisperFrontend(AbsFrontend):
             )
             raise e
 
-        assert check_argument_types()
         super().__init__()
 
         self.n_fft = N_FFT

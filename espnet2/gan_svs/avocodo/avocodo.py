@@ -264,8 +264,7 @@ class CoMBDBlock(torch.nn.Module):
         )
 
     def forward(self, x):
-        """
-        Forward pass through the CoMBD block.
+        """Forward pass through the CoMBD block.
 
         Args:
             x (Tensor): Input tensor of shape (B, C_in, T_in).
@@ -286,7 +285,9 @@ class CoMBDBlock(torch.nn.Module):
 
 class CoMBD(torch.nn.Module):
     """CoMBD (Collaborative Multi-band Discriminator) module
-    from from https://arxiv.org/abs/2206.13404"""
+
+    from from https://arxiv.org/abs/2206.13404
+    """
 
     def __init__(self, h, pqmf_list=None, use_spectral_norm=False):
         super(CoMBD, self).__init__()
@@ -366,7 +367,8 @@ class CoMBD(torch.nn.Module):
         return outs_real, outs_fake, f_maps_real, f_maps_fake
 
     def forward(self, ys, ys_hat):
-        """
+        """Forward CoMBD.
+
         Args:
             ys (List[Tensor]): List of ground truth signals of shape (B, 1, T).
             ys_hat (List[Tensor]): List of predicted signals of shape (B, 1, T).

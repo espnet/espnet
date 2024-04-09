@@ -2,12 +2,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class PriorDecoder(torch.nn.Module):
+    @typechecked
     def __init__(
         self,
         out_channels: int = 192 * 2,
@@ -29,8 +31,7 @@ class PriorDecoder(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
         global_channels: int = 0,
     ):
-        """
-        Initialize prior decoder module.
+        """Initialize prior decoder module.
 
         Args:
             out_channels (int): Output channels of the prior decoder. Defaults to 384.
@@ -89,8 +90,7 @@ class PriorDecoder(torch.nn.Module):
             self.conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
-        """
-        Forward pass of the PriorDecoder module.
+        """Forward pass of the PriorDecoder module.
 
         Args:
             x (Tensor): Input tensor (B, attention_dim + 2, T).

@@ -19,4 +19,4 @@ set -o pipefail
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \
-    --lm_train_text "data/train_nodev/text.ts.en" "$@"
+    --lm_train_text "dump/raw/train_nodev/text.ts.en" "$@"
