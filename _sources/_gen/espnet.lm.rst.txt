@@ -37,23 +37,23 @@ espnet.lm.pytorch_backend.__init__
     :show-inheritance:
 
 
-.. _espnet.lm.pytorch_backend.lm:
-
-espnet.lm.pytorch_backend.lm
-----------------------------
-
-.. automodule:: espnet.lm.pytorch_backend.lm
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.lm.pytorch_backend.extlm:
 
 espnet.lm.pytorch_backend.extlm
 -------------------------------
 
 .. automodule:: espnet.lm.pytorch_backend.extlm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.lm.pytorch_backend.lm:
+
+espnet.lm.pytorch_backend.lm
+----------------------------
+
+.. automodule:: espnet.lm.pytorch_backend.lm
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,23 +70,23 @@ espnet.lm.chainer_backend.__init__
     :show-inheritance:
 
 
-.. _espnet.lm.chainer_backend.lm:
-
-espnet.lm.chainer_backend.lm
-----------------------------
-
-.. automodule:: espnet.lm.chainer_backend.lm
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.lm.chainer_backend.extlm:
 
 espnet.lm.chainer_backend.extlm
 -------------------------------
 
 .. automodule:: espnet.lm.chainer_backend.extlm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.lm.chainer_backend.lm:
+
+espnet.lm.chainer_backend.lm
+----------------------------
+
+.. automodule:: espnet.lm.chainer_backend.lm
     :members:
     :undoc-members:
     :show-inheritance:
