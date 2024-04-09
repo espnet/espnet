@@ -8,7 +8,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -78,9 +78,9 @@ class TTS2Task(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -159,11 +159,11 @@ class TTS2Task(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -171,10 +171,10 @@ class TTS2Task(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -187,7 +187,6 @@ class TTS2Task(AbsTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -233,8 +232,8 @@ class TTS2Task(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetTTS2Model:
-        assert check_argument_types()
         if isinstance(args.src_token_list, str):
             with open(args.src_token_list, encoding="utf-8") as f:
                 src_token_list = [line[0] + line[1:].rstrip() for line in f]
@@ -348,7 +347,6 @@ class TTS2Task(AbsTask):
             tts=tts,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod
