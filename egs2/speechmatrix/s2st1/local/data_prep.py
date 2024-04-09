@@ -14,11 +14,11 @@ def get_alignment_doc_path(base_folder, lang1, lang2):
     Checks if the directory exists for the given language pair in either order.
     Returns the path of the alignment document and the order of languages.
     """
-    p = os.path.join(base_folder, f"aligned_speech/{lang1}-{lang2}.tsv.gz")
+    p = os.path.join(base_folder, f"aligned_speech/{lang1}-{lang2}/{lang1}-{lang2}.tsv.gz")
     if os.path.exists(p):
         return p, (lang1, lang2)
 
-    p = os.path.join(base_folder, f"aligned_speech/{lang2}-{lang1}.tsv.gz")
+    p = os.path.join(base_folder, f"aligned_speech/{lang2}-{lang1}/{lang2}-{lang1}.tsv.gz")
     if os.path.exists(p):
         return p, (lang2, lang1)
 

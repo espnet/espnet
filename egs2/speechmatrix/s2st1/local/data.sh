@@ -142,7 +142,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Preparing data for speechmatrix"
 
-    for part in "test"; do
+    for part in "train" "dev" "test"; do
         log "Preparing ${part} data."
         python local/data_prep.py \
             --src_folder ${SPEECH_MATRIX} \
