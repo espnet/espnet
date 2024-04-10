@@ -40,14 +40,14 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
 from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
         s3prl=S3prlPostFrontend,
-        fused=FusedFrontends,
+        fused=FusedPostFrontends,
     ),
     type_check=AbsFrontend,
     default=None,
