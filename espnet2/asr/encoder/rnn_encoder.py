@@ -2,7 +2,7 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -23,6 +23,7 @@ class RNNEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -35,7 +36,6 @@ class RNNEncoder(AbsEncoder):
         dropout: float = 0.0,
         subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.rnn_type = rnn_type
@@ -46,13 +46,13 @@ class RNNEncoder(AbsEncoder):
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         if subsample is None:
-            subsample = np.ones(num_layers + 1, dtype=np.int64)
+            _subsample = np.ones(num_layers + 1, dtype=np.int64)
         else:
-            subsample = subsample[:num_layers]
+            _subsample = subsample[:num_layers]
             # Append 1 at the beginning because the second or later is used
-            subsample = np.pad(
-                np.array(subsample, dtype=np.int64),
-                [1, num_layers - len(subsample)],
+            _subsample = np.pad(
+                np.array(_subsample, dtype=np.int64),
+                [1, num_layers - len(_subsample)],
                 mode="constant",
                 constant_values=1,
             )
@@ -66,7 +66,7 @@ class RNNEncoder(AbsEncoder):
                         num_layers,
                         hidden_size,
                         output_size,
-                        subsample,
+                        _subsample,
                         dropout,
                         typ=rnn_type,
                     )

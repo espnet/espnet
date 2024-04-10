@@ -1,16 +1,14 @@
 import sys
-from typing import List
 
 import pytest
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import TypeCheckError
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.layers.create_adapter_fn import create_houlsby_adapter, create_lora_adapter
-from espnet2.layers.houlsby_adapter_layer import (
-    Houlsby_Adapter,
+from espnet2.layers.houlsby_adapter_layer import (  # Houlsby_Adapter,
     HoulsbyTransformerSentenceEncoderLayer,
 )
 
@@ -215,7 +213,7 @@ def test_create_lora_adapter_unsupport_target(rank, alpha, target_modules):
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, 5)])
 def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
     model = init_decoder_model()
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeCheckError):
         create_lora_adapter(
             model=model, rank=rank, alpha=alpha, target_modules=target_modules
         )
