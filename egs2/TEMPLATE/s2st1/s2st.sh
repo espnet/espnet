@@ -489,7 +489,7 @@ if ! "${skip_data_prep}"; then
                 if [ ${use_tgt_lang} = false ] && [ "${dset}" != "${train_set}" ] && [ "${dset}" != "${train_set}" ]; then
                     expand_utt_extra_files="${expand_utt_extra_files} text.${tgt_lang}"
                 fi
-                
+
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
