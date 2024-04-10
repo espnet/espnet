@@ -9,17 +9,19 @@ from typeguard import typechecked
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+import torchaudio
 
 
-class S3prlFrontend(AbsFrontend):
+class S3prlPostFrontend(AbsFrontend):
     """Speech Pretrained Representation frontend structure for ASR."""
 
     @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 16000,
+        input_fs: Union[int, str] = 24000,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
-        download_dir: Optional[str] = None,
+        download_dir: str = None,
         multilayer_feature: bool = False,
         layer: int = -1,
     ):
@@ -71,6 +73,9 @@ class S3prlFrontend(AbsFrontend):
         self.frontend_type = "s3prl"
         self.hop_length = self.featurizer.downsample_rate
         self.tile_factor = frontend_conf.get("tile_factor", 1)
+        self.resampler = torchaudio.transforms.Resample(orig_freq=input_fs, new_freq=fs)
+        self.fs = fs
+        self.input_fs = input_fs
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -96,7 +101,13 @@ class S3prlFrontend(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        feats, feats_lens = self.upstream(input, input_lengths)
+        if self.fs != self.input_fs:
+            input = self.resampler(input)
+            input_lengths = input_lengths * self.fs / self.input_fs
+            input_lengths = input_lengths.ceil().long()
+
+        with torch.no_grad():
+            feats, feats_lens = self.upstream(input, input_lengths)
         if self.layer != -1:
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]

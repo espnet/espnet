@@ -41,12 +41,12 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
-from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        s3prl=S3prlFrontend,
+        s3prl=S3prlPostFrontend,
         fused=FusedFrontends,
     ),
     type_check=AbsFrontend,
@@ -358,7 +358,9 @@ class GANSVSTask(AbsTask):
         if args.input_size is None and args.frontend is not None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(**args.frontend_conf)
+            frontend = frontend_class(
+                **args.frontend_conf, input_fs=args.svs_conf["sampling_rate"]
+            )
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
