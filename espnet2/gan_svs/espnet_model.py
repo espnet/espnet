@@ -11,6 +11,7 @@ import torch
 from packaging.version import parse as V
 from typeguard import typechecked
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -21,7 +22,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

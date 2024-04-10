@@ -12,9 +12,12 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
 from espnet2.gan_svs.joint import JointScore2Wav
+from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
+from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -39,9 +42,6 @@ from espnet2.tts.feats_extract.ying import Ying
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
-from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 
 frontend_choices = ClassChoices(
     name="frontend",

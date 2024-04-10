@@ -149,7 +149,7 @@ pitch_normalize: None      # normalizer for the pitch feature
 # frontend related
 
 frontend: fused
-frontend_conf: 
+frontend_conf:
   frontends:
     - frontend_type: s3prl
       frontend_conf:
@@ -166,7 +166,7 @@ frontend_conf:
       multilayer_feature: True
 
   align_method: linear_projection
-  proj_dim: 100     
+  proj_dim: 100
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
