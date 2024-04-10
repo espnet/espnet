@@ -4,8 +4,7 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
 class MeanPooling(AbsPooling):
-    """
-    Average frame-level features to a single utterance-level feature.
+    """Average frame-level features to a single utterance-level feature.
 
     args:
         input_size: dimensionality of the input frame-level embeddings.

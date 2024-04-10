@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel

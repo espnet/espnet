@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
