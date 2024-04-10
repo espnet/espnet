@@ -160,6 +160,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 if [[ "$src_lang" == "$tgt_lang" ]]; then
                     continue
                 fi
+
+                # Solve train and dev
+                data_path=data/${part}_${src_lang}_${tgt_lang}
+                if [ ! -d ${data_path} ]; then
+                    continue
+                fi
+
+                ln -sf text.${tgt_lang} ${data_path}/text
+                ln -sf wav.scp.${tgt_lang} ${data_path}/wav.scp
+
+                utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${data_path}
+
+                # Solve test
                 for dataset in "epst" "fleurs"; do
                     data_path=data/${part}_${dataset}_${src_lang}_${tgt_lang}
                     if [ ! -d ${data_path} ]; then

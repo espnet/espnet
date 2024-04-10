@@ -485,6 +485,11 @@ if ! "${skip_data_prep}"; then
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
+                # Even if use_tgt_lang is false for training, it is required for test set evaluation
+                if [ ${use_tgt_lang} = false ] && [ "${dset}" != "${train_set}" ] && [ "${dset}" != "${train_set}" ]; then
+                    expand_utt_extra_files="${expand_utt_extra_files} text.${tgt_lang}"
+                fi
+                
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
@@ -494,11 +499,6 @@ if ! "${skip_data_prep}"; then
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
                 done
-
-                # Even if use_tgt_lang is false for training, it is required for test set evaluation
-                if [ ${use_tgt_lang} = false ] && [ "${dset}" != "${train_set}" ] && [ "${dset}" != "${train_set}" ]; then
-                    expand_utt_extra_files="${expand_utt_extra_files} text.${tgt_lang}"
-                fi
 
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
