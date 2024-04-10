@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -39,6 +39,7 @@ else:
 class ESPnetS2STModel(AbsESPnetModel):
     """ESPnet speech-to-speech translation model"""
 
+    @typechecked
     def __init__(
         self,
         s2st_type: str,
@@ -72,7 +73,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
     ):
-        assert check_argument_types()
 
         super().__init__()
         self.sos = tgt_vocab_size - 1 if tgt_vocab_size else None
@@ -653,6 +653,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    @typechecked
     def inference(
         self,
         src_speech: torch.Tensor,
@@ -670,7 +671,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        assert check_argument_types()
 
         # 0. Target feature extract
         # NOTE(jiatong): only for teaching-forcing in spectrogram
@@ -1010,7 +1010,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ctc = self.st_ctc
         else:
             raise RuntimeError(
-                "Cannot recognize the ctc-type (need 'src'/'tgt', but found ".format(
+                "Cannot recognize the ctc-type: need 'src'/'tgt', but found {}".format(
                     ctc_type
                 )
             )

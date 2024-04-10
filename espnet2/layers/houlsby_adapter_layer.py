@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 try:
-    import s3prl
+    import s3prl  # noqa
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
 
     is_s3prl_available = True
@@ -33,8 +33,8 @@ if not is_s3prl_available:
 else:
 
     class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
-        """
-        Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
+        """Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
+
         models.
         """
 
@@ -59,8 +59,8 @@ else:
             need_weights: bool = False,
             att_args=None,
         ):
-            """
-            LayerNorm is applied either before or after the self-attention/ffn
+            """LayerNorm is applied either before or after the self-attention/ffn
+
             modules similar to the original Transformer imlementation.
             """
             residual = x

@@ -1,6 +1,6 @@
-from typing import Mapping, Optional, Tuple
+from typing import Mapping, Optional, Tuple, Type
 
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none
@@ -29,15 +29,15 @@ class ClassChoices:
 
     """
 
+    @typechecked
     def __init__(
         self,
         name: str,
-        classes: Mapping[str, type],
-        type_check: type = None,
-        default: str = None,
+        classes: Mapping[str, Type],
+        type_check: Optional[Type] = None,
+        default: Optional[str] = None,
         optional: bool = False,
     ):
-        assert check_argument_types()
         self.name = name
         self.base_type = type_check
         self.classes = {k.lower(): v for k, v in classes.items()}
@@ -60,13 +60,12 @@ class ClassChoices:
         else:
             return retval
 
+    @typechecked
     def get_class(self, name: Optional[str]) -> Optional[type]:
-        assert check_argument_types()
         if name is None or (self.optional and name.lower() == ("none", "null", "nil")):
             retval = None
         elif name.lower() in self.classes:
             class_obj = self.classes[name]
-            assert check_return_type(class_obj)
             retval = class_obj
         else:
             raise ValueError(

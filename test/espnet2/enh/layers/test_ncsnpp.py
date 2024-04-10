@@ -1,6 +1,5 @@
 import pytest
 import torch
-from torch import Tensor
 
 from espnet2.enh.layers.ncsnpp import NCSNpp
 
