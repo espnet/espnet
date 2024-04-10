@@ -6,7 +6,7 @@
 # set -o pipefail
 
 src_lang=en
-tgt_lang=de
+tgt_lang=ja
 
 train_set=train.en-${tgt_lang}
 train_dev=dev.en-${tgt_lang}
@@ -16,7 +16,23 @@ st_config=conf/tuning/train_st_conformer.yaml
 inference_config=conf/tuning/decode_st_conformer.yaml
 
 src_nbpe=4000
-tgt_nbpe=4000
+
+# "zh" needs a large vocab size
+if [ "${tgt_lang}" = "zh" ]; then
+    tgt_nbpe=8000
+  else
+    tgt_nbpe=4000
+fi
+
+
+ngpu=1
+locale_specific_opt=
+# ja needs more GPU memories
+if [ "${tgt_lang}" = "ja" ]; then
+    ngpu=2
+    locale_specific_opt="--sacrebleu_opt_extra \"-tok ja-mecab -l en-ja --smooth-method exp\" "
+fi
+
 
 # tc: truecase
 # lc: lowercase
@@ -28,6 +44,7 @@ tgt_case=tc
     --local_data_opts "${tgt_lang}" \
     --audio_format "flac.ark" \
     --nj 40 \
+    --ngpu ${ngpu} \
     --inference_nj 40 \
     --audio_format "flac.ark" \
     --src_lang ${src_lang} \
@@ -47,4 +64,4 @@ tgt_case=tc
     --test_sets "${test_set}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$locale_specific_opt" "$@"

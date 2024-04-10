@@ -61,3 +61,26 @@
 |dataset|score|verbose_score|
 |---|---|---|
 |decode_rnnt_tsd_mse4_scorenormduring_beam10_st_model_valid.loss.ave_10best/tst-COMMON.en-de|27.6|60.2/33.6/21.0/13.7 (BP = 0.998 ratio = 0.998 hyp_len = 51602 ref_len = 51699)|
+
+
+## Attentional Enc-Dec (st_train_st_conformer_raw_en_ja_bpe_tc4000_sp)
+- ST config: [train_st_conformer.yaml](./conf/tuning/train_st_conformer.yaml)
+- Inference config: [decode_st_conformer.yaml](./conf/tuning/decode_st_conformer.yaml)
+- Download model and run inference:
+```bash
+cd espnet
+git checkout c25f8762a6f9b7c7c5739fe3e1e72c077e566a60
+pip install -e .
+cd home/jbao/must_c_v2_st1
+./run.sh --skip_data_prep false --skip_train true --download_model jasonmusespresso/must_c_v2_st_train_st_conformer_raw_en_ja_bpe_tc4000_sp_valid
+```
+
+- Environments
+  - python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
+  - espnet version: `espnet 202402`
+  - pytorch version: `pytorch 2.1.0`
+
+|dataset|score|verbose_score|
+|---|---|---|
+|decode_st_conformer_st_model_valid.acc.best/tst-COMMON.en-ja|11.5|42.1/17.2/8.1/4.0 (BP = 0.932 ratio = 0.935 hyp_len = 51925 ref_len = 55563)|
+|decode_st_conformer_st_model_valid.acc.best/tst-HE.en-ja|12.2|42.0/17.6/8.3/4.2 (BP = 0.960 ratio = 0.961 hyp_len = 12241 ref_len = 12744)|
