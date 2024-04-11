@@ -124,18 +124,20 @@ for split in train dev; do  # TODO: handle tst-COMMON
         printf("%s %s %.2f %.2f\n", segment, spkid, startf/1000, endf/1000);
     }' < ${dst}/text.tc.${tgt_lang} | uniq | sort > ${dst}/segments
 
-    # wav.scp, utt2spk, spk2utt file preparation
+    # wav.scp file preparation
     awk '{
         segment=$1; split(segment,S,"[_]");
         spkid=S[1] "_" S[2];
-        printf("%s cat '${wav_dir}'/%s_%d.wav |\n", spkid, S[1], S[2]);
+        printf("%s cat '${wav_dir}'/'${tgt_lang}'%d.wav |\n", spkid, S[2]);
     }' < ${dst}/text.tc.${tgt_lang} | uniq | sort > ${dst}/wav.scp
 
+    # utt2spk file preparation
     awk '{
         segment=$1; split(segment,S,"[_]");
         spkid=S[1] "_" S[2]; print $1 " " spkid
     }' ${dst}/segments | uniq | sort > ${dst}/utt2spk
 
+    # spk2utt file preparation
     cat ${dst}/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > ${dst}/spk2utt
 
     # error check
