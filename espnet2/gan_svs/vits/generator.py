@@ -110,7 +110,7 @@ class VISingerGenerator(torch.nn.Module):
         use_phoneme_predictor: bool = False,
         expand_f0_method: str = "repeat",
         # hubert
-        hubert_channels: int = 1024,
+        hubert_channels: int = 0,
     ):
         """Initialize VITS generator module.
 
