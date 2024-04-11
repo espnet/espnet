@@ -2106,7 +2106,8 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device), strict=False
+                    torch.load(model_file, map_location=device),
+                    strict=False,
                     # torch.load(model_file, map_location=device),
                     # strict=not use_adapter,
                 )  # TODO: Yifeng
