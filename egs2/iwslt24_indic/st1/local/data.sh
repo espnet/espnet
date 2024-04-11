@@ -14,9 +14,6 @@ log() {
 }
 SECONDS=0
 
-stage=1
-stop_stage=100000
-
 tgt_lang=$1  # one of hi (Hindi), bn (Bengali), or ta (Tamil)
 remove_archive=false
 
@@ -28,6 +25,12 @@ if [ -z "${IWSLT24_INDIC}" ]; then
     exit 1
 fi
 
+# check if moses is installed
+if ! command -v tokenizer.perl > /dev/null; then
+    log "Error: The moses tool is not installed. Please install moses as follows: cd ${MAIN_ROOT}/tools && make moses.done"
+    exit 1
+fi
+
 if [ $# -ne 1 ]; then
     log "Usage: $0 <tgt_lang>"
     log "e.g.: $0 hi"
@@ -35,27 +38,26 @@ if [ $# -ne 1 ]; then
 fi
 
 # check tgt_lang
-if [ "$tgt_lang" == "hi" ]; then
-    target_language="Hindi"
-elif [ "$tgt_lang" == "bn" ]; then
-    target_language="Bengali"
-elif [ "$tgt_lang" == "ta" ]; then
-    target_language="Tamil"
-else
+tgt_langs="hi_bn_ta"
+if [ ! "$(echo ${tgt_langs} | grep ${tgt_lang})" ]; then
     log "Error: ${tgt_lang} is not supported. It must be one of hi, bn, or ta."
     exit 1;
 fi
 
+log "Checking download and unpacking the dataset..."
+mkdir -p ${IWSLT24_INDIC}
+local/download_and_unpack.sh ${IWSLT24_INDIC} ${tgt_lang} ${remove_archive}
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1.1: Data download and unpack"
-    mkdir -p ${IWSLT24_INDIC}
-    local/download_and_unpack.sh ${IWSLT24_INDIC} ${tgt_lang} ${remove_archive}
-fi
+# ensure new line at the end of file
+for split in train dev; do
+    for ext in en ${tgt_lang} yaml; do
+        filename=${IWSLT24_INDIC}/en-${tgt_lang}/data/${split}/txt/${split}.${ext}
+        sed -i -e '$a\' ${filename}
+    done
+done
+sed -i -e '$a\' ${IWSLT24_INDIC}/en-${tgt_lang}/data/tst-COMMON/txt/tst-COMMON.yaml
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 1.2: ESPnet data format preparation"
-    # TODO: local/data_prep.sh ${IWSLT24_INDIC} ${tgt_lang}
-fi
+log "Preparing data in ESPnet format..."
+local/data_prep.sh ${IWSLT24_INDIC} ${tgt_lang}
 
-log "Successfully finished. [elapsed=${SECONDS}s]"
+log "Successfully finished data preparation. [elapsed=${SECONDS}s]"

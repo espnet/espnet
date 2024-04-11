@@ -35,7 +35,7 @@ fi
 
 # check if the dataset is already unpacked
 if [ -f ${data_dir}/.unpacked_en-${tgt_lang} ]; then
-    log "$0: data has already been extracted successfully. Skipping this stage."
+    log "$0: Data has already been extracted successfully. Skipping this stage."
     exit 0
 fi
 
