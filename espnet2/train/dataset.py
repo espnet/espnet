@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union
 
 import h5py
+import json
 import humanfriendly
 import kaldiio
 import numpy as np
@@ -439,6 +440,7 @@ class ESPnetDataset(AbsDataset):
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
+        key_prefix: str = None,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -452,6 +454,7 @@ class ESPnetDataset(AbsDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
+        self.key_prefix = key_prefix if key_prefix is not None else ""
         # allow audios to have different sampling rates
         self.allow_multi_rates = allow_multi_rates
 
@@ -476,6 +479,10 @@ class ESPnetDataset(AbsDataset):
             self.cache = SizedDict(shared=True)
         else:
             self.cache = None
+
+        self.key_list = [
+            line.strip().split()[0] for line in open(path, encoding="utf-8")
+        ]
 
     def _build_loader(
         self, path: str, loader_type: str
@@ -580,7 +587,7 @@ class ESPnetDataset(AbsDataset):
         # 2. [Option] Apply preprocessing
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
-            data = self.preprocess(uid, data)
+            data = self.preprocess(self.key_prefix + uid, data)
 
         # 3. Force data-precision
         for name in data:
@@ -606,3 +613,90 @@ class ESPnetDataset(AbsDataset):
         retval = uid, data
         assert check_return_type(retval)
         return retval
+
+
+class ESPnetMultiTaskDataset(AbsDataset):
+    """Pytorch Dataset class for ESPNet.
+
+    Examples:
+        >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
+        ...                          ('token_int', 'output', 'text_int')],
+        ...                         )
+        ... uttid, data = dataset['uttid']
+        {'input': per_utt_array, 'output': per_utt_array}
+    """
+
+    def __init__(
+        self,
+        path_name_type_list: Collection[Tuple[str, str, str]],
+        preprocess: Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]],
+        **kwargs,
+    ):
+
+        self.dataset_map = {}
+        self.task_map = {}
+
+        for triplet in path_name_type_list:
+            path, _, _type = triplet
+            assert _type == "json", f"Non-Json triplet: {triplet}"
+            json_dict = json.load(open(path))
+
+            this_path_name_type_list = []
+            for triplet in json_dict["data_files"]:
+                path, _, _type = triplet.split(",")
+                # use the stem file name as the name
+                this_path_name_type_list.append(
+                    (
+                        path,
+                        path.split("/")[-1],
+                        _type,
+                    )
+                )
+
+            dataset = ESPnetDataset(
+                path_name_type_list=this_path_name_type_list,
+                preprocess=preprocess,
+                key_prefix=json_dict["task"] + " ",
+                **kwargs,
+            )
+
+            self.dataset_map.update(
+                {json_dict["task"] + "_" + key: dataset for key in dataset.key_list}
+            )
+            self.task_map[dataset] = json_dict["task"]
+
+        self.encoder_decoder_format = getattr(
+            preprocess, "encoder_decoder_format", False
+        )
+
+    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+        print("all key: ", list(self.dataset_map.keys()), flush=True)
+
+        dataset = self.dataset_map[uid]
+        task = self.task_map[dataset]
+        data = dataset[uid.lstrip(task + "_")]
+        return data
+
+    # Keep same interface with IterableDataset
+    def has_name(self, name) -> bool:
+        return name in self.names()
+
+    def names(self) -> Tuple[str, ...]:
+        if self.encoder_decoder_format:
+            return ("encoder_sequence", "decoder_sequence")
+        else:
+            return "decoder_sequence"
+
+    def __repr__(self):
+        string = "##### Multi-Task Dataset #####\n"
+        for idx, (dataset, task) in enumerate(self.task_map.items()):
+            string += f"## Sub-Dataset: {idx}; Task: {task} ##\n"
+            string += f"{dataset}\n"
+        return string
+
+    def __iter__(self):
+        # (Jinchun): always add task as prefix, as one dataset can
+        # be used in multiple tasks.
+        for iterator in self.data_iterators:
+            for uid, data in iterator:
+                yield uid, data

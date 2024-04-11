@@ -1,0 +1,4 @@
+encoder_decoder_format: true
+
+batch_type: numel
+batch_bins: 35000000

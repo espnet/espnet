@@ -48,7 +48,12 @@ from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset
+from espnet2.train.dataset import (
+    DATA_TYPES,
+    AbsDataset,
+    ESPnetDataset,
+    ESPnetMultiTaskDataset,
+)
 from espnet2.train.distributed_utils import (
     DistributedOption,
     free_port,
@@ -57,7 +62,10 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import IterableESPnetDataset
+from espnet2.train.iterable_dataset import (
+    IterableESPnetDataset,
+    SplicedIterableESPnetDataset,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
@@ -879,6 +887,14 @@ class AbsTask(ABC):
             default=[],
         )
         group.add_argument(
+            "--multi_task_dataset",
+            type=str2bool,
+            default=False,
+            help="If true, input data is organized by json file. "
+            "This is usually used for multi-task training, like SpeechLM task"
+            "e.g., --train_data_path_and_name_and_type foo.json,foo_task,json",
+        )
+        group.add_argument(
             "--allow_variable_data_keys",
             type=str2bool,
             default=False,
@@ -1095,7 +1111,7 @@ class AbsTask(ABC):
     @classmethod
     def check_task_requirements(
         cls,
-        dataset: Union[AbsDataset, IterableESPnetDataset],
+        dataset: Union[AbsDataset, IterableESPnetDataset, SplicedIterableESPnetDataset],
         allow_variable_data_keys: bool,
         train: bool,
         inference: bool = False,
@@ -1327,7 +1343,7 @@ class AbsTask(ABC):
             # Perform on collect_stats mode. This mode has two roles
             # - Derive the length and dimension of all input data
             # - Accumulate feats, square values, and the length for whitening
-            logging.info(args)
+            # logging.info(args)
 
             if args.valid_batch_size is None:
                 args.valid_batch_size = args.batch_size
@@ -1358,6 +1374,7 @@ class AbsTask(ABC):
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
                     mode="train",
+                    multi_task_dataset=args.multi_task_dataset,
                 ),
                 valid_iter=cls.build_streaming_iterator(
                     data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -1370,6 +1387,7 @@ class AbsTask(ABC):
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
                     mode="valid",
+                    multi_task_dataset=args.multi_task_dataset,
                 ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
@@ -1650,7 +1668,12 @@ class AbsTask(ABC):
     ) -> AbsIterFactory:
         assert check_argument_types()
 
-        dataset = ESPnetDataset(
+        if args.multi_task_dataset:
+            dataset_class = ESPnetMultiTaskDataset
+        else:
+            dataset_class = ESPnetDataset
+
+        dataset = dataset_class(
             iter_options.data_path_and_name_and_type,
             float_dtype=args.train_dtype,
             preprocess=iter_options.preprocess_fn,
@@ -2021,6 +2044,7 @@ class AbsTask(ABC):
         ngpu: int = 0,
         inference: bool = False,
         mode: str = None,
+        multi_task_dataset: bool = False,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()
@@ -2030,7 +2054,11 @@ class AbsTask(ABC):
         else:
             kwargs = {}
 
-        dataset = IterableESPnetDataset(
+        if multi_task_dataset:
+            dataset_class = SplicedIterableESPnetDataset
+        else:
+            dataset_class = IterableESPnetDataset
+        dataset = dataset_class(
             data_path_and_name_and_type,
             float_dtype=dtype,
             preprocess=preprocess_fn,

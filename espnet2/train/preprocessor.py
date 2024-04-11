@@ -11,6 +11,7 @@ import numpy as np
 import scipy.signal
 import soundfile
 from typeguard import check_argument_types, check_return_type
+import espnet2.speechlm.definitions as speechlm_definitions
 
 from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -2309,3 +2310,165 @@ class S2TPreprocessor(CommonPreprocessor):
         data = self._text_process(data, round(init_pad / self.speech_resolution))
 
         return data
+
+
+class SpeechLMPreprocessor(AbsPreprocessor):
+    def __init__(
+        self,
+        token_list: List,
+        token_bias: Dict,
+        encoder_decoder_format: bool = False,
+        # codec related:
+        codec_token_per_frame: int = 1,
+        codec_token_in_use: int = 1,
+        # tokenizer related: Phone & BPE
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        g2p_type: str = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        bpe_encode_kwargs: Dict = None,
+        text_cleaner: str = None,
+    ):
+        self.token_list = token_list
+        self.token_bias = token_bias
+        self.encoder_decoder_format = encoder_decoder_format
+
+        self.modalities = speechlm_definitions.modalities
+        self.tasks = speechlm_definitions.tasks
+
+        ### Modality-specific utilities
+        # Text BPE (text_bpe):
+        if bpemodel is not None:
+            if bpe_encode_kwargs is None:
+                bpe_encode_kwargs = Dict()
+            self.bpe = build_tokenizer(
+                token_type="bpe",
+                bpemodel=bpemodel,
+                encode_kwargs=bpe_encode_kwargs,
+            )
+        else:
+            self.bpe = None
+
+        # Phones (g2p):
+        if g2p_type is not None:
+            self.g2p = build_tokenizer(
+                token_type="phn",
+                space_symbol=space_symbol,
+                non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
+            )
+        else:
+            self.g2p = None
+
+        # Text BPE (text_bpe) & Phones (g2p) shared
+        if bpemodel is not None or g2p_type is not None:
+            self.converter = TokenIDConverter(
+                token_list=token_list,
+                unk_symbol=unk_symbol,
+            )
+        else:
+            self.converter = None
+        self.text_cleaner = TextCleaner(text_cleaner)
+
+        # Codec model (codec):
+        self.codec_token_per_frame = codec_token_per_frame
+        if codec_token_in_use is None:
+            codec_token_in_use = codec_token_per_frame
+            assert codec_token_in_use <= codec_token_per_frame
+        self.codec_token_in_use = codec_token_in_use
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
+
+        # (1) task parsing
+        task_name = uid.strip().split(" ")[0]
+        task = self.tasks[task_name]
+
+        # (Jinchuan): Temp code
+        for e in task.encoder_entries + task.decoder_entries:
+            if not self.modalities[e[1]].discrete:
+                raise ValueError("Continuous feature is not supported yet.")
+
+        # (2) encoder & decoder sequence
+        seqs, conti_feats = [], []
+        n_enc_entries = len(task.encoder_entries)
+        for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
+            for entry in entries:
+                name, modality, _ = entry
+
+                value, conti_feat = self.modality_specific_processing(
+                    data[name], modality
+                )
+                if not self.modalities[modality].discrete:
+                    value = value + self.token_bias[modality]
+                seqs.append(value)
+
+                if not self.modalities[modality].discrete:
+                    if self.encoder_decoder_format:
+                        n_prior_entries = e_idx - n_enc_entries
+                    else:
+                        n_prior_entries = e_idx
+                    start = sum([len(value) for value in seqs[:n_prior_entries]])
+                    end = sum([len(value) for value in seqs[: n_prior_entries + 1]])
+                    on_encoder = e_idx < n_enc_entries
+                    conti_feats.append((start, end, on_encoder, conti_feat))
+
+        # (3) splice
+        sos_eos = self.special_token("<sos/eos>")
+        if task.use_task_identifier:
+            task_identifier = f"<{task_name}_task>"
+        else:
+            task_identifier = "<unkown_task_identifer>"
+        task_identifier = self.special_token(task_identifier)
+
+        new_data = {}
+        if self.encoder_decoder_format:
+            new_data["encoder_sequence"] = np.concatenate(
+                [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
+            )
+            new_data["decoder_sequence"] = np.concatenate(
+                [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
+            )
+        else:
+            new_data["decoder_sequence"] = np.concatenate(
+                [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
+            )
+
+        return new_data
+
+    def special_token(self, token):
+        token_idx = self.token_list.index(token)
+        token_idx = np.array([token_idx]).repeat(self.codec_token_per_frame, axis=0)
+        return token_idx
+
+    def modality_specific_processing(self, value, modality):
+
+        if modality == "codec":
+            value = value.reshape(-1, self.codec_token_per_frame)
+            value = value[:, : self.codec_token_in_use].flatten()
+            conti_feat = None
+
+        # Other discrete modalities
+        elif modality in ["ssl", "text_bpe", "g2p"]:
+
+            if modality in ["text_bpe", "g2p"]:
+                value = self.text_cleaner(value)
+                tokenizer = self.bpe if modality == "text_bpe" else self.g2p
+                value = tokenizer.text2tokens(value)
+                value = self.converter.tokens2ids(value)
+                value = np.array(value)
+
+            value = value.repeat(self.codec_token_per_frame, axis=0)
+            conti_feat = None
+
+        # TODO: Continuous modalities
+        else:
+            raise NotImplementedError
+
+        modality_idx = self.special_token(f"<{modality}_start/end>")
+        value = np.concatenate([modality_idx, value])
+
+        return value, conti_feat
