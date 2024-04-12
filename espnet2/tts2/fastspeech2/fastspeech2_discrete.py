@@ -33,7 +33,7 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 class FastSpeech2Discrete(AbsTTS2):
     """FastSpeech2 module with discrete output.
 
-    This is a module of discrete-output Fastspeech2: it uses the same 
+    This is a module of discrete-output Fastspeech2: it uses the same
     Fastspeech2 architecture as tts1, but with discrete token as output.
 
     """

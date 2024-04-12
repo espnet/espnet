@@ -10,7 +10,7 @@ train_dev=dev
 eval_set=eval1
 
 # put your vocoder file and vocoder config file here
-# vocoder can be trained from 
+# vocoder can be trained from
 # https://github.com/kan-bayashi/ParallelWaveGAN
 vocoder_file=vocoder/vocoder.pkl
 
