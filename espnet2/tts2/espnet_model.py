@@ -78,6 +78,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            discrete_speech (Tensor): Discrete speech tensor (B, T_token).
+            discrete_speech_lengths (Tensor): Discrete speech length tensor (B,).
             duration (Optional[Tensor]): Duration tensor.
             duration_lengths (Optional[Tensor]): Duration length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor.
