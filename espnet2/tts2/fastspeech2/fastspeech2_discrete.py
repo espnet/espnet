@@ -508,6 +508,8 @@ class FastSpeech2Discrete(AbsTTS2):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
+            discrete_speech (Tensor): Discrete speech tensor (B, T_token).
+            discrete_speech_lengths (LongTensor): Discrete speech length tensor (B,).
             durations (LongTensor): Batch of padded durations (B, T_text + 1).
             durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
             pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).
