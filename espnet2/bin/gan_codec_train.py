@@ -8,7 +8,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    """GAN-based SVS training
+    """GAN-based Codec training
 
     Example:
 
