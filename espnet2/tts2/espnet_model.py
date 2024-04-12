@@ -237,7 +237,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         return feats_dict
 
-    # (Jinchuan): have not handle this yet
     def inference(
         self,
         text: torch.Tensor,

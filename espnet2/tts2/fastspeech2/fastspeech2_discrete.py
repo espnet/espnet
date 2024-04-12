@@ -14,8 +14,8 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.fastspeech2.loss import FastSpeech2LossDiscrete
-from espnet2.tts2.fastspeech2.variance_predictor import VariancePredictor
-from espnet2.tts2.gst.style_encoder import StyleEncoder
+from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
+from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
@@ -31,17 +31,10 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class FastSpeech2Discrete(AbsTTS2):
-    """FastSpeech2 module.
+    """FastSpeech2 module with discrete output.
 
-    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and
-    High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and
-    energy, we use token-averaged value introduced in `FastPitch: Parallel
-    Text-to-speech with Pitch Prediction`_.
-
-    .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
-        https://arxiv.org/abs/2006.04558
-    .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:
-        https://arxiv.org/abs/2006.06873
+    This is a module of discrete-output Fastspeech2: it uses the same 
+    Fastspeech2 architecture as tts1, but with discrete token as output.
 
     """
 
