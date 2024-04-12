@@ -102,7 +102,6 @@ tokenization_choices=""
 codec_choice="DAC"
 codec_opts=""
 codec_token_per_frame=1
-codec_token_in_use=none
 semantic_choice="WavLM"
 semantic_opts=""
 g2p="g2p_en"
@@ -496,7 +495,6 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --multi_task_dataset true \
                 --codec_token_per_frame ${codec_token_per_frame} \
-                --codec_token_in_use ${codec_token_in_use} \
                 --resume true \
                 --output_dir "${speechlm_exp}" \
                 ${_opts} ${_data_opts} ${train_args}

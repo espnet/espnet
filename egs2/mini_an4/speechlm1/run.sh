@@ -8,10 +8,9 @@ set -o pipefail
 # format: file,name,type
 
 ./speechlm.sh \
-    --stage 7 --stop_stage 8 \
+    --stage 8 --stop_stage 8 \
     --task "plain_tts" \
     --codec_token_per_frame 12 \
-    --codec_token_in_use 12 \
     --nj 1 \
     --inference_nj 2 \
     --audio_format "flac.ark" \

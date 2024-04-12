@@ -2313,6 +2313,7 @@ class S2TPreprocessor(CommonPreprocessor):
 
 
 class SpeechLMPreprocessor(AbsPreprocessor):
+    """Preprocessor specifically for SpeechLM models"""
     def __init__(
         self,
         token_list: List,
@@ -2320,7 +2321,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         encoder_decoder_format: bool = False,
         # codec related:
         codec_token_per_frame: int = 1,
-        codec_token_in_use: int = 1,
+        codec_token_in_use: int = None,
         # tokenizer related: Phone & BPE
         unk_symbol: str = "<unk>",
         space_symbol: str = "<space>",
@@ -2336,6 +2337,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         self.modalities = speechlm_definitions.modalities
         self.tasks = speechlm_definitions.tasks
+
+        self.converter = TokenIDConverter(
+            token_list=token_list,
+            unk_symbol=unk_symbol,
+        )
+        self.text_cleaner = TextCleaner(text_cleaner)
 
         ### Modality-specific utilities
         # Text BPE (text_bpe):
@@ -2360,16 +2367,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             )
         else:
             self.g2p = None
-
-        # Text BPE (text_bpe) & Phones (g2p) shared
-        if bpemodel is not None or g2p_type is not None:
-            self.converter = TokenIDConverter(
-                token_list=token_list,
-                unk_symbol=unk_symbol,
-            )
-        else:
-            self.converter = None
-        self.text_cleaner = TextCleaner(text_cleaner)
 
         # Codec model (codec):
         self.codec_token_per_frame = codec_token_per_frame
@@ -2402,8 +2399,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value, conti_feat = self.modality_specific_processing(
                     data[name], modality
                 )
-                if not self.modalities[modality].discrete:
-                    value = value + self.token_bias[modality]
                 seqs.append(value)
 
                 if not self.modalities[modality].discrete:
@@ -2436,19 +2431,21 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             new_data["decoder_sequence"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             )
-
+        
         return new_data
 
     def special_token(self, token):
         token_idx = self.token_list.index(token)
-        token_idx = np.array([token_idx]).repeat(self.codec_token_per_frame, axis=0)
+        token_idx = np.array([token_idx]).repeat(self.codec_token_in_use, axis=0)
         return token_idx
 
     def modality_specific_processing(self, value, modality):
 
         if modality == "codec":
             value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, : self.codec_token_in_use].flatten()
+            value = value[:, :self.codec_token_in_use].flatten()
+            print(value.shape, 'shape')
+            value = value + self.token_bias['codec']
             conti_feat = None
 
         # Other discrete modalities
@@ -2460,8 +2457,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = tokenizer.text2tokens(value)
                 value = self.converter.tokens2ids(value)
                 value = np.array(value)
+            
+            elif modality in ['ssl']:
+                value = value + self.token_bias['ssl']
 
-            value = value.repeat(self.codec_token_per_frame, axis=0)
+            value = value.repeat(self.codec_token_in_use, axis=0)
             conti_feat = None
 
         # TODO: Continuous modalities
@@ -2472,3 +2472,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         value = np.concatenate([modality_idx, value])
 
         return value, conti_feat
+    
+    def diagnoise(self, data):
+        """ Only for debug """
+        enc_seq = data.get("encoder_sequence", None)
+        dec_seq = data.get("decoder_sequence", None)
+
+        logging.info(f"Diagnose in preprocessor ...")
+        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
+            logging.info(f"{name} ...")
+            seq = seq.reshape(-1, self.codec_token_in_use)
+            for idx, patch in enumerate(seq):
+                patch = patch.tolist()
+                patch_str = ", ".join(self.converter.ids2tokens(patch))
+                logging.info(f"Patch: {idx} -> {patch_str}")
+            

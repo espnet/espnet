@@ -18,7 +18,7 @@ from espnet2.speechlm.core_lm.builtin import BuiltinCoreLM
 # Predictor
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
 from espnet2.speechlm.predictor.linear import (
-    ParallelPredcitor,
+    ParallelPredictor,
 )
 
 # Postprocessor
@@ -49,7 +49,7 @@ corelm_choices = ClassChoices(
 predictor_choices = ClassChoices(
     "predictor",
     classes=dict(
-        parallel=ParallelPredcitor,
+        parallel=ParallelPredictor,
     ),
     type_check=AbsPredictor,
     default="parallel",
@@ -196,7 +196,8 @@ class SpeechLMTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
-        return CommonCollateFn(int_pad_value=0)  # ensure 0: <pad> in token_list
+        int_pad = args.token_list.index("<pad>")
+        return CommonCollateFn(int_pad_value=int_pad)
 
     @classmethod
     def build_preprocess_fn(
@@ -264,11 +265,19 @@ class SpeechLMTask(AbsTask):
 
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
-        corelm = corelm_class(**args.corelm_conf)
+        corelm = corelm_class(
+            encoder_decoder_format=args.encoder_decoder_format,
+            **args.corelm_conf
+        )
 
         # 2. Build Predictor module
         predictor_class = predictor_choices.get_class(args.predictor)
-        predictor = predictor_class(**args.predictor_conf)
+        predictor = predictor_class(
+            vocab_size=len(token_list),
+            input_dim=corelm.model_dim(),
+            nq=args.codec_token_in_use,
+            **args.predictor_conf,
+        )
 
         # 3. Build Postprocessor module
         if args.postprocessor is not None:
@@ -284,11 +293,12 @@ class SpeechLMTask(AbsTask):
         else:
             codec_token_in_use = args.codec_token_in_use
         model = model_class(
+            nq=codec_token_in_use,
+            token_list=token_list,
             corelm=corelm,
             predictor=predictor,
             postprocessor=postprocessor,
-            token_list=token_list,
-            codec_token_in_use=codec_token_in_use,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?

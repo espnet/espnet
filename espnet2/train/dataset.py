@@ -670,8 +670,6 @@ class ESPnetMultiTaskDataset(AbsDataset):
         )
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
-        print("all key: ", list(self.dataset_map.keys()), flush=True)
-
         dataset = self.dataset_map[uid]
         task = self.task_map[dataset]
         data = dataset[uid.lstrip(task + "_")]
