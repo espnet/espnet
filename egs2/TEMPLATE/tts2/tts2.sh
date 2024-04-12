@@ -1029,9 +1029,8 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${tts2_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts2_exp}/${inference_tag}/run.sh"; chmod +x "${tts2_exp}/${inference_tag}/run.sh"
-
+        log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 9 using this script"
+        mkdir -p "${tts2_exp}/${inference_tag}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${tts2_exp}/${inference_tag}/run.sh"; chmod +x "${tts2_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
