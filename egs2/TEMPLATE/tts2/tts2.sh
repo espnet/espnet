@@ -583,8 +583,9 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
 
-	# NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
-        # We may include more control token here to imporve it.
+        # NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
+        #   We may include more control token here to imporve it.
+        mkdir -p "${km_dir}"
         (for n in `seq 1 ${feature_num_clusters}`; do
             echo "<auido_token_${n}>"
         done) > ${tgt_token_list}
@@ -732,8 +733,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${tts2_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${tts2_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts2_stats_dir}/run.sh"; chmod +x "${tts2_stats_dir}/run.sh"
+        log "Generate '${tts2_stats_dir}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${tts2_stats_dir}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts2_stats_dir}/run.sh"; chmod +x "${tts2_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Discrete TTS collect_stats started... log: '${_logdir}/stats.*.log'"
@@ -954,8 +955,8 @@ if ! "${skip_train}"; then
             _opts+="--normalize_conf stats_file=${tts2_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${tts2_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts2_exp}/run.sh"; chmod +x "${tts2_exp}/run.sh"
+        log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${tts2_exp}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${tts2_exp}/run.sh"; chmod +x "${tts2_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
@@ -1029,9 +1030,8 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${tts2_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts2_exp}/${inference_tag}/run.sh"; chmod +x "${tts2_exp}/${inference_tag}/run.sh"
-
+        log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 9 using this script"
+        mkdir -p "${tts2_exp}/${inference_tag}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${tts2_exp}/${inference_tag}/run.sh"; chmod +x "${tts2_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
