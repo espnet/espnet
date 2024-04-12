@@ -19,6 +19,7 @@ test_set=tst-COMMON.en-${tgt_lang}
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --stage 1 \
-    --stop_stage 1
+    --stop_stage 3
 

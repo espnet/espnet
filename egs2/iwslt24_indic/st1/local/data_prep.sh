@@ -23,7 +23,7 @@ fi
 data_dir=$1
 tgt_lang=$2
 
-for split in train dev; do  # TODO: handle tst-COMMON
+for split in train dev; do
     src=${data_dir}/en-${tgt_lang}/data/${split}
     dst=data/local/en-${tgt_lang}/${split}
 
@@ -145,7 +145,7 @@ for split in train dev; do  # TODO: handle tst-COMMON
     n_tgt=$(cat ${dst}/text.tc.${tgt_lang} | wc -l)
     [ ${n_en} -ne ${n_tgt} ] && log "Error: expected ${n_en} data entries, found ${n_tgt}" && exit 1;
 
-    # copy files into its final locations [this has been moved from the format_data script]
+    # copy files into its final locations
     mkdir -p data/${split}.en-${tgt_lang}
 
     # remove duplicated utterances (i.e. utterances with the same offset)
@@ -168,6 +168,84 @@ for split in train dev; do  # TODO: handle tst-COMMON
     n_seg=$(cat data/${split}.en-${tgt_lang}/segments | wc -l)
     n_text=$(cat data/${split}.en-${tgt_lang}/text.tc.${tgt_lang} | wc -l)
     [ ${n_seg} -ne ${n_text} ] && log "Error: expected ${n_seg} data entries, found ${n_text}" && exit 1;
-
-    log "$0: successfully prepared data in ${dst}"
 done
+
+for split in tst-COMMON; do
+    src=${data_dir}/en-${tgt_lang}/data/${split}
+    dst=data/local/en-${tgt_lang}/${split}
+
+    [ ! -d ${src} ] && log "$0: no such directory ${src}" && exit 1;
+
+    wav_dir=${src}/wav
+    txt_dir=${src}/txt
+    yaml=${txt_dir}/${split}.yaml
+
+    mkdir -p ${dst} || exit 1;
+
+    [ ! -d ${wav_dir} ] && log "$0: no such directory ${wav_dir}" && exit 1;
+    [ ! -d ${txt_dir} ] && log "$0: no such directory ${txt_dir}" && exit 1;
+    [ ! -f ${yaml} ] && log "$0: expected file ${yaml} to exist" && exit 1;
+
+    wav_scp=${dst}/wav.scp; [[ -f "${wav_scp}" ]] && rm ${wav_scp}
+    utt2spk=${dst}/utt2spk; [[ -f "${utt2spk}" ]] && rm ${utt2spk}
+    spk2utt=${dst}/spk2utt; [[ -f "${spk2utt}" ]] && rm ${spk2utt}
+    segments=${dst}/segments; [[ -f "${segments}" ]] && rm ${segments}
+
+    cp ${yaml} ${dst}/.yaml0
+
+    # make utt_id from yaml
+    # e.g., - {duration: 3.079999, offset: 7.28, speaker_id: spk.4, wav: bn4.wav} -> ted_00004_0007280_0010360
+    awk '{
+        duration=$3; offset=$5; spkid=$7;
+        gsub(",","",duration);
+        gsub(",","",offset);
+        gsub(",","",spkid);
+        gsub("spk.","",spkid);
+        duration=sprintf("%.7f", duration);
+        offset=sprintf("%.7f", offset);
+        startt=offset;
+        endt=offset+duration;
+        printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
+    }' ${dst}/.yaml0 > ${dst}/.yaml2
+
+    # segments file preparation
+    awk '{
+        segment=$1; split(segment,S,"[_]");
+        spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
+        printf("%s %s %.2f %.2f\n", segment, spkid, startf/1000, endf/1000);
+    }' < ${dst}/.yaml2 | uniq | sort > ${dst}/segments
+
+    # wav.scp file preparation
+    awk '{
+        segment=$1; split(segment,S,"[_]");
+        spkid=S[1] "_" S[2];
+        printf("%s cat '${wav_dir}'/'${tgt_lang}'%d.wav |\n", spkid, S[2]);
+    }' < ${dst}/.yaml2 | uniq | sort > ${dst}/wav.scp
+
+    # utt2spk file preparation
+    awk '{
+        segment=$1; split(segment,S,"[_]");
+        spkid=S[1] "_" S[2]; print $1 " " spkid
+    }' ${dst}/segments | uniq | sort > ${dst}/utt2spk
+
+    # spk2utt file preparation
+    cat ${dst}/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > ${dst}/spk2utt
+
+    # copy files into its final locations
+    final_dst=data/${split}.en-${tgt_lang}
+    mkdir -p ${final_dst}
+    cp ${dst}/segments ${final_dst}/segments
+    cp ${dst}/wav.scp ${final_dst}/wav.scp
+    cp ${dst}/utt2spk ${final_dst}/utt2spk
+    cp ${dst}/spk2utt ${final_dst}/spk2utt
+
+    # check if the files in the data directory are in correct format
+    utils/fix_data_dir.sh ${final_dst}
+
+    # error check
+    n=$(cat ${dst}/.yaml2 | wc -l)
+    n_seg=$(cat ${final_dst}/segments | wc -l)
+    [ ${n} -ne ${n_seg} ] && log "Error: expected ${n} data entries, found ${n_seg}" && exit 1;
+done
+
+log "$0: successfully prepared data in ${dst}"
