@@ -954,8 +954,8 @@ if ! "${skip_train}"; then
             _opts+="--normalize_conf stats_file=${tts2_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${tts2_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts2_exp}/run.sh"; chmod +x "${tts2_exp}/run.sh"
+        log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${tts2_exp}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${tts2_exp}/run.sh"; chmod +x "${tts2_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
