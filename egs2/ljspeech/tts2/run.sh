@@ -5,8 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_no_dev_10min
-train_dev=dev_small
+train_set=tr_no_dev
+train_dev=dev
 eval_set=eval1
 
 # put your vocoder file and vocoder config file here
