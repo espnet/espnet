@@ -732,8 +732,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${tts2_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${tts2_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts2_stats_dir}/run.sh"; chmod +x "${tts2_stats_dir}/run.sh"
+        log "Generate '${tts2_stats_dir}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${tts2_stats_dir}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts2_stats_dir}/run.sh"; chmod +x "${tts2_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Discrete TTS collect_stats started... log: '${_logdir}/stats.*.log'"
