@@ -478,17 +478,6 @@ class VITS(AbsGANSVS):
 
         """
 
-        # asr_feats = asr_feats.transpose(1, 2)
-
-        # adjusted_asr_feats = torch.nn.functional.interpolate(
-        #     asr_feats,
-        #     size=(feats_lengths.max().item(),),
-        #     mode="linear",
-        #     align_corners=True,
-        # ).transpose(1, 2)
-        # print("adjusted_asr_feats", adjusted_asr_feats.shape)
-        # concatenated_feats = torch.cat([feats, adjusted_asr_feats], dim=2)
-
         if asr_feats is not None:
             if asr_feats.shape[1] > feats.shape[1]:
                 asr_feats = asr_feats[:, : feats.shape[1], :]
