@@ -17,8 +17,8 @@ svs_conf:
     vocoder_generator_type: visinger2 # hifigan, avocodo, uhifigan, visinger2
     generator_params:
         hidden_channels: 192
-        spks: -1
-        global_channels: -1
+        spks: 31
+        global_channels: 256
         segment_size: 20
         text_encoder_attention_heads: 2
         text_encoder_ffn_expand: 4
@@ -147,25 +147,33 @@ pitch_normalize: None      # normalizer for the pitch feature
 
 # ying_extract: ying
 # frontend related
-
-frontend: fused
+frontend: s3prl
 frontend_conf:
-  frontends:
-    - frontend_type: s3prl
-      frontend_conf:
-        upstream: hubert_large_ll60k
-      download_dir: ./hub
-      multilayer_feature: True
+   frontend_conf:
+      upstream: hubert_large_ll60k
+   download_dir: ./hub
+   multilayer_feature: True
 
-    - frontend_type: s3prl
-      frontend_conf:
-        upstream: hf_mert_custom
-        path_or_url: m-a-p/MERT-v1-330M
-      download_dir: ./hub
-      multilayer_feature: True
+# we can also use the following frontend configs
 
-  align_method: linear_projection
-  proj_dim: 100
+# 1. (MERT):
+
+# frontend: s3prl
+# frontend_conf:
+#    frontend_conf:
+#         upstream: hf_mert_custom
+#         path_or_url: m-a-p/MERT-v1-330M
+#    download_dir: ./hub
+#    multilayer_feature: True
+
+# 2. (Chinese Hubert):
+# frontend: s3prl
+# frontend_conf:
+#    frontend_conf:
+#         upstream: hf_hubert_custom
+#         path_or_url: TencentGameMate/chinese-hubert-large
+#    download_dir: ./hub
+#    multilayer_feature: True
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -190,7 +198,7 @@ optim2_conf:
 scheduler2: exponentiallr
 scheduler2_conf:
     gamma: 0.998
-generator_first: false # whether to start updating generator first
+generator_first: true # whether to start updating generator first
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
@@ -208,7 +216,7 @@ num_workers: 4            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
 log_interval: 50          # log interval in iterations
 keep_nbest_models: 10     # number of models to keep
-num_att_plot: 3           # number of attention figures to be saved in every check
+num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case

@@ -150,10 +150,18 @@ pitch_normalize: None      # normalizer for the pitch feature
 frontend: s3prl
 frontend_conf:
    frontend_conf:
-        upstream: hf_hubert_custom
-        path_or_url: TencentGameMate/chinese-hubert-large
+      upstream: hubert_large_ll60k
    download_dir: ./hub
    multilayer_feature: True
+
+# we can also use the following frontend config (MERT):
+# frontend: s3prl
+# frontend_conf:
+#    frontend_conf:
+#         upstream: hf_mert_custom
+#         path_or_url: m-a-p/MERT-v1-330M
+#    download_dir: ./hub
+#    multilayer_feature: True
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
