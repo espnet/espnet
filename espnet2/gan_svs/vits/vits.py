@@ -411,6 +411,7 @@ class VITS(AbsGANSVS):
 
         # hubert alignment
         self.adaptive_pool = torch.nn.AdaptiveAvgPool1d(1)
+        self.n_mels = mel_loss_params["n_mels"]
 
     @property
     def require_raw_singing(self):
@@ -755,7 +756,7 @@ class VITS(AbsGANSVS):
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
                 loss = loss + ddsp_mel_loss
             if self.generator_type == "visinger2":
-                feats = feats[:, :80, :]
+                feats = feats[:, :self.n_mels, :]
                 loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
                 loss = loss + loss_mel_am
 

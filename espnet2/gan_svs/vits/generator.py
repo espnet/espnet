@@ -200,6 +200,7 @@ class VISingerGenerator(torch.nn.Module):
             use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
             expand_f0_method (str): The method used to expand F0. Use "repeat" or
                 "interpolation".
+            hubert_channels (int): Number of channels in the Hubert model. This is used in VISinger2 Plus.
         """
         super().__init__()
         self.aux_channels = aux_channels
