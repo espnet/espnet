@@ -22,8 +22,8 @@ class AbsCoreLM(torch.nn.Module, ABC):
 
     @abstractmethod
     def forward(
-        self, 
-        decoder_input: torch.Tensor, 
+        self,
+        decoder_input: torch.Tensor,
         decoder_input_lengths: torch.Tensor = None,
         encoder_input: torch.Tensor = None,
         encoder_input_lengths: torch.Tensor = None,
@@ -31,7 +31,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         raise NotImplementedError
-    
+
     @abstractmethod
     def model_dim(self) -> int:
         raise NotImplementedError

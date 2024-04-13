@@ -9,6 +9,8 @@ from packaging import version
 import math
 import torch
 
+# (Jinchuan) TODO:
+# remove the dependency outside espnet2.speechlm for better model transplant
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -106,7 +108,7 @@ class MultiHeadedAttention(torch.nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, mask):
+    def forward(self, query, key, value, mask, cache=None):
         """Compute scaled dot product attention.
 
         Args:
@@ -120,18 +122,31 @@ class MultiHeadedAttention(torch.nn.Module):
             torch.Tensor: Output tensor (#batch, time1, d_model).
 
         """
+        if self.causal and mask is not None:
+            raise ValueError("Cannot require causality when mask is provided.")
+
+        if self.causal and not (query.size(1) == key.size(1) == value.size(1)):
+            raise ValueError("causality is only for self-attention")
+
         q, k, v = self.forward_qkv(query, key, value)
+
+        # (Jinchuan) Try always use flash-attention for better efficiency
         if not self.flashattention:
+            if self.causal:
+                mask = causal_mask(query.size(1), query.device)
             scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
             return self.forward_attention(v, scores, mask)
+
         else:
             x = torch.nn.functional.scaled_dot_product_attention(
-                q, k, v,
-                attn_mask=mask,
-                dropout=self.dropout_rate,
+                q,
+                k,
+                v,
+                attn_mask=mask.bool().unsqueeze(1) if mask is not None else None,
+                dropout_p=self.dropout_rate,
                 is_causal=self.causal,
-                scale=None,
             )
+            x = x.transpose(1, 2).flatten(2, 3)
             return self.linear_out(x)
 
 
@@ -150,9 +165,9 @@ class TransformerLayer(torch.nn.Module):
         super(TransformerLayer, self).__init__()
 
         self.attn = MultiHeadedAttention(
-            head, 
+            head,
             att_unit,
-            attention_dropout_rate, 
+            attention_dropout_rate,
             causal,
             flashattention,
         )
@@ -160,26 +175,26 @@ class TransformerLayer(torch.nn.Module):
 
         if cross_attention:
             self.cross_attn = MultiHeadedAttention(
-                head, 
-                att_unit, 
-                attention_dropout_rate, 
-                causal,
+                head,
+                att_unit,
+                attention_dropout_rate,
+                False,
                 flashattention,
             )
             self.cross_attn_ln = torch.nn.LayerNorm(att_unit)
         else:
             self.cross_attn = None
             self.cross_attn_ln = None
-        
+
         self.ffn = PositionwiseFeedForward(att_unit, unit, dropout_rate)
-    
+
     def forward(
         self,
         input: torch.Tensor,
         input_masks: torch.Tensor = None,
         src: torch.Tensor = None,
         src_masks: torch.Tensor = None,
-        cache: Dict = None
+        cache: Dict = None,
     ):
         # self-attn
         x = self.attn_ln(input)
@@ -188,13 +203,14 @@ class TransformerLayer(torch.nn.Module):
         # cross-attn
         if self.cross_attn and src is not None:
             x = self.cross_attn_ln(x)
-            x = x + self.cross_attn(x, x, src, src_masks, cache)
-        
+            x = x + self.cross_attn(x, src, src, src_masks, cache)
+
         # feed-forward
         x = x + self.ffn(x)
 
         return x
-    
+
+
 class BuiltinCoreLM(AbsCoreLM):
     def __init__(
         self,
@@ -209,6 +225,7 @@ class BuiltinCoreLM(AbsCoreLM):
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         flashattention: bool = False,
+        causal_encoder: bool = False,
     ):
         super(BuiltinCoreLM, self).__init__()
 
@@ -216,67 +233,72 @@ class BuiltinCoreLM(AbsCoreLM):
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(f"unknown pos-enc option: {pos_enc}")
-        
-        self.decoders = torch.nn.ModuleList([
-            TransformerLayer(
-                att_unit=att_unit,
-                head=head,
-                unit=unit,
-                dropout_rate=dropout_rate,
-                attention_dropout_rate=attention_dropout_rate,
-                causal=True,
-                flashattention=flashattention,
-                cross_attention=encoder_decoder_format,
-            )
-            for _ in range(decoder_layer)
-        ])
-        self.decoder_post_ln = torch.nn.LayerNorm(att_unit)
-        self.dec_pos_enc = pos_enc_class(att_unit, positional_dropout_rate)
 
-        if encoder_decoder_format:
-            self.encoders = torch.nn.ModuleList([
+        self.decoders = torch.nn.ModuleList(
+            [
                 TransformerLayer(
                     att_unit=att_unit,
                     head=head,
                     unit=unit,
                     dropout_rate=dropout_rate,
                     attention_dropout_rate=attention_dropout_rate,
-                    causal=False,
+                    causal=True,
                     flashattention=flashattention,
-                    cross_attention=False,
+                    cross_attention=encoder_decoder_format,
                 )
-                for _ in range(encoder_layer)
-            ])
+                for _ in range(decoder_layer)
+            ]
+        )
+        self.decoder_post_ln = torch.nn.LayerNorm(att_unit)
+        self.dec_pos_enc = pos_enc_class(att_unit, positional_dropout_rate)
+
+        if encoder_decoder_format:
+            self.encoders = torch.nn.ModuleList(
+                [
+                    TransformerLayer(
+                        att_unit=att_unit,
+                        head=head,
+                        unit=unit,
+                        dropout_rate=dropout_rate,
+                        attention_dropout_rate=attention_dropout_rate,
+                        causal=causal_encoder,
+                        flashattention=flashattention,
+                        cross_attention=False,
+                    )
+                    for _ in range(encoder_layer)
+                ]
+            )
             self.encoder_post_ln = torch.nn.LayerNorm(att_unit)
             self.enc_pos_enc = pos_enc_class(att_unit, positional_dropout_rate)
         else:
             self.encoders = None
             self.encoder_post_ln = None
-            self.enc_pos_enc= None
+            self.enc_pos_enc = None
 
+        self.encoder_decoder_format = encoder_decoder_format
         self._model_dim = att_unit
-    
+
     def model_dim(self) -> int:
         return self._model_dim
-        
+
     def forward(
-        self, 
-        decoder_input: torch.Tensor, 
-        decoder_input_lengths: torch.Tensor,
+        self,
+        decoder_input: torch.Tensor,
+        decoder_input_lengths: torch.Tensor = None,
         encoder_input: torch.Tensor = None,
         encoder_input_lengths: torch.Tensor = None,
         cache: Dict = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        
+
         if self.encoder_decoder_format:
             assert encoder_input is not None and encoder_input_lengths is not None
 
             encoder_input = self.enc_pos_enc(encoder_input)
-            encoder_mask = length_mask(encoder_input_lengths)
+            encoder_mask = length_mask(encoder_input_lengths).unsqueeze(1)
             for layer in self.encoders:
                 encoder_input = layer(
-                    encoder_input, 
-                    encoder_mask, 
+                    encoder_input,
+                    encoder_mask,
                     cache=cache,
                 )
             encoder_output = self.encoder_post_ln(encoder_input)
@@ -293,6 +315,6 @@ class BuiltinCoreLM(AbsCoreLM):
                 encoder_mask,
                 cache=cache,
             )
-        decoder_output = self.decoder_post_ln(decoder_output)
+        decoder_output = self.decoder_post_ln(decoder_input)
 
         return decoder_output, decoder_input_lengths

@@ -19,7 +19,9 @@ from espnet2.speechlm.core_lm.builtin import BuiltinCoreLM
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
 from espnet2.speechlm.predictor.linear import (
     ParallelPredictor,
+    DelayPredictor,
 )
+from espnet2.speechlm.predictor.multiscale import MultiScalePredictor
 
 # Postprocessor
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
@@ -50,6 +52,8 @@ predictor_choices = ClassChoices(
     "predictor",
     classes=dict(
         parallel=ParallelPredictor,
+        delay=DelayPredictor,
+        multiscale=MultiScalePredictor,
     ),
     type_check=AbsPredictor,
     default="parallel",
@@ -266,8 +270,7 @@ class SpeechLMTask(AbsTask):
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
-            encoder_decoder_format=args.encoder_decoder_format,
-            **args.corelm_conf
+            encoder_decoder_format=args.encoder_decoder_format, **args.corelm_conf
         )
 
         # 2. Build Predictor module

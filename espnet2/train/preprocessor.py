@@ -2314,6 +2314,7 @@ class S2TPreprocessor(CommonPreprocessor):
 
 class SpeechLMPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for SpeechLM models"""
+
     def __init__(
         self,
         token_list: List,
@@ -2431,7 +2432,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             new_data["decoder_sequence"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             )
-        
+
         return new_data
 
     def special_token(self, token):
@@ -2443,9 +2444,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         if modality == "codec":
             value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, :self.codec_token_in_use].flatten()
-            print(value.shape, 'shape')
-            value = value + self.token_bias['codec']
+            value = value[:, : self.codec_token_in_use].flatten()
+            value = value + self.token_bias["codec"]
             conti_feat = None
 
         # Other discrete modalities
@@ -2457,9 +2457,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = tokenizer.text2tokens(value)
                 value = self.converter.tokens2ids(value)
                 value = np.array(value)
-            
-            elif modality in ['ssl']:
-                value = value + self.token_bias['ssl']
+
+            elif modality in ["ssl"]:
+                value = value + self.token_bias["ssl"]
 
             value = value.repeat(self.codec_token_in_use, axis=0)
             conti_feat = None
@@ -2472,9 +2472,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         value = np.concatenate([modality_idx, value])
 
         return value, conti_feat
-    
+
     def diagnoise(self, data):
-        """ Only for debug """
+        """Only for debug"""
         enc_seq = data.get("encoder_sequence", None)
         dec_seq = data.get("decoder_sequence", None)
 
@@ -2486,4 +2486,3 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.info(f"Patch: {idx} -> {patch_str}")
-            

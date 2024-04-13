@@ -9,7 +9,10 @@ import torch
 
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
 
+
 class ParallelPredictor(AbsPredictor):
+    """parallel pattern in https://arxiv.org/pdf/2306.05284.pdf"""
+
     def __init__(
         self,
         vocab_size: List,
@@ -17,30 +20,35 @@ class ParallelPredictor(AbsPredictor):
         nq: int,
     ):
         super(ParallelPredictor, self).__init__()
-        
-        self.linear = torch.nn.Linear(
-            input_dim, vocab_size * nq, bias=False
-        )
+
+        self.linear = torch.nn.Linear(input_dim, vocab_size * nq, bias=False)
         self.nq = nq
-    
+
     def forward(
-        self, input: torch.Tensor, input_lengths: torch.Tensor, cache: Dict = None,
-    ) -> Tuple[torch.Tensor, Dict]:
-        
+        self,
+        input: torch.Tensor,
+        input_lengths: torch.Tensor = None,
+        cache: dict = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+
         output = self.linear(input)
-        B, T, D  = output.size()
+        B, T, D = output.size()
         output = output.view(B, T * self.nq, D // self.nq)
 
         output_lengths = input_lengths * self.nq
         return output, output_lengths
-    
+
     def get_lookup_table(self):
         raise ValueError("Cannot share the lookup table as there are multiple")
-    
+
+
+class DelayPredictor(ParallelPredictor):
+    """delay pattern in https://arxiv.org/pdf/2306.05284.pdf"""
+
     def organize_target(
-        self, 
-        target: torch.Tensor, 
-        target_lengths: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        return target, target_lengths
+        self,
+        target: torch.Tensor,
+        target_lengths: torch.Tensor,
+    ) -> Tuple[torch.Tensor]:
+        raise NotImplementedError

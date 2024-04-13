@@ -38,12 +38,12 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         self.emb = torch.nn.Embedding(len(token_list), corelm.model_dim())
         if share_emb:
             self.emb.data = predictor.get_lookup_table()
-        
+
         # special tokens
         self.token_list = token_list
 
         # configurations
-        self.nq = nq # N_q
+        self.nq = nq  # N_q
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
@@ -52,7 +52,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         decoder_sequence_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        
+
         encoder_sequence = kwargs.get("encoder_sequence", None)
         encoder_sequence_lengths = kwargs.get("encoder_sequence_lengths", None)
 
@@ -66,9 +66,9 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             )
         else:
             encoder_sequence_emb, encoder_sequence_lengths = None, None
-        
+
         # (2) corelm forward
-        pred_emb, pred_lengths, _ = self.corelm_forward(
+        pred_emb, pred_lengths = self.corelm_forward(
             decoder_sequence_emb,
             decoder_sequence_lengths,
             encoder_sequence_emb,
@@ -77,10 +77,10 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
         # (3) predictor forward
         pred_emb, pred_lengths, target, target_lengths = self.predictor_forward(
-            pred_emb, 
-            pred_lengths, 
+            pred_emb,
+            pred_lengths,
             decoder_sequence,
-            decoder_sequence_lengths,
+            decoder_sequence_lengths * self.nq,  # was down-sampled in embed stage
         )
 
         # (4) Loss computing
@@ -93,14 +93,14 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
-    
+
     def embed(
-        self, 
+        self,
         sequence: torch.Tensor,
         lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        sequence = sequence[:, :lengths.max()]
+
+        sequence = sequence[:, : lengths.max()]
         assert sequence.size(1) % self.nq == 0
         assert torch.all(torch.remainder(lengths, self.nq).eq(0))
 
@@ -112,7 +112,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         return embeddings, lengths
 
     def corelm_forward(
-        self, 
+        self,
         decoder_sequence_emb: torch.Tensor,
         decoder_sequence_lengths: torch.Tensor,
         encoder_sequence_emb: torch.Tensor,
@@ -122,20 +122,27 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             decoder_sequence_emb,
             decoder_sequence_lengths,
             encoder_sequence_emb,
-            encoder_sequence_lengths
+            encoder_sequence_lengths,
         )
-        
+
     def predictor_forward(
-        self, 
+        self,
         pred_emb: torch.Tensor,
         pred_lengths: torch.Tensor,
+        target: torch.Tensor,
+        target_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        pred_emb, pred_lengths = self.predictor(pred_emb, pred_lengths)
-        target, target_lengths = self.predictor.organize_target(pred_emb, pred_lengths)
+
+        pred_emb, pred_lengths = self.predictor(
+            pred_emb,
+            pred_lengths,
+            self.emb(target),
+            target_lengths,
+        )
+        target, target_lengths = self.predictor.organize_target(target, target_lengths)
 
         return pred_emb, pred_lengths, target, target_lengths
-    
+
     def compute_loss(
         self,
         pred_emb: torch.Tensor,
@@ -143,30 +150,28 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         target_sequence: torch.Tensor,
         target_sequence_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
         assert torch.all(torch.eq(pred_emb_lengths, target_sequence_lengths))
         assert pred_emb_lengths.max() == pred_emb.size(1)
 
-        pred_emb = pred_emb[:, :-self.nq]
-        target_sequence = target_sequence[:, self.nq:]
+        pred_emb = pred_emb[:, : -self.nq]
+        target_sequence = target_sequence[:, self.nq :]
         elem_loss = torch.nn.functional.cross_entropy(
-            pred_emb.transpose(1, 2), target_sequence,
-            ignore_index=self.ignore_id,
+            pred_emb.transpose(1, 2), target_sequence, reduction="none"
         )
-        
-        lengths = target_sequence_lengths - 1
+
+        lengths = target_sequence_lengths - self.nq
         mask = length_mask(lengths).to(elem_loss.dtype)
         elem_loss = elem_loss * mask
         loss = elem_loss.sum() / mask.sum()
 
         pred = pred_emb.argmax(dim=-1)
         acc = torch.eq(pred, target_sequence).to(elem_loss.dtype) * mask
-        acc = acc / mask.sum()
+        acc = acc.sum() / mask.sum()
 
-        stats = {'loss': loss.clone().detach(), 'acc': acc}
+        stats = {"loss": loss.clone().detach(), "acc": acc}
         weight = mask.sum()
 
-        return loss, stats, weight 
-        
+        return loss, stats, weight
+
     def collect_feats(self, **kwargs):
         raise NotImplementedError
