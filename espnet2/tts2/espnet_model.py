@@ -10,7 +10,6 @@ import torch
 from packaging.version import parse as V
 from typeguard import typechecked
 
-from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts2.abs_tts2 import AbsTTS2
@@ -36,7 +35,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
         feats_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
-        normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
         tts: AbsTTS2,
@@ -278,8 +276,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
             else:
                 # Use precalculated feats (feats_type != raw case)
                 feats = speech
-            if self.normalize is not None:
-                feats = self.normalize(feats[None])[0][0]
             input_dict.update(feats=feats)
             if self.tts.require_raw_speech:
                 input_dict.update(speech=speech)
