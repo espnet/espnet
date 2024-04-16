@@ -100,10 +100,10 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
             ps = ps.masked_select(pitch_masks)
             es = es.masked_select(pitch_masks)
         else:
-           before_outs = before_outs.view(-1, vocab_size)
-           if after_outs is not None:
-               after_outs = after_outs.view(-1, vocab_size)
-           ys = ys.view(-1)
+            before_outs = before_outs.view(-1, vocab_size)
+            if after_outs is not None:
+                after_outs = after_outs.view(-1, vocab_size)
+            ys = ys.view(-1)
 
         # calculate loss
         ce_loss = self.ce_criterion(before_outs, ys)
