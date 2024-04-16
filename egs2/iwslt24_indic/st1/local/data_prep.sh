@@ -57,8 +57,22 @@ for split in train dev; do
     [ ${n} -ne ${n_en} ] && log "Error: expected ${n} data entries, found ${n_en}" && exit 1;
     [ ${n} -ne ${n_tgt} ] && log "Error: expected ${n} data entries, found ${n_tgt}" && exit 1;
 
+	# copy files to ${dst}, removing empty lines
+	cp ${yaml} ${dst}/.yaml0
+	cp ${en} ${dst}/en.org
+	cp ${tgt} ${dst}/${tgt_lang}.org
+
+	empty_lines=$(grep -n '^$' "${yaml}" "${en}" "${tgt}" | cut -d ':' -f 2 | sort -nu | tr '\n' ',')
+	sed_commands=$(echo "${empty_lines}" | sed 's/,/d;/g')
+
+	if [ -z "$sed_commands" ]; then
+		log "No empty lines found in ${src}"
+	else
+		sed -i -e "${sed_commands}" "${dst}/.yaml0" "${dst}/en.org" "${dst}/${tgt_lang}.org"
+		log "Found empty lines at line ${empty_lines} in ${src}, removing them for further processing. The original files are kept in ${src}"
+	fi
+
     # transcriptions and translations text file preparation
-    cp ${yaml} ${dst}/.yaml0
     grep duration ${dst}/.yaml0 > ${dst}/.yaml1
 
     # make utt_id from yaml
@@ -78,9 +92,6 @@ for split in train dev; do
         endt=offset+duration+extendt;
         printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
     }' ${dst}/.yaml1 > ${dst}/.yaml2
-
-    cp ${en} ${dst}/en.org
-    cp ${tgt} ${dst}/${tgt_lang}.org
 
     # text normalization
     for lang in en ${tgt_lang}; do
