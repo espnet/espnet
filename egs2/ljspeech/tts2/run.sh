@@ -15,7 +15,7 @@ eval_set=eval1
 vocoder_file=vocoder/vocoder.pkl
 
 # duration information
-teachder_dumpdir=teacher_dumpdir
+teacher_dumpdir=teacher_dumpdir
 
 ./tts2.sh \
     --nj 16 \
