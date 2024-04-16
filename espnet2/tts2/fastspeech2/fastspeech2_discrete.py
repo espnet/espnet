@@ -291,7 +291,6 @@ class FastSpeech2Discrete(AbsTTS2):
         else:
             raise ValueError(f"{encoder_type} is not supported.")
 
-
         # define spk and lang embedding
         self.spks = None
         if spks is not None and spks > 1:
@@ -482,7 +481,9 @@ class FastSpeech2Discrete(AbsTTS2):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
-        discrete_feats = discrete_feats[:, : discrete_feats_lengths.max()]  # for data-parallel
+        discrete_feats = discrete_feats[
+            :, : discrete_feats_lengths.max()
+        ]  # for data-parallel
         durations = durations[:, : durations_lengths.max()]  # for data-parallel
         pitch = pitch[:, : pitch_lengths.max()]  # for data-parallel
         energy = energy[:, : energy_lengths.max()]  # for data-parallel
