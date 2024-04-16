@@ -52,8 +52,6 @@ min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
-feats_extract=fbank        # On-the-fly feature extractor.
-feats_normalize=global_mvn # On-the-fly feature normalizer.
 fs=16000                   # Sampling rate.
 n_fft=1024                 # The number of fft points.
 n_shift=256                # The number of shift points.
@@ -662,16 +660,6 @@ if ! "${skip_train}"; then
             # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
-        _opts+="--feats_extract ${feats_extract} "
-        _opts+="--feats_extract_conf n_fft=${n_fft} "
-        _opts+="--feats_extract_conf hop_length=${n_shift} "
-        _opts+="--feats_extract_conf win_length=${win_length} "
-        if [ "${feats_extract}" = fbank ]; then
-            _opts+="--feats_extract_conf fs=${fs} "
-            _opts+="--feats_extract_conf fmin=${fmin} "
-            _opts+="--feats_extract_conf fmax=${fmax} "
-            _opts+="--feats_extract_conf n_mels=${n_mels} "
-        fi
 
         # Add extra configs for additional inputs
         # NOTE(kan-bayashi): We always pass this options but not used in default
@@ -750,7 +738,6 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --normalize none \
                 --pitch_normalize none \
                 --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
@@ -804,16 +791,6 @@ if ! "${skip_train}"; then
             else
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
-            fi
-            _opts+="--feats_extract ${feats_extract} "
-            _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf hop_length=${n_shift} "
-            _opts+="--feats_extract_conf win_length=${win_length} "
-            if [ "${feats_extract}" = fbank ]; then
-                _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
             fi
 
             if [ "${num_splits}" -gt 1 ]; then
@@ -877,16 +854,6 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
-            _opts+="--feats_extract ${feats_extract} "
-            _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf hop_length=${n_shift} "
-            _opts+="--feats_extract_conf win_length=${win_length} "
-            if [ "${feats_extract}" = fbank ]; then
-                _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
-            fi
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text.km.${km_tag},discrete_speech,text_int "
             _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
@@ -949,10 +916,6 @@ if ! "${skip_train}"; then
         if "${use_lid}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
-        fi
-
-        if [ "${feats_normalize}" = "global_mvn" ]; then
-            _opts+="--normalize_conf stats_file=${tts2_stats_dir}/train/feats_stats.npz "
         fi
 
         log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 8 using this script"
@@ -1097,17 +1060,11 @@ if ! "${skip_eval}"; then
                     ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts2_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
-                mkdir -p "${_dir}"/norm
+            if [ -e "${_logdir}/output.${_nj}/feats" ]; then
+                mkdir -p "${_dir}"/feats
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/norm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
-                mkdir -p "${_dir}"/denorm
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/denorm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+                     cat "${_logdir}/output.${i}/feats/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/feats/feats.scp"
             fi
             if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
                 for i in $(seq "${_nj}"); do

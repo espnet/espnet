@@ -16,8 +16,6 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.tts import (
     energy_extractor_choices,
     energy_normalize_choices,
-    feats_extractor_choices,
-    normalize_choices,
     pitch_extractor_choices,
     pitch_normalize_choices,
 )
@@ -63,10 +61,6 @@ class TTS2Task(AbsTask):
     class_choices_list = [
         # --discrete_feats_extractor and --discrete_feats_extractor_conf
         discrete_feats_extractor_choices,
-        # --feats_extractor and --feats_extractor_conf
-        feats_extractor_choices,
-        # --normalize and --normalize_conf
-        normalize_choices,
         # --tts and --tts_conf
         tts_choices,
         # --pitch_extract and --pitch_extract_conf
@@ -268,33 +262,13 @@ class TTS2Task(AbsTask):
         tgt_vocab_size = len(tgt_token_list)
         logging.info(f"Target Vocabulary size: {tgt_vocab_size}")
 
-        # 0. discrete feature extraction
+        # 1. discrete feature extraction
         discrete_feats_extract_class = discrete_feats_extractor_choices.get_class(
             args.discrete_feats_extract
         )
         discrete_feats_extract = discrete_feats_extract_class(
             **args.discrete_feats_extract_conf
         )
-
-        # 1. feats_extract
-        if args.odim is None:
-            # Extract features in the model
-            feats_extract_class = feats_extractor_choices.get_class(args.feats_extract)
-            feats_extract = feats_extract_class(**args.feats_extract_conf)
-            odim = feats_extract.output_size()
-        else:
-            # Give features from data-loader
-            args.feats_extract = None
-            args.feats_extract_conf = None
-            feats_extract = None
-            odim = args.odim
-
-        # 2. Normalization layer
-        if args.normalize is not None:
-            normalize_class = normalize_choices.get_class(args.normalize)
-            normalize = normalize_class(**args.normalize_conf)
-        else:
-            normalize = None
 
         # 3. TTS
         tts_class = tts_choices.get_class(args.tts)
@@ -343,10 +317,8 @@ class TTS2Task(AbsTask):
         # 5. Build model
         model = ESPnetTTS2Model(
             discrete_feats_extract=discrete_feats_extract,
-            feats_extract=feats_extract,
             pitch_extract=pitch_extract,
             energy_extract=energy_extract,
-            normalize=normalize,
             pitch_normalize=pitch_normalize,
             energy_normalize=energy_normalize,
             tts=tts,
