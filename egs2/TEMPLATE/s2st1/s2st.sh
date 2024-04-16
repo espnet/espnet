@@ -726,11 +726,11 @@ if ! "${skip_data_prep}"; then
                 exit 2
             fi
 
-            # Remove empty text
-            for utt_extra_file in ${utt_extra_files}; do
-                <${data_feats}/org/${dset}/${utt_extra_file} \
-                    awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
-            done
+            # # Remove empty text
+            # for utt_extra_file in ${utt_extra_files}; do
+            #     <${data_feats}/org/${dset}/${utt_extra_file} \
+            #         awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
+            # done
 
             # fix_data_dir.sh leaves only utts which exist in all files
             # Need to filter twice to get the intersection
