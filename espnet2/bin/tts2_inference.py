@@ -94,7 +94,9 @@ class Text2Speech:
         self.always_fix_seed = always_fix_seed
         self.prefer_normalized_feats = prefer_normalized_feats
 
-        assert vocoder_file is not None, "TTS2 must have a vocoder, but None is provided."
+        assert (
+            vocoder_file is not None
+        ), "TTS2 must have a vocoder, but None is provided."
         vocoder = TTS2Task.build_vocoder_from_file(
             vocoder_config, vocoder_file, model, device
         )
