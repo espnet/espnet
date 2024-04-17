@@ -62,4 +62,3 @@
 |dataset|score|verbose_score|
 |---|---|---|
 |decode_st_conformer_st_model_valid.acc.ave/dev.en-ta|6.3|46.5/9.4/4.7/1.9 (BP = 0.798 ratio = 0.816 hyp_len = 66168 ref_len = 81059)|
-
