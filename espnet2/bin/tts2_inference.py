@@ -71,7 +71,6 @@ class Text2Speech:
         device: str = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
-        prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
 
@@ -85,24 +84,23 @@ class Text2Speech:
         self.train_args = train_args
         self.model = model
         self.tts = model.tts
-        self.normalize = model.normalize
-        self.feats_extract = model.feats_extract
         self.duration_calculator = DurationCalculator()
         self.preprocess_fn = TTS2Task.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.prefer_normalized_feats = prefer_normalized_feats
 
-        assert vocoder_file is not None, "TTS2 must have a vocoder, but None is provided."
-        vocoder = TTS2Task.build_vocoder_from_file(
-            vocoder_config, vocoder_file, model, device
-        )
-        if isinstance(vocoder, torch.nn.Module):
-            vocoder.to(dtype=getattr(torch, dtype)).eval()
-        self.vocoder = vocoder
-        logging.info(f"Extractor:\n{self.feats_extract}")
-        logging.info(f"Normalizer:\n{self.normalize}")
+        if vocoder_file is None:
+            logging.warning("TTS2 must have a vocoder, but None is provided.")
+            self.vocoder = None
+        else:
+            vocoder = TTS2Task.build_vocoder_from_file(
+                vocoder_config, vocoder_file, model, device
+            )
+            if isinstance(vocoder, torch.nn.Module):
+                vocoder.to(dtype=getattr(torch, dtype)).eval()
+            self.vocoder = vocoder
+        
         logging.info(f"TTS:\n{self.tts}")
         logging.info(f"Vocoder:\n{self.vocoder}")
 
@@ -171,8 +169,10 @@ class Text2Speech:
 
         # apply vocoder (discrete-to-wav)
         input_feat = output_dict["feat_gen"].unsqueeze(1)
-        wav = self.vocoder(input_feat)
-        output_dict.update(wav=wav)
+
+        if self.vocoder is not None:
+            wav = self.vocoder(input_feat)
+            output_dict.update(wav=wav)
 
         return output_dict
 
@@ -362,8 +362,7 @@ def inference(
 
     # 6. Start for-loop
     output_dir = Path(output_dir)
-    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "feats").mkdir(parents=True, exist_ok=True)
     (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
@@ -379,11 +378,9 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
-    ) as norm_writer, NpyScpWriter(
-        output_dir / "denorm", output_dir / "denorm/feats.scp"
-    ) as denorm_writer, open(
+        output_dir / "feats",
+        output_dir / "feats/feats.scp",
+    ) as feats_writer, open(
         output_dir / "speech_shape/speech_shape", "w"
     ) as shape_writer, open(
         output_dir / "durations/durations", "w"
@@ -417,12 +414,10 @@ def inference(
                 if feat_gen.size(0) == insize * maxlenratio:
                     logging.warning(f"output length reaches maximum length ({key}).")
 
-                norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
+                feats_writer[key] = output_dict["feat_gen"].cpu().numpy()
                 shape_writer.write(
                     f"{key} " + ",".join(map(str, output_dict["feat_gen"].shape)) + "\n"
                 )
-                if output_dict.get("feat_gen_denorm") is not None:
-                    denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
             else:
                 # end-to-end text2wav model case
                 wav = output_dict["wav"]
@@ -506,9 +501,7 @@ def inference(
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
-        shutil.rmtree(output_dir / "norm")
-    if output_dict.get("feat_gen_denorm") is None:
-        shutil.rmtree(output_dir / "denorm")
+        shutil.rmtree(output_dir / "feats")
     if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
     if output_dict.get("duration") is None:

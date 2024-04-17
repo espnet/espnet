@@ -100,12 +100,6 @@ class TTS2Task(AbsTask):
             help="A text mapping int-id to target speech token",
         )
         group.add_argument(
-            "--odim",
-            type=int_or_none,
-            default=None,
-            help="The number of dimension of output feature",
-        )
-        group.add_argument(
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetTTS2Model),
@@ -135,6 +129,7 @@ class TTS2Task(AbsTask):
         parser.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
+            default=None,
             help="non_linguistic_symbols file path",
         )
         parser.add_argument(
