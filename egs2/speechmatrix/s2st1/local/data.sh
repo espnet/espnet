@@ -156,35 +156,33 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         for src_lang in "${src_langs[@]}"; do
             for tgt_lang in "${tgt_langs[@]}"; do
+
                 # Skip if source language is the same as target language
                 if [[ "$src_lang" == "$tgt_lang" ]]; then
                     continue
                 fi
 
-                # Solve train and dev
+                # Process train and dev
                 data_path=data/${part}_${src_lang}_${tgt_lang}
-                if [ ! -d ${data_path} ]; then
-                    continue
-                fi
-
-                ln -sf text.${tgt_lang} ${data_path}/text
-                ln -sf wav.scp.${tgt_lang} ${data_path}/wav.scp
-
-                utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
-                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${data_path}
-
-                # Solve test
-                for dataset in "epst" "fleurs"; do
-                    data_path=data/${part}_${dataset}_${src_lang}_${tgt_lang}
-                    if [ ! -d ${data_path} ]; then
-                        continue
-                    fi
-
+                if [ -d ${data_path} ]; then
                     ln -sf text.${tgt_lang} ${data_path}/text
                     ln -sf wav.scp.${tgt_lang} ${data_path}/wav.scp
 
                     utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
                     utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${data_path}
+                fi
+
+
+                # Process test datasets
+                for dataset in "epst" "fleurs"; do
+                    data_path=data/${part}_${dataset}_${src_lang}_${tgt_lang}
+                    if [ -d ${data_path} ]; then
+                        ln -sf text.${tgt_lang} ${data_path}/text
+                        ln -sf wav.scp.${tgt_lang} ${data_path}/wav.scp
+
+                        utt_extra_files="wav.scp.${src_lang} wav.scp.${tgt_lang} text.${src_lang} text.${tgt_lang}"
+                        utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${data_path}
+                    fi
                 done
             done
         done

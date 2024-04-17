@@ -498,6 +498,7 @@ if ! "${skip_data_prep}"; then
 
                 # Even if use_tgt_lang is false for training, it is required for test set evaluation
                 if [ ${use_tgt_lang} = false ] && [ "${dset}" != "${train_set}" ] && [ "${dset}" != "${train_set}" ]; then
+                    cp data/"${dset}"/text.${tgt_lang} "${data_feats}${_suf}/${dset}"
                     expand_utt_extra_files="${expand_utt_extra_files} text.${tgt_lang}"
                 fi
 
