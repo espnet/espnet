@@ -109,7 +109,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute pitch onthefly", flush=True)
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
                     speech,
@@ -118,7 +117,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute energy onthefly", flush=True)
 
             # Normalize
             if self.pitch_normalize is not None:
