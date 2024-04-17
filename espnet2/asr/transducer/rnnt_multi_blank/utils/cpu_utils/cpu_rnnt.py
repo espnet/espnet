@@ -38,9 +38,7 @@ from espnet2.asr.transducer.rnnt_multi_blank.utils import global_constants
 
 
 def log_sum_exp(a: torch.Tensor, b: torch.Tensor):
-    """
-    Logsumexp with safety checks for infs.
-    """
+    """Logsumexp with safety checks for infs."""
     if torch.isinf(a):
         return b
 
@@ -57,8 +55,8 @@ class CpuRNNT_index:
     def __init__(
         self, U: int, maxU: int, minibatch: int, alphabet_size: int, batch_first: bool
     ):
-        """
-        A placeholder Index computation class that emits the resolved index in a
+        """A placeholder Index computation class that emits the resolved index in a
+
         flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.
 
         Args:
@@ -101,8 +99,7 @@ class CpuRNNT_metadata:
         log_probs: torch.Tensor,
         idx: CpuRNNT_index,
     ):
-        """
-        Metadata for CPU based RNNT loss calculation. Holds the working space memory.
+        """Metadata for CPU based RNNT loss calculation. Holds the working space memory.
 
         Args:
             T: Length of the acoustic sequence (without padding).
@@ -191,8 +188,7 @@ class CPURNNT:
         num_threads: int,
         batch_first: bool,
     ):
-        """
-        Helper class to compute the Transducer Loss on CPU.
+        """Helper class to compute the Transducer Loss on CPU.
 
         Args:
             minibatch: Size of the minibatch b.
@@ -270,8 +266,7 @@ class CPURNNT:
     def compute_alphas(
         self, log_probs: torch.Tensor, T: int, U: int, alphas: torch.Tensor
     ):
-        """
-        Compute the probability of the forward variable alpha.
+        """Compute the probability of the forward variable alpha.
 
         Args:
             log_probs: Flattened tensor [B, T, U, V+1]
@@ -319,8 +314,8 @@ class CPURNNT:
         labels: torch.Tensor,
         logll: torch.Tensor,
     ):
-        """
-        Compute backward variable beta as well as gradients of the activation
+        """Compute backward variable beta as well as gradients of the activation
+
         matrix wrt loglikelihood of forward variable.
 
         Args:

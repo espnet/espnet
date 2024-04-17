@@ -1,22 +1,17 @@
-#! /usr/bin/python
-# -*- encoding: utf-8 -*-
 # x-vector, cross checked with SpeechBrain implementation:
 # https://github.com/speechbrain/speechbrain/blob/develop/speechbrain/lobes/models/Xvector.py
 # adapted for ESPnet-SPK by Jee-weon Jung
-import math
-from collections import OrderedDict
 from typing import List
 
-import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class XvectorEncoder(AbsEncoder):
-    """
-    x-vector encoder. Extracts frame-level x-vector embeddings from features.
+    """X-vector encoder. Extracts frame-level x-vector embeddings from features.
+
     Paper: D. Snyder et al., "X-vectors: Robust dnn embeddings for speaker recognition,"
     in Proc. IEEE ICASSP, 2018.
 
@@ -26,6 +21,7 @@ class XvectorEncoder(AbsEncoder):
         output_size: ouptut embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -36,7 +32,6 @@ class XvectorEncoder(AbsEncoder):
         dilations: List = [1, 2, 3, 1, 1],
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         in_channels = [input_size] + [ndim] * 4
