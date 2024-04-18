@@ -515,8 +515,8 @@ class SoundStreamGenerator(nn.Module):
         )
 
         quantization_loss = self.l1_quantization_loss(
-            encoder_out, quantized
-        ) + self.l2_quantization_loss(encoder_out, quantized)
+            encoder_out, quantized.detach()
+        ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
         resyn_audio = self.decoder(quantized)
         return resyn_audio, commit_loss, quantization_loss
