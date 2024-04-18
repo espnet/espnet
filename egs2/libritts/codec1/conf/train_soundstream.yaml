@@ -92,12 +92,11 @@ codec_conf:
         fmin: 0             # minimum frequency for Mel basis
         fmax: null          # maximum frequency for Mel basis
         log_base: null      # null represent natural log
-    lambda_quantization: 1.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 0.1         # loss scaling coefficient for adversarial loss
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0        # loss scaling coefficient for Mel loss
-    lambda_feat_match: 10.0 # loss scaling coefficient for feat match loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
@@ -134,7 +133,7 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 10000 # number of iterations per epoch
 max_epoch: 60              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 16
+batch_size: 4
 batch_type: unsorted      # how to make batch
 
 
