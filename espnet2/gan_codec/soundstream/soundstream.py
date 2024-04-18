@@ -512,11 +512,12 @@ class SoundStreamGenerator(nn.Module):
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, use_dual_decoder: bool):
         """Soundstream forward propagation.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
+            use_dual_decoder (bool): Whether to use dual decoder for encoder out
         Returns:
             torch.Tensor: resynthesized audio.
             torch.Tensor: commitment loss.
