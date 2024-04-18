@@ -126,7 +126,7 @@ if __name__ == "__main__":
     tokenizer = getattr(pretrained_model, "tokenizer", None)
 
     finetune_config = ez.config.update_finetune_config(
-        args.task, vars(pretrain_config), f"../asr1/conf/finetune_with_lora.yaml"
+        args.task, vars(pretrain_config), "../asr1/conf/finetune_with_lora.yaml"
     )
 
     finetune_config["max_epoch"] = 2

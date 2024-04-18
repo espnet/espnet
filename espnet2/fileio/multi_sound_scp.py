@@ -2,7 +2,7 @@ import collections.abc
 from typing import Tuple
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_multi_columns_text
 from espnet2.fileio.sound_scp import soundfile_read
@@ -32,10 +32,10 @@ class MultiSoundScpReader(collections.abc.Mapping):
                 to the same length.
     """
 
+    @typechecked
     def __init__(
         self, fname, dtype=None, always_2d: bool = False, stack_axis=0, pad=np.nan
     ):
-        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d

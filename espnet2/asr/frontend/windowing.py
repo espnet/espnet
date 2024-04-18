@@ -4,10 +4,10 @@
 
 """Sliding Window for raw audio input data."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
@@ -26,12 +26,13 @@ class SlidingWindow(AbsFrontend):
     There is currently no additional window function applied to input values.
     """
 
+    @typechecked
     def __init__(
         self,
         win_length: int = 400,
         hop_length: int = 160,
         channels: int = 1,
-        padding: int = None,
+        padding: Optional[int] = None,
         fs=None,
     ):
         """Initialize.
@@ -43,7 +44,6 @@ class SlidingWindow(AbsFrontend):
             padding: Padding (placeholder, currently not implemented).
             fs:  Sampling rate (placeholder for compatibility, not used).
         """
-        assert check_argument_types()
         super().__init__()
         self.fs = fs
         self.win_length = win_length

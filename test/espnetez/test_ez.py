@@ -1,12 +1,10 @@
 # Copyright 2024 Masao Someki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-import os
 import shutil
 import tempfile
 from pathlib import Path
 
 import pytest
-import torch
 
 import espnetez as ez
 from espnet2.tasks.asr import ASRTask

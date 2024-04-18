@@ -1,5 +1,3 @@
-#! /usr/bin/python
-# -*- encoding: utf-8 -*-
 # SKA-TDNN, original code from: https://github.com/msh9184/ska-tdnn
 # adapted for ESPnet-SPK by Jee-weon Jung
 import math
@@ -7,8 +5,7 @@ from collections import OrderedDict
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
@@ -168,7 +165,8 @@ class SKAttentionModule(nn.Module):
         self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x, convs):
-        """
+        """Forward function.
+
         Input: [B, C, T]
         Split: [K, B, C, T]
         Fues: [B, C, T]
@@ -240,7 +238,8 @@ class fwSKAttention(nn.Module):
         self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x):
-        """
+        """Forward function.
+
         Input: [B, C, F, T]
         Split: [K, B, C, F, T]
         Fues: [B, C, F, T]
@@ -312,7 +311,8 @@ class cwSKAttention(nn.Module):
         self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x):
-        """
+        """Forward Function.
+
         Input: [B, C, F, T]
         Split: [K, B, C, F, T]
         Fuse: [B, C, F, T]
@@ -339,8 +339,8 @@ class cwSKAttention(nn.Module):
 
 
 class SkaTdnnEncoder(AbsEncoder):
-    """
-    SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.
+    """SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.
+
     Paper: S. Mun, J. Jung et al., "Frequency and Multi-Scale Selective Kernel
         Attention for Speaker Verification,' in Proc. IEEE SLT 2022.
 
@@ -352,6 +352,7 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: ouptut embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -363,11 +364,10 @@ class SkaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
 
         if block == "Bottle2neck":
-            block = Bottle2neck
+            block: type = Bottle2neck
         else:
             raise ValueError(f"unsupported block, got: {block}")
 

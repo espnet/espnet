@@ -1,8 +1,9 @@
 import logging
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class CTC(torch.nn.Module):
@@ -18,6 +19,7 @@ class CTC(torch.nn.Module):
         zero_infinity:  Whether to zero infinite losses and the associated gradients.
     """
 
+    @typechecked
     def __init__(
         self,
         odim: int,
@@ -25,13 +27,12 @@ class CTC(torch.nn.Module):
         dropout_rate: float = 0.0,
         ctc_type: str = "builtin",
         reduce: bool = True,
-        ignore_nan_grad: bool = None,
+        ignore_nan_grad: Optional[bool] = None,
         zero_infinity: bool = True,
         brctc_risk_strategy: str = "exp",
         brctc_group_strategy: str = "end",
         brctc_risk_factor: float = 0.0,
     ):
-        assert check_argument_types()
         super().__init__()
         eprojs = encoder_output_size
         self.dropout_rate = dropout_rate
@@ -56,7 +57,7 @@ class CTC(torch.nn.Module):
 
         elif self.ctc_type == "brctc":
             try:
-                import k2
+                import k2  # noqa
             except ImportError:
                 raise ImportError("You should install K2 to use Bayes Risk CTC")
 

@@ -137,7 +137,6 @@ accum_grad: 1             # gradient accumulation
 batch_size: 4
 batch_type: unsorted      # how to make batch
 
-
 iterator_type: chunk
 chunk_length: 61440
 num_cache_chunks: 64

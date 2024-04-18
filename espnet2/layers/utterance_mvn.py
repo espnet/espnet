@@ -1,20 +1,20 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class UtteranceMVN(AbsNormalize):
+    @typechecked
     def __init__(
         self,
         norm_means: bool = True,
         norm_vars: bool = False,
         eps: float = 1.0e-20,
     ):
-        assert check_argument_types()
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
