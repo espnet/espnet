@@ -346,15 +346,15 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss. audio_hat_real = self.generator(
-                audio, use_dual_decoder=self.use_dual_decoder,
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = self.generator(
+                audio, nse_dual_decoder=self.use_dual_decoder,
             )
         else:
             audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss, codec_quantization_loss)
+            self._cache = (audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real)
 
         # calculate discriminator outputs
         p_hat = self.discriminator(audio_hat.detach())
@@ -540,7 +540,11 @@ class SoundStreamGenerator(nn.Module):
         ) + self.l2_quantization_loss(encoder_out, quantized)
 
         resyn_audio = self.decoder(quantized)
-        resyn_audio_real = self.decoder(encoder_out)
+
+        if use_dual_decoder:
+            resyn_audio_real = self.decoder(encoder_out)
+        else:
+            resyn_audio_real = None
         return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
 
     def encode(
