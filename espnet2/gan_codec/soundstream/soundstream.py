@@ -300,7 +300,7 @@ class SoundStream(AbsGANCodec):
             stats.update(mel_loss=mel_loss.item())
             if self.use_dual_decoder:
                 mel_loss_real = self.mel_loss(audio_hat_real, audio)
-                mel_loss_real = self.lambda_mel * mel_loss
+                mel_loss_real = self.lambda_mel * mel_loss_real
                 loss = loss + mel_loss_real
                 stats.update(mel_loss_real=mel_loss_real.item())
 
@@ -346,11 +346,11 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss = self.generator(
-                audio
+            audio_hat, codec_commit_loss, codec_quantization_loss. audio_hat_real = self.generator(
+                audio, use_dual_decoder=self.use_dual_decoder,
             )
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss = self._cache
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
@@ -512,7 +512,7 @@ class SoundStreamGenerator(nn.Module):
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
 
-    def forward(self, x: torch.Tensor, use_dual_decoder: bool):
+    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
         """Soundstream forward propagation.
 
         Args:
