@@ -346,11 +346,16 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss. audio_hat_real = self.generator(
-                audio, use_dual_decoder=self.use_dual_decoder,
+            audio_hat, codec_commit_loss, codec_quantization_loss.audio_hat_real = (
+                self.generator(
+                    audio,
+                    use_dual_decoder=self.use_dual_decoder,
+                )
             )
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = self._cache
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
+                self._cache
+            )
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
