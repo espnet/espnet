@@ -213,8 +213,8 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
-SPEECH_MATRIX=/ocean/projects/cis210027p/shared/corpora/speechmatrix
-EUROPARL_ST=/ocean/projects/cis210027p/shared/corpora/europarl_st
+SPEECH_MATRIX=
+EUROPARL_ST=
 
 
 # For only CMU TIR environment

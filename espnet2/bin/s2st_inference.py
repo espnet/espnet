@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from torch.utils.tensorboard.writer import SummaryWriter
 
 """Script to run the inference of speech-to-speech translation model."""
 
