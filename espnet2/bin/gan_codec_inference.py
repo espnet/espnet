@@ -107,7 +107,7 @@ class SpeechCoding:
     def decode(
         self,
         codes: Union[torch.Tensor, np.ndarray, None] = None,
-    ) -> Dict[torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Run Speech Coding decoding."""
 
         assert codes is not None, "Codes are invalid, input a valid one"
@@ -176,7 +176,7 @@ def inference(
     train_config: Optional[str],
     model_file: Optional[str],
     model_tag: Optional[str],
-    target_bandwidth: float,
+    target_bandwidth: Optional[float],
     encode_only: bool,
     always_fix_seed: bool,
     allow_variable_data_keys: bool,
@@ -388,6 +388,7 @@ def get_parser():
         default=False,
         help="Whether to always fix seed",
     )
+    return parser
 
 
 def main(cmd=None):

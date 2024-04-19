@@ -21,13 +21,13 @@ from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
+from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
-    MelSpectrogramLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
@@ -120,9 +120,8 @@ class SoundStream(AbsGANCodec):
         use_mel_loss: bool = True,
         mel_loss_params: Dict[str, Any] = {
             "fs": 24000,
-            "n_fft": 1024,
-            "hop_length": 256,
-            "win_length": None,
+            "range_start": 6,
+            "range_end": 11,
             "window": "hann",
             "n_mels": 80,
             "fmin": 0,
@@ -164,7 +163,7 @@ class SoundStream(AbsGANCodec):
         self.use_mel_loss = use_mel_loss
         mel_loss_params.update(fs=sampling_rate)
         if self.use_mel_loss:
-            self.mel_loss = MelSpectrogramLoss(
+            self.mel_loss = MultiScaleMelSpectrogramLoss(
                 **mel_loss_params,
             )
         self.use_dual_decoder = use_dual_decoder
