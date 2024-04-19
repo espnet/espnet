@@ -1,3 +1,5 @@
+from torch.utils.tensorboard.writer import SummaryWriter
+
 #!/usr/bin/env python3
 import argparse
 import logging

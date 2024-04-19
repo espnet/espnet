@@ -8,6 +8,7 @@
 set -e
 set -u
 set -o pipefail
+set +u
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
