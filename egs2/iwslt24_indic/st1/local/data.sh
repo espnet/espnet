@@ -39,7 +39,7 @@ fi
 
 # check tgt_lang
 tgt_langs="hi_bn_ta"
-if [ ! "$(echo ${tgt_langs} | grep ${tgt_lang})" ]; then
+if [ ! "$(echo ${tgt_langs} | grep -q ${tgt_lang})" ]; then
     log "Error: ${tgt_lang} is not supported. It must be one of hi, bn, or ta."
     exit 1;
 fi
@@ -52,10 +52,10 @@ local/download_and_unpack.sh ${IWSLT24_INDIC} ${tgt_lang} ${remove_archive}
 for split in train dev; do
     for ext in en ${tgt_lang} yaml; do
         filename=${IWSLT24_INDIC}/en-${tgt_lang}/data/${split}/txt/${split}.${ext}
-        sed -i -e '$a\' ${filename}
+        sed -i -e '$a\' "${filename}"
     done
 done
-sed -i -e '$a\' ${IWSLT24_INDIC}/en-${tgt_lang}/data/tst-COMMON/txt/tst-COMMON.yaml
+sed -i -e '$a\' "${IWSLT24_INDIC}/en-${tgt_lang}/data/tst-COMMON/txt/tst-COMMON.yaml"
 
 log "Preparing data in ESPnet format..."
 local/data_prep.sh ${IWSLT24_INDIC} ${tgt_lang}
