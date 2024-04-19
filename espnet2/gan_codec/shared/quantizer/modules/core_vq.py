@@ -316,7 +316,7 @@ class VectorQuantization(nn.Module):
 
         if self.training:
             commit_loss = F.mse_loss(quantize.detach(), x)
-            loss = loss + commit_loss 
+            loss = loss + commit_loss
 
         quantize = self.project_out(quantize)
         quantize = rearrange(quantize, "b n d -> b d n")
