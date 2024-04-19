@@ -265,7 +265,6 @@ class VectorQuantization(nn.Module):
         threshold_ema_dead_code (int): Threshold for dead code expiration. Replace any codes
             that have an exponential moving average cluster size less than the specified threshold with
             randomly selected vector from the current batch.
-        commitment_weight (float): Weight for commitment loss.
     """
 
     def __init__(
@@ -334,9 +333,8 @@ class VectorQuantization(nn.Module):
         loss = torch.tensor([0.0], device=device, requires_grad=self.training)
 
         if self.training:
-            if self.commitment_weight > 0:
-                commit_loss = F.mse_loss(quantize.detach(), x)
-                loss = loss + commit_loss * self.commitment_weight
+            commit_loss = F.mse_loss(quantize.detach(), x)
+            loss = loss + commit_loss
 
         quantize = self.project_out(quantize)
         quantize = rearrange(quantize, "b n d -> b d n")
