@@ -36,7 +36,7 @@ skip_upload_hf=true   # Skip uploading to hugging face stages.
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
-nj=32                 # The number of parallel jobs.
+nj=12                 # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
@@ -47,7 +47,7 @@ fold_length=120000    # fold_length for speech data during enhancement training.
 local_data_opts= # The options given to local/data.sh
 
 # Speed perturbation related
-speed_perturb_factors="0.9 1.0 1.1" # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+speed_perturb_factors= # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
 feats_type=raw      # Feature type (raw, raw_copy, fbank_pitch, or extracted).
@@ -258,11 +258,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
-            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
-            for x in music noise speech; do
-                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
-            done
-            cp data/rirs.scp ${data_feats}/rirs.scp
+            # cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # for x in music noise speech; do
+            #     cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            # done
+            # cp data/rirs.scp ${data_feats}/rirs.scp
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
@@ -453,12 +453,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
+            --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
             --train_shape_file ${spk_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
             --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
+            --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
