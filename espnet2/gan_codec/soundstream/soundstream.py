@@ -525,7 +525,6 @@ class SoundStreamGenerator(nn.Module):
         self,
         x: torch.Tensor,
         target_bw: Optional[float] = None,
-        st_layer_idx: Optional[float] = None,
     ):
         """Soundstream codec encoding.
 
@@ -541,7 +540,7 @@ class SoundStreamGenerator(nn.Module):
             bw = target_bw
         if st is None:
             st = 0
-        codes = self.quantizer.encode(e, self.frame_rate, bw, st)
+        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw, st)
         return codes
 
     def decode(self, codes: torch.Tensor):
