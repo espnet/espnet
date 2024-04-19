@@ -480,7 +480,7 @@ if ! "${skip_eval}"; then
                     --train_config "${codec_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/codec_inference.*.log) ; exit 1; }
-            
+
             # 3. Concatenates the output files from each jobs
             if [ -e "${_logdir}/output.${_nj}/codes" ]; then
                 mkdir -p "${_dir}"/codes
