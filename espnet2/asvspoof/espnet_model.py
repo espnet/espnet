@@ -1,16 +1,12 @@
 # Copyright 2022 Jiatong Shi (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import logging
 from contextlib import contextmanager
-from itertools import permutations
 from typing import Dict, Optional, Tuple
 
-import numpy as np
 import torch
-import torch.nn.functional as F
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -21,7 +17,6 @@ from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import to_device
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -34,9 +29,11 @@ else:
 
 class ESPnetASVSpoofModel(AbsESPnetModel):
     """ASV Spoofing model
+
     A simple ASV Spoofing model
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -47,7 +44,6 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         decoder: AbsDecoder,
         losses: Dict[str, AbsASVSpoofLoss],
     ):
-        assert check_argument_types()
 
         super().__init__()
 
@@ -67,6 +63,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
+
         Args:
             speech: (Batch, samples)
             spk_labels: (Batch, )
@@ -123,6 +120,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder
+
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch,)

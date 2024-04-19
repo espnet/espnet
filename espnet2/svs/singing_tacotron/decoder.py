@@ -9,7 +9,6 @@
 
 import six
 import torch
-import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet, Prenet, ZoneOutCell
@@ -251,6 +250,7 @@ class Decoder(torch.nn.Module):
         forward_window=3,
     ):
         """Generate the sequence of features given the sequences of characters.
+
         Args:
             h (Tensor): Input sequence of encoder hidden states (T, C).
             trans_token (Tensor): Global transition token for duration.

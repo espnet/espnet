@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
 
 
 class ESPnetMultitaskLanguageModel(AbsESPnetModel):
+    @typechecked
     def __init__(
         self,
         lm: AbsLM,
@@ -25,7 +26,6 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         sos_syms: List[str] = ["<generatetext>", "<generatespeech>"],
         eos_sym: str = "<sos/eos>",
     ):
-        assert check_argument_types()
         super().__init__()
         self.lm = lm
         self.sos_ids = [token_list.index(t) for t in sos_syms]
@@ -50,6 +50,7 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         max_length: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute negative log likelihood (nll)
+
         NOTE(yifan): We only use nll to calculate perplexity,
             so there is no condition in each sentence.
 
