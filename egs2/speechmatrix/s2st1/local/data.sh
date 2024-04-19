@@ -92,11 +92,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 pair="${tgt_lang}-${src_lang}"
             fi
 
-            mkdir -p "${SPEECH_MATRIX}/aligned_speech/${pair}"
+            mkdir -p "${SPEECH_MATRIX}/aligned_speech"
 
             local/download_and_unzip.sh \
                 --skip-unzip \
-                ${SPEECH_MATRIX}/aligned_speech/${pair} \
+                ${SPEECH_MATRIX}/aligned_speech \
                 https://dl.fbaipublicfiles.com/speech_matrix/aligned_speech/${pair}.tsv.gz \
                 ${pair}.tsv.gz
         done
