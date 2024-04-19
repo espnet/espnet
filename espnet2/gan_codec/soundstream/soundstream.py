@@ -347,7 +347,7 @@ class SoundStream(AbsGANCodec):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = self.generator(
-                audio, nse_dual_decoder=self.use_dual_decoder,
+                audio, use_dual_decoder=self.use_dual_decoder,
             )
         else:
             audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
