@@ -399,18 +399,50 @@ class SoundStream(AbsGANCodec):
         """Run inference.
 
         Args:
-            x (Tensor): Input text index tensor (T_text,).
+            x (Tensor): Input audio (T_wav,).
 
         Returns:
             Dict[str, Tensor]:
                 * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec ().
+                * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
 
         return {"wav": wav, "codec": codec}
+
+    def encode(
+        self,
+        x: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Run encoding.
+
+        Args:
+            x (Tensor): Input audio (T_wav,).
+
+        Returns:
+            Tensor: Generated codes (T_code, N_stream).
+
+        """
+        return self.generator.encode(x)
+
+    def decode(
+        self,
+        x: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Run encoding.
+
+        Args:
+            x (Tensor): Input codes (T_code, N_stream).
+
+        Returns:
+            Tensor: Generated waveform (T_wav,).
+
+        """
+        return self.generator.decode(x)
 
 
 class SoundStreamGenerator(nn.Module):
