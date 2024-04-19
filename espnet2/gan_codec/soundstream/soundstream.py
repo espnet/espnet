@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
@@ -35,6 +35,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 class SoundStream(AbsGANCodec):
     """ "SoundStream model."""
 
+    @typechecked
     def __init__(
         self,
         sampling_rate: int = 24000,
@@ -128,6 +129,7 @@ class SoundStream(AbsGANCodec):
             "fmax": None,
             "log_base": None,
         },
+        use_dual_decoder: bool = True,
         lambda_quantization: float = 1.0,
         lambda_reconstruct: float = 1.0,
         lambda_commit: float = 1.0,
@@ -141,7 +143,6 @@ class SoundStream(AbsGANCodec):
         Args:
              TODO(jiatong)
         """
-        assert check_argument_types()
         super().__init__()
 
         # define modules
@@ -166,6 +167,9 @@ class SoundStream(AbsGANCodec):
             self.mel_loss = MelSpectrogramLoss(
                 **mel_loss_params,
             )
+        self.use_dual_decoder = use_dual_decoder
+        if self.use_dual_decoder:
+            assert self.use_mel_loss, "only use dual decoder with Mel loss"
 
         # coefficients
         self.lambda_quantization = lambda_quantization
@@ -244,13 +248,22 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, quantization_loss = self.generator(audio)
+            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
+                self.generator(audio, use_dual_decoder=self.use_dual_decoder)
+            )
         else:
-            audio_hat, codec_commit_loss, quantization_loss = self._cache
+            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
+                self._cache
+            )
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss, quantization_loss)
+            self._cache = (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                audio_hat_real,
+            )
 
         # calculate discriminator outputs
         p_hat = self.discriminator(audio_hat)
@@ -285,6 +298,11 @@ class SoundStream(AbsGANCodec):
             mel_loss = self.lambda_mel * mel_loss
             loss = loss + mel_loss
             stats.update(mel_loss=mel_loss.item())
+            if self.use_dual_decoder:
+                mel_loss_real = self.mel_loss(audio_hat_real, audio)
+                mel_loss_real = self.lambda_mel * mel_loss_real
+                loss = loss + mel_loss_real
+                stats.update(mel_loss_real=mel_loss_real.item())
 
         stats.update(loss=loss.item())
 
@@ -328,15 +346,25 @@ class SoundStream(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss = self.generator(
-                audio
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
+                self.generator(
+                    audio,
+                    use_dual_decoder=self.use_dual_decoder,
+                )
             )
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss = self._cache
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
+                self._cache
+            )
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss, codec_quantization_loss)
+            self._cache = (
+                audio_hat,
+                codec_commit_loss,
+                codec_quantization_loss,
+                audio_hat_real,
+            )
 
         # calculate discriminator outputs
         p_hat = self.discriminator(audio_hat.detach())
@@ -389,6 +417,7 @@ class SoundStream(AbsGANCodec):
 class SoundStreamGenerator(nn.Module):
     """SoundStream generator module."""
 
+    @typechecked
     def __init__(
         self,
         sample_rate: int = 24000,
@@ -426,7 +455,6 @@ class SoundStreamGenerator(nn.Module):
         Args:
             TODO(jiatong)
         """
-        assert check_argument_types()
         super().__init__()
 
         # Initialize encoder
@@ -494,14 +522,17 @@ class SoundStreamGenerator(nn.Module):
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
         """Soundstream forward propagation.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
+            use_dual_decoder (bool): Whether to use dual decoder for encoder out
         Returns:
             torch.Tensor: resynthesized audio.
             torch.Tensor: commitment loss.
+            torch.Tensor: quantization loss
+            torch.Tensor: resynthesized audio from encoder.
         """
         encoder_out = self.encoder(x)
         max_idx = len(self.target_bandwidths) - 1
@@ -519,13 +550,17 @@ class SoundStreamGenerator(nn.Module):
         ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
         resyn_audio = self.decoder(quantized)
-        return resyn_audio, commit_loss, quantization_loss
+
+        if use_dual_decoder:
+            resyn_audio_real = self.decoder(encoder_out)
+        else:
+            resyn_audio_real = None
+        return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
 
     def encode(
         self,
         x: torch.Tensor,
         target_bw: Optional[float] = None,
-        st_layer_idx: Optional[float] = None,
     ):
         """Soundstream codec encoding.
 
@@ -541,7 +576,7 @@ class SoundStreamGenerator(nn.Module):
             bw = target_bw
         if st is None:
             st = 0
-        codes = self.quantizer.encode(e, self.frame_rate, bw, st)
+        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw, st)
         return codes
 
     def decode(self, codes: torch.Tensor):

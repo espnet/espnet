@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from typeguard import TypeCheckError
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 
@@ -14,7 +15,7 @@ def test_DatadirWriter(tmp_path: Path):
         # __setitem__()
         sub["bb"] = "aa"
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeCheckError):
             sub["bb"] = 1
         with pytest.raises(RuntimeError):
             # Already has children

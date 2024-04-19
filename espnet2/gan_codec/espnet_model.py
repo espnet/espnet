@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
@@ -25,12 +25,12 @@ else:
 class ESPnetGANCodecModel(AbsGANESPnetModel):
     """ESPnet model for GAN-based neural codec task."""
 
+    @typechecked
     def __init__(
         self,
         codec: AbsGANCodec,
     ):
         """Initialize ESPnetGANCodecModel module."""
-        assert check_argument_types()
         super().__init__()
         self.codec = codec
         assert hasattr(
@@ -84,6 +84,4 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
 
         """
 
-        feats_dict = {}
-        feats_dict.update(audio=audio)
-        return feats_dict
+        return {}

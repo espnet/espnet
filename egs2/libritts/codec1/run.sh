@@ -23,10 +23,11 @@ train_set=train-clean-460
 valid_set=dev-clean
 test_sets="dev-clean test-clean"
 
-train_config=conf/train_soundstream.yaml
+train_config=conf/train_soundstream2.yaml
 inference_config=conf/decode.yaml
 
 ./codec.sh \
+    --local_data_opts "--trim_all_silence false" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \

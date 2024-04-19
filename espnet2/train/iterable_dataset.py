@@ -3,14 +3,14 @@
 import copy
 from io import StringIO
 from pathlib import Path
-from typing import Callable, Collection, Dict, Iterator, Tuple, Union
+from typing import Callable, Collection, Dict, Iterator, Optional, Tuple, Union
 
 import kaldiio
 import numpy as np
 import soundfile
 import torch
 from torch.utils.data.dataset import IterableDataset
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.train.dataset import ESPnetDataset
 
@@ -76,17 +76,17 @@ class IterableESPnetDataset(IterableDataset):
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
+    @typechecked
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
-        preprocess: Callable[
-            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        preprocess: Optional[
+            Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
-        key_file: str = None,
+        key_file: Optional[str] = None,
     ):
-        assert check_argument_types()
         if len(path_name_type_list) == 0:
             raise ValueError(
                 '1 or more elements are required for "path_name_type_list"'
