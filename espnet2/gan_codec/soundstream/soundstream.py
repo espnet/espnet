@@ -600,14 +600,17 @@ class SoundStreamGenerator(nn.Module):
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
+        if x.dim() == 1:
+            x = x.view(1, 1, -1)
+        elif x.dim() == 2:
+            x = x.unsqueeze(1)
+        
         encoder_out = self.encoder(x)
         if target_bw is None:
             bw = self.target_bandwidths[-1]
         else:
             bw = target_bw
-        if st is None:
-            st = 0
-        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw, st)
+        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
         return codes
 
     def decode(self, codes: torch.Tensor):

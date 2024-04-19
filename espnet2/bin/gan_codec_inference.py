@@ -98,7 +98,11 @@ class AudioCoding:
         if encode_only:
             return output_dict
         else:
-            resyn_audio = self.model.decode(codes)
+            # TODO(jiatong): to consider multichannel cases
+            if audio.dim() == 1:
+                resyn_audio = self.model.decode(codes).view(-1)
+            else:
+                resyn_audio = self.model.decode(codes)
             output_dict.update(resyn_audio=resyn_audio)
             return output_dict
 
@@ -254,6 +258,7 @@ def inference(
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("resyn_audio") is not None:
                 wav = output_dict["resyn_audio"]
+                # Note(jiatong): Assume the wav is single channel here
                 logging.info(
                     "inference speed = {:.1f} points / sec.".format(
                         int(wav.size(0)) / (time.perf_counter() - start_time)
