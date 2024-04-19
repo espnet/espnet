@@ -14,6 +14,7 @@
 
 - training: [./conf/tuning/train_st_conformer.yaml](./conf/tuning/train_st_conformer.yaml)
 - decoding: [./conf/tuning/decode_st_conformer.yaml](./conf/tuning/decode_st_conformer.yaml)
+- model url: [https://huggingface.co/espnet/iwslt24_indic_en_hi_bpe_tc4000](https://huggingface.co/espnet/iwslt24_indic_en_hi_bpe_tc4000)
 
 ### BLEU
 
@@ -35,6 +36,7 @@
 
 - training: [./conf/tuning/train_st_conformer.yaml](./conf/tuning/train_st_conformer.yaml)
 - decoding: [./conf/tuning/decode_st_conformer.yaml](./conf/tuning/decode_st_conformer.yaml)
+- model url: [https://huggingface.co/espnet/iwslt24_indic_en_bn_bpe_tc4000](https://huggingface.co/espnet/iwslt24_indic_en_bn_bpe_tc4000)
 
 ### BLEU
 
@@ -56,6 +58,7 @@
 
 - training: [./conf/tuning/train_st_conformer.yaml](./conf/tuning/train_st_conformer.yaml)
 - decoding: [./conf/tuning/decode_st_conformer.yaml](./conf/tuning/decode_st_conformer.yaml)
+- model url: [https://huggingface.co/espnet/iwslt24_indic_en_ta_bpe_tc4000](https://huggingface.co/espnet/iwslt24_indic_en_ta_bpe_tc4000)
 
 ### BLEU
 
