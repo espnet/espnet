@@ -164,7 +164,7 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-	--skip_packing   # Skip packing stage (default="${skip_packing}).
+    --skip_packing   # Skip packing stage (default="${skip_packing}).
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
