@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
@@ -42,6 +42,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 class DAC(AbsGANCodec):
     """ "DAC model."""
 
+    @typechecked
     def __init__(
         self,
         sampling_rate: int = 24000,
@@ -162,7 +163,6 @@ class DAC(AbsGANCodec):
         Args:
              TODO(jiatong)
         """
-        assert check_argument_types()
         super().__init__()
 
         # define modules
@@ -426,6 +426,7 @@ class DAC(AbsGANCodec):
 class DACGenerator(nn.Module):
     """DAC generator module."""
 
+    @typechecked
     def __init__(
         self,
         sample_rate: int = 24000,
@@ -468,7 +469,6 @@ class DACGenerator(nn.Module):
         Args:
             TODO(jiatong)
         """
-        assert check_argument_types()
         super().__init__()
 
         # Initialize encoder

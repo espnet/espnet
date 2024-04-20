@@ -176,7 +176,7 @@ class SEANetDecoder(nn.Module):
         if activation == "Snake":
             act = Snake1d(self.channels)
         else:
-        act = getattr(nn, activation)
+            act = getattr(nn, activation)
             act = act(**activation_params)
         mult = int(2 ** len(self.ratios))
         model: List[nn.Module] = [

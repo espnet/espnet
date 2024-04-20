@@ -271,7 +271,7 @@ class SEANetResnetBlock(nn.Module):
         if activation == "Snake":
             act = Snake1d(dim)
         else:
-        act = getattr(nn, activation)
+            act = getattr(nn, activation)
             act = act(**activation_params)
         hidden = dim // compress
         block = []
@@ -371,7 +371,7 @@ class SEANetEncoder(nn.Module):
         if activation == "Snake":
             act = Snake1d(self.channels)
         else:
-        act = getattr(nn, activation)
+            act = getattr(nn, activation)
             act = act(**activation_params)
             
         

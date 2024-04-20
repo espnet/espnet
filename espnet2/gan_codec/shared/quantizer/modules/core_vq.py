@@ -468,7 +468,7 @@ class VectorQuantization(nn.Module):
 
         if self.training:
             if self.commitment_weight > 0:
-            commit_loss = F.mse_loss(quantize.detach(), x)
+                commit_loss = F.mse_loss(quantize.detach(), x)
                 loss = loss + commit_loss * self.commitment_weight
 
         quantize = self.project_out(quantize)
@@ -599,9 +599,9 @@ class ResidualVectorQuantization(nn.Module):
         codebook_dim = kwargs.get('codebook_dim')
         use_factorized_code = dim != codebook_dim
         if not use_factorized_code:
-        self.layers = nn.ModuleList(
-            [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
-        )
+            self.layers = nn.ModuleList(
+                [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
+            )
         elif use_factorized_code:
             self.layers = nn.ModuleList(
                 [FactorizedVectorQuantization(**kwargs) for _ in range(num_quantizers)]
