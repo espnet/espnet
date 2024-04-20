@@ -44,11 +44,16 @@ class ResidualVectorQuantizer(nn.Module):
         self,
         dimension: int = 256,
         n_q: int = 8,
+        codebook_dim: int = 256,
         bins: int = 1024,
         decay: float = 0.99,
         kmeans_init: bool = True,
         kmeans_iters: int = 50,
         threshold_ema_dead_code: int = 2,
+        quantizer_dropout: float = 0.0,
+        codebook_type: str = "euclidean",
+        commitment_weight: float = 0.25,
+        codebook_weight: float = 1.0,
     ):
         super().__init__()
         self.n_q = n_q
@@ -58,18 +63,29 @@ class ResidualVectorQuantizer(nn.Module):
         self.kmeans_init = kmeans_init
         self.kmeans_iters = kmeans_iters
         self.threshold_ema_dead_code = threshold_ema_dead_code
+        self.quantizer_dropout = quantizer_dropout
+        self.codebook_type = codebook_type
+        self.commitment_weight = commitment_weight
+        self.codebook_weight = codebook_weight
+        self.codebook_dim = codebook_dim
         self.vq = ResidualVectorQuantization(
             dim=self.dimension,
+            codebook_dim=self.codebook_dim,
             codebook_size=self.bins,
             num_quantizers=self.n_q,
+            quantizer_dropout=self.quantizer_dropout,
             decay=self.decay,
             kmeans_init=self.kmeans_init,
             kmeans_iters=self.kmeans_iters,
             threshold_ema_dead_code=self.threshold_ema_dead_code,
+            codebook_type=self.codebook_type,
+            commitment_weight=self.commitment_weight,
+            codebook_weight=self.codebook_weight,
         )
 
+
     def forward(
-        self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None
+        self, x: torch.Tensor, sample_rate: int, n_quantizers: int = None, bandwidth: Optional[float] = None
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
         Args:

@@ -1,0 +1,1021 @@
+2024-04-19T21:26:10 (codec.sh:145:main) ./codec.sh --stage 5 --stop_stage 5 --train_config conf/train_dac.yaml --inference_config conf/decode.yaml --train_set train-clean-460 --valid_set dev-clean --test_sets dev-clean test-clean --audio_format wav
+[INFO] /ocean/projects/cis210027p/ywu13/projects/codec/dac_code/espnet/egs2/libritts/codec1/../../../tools/activate_python.sh is not present
+2024-04-19T21:26:10 (codec.sh:349:main) Stage 5: Codec Training: train_set=dump/raw/train-clean-460, valid_set=dump/raw/dev-clean
+2024-04-19T21:26:10 (codec.sh:366:main) Generate 'exp/codec_train_dac_raw/run.sh'. You can resume the process from stage 5 using this script
+2024-04-19T21:26:10 (codec.sh:371:main) Neural codec training started... log: 'exp/codec_train_dac_raw/train.log'
+2024-04-19 21:26:11,048 (launch:94) INFO: /ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/bin/python3 /ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/bin/launch.py --cmd 'run.pl --name exp/codec_train_dac_raw/train.log' --log exp/codec_train_dac_raw/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/codec_train_dac_raw/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.gan_codec_train --use_preprocessor true --resume true --fold_length 256000 --train_data_path_and_name_and_type dump/raw/train-clean-460/wav.scp,audio,sound --valid_data_path_and_name_and_type dump/raw/dev-clean/wav.scp,audio,sound --train_shape_file exp/codec_stats_raw/train/audio_shape --valid_shape_file exp/codec_stats_raw/valid/audio_shape --output_dir exp/codec_train_dac_raw --config conf/train_dac.yaml
+2024-04-19 21:26:11,131 (launch:348) INFO: log file: exp/codec_train_dac_raw/train.log
+run.pl: job failed, log is in exp/codec_train_dac_raw/train.log
+Command '['run.pl', '--name', 'exp/codec_train_dac_raw/train.log', '--gpu', '1', 'exp/codec_train_dac_raw/train.log', 'python3', '-m', 'espnet2.bin.gan_codec_train', '--use_preprocessor', 'true', '--resume', 'true', '--fold_length', '256000', '--train_data_path_and_name_and_type', 'dump/raw/train-clean-460/wav.scp,audio,sound', '--valid_data_path_and_name_and_type', 'dump/raw/dev-clean/wav.scp,audio,sound', '--train_shape_file', 'exp/codec_stats_raw/train/audio_shape', '--valid_shape_file', 'exp/codec_stats_raw/valid/audio_shape', '--output_dir', 'exp/codec_train_dac_raw', '--config', 'conf/train_dac.yaml', '--ngpu', '1', '--multiprocessing_distributed', 'True']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/bin/launch.py", line 384, in <module>
+    main()
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/bin/launch.py", line 375, in main
+    raise RuntimeError(
+RuntimeError: 
+################### The last 1000 lines of exp/codec_train_dac_raw/train.log ###################
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (16): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (17): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,), dilation=(2,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (18): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,), dilation=(4,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (19): Snake1d()
+          (20): SConv1d(
+            (conv): NormConv1d(
+              (conv): ParametrizedConv1d(
+                256, 512, kernel_size=(16,), stride=(8,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (21): SLSTM(
+            (lstm): LSTM(512, 512, num_layers=2)
+          )
+          (22): Snake1d()
+          (23): SConv1d(
+            (conv): NormConv1d(
+              (conv): ParametrizedConv1d(
+                512, 512, kernel_size=(7,), stride=(1,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+        )
+      )
+      (quantizer): ResidualVectorQuantizer(
+        (vq): ResidualVectorQuantization(
+          (layers): ModuleList(
+            (0-31): 32 x FactorizedVectorQuantization(
+              (project_in): Linear(in_features=512, out_features=8, bias=True)
+              (project_out): Linear(in_features=8, out_features=512, bias=True)
+              (_codebook): CosineSimilarityCodebook()
+            )
+          )
+        )
+      )
+      (decoder): SEANetDecoder(
+        (model): Sequential(
+          (0): SConv1d(
+            (conv): NormConv1d(
+              (conv): ParametrizedConv1d(
+                512, 512, kernel_size=(7,), stride=(1,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (1): SLSTM(
+            (lstm): LSTM(512, 512, num_layers=2)
+          )
+          (2): Snake1d()
+          (3): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ParametrizedConvTranspose1d(
+                512, 256, kernel_size=(16,), stride=(8,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (4): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (5): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,), dilation=(2,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (6): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    256, 128, kernel_size=(7,), stride=(1,), dilation=(4,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 256, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  256, 256, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (7): Snake1d()
+          (8): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ParametrizedConvTranspose1d(
+                256, 128, kernel_size=(10,), stride=(5,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (9): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 64, kernel_size=(7,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 128, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  128, 128, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (10): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 64, kernel_size=(7,), stride=(1,), dilation=(2,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 128, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  128, 128, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (11): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    128, 64, kernel_size=(7,), stride=(1,), dilation=(4,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 128, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  128, 128, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (12): Snake1d()
+          (13): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ParametrizedConvTranspose1d(
+                128, 64, kernel_size=(8,), stride=(4,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (14): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 32, kernel_size=(7,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 64, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  64, 64, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (15): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 32, kernel_size=(7,), stride=(1,), dilation=(2,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 64, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  64, 64, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (16): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    64, 32, kernel_size=(7,), stride=(1,), dilation=(4,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 64, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  64, 64, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (17): Snake1d()
+          (18): SConvTranspose1d(
+            (convtr): NormConvTranspose1d(
+              (convtr): ParametrizedConvTranspose1d(
+                64, 32, kernel_size=(4,), stride=(2,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+          (19): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 16, kernel_size=(7,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    16, 32, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  32, 32, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (20): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 16, kernel_size=(7,), stride=(1,), dilation=(2,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    16, 32, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  32, 32, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (21): SEANetResnetBlock(
+            (block): Sequential(
+              (0): Snake1d()
+              (1): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    32, 16, kernel_size=(7,), stride=(1,), dilation=(4,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+              (2): Snake1d()
+              (3): SConv1d(
+                (conv): NormConv1d(
+                  (conv): ParametrizedConv1d(
+                    16, 32, kernel_size=(1,), stride=(1,)
+                    (parametrizations): ModuleDict(
+                      (weight): ParametrizationList(
+                        (0): _WeightNorm()
+                      )
+                    )
+                  )
+                  (norm): Identity()
+                )
+              )
+            )
+            (shortcut): SConv1d(
+              (conv): NormConv1d(
+                (conv): ParametrizedConv1d(
+                  32, 32, kernel_size=(1,), stride=(1,)
+                  (parametrizations): ModuleDict(
+                    (weight): ParametrizationList(
+                      (0): _WeightNorm()
+                    )
+                  )
+                )
+                (norm): Identity()
+              )
+            )
+          )
+          (22): Snake1d()
+          (23): SConv1d(
+            (conv): NormConv1d(
+              (conv): ParametrizedConv1d(
+                32, 1, kernel_size=(7,), stride=(1,)
+                (parametrizations): ModuleDict(
+                  (weight): ParametrizationList(
+                    (0): _WeightNorm()
+                  )
+                )
+              )
+              (norm): Identity()
+            )
+          )
+        )
+      )
+      (l1_quantization_loss): L1Loss()
+      (l2_quantization_loss): MSELoss()
+    )
+    (discriminator): DACDiscriminator(
+      (msmpmb_d): MultiScaleMultiPeriodMultiBandiscriminator(
+        (discriminators): ModuleList(
+          (0-4): 5 x MPD(
+            (convs): ModuleList(
+              (0): Sequential(
+                (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (1): Sequential(
+                (0): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (2): Sequential(
+                (0): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (3): Sequential(
+                (0): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (4): Sequential(
+                (0): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+            )
+            (conv_post): Conv2d(1024, 1, kernel_size=(3, 1), stride=(1, 1), padding=(1, 0))
+          )
+          (5-7): 3 x MRD(
+            (band_convs): ModuleList(
+              (0-4): 5 x ModuleList(
+                (0): Sequential(
+                  (0): Conv2d(2, 32, kernel_size=(3, 9), stride=(1, 1), padding=(1, 4))
+                  (1): LeakyReLU(negative_slope=0.1)
+                )
+                (1-3): 3 x Sequential(
+                  (0): Conv2d(32, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4))
+                  (1): LeakyReLU(negative_slope=0.1)
+                )
+                (4): Sequential(
+                  (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+                  (1): LeakyReLU(negative_slope=0.1)
+                )
+              )
+            )
+            (conv_post): Conv2d(32, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          )
+        )
+      )
+    )
+    (generator_adv_loss): GeneratorAdversarialLoss()
+    (generator_reconstruct_loss): L1Loss()
+    (discriminator_adv_loss): DiscriminatorAdversarialLoss()
+    (feat_match_loss): FeatureMatchLoss()
+    (mel_loss): MelSpectrogramLoss(
+      (wav_to_mel): LogMelFbank(
+        (stft): Stft(n_fft=1024, win_length=1024, hop_length=256, center=True, normalized=False, onesided=True)
+        (logmel): LogMel(sr=24000, n_fft=1024, n_mels=80, fmin=0, fmax=12000.0, htk=False)
+      )
+    )
+    (multi_scale_mel_loss): MultiScaleMelSpectrogramLoss(
+      (loss_fn): L1Loss()
+    )
+  )
+)
+
+Model summary:
+    Class Name: ESPnetGANCodecModel
+    Total Number of model parameters: 62.51 M
+    Number of trainable parameters: 62.51 M (100.0%)
+    Size: 250.03 MB
+    Type: torch.float32
+[v030] 2024-04-19 21:26:19,073 (abs_task:1309) INFO: Optimizer:
+AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: [0.5, 0.9]
+    capturable: False
+    differentiable: False
+    eps: 1e-09
+    foreach: None
+    fused: None
+    initial_lr: 0.0003
+    lr: 0.0003
+    maximize: False
+    weight_decay: 0.0
+)
+[v030] 2024-04-19 21:26:19,073 (abs_task:1310) INFO: Scheduler: <torch.optim.lr_scheduler.ExponentialLR object at 0x14bf401760a0>
+[v030] 2024-04-19 21:26:19,073 (abs_task:1309) INFO: Optimizer2:
+AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: [0.5, 0.9]
+    capturable: False
+    differentiable: False
+    eps: 1e-09
+    foreach: None
+    fused: None
+    initial_lr: 0.0003
+    lr: 0.0003
+    maximize: False
+    weight_decay: 0.0
+)
+[v030] 2024-04-19 21:26:19,073 (abs_task:1310) INFO: Scheduler2: <torch.optim.lr_scheduler.ExponentialLR object at 0x14bf401760d0>
+[v030] 2024-04-19 21:26:19,766 (abs_task:1319) INFO: Saving the configuration in exp/codec_train_dac_raw/config.yaml
+[v030] 2024-04-19 21:26:20,621 (abs_task:1843) INFO: [train] dataset:
+ESPnetDataset(
+  audio: {"path": "dump/raw/train-clean-460/wav.scp", "type": "sound"}
+  preprocess: <espnet2.train.preprocessor.CommonPreprocessor object at 0x14bf418b5040>)
+[v030] 2024-04-19 21:26:21,083 (chunk_iter_factory:114) INFO: Data keys with the following patterns will be excluded from the length consistency check:
+(utt2category[0-9]*)|(utt2fs[0-9]*)
+[v030] 2024-04-19 21:26:21,097 (abs_task:1843) INFO: [valid] dataset:
+ESPnetDataset(
+  audio: {"path": "dump/raw/dev-clean/wav.scp", "type": "sound"}
+  preprocess: <espnet2.train.preprocessor.CommonPreprocessor object at 0x14bf41ea9340>)
+[v030] 2024-04-19 21:26:21,113 (chunk_iter_factory:114) INFO: Data keys with the following patterns will be excluded from the length consistency check:
+(utt2category[0-9]*)|(utt2fs[0-9]*)
+[v030] 2024-04-19 21:26:21,200 (trainer:311) INFO: 1/60epoch started
+[v030] 2024-04-19 21:26:21,563 (chunk_iter_factory:171) WARNING: The length of '1050_134121_000024_000000' is 41920, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,566 (chunk_iter_factory:171) WARNING: The length of '6531_61334_000041_000005' is 56640, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,568 (chunk_iter_factory:171) WARNING: The length of '5712_48848_000019_000000' is 24640, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,569 (chunk_iter_factory:171) WARNING: The length of '1463_134463_000034_000001' is 29280, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,580 (chunk_iter_factory:171) WARNING: The length of '14_212_000040_000000' is 10560, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,587 (chunk_iter_factory:171) WARNING: The length of '5660_101884_000027_000002' is 38720, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,589 (chunk_iter_factory:171) WARNING: The length of '6637_69607_000050_000000' is 23680, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,590 (chunk_iter_factory:171) WARNING: The length of '1379_130529_000009_000000' is 33760, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,593 (chunk_iter_factory:171) WARNING: The length of '3851_9210_000027_000003' is 55200, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,601 (chunk_iter_factory:171) WARNING: The length of '8770_295465_000042_000000' is 43840, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,604 (chunk_iter_factory:171) WARNING: The length of '7505_258964_000026_000000' is 6720, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,606 (chunk_iter_factory:171) WARNING: The length of '2853_164187_000017_000003' is 11840, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,607 (chunk_iter_factory:171) WARNING: The length of '54_121079_000078_000000' is 37920, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,612 (chunk_iter_factory:171) WARNING: The length of '2229_152864_000005_000001' is 29280, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,614 (chunk_iter_factory:171) WARNING: The length of '6544_231862_000049_000000' is 46400, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,615 (chunk_iter_factory:171) WARNING: The length of '3914_10089_000012_000000' is 36160, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,625 (chunk_iter_factory:171) WARNING: The length of '1874_165702_000004_000000' is 42400, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,635 (chunk_iter_factory:171) WARNING: The length of '887_123289_000023_000000' is 49760, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,638 (chunk_iter_factory:171) WARNING: The length of '480_127525_000001_000003' is 45280, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,648 (chunk_iter_factory:171) WARNING: The length of '6696_73296_000016_000005' is 52960, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,649 (chunk_iter_factory:171) WARNING: The length of '7314_93277_000053_000002' is 27360, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,651 (chunk_iter_factory:171) WARNING: The length of '920_668_000037_000000' is 41120, but it is shorter than any candidates of chunk-length: [61440]
+[v030] 2024-04-19 21:26:21,652 (chunk_iter_factory:171) WARNING: The length of '6701_71404_000049_000001' is 38560, but it is shorter than any candidates of chunk-length: [61440]
+Traceback (most recent call last):
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/bin/gan_codec_train.py", line 22, in <module>
+    main()
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/bin/gan_codec_train.py", line 18, in main
+    GANCodecTask.main(cmd=cmd)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/tasks/abs_task.py", line 1154, in main
+    cls.main_worker(args)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/tasks/abs_task.py", line 1471, in main_worker
+    cls.trainer.run(
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/train/trainer.py", line 317, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/train/gan_trainer.py", line 150, in train_one_epoch
+    retval = model(forward_generator=turn == "generator", **batch)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/gan_codec/espnet_model.py", line 70, in forward
+    return self.codec(**batch)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/gan_codec/dac/dac.py", line 240, in forward
+    return self._forward_generator(
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/gan_codec/dac/dac.py", line 321, in _forward_generator
+    multi_scale_mel_loss = self.multi_scale_mel_loss(audio_hat, audio)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/tools/miniconda/envs/codec/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/ocean/projects/cis210027p/ywu13/projects/codec/espnet/espnet2/gan_codec/dac/loss.py", line 276, in forward
+    for n_mels, fmin, fmax, window_length, hop_length in zip(
+ValueError: not enough values to unpack (expected 5, got 4)
+# Accounting: time=15 threads=1
+# Ended (code 1) at Fri Apr 19 21:26:26 EDT 2024, elapsed time 15 seconds
+
