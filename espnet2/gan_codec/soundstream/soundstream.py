@@ -604,7 +604,7 @@ class SoundStreamGenerator(nn.Module):
             x = x.view(1, 1, -1)
         elif x.dim() == 2:
             x = x.unsqueeze(1)
-        
+
         encoder_out = self.encoder(x)
         if target_bw is None:
             bw = self.target_bandwidths[-1]
