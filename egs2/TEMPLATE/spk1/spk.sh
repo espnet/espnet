@@ -31,7 +31,8 @@ skip_stages=          # Spicify the stage to be skipped
 skip_data_prep=false  # Skip data preparation stages.
 skip_train=false      # Skip training stages.
 skip_eval=false       # Skip decoding and evaluation stages.
-skip_upload_hf=true   # Skip uploading to hugging face stages.
+skip_packing=true	  # Skip the packing stage.
+skip_upload_hf=true   # Skip uploading to huggingface stage.
 
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
@@ -94,7 +95,8 @@ Options:
     skip_data_prep=false  # Skip data preparation stages.
     skip_train=false      # Skip training stages.
     skip_eval=false       # Skip decoding and evaluation stages.
-    skip_upload_hf        # Skip packing and uploading stages (default="${skip_upload_hf}").
+	skip_packing=true	  # Skip the packing stage.
+	skip_upload_hf=true   # Skip uploading to huggingface stage.
 
     eval_valid_set=false  # Run decoding for the validation set
     ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
@@ -197,8 +199,11 @@ if "${skip_data_prep}"; then
     skip_stages+="1 2 "
 fi
 
+if "${skip_packing}"; then
+	skip_stages+="9 "
+fi
 if "${skip_upload_hf}"; then
-    skip_stages+="9 10 "
+    skip_stages+="10 "
 fi
 
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
@@ -642,6 +647,11 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
+
+	if [ ! -f "${packed_model}" ]; then
+		log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
+		exit 1
+	fi
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
     [ -z "${gitlfs}" ] && \

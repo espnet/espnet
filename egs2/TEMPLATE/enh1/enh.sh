@@ -23,21 +23,22 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1          # Processes starts from the specified stage.
-stop_stage=10000 # Processes is stopped at the specified stage.
-skip_data_prep=false # Skip data preparation stages
-skip_train=false     # Skip training stages
-skip_eval=false      # Skip inference and evaluation stages
-skip_upload=true     # Skip packing and uploading stages
-skip_upload_hf=true # Skip uploading to hugging face stages.
-ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1      # The number of nodes
-nj=32            # The number of parallel jobs.
-dumpdir=dump     # Directory to dump features.
-inference_nj=32     # The number of parallel jobs in inference.
-gpu_inference=false # Whether to perform gpu inference.
-expdir=exp       # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands
+stage=1                 # Processes starts from the specified stage.
+stop_stage=10000        # Processes is stopped at the specified stage.
+skip_data_prep=false    # Skip data preparation stages
+skip_train=false        # Skip training stages
+skip_eval=false         # Skip inference and evaluation stages
+skip_packing=true	    # Skip the packing stage.
+skip_upload_zenodo=true # Skip uploading to zenodo stage.
+skip_upload_hf=true     # Skip uploading to huggingface stage.
+ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1             # The number of nodes
+nj=32                   # The number of parallel jobs.
+dumpdir=dump            # Directory to dump features.
+inference_nj=32         # The number of parallel jobs in inference.
+gpu_inference=false     # Whether to perform gpu inference.
+expdir=exp              # Directory to save experiments.
+python=python3          # Specify python to execute espnet commands
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -113,20 +114,22 @@ Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets 
 
 Options:
     # General configuration
-    --stage         # Processes starts from the specified stage (default="${stage}").
-    --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
-    --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip inference and evaluation stages (default="${skip_eval}").
-    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes     # The number of nodes
-    --nj            # The number of parallel jobs (default="${nj}").
-    --inference_nj  # The number of parallel jobs in inference (default="${inference_nj}").
-    --gpu_inference # Whether to use gpu for inference (default="${gpu_inference}").
-    --dumpdir       # Directory to dump features (default="${dumpdir}").
-    --expdir        # Directory to save experiments (default="${expdir}").
-    --python         # Specify python to execute espnet commands (default="${python}").
+    --stage              # Processes starts from the specified stage (default="${stage}").
+    --stop_stage         # Processes is stopped at the specified stage (default="${stop_stage}").
+    --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
+    --skip_train         # Skip training stages (default="${skip_train}").
+    --skip_eval          # Skip inference and evaluation stages (default="${skip_eval}").
+	--skip_packing       # Skip the packing stage (default="${skip_packing}").
+	--skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
+	--skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes          # The number of nodes
+    --nj                 # The number of parallel jobs (default="${nj}").
+    --inference_nj       # The number of parallel jobs in inference (default="${inference_nj}").
+    --gpu_inference      # Whether to use gpu for inference (default="${gpu_inference}").
+    --dumpdir            # Directory to dump features (default="${dumpdir}").
+    --expdir             # Directory to save experiments (default="${expdir}").
+    --python             # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -1210,9 +1213,9 @@ fi
 
 
 packed_model="${enh_exp}/${enh_exp##*/}_${inference_model%.*}.zip"
-if [ -z "${download_model}" ]; then
-    # Skip pack preparation if using a downloaded model
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
+if ! "${skip_packing}" && [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model or skip_packing is true
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         log "Stage 11: Pack model: ${packed_model}"
 
         ${python} -m espnet2.bin.pack enh \
@@ -1222,9 +1225,11 @@ if [ -z "${download_model}" ]; then
             --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi
+else
+	log "Skip the packing stage"
 fi
 
-if ! "${skip_upload}"; then
+if ! "${skip_upload_zenodo}"; then
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Upload model to Zenodo: ${packed_model}"
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
@@ -1233,6 +1238,11 @@ if ! "${skip_upload}"; then
         #   1. Sign up to Zenodo: https://zenodo.org/
         #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
         #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+		if [ ! -f "${packed_model}" ]; then
+			log "ERROR: ${packed_model} does not exist. Please run stage 11 first."
+			exit 1
+		fi
 
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
@@ -1281,7 +1291,7 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stage"
+    log "Skip the uploading to Zenodo stage"
 fi
 
 if ! "${skip_upload_hf}"; then
@@ -1290,6 +1300,11 @@ if ! "${skip_upload_hf}"; then
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
         log "Stage 13: Upload model to HuggingFace: ${hf_repo}"
+
+		if [ ! -f "${packed_model}" ]; then
+			log "ERROR: ${packed_model} does not exist. Please run stage 11 first."
+			exit 1
+		fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
