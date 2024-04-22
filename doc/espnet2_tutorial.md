@@ -169,10 +169,10 @@ There are also some altenative otpions to skip specified stages:
 run.sh --skip_data_prep true  # Skip data preparation stages.
 run.sh --skip_train true      # Skip training stages.
 run.sh --skip_eval true       # Skip decoding and evaluation stages.
-run.sh --skip_upload false    # Enable packing and uploading stages.
+run.sh --skip_packing false --skip_upload_hf false  # Enable packing and uploading to huggingface stages.
 ```
 
-Note that `skip_upload` is true by default. Please change it to false when uploading your model.
+Note that `skip_upload` and `skip_upload_hf` are true by default. Please change them to false when uploading your model.
 
 ## Change the configuration for training
 Please keep in mind that `run.sh` is a wrapper script of several tools including DNN training command.
