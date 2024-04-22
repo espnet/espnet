@@ -28,7 +28,7 @@ stop_stage=10000        # Processes is stopped at the specified stage.
 skip_data_prep=false    # Skip data preparation stages.
 skip_train=false        # Skip training stages.
 skip_eval=false         # Skip decoding and evaluation stages.
-skip_packing=true	    # Skip the packing stage.
+skip_packing=true       # Skip the packing stage.
 skip_upload_zenodo=true # Skip uploading to zenodo stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
@@ -152,9 +152,9 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
-	--skip_packing       # Skip the packing stage (default="${skip_packing}").
-	--skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
-	--skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
+    --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes          # The number of nodes (default="${num_nodes}").
     --nj                 # The number of parallel jobs (default="${nj}").
@@ -1556,7 +1556,7 @@ if ! "${skip_packing}" && [ -z "${download_model}" ]; then
             --outpath "${packed_model}"
     fi
 else
-	log "Skip the packing stage"
+    log "Skip the packing stage"
 fi
 
 if ! "${skip_upload_zenodo}"; then
@@ -1569,10 +1569,10 @@ if ! "${skip_upload_zenodo}"; then
         #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
         #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-		if [ ! -f "${packed_model}" ]; then
-			log "ERROR: ${packed_model} does not exist. Please run stage 14 first."
-			exit 1
-		fi
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 14 first."
+            exit 1
+        fi
 
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
@@ -1632,10 +1632,10 @@ if ! "${skip_upload_hf}"; then
             exit 1
         log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 
-		if [ ! -f "${packed_model}" ]; then
-			log "ERROR: ${packed_model} does not exist. Please run stage 14 first."
-			exit 1
-		fi
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 14 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

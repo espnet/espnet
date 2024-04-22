@@ -30,7 +30,7 @@ stop_stage=10000        # Processes is stopped at the specified stage.
 skip_data_prep=false    # Skip data preparation stages.
 skip_train=false        # Skip training stages.
 skip_eval=false         # Skip decoding and evaluation stages.
-skip_packing=true	    # Skip the packing stage.
+skip_packing=true       # Skip the packing stage.
 skip_upload_zenodo=true # Skip uploading to zenodo stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
@@ -129,9 +129,9 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
-	--skip_packing       # Skip the packing stage (default="${skip_packing}").
-	--skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
-	--skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
+    --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes          # The number of nodes (default="${num_nodes}").
     --nj                 # The number of parallel jobs (default="${nj}").
@@ -1120,44 +1120,44 @@ fi
 
 packed_model="${svs_exp}/${svs_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_upload}"; then
-	if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-		log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack model: ${packed_model}"
 
-		_opts=""
-		if [ -e "${svs_stats_dir}/train/feats_stats.npz" ]; then
-			_opts+=" --option ${svs_stats_dir}/train/feats_stats.npz"
-		fi
-		if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
-			_opts+=" --option ${svs_stats_dir}/train/pitch_stats.npz"
-		fi
-		if [ -e "${svs_stats_dir}/train/energy_stats.npz" ]; then
-			_opts+=" --option ${svs_stats_dir}/train/energy_stats.npz"
-		fi
-		if "${use_xvector}"; then
-			for dset in "${train_set}" ${test_sets}; do
-				_opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.scp"
-				_opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
-			done
-		fi
-		if "${use_sid}"; then
-			_opts+=" --option ${data_feats}/org/${train_set}/spk2sid"
-		fi
-		if "${use_lid}"; then
-			_opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
-		fi
-		${python} -m espnet2.bin.pack svs \
-			--train_config "${svs_exp}"/config.yaml \
-			--model_file "${svs_exp}"/"${inference_model}" \
-			--option "${svs_exp}"/images  \
-			--outpath "${packed_model}" \
-			${_opts}
+        _opts=""
+        if [ -e "${svs_stats_dir}/train/feats_stats.npz" ]; then
+            _opts+=" --option ${svs_stats_dir}/train/feats_stats.npz"
+        fi
+        if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
+            _opts+=" --option ${svs_stats_dir}/train/pitch_stats.npz"
+        fi
+        if [ -e "${svs_stats_dir}/train/energy_stats.npz" ]; then
+            _opts+=" --option ${svs_stats_dir}/train/energy_stats.npz"
+        fi
+        if "${use_xvector}"; then
+            for dset in "${train_set}" ${test_sets}; do
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.scp"
+                _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
+            done
+        fi
+        if "${use_sid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/spk2sid"
+        fi
+        if "${use_lid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
+        fi
+        ${python} -m espnet2.bin.pack svs \
+            --train_config "${svs_exp}"/config.yaml \
+            --model_file "${svs_exp}"/"${inference_model}" \
+            --option "${svs_exp}"/images  \
+            --outpath "${packed_model}" \
+            ${_opts}
 
-		# NOTE(kamo): If you'll use packed model to inference in this script, do as follows
-		#   % unzip ${packed_model}
-		#   % ./run.sh --stage 9 --svs_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
-	fi
+        # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
+        #   % unzip ${packed_model}
+        #   % ./run.sh --stage 9 --svs_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
+    fi
 else
-	log "Skip the packing stage"
+    log "Skip the packing stage"
 fi
 
 if ! "${skip_upload_zenodo}"; then
@@ -1169,10 +1169,10 @@ if ! "${skip_upload_zenodo}"; then
         #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
         #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-		if [ ! -f "${packed_model}" ]; then
-			log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
-			exit 1
-		fi
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
+            exit 1
+        fi
 
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
@@ -1230,10 +1230,10 @@ if ! "${skip_upload_hf}"; then
             exit 1
         log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
-		if [ ! -f "${packed_model}" ]; then
-			log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
-			exit 1
-		fi
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

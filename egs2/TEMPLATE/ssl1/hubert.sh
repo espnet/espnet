@@ -101,7 +101,7 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}")
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-	--skip_packing   # Skip the packing stage (default="${skip_packing}").
+    --skip_packing   # Skip the packing stage (default="${skip_packing}").
     --skip_upload_hf # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
@@ -639,24 +639,24 @@ km_tag="kmeans_iter${train_stop_iter}_${feature_list[${train_stop_iter}]}_${trai
 packed_model="${ssl_exp}/${ssl_exp##*/}_${inference_ssl_model%.*}.zip"
 # Skip pack preparation if using a downloaded model
 if ! "${skip_packing}"; then
-	if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-		log "Stage 8: Pack model: ${packed_model}"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Pack model: ${packed_model}"
 
-		_opts=
-		if [ "${feats_normalize}" = global_mvn ]; then
-			_opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
-		fi
-		# shellcheck disable=SC2086
-		${python} -m espnet2.bin.pack ssl \
-			--ssl_train_config "${ssl_exp}"/config.yaml \
-			--ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
-			${_opts} \
-			--option "${ssl_exp}"/images \
-			--option "${expdir}/${km_tag}/km_${n_clusters_list[${train_stop_iter}]}.mdl" \
-			--outpath "${packed_model}"
-	fi
+        _opts=
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack ssl \
+            --ssl_train_config "${ssl_exp}"/config.yaml \
+            --ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
+            ${_opts} \
+            --option "${ssl_exp}"/images \
+            --option "${expdir}/${km_tag}/km_${n_clusters_list[${train_stop_iter}]}.mdl" \
+            --outpath "${packed_model}"
+    fi
 else
-	log "Skip the packing stage"
+    log "Skip the packing stage"
 fi
 
 if ! "${skip_upload_hf}"; then
@@ -666,10 +666,10 @@ if ! "${skip_upload_hf}"; then
         exit 1
         log "Stage 9: Upload model to HuggingFace: ${hf_repo}"
 
-		if [ ! -f "${packed_model}" ]; then
-			log "ERROR: ${packed_model} does not exist. Please run stage 8 first."
-			exit 1
-		fi
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 8 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

@@ -30,7 +30,7 @@ skip_stages=            # Spicify the stage to be skipped
 skip_data_prep=false    # Skip data preparation stages.
 skip_train=false        # Skip training stages.
 skip_eval=false         # Skip decoding and evaluation stages.
-skip_packing=true	    # Skip the packing stage.
+skip_packing=true       # Skip the packing stage.
 skip_upload_zenodo=true # Skip uploading to zenodo stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
 eval_valid_set=false    # Run decoding for the validation set
@@ -172,8 +172,8 @@ Options:
     --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
-	--skip_packing       # Skip the packing stage (default="${skip_packing}").
-	--skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --eval_valid_set     # Run decoding for the validation set (default="${eval_valid_set}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
@@ -1652,10 +1652,10 @@ if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ] && ! [[ " ${skip_stages} " =~
     #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
     #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-	if [ ! -f "${packed_model}" ]; then
-		log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
-		exit 1
-	fi
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
+        exit 1
+    fi
 
     if command -v git &> /dev/null; then
         _creator_name="$(git config user.name)"
@@ -1712,10 +1712,10 @@ if [ ${stage} -le 18 ] && [ ${stop_stage} -ge 18 ] && ! [[ " ${skip_stages} " =~
     exit 1
     log "Stage 18: Upload model to HuggingFace: ${hf_repo}"
 
-	if [ ! -f "${packed_model}" ]; then
-		log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
-		exit 1
-	fi
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
+        exit 1
+    fi
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
     [ -z "${gitlfs}" ] && \
