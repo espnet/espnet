@@ -29,7 +29,6 @@ skip_data_prep=false    # Skip data preparation stages.
 skip_train=false        # Skip training stages.
 skip_eval=false         # Skip decoding and evaluation stages.
 skip_packing=true       # Skip the packing stage.
-skip_upload_zenodo=true # Skip uploading to zenodo stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes.
@@ -170,7 +169,6 @@ Options:
     --skip_train         # Skip training stages (default="${skip_train}").
     --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_packing       # Skip the packing stage (default="${skip_packing}").
-    --skip_upload_zenodo # Skip uploading to zenodo stage (default="${skip_upload_zenodo}").
     --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes          # The number of nodes (default="${num_nodes}").
@@ -1583,76 +1581,12 @@ else
     log "Skip the packing stage"
 fi
 
-if ! "${skip_upload_zenodo}"; then
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        log "Stage 11: Upload model to Zenodo: ${packed_model}"
-
-        # To upload your model, you need to do:
-        #   1. Sign up to Zenodo: https://zenodo.org/
-        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
-
-        if [ ! -f "${packed_model}" ]; then
-            log "ERROR: ${packed_model} does not exist. Please run stage 10 first."
-            exit 1
-        fi
-
-        if command -v git &> /dev/null; then
-            _creator_name="$(git config user.name)"
-            _checkout="
-git checkout $(git show -s --format=%H)"
-
-        else
-            _creator_name="$(whoami)"
-            _checkout=""
-        fi
-        # /some/where/espnet/egs2/foo/s2st1/ -> foo/s2st1
-        _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/s2st1 -> foo
-        _corpus="${_task%/*}"
-        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-        # Generate description file
-        cat << EOF > "${s2st_exp}"/description
-This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-<p>&nbsp;</p>
-<ul>
-<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-<li><strong>Evaluate in the recipe</strong><pre>
-<code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-</pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${s2st_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>S2ST config</strong><pre><code>$(cat "${s2st_exp}"/config.yaml)</code></pre></li>
-</ul>
-EOF
-
-        # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by yourself.
-
-        # shellcheck disable=SC2086
-        espnet_model_zoo_upload \
-            --file "${packed_model}" \
-            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${src_lang}_${tgt_lang}" \
-            --description_file "${s2st_exp}"/description \
-            --creator_name "${_creator_name}" \
-            --license "CC-BY-4.0" \
-            --use_sandbox false \
-            --publish false
-    fi
-else
-    log "Skip the uploading to Zenodo stage"
-fi
-
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 12: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
         if [ ! -f "${packed_model}" ]; then
             log "ERROR: ${packed_model} does not exist. Please run stage 10 first."
