@@ -114,6 +114,17 @@ espnet2.tasks.s2t
     :show-inheritance:
 
 
+.. _espnet2.tasks.tts2:
+
+espnet2.tasks.tts2
+------------------
+
+.. automodule:: espnet2.tasks.tts2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.lm:
 
 espnet2.tasks.lm

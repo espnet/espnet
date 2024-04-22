@@ -345,6 +345,17 @@ espnet2.bin.gan_svs_train
     :show-inheritance:
 
 
+.. _espnet2.bin.tts2_inference:
+
+espnet2.bin.tts2_inference
+--------------------------
+
+.. automodule:: espnet2.bin.tts2_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.uasr_inference_k2:
 
 espnet2.bin.uasr_inference_k2
@@ -461,6 +472,17 @@ espnet2.bin.s2st_inference
 --------------------------
 
 .. automodule:: espnet2.bin.s2st_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.tts2_train:
+
+espnet2.bin.tts2_train
+----------------------
+
+.. automodule:: espnet2.bin.tts2_train
     :members:
     :undoc-members:
     :show-inheritance:
