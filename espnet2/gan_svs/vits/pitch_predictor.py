@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
@@ -10,6 +11,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 class Decoder(torch.nn.Module):
     """Pitch or Mel decoder module in VISinger 2."""
 
+    @typechecked
     def __init__(
         self,
         out_channels: int = 192,
@@ -31,7 +33,8 @@ class Decoder(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
         global_channels: int = -1,
     ):
-        """
+        """Initialize Decoder in VISinger 2.
+
         Args:
             out_channels (int): The output dimension of the module.
             attention_dim (int): The dimension of the attention mechanism.
@@ -85,8 +88,7 @@ class Decoder(torch.nn.Module):
             self.global_conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
-        """
-        Forward pass of the Decoder.
+        """Forward pass of the Decoder.
 
         Args:
             x (Tensor): Input tensor (B, 2 + attention_dim, T).

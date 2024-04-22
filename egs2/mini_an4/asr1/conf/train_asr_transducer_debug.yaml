@@ -1,0 +1,51 @@
+# This is a debug config for CI
+batch_type: unsorted
+batch_size: 2
+accum_grad: 1
+max_epoch: 1
+num_iters_per_epoch: 1
+patience:
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+encoder: transformer
+encoder_conf:
+    output_size: 2
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv1d2
+    normalize_before: true
+
+decoder: transducer
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1  # Decoder Layers
+    hidden_size: 4  # Decoder dim
+    dropout: 0.1
+    dropout_embed: 0.2
+
+
+joint_net_conf:
+    joint_space_size: 4
+
+model: espnet
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 4

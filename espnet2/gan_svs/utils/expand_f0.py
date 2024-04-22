@@ -3,9 +3,6 @@
 
 """Function to get random segments."""
 
-from typing import Optional, Tuple
-
-import torch
 import torch.nn.functional as F
 
 

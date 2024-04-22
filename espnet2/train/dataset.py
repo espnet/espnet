@@ -5,7 +5,7 @@ import logging
 import numbers
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Union
 
 import h5py
 import humanfriendly
@@ -13,7 +13,7 @@ import kaldiio
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
@@ -34,8 +34,8 @@ from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
+    @typechecked
     def __init__(self, loader, dtype=None, allow_multi_rates=False):
-        assert check_argument_types()
         self.loader = loader
         self.dtype = dtype
         self.rate = None
@@ -109,8 +109,8 @@ class H5FileWrapper:
 
 
 class AdapterForSingingScoreScpReader(collections.abc.Mapping):
+    @typechecked
     def __init__(self, loader):
-        assert check_argument_types()
         self.loader = loader
 
     def keys(self):
@@ -135,8 +135,8 @@ class AdapterForSingingScoreScpReader(collections.abc.Mapping):
 
 
 class AdapterForLabelScpReader(collections.abc.Mapping):
+    @typechecked
     def __init__(self, loader):
-        assert check_argument_types()
         self.loader = loader
 
     def keys(self):
@@ -428,11 +428,12 @@ class ESPnetDataset(AbsDataset):
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
+    @typechecked
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
-        preprocess: Callable[
-            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        preprocess: Optional[
+            Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
@@ -440,7 +441,6 @@ class ESPnetDataset(AbsDataset):
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
     ):
-        assert check_argument_types()
         if len(path_name_type_list) == 0:
             raise ValueError(
                 '1 or more elements are required for "path_name_type_list"'
@@ -535,8 +535,8 @@ class ESPnetDataset(AbsDataset):
         _mes += f"\n  preprocess: {self.preprocess})"
         return _mes
 
+    @typechecked
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
-        assert check_argument_types()
 
         # Change integer-id to string-id
         if isinstance(uid, int):
@@ -604,5 +604,4 @@ class ESPnetDataset(AbsDataset):
             self.cache[uid] = data
 
         retval = uid, data
-        assert check_return_type(retval)
         return retval

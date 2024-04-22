@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -42,16 +42,17 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        uasr_train_config: Union[Path, str] = None,
-        uasr_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        uasr_train_config: Union[Path, str, None] = None,
+        uasr_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
@@ -64,7 +65,6 @@ class Speech2Text:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         if quantize_uasr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
@@ -75,7 +75,7 @@ class Speech2Text:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
 
         # 1. Build UASR model
@@ -91,7 +91,7 @@ class Speech2Text:
             logging.info("Use quantized uasr model for decoding.")
 
             uasr_model = torch.quantization.quantize_dynamic(
-                uasr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                uasr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = UASRPrefixScorer(eos=uasr_model.eos)
@@ -109,7 +109,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -200,6 +200,7 @@ class Speech2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis]]]:
@@ -211,7 +212,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -259,7 +259,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -293,6 +292,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -323,7 +323,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

@@ -4,6 +4,7 @@ import torch
 
 class SineGen(torch.nn.Module):
     """Definition of sine generator
+
     SineGen(samp_rate, harmonic_num = 0,
             sine_amp = 0.1, noise_std = 0.003,
             voiced_threshold = 0,
@@ -45,7 +46,9 @@ class SineGen(torch.nn.Module):
         return uv
 
     def _f02sine(self, f0_values):
-        """f0_values: (batchsize, length, dim)
+        """F02 sine.
+
+        f0_values: (batchsize, length, dim)
         where dim indicates fundamental tone and overtones
         """
         # convert to F0 in rad. The interger part n can be ignored
@@ -106,7 +109,9 @@ class SineGen(torch.nn.Module):
         return sines
 
     def forward(self, f0):
-        """sine_tensor, uv = forward(f0)
+        """Forward SineGen.
+
+        sine_tensor, uv = forward(f0)
         input F0: tensor(batchsize=1, length, dim=1)
                   f0 for unvoiced steps should be 0
         output sine_tensor: tensor(batchsize=1, length, dim)

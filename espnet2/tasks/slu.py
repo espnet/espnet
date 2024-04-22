@@ -3,7 +3,7 @@ import logging
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -389,10 +389,10 @@ class SLUTask(ASRTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             retval = SLUPreprocessor(
                 train=train,
@@ -419,7 +419,6 @@ class SLUTask(ASRTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -438,12 +437,11 @@ class SLUTask(ASRTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         retval = ("transcript",)
-        assert check_return_type(retval)
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSLUModel:
-        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -609,5 +607,4 @@ class SLUTask(ASRTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model

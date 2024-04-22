@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import yaml
 from tqdm import trange
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
@@ -93,11 +93,12 @@ class SeparateSpeech:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
-        inference_config: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
+        inference_config: Union[Path, str, None] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -107,7 +108,6 @@ class SeparateSpeech:
         device: str = "cpu",
         dtype: str = "float32",
     ):
-        assert check_argument_types()
 
         # 1. Build Enh model
         if inference_config is None:
@@ -180,9 +180,10 @@ class SeparateSpeech:
             logging.info("Perform direct speech %s on the input" % task)
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000, **kwargs
-    ) -> List[torch.Tensor]:
+    ) -> List[Union[torch.Tensor, np.array]]:
         """Inference
 
         Args:
@@ -195,7 +196,6 @@ class SeparateSpeech:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
 
         enroll_ref = [
             # (Batch, samples_aux)
@@ -415,6 +415,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -438,7 +439,6 @@ def inference(
     ref_channel: Optional[int],
     normalize_output_wav: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -509,7 +509,7 @@ def inference(
         )
 
     # 4. Start for-loop
-    output_dir = Path(output_dir).expanduser().resolve()
+    output_dir: Path = Path(output_dir).expanduser().resolve()
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(

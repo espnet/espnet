@@ -13,15 +13,16 @@ import logging
 import math
 import os
 import random
+from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from filelock import FileLock
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -78,6 +79,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         avhubert_dir_path: dir_path for downloading pre-trained avhubert model
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int = 1,
@@ -107,7 +109,6 @@ class FairseqAVHubertEncoder(AbsEncoder):
         max_noise_weight: float = 0.5,
         audio_only: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
 
         self._output_size = encoder_embed_dim
@@ -187,6 +188,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward AVHubert Encoder.
+
         Args:
             xs_pad[video]: input tensor (B, 1, L, H, W)
             xs_pad[audio]: input tensor (B, D, L)
@@ -201,7 +203,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
             elif "audio" in xs_pad:
                 masks = make_pad_mask(ilens, length_dim=2).to(xs_pad["audio"].device)
             else:
-                ValueError(f"Input should have video or audio")
+                ValueError("Input should have video or audio")
 
             ft = self.freeze_finetune_updates <= self.num_updates
 
@@ -705,6 +707,7 @@ class AVHubertModel(nn.Module):
         self, source, padding_mask=None, mask=False, ret_conv=False, output_layer=None
     ):
         """Forward AVHubert Pretrain Encoder.
+
         Args:
             source['video']: input tensor (B, 1, L, H, W)
             source['audio']: input tensor (B, F, L)
@@ -804,6 +807,7 @@ class AVHubertModel(nn.Module):
 
     def forward_transformer(self, source, padding_mask=None, output_layer=None):
         """Forward AVHubert Pretrain Encoder (without frontend).
+
         Assume the source is already fused feature.
         Args:
             source: input tensor (B, L, D*2)

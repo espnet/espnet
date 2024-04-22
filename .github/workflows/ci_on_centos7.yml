@@ -58,3 +58,4 @@ jobs:
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
           ./ci/test_python_espnet1.sh
           ./ci/test_python_espnet2.sh
+          ./ci/test_python_espnetez.sh
