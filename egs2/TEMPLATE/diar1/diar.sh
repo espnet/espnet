@@ -29,7 +29,6 @@ skip_data_prep=false    # Skip data preparation stages
 skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
 skip_packing=true       # Skip the packing stage.
-skip_upload_zenodo=true # Skip uploading to zenodo stage.
 skip_upload_hf=true     # Skip uploading to huggingface stage.
 ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1             # The number of nodes

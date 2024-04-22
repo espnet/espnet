@@ -298,7 +298,7 @@ done
 
 ## Packing and sharing your trained model
 
-ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/) or [Zenodo](https://zenodo.org/) (This last will become deprecated.)
+ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/).
 
 For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).
 
@@ -307,24 +307,12 @@ Remember to install `git-lfs ` before continuing.
 Then, execute `run.sh` as follows:
 
 ```sh
-# For ASR recipe
-./run.sh --stage 14 --skip-upload-hf false --hf-repo <my_repo>
-
-# For TTS recipe
-./run.sh --stage 8 --skip-upload-hf false --hf-repo <my_repo>
+./run.sh --stage <packing stage> --skip-packing false --skip-upload-hf false --hf-repo <my_repo>
 ```
 
-For **Zenodo**, you need to register your account first. Then, execute `run.sh` as follows:
+The stage number differs according to the task. Please read the task-specific shell script (e.g., `asr1/asr.sh`) to see the number to specify.
+The packed model can be uploaded to huggingface by setting the previously mentioned flags.
 
-```sh
-# For ASR recipe
-./run.sh --stage 14 --skip-upload false
-
-# For TTS recipe
-./run.sh --stage 8 --skip-upload false
-```
-
-The packed model can be uploaded to both platforms by setting the previously mentioned flags.
 
 ## Usage of Self-Supervised Learning Representations as feature
 
