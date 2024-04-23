@@ -69,7 +69,7 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
             d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
             p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
             e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).
-            ys (Tensor): Batch of target features (B, T_feats, odim).
+            ys (Tensor): Batch of target features in discrete space (B, T_feats).
             ds (LongTensor): Batch of durations (B, T_text).
             ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
             es (Tensor): Batch of target token-averaged energy (B, T_text, 1).
@@ -83,10 +83,10 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
             Tensor: Energy predictor loss value.
 
         """
+        batch_size, max_len, vocab_size = before_outs.size()
         # apply mask to remove padded part
         if self.use_masking:
             out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-            vocab_size = before_outs.size(-1)
             before_outs = before_outs.masked_select(out_masks).view(-1, vocab_size)
             if after_outs is not None:
                 after_outs = after_outs.masked_select(out_masks).view(-1, vocab_size)
@@ -99,6 +99,11 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
             e_outs = e_outs.masked_select(pitch_masks)
             ps = ps.masked_select(pitch_masks)
             es = es.masked_select(pitch_masks)
+        else:
+            before_outs = before_outs.view(-1, vocab_size)
+            if after_outs is not None:
+                after_outs = after_outs.view(-1, vocab_size)
+            ys = ys.view(-1)
 
         # calculate loss
         ce_loss = self.ce_criterion(before_outs, ys)
@@ -114,9 +119,10 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
 
         # make weighted mask and apply it
         if self.use_weighted_masking:
-            out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            ce_loss = ce_loss.view(batch_size, max_len)
+            out_masks = make_non_pad_mask(olens).to(ys.device)
             out_weights = out_masks.float() / out_masks.sum(dim=1, keepdim=True).float()
-            out_weights /= ys.size(0) * ys.size(2)
+            out_weights /= batch_size
             duration_masks = make_non_pad_mask(ilens).to(ys.device)
             duration_weights = (
                 duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
