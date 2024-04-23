@@ -27,9 +27,9 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
-from espnet2.tts2.tacotron2 import Tacotron2Discrete
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
+from espnet2.tts2.tacotron2 import Tacotron2Discrete
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform

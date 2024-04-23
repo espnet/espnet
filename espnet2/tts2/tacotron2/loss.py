@@ -39,7 +39,6 @@ class Tacotron2LossDiscrete(torch.nn.Module):
             reduction=reduction, pos_weight=torch.tensor(bce_pos_weight)
         )
 
-
         # NOTE(kan-bayashi): register pre hook function for the compatibility
         self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
 
@@ -81,7 +80,9 @@ class Tacotron2LossDiscrete(torch.nn.Module):
 
         before_acc = torch.eq(before_outs.argmax(dim=-1), ys).int().sum() / len(ys)
         after_acc = torch.eq(after_outs.argmax(dim=-1), ys).int().sum() / len(ys)
-        bce_acc = torch.ge(torch.sigmoid(logits), 0.5).eq(labels.bool()).int().sum() / len(labels)
+        bce_acc = torch.ge(torch.sigmoid(logits), 0.5).eq(
+            labels.bool()
+        ).int().sum() / len(labels)
 
         # make weighted mask and apply it
         if self.use_weighted_masking:
@@ -97,13 +98,13 @@ class Tacotron2LossDiscrete(torch.nn.Module):
                 .masked_select(masks.squeeze(-1))
                 .sum()
             )
-        
+
         stats = {
-            'ce_loss': ce_loss.item(),
-            'bce_loss': bce_loss.item(),
-            'before_acc': before_acc.item(),
-            'after_acc': after_acc.item(),
-            'bce_acc': bce_acc.item()
+            "ce_loss": ce_loss.item(),
+            "bce_loss": bce_loss.item(),
+            "before_acc": before_acc.item(),
+            "after_acc": after_acc.item(),
+            "bce_acc": bce_acc.item(),
         }
 
         return ce_loss, bce_loss, stats

@@ -13,9 +13,9 @@ from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts2.abs_tts2 import AbsTTS2
+from espnet2.tts2.tacotron2.loss import Tacotron2LossDiscrete
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
-from espnet2.tts2.tacotron2.loss import Tacotron2LossDiscrete
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
@@ -454,9 +454,7 @@ class Tacotron2Discrete(AbsTTS2):
 
         # inference with teacher forcing
         if use_teacher_forcing:
-            assert (
-                feats is not None
-            ), "feats must be provided with teacher forcing."
+            assert feats is not None, "feats must be provided with teacher forcing."
 
             xs, ys = x.unsqueeze(0), y.unsqueeze(0)
             ys = self.emb(ys)
@@ -490,7 +488,7 @@ class Tacotron2Discrete(AbsTTS2):
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
-        print('h: ', h[:, 0], 'encoder output: ', flush=True)
+        print("h: ", h[:, 0], "encoder output: ", flush=True)
         out, prob, att_w = self.dec.inference(
             h,
             threshold=threshold,
