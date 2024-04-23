@@ -1,16 +1,21 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from typing import Any, Dict, List, Optional
+
 import torch
 
-from typing import Any, Dict, List, Optional
+from espnet2.gan_codec.shared.discriminator.msstft_discriminator import (
+    MultiScaleSTFTDiscriminator,
+)
 from espnet2.gan_codec.soundstream.soundstream import SoundStream
-from espnet2.gan_codec.shared.discriminator.msstft_discriminator import MultiScaleSTFTDiscriminator
+
 
 class Encodec(SoundStream):
-    """ Encodec Modle. 
-        The key difference between this and SoundStream is the discriminator 
+    """Encodec Modle.
+    The key difference between this and SoundStream is the discriminator
     """
+
     def __init__(
         self,
         sampling_rate: int = 24000,
@@ -45,12 +50,12 @@ class Encodec(SoundStream):
             "quantizer_target_bandwidth": [7.5, 15],
         },
         discriminator_params: Dict[str, Any] = {
-            "filters": 32, 
-            "in_channels": 1, 
-            "out_channels": 1, 
+            "filters": 32,
+            "in_channels": 1,
+            "out_channels": 1,
             "sep_channels": False,
             "norm": "weight_norm",
-            "n_ffts": [1024, 2048, 512, 256, 128], 
+            "n_ffts": [1024, 2048, 512, 256, 128],
             "hop_lengths": [256, 512, 128, 64, 32],
             "win_lengths": [1024, 2048, 512, 256, 128],
             "activation": "LeakyReLU",
@@ -118,24 +123,24 @@ class Encodec(SoundStream):
 
 class EncodecDiscriminator(torch.nn.Module):
     def __init__(
-    self,
-    msstft_discriminator_params: Dict[str, Any] = {
-        "in_channels": 1,
-        "out_channels": 1,
-        "filters": 32,
-        "norm": "weight_norm",
-        "n_fft": [1024, 2048, 512, 256, 128],
-        "hop_lengths": [256, 512, 128, 64, 32],
-        "win_lengths": [1024, 2048, 512, 256, 128],
-        "activation": "LeakyReLU",
-        "activation_params": {"negative_slope: 0.3"}
-        }
+        self,
+        msstft_discriminator_params: Dict[str, Any] = {
+            "in_channels": 1,
+            "out_channels": 1,
+            "filters": 32,
+            "norm": "weight_norm",
+            "n_fft": [1024, 2048, 512, 256, 128],
+            "hop_lengths": [256, 512, 128, 64, 32],
+            "win_lengths": [1024, 2048, 512, 256, 128],
+            "activation": "LeakyReLU",
+            "activation_params": {"negative_slope: 0.3"},
+        },
     ):
-        """ Encodec Discriminator with only Multi-Scale STFT discriminator module """
+        """Encodec Discriminator with only Multi-Scale STFT discriminator module"""
         super().__init__()
 
-        self.msstft =  MultiScaleSTFTDiscriminator(**msstft_discriminator_params)
-    
+        self.msstft = MultiScaleSTFTDiscriminator(**msstft_discriminator_params)
+
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
         msstft_out = self.msstft(x)
 
