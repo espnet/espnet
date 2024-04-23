@@ -14,6 +14,7 @@ from typeguard import typechecked
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.gan_codec.soundstream.soundstream import SoundStream
+from espnet2.gan_codec.encodec.encodec import Encodec
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -27,6 +28,7 @@ codec_choices = ClassChoices(
     "codec",
     classes=dict(
         soundstream=SoundStream,
+        encodec=Encodec,
     ),
     default="soundstream",
 )
