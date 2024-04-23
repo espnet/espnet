@@ -93,13 +93,13 @@ codec_conf:
         log_base: null      # null represent natural log
     lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
-    lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss 
-    lambda_mel: 45.0        # loss scaling coefficient for Mel loss [CHANGED]
-    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss [CHANGED]
+    lambda_reconstruct: 0.0 # loss scaling coefficient for speech reconstruction loss [CHANGED]
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
+    lambda_mel: 45.0        # loss scaling coefficient for Mel loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
-    cache_generator_outputs: true # whether to cache generator outputs in the training
+    cache_generator_outputs: false # whether to cache generator outputs in the training [CHANGED]
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -138,7 +138,7 @@ batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 48000 # CHANGED]
+chunk_length: 61440
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm

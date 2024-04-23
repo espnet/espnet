@@ -28,13 +28,13 @@ codec_conf:
         decoder_trim_right_ratio: 1.0
         decoder_final_activation: null
         decoder_final_activation_params: null
-        quantizer_n_q: 32
+        quantizer_n_q: 12 # CHANGED
         quantizer_bins: 1024
         quantizer_decay: 0.99
         quantizer_kmeans_init: true
         quantizer_kmeans_iters: 50
         quantizer_threshold_ema_dead_code: 2
-        quantizer_target_bandwidth: [2, 4, 8, 16, 32]
+        quantizer_target_bandwidth: [2, 4, 12]
 
     # discriminator related
     discriminator_params:
@@ -94,9 +94,9 @@ codec_conf:
     lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss 
-    lambda_mel: 45.0        # loss scaling coefficient for Mel loss [CHANGED]
-    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss [CHANGED]
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
+    lambda_mel: 45.0        # loss scaling coefficient for Mel loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
@@ -138,7 +138,7 @@ batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 48000 # CHANGED]
+chunk_length: 48000
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
