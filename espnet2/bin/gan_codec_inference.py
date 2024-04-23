@@ -26,8 +26,8 @@ from espnet2.utils.types import float_or_none, str2bool, str2triple_str, str_or_
 from espnet.utils.cli_utils import get_commandline_args
 
 
-class SpeechCoding:
-    """SpeechCoding class.
+class AudioCoding:
+    """AudioCoding class.
 
     Examples:
         >>> TODO(jiatong)
@@ -44,7 +44,7 @@ class SpeechCoding:
         seed: int = 777,
         always_fix_seed: bool = False,
     ):
-        """Initialize SpeechCoding module."""
+        """Initialize AudioCoding module."""
 
         # setup model
         model, train_args = GANCodecTask.build_model_from_file(
@@ -71,15 +71,15 @@ class SpeechCoding:
     @typechecked
     def __call__(
         self,
-        speech: Union[torch.Tensor, np.ndarray, None] = None,
+        audio: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
         encode_only: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Run Speech Coding."""
+        """Run Audio Coding."""
 
-        assert speech is not None, "Speech is invalid, input a valid speech"
+        assert audio is not None, "Audio is invalid, input a valid audio."
 
-        batch = dict(speech=speech)
+        batch = dict(audio=audio)
         batch = to_device(batch, self.device)
 
         # overwrite the decode configs if provided
@@ -98,7 +98,11 @@ class SpeechCoding:
         if encode_only:
             return output_dict
         else:
-            resyn_audio = self.model.decode(codes)
+            # TODO(jiatong): to consider multichannel cases
+            if audio.dim() == 1:
+                resyn_audio = self.model.decode(codes).view(-1)
+            else:
+                resyn_audio = self.model.decode(codes)
             output_dict.update(resyn_audio=resyn_audio)
             return output_dict
 
@@ -107,8 +111,8 @@ class SpeechCoding:
     def decode(
         self,
         codes: Union[torch.Tensor, np.ndarray, None] = None,
-    ) -> Dict[torch.Tensor]:
-        """Run Speech Coding decoding."""
+    ) -> Dict[str, torch.Tensor]:
+        """Run Audio Coding decoding."""
 
         assert codes is not None, "Codes are invalid, input a valid one"
 
@@ -136,14 +140,14 @@ class SpeechCoding:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Text2Speech instance from the pretrained model.
+        """Build AudioCoding instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            SpeechCoding: SpeechCoding instance.
+            AudioCoding: AudioCoding instance.
 
         """
         if model_tag is not None:
@@ -159,7 +163,7 @@ class SpeechCoding:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return SpeechCoding(**kwargs)
+        return AudioCoding(**kwargs)
 
 
 @typechecked
@@ -176,7 +180,7 @@ def inference(
     train_config: Optional[str],
     model_file: Optional[str],
     model_tag: Optional[str],
-    target_bandwidth: float,
+    target_bandwidth: Optional[float],
     encode_only: bool,
     always_fix_seed: bool,
     allow_variable_data_keys: bool,
@@ -200,7 +204,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build model
-    speech_coding_kwargs = dict(
+    audio_coding_kwargs = dict(
         train_config=train_config,
         model_file=model_file,
         target_bandwidth=target_bandwidth,
@@ -209,9 +213,9 @@ def inference(
         seed=seed,
         always_fix_seed=always_fix_seed,
     )
-    speech_coding = SpeechCoding.from_pretrained(
+    audio_coding = AudioCoding.from_pretrained(
         model_tag=model_tag,
-        **speech_coding_kwargs,
+        **audio_coding_kwargs,
     )
 
     # 3. Build data-iterator
@@ -221,28 +225,21 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=GANCodecTask.build_preprocess_fn(speech_coding.train_args, False),
-        collate_fn=GANCodecTask.build_collate_fn(speech_coding.train_args, False),
+        preprocess_fn=GANCodecTask.build_preprocess_fn(audio_coding.train_args, False),
+        collate_fn=GANCodecTask.build_collate_fn(audio_coding.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
 
     # 4. Start for-loop
-    output_dir = Path(output_dir)
-    (output_dir / "codec").mkdir(parents=True, exist_ok=True)
-    (output_dir / "wav").mkdir(parents=True, exist_ok=True)
-
-    # Lazy load to avoid the backend error
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import MaxNLocator
+    output_dir_path = Path(output_dir)
+    (output_dir_path / "codec").mkdir(parents=True, exist_ok=True)
+    (output_dir_path / "wav").mkdir(parents=True, exist_ok=True)
 
     with NpyScpWriter(
-        output_dir / "codec", output_dir / "codec/codec.scp"
+        output_dir_path / "codec", output_dir_path / "codec/codec.scp"
     ) as codec_writer:
-        for idx, (keys, batch) in enumerate(loader, 1):
+        for _, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
@@ -255,12 +252,13 @@ def inference(
             batch.update(encode_only=encode_only)
 
             start_time = time.perf_counter()
-            output_dict = speech_coding(**batch)
+            output_dict = audio_coding(**batch)
 
             key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("resyn_audio") is not None:
                 wav = output_dict["resyn_audio"]
+                # Note(jiatong): Assume the wav is single channel here
                 logging.info(
                     "inference speed = {:.1f} points / sec.".format(
                         int(wav.size(0)) / (time.perf_counter() - start_time)
@@ -268,9 +266,9 @@ def inference(
                 )
                 logging.info(f"{key} (size:{insize}->{wav.size(0)})")
                 sf.write(
-                    f"{output_dir}/wav/{key}.wav",
+                    f"{output_dir_path}/wav/{key}.wav",
                     output_dict["resyn_audio"].cpu().numpy(),
-                    speech_coding.fs,
+                    audio_coding.fs,
                     "PCM_16",
                 )
 
@@ -279,9 +277,9 @@ def inference(
 
     # remove files if those are not included in output dict
     if output_dict.get("codes") is None:
-        shutil.rmtree(output_dir / "codes")
+        shutil.rmtree(output_dir_path / "codes")
     if output_dict.get("resyn_audio") is None:
-        shutil.rmtree(output_dir / "wav")
+        shutil.rmtree(output_dir_path / "wav")
 
 
 def get_parser():
@@ -388,6 +386,7 @@ def get_parser():
         default=False,
         help="Whether to always fix seed",
     )
+    return parser
 
 
 def main(cmd=None):

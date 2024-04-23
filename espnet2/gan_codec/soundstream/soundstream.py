@@ -21,13 +21,13 @@ from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
+from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
-    MelSpectrogramLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
@@ -120,9 +120,8 @@ class SoundStream(AbsGANCodec):
         use_mel_loss: bool = True,
         mel_loss_params: Dict[str, Any] = {
             "fs": 24000,
-            "n_fft": 1024,
-            "hop_length": 256,
-            "win_length": None,
+            "range_start": 6,
+            "range_end": 11,
             "window": "hann",
             "n_mels": 80,
             "fmin": 0,
@@ -164,7 +163,7 @@ class SoundStream(AbsGANCodec):
         self.use_mel_loss = use_mel_loss
         mel_loss_params.update(fs=sampling_rate)
         if self.use_mel_loss:
-            self.mel_loss = MelSpectrogramLoss(
+            self.mel_loss = MultiScaleMelSpectrogramLoss(
                 **mel_loss_params,
             )
         self.use_dual_decoder = use_dual_decoder
@@ -400,18 +399,50 @@ class SoundStream(AbsGANCodec):
         """Run inference.
 
         Args:
-            x (Tensor): Input text index tensor (T_text,).
+            x (Tensor): Input audio (T_wav,).
 
         Returns:
             Dict[str, Tensor]:
                 * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec ().
+                * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
 
         return {"wav": wav, "codec": codec}
+
+    def encode(
+        self,
+        x: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Run encoding.
+
+        Args:
+            x (Tensor): Input audio (T_wav,).
+
+        Returns:
+            Tensor: Generated codes (T_code, N_stream).
+
+        """
+        return self.generator.encode(x)
+
+    def decode(
+        self,
+        x: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Run encoding.
+
+        Args:
+            x (Tensor): Input codes (T_code, N_stream).
+
+        Returns:
+            Tensor: Generated waveform (T_wav,).
+
+        """
+        return self.generator.decode(x)
 
 
 class SoundStreamGenerator(nn.Module):
@@ -569,14 +600,17 @@ class SoundStreamGenerator(nn.Module):
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
+        if x.dim() == 1:
+            x = x.view(1, 1, -1)
+        elif x.dim() == 2:
+            x = x.unsqueeze(1)
+
         encoder_out = self.encoder(x)
         if target_bw is None:
             bw = self.target_bandwidths[-1]
         else:
             bw = target_bw
-        if st is None:
-            st = 0
-        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw, st)
+        codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
         return codes
 
     def decode(self, codes: torch.Tensor):
