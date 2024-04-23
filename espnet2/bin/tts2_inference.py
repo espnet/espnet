@@ -94,10 +94,11 @@ class Text2Speech:
         self.always_fix_seed = always_fix_seed
         self.prefer_normalized_feats = prefer_normalized_feats
 
-        assert vocoder is not None, "TTS2 must have a vocoder, but None is provided."
         vocoder = TTS2Task.build_vocoder_from_file(
             vocoder_config, vocoder_file, model, device
         )
+        assert vocoder is not None, "TTS2 must have a vocoder, but None is provided."
+
         if isinstance(vocoder, torch.nn.Module):
             vocoder.to(dtype=getattr(torch, dtype)).eval()
         self.vocoder = vocoder
@@ -119,6 +120,7 @@ class Text2Speech:
         self,
         text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray, None] = None,
+        discrete_speech: Union[torch.Tensor, np.ndarray, None] = None,
         durations: Union[torch.Tensor, np.ndarray, None] = None,
         spembs: Union[torch.Tensor, np.ndarray, None] = None,
         sids: Union[torch.Tensor, np.ndarray, None] = None,
@@ -143,6 +145,8 @@ class Text2Speech:
         batch = dict(text=text)
         if speech is not None:
             batch.update(speech=speech)
+        if discrete_speech is not None:
+            batch.update(discrete_speech=discrete_speech)
         if durations is not None:
             batch.update(durations=durations)
         if spembs is not None:

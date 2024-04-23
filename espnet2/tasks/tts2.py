@@ -29,6 +29,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
+from espnet2.tts2.tacotron2 import Tacotron2Discrete
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
@@ -49,6 +50,7 @@ tts_choices = ClassChoices(
     "tts",
     classes=dict(
         fastspeech2=FastSpeech2Discrete,
+        tacotron2=Tacotron2Discrete,
     ),
     type_check=AbsTTS2,
     default="fastspeech2",
@@ -228,6 +230,7 @@ class TTS2Task(AbsTask):
             retval = (
                 "spembs",
                 "speech",
+                "discrete_speech",
                 "durations",
                 "pitch",
                 "energy",

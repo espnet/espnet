@@ -117,7 +117,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute pitch onthefly", flush=True)
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
                     speech,
@@ -126,7 +125,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute energy onthefly", flush=True)
 
             # Normalize
             if self.normalize is not None:
@@ -140,8 +138,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
         batch = dict(
             text=text,
             text_lengths=text_lengths,
-            feats=feats,
-            feats_lengths=feats_lengths,
             discrete_feats=discrete_feats,
             discrete_feats_lengths=discrete_feats_lengths,
         )
@@ -245,6 +241,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
         self,
         text: torch.Tensor,
         speech: Optional[torch.Tensor] = None,
+        discrete_speech: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -280,9 +277,13 @@ class ESPnetTTS2Model(AbsESPnetModel):
                 feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
-            input_dict.update(feats=feats)
+            # (Jinchuan) No longer pass feats to self.tts, but it will be used
+            #            for pitch / energy extraction when needed.
+            # input_dict.update(feats=feats)
             if self.tts.require_raw_speech:
                 input_dict.update(speech=speech)
+            if discrete_speech is not None:
+                input_dict.update(feats=discrete_speech)
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:
