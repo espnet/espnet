@@ -78,7 +78,7 @@ download_model=""  # Download a model from Model Zoo and use it for decoding.
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-audio_fold_length=256000 # fold_length for speech data.
+audio_fold_length=256000 # fold_length for audio data.
 # Upload model related
 hf_repo=
 
@@ -138,7 +138,7 @@ Options:
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
     --test_sets          # Names of test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --audio_fold_length # Fold length for speech data (default="${audio_fold_length}").
+    --audio_fold_length  # Fold length for audio data (default="${audio_fold_length}").
 EOF
 )
 
@@ -474,7 +474,7 @@ if ! "${skip_eval}"; then
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/codec_inference.JOB.log \
                 ${python} -m espnet2.bin.gan_codec_inference \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type ${_data}/${_scp},speech,${_type} \
+                    --data_path_and_name_and_type ${_data}/${_scp},audio,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${codec_exp}"/"${inference_model}" \
                     --train_config "${codec_exp}"/config.yaml \
