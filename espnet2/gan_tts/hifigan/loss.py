@@ -204,6 +204,8 @@ class FeatureMatchLoss(torch.nn.Module):
                 feats_hat_ = feats_hat_[:-1]
                 feats_ = feats_[:-1]
             for j, (feat_hat_, feat_) in enumerate(zip(feats_hat_, feats_)):
+                import logging
+                logging.info("feat_hat_: {}, feat_: {}".format(feat_hat_.shape, feat_.shape))
                 feat_match_loss_ += F.l1_loss(feat_hat_, feat_.detach())
             if self.average_by_layers:
                 feat_match_loss_ /= j + 1
