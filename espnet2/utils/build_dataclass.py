@@ -12,6 +12,6 @@ def build_dataclass(dataclass, args: argparse.Namespace):
             raise ValueError(
                 f"args doesn't have {field.name}. You need to set it to ArgumentsParser"
             )
-        check_type(field.name, getattr(args, field.name), field.type)
+        check_type(getattr(args, field.name), field.type)
         kwargs[field.name] = getattr(args, field.name)
     return dataclass(**kwargs)

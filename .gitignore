@@ -4,6 +4,8 @@
 \#*\#
 .\#*
 *DS_Store
+dummy_token_list
+empty.py
 out.txt
 espnet.egg-info/
 doc/_build
@@ -31,6 +33,8 @@ test_spm.model
 *.nfs*
 constraints.txt
 
+out/config.yaml
+
 # recipe related
 egs*/*/*/data*
 egs*/*/*/db
@@ -48,6 +52,7 @@ egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
+egs2/test/*
 
 # tools related
 tools/chainer

@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -28,6 +28,7 @@ else:
 class ESPnetTTSModel(AbsESPnetModel):
     """ESPnet model for text-to-speech task."""
 
+    @typechecked
     def __init__(
         self,
         feats_extract: Optional[AbsFeatsExtract],
@@ -39,7 +40,6 @@ class ESPnetTTSModel(AbsESPnetModel):
         tts: AbsTTS,
     ):
         """Initialize ESPnetTTSModel module."""
-        assert check_argument_types()
         super().__init__()
         self.feats_extract = feats_extract
         self.pitch_extract = pitch_extract

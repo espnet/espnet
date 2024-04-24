@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.layers.create_adapter_utils import (
@@ -24,7 +24,7 @@ except ImportError:
     is_transformers_available = False
 
 try:
-    import s3prl
+    import s3prl  # noqa
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
 
     is_s3prl_available = True
@@ -39,6 +39,7 @@ except ImportError:
     is_lora_available = False
 
 
+@typechecked
 def create_houlsby_adapter(
     model: torch.nn.Module,
     bottleneck: int = 32,
@@ -55,7 +56,6 @@ def create_houlsby_adapter(
             "Error: S3PRL is not properly installed."
             "Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done"
         )
-    assert check_argument_types()
     assert hasattr(model, "frontend") and isinstance(
         model.frontend, S3prlFrontend
     ), "Only support S3PRL frontend now !!"
@@ -82,13 +82,14 @@ def create_houlsby_adapter(
         raise ValueError(f"Target layers {target_layers} not found in the base model.")
 
 
+@typechecked
 def create_lora_adapter(
     model: torch.nn.Module,
     rank: int = 8,
     alpha: int = 8,
     dropout_rate: float = 0.0,
     target_modules: List[str] = ["query"],
-    bias_type: str = "none",
+    bias_type: Optional[str] = "none",
 ):
     """Create LoRA adapter for the base model.
 
@@ -111,7 +112,6 @@ def create_lora_adapter(
 
     """
 
-    assert check_argument_types()
     if not is_lora_available:
         raise ImportError(
             "Requiring loralib. Install loralib following: "
@@ -125,7 +125,7 @@ def create_lora_adapter(
         if not check_target_module_exists(key, target_modules):
             continue
 
-        # TODO is this a good way to check the target module?
+        # TODO(gituser) is this a good way to check the target module?
         # check_target_module_exists needs only one of the target modules
         # to be in the key, but what if one key exists and another doesn't?
         # Should this case raise an error?
@@ -151,13 +151,14 @@ def create_lora_adapter(
     model.eval()
 
 
+@typechecked
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
-    """Create a new houlsby adapter module for the given target module\n.
+    """Create a new houlsby adapter module for the given target module.
+
     Currently, only support:
     Wav2Vec2EncoderLayerStableLayerNorm &
     TransformerSentenceEncoderLayer
     """
-    assert check_argument_types()
     if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
 
         input_size = target_module.layer_norm.normalized_shape[0]
@@ -219,11 +220,11 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     return adapter_added_layer
 
 
+@typechecked
 def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
 ):
     """Create a new lora module for the given target module."""
-    assert check_argument_types()
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):

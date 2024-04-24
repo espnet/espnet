@@ -130,6 +130,6 @@ def test_tokens2ids_add_tokens(tmp_path):
     tknlist_path.touch()
     with open(tknlist_path, "w") as f:
         f.write("command:yes\n")
-    id_converter = OpenAIWhisperTokenIDConverter(
+    _ = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", added_tokens_txt=str(tknlist_path)
     )

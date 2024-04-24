@@ -11,7 +11,7 @@ requirements = {
         "setuptools>=38.5.1",
         "packaging",
         "configargparse>=1.2.1",
-        "typeguard==2.13.3",
+        "typeguard",
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
@@ -93,7 +93,7 @@ requirements = {
         "pytest-runner",
     ],
     "test": [
-        "pytest>=3.3.0",
+        "pytest>=7.0.0",
         "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",

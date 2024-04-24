@@ -9,9 +9,11 @@ def get_parser():
 
 
 def main(cmd=None):
-    r"""Speaker embedding extractor training. Trained model can be used for
-        speaker verification, open set speaker identification, and also as
-        embeddings for various other tasks including speaker diarization.
+    r"""Speaker embedding extractor training.
+
+    Trained model can be used for
+    speaker verification, open set speaker identification, and also as
+    embeddings for various other tasks including speaker diarization.
 
     Example:
         % python spk_train.py --print_config --optim adadelta \
