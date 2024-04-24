@@ -40,6 +40,7 @@ requirements = {
         # ENH
         "ci_sdr",
         "fast-bss-eval==0.1.3",
+        "timm",
         # SPK
         "asteroid_filterbanks==0.4.0",
         # UASR

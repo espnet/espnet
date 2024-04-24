@@ -5,40 +5,55 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
-from espnet2.enh.layers.uses import USES
+from espnet2.enh.layers.uses2_comp import USES2_Comp
+from espnet2.enh.layers.uses2_swin import USES2_Swin
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
-class USESSeparator(AbsSeparator):
+class USES2Separator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
         num_spk: int = 2,
         enc_channels: int = 256,
         bottleneck_size: int = 64,
-        num_blocks: int = 6,
-        num_spatial_blocks: int = 3,
+        num_blocks: int = 4,
+        num_spatial_blocks: int = 2,
         ref_channel: Optional[int] = None,
+        tf_mode: str = "comp",
+        # USES2-Swin related arguments
+        swin_block_depth: Union[int, Tuple[int]] = (4, 4, 4, 4),
+        # USES2-Comp related arguments
         segment_size: int = 64,
         memory_size: int = 20,
         memory_types: int = 1,
         # Transformer-related arguments
+        input_resolution: Tuple[int, int] = (130, 64),
+        window_size: Tuple[int, int] = (10, 8),
+        mlp_ratio: int = 4,
+        qkv_bias: bool = True,
+        qk_scale: Optional[float] = None,
         rnn_type: str = "lstm",
         bidirectional: bool = True,
         hidden_size: int = 128,
         att_heads: int = 4,
         dropout: float = 0.0,
+        att_dropout: float = 0.0,
+        drop_path: float = 0.0,
         norm_type: str = "cLN",
         activation: str = "relu",
-        ch_mode: Union[str, List[str]] = "att",
+        use_checkpoint: bool = False,
+        ch_mode: Union[str, List[str]] = "att_tac",
         ch_att_dim: int = 256,
         eps: float = 1e-5,
         additional: dict = {},
     ):
-        """Unconstrained Speech Enhancement and Separation (USES) Network.
+        """Unconstrained Speech Enhancement and Separation v2 (USES2) Network.
 
         Reference:
-            [1] W. Zhang, K. Saijo, Z.-Q., Wang, S. Watanabe, and Y. Qian,
+            [1] W. Zhang, J.-w. Jung, and Y. Qian, “Improving Design of Input
+            Condition Invariant Speech Enhancement,” in Proc. ICASSP, 2024.
+            [2] W. Zhang, K. Saijo, Z.-Q., Wang, S. Watanabe, and Y. Qian,
             “Toward Universal Speech Enhancement for Diverse Input Conditions,”
             in Proc. ASRU, 2023.
 
@@ -52,27 +67,45 @@ class USESSeparator(AbsSeparator):
             num_blocks (int): number of processing blocks.
             num_spatial_blocks (int): number of processing blocks with channel modeling.
             ref_channel (int): reference channel (used in channel modeling modules).
+            tf_mode (str): mode of Time-Frequency modeling.
+                Select from "swin" and "comp".
+            swin_block_depth (Tuple[int]): depth of each Swin-Transformer block.
             segment_size (int): number of frames in each non-overlapping segment.
-                This is used to segment long utterances into smaller chunks for
-                efficient processing.
+                This is only used when ``tf_mode`` is "comp", and is used to segment
+                long utterances into smaller chunks for efficient processing.
             memory_size (int): group size of global memory tokens.
+                This is only used when ``tf_mode`` is "comp".
                 The basic use of memory tokens is to store the history information from
                 previous segments.
                 The memory tokens are updated by the output of the last block after
                 processing each segment.
             memory_types (int): numbre of memory token groups.
+                This is only used when ``tf_mode`` is "comp".
                 Each group corresponds to a different type of processing, i.e.,
                     the first group is used for denoising without dereverberation,
                     the second group is used for denoising with dereverberation.
+            input_resolution (tuple): frequency and time dimension of the input feature.
+                Only used for efficient training.
+                Should be close to the actual spectrum size (F, T) of training samples.
+            window_size (tuple): size of the Time-Frequency window in Swin-Transformer.
+            mlp_ratio (int): ratio of the MLP hidden size to embedding size in BasicLayer.
+            qkv_bias (bool): If True, add a learnable bias to query, key, value in
+                BasicLayer.
+            qk_scale (float): Override default qk scale of head_dim ** -0.5 in
+                BasicLayer if set.
             rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
             bidirectional (bool): whether the inter-chunk RNN layers are bidirectional.
             hidden_size (int): dimension of the hidden state.
             att_heads (int): number of attention heads.
             dropout (float): dropout ratio. Default is 0.
+            att_dropout (float): attention dropout ratio in BasicLayer.
+            drop_path (float): drop-path ratio in BasicLayer.
             norm_type: type of normalization to use after each inter- or
                 intra-chunk NN block.
             activation: the nonlinear activation function.
-            ch_mode: str or list, mode of channel modeling. Select from "att" and "tac".
+            use_checkpoint (bool): whether to use checkpointing to save memory.
+            ch_mode (str or list): mode of channel modeling. Select from "att", "tac",
+                and "att_tac".
             ch_att_dim (int): dimension of the channel attention.
             ref_channel: Optional[int], index of the reference channel.
             eps (float): epsilon for layer normalization.
@@ -82,33 +115,51 @@ class USESSeparator(AbsSeparator):
         self._num_spk = num_spk
         self.enc_channels = enc_channels
         self.ref_channel = ref_channel
+        self.tf_mode = tf_mode
 
         # used to project each complex-valued time-frequency bin to an embedding
         self.post_encoder = torch.nn.Conv2d(2, enc_channels, (3, 3), padding=(1, 1))
 
         assert bottleneck_size % att_heads == 0, (bottleneck_size, att_heads)
-        opt = {
-            "memory_types": memory_types,
-        }
+        if tf_mode == "comp":
+            net = USES2_Comp
+            opt = dict(
+                segment_size=segment_size,
+                memory_size=memory_size,
+                memory_types=memory_types,
+                rnn_type=rnn_type,
+                hidden_size=hidden_size,
+                bidirectional=bidirectional,
+                norm_type=norm_type,
+            )
+        elif tf_mode == "swin":
+            net = USES2_Swin
+            opt = dict(
+                swin_block_depth=swin_block_depth,
+            )
+        else:
+            raise NotImplementedError
         # arguments in `opt` can be updated at inference time to process different data
         opt.update(additional)
-        self.uses = USES(
+        self.uses = net(
             enc_channels,
             output_size=enc_channels * num_spk,
             bottleneck_size=bottleneck_size,
             num_blocks=num_blocks,
             num_spatial_blocks=num_spatial_blocks,
-            segment_size=segment_size,
-            memory_size=memory_size,
             **opt,
             # Transformer-specific arguments
-            rnn_type=rnn_type,
-            bidirectional=bidirectional,
-            hidden_size=hidden_size,
+            input_resolution=input_resolution,
+            window_size=window_size,
+            mlp_ratio=mlp_ratio,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
             att_heads=att_heads,
             dropout=dropout,
-            norm_type=norm_type,
+            att_dropout=att_dropout,
+            drop_path=drop_path,
             activation=activation,
+            use_checkpoint=use_checkpoint,
             ch_mode=ch_mode,
             ch_att_dim=ch_att_dim,
             eps=eps,
@@ -136,7 +187,8 @@ class USESSeparator(AbsSeparator):
                 2 is real and imaginary parts (optional if input is a complex tensor)
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
-                "mode": one of ("no_dereverb", "dereverb", "both")
+                "mode": one of ("no_dereverb", "dereverb", "both"), only used when
+                    self.tf_mode == "comp"
                 1. "no_dereverb": only use the first memory group for denoising
                     without dereverberation
                 2. "dereverb": only use the second memory group for denoising
@@ -178,7 +230,11 @@ class USESSeparator(AbsSeparator):
         # B, enc_channels * num_spk, F, T
         if additional is not None:
             mode = additional.get("mode", "no_dereverb")
-            if mode == "no_dereverb":
+            if self.tf_mode == "swin" and mode != "no_dereverb":
+                raise ValueError(
+                    f"mode '{mode}' not supported with tf_mode={self.tf_mode}"
+                )
+            if self.tf_mode == "swin" or mode == "no_dereverb":
                 processed = self.uses(feature, ref_channel=self.ref_channel)
             elif mode == "dereverb":
                 processed = self.uses(feature, ref_channel=self.ref_channel, mem_idx=1)
