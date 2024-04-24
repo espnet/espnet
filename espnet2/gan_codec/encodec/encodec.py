@@ -91,6 +91,8 @@ class Encodec(SoundStream):
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
         cache_generator_outputs: bool = False,
+        use_loss_balancer: bool = False,
+        balance_ema_decay: float = 0.99,
     ):
         # (Jinchuan) re-apply everything except the discriminator config.
         # Init discriminator from default config and then override it.
@@ -111,6 +113,8 @@ class Encodec(SoundStream):
             lambda_feat_match=lambda_feat_match,
             lambda_mel=lambda_mel,
             cache_generator_outputs=cache_generator_outputs,
+            use_loss_balancer=use_loss_balancer,
+            balance_ema_decay=balance_ema_decay,
         )
 
         self.discriminator = EncodecDiscriminator(**discriminator_params)
