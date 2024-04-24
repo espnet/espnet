@@ -7,6 +7,7 @@
 - pytorch version: `pytorch 2.0.1`
 - Git hash: `eed7751c910977290ef9a177ea0942a0e3c2fd35`
   - Commit date: `Mon Mar 25 18:26:50 2024 +0000`
+- HF link: https://huggingface.co/satvik-dixit/asr_makerere
 
 ## exp/asr_train_asr_demo_branchformer_raw_en_bpe300_sp
 ### WER
