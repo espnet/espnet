@@ -80,6 +80,7 @@ codec_conf:
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
+    use_loss_balancer: false
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -128,7 +129,7 @@ sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 1            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
-log_interval: 50          # log interval in iterations
+log_interval: 500         # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
