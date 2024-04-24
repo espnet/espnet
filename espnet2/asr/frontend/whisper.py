@@ -26,6 +26,7 @@ class WhisperFrontend(AbsFrontend):
         try:
             import whisper
             from whisper.audio import HOP_LENGTH, N_FFT
+
             N_MELS = 80
         except Exception as e:
             print("Error: whisper is not properly installed.")
@@ -40,9 +41,7 @@ class WhisperFrontend(AbsFrontend):
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
         if fs != 16000:
-            logging.warning(
-                "Whisper only support 16 kHz audio."
-            )
+            logging.warning("Whisper only support 16 kHz audio.")
 
         self.n_fft = N_FFT
         self.win_length = N_FFT
