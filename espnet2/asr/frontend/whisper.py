@@ -1,6 +1,7 @@
 import contextlib
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
+import humanfriendly
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked
@@ -18,12 +19,14 @@ class WhisperFrontend(AbsFrontend):
     def __init__(
         self,
         whisper_model: str = "small",
+        fs: Union[int, str] = 16000,
         freeze_weights: bool = True,
         download_dir: Optional[str] = None,
     ):
         try:
             import whisper
-            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS
+            from whisper.audio import HOP_LENGTH, N_FFT
+            N_MELS = 80
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
@@ -33,6 +36,13 @@ class WhisperFrontend(AbsFrontend):
             raise e
 
         super().__init__()
+
+        if isinstance(fs, str):
+            fs = humanfriendly.parse_size(fs)
+        if fs != 16000:
+            logging.warning(
+                "Whisper only support 16 kHz audio."
+            )
 
         self.n_fft = N_FFT
         self.win_length = N_FFT
