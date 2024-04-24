@@ -47,7 +47,7 @@ codec_conf:
             hop_lengths: [256, 512, 128, 64, 32]
             win_lengths: [1024, 2048, 512, 256, 128]
             activation: LeakyReLU
-            activation_params: 
+            activation_params:
                 negative_slope: 0.3
 
     # loss function related

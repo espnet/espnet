@@ -77,7 +77,7 @@ class GANTrainer(Trainer):
             "--skip_discriminator_prob",
             type=float,
             default=0.0,
-            help="If > 0, skip the discriminator step with a probability"
+            help="If > 0, skip the discriminator step with a probability",
         )
 
     @classmethod
