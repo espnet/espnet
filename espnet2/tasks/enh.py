@@ -64,8 +64,8 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
-from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.enh.separator.uses2_separator import USES2Separator
+from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize

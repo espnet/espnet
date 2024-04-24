@@ -3,8 +3,8 @@ import math
 import torch
 import torch.nn as nn
 
-from espnet2.enh.layers.tcn import ChannelwiseLayerNorm
 from espnet2.enh.layers.swin_transformer import BasicLayer
+from espnet2.enh.layers.tcn import ChannelwiseLayerNorm
 from espnet2.enh.layers.uses import ChannelAttention, ChannelTAC, LayerNormalization
 
 EPS = torch.finfo(torch.float32).eps
