@@ -68,7 +68,7 @@ Here we're reporting MuST-C-v2 English-to-German results. These example models w
 
 #### Attentional Encoder-Decoder
 
-![Attentional Encoder-Decoder](./local/images/attn.png)
+![Attentional Encoder-Decoder](./TEMPLATE_local/images/attn.png)
 
 *Why choose this model?*
 
@@ -80,7 +80,7 @@ The most prominent weakness to be aware of is the end-detection problem: the aut
 
 #### CTC/Attention
 
-![CTC/Attention](./local/images/ctc-attn.png)
+![CTC/Attention](./TEMPLATE_local/images/ctc-attn.png)
 
 *Why choose this model?*
 
@@ -92,7 +92,7 @@ Joint training/decoding incurs an additional computational cost. Anecdotally, CT
 
 #### Transducer
 
-![Transducer](./local/images/rnnt.png)
+![Transducer](./TEMPLATE_local/images/rnnt.png)
 
 *Why choose this model?*
 
@@ -104,7 +104,7 @@ The translation quality lags behind that of CTC/attention due to its low capacit
 
 #### Multi-Decoder
 
-![Multi-Decoder CTC/Attention](./local/images/md-ctc-attn.png)
+![Multi-Decoder CTC/Attention](./TEMPLATE_local/images/md-ctc-attn.png)
 
 *Why choose this model?*
 
@@ -118,7 +118,7 @@ Multi-decoder inference involves two consecutive beam searches, one for the ASR 
 
 #### ASR Pre-training
 
-![](./local/images/asr-init.png)
+![](./TEMPLATE_local/images/asr-init.png)
 
 Initializing encoder parameters from an ASR model is an easy way to speed up the convergence of ST training, allowing for more rapid experiment cycles. Models typically perform better with ASR pre-training as well.
 
@@ -126,7 +126,7 @@ An example of ASR pre-training can be found in [this config](https://github.com/
 
 #### SSL Front-end/Encoder
 
-![](./local/images/ssl.png)
+![](./TEMPLATE_local/images/ssl.png)
 
 We can leverage self-supervised learning representations as either front-end features or as an encoder initialization. The former method is typically less computationally intensive, as SSL models may be very large.
 
@@ -134,7 +134,7 @@ An example of using an SSL front-end can be found in [this config](https://githu
 
 #### LLM Decoder
 
-![](./local/images/llm.png)
+![](./TEMPLATE_local/images/llm.png)
 
 Initializing decoder parameters from a pre-trained large language model can greatly improve performance. This typically increases the model size drastically, but fewer iterations are required for convergence.
 
@@ -142,7 +142,7 @@ An example of using a pre-trained LLM initialization can be found in [this confi
 
 #### Hierarchical Encoding
 
-![](./local/images/hier-enc.png)
+![](./TEMPLATE_local/images/hier-enc.png)
 
 Building deeper, more sophisticated encoders can improve ST performance. We have found that hierarchical encoding, where initial layers are trained towards an ASR CTC objective and final layers are trained towards a ST CTC objective, encourages the encoder to take on more of the input-to-output re-ordering required for translation.
 
@@ -150,7 +150,7 @@ An example of hierarchical encoding can be found in [this config](https://github
 
 ## Code Components
 
-![](./local/images/code.png)
+![](./TEMPLATE_local/images/code.png)
 
 The three main code components can be found in `espnet2/st/espnet_model.py`, `espnet2/tasks/st.py`, and `espnet2/bin/st_inference.py`.
 
@@ -164,6 +164,6 @@ The three main code components can be found in `espnet2/st/espnet_model.py`, `es
 
 If you are developing new functions and wish to debug your new training/inference logic, you can use a Python debugger (e.g. pdb) and directly run Python commands (circumventing the recipe scripts).
 
-![](./local/images/python-cmd.png)
+![](./TEMPLATE_local/images/python-cmd.png)
 
 Once you have run the training or inference stage, ESPnet will have created a log file. At the top of these log files, you'll find the corresponding Python command. Note: for debugging you may want to set `--multiprocessing_distributed False`.
