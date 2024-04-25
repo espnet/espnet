@@ -83,9 +83,12 @@ class ResidualVectorQuantizer(nn.Module):
             codebook_weight=self.codebook_weight,
         )
 
-
     def forward(
-        self, x: torch.Tensor, sample_rate: int, n_quantizers: int = None, bandwidth: Optional[float] = None
+        self,
+        x: torch.Tensor,
+        sample_rate: int,
+        n_quantizers: int = None,
+        bandwidth: Optional[float] = None,
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
         Args:

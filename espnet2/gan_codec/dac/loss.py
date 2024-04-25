@@ -3,10 +3,11 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-from audiotools import AudioSignal
-from audiotools import STFTParams
-from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
+from audiotools import AudioSignal, STFTParams
 from torch import nn
+
+from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
+
 
 class SISDRLoss(nn.Module):
     """
@@ -290,7 +291,3 @@ class MultiScaleMelSpectrogramLoss(nn.Module):
             )
             loss += self.mag_weight * self.loss_fn(x_mels, y_mels)
         return loss
-
-   
-    
-    

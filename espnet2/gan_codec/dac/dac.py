@@ -16,12 +16,13 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.dac.loss import MultiScaleMelSpectrogramLoss, MultiScaleSTFTLoss
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
-from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
-    ComplexSTFTDiscriminator,
-)
 from espnet2.gan_codec.shared.discriminator.multi_discriminator import (
     MultiScaleMultiPeriodMultiBandiscriminator,
+)
+from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
+    ComplexSTFTDiscriminator,
 )
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
@@ -31,10 +32,6 @@ from espnet2.gan_tts.hifigan.loss import (
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
     MelSpectrogramLoss,
-)
-from espnet2.gan_codec.dac.loss import (
-    MultiScaleMelSpectrogramLoss,
-    MultiScaleSTFTLoss
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
@@ -181,21 +178,21 @@ class DAC(AbsGANCodec):
             self.feat_match_loss = FeatureMatchLoss(
                 **feat_match_loss_params,
             )
-            
+
         self.use_mel_loss = use_mel_loss
         mel_loss_params.update(fs=sampling_rate)
         if self.use_mel_loss:
             self.mel_loss = MelSpectrogramLoss(
                 **mel_loss_params,
             )
-            
+
         self.use_multi_scale_mel_loss = use_multi_scale_mel_loss
         multi_scale_mel_loss_params.update(sample_rate=sampling_rate)
         if self.use_multi_scale_mel_loss:
             self.multi_scale_mel_loss = MultiScaleMelSpectrogramLoss(
                 **multi_scale_mel_loss_params,
             )
-            
+
         # coefficients
         self.lambda_quantization = lambda_quantization
         self.lambda_reconstruct = lambda_reconstruct
@@ -316,7 +313,7 @@ class DAC(AbsGANCodec):
             mel_loss = self.lambda_mel * mel_loss
             loss = loss + mel_loss
             stats.update(mel_loss=mel_loss.item())
-            
+
         if self.use_multi_scale_mel_loss:
             multi_scale_mel_loss = self.multi_scale_mel_loss(audio_hat, audio)
             multi_scale_mel_loss = self.lambda_multi_scale_mel * multi_scale_mel_loss

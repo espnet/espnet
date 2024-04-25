@@ -15,6 +15,7 @@ from packaging.version import parse as V
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm
+
 from espnet2.gan_codec.shared.encoder.layers import Snake1d
 
 if V(torch.__version__) >= V("2.1.0"):
@@ -267,7 +268,7 @@ class SEANetResnetBlock(nn.Module):
         assert len(kernel_sizes) == len(
             dilations
         ), "Number of kernel sizes should match number of dilations"
-        
+
         if activation == "Snake":
             act = Snake1d(dim)
         else:
@@ -373,8 +374,7 @@ class SEANetEncoder(nn.Module):
         else:
             act = getattr(nn, activation)
             act = act(**activation_params)
-            
-        
+
         mult = 1
         model: List[nn.Module] = [
             SConv1d(

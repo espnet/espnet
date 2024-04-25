@@ -234,7 +234,7 @@ class EuclideanCodebook(nn.Module):
 
 
 class CosineSimilarityCodebook(nn.Module):
-    """ 
+    """
     Implementation of VQ similar to Karpathy's repo:
     https://github.com/karpathy/deep-vector-quantization
     Additionally uses following tricks from Improved VQGAN
@@ -382,8 +382,6 @@ class CosineSimilarityCodebook(nn.Module):
         return quantize, embed_ind
 
 
-
-
 class VectorQuantization(nn.Module):
     """Vector quantization implementation.
     Currently supports only euclidean distance.
@@ -524,13 +522,13 @@ class FactorizedVectorQuantization(nn.Module):
 
         if codebook_type == "euclidean":
             self._codebook = EuclideanCodebook(
-            dim=_codebook_dim,
-            codebook_size=codebook_size,
-            kmeans_init=kmeans_init,
-            kmeans_iters=kmeans_iters,
-            decay=decay,
-            epsilon=epsilon,
-            threshold_ema_dead_code=threshold_ema_dead_code,
+                dim=_codebook_dim,
+                codebook_size=codebook_size,
+                kmeans_init=kmeans_init,
+                kmeans_iters=kmeans_iters,
+                decay=decay,
+                epsilon=epsilon,
+                threshold_ema_dead_code=threshold_ema_dead_code,
             )
         elif codebook_type == "cosine":
             self._codebook = CosineSimilarityCodebook(
@@ -575,10 +573,14 @@ class FactorizedVectorQuantization(nn.Module):
 
         if self.training:
             if self.commitment_weight > 0:
-                commit_loss = F.mse_loss(quantize.detach(), x_e, reduction="none").mean([1,2])
+                commit_loss = F.mse_loss(quantize.detach(), x_e, reduction="none").mean(
+                    [1, 2]
+                )
                 loss = loss + (commit_loss * mask).mean() * self.commitment_weight
             if self.codebook_weight > 0:
-                codebook_loss = F.mse_loss(quantize, x_e.detach(), reduction="none").mean([1,2])
+                codebook_loss = F.mse_loss(
+                    quantize, x_e.detach(), reduction="none"
+                ).mean([1, 2])
                 loss = loss + (codebook_loss * mask).mean() * self.codebook_weight
         quantize = (
             x_e + (quantize - x_e).detach()
@@ -595,8 +597,8 @@ class ResidualVectorQuantization(nn.Module):
 
     def __init__(self, *, num_quantizers, quantizer_dropout, **kwargs):
         super().__init__()
-        dim = kwargs.get('dim')
-        codebook_dim = kwargs.get('codebook_dim')
+        dim = kwargs.get("dim")
+        codebook_dim = kwargs.get("codebook_dim")
         use_factorized_code = dim != codebook_dim
         if not use_factorized_code:
             self.layers = nn.ModuleList(
@@ -618,16 +620,14 @@ class ResidualVectorQuantization(nn.Module):
         n_q = n_q or len(self.layers)
         if self.training:
             n_q = torch.ones((x.shape[0],)) * len(self.layers) + 1
-            dropout = torch.randint(1, len(self.layers)+ 1, (x.shape[0],))
+            dropout = torch.randint(1, len(self.layers) + 1, (x.shape[0],))
             n_dropout = int(x.shape[0] * self.quantizer_dropout)
             n_q[:n_dropout] = dropout[:n_dropout]
             n_q = n_q.to(x.device)
         for i, layer in enumerate(self.layers):
             if self.training is False and i >= nq:
                 break
-            mask = (
-                torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
-            )
+            mask = torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
             quantized_out_i, indices_i, loss_i = layer(residual, mask)
 
             # Create mask to apply quantizer dropout
@@ -636,8 +636,7 @@ class ResidualVectorQuantization(nn.Module):
 
             all_indices.append(indices_i)
             all_losses.append(loss_i)
-        
-        
+
         # for layer in self.layers[:n_q]:
         #     quantized, indices, loss = layer(residual)
         #     residual = residual - quantized

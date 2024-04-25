@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from audiotools import AudioSignal
-from audiotools import STFTParams
+from audiotools import AudioSignal, STFTParams
 from einops import rearrange
 from torch.nn.utils import weight_norm
 
@@ -84,9 +83,8 @@ class MSD(nn.Module):
         # x.resample(self.sample_rate // self.rate)
         # x = x.audio_data
         resample_transform = torchaudio.transforms.Resample(
-            orig_freq=self.sample_rate, 
-            new_freq=self.sample_rate // self.rate
-            )
+            orig_freq=self.sample_rate, new_freq=self.sample_rate // self.rate
+        )
         x = resample_transform(x)
 
         fmap = []
@@ -101,6 +99,7 @@ class MSD(nn.Module):
 
 
 BANDS = [(0.0, 0.1), (0.1, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]
+
 
 class MRD(nn.Module):
     def __init__(
