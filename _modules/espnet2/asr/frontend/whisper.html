@@ -213,8 +213,9 @@
              
   <h1>Source code for espnet2.asr.frontend.whisper</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
@@ -232,12 +233,15 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">whisper_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;small&quot;</span><span class="p">,</span>
+        <span class="n">fs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
         <span class="n">freeze_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">download_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">whisper</span>
-            <span class="kn">from</span> <span class="nn">whisper.audio</span> <span class="kn">import</span> <span class="n">HOP_LENGTH</span><span class="p">,</span> <span class="n">N_FFT</span><span class="p">,</span> <span class="n">N_MELS</span>
+            <span class="kn">from</span> <span class="nn">whisper.audio</span> <span class="kn">import</span> <span class="n">HOP_LENGTH</span><span class="p">,</span> <span class="n">N_FFT</span>
+
+            <span class="n">N_MELS</span> <span class="o">=</span> <span class="mi">80</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: whisper is not properly installed.&quot;</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span>
@@ -247,6 +251,11 @@
             <span class="k">raise</span> <span class="n">e</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">fs</span> <span class="o">=</span> <span class="n">humanfriendly</span><span class="o">.</span><span class="n">parse_size</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fs</span> <span class="o">!=</span> <span class="mi">16000</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Whisper only support 16 kHz audio.&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">=</span> <span class="n">N_FFT</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">=</span> <span class="n">N_FFT</span>
