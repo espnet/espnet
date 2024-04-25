@@ -256,16 +256,16 @@ use_lm=true
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" --python "${python}" --st-args "--num_workers 0"
+        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-packing false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" --python "${python}" --st-args "--num_workers 0"
     done
     use_lm=false
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" --st-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
+./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-packing false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" \
     --st-config conf/train_st_streaming_debug.yaml --st-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
