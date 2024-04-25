@@ -1,7 +1,7 @@
 # Model
 model: espnet
 model_conf:
-    share_emb: true
+    share_emb: false
   
 corelm: espnet_builtin
 corelm_conf:
@@ -9,8 +9,8 @@ corelm_conf:
     att_unit: 512
     head: 8
     unit: 1024
-    encoder_layer: 1
-    decoder_layer: 1
+    encoder_layer: 8
+    decoder_layer: 8
     dropout_rate: 0.0
     positional_dropout_rate: 0.0
     attention_dropout_rate: 0.0
@@ -32,14 +32,16 @@ postprocessor: none
 
 # Dataloader
 batch_type: numel
-batch_bins: 35000000
+batch_bins: 50000
 accum_grad: 1
-max_epoch: 10
+max_epoch: 300
+num_workers: 4
+log_interval: 500
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.001
+    lr: 0.005
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 30000
@@ -53,6 +55,8 @@ best_model_criterion:
 keep_nbest_models: 10
 
 # Global settings
+use_amp: true
 encoder_decoder_format: true
 codec_token_per_frame: 12 # DAC
 codec_token_in_use: 3
+speaker_prompt_length: 150 # 50fps, a.k.a., 3s

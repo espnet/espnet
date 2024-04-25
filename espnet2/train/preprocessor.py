@@ -2331,6 +2331,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         bpemodel: Union[Path, str, Iterable[str]] = None,
         bpe_encode_kwargs: Dict = None,
         text_cleaner: str = None,
+        # speaker prompt
+        speaker_prompt_length: int = 1800,
     ):
         self.token_list = token_list
         self.token_bias = token_bias
@@ -2375,6 +2377,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             codec_token_in_use = codec_token_per_frame
             assert codec_token_in_use <= codec_token_per_frame
         self.codec_token_in_use = codec_token_in_use
+
+        # speaker prompt
+        self.speaker_prompt_length = speaker_prompt_length
 
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
@@ -2424,14 +2429,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if self.encoder_decoder_format:
             new_data["encoder_sequence"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
-            )
+            ).reshape(-1, self.codec_token_in_use)
             new_data["decoder_sequence"] = np.concatenate(
                 [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
-            )
+            ).reshape(-1, self.codec_token_in_use)
         else:
             new_data["decoder_sequence"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
-            )
+            ).reshape(-1, self.codec_token_in_use)
 
         return new_data
 
@@ -2442,10 +2447,21 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     def modality_specific_processing(self, value, modality):
 
-        if modality == "codec":
+        if modality in ["codec", 'spk']:
             value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, : self.codec_token_in_use].flatten()
+            value = value[:, : self.codec_token_in_use]
             value = value + self.token_bias["codec"]
+
+            if modality == 'spk':
+                if len(value) <= self.speaker_prompt_length:
+                    pad_len = self.speaker_prompt_length - len(value)
+                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                    value = np.concatenate([value, pad])
+                else:
+                    start = random.randint(0, len(value) - self.speaker_prompt_length - 1)
+                    value = value[start: start + self.speaker_prompt_length]
+
+            value = value.flatten()
             conti_feat = None
 
         # Other discrete modalities
@@ -2473,16 +2489,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         return value, conti_feat
 
-    def diagnoise(self, data):
+    def diagnose(self, data):
         """Only for debug"""
         enc_seq = data.get("encoder_sequence", None)
         dec_seq = data.get("decoder_sequence", None)
+        print('emcdc: ', enc_seq, dec_seq)
 
-        logging.info(f"Diagnose in preprocessor ...")
+        logging.warning(f"Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
-            logging.info(f"{name} ...")
-            seq = seq.reshape(-1, self.codec_token_in_use)
+            if seq is None:
+                continue
+            logging.warning(f"{name} ...")
             for idx, patch in enumerate(seq):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
-                logging.info(f"Patch: {idx} -> {patch_str}")
+                logging.warning(f"Patch: {idx} -> {patch_str}")

@@ -57,30 +57,36 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         encoder_sequence_lengths = kwargs.get("encoder_sequence_lengths", None)
 
         # (1) embeddings
-        decoder_sequence_emb, decoder_sequence_lengths = self.embed(
-            decoder_sequence, decoder_sequence_lengths
+        # encoder / decoder shape: [B, T, nq] -> [B, T - 1, D]
+        decoder_input_emb, decoder_input_lengths = self.embed_forward(
+            decoder_sequence[:, :-1], decoder_sequence_lengths - 1
         )
+        decoder_input_emb = decoder_input_emb.sum(dim=2)
         if encoder_sequence is not None and encoder_sequence_lengths is not None:
-            encoder_sequence_emb, encoder_sequence_lengths = self.embed(
+            encoder_input_emb, encoder_input_lengths = self.embed_forward(
                 encoder_sequence, encoder_sequence_lengths
             )
+            encoder_input_emb = encoder_input_emb.sum(dim=2)
         else:
-            encoder_sequence_emb, encoder_sequence_lengths = None, None
-
+            encoder_input_emb, encoder_input_lengths = None, None
+        
         # (2) corelm forward
+        # pred_emb: [B, T, D]
         pred_emb, pred_lengths = self.corelm_forward(
-            decoder_sequence_emb,
-            decoder_sequence_lengths,
-            encoder_sequence_emb,
-            encoder_sequence_lengths,
+            decoder_input_emb,
+            decoder_input_lengths,
+            encoder_input_emb,
+            encoder_input_lengths,
         )
 
         # (3) predictor forward
+        # pred_emb: [B, T-1, D] -> [B, T-1, nq, D]
+        target, target_lengths = decoder_sequence[:, 1:], decoder_sequence_lengths - 1
         pred_emb, pred_lengths, target, target_lengths = self.predictor_forward(
             pred_emb,
             pred_lengths,
-            decoder_sequence,
-            decoder_sequence_lengths * self.nq,  # was down-sampled in embed stage
+            target,
+            target_lengths,  # was down-sampled in embed stage
         )
 
         # (4) Loss computing
@@ -94,20 +100,14 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
-    def embed(
+    def embed_forward(
         self,
         sequence: torch.Tensor,
         lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        sequence = sequence[:, : lengths.max()]
-        assert sequence.size(1) % self.nq == 0
-        assert torch.all(torch.remainder(lengths, self.nq).eq(0))
-
-        B, T = sequence.size()
-        sequence = sequence.view(B, T // self.nq, -1)
-        embeddings = self.emb(sequence).sum(dim=-2)
-        lengths = lengths // self.nq
+        sequence = sequence[:, :lengths.max()]
+        embeddings = self.emb(sequence)
 
         return embeddings, lengths
 
@@ -151,22 +151,20 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         target_sequence_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         assert torch.all(torch.eq(pred_emb_lengths, target_sequence_lengths))
+        assert pred_emb.size()[:-1] == target_sequence.size()
         assert pred_emb_lengths.max() == pred_emb.size(1)
 
-        pred_emb = pred_emb[:, : -self.nq]
-        target_sequence = target_sequence[:, self.nq :]
         elem_loss = torch.nn.functional.cross_entropy(
-            pred_emb.transpose(1, 2), target_sequence, reduction="none"
+            pred_emb.permute(0, 3, 1, 2), target_sequence, reduction="none"
         )
 
-        lengths = target_sequence_lengths - self.nq
-        mask = length_mask(lengths).to(elem_loss.dtype)
+        mask = length_mask(pred_emb_lengths).to(elem_loss.dtype).unsqueeze(-1)
         elem_loss = elem_loss * mask
-        loss = elem_loss.sum() / mask.sum()
+        loss = elem_loss.sum() / mask.sum() / self.nq
 
         pred = pred_emb.argmax(dim=-1)
         acc = torch.eq(pred, target_sequence).to(elem_loss.dtype) * mask
-        acc = acc.sum() / mask.sum()
+        acc = acc.sum() / mask.sum() / self.nq
 
         stats = {"loss": loss.clone().detach(), "acc": acc}
         weight = mask.sum()

@@ -77,7 +77,7 @@ def main():
 
         modality_vocab = []
         for vocab in vocabs:
-            this_vocab = [e.strip() for e in open(vocab)]
+            this_vocab = [e.rstrip('\n') for e in open(vocab)]
             for e in this_vocab:
                 if e not in modality_vocab:
                     modality_vocab.append(e)

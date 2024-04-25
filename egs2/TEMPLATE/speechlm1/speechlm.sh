@@ -23,16 +23,6 @@ min() {
   done
   echo "${a}"
 }
-function check_sorted {
-  file=$1
-  sort -k1,1 -u <$file >$file.tmp
-  if ! cmp -s $file $file.tmp; then
-    echo "$0: file $1 is not in sorted order or not unique, sorting it"
-    mv $file.tmp $file
-  else
-    rm $file.tmp
-  fi
-}
 SECONDS=0
 
 # General configuration
@@ -101,7 +91,6 @@ sos_eos="<sos/eos>" # sos and eos symbols.
 tokenization_choices=""
 codec_choice="DAC"
 codec_opts=""
-codec_token_per_frame=1
 semantic_choice="WavLM"
 semantic_opts=""
 g2p="g2p_en"
@@ -127,6 +116,10 @@ fi
 
 . ./path.sh
 . ./cmd.sh
+
+if [ -z ${task} ]; then
+    echo "Task is not specified" && exit 1;
+fi
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
@@ -166,7 +159,7 @@ fi
 
 # The directory used for collect-stats mode
 if [ -z "${speechlm_stats_dir}" ]; then
-    speechlm_stats_dir="${expdir}/speechlm_stats_${feats_type}"
+    speechlm_stats_dir="${expdir}/speechlm_stats_${tag}"
 fi
 # The directory used for training commands
 if [ -z "${speechlm_exp}" ]; then
@@ -279,13 +272,12 @@ if ! "${skip_data_prep}"; then
         prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].fine_modality_type)")
 
         for dset in ${_dsets}; do
-            data_entries=""
-            token_lists=""
+            opts=""
             for prepare_opt in ${prepare_opts}; do
-                IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
-
-                # for discrete operations, we will also generate a vocabulary.
                 mkdir -p ${data_feats}/${dset}/token_lists
+                
+                IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
+                # for discrete operations, we will also generate a vocabulary.
 
                 if [ ! -f ${data_audio}/${dset}/${_name} ]; then
                     echo "File ${data_audio}/${dset}/${_name} is missing. Exit" || exit 1;
@@ -296,9 +288,9 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "codec" ]; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
-                    scripts/feats/codec_tokenization.sh \
-                        --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
-                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
+                    # scripts/feats/codec_tokenization.sh \
+                    #     --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
+                    #     --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
@@ -320,10 +312,9 @@ if ! "${skip_data_prep}"; then
                     echo "Unsupported modality ${_modality}" && exit 1;
                 fi
 
-                check_sorted ${data_feats}/${dset}/${_name}
-                data_entries+="--file_modality_type ${data_feats}/${dset}/${_name},${_modality},${_type} "
+                opts+="--file_modality_type ${data_feats}/${dset}/${_name},${_modality},${_type} "
                 if [ -f ${data_feats}/${dset}/token_lists/${_modality}_token_list ]; then
-                    token_lists+="--token_list ${data_feats}/${dset}/token_lists/${_modality}_token_list "
+                    opts+="--token_list ${data_feats}/${dset}/token_lists/${_modality}_token_list "
                 fi
             done
 
@@ -331,7 +322,7 @@ if ! "${skip_data_prep}"; then
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
-                ${data_entries} ${token_lists}
+                ${opts}
         done
     fi
 
@@ -349,6 +340,7 @@ if ! "${skip_train}"; then
         train_jsons=${data_feats}/${train_set}/data.json
         log "No train_jsons provided. Use the prepared one: ${train_jsons}"
     fi
+    
     for train_json in $train_jsons; do
         _data_opts+="--train_data_path_and_name_and_type ${train_json},json,json "
     done
@@ -395,7 +387,7 @@ if ! "${skip_train}"; then
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(<${speechlm_stats_dir}/train/example_list wc -l)" "${speechlm_stats_dir}/valid/example_list wc -l)")
+        _nj=$(min "${nj}" "$(wc -l ${speechlm_stats_dir}/train/example_list)" "$(wc -l ${speechlm_stats_dir}/valid/example_list)")
 
         key_file="${speechlm_stats_dir}/train/example_list"
         split_scps=""
@@ -430,7 +422,6 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --multi_task_dataset true \
-                --codec_token_per_frame ${codec_token_per_frame} \
                 --train_shape_file "${_logdir}/train_sample_list.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid_sample_list.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -444,6 +435,17 @@ if ! "${skip_train}"; then
         done
         _opts+="--skip_sum_stats"
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${speechlm_stats_dir}"
+
+        # (Jinchuan) we only care about the #frames / #patches.
+        for module in encoder decoder; do
+            for dset in train valid; do
+                if [ -f ${speechlm_stats_dir}/${dset}/${module}_sequence_shape ]; then
+                    cat ${speechlm_stats_dir}/${dset}/${module}_sequence_shape |\
+                    awk -F ',' '{print $1}' \
+                    > ${speechlm_stats_dir}/${dset}/${module}_sequence_lengths
+                fi
+            done
+        done
     fi
 
 
@@ -459,13 +461,13 @@ if ! "${skip_train}"; then
             _opts+="--config ${train_config} "
         fi
 
-        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/decoder_sequence_shape "
-        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/decoder_sequence_shape "
+        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/decoder_sequence_lengths "
+        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/decoder_sequence_lengths "
         if [ -f ${speechlm_stats_dir}/train/encoder_sequence_shape ]; then
-            _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/encoder_sequence_shape "
+            _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/encoder_sequence_lengths "
         fi
         if [ -f ${speechlm_stats_dir}/valid/encoder_sequence_shape ]; then
-            _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/encoder_sequence_shape "
+            _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/encoder_sequence_lengths "
         fi
         
         log "Generate '${speechlm_exp}/run.sh'. You can resume the process from stage 7 using this script"
@@ -494,7 +496,6 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --multi_task_dataset true \
-                --codec_token_per_frame ${codec_token_per_frame} \
                 --resume true \
                 --output_dir "${speechlm_exp}" \
                 ${_opts} ${_data_opts} ${train_args}

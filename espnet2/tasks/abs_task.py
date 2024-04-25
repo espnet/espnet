@@ -1111,7 +1111,7 @@ class AbsTask(ABC):
     @classmethod
     def check_task_requirements(
         cls,
-        dataset: Union[AbsDataset, IterableESPnetDataset, SplicedIterableESPnetDataset],
+        dataset: Union[AbsDataset, IterableESPnetDataset],
         allow_variable_data_keys: bool,
         train: bool,
         inference: bool = False,
@@ -2055,7 +2055,7 @@ class AbsTask(ABC):
             kwargs = {}
 
         if multi_task_dataset:
-            dataset_class = SplicedIterableESPnetDataset
+            dataset_class = ESPnetMultiTaskDataset
         else:
             dataset_class = IterableESPnetDataset
         dataset = dataset_class(
@@ -2064,6 +2064,7 @@ class AbsTask(ABC):
             preprocess=preprocess_fn,
             key_file=key_file,
         )
+
         if dataset.apply_utt2category:
             kwargs.update(batch_size=1)
         else:
@@ -2077,6 +2078,7 @@ class AbsTask(ABC):
             dataset=dataset,
             pin_memory=ngpu > 0,
             num_workers=num_workers,
+            sampler=getattr(dataset, "example_list", None),
             **kwargs,
         )
 

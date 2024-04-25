@@ -72,9 +72,10 @@ class MultiScalePredictor(AbsPredictor):
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
 
         assert input.size(0) == target_emb.size(0)
-        assert input.size(1) * self.nq == target_emb.size(1)
-        assert input.size(2) == target_emb.size(2)
-        assert torch.all(torch.eq(input_lengths * self.nq, target_lengths))
+        assert input.size(1) == target_emb.size(1)
+        assert input.size(2) == target_emb.size(3)
+        assert target_emb.size(2) == self.nq
+        assert torch.all(torch.eq(input_lengths, target_lengths))
 
         if self.linear_in_inp:
             input = self.linear_in_inp(input)
@@ -82,14 +83,12 @@ class MultiScalePredictor(AbsPredictor):
             target_emb = self.linear_in_tgt(target_emb)
 
         # (2) resize and splice
-        B, Tnq, D = target_emb.size()
-        target_emb = target_emb.view(B * Tnq // self.nq, self.nq, D)
-        input = input.view(B * Tnq // self.nq, 1, D)
-        decoder_input = torch.cat([input, target_emb], dim=1)[:, :-1]
+        decoder_input = torch.cat([input.unsqueeze(2), target_emb], dim=2)[:, :, :-1]
+        decoder_input = decoder_input.flatten(0, 1)
 
         # (3) decoder inference and resize
         decoder_output, _ = self.decoder(decoder_input)
-        decoder_output = decoder_output.view(B, Tnq, D)
+        decoder_output = decoder_output.view(target_emb.size())
 
         if self.linear_out:
             decoder_output = self.linear_out(decoder_output)

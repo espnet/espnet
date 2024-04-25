@@ -28,16 +28,17 @@ class ParallelPredictor(AbsPredictor):
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor = None,
+        target: torch.Tensor = None,
+        target_lengths: torch.Tensor = None,
         cache: dict = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
 
         output = self.linear(input)
-        B, T, D = output.size()
-        output = output.view(B, T * self.nq, D // self.nq)
+        B, T, Dnq = output.size()
+        output = output.view(B, T, self.nq, Dnq // self.nq)
 
-        output_lengths = input_lengths * self.nq
-        return output, output_lengths
+        return output, input_lengths
 
     def get_lookup_table(self):
         raise ValueError("Cannot share the lookup table as there are multiple")

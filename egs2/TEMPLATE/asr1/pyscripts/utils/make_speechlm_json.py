@@ -10,6 +10,7 @@ import sys
 import glob
 import json
 
+from pathlib import Path
 from espnet2.speechlm.definitions import tasks
 
 logging.basicConfig(
@@ -57,14 +58,19 @@ def main():
     args = parser.parse_args()
 
     task_format = tasks[args.task]
-
     metadata = {}
 
-    # (1) task
+    ### (1) collect metadata.
+    # (1.1) task
     metadata["task"] = args.task
 
-    # (2) match all input files with the required files
-    metadata["data_files"] = []
+    # (1.2) vocabularies, if any
+    if getattr(args, "token_list", None) is not None:
+        metadata["vocabularies"] = args.token_list
+
+    # (2) make sure all examples are ordered and paired
+    # (2.1) match all input files with the required files
+    file_triplets = []
     all_entries_required = task_format.encoder_entries + task_format.decoder_entries
     all_entries_provided = [e.strip().split(",") for e in args.file_modality_type]
     for tgt_name, tgt_modality, tgt_type in all_entries_required:
@@ -76,37 +82,50 @@ def main():
                 and name.endswith(tgt_name)
             ):
                 entry_found = True
-                metadata["data_files"].append([name, modality, _type])
+                file_triplets.append([name, modality, _type])
         if not entry_found:
-            raise ValueError(f"No file with {tgt_name}, {tgt_modality}, {tgt_type}")
+            raise ValueError(f"No triplet: {tgt_name},{tgt_modality},{tgt_type}")
 
-    # (3) record the vocabularies
-    metadata["vocabularies"] = args.token_list
-
-    # (4) ensure all examples are well-paired.
+    # load all data entries
     example_dict = {}
-    for file_triplet in metadata["data_files"]:
-        file_path = file_triplet[0].strip().split(",")[0]
+    for file_triplet in file_triplets:
+        file_path = file_triplet[0]
         feat_name = file_path.split("/")[-1]
         for line in open(file_path):
-            example_id = line.strip().split()[0]
+            example_id, content = line.strip().split(maxsplit=1)
             if example_id not in example_dict:
                 example_dict[example_id] = {}
-            example_dict[example_id][feat_name] = None
+            example_dict[example_id][feat_name] = content
 
-    examples = []
+    # find all examples that are well-paired.
+    valid_example_ids = []
     needed_names = [e[0] for e in all_entries_required]
     for example_id in example_dict.keys():
+        if all([name in example_dict[example_id] for name in needed_names]):
+            valid_example_ids.append(example_id)
+        else:
+            logging.warning(f"Example {example_id} is not complete")
+    
+    logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
+
+    # dump each entry only for valid examples. All entries are ordered.
+    entry_path = Path(args.output_json).parent / 'entries'
+    entry_path.mkdir(parents=True, exist_ok=True)
+    writers = {name: open(entry_path / name, 'w') for name in needed_names}
+    for example_id in valid_example_ids:
         for name in needed_names:
-            if not name in example_dict[example_id]:
-                raise ValueError(f"Example {example_id} doesn't have {name}")
-        examples.append(example_id)
-
-    metadata["num_examples"] = len(example_dict)
-    metadata["examples"] = examples
-
-    # (5) dump json
-    metadata["data_files"] = [",".join(e) for e in metadata["data_files"]]
+            writers[name].write(f"{example_id} {example_dict[example_id][name]}\n")
+    
+    metadata["data_files"] = []
+    for name, modality, _type in all_entries_required:
+        file_path = str(entry_path / name)
+        triplet = f"{file_path},{modality},{_type}\n"
+        metadata['data_files'].append(triplet)
+    
+    metadata['num_examples'] = len(valid_example_ids)
+    metadata['examples'] = valid_example_ids
+        
+    # dump json
     with open(args.output_json, "wb") as writer:
         writer.write(
             json.dumps(metadata, indent=4, ensure_ascii=False, sort_keys=False).encode(

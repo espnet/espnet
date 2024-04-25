@@ -43,11 +43,10 @@ def main():
     for json_file in args.json_files:
         read_handle = open(json_file, "r")
         json_dict = json.load(read_handle)
-        first_scp = json_dict["data_files"][0].split(",")[0]
+        examples = json_dict["examples"]
         task = json_dict["task"]
-        for line in open(first_scp, "r"):
-            example_id = line.strip().split()[0]
-            writer.write(f"{task}_{example_id}\n")
+        for example in examples:
+            writer.write(f"{task}_{example}\n")
 
 
 if __name__ == "__main__":

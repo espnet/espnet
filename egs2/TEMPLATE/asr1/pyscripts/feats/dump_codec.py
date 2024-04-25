@@ -28,7 +28,7 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--codec_choice", type=str, required=True)
     parser.add_argument("--codec_fs", type=int, default=16000)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
     parser.add_argument("--rank", type=int, default=0)
     parser.add_argument("--vocab_file", type=str, required=True)
@@ -114,7 +114,7 @@ def dump_codec(
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)
     wav_reader = kaldiio.ReadHelper(rspecifier)
-    if wav_wspecifier is not None:
+    if wav_wspecifier is not None and dump_audio:
         wav_ark_file, wav_scp_file = wav_wspecifier.split(":")[1].split(",")
         wav_scp_writer = open(wav_scp_file, "w")
         wav_ark_writer = open(wav_ark_file, "wb")
@@ -157,7 +157,7 @@ def dump_codec(
                         write_kwargs={"format": "wav", "subtype": None},
                     )
 
-            buffer, length_buffer = [], []
+            buffer, length_buffer, key_buffer = [], [], []
 
     # (4) dump vocabulary file
     if rank == 1:

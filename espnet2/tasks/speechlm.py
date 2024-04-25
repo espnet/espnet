@@ -127,6 +127,12 @@ class SpeechLMTask(AbsTask):
             help="If true, work with encoder-decoder; otherwise decoder-only",
         )
         group.add_argument(
+            "--speaker_prompt_length",
+            type=int,
+            default=150,
+            help="the length of speaker prompt, in #frame",
+        )
+        group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
             default=None,
@@ -220,6 +226,7 @@ class SpeechLMTask(AbsTask):
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
+            speaker_prompt_length=args.speaker_prompt_length,
         )
 
         assert check_return_type(retval)
@@ -245,7 +252,7 @@ class SpeechLMTask(AbsTask):
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip() for line in f]
+                token_list = [line.rstrip('\n') for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".

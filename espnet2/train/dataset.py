@@ -5,7 +5,7 @@ import logging
 import numbers
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union
+from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union, List
 
 import h5py
 import json
@@ -13,6 +13,7 @@ import humanfriendly
 import kaldiio
 import numpy as np
 import torch
+import random
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
@@ -440,7 +441,6 @@ class ESPnetDataset(AbsDataset):
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
-        key_prefix: str = None,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -454,7 +454,6 @@ class ESPnetDataset(AbsDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
-        self.key_prefix = key_prefix if key_prefix is not None else ""
         # allow audios to have different sampling rates
         self.allow_multi_rates = allow_multi_rates
 
@@ -479,10 +478,6 @@ class ESPnetDataset(AbsDataset):
             self.cache = SizedDict(shared=True)
         else:
             self.cache = None
-
-        self.key_list = [
-            line.strip().split()[0] for line in open(path, encoding="utf-8")
-        ]
 
     def _build_loader(
         self, path: str, loader_type: str
@@ -585,9 +580,12 @@ class ESPnetDataset(AbsDataset):
             data[name] = value
 
         # 2. [Option] Apply preprocessing
+        if getattr(self, "install_speaker_prompt", None) is not None:
+            self.install_speaker_prompt(uid, data)
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
-            data = self.preprocess(self.key_prefix + uid, data)
+            key_prefix = self.task + " " if hasattr(self, 'task') else ""
+            data = self.preprocess(key_prefix + uid, data)
 
         # 3. Force data-precision
         for name in data:
@@ -614,6 +612,53 @@ class ESPnetDataset(AbsDataset):
         assert check_return_type(retval)
         return retval
 
+# (Jinchuan) Nearly the same as ESPnetDataset, but with added features
+# specifically designed to SpeechLM.
+class EspnetSpeechLMDataset(ESPnetDataset):
+    def __init__(self, 
+            example_list: List,
+            task: str,
+            **kwargs,
+            ):
+        super(EspnetSpeechLMDataset, self).__init__(**kwargs)
+
+        # (1) build spk2utt map
+        if "utt2spk" in self.loader_dict:
+            self.spk2utt = {}
+            for k, v in self.loader_dict["utt2spk"].items():
+                if v not in self.spk2utt:
+                    self.spk2utt[v] = []
+                self.spk2utt[v].append(k)
+        
+        # (2) keep example_list and clean some non-iterable loaders
+        self.example_list = example_list
+        for key in self.loader_dict.keys():
+            loader = self.loader_dict[key]
+            if isinstance(loader, Dict):
+                loader = {k: v for k, v in loader.items() if k in example_list}
+                self.loader_dict[key] = loader
+
+        # (3) keep task
+        self.task = task
+
+    def install_speaker_prompt(self, uid: str, data: Dict):
+        """ Assume the names are utt2spk and wav.scp. Hard code here. """
+        if 'utt2spk' in self.loader_dict:
+            spk = self.loader_dict['utt2spk'][uid]
+            utts = self.spk2utt[spk]
+
+            if len(utts) == 1: # at least itself
+                utt = utts[0]
+            else:
+                while True:
+                    utt = random.sample(utts, 1)[0]
+                    if uid != utt:
+                        break
+            
+            if 'wav.scp' not in self.loader_dict:
+                raise ValueError("speaker prompt is sampled from wav.scp loader")
+            
+            data['utt2spk'] = self.loader_dict['wav.scp'][utt]
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
@@ -629,13 +674,16 @@ class ESPnetMultiTaskDataset(AbsDataset):
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
-        preprocess: Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]],
+        key_file: str = None,
         **kwargs,
     ):
+        if key_file is not None:
+            self.key_dict = {line.strip().split()[0]: None for line in open(key_file)}
+        else:
+            self.key_dict = None
 
-        self.dataset_map = {}
-        self.task_map = {}
-
+        self.iterator_map = {}
+        self.datasets = []
         for triplet in path_name_type_list:
             path, _, _type = triplet
             assert _type == "json", f"Non-Json triplet: {triplet}"
@@ -643,7 +691,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
             this_path_name_type_list = []
             for triplet in json_dict["data_files"]:
-                path, _, _type = triplet.split(",")
+                path, _, _type = triplet.strip().split(",")
                 # use the stem file name as the name
                 this_path_name_type_list.append(
                     (
@@ -653,27 +701,40 @@ class ESPnetMultiTaskDataset(AbsDataset):
                     )
                 )
 
-            dataset = ESPnetDataset(
+            # example_list is for sub_dataest -> no task prefix
+            example_list = [line.strip().split()[0] for line in open(path)]
+            if self.key_dict is not None:
+                example_list = [
+                    e for e in example_list 
+                    if json_dict["task"] + '_' + e in self.key_dict
+                ]
+
+            dataset = EspnetSpeechLMDataset(
                 path_name_type_list=this_path_name_type_list,
-                preprocess=preprocess,
-                key_prefix=json_dict["task"] + " ",
+                example_list=example_list,
+                task=json_dict["task"],
                 **kwargs,
             )
+            self.datasets.append(dataset)
 
-            self.dataset_map.update(
-                {json_dict["task"] + "_" + key: dataset for key in dataset.key_list}
-            )
-            self.task_map[dataset] = json_dict["task"]
+            # iterator_map is for merged dataset -> with task prefix
+            self.iterator_map.update({
+                json_dict["task"] + '_' + e: dataset for e in example_list
+            })
 
         self.encoder_decoder_format = getattr(
-            preprocess, "encoder_decoder_format", False
+            kwargs['preprocess'], "encoder_decoder_format", False
         )
+        self.apply_utt2category = False
+        self.example_list = list(self.iterator_map.keys())
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
-        dataset = self.dataset_map[uid]
-        task = self.task_map[dataset]
-        data = dataset[uid.lstrip(task + "_")]
-        return data
+        iterator = self.iterator_map[uid]
+        uid_without_prefix = uid.lstrip(iterator.task + "_")
+        uid, data = iterator[uid_without_prefix]
+
+        uid = iterator.task + "_" + uid
+        return uid, data
 
     # Keep same interface with IterableDataset
     def has_name(self, name) -> bool:
@@ -687,14 +748,10 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
     def __repr__(self):
         string = "##### Multi-Task Dataset #####\n"
-        for idx, (dataset, task) in enumerate(self.task_map.items()):
-            string += f"## Sub-Dataset: {idx}; Task: {task} ##\n"
+        for idx, dataset in enumerate(self.datasets):
+            string += f"## Sub-Dataset: {idx}; Task: {dataset.task} ##\n"
             string += f"{dataset}\n"
         return string
-
-    def __iter__(self):
-        # (Jinchun): always add task as prefix, as one dataset can
-        # be used in multiple tasks.
-        for iterator in self.data_iterators:
-            for uid, data in iterator:
-                yield uid, data
+    
+    def __len__(self):
+        return sum([len(d.example_list) for d in self.datasets])
