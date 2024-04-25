@@ -6,9 +6,6 @@ set -u
 set -o pipefail
 
 fs=24000
-n_fft=2048
-n_shift=300
-win_length=1200
 
 opts=
 if [ "${fs}" -eq 24000 ]; then
@@ -30,6 +27,7 @@ inference_config=conf/decode.yaml
     --local_data_opts "--trim_all_silence false" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
+    --fs ${fs} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" ${opts} "$@"
