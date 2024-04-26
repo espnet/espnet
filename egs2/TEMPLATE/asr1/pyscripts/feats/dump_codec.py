@@ -74,9 +74,9 @@ class Codec_Tokenizer(object):
             self.codec = getattr(EncodecModel, model_name)().to(device)
             bandwidth = 6.0 # 8 codebooks
             # bandwidth = max(self.codec.target_bandwidths) # 32 codebooks, too large
-            self.codec.set_target_bandwidth(bandwidth) 
+            self.codec.set_target_bandwidth(bandwidth)
             self.n_codebook = self.codec.quantizer.get_num_quantizers_for_bandwidth(
-                self.codec.sample_rate, bandwidth
+                self.codec.frame_rate, bandwidth
             )
             self.size_codebook = self.codec.quantizer.bins
             self.sample_rate = self.codec.sample_rate

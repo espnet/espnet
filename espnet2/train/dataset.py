@@ -661,7 +661,8 @@ class EspnetSpeechLMDataset(ESPnetDataset):
             data['utt2spk'] = self.loader_dict['wav.scp'][utt]
 
 class ESPnetMultiTaskDataset(AbsDataset):
-    """Pytorch Dataset class for ESPNet.
+    """Pytorch Dataset class for ESPNet
+       Warp multiple EspnetSpeechLMDataset objects for multi-tasking
 
     Examples:
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
@@ -732,7 +733,6 @@ class ESPnetMultiTaskDataset(AbsDataset):
         iterator = self.iterator_map[uid]
         uid_without_prefix = uid.lstrip(iterator.task + "_")
         uid, data = iterator[uid_without_prefix]
-
         uid = iterator.task + "_" + uid
         return uid, data
 
