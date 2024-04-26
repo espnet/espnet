@@ -94,9 +94,19 @@ class GANCodecTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
+            # additional check for chunk iterator, to use short utterance in training
+            iterator_type = args.iterator_type
+            if iterator_type == "chunk":
+                min_sample_size = args.chunk_length
+            else:
+                min_sample_size = -1
+
             retval = CommonPreprocessor(
                 train=train,
                 token_type=None,  # disable the text process
+                speech_name="audio",
+                min_sample_size=min_sample_size,
+                audio_pad_value=0.0,
             )
         else:
             retval = None
