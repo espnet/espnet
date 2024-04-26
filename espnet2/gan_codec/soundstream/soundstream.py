@@ -572,9 +572,7 @@ class SoundStreamGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
 
         # Forward quantizer
-        quantized, codes, bandwidth, commit_loss = self.quantizer(
-            encoder_out, self.frame_rate, bw
-        )
+        quantized, _, _, commit_loss = self.quantizer(encoder_out, self.frame_rate, bw)
 
         quantization_loss = self.l1_quantization_loss(
             encoder_out, quantized.detach()
