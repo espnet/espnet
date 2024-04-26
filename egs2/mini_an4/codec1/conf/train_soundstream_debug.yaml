@@ -137,7 +137,7 @@ batch_size: 2             # batch bins (feats_type=raw)
 batch_type: unsorted      # how to make batch
 
 iterator_type: chunk
-chunk_length: 8000
+chunk_length: 16000
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
