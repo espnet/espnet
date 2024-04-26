@@ -63,7 +63,7 @@ class SpeechLMTask:
     use_task_identifier: bool = True
 
     @property
-    def fine_modality_type(self):  # Used in shell data preparation script
+    def find_modality_type(self):  # Used in shell data preparation script
         all_entries = self.encoder_entries + self.decoder_entries
         ans = ""
         for entry in all_entries:
@@ -107,13 +107,11 @@ special_tokens = [
     "<unkown_task_identifer>",
 ]
 
-
 def pad_until(token_list, until):
     assert until > len(token_list)
     for idx in range(len(token_list), until):
         token_list.append(f"<unused_token_{idx}>")
     return token_list
-
 
 special_tokens = pad_until(special_tokens, 32)
 

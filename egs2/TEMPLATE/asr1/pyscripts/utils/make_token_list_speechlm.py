@@ -64,7 +64,7 @@ def main():
                 vocab_dict[modality].append(vocab)
 
     # (3) First include special tokens.
-    all_vocab = special_tokens.copy()
+    token_list = special_tokens.copy()
 
     # (4) Merge the vocab file from each modality
     token_bias = {}
@@ -85,13 +85,13 @@ def main():
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
-            f"Modality has {len(modality_vocab)} starting from {len(all_vocab)}"
+            f"Modality has {len(modality_vocab)} starting from {len(token_list)}"
         )
-        token_bias[modality] = len(all_vocab)
-        all_vocab = all_vocab + modality_vocab
+        token_bias[modality] = len(token_list)
+        token_list = token_list + modality_vocab
 
     vocab_writer = open(args.token_list_dir / "token_list", "w")
-    for tok in all_vocab:
+    for tok in token_list:
         vocab_writer.write(f"{tok}\n")
 
     # (5) write vocabulary and token_bias

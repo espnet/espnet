@@ -7,7 +7,6 @@ import argparse
 import logging
 import os
 import sys
-import glob
 import json
 
 from pathlib import Path
@@ -86,7 +85,7 @@ def main():
         if not entry_found:
             raise ValueError(f"No triplet: {tgt_name},{tgt_modality},{tgt_type}")
 
-    # load all data entries
+    # (2.2) load all data entries
     example_dict = {}
     for file_triplet in file_triplets:
         file_path = file_triplet[0]
@@ -97,7 +96,7 @@ def main():
                 example_dict[example_id] = {}
             example_dict[example_id][feat_name] = content
 
-    # find all examples that are well-paired.
+    # (2.3) find all examples that are well-paired.
     valid_example_ids = []
     needed_names = [e[0] for e in all_entries_required]
     for example_id in example_dict.keys():
@@ -108,7 +107,7 @@ def main():
     
     logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
 
-    # dump each entry only for valid examples. All entries are ordered.
+    # (3) dump each entry only for valid examples. All entries are ordered.
     entry_path = Path(args.output_json).parent / 'entries'
     entry_path.mkdir(parents=True, exist_ok=True)
     writers = {name: open(entry_path / name, 'w') for name in needed_names}
@@ -119,7 +118,7 @@ def main():
     metadata["data_files"] = []
     for name, modality, _type in all_entries_required:
         file_path = str(entry_path / name)
-        triplet = f"{file_path},{modality},{_type}\n"
+        triplet = f"{file_path},{modality},{_type}"
         metadata['data_files'].append(triplet)
     
     metadata['num_examples'] = len(valid_example_ids)

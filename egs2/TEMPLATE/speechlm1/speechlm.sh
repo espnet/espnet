@@ -89,7 +89,7 @@ oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
 sos_eos="<sos/eos>" # sos and eos symbols.
 tokenization_choices=""
-codec_choice="DAC"
+codec_choice="EnCodec"
 codec_opts=""
 semantic_choice="WavLM"
 semantic_opts=""
@@ -199,6 +199,9 @@ if ! "${skip_data_prep}"; then
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
 
+        # TODO(jinchuan): only consider the wav.scp. In fact we could consider multiple
+        # audio scp files. Same as in stage 3
+
         log "Stage 2: Format wav.scp: data/ -> ${data_audio}/"
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
@@ -269,7 +272,7 @@ if ! "${skip_data_prep}"; then
         fi
 
         # Parse the data preparation operations from Python task definition.
-        prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].fine_modality_type)")
+        prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
 
         for dset in ${_dsets}; do
             opts=""
@@ -290,6 +293,7 @@ if ! "${skip_data_prep}"; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     # scripts/feats/codec_tokenization.sh \
                     #     --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
+                    #     --codec_fs ${fs} \
                     #     --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
 
                 elif [ ${_modality} == "g2p" ]; then
