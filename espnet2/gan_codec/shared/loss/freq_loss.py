@@ -50,6 +50,7 @@ class MultiScaleMelSpectrogramLoss(torch.nn.Module):
         self.alphas = list()
         self.total = 0
         self.normalized = normalized
+        assert range_end > range_start, "error in index"
         for i in range(range_start, range_end):
             assert range_start > 2, "range start should be more than 2 for hop_length"
             mel_loss.append(

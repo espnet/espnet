@@ -2107,7 +2107,7 @@ class AbsTask(ABC):
             try:
                 model.load_state_dict(
                     torch.load(model_file, map_location=device),
-                    strict=not use_adapter,
+                    strict=False,
                 )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
