@@ -1,6 +1,6 @@
 import torch
 import math
-# import version
+from packaging.version import parse as V
 
 from typing import Dict
 from espnet2.speechlm.net_utils import causal_mask
@@ -35,9 +35,9 @@ class MultiHeadedAttention(torch.nn.Module):
         self.flashattention = flashattention
 
         # check flashattention availability
-        # torch_version = torch.__version__
-        # if flashattention and version.parse(torch_version) < version.parse("2.0.1"):
-        #     raise ValueError(f"Upgrade Pytorch 2.0.1+ to use flashattention")
+        torch_version = torch.__version__
+        if flashattention and V(torch_version) < V("2.0.1"):
+            raise ValueError(f"Upgrade Pytorch 2.0.1+ to use flashattention")
 
     def forward_qkv(self, query, key, value):
         """Transform query, key and value.
