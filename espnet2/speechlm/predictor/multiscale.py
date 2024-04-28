@@ -56,6 +56,9 @@ class MultiScalePredictor(AbsPredictor):
             self.linear_out = None
 
         self.lm_head = torch.nn.Linear(input_dim, vocab_size, bias=False)
+        self.placeholder = torch.nn.parameter.Parameter(
+            torch.randn(1, 1, 1, att_unit, requires_grad=True)
+        )
 
         self.nq = nq
 
@@ -83,7 +86,10 @@ class MultiScalePredictor(AbsPredictor):
             target = self.linear_in_tgt(target)
 
         # (2) resize and splice
-        decoder_input = torch.cat([input.unsqueeze(2), target], dim=2)[:, :, :-1]
+        B, T, _  = input.size()
+        placeholder = self.placeholder.expand(B, T, -1, -1)
+        decoder_input = torch.cat([placeholder, target], dim=2)[:, :, :-1]
+        decoder_input = decoder_input + input.unsqueeze(2)
         decoder_input = decoder_input.flatten(0, 1)
 
         # (3) decoder inference and resize
