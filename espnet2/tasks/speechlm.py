@@ -13,7 +13,7 @@ from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.core_lm.builtin import BuiltinCoreLM
+from espnet2.speechlm.core_lm.ar import ARCoreLM
 
 # Predictor
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
@@ -42,10 +42,11 @@ from espnet2.utils.types import str2bool, str_or_none, int_or_none
 corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
-        espnet_builtin=BuiltinCoreLM,
+        ar=ARCoreLM,
+
     ),
     type_check=AbsCoreLM,
-    default="espnet_builtin",
+    default="ar",
 )
 
 predictor_choices = ClassChoices(
@@ -236,14 +237,14 @@ class SpeechLMTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("decoder_sequence",)
+        retval = ("dec_seq",)
         return retval
 
     @classmethod
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("encoder_sequence",)
+        retval = ("enc_seq",)
         return retval
 
     @classmethod
@@ -284,7 +285,7 @@ class SpeechLMTask(AbsTask):
         predictor_class = predictor_choices.get_class(args.predictor)
         predictor = predictor_class(
             vocab_size=len(token_list),
-            input_dim=corelm.model_dim(),
+            input_dim=corelm.model_dim,
             nq=args.codec_token_in_use,
             **args.predictor_conf,
         )

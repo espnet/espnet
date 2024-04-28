@@ -3,6 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+
 from typing import Dict, Optional, Tuple, List
 
 import torch
@@ -35,7 +36,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         self.corelm = corelm
         self.predictor = predictor
         self.post_processor = postprocessor
-        self.emb = torch.nn.Embedding(len(token_list), corelm.model_dim())
+        self.emb = torch.nn.Embedding(len(token_list), corelm.model_dim)
         if share_emb:
             self.emb.data = predictor.get_lookup_table()
 
@@ -43,130 +44,98 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         self.token_list = token_list
 
         # configurations
-        self.nq = nq  # N_q
+        self.nq = nq
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
-        decoder_sequence: torch.Tensor,
-        decoder_sequence_lengths: torch.Tensor,
+        dec_seq: torch.Tensor,
+        dec_seq_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
-        encoder_sequence = kwargs.get("encoder_sequence", None)
-        encoder_sequence_lengths = kwargs.get("encoder_sequence_lengths", None)
+        ### (1) embeddings. All representations in the shape [B, T, nq, D]
+        # (1.1) decoder
+        dec_seq = dec_seq[:, :max(dec_seq_lengths)]
+        dec_emb = self.emb(dec_seq)
+        dec_emb, dec_seq_lengths = dec_emb[:, :-1], dec_seq_lengths - 1 # shift by one
 
-        # (1) embeddings
-        # encoder / decoder shape: [B, T, nq] -> [B, T - 1, D]
-        decoder_input_emb, decoder_input_lengths = self.embed_forward(
-            decoder_sequence[:, :-1], decoder_sequence_lengths - 1
-        )
-        decoder_input_emb = decoder_input_emb.sum(dim=2)
-        if encoder_sequence is not None and encoder_sequence_lengths is not None:
-            encoder_input_emb, encoder_input_lengths = self.embed_forward(
-                encoder_sequence, encoder_sequence_lengths
-            )
-            encoder_input_emb = encoder_input_emb.sum(dim=2)
+        # (1.2) encoder
+        enc_seq = kwargs.get("enc_seq", None)
+        enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
+        if enc_seq is not None and enc_seq_lengths is not None:
+            enc_seq = enc_seq[:, :max(enc_seq_lengths)]
+            enc_emb = self.emb(enc_seq)
         else:
-            encoder_input_emb, encoder_input_lengths = None, None
+            enc_emb = None
         
-        # (2) corelm forward
-        # pred_emb: [B, T, D]
-        pred_emb, pred_lengths = self.corelm_forward(
-            decoder_input_emb,
-            decoder_input_lengths,
-            encoder_input_emb,
-            encoder_input_lengths,
+        # (1.3) target
+        target, target_lengths = dec_seq[:, 1:], dec_seq_lengths
+        target_emb = self.emb(target)
+        
+        ### (2) CoreLM. Prediction in shape [B, T, D] or [B, T, *, D]
+        pred, pred_lengths, others = self.corelm(
+            dec_emb,
+            dec_seq_lengths,
+            enc_emb,
+            enc_seq_lengths,
         )
 
-        # (3) predictor forward
-        # pred_emb: [B, T-1, D] -> [B, T-1, nq, D]
-        target, target_lengths = decoder_sequence[:, 1:], decoder_sequence_lengths - 1
-        pred_emb, pred_lengths, target, target_lengths = self.predictor_forward(
-            pred_emb,
+        ### (3) predictor. Logits and target in shape [B, T, nq, V] and [B, T, nq]
+        logits, logits_lengths, others = self.predictor(
+            pred,
             pred_lengths,
-            target,
-            target_lengths,  # was down-sampled in embed stage
+            target_emb,
+            target_lengths,
+            others,
+        )
+        target, target_lengths, others = self.predictor.organize_target(
+            target, target_lengths, others
         )
 
-        # (4) Loss computing
+        ###(4) Loss computing
         loss, stats, weight = self.compute_loss(
-            pred_emb,
-            pred_lengths,
-            target_sequence=target,
-            target_sequence_lengths=target_lengths,
+            logits,
+            logits_lengths,
+            target,
+            target_lengths,
+            others,
         )
 
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
-    def embed_forward(
-        self,
-        sequence: torch.Tensor,
-        lengths: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-
-        sequence = sequence[:, :lengths.max()]
-        embeddings = self.emb(sequence)
-
-        return embeddings, lengths
-
-    def corelm_forward(
-        self,
-        decoder_sequence_emb: torch.Tensor,
-        decoder_sequence_lengths: torch.Tensor,
-        encoder_sequence_emb: torch.Tensor,
-        encoder_sequence_lengths: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.corelm(
-            decoder_sequence_emb,
-            decoder_sequence_lengths,
-            encoder_sequence_emb,
-            encoder_sequence_lengths,
-        )
-
-    def predictor_forward(
-        self,
-        pred_emb: torch.Tensor,
-        pred_lengths: torch.Tensor,
-        target: torch.Tensor,
-        target_lengths: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-
-        pred_emb, pred_lengths = self.predictor(
-            pred_emb,
-            pred_lengths,
-            self.emb(target),
-            target_lengths,
-        )
-        target, target_lengths = self.predictor.organize_target(target, target_lengths)
-
-        return pred_emb, pred_lengths, target, target_lengths
-
     def compute_loss(
         self,
-        pred_emb: torch.Tensor,
-        pred_emb_lengths: torch.Tensor,
+        logits: torch.Tensor,
+        logits_lengths: torch.Tensor,
         target_sequence: torch.Tensor,
         target_sequence_lengths: torch.Tensor,
+        others: dict,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert torch.all(torch.eq(pred_emb_lengths, target_sequence_lengths))
-        assert pred_emb.size()[:-1] == target_sequence.size()
-        assert pred_emb_lengths.max() == pred_emb.size(1)
+        assert torch.all(torch.eq(logits_lengths, target_sequence_lengths))
+        assert logits.size()[:-1] == target_sequence.size()
+        assert logits_lengths.max() == logits.size(1)
 
         elem_loss = torch.nn.functional.cross_entropy(
-            pred_emb.permute(0, 3, 1, 2), target_sequence, reduction="none"
+            logits.permute(0, 3, 1, 2), target_sequence, reduction="none"
         )
 
-        mask = length_mask(pred_emb_lengths).to(elem_loss.dtype).unsqueeze(-1)
+        mask = length_mask(logits_lengths).to(elem_loss.dtype).unsqueeze(-1)
         elem_loss = elem_loss * mask
         loss = elem_loss.sum() / mask.sum() / self.nq
 
-        pred = pred_emb.argmax(dim=-1)
+        pred = logits.argmax(dim=-1)
         acc = torch.eq(pred, target_sequence).to(elem_loss.dtype) * mask
+        
+        stats = {}
+        for nq_idx in range(target_sequence.size(2)):
+            stats.update({
+                f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / mask.sum()
+            })
+        
         acc = acc.sum() / mask.sum() / self.nq
-
-        stats = {"loss": loss.clone().detach(), "acc": acc}
+        stats.update({"loss": loss.clone().detach(), "acc": acc})
         weight = mask.sum()
 
         return loss, stats, weight

@@ -165,8 +165,7 @@ def tokenize(
 
     # Write words
     for w, c in words_and_counts:
-        if not w.isspace():
-            fout.write(w + "\n")
+        fout.write(w + "\n")
 
     # Logging
     total_count = sum(counter.values())

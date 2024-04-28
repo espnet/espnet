@@ -8,11 +8,11 @@ from typing import Tuple, Dict, List
 import torch
 
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
-from espnet2.speechlm.core_lm.builtin import BuiltinCoreLM
+from espnet2.speechlm.core_lm.ar import ARCoreLM
 
 
 class MultiScalePredictor(AbsPredictor):
-    """Local transformer part of https://arxiv.org/abs/2310.00704"""
+    """Local transformer part of UniAudio https://arxiv.org/abs/2310.00704"""
 
     def __init__(
         self,
@@ -31,7 +31,7 @@ class MultiScalePredictor(AbsPredictor):
     ):
         super(MultiScalePredictor, self).__init__()
 
-        self.decoder = BuiltinCoreLM(
+        self.decoder = ARCoreLM(
             encoder_decoder_format=False,
             pos_enc=pos_enc,
             att_unit=att_unit,
@@ -66,32 +66,32 @@ class MultiScalePredictor(AbsPredictor):
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor,
-        target_emb: torch.Tensor,
+        target: torch.Tensor,
         target_lengths: torch.Tensor,
         cache: dict = None,
+        others: dict = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-
-        assert input.size(0) == target_emb.size(0)
-        assert input.size(1) == target_emb.size(1)
-        assert input.size(2) == target_emb.size(3)
-        assert target_emb.size(2) == self.nq
+        assert input.size(0) == target.size(0)
+        assert input.size(1) == target.size(1)
+        assert input.size(2) == target.size(3)
+        assert target.size(2) == self.nq
         assert torch.all(torch.eq(input_lengths, target_lengths))
 
         if self.linear_in_inp:
             input = self.linear_in_inp(input)
         if self.linear_in_tgt:
-            target_emb = self.linear_in_tgt(target_emb)
+            target = self.linear_in_tgt(target)
 
         # (2) resize and splice
-        decoder_input = torch.cat([input.unsqueeze(2), target_emb], dim=2)[:, :, :-1]
+        decoder_input = torch.cat([input.unsqueeze(2), target], dim=2)[:, :, :-1]
         decoder_input = decoder_input.flatten(0, 1)
 
         # (3) decoder inference and resize
-        decoder_output, _ = self.decoder(decoder_input)
-        decoder_output = decoder_output.view(target_emb.size())
+        decoder_output, _, _ = self.decoder(decoder_input)
+        decoder_output = decoder_output.view(target.size())
 
         if self.linear_out:
             decoder_output = self.linear_out(decoder_output)
         decoder_output = self.lm_head(decoder_output)
 
-        return decoder_output, target_lengths
+        return decoder_output, target_lengths, others

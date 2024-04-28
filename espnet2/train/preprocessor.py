@@ -2402,20 +2402,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             for entry in entries:
                 name, modality, _ = entry
 
-                value, conti_feat = self.modality_specific_processing(
+                value, _ = self.modality_specific_processing(
                     data[name], modality
                 )
                 seqs.append(value)
-
-                if not self.modalities[modality].discrete:
-                    if self.encoder_decoder_format:
-                        n_prior_entries = e_idx - n_enc_entries
-                    else:
-                        n_prior_entries = e_idx
-                    start = sum([len(value) for value in seqs[:n_prior_entries]])
-                    end = sum([len(value) for value in seqs[: n_prior_entries + 1]])
-                    on_encoder = e_idx < n_enc_entries
-                    conti_feats.append((start, end, on_encoder, conti_feat))
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2427,16 +2417,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         new_data = {}
         if self.encoder_decoder_format:
-            new_data["encoder_sequence"] = np.concatenate(
+            new_data["enc_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
-            new_data["decoder_sequence"] = np.concatenate(
+            new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
         else:
-            new_data["decoder_sequence"] = np.concatenate(
+            new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
+        
+        # self.diagnose(new_data)
 
         return new_data
 
@@ -2491,8 +2483,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     def diagnose(self, data):
         """Only for debug"""
-        enc_seq = data.get("encoder_sequence", None)
-        dec_seq = data.get("decoder_sequence", None)
+        enc_seq = data.get("enc_seq", None)
+        dec_seq = data.get("dec_seq", None)
         print('emcdc: ', enc_seq, dec_seq)
 
         logging.warning(f"Diagnose in preprocessor ...")

@@ -24,12 +24,13 @@ class ParallelPredictor(AbsPredictor):
         self.linear = torch.nn.Linear(input_dim, vocab_size * nq, bias=False)
         self.nq = nq
 
-    def forward(
+    def forward_input(
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor = None,
         target: torch.Tensor = None,
         target_lengths: torch.Tensor = None,
+        others: dict = None,
         cache: dict = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:

@@ -742,9 +742,9 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
     def names(self) -> Tuple[str, ...]:
         if self.encoder_decoder_format:
-            return ("encoder_sequence", "decoder_sequence")
+            return ("enc_seq", "dec_seq")
         else:
-            return "decoder_sequence"
+            return ("dec_seq",)
 
     def __repr__(self):
         string = "##### Multi-Task Dataset #####\n"
