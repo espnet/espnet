@@ -24,7 +24,7 @@ class ParallelPredictor(AbsPredictor):
         self.linear = torch.nn.Linear(input_dim, vocab_size * nq, bias=False)
         self.nq = nq
 
-    def forward_input(
+    def forward(
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor = None,
@@ -39,7 +39,7 @@ class ParallelPredictor(AbsPredictor):
         B, T, Dnq = output.size()
         output = output.view(B, T, self.nq, Dnq // self.nq)
 
-        return output, input_lengths
+        return output, input_lengths, others
 
     def get_lookup_table(self):
         raise ValueError("Cannot share the lookup table as there are multiple")

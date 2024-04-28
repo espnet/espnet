@@ -14,6 +14,8 @@ from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARCoreLM
+from espnet2.speechlm.core_lm.nar import NARCoreLM
+from espnet2.speechlm.core_lm.ar_nar import ARNARCoreLM
 
 # Predictor
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
@@ -22,6 +24,7 @@ from espnet2.speechlm.predictor.linear import (
     DelayPredictor,
 )
 from espnet2.speechlm.predictor.multiscale import MultiScalePredictor
+from espnet2.speechlm.predictor.layer_select import LayerSelectPredictor
 
 # Postprocessor
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
@@ -43,10 +46,11 @@ corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
         ar=ARCoreLM,
-
+        nar=NARCoreLM,
+        ar_nar=ARNARCoreLM,
     ),
     type_check=AbsCoreLM,
-    default="ar",
+    default="ar_nar",
 )
 
 predictor_choices = ClassChoices(
@@ -55,6 +59,7 @@ predictor_choices = ClassChoices(
         parallel=ParallelPredictor,
         delay=DelayPredictor,
         multiscale=MultiScalePredictor,
+        layer_select=LayerSelectPredictor,
     ),
     type_check=AbsPredictor,
     default="parallel",

@@ -68,8 +68,8 @@ class MultiScalePredictor(AbsPredictor):
         input_lengths: torch.Tensor,
         target: torch.Tensor,
         target_lengths: torch.Tensor,
-        cache: dict = None,
         others: dict = None,
+        cache: dict = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         assert input.size(0) == target.size(0)
         assert input.size(1) == target.size(1)

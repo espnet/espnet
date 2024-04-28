@@ -38,8 +38,10 @@ class AbsPredictor(torch.nn.Module, ABC):
         self,
         input: torch.Tensor,
         input_lengths: torch.Tensor = None,
+        target: torch.Tensor = None,
+        target_lengths: torch.Tensor = None,
         cache: dict = None,
-        Others: dict = None,
+        others: dict = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         raise NotImplementedError
@@ -48,7 +50,7 @@ class AbsPredictor(torch.nn.Module, ABC):
         self, 
         target: torch.Tensor, 
         target_lengths: torch.Tensor,
-        others: torch.Tensor,
+        others: dict,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """ No change by default """
         return target, target_lengths, others

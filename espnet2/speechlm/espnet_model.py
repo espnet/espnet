@@ -123,7 +123,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
         mask = length_mask(logits_lengths).to(elem_loss.dtype).unsqueeze(-1)
         elem_loss = elem_loss * mask
-        loss = elem_loss.sum() / mask.sum() / self.nq
+        loss = elem_loss.sum() / mask.sum() / logits.size(2)
 
         pred = logits.argmax(dim=-1)
         acc = torch.eq(pred, target_sequence).to(elem_loss.dtype) * mask
@@ -134,7 +134,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
                 f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / mask.sum()
             })
         
-        acc = acc.sum() / mask.sum() / self.nq
+        acc = acc.sum() / mask.sum() / logits.size(2)
         stats.update({"loss": loss.clone().detach(), "acc": acc})
         weight = mask.sum()
 
