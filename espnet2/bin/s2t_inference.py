@@ -24,6 +24,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -188,6 +189,10 @@ class Speech2Text:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         predict_time: bool = False,
+        partial_ar: bool = False,
+        threshold_probability: float = 0.99,
+        max_seq_len: int = 5,
+        max_mask_parallel: int = 5,
     ):
         assert check_argument_types()
 
@@ -269,40 +274,56 @@ class Speech2Text:
             length_bonus=penalty,
             scorefilter=1.0,
         )
-        beam_search = BeamSearch(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=s2t_model.sos,
-            eos=s2t_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-            normalize_length=normalize_length,
-        )
+        if partial_ar:
+            beam_search_class = PartiallyARInference
+            beam_search = beam_search_class(
+                s2t_model.ctc, s2t_model.decoder,
+                threshold_probability=threshold_probability,
+                sos=s2t_model.sos,
+                eos=s2t_model.eos,
+                mask_token=len(token_list), # mask token is the last token in token_list to be added in SemiArInference.
+                token_list=token_list,
+                scorers={ 'decoder': s2t_model.decoder },
+                weights=weights,
+                beam_size=beam_size,
+                max_seq_len=max_seq_len,
+                max_mask_parallel=max_mask_parallel,
+            )
+        else:
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=s2t_model.sos,
+                eos=s2t_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                normalize_length=normalize_length,
+            )
 
-        # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
+            # TODO(karita): make all scorers batchfied
+            if batch_size == 1:
+                non_batch = [
+                    k
+                    for k, v in beam_search.full_scorers.items()
+                    if not isinstance(v, BatchScorerInterface)
+                ]
+                if len(non_batch) == 0:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+                else:
+                    logging.warning(
+                        f"As non-batch scorers {non_batch} are found, "
+                        f"fall back to non-batch implementation."
+                    )
 
-            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-            for scorer in scorers.values():
-                if isinstance(scorer, torch.nn.Module):
-                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+                beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+                for scorer in scorers.values():
+                    if isinstance(scorer, torch.nn.Module):
+                        scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+                logging.info(f"Beam_search: {beam_search}")
+                logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -348,6 +369,8 @@ class Speech2Text:
         self.lang_sym = lang_sym
         self.task_sym = task_sym
         self.predict_time = predict_time
+
+        self.partial_ar = partial_ar
 
     @torch.no_grad()
     def __call__(
@@ -480,11 +503,14 @@ class Speech2Text:
 
             # remove sos/eos and get results
             last_pos = -1
+            start_pos = 1 if self.parallel_ar else 0
             if isinstance(hyp.yseq, list):
-                token_int = hyp.yseq[:last_pos]
+                token_int = hyp.yseq[start_pos:last_pos]
             else:
-                token_int = hyp.yseq[:last_pos].tolist()
-            token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
+                token_int = hyp.yseq[start_pos:last_pos].tolist()
+
+            if not self.parallel_ar:
+                token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
 
             # remove blank symbol id
             token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
@@ -713,6 +739,10 @@ def inference(
     lang_sym: str,
     task_sym: str,
     predict_time: bool,
+    partial_ar: bool,
+    threshold_probability: float,
+    max_seq_len: int,
+    max_mask_parallel: int
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -766,6 +796,10 @@ def inference(
         lang_sym=lang_sym,
         task_sym=task_sym,
         predict_time=predict_time,
+        partial_ar=partial_ar,
+        threshold_probability=threshold_probability,
+        max_seq_len=max_seq_len,
+        max_mask_parallel=max_mask_parallel,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1024,6 +1058,32 @@ def get_parser():
         "If not given, refers from the training args",
     )
 
+    group = parser.add_argument_group("Semi-AR related")
+    group.add_argument(
+        "--partial_ar",
+        action="store_true",
+        help="Flag to use the semi-ar decoding",
+    )
+    group.add_argument(
+        '--threshold_probability',
+        type=float,
+        default=0.99,
+        help="Threshold for probability of the token to be masked",
+    )
+    group.add_argument(
+        '--max_seq_len',
+        type=int,
+        default=5,
+        help="Maximum sequence length for each hypothesis."
+        + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
+    )
+    group.add_argument(
+        '--max_mask_parallel',
+        type=int,
+        default=10,
+        help="Maximum number of masks to predict in parallel." +\
+            "If you got OOM error, try to decrease this value."
+    )
     return parser
 
 

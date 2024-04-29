@@ -22,10 +22,10 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorer_interface import BatchScorerInterface, MaskParallelScorerInterface
 
 
-class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
+class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScorerInterface):
     """Base class of Transfomer decoder module.
 
     Args:
@@ -89,6 +89,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         self._output_size_bf_softmax = attention_dim
         # Must set by the inheritance
         self.decoders = None
+        self.batch_ids = None
 
     def forward(
         self,
@@ -280,6 +281,75 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
         if return_hs:
             return (logp, hs), state_list
+        return logp, state_list
+
+    def forward_partially_AR(
+        self,
+        tgt: torch.Tensor,
+        tgt_mask: torch.Tensor,
+        tgt_lengths: torch.Tensor,
+        memory: torch.Tensor,
+        cache: List[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """Forward one step.
+
+        Args:
+            tgt: input token ids, int64 (n_mask * n_beam, maxlen_out)
+            tgt_mask: input token mask,  (n_mask * n_beam, maxlen_out)
+                      dtype=torch.uint8 in PyTorch 1.2-
+                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
+            tgt_lengths: (n_mask * n_beam, )
+            memory: encoded memory, float32  (batch, maxlen_in, feat)
+            cache: cached output list of (batch, max_time_out-1, size)
+        Returns:
+            y, cache: NN output value and cache per `self.decoders`.
+            y.shape` is (batch, maxlen_out, token)
+        """
+        x = self.embed(tgt) # (n_mask * n_beam, maxlen_out, D)
+        new_cache = []
+        if cache is None:
+            cache = [None] * len(self.decoders)
+
+        for c, decoder in zip(cache, self.decoders):
+            x, tgt_mask, tgt_lengths, memory, memory_mask = decoder.forward_partially_AR(
+                x, tgt_mask, tgt_lengths, memory, None, cache=c
+            )
+            new_cache.append(x)
+
+        if self.batch_ids is None or len(self.batch_ids) < x.size(0):
+            self.batch_ids = torch.arange(x.size(0), device=x.device)
+
+        if self.normalize_before:
+            y = self.after_norm(x[self.batch_ids[:x.size(0)], tgt_lengths.unsqueeze(0) - 1].squeeze(0))
+        else:
+            y = x[self.batch_ids, tgt_lengths.unsqueeze(0) - 1].squeeze(0)
+
+        if self.output_layer is not None:
+            y = torch.log_softmax(self.output_layer(y), dim=-1)
+
+        return y, torch.stack(new_cache)
+    
+    def batch_score_partially_AR(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, yseq_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        # merge states
+        if states[0] is None:
+            batch_state = None
+        else:
+            # reshape state of [mask * batch, layer, 1, D] 
+            # into [layer, mask * batch, 1, D]
+            batch_state = states.transpose(0, 1)
+
+        # batch decoding
+        tgt_mask = (~make_pad_mask(yseq_lengths)[:, None, :]).to(xs.device)
+        m = subsequent_mask(tgt_mask.size(-1), device=xs.device).unsqueeze(0)
+        tgt_mask = tgt_mask & m
+
+        logp, states = self.forward_partially_AR(ys, tgt_mask, yseq_lengths, xs, cache=batch_state)
+
+        # states is torch.Tensor, where shape is (layer, n_mask * n_beam, yseq_len, D)
+        # reshape state to [n_mask * n_beam, layer, yseq_len, D]
+        state_list = states.transpose(0, 1)
         return logp, state_list
 
 

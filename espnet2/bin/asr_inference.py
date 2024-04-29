@@ -21,6 +21,7 @@ from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
+from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
@@ -114,6 +115,10 @@ class Speech2Text:
         lang_prompt_token: Optional[str] = None,
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
+        partial_ar: bool = False,
+        threshold_probability: float = 0.99,
+        max_seq_len: int = 5,
+        max_mask_parallel: int = 5,
     ):
         assert check_argument_types()
 
@@ -302,7 +307,22 @@ class Speech2Text:
                 length_bonus=penalty,
             )
 
-            if time_sync:
+            if partial_ar:
+                beam_search_class = PartiallyARInference
+                beam_search = beam_search_class(
+                    asr_model.ctc, asr_model.decoder,
+                    threshold_probability=threshold_probability,
+                    sos=asr_model.sos,
+                    eos=asr_model.eos,
+                    mask_token=len(token_list), # mask token is the last token in token_list to be added in SemiArInference.
+                    token_list=token_list,
+                    scorers=scorers,
+                    weights=weights,
+                    beam_size=beam_size,
+                    max_seq_len=max_seq_len,
+                    max_mask_parallel=max_mask_parallel,
+                )
+            elif time_sync:
                 if not hasattr(asr_model, "ctc"):
                     raise NotImplementedError(
                         "BeamSearchTimeSync without CTC is not supported."
@@ -723,6 +743,10 @@ def inference(
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
+    partial_ar: bool,
+    threshold_probability: float,
+    max_seq_len: int,
+    max_mask_parallel: int
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -779,6 +803,10 @@ def inference(
         prompt_token_file=prompt_token_file,
         lang_prompt_token=lang_prompt_token,
         nlp_prompt_token=nlp_prompt_token,
+        partial_ar=partial_ar,
+        threshold_probability=threshold_probability,
+        max_seq_len=max_seq_len,
+        max_mask_parallel=max_mask_parallel,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1098,6 +1126,33 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
+    )
+
+    group = parser.add_argument_group("Semi-AR related")
+    group.add_argument(
+        "--partial_ar",
+        action="store_true",
+        help="Flag to use the semi-ar decoding",
+    )
+    group.add_argument(
+        '--threshold_probability',
+        type=float,
+        default=0.99,
+        help="Threshold for probability of the token to be masked",
+    )
+    group.add_argument(
+        '--max_seq_len',
+        type=int,
+        default=5,
+        help="Maximum sequence length for each hypothesis."
+        + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
+    )
+    group.add_argument(
+        '--max_mask_parallel',
+        type=int,
+        default=10,
+        help="Maximum number of masks to predict in parallel." +\
+            "If you got OOM error, try to decrease this value."
     )
     return parser
 
