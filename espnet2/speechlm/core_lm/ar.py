@@ -10,6 +10,7 @@ from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.module.module import (
     TransformerLayer,
     PositionalEncoding,
+    MultiHeadedAttention
 )
 from espnet2.speechlm.net_utils import length_mask
 
@@ -81,6 +82,10 @@ class ARCoreLM(AbsCoreLM):
         self._encoder_decoder_format = encoder_decoder_format
         self._model_dim = att_unit
 
+        # Inference KV-cache related
+        self.cache = {}
+        self.hook = {}
+
     def forward(
         self,
         decoder_input: torch.Tensor,
@@ -103,7 +108,7 @@ class ARCoreLM(AbsCoreLM):
                 encoder_input = layer(
                     encoder_input,
                     encoder_mask,
-                    cache=cache,
+                    cache=self.cache,
                 )
             encoder_output = self.encoder_post_ln(encoder_input)
         else:
@@ -117,8 +122,36 @@ class ARCoreLM(AbsCoreLM):
                 None,
                 encoder_output,
                 encoder_mask,
-                cache=cache,
+                cache=self.cache,
             )
         decoder_output = self.decoder_post_ln(decoder_input)
 
         return decoder_output, decoder_input_lengths, {}
+
+    def init_cache(self):
+        self.cache, self.hooks = install_kv_cache_hook(self.decoders, {})
+    
+    def remove_cache(self):
+        self.cache = {}
+        for hook in self.hooks:
+            hook.remove()
+
+def install_kv_cache_hook(model, cache):
+    cache = {**cache} if cache is not None else {}
+    hooks = []
+
+    def save_to_cache(module, _, output):
+        if module not in cache:
+            # save as-is, for the first token or cross attention
+            cache[module] = output
+        else:
+            cache[module] = torch.cat([cache[module], output], dim=1).detach()
+        return cache[module]
+
+    def install_hooks(layer: torch.nn.Module):
+        if isinstance(layer, MultiHeadedAttention):
+            hooks.append(layer.linear_k.register_forward_hook(save_to_cache))
+            hooks.append(layer.linear_v.register_forward_hook(save_to_cache))
+
+    model.apply(install_hooks)
+    return cache, hooks

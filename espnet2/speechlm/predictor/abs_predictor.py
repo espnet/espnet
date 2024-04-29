@@ -59,3 +59,10 @@ class AbsPredictor(torch.nn.Module, ABC):
     def get_lookup_table(self):
         """ For embedding parameter sharing """
         raise NotImplementedError
+    
+    ## Inference API
+    def init_cache(self):
+        pass
+    
+    def remove_cache(self):
+        pass

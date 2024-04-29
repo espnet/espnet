@@ -62,3 +62,10 @@ class AbsCoreLM(torch.nn.Module, ABC):
     @property
     def encoder_decoder_format(self) -> int:
         return getattr(self, "_encoder_decoder_format")
+    
+    # cache is for inference
+    def init_cache(self):
+        pass
+    
+    def remove_cache(self):
+        pass

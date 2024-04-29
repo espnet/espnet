@@ -101,3 +101,9 @@ class MultiScalePredictor(AbsPredictor):
         decoder_output = self.lm_head(decoder_output)
 
         return decoder_output, target_lengths, others
+    
+    def init_cache(self):
+        self.decoder.init_cache()
+    
+    def remove_cache(self):
+        self.decoder.remove_cache()

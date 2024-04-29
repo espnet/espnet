@@ -2428,7 +2428,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
         
-        # self.diagnose(new_data)
+        prefix_len = len(new_data['dec_seq']) - len(seqs[-1]) // self.codec_token_in_use - 1
+        new_data['prefix_len'] = np.array([prefix_len])
+        # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
 
@@ -2485,7 +2487,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         """Only for debug"""
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
-        print('emcdc: ', enc_seq, dec_seq)
 
         logging.warning(f"Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
