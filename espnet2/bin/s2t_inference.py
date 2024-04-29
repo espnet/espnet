@@ -503,13 +503,13 @@ class Speech2Text:
 
             # remove sos/eos and get results
             last_pos = -1
-            start_pos = 1 if self.parallel_ar else 0
+            start_pos = 1 if self.partial_ar else 0
             if isinstance(hyp.yseq, list):
                 token_int = hyp.yseq[start_pos:last_pos]
             else:
                 token_int = hyp.yseq[start_pos:last_pos].tolist()
 
-            if not self.parallel_ar:
+            if not self.partial_ar:
                 token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
 
             # remove blank symbol id
