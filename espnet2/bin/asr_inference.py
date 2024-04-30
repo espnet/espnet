@@ -17,11 +17,11 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     get_hugging_face_model_network,
 )
 from espnet2.asr.decoder.s4_decoder import S4Decoder
+from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
-from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
@@ -310,11 +310,14 @@ class Speech2Text:
             if partial_ar:
                 beam_search_class = PartiallyARInference
                 beam_search = beam_search_class(
-                    asr_model.ctc, asr_model.decoder,
+                    asr_model.ctc,
+                    asr_model.decoder,
                     threshold_probability=threshold_probability,
                     sos=asr_model.sos,
                     eos=asr_model.eos,
-                    mask_token=len(token_list), # mask token is the last token in token_list to be added in SemiArInference.
+                    mask_token=len(
+                        token_list
+                    ),  # mask token is the last token in token_list to be added in SemiArInference.
                     token_list=token_list,
                     scorers=scorers,
                     weights=weights,
@@ -746,7 +749,7 @@ def inference(
     partial_ar: bool,
     threshold_probability: float,
     max_seq_len: int,
-    max_mask_parallel: int
+    max_mask_parallel: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -1135,24 +1138,24 @@ def get_parser():
         help="Flag to use the semi-ar decoding",
     )
     group.add_argument(
-        '--threshold_probability',
+        "--threshold_probability",
         type=float,
         default=0.99,
         help="Threshold for probability of the token to be masked",
     )
     group.add_argument(
-        '--max_seq_len',
+        "--max_seq_len",
         type=int,
         default=5,
         help="Maximum sequence length for each hypothesis."
         + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
     )
     group.add_argument(
-        '--max_mask_parallel',
+        "--max_mask_parallel",
         type=int,
         default=10,
-        help="Maximum number of masks to predict in parallel." +\
-            "If you got OOM error, try to decrease this value."
+        help="Maximum number of masks to predict in parallel."
+        + "If you got OOM error, try to decrease this value.",
     )
     return parser
 

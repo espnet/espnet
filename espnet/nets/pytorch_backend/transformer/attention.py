@@ -56,7 +56,11 @@ class MultiHeadedAttention(nn.Module):
 
         if expand_value:
             v_shape = value.shape
-            v = self.linear_v(value[:1, :, :]).expand(n_batch, v_shape[1], v_shape[2]).view(n_batch, -1, self.h, self.d_k)
+            v = (
+                self.linear_v(value[:1, :, :])
+                .expand(n_batch, v_shape[1], v_shape[2])
+                .view(n_batch, -1, self.h, self.d_k)
+            )
         else:
             v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
         q = q.transpose(1, 2)  # (batch, head, time1, d_k)

@@ -13,6 +13,7 @@ import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
+from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
@@ -24,7 +25,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -277,13 +277,16 @@ class Speech2Text:
         if partial_ar:
             beam_search_class = PartiallyARInference
             beam_search = beam_search_class(
-                s2t_model.ctc, s2t_model.decoder,
+                s2t_model.ctc,
+                s2t_model.decoder,
                 threshold_probability=threshold_probability,
                 sos=s2t_model.sos,
                 eos=s2t_model.eos,
-                mask_token=len(token_list), # mask token is the last token in token_list to be added in SemiArInference.
+                mask_token=len(
+                    token_list
+                ),  # mask token is the last token in token_list to be added in SemiArInference.
                 token_list=token_list,
-                scorers={ 'decoder': s2t_model.decoder },
+                scorers={"decoder": s2t_model.decoder},
                 weights=weights,
                 beam_size=beam_size,
                 max_seq_len=max_seq_len,
@@ -742,7 +745,7 @@ def inference(
     partial_ar: bool,
     threshold_probability: float,
     max_seq_len: int,
-    max_mask_parallel: int
+    max_mask_parallel: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -1065,24 +1068,24 @@ def get_parser():
         help="Flag to use the semi-ar decoding",
     )
     group.add_argument(
-        '--threshold_probability',
+        "--threshold_probability",
         type=float,
         default=0.99,
         help="Threshold for probability of the token to be masked",
     )
     group.add_argument(
-        '--max_seq_len',
+        "--max_seq_len",
         type=int,
         default=5,
         help="Maximum sequence length for each hypothesis."
         + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
     )
     group.add_argument(
-        '--max_mask_parallel',
+        "--max_mask_parallel",
         type=int,
         default=10,
-        help="Maximum number of masks to predict in parallel." +\
-            "If you got OOM error, try to decrease this value."
+        help="Maximum number of masks to predict in parallel."
+        + "If you got OOM error, try to decrease this value.",
     )
     return parser
 

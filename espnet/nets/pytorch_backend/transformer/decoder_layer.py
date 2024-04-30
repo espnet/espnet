@@ -67,7 +67,7 @@ class DecoderLayer(nn.Module):
             self.concat_linear2 = nn.Linear(size + size, size)
             if sequential_attn is not None:
                 self.concat_linear3 = nn.Linear(size + size, size)
-                
+
         self.tgt_ids = None
 
     def forward(
@@ -178,8 +178,9 @@ class DecoderLayer(nn.Module):
             return x, tgt_mask, memory, memory_mask, None, pre_memory, pre_memory_mask
         return x, tgt_mask, memory, memory_mask
 
-
-    def forward_partially_AR(self, tgt, tgt_mask, tgt_lengths, memory, memory_mask, cache=None):
+    def forward_partially_AR(
+        self, tgt, tgt_mask, tgt_lengths, memory, memory_mask, cache=None
+    ):
         residual = tgt
         if self.normalize_before:
             tgt = self.norm1(tgt)
@@ -194,16 +195,22 @@ class DecoderLayer(nn.Module):
                 tgt.shape[1] - 1,
                 self.size,
             ), f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
-            
+
             if self.tgt_ids is None or self.tgt_ids.shape[0] < tgt.shape[0]:
                 self.tgt_ids = torch.arange(tgt.size(0), device=tgt.device).view(-1, 1)
 
-            tgt_q = tgt[self.tgt_ids[:tgt.size(0)], tgt_lengths.view(-1, 1) - 1] # (n_mask * n_beam, 1, D)
-            residual = residual[self.tgt_ids[:tgt.size(0)], tgt_lengths.view(-1, 1) - 1]
+            tgt_q = tgt[
+                self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+            ]  # (n_mask * n_beam, 1, D)
+            residual = residual[
+                self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+            ]
             tgt_q_mask = None
             if tgt_mask is not None:
-                tgt_q_mask = tgt_mask[self.tgt_ids[:tgt.size(0)], tgt_lengths.view(-1, 1) - 1]
-    
+                tgt_q_mask = tgt_mask[
+                    self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+                ]
+
         if self.concat_after:
             tgt_concat = torch.cat(
                 (tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_q_mask)), dim=-1
@@ -217,14 +224,17 @@ class DecoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm2(x)
-        
+
         if self.concat_after:
             x_concat = torch.cat(
-                (x, self.src_attn(x, memory, memory, memory_mask, expand_value=True)), dim=-1
+                (x, self.src_attn(x, memory, memory, memory_mask, expand_value=True)),
+                dim=-1,
             )
             x = residual + self.concat_linear2(x_concat)
         else:
-            x = residual + self.dropout(self.src_attn(x, memory, memory, memory_mask, expand_value=True))
+            x = residual + self.dropout(
+                self.src_attn(x, memory, memory, memory_mask, expand_value=True)
+            )
         if not self.normalize_before:
             x = self.norm2(x)
 
@@ -237,7 +247,7 @@ class DecoderLayer(nn.Module):
 
         if cache is not None:
             _tmp = torch.cat([cache, torch.zeros_like(x)], dim=1)
-            _tmp[self.tgt_ids[:tgt.size(0)], tgt_lengths.view(-1, 1) - 1] = x
+            _tmp[self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1] = x
             return _tmp, tgt_mask, tgt_lengths, memory, memory_mask
 
         return x, tgt_mask, tgt_lengths, memory, memory_mask

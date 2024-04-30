@@ -1,8 +1,8 @@
 import logging
+import warnings
 from contextlib import contextmanager
 from itertools import groupby
 from typing import Dict, List
-import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -12,11 +12,11 @@ from packaging.version import parse as V
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.beam_search_partially_AR import PartiallyARBeamSearch
 from espnet.nets.scorer_interface import ScorerInterface
-from espnet2.text.token_id_converter import TokenIDConverter
-from espnet2.text.build_tokenizer import build_tokenizer
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -51,14 +51,14 @@ class PartiallyARInference(torch.nn.Module):
         self.decoder = decoder
         self.mask_token = mask_token
         self.threshold_probability = threshold_probability
-        token_list = token_list + ['<mask>']
+        token_list = token_list + ["<mask>"]
 
         self.sos = sos
         self.eos = eos
         self.max_seq_len = max_seq_len
 
-        logging.info(f'vocab_size: {len(token_list)}')
-        ctc_weight = weights['ctc'] if 'ctc' in weights.keys() else 0.0
+        logging.info(f"vocab_size: {len(token_list)}")
+        ctc_weight = weights["ctc"] if "ctc" in weights.keys() else 0.0
         self.converter = TokenIDConverter(token_list=token_list)
         self.beam_search = PartiallyARBeamSearch(
             beam_size=beam_size,
@@ -73,7 +73,7 @@ class PartiallyARInference(torch.nn.Module):
         self.nn_dict = self.beam_search.nn_dict
         self.max_mask_parallel = max_mask_parallel
         self.primer = []
-    
+
     def set_hyp_primer(self, l: List[int]):
         self.primer = l
 
@@ -111,25 +111,32 @@ class PartiallyARInference(torch.nn.Module):
         if mask_num == 0:
             # pad with mask tokens to ensure compatibility with sos/eos tokens
             yseq = torch.tensor(
-                [self.mask_token] + y_in.tolist()[0] + [self.mask_token], device=y_in.device
+                [self.mask_token] + y_in.tolist()[0] + [self.mask_token],
+                device=y_in.device,
             )
             return [Hypothesis(yseq=yseq)], {}
 
         # Get the corresponding encoder frames for each mask token.
-        merged_mask_len = torch.cat((torch.LongTensor([0]), torch.cumsum(torch.LongTensor([len(list(x[1])) for x in groupby(y_in[0])]) - 1, dim=0)[:-1]))
+        merged_mask_len = torch.cat(
+            (
+                torch.LongTensor([0]),
+                torch.cumsum(
+                    torch.LongTensor([len(list(x[1])) for x in groupby(y_in[0])]) - 1,
+                    dim=0,
+                )[:-1],
+            )
+        )
         _t = torch.LongTensor([x[0] for x in groupby(ctc_ids[0])])
         y_nonzero_idx = torch.nonzero(_t).squeeze(1)
-        y_token_ends = torch.LongTensor(
-            [len(list(x[1])) for x in groupby(ctc_ids[0])]
-        )
+        y_token_ends = torch.LongTensor([len(list(x[1])) for x in groupby(ctc_ids[0])])
         y_token_ends = torch.cumsum(y_token_ends, dim=0)
-        
+
         y_in = torch.stack([x[0] for x in groupby(y_in[0])]).unsqueeze(0)
         mask_num = torch.sum(y_in[0] == self.mask_token)
 
         y_hat_tokens = y_hat[y_idx]
         result = y_in[0].clone().tolist()
-        
+
         # compute mask parallel decode.
         for i in range((mask_num // self.max_mask_parallel) + 1):
             bs_iter = i * self.max_mask_parallel
@@ -139,29 +146,54 @@ class PartiallyARInference(torch.nn.Module):
                 mask_idx = self._get_mask_idx(y_in, m)
                 yhat_idx = mask_idx + merged_mask_len[mask_idx]
 
-                start_enc, end_enc = self._get_enc_ids(mask_idx, mask_idx + 1, merged_mask_len, y_in[0], y_nonzero_idx, y_token_ends)
+                start_enc, end_enc = self._get_enc_ids(
+                    mask_idx,
+                    mask_idx + 1,
+                    merged_mask_len,
+                    y_in[0],
+                    y_nonzero_idx,
+                    y_token_ends,
+                )
                 if end_enc is None:
                     end_enc = enc_out.size(1) - 1
-                
+
                 res_mask = self._get_mask_idx(result, 0)
-                hyp_primer, next_token = self.init_beam_search(y_hat_tokens, yhat_idx, mask_idx, y_in)
-                self.beam_search.add_mask(self.primer + hyp_primer, next_token, start_enc, end_enc)
-            
+                hyp_primer, next_token = self.init_beam_search(
+                    y_hat_tokens, yhat_idx, mask_idx, y_in
+                )
+                self.beam_search.add_mask(
+                    self.primer + hyp_primer, next_token, start_enc, end_enc
+                )
+
             # If you got Out of memory error here,
             # Please consider lowering the threshold value.
             hypos = self.beam_search(enc_out.squeeze(0), self.max_seq_len)
 
             for i_hypo, hypo in enumerate(hypos):
                 res_mask = self._get_mask_idx(result, 0)
-                hypo_list = [x[0] for x in groupby(hypo.yseq[len(self.beam_search.masks[i_hypo][0]):])][:-1] # remove eos
-                result = result[:res_mask] + hypo_list + result[res_mask+1:]
+                hypo_list = [
+                    x[0]
+                    for x in groupby(
+                        hypo.yseq[len(self.beam_search.masks[i_hypo][0]) :]
+                    )
+                ][
+                    :-1
+                ]  # remove eos
+                result = result[:res_mask] + hypo_list + result[res_mask + 1 :]
 
         # pad with mask tokens to ensure compatibility with sos/eos tokens
         yseq = torch.tensor([self.mask_token] + result + [self.mask_token])
         return [Hypothesis(yseq=yseq)]
-    
 
-    def _get_enc_ids(self, token_start_idx, token_end_idx, merged_mask_len, masked_tokens, y_nonzero_idx, y_token_ends):
+    def _get_enc_ids(
+        self,
+        token_start_idx,
+        token_end_idx,
+        merged_mask_len,
+        masked_tokens,
+        y_nonzero_idx,
+        y_token_ends,
+    ):
         if token_start_idx == 0:
             mml_prev = 0
         else:
@@ -177,7 +209,7 @@ class PartiallyARInference(torch.nn.Module):
         else:
             si_for_y_ends = y_nonzero_idx[si_for_y_nonzero - 1]
             si_for_enc_out = y_token_ends[si_for_y_ends] - 1
-        
+
         if token_start_idx >= len(masked_tokens):
             ei_for_enc_out = None
         elif ei_for_y_nonzero == len(y_nonzero_idx):
@@ -185,23 +217,31 @@ class PartiallyARInference(torch.nn.Module):
         else:
             ei_for_y_starts = y_nonzero_idx[ei_for_y_nonzero]
             ei_for_enc_out = y_token_ends[ei_for_y_starts]
-        
+
         return si_for_enc_out, ei_for_enc_out
 
     def init_beam_search_result(self, mask_idx, y_in, result, res_mask):
         hyp_primer = [self.sos] + result[:res_mask] if res_mask > 0 else [self.sos]
-        next_token = y_in[0, mask_idx + 1] if mask_idx < len(y_in[0]) -1 else self.eos
+        next_token = y_in[0, mask_idx + 1] if mask_idx < len(y_in[0]) - 1 else self.eos
         return hyp_primer, next_token
 
     def init_beam_search(self, y_hat_tokens, yhat_idx, mask_idx, y_in):
-        hyp_primer = [self.sos] + y_hat_tokens[:yhat_idx].tolist() if mask_idx > 0 else [self.sos]
-        next_token = y_in[0, mask_idx + 1].tolist() if mask_idx < len(y_in[0]) -1 else [self.eos]
+        hyp_primer = (
+            [self.sos] + y_hat_tokens[:yhat_idx].tolist()
+            if mask_idx > 0
+            else [self.sos]
+        )
+        next_token = (
+            y_in[0, mask_idx + 1].tolist()
+            if mask_idx < len(y_in[0]) - 1
+            else [self.eos]
+        )
         return hyp_primer, next_token
 
     def _get_mask_idx(self, y_in, i: int, cs: torch.Tensor = None) -> List[int]:
         if cs is None:
-            if type(y_in) != torch.Tensor: # then y_in is a list.
-                y_in = torch.tensor(y_in, device='cpu').unsqueeze(0)
+            if type(y_in) != torch.Tensor:  # then y_in is a list.
+                y_in = torch.tensor(y_in, device="cpu").unsqueeze(0)
             cs = torch.cumsum(y_in[0] == self.mask_token, dim=0)
-        
+
         return (cs == i + 1).nonzero()[0].item()

@@ -22,10 +22,15 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.scorer_interface import BatchScorerInterface, MaskParallelScorerInterface
+from espnet.nets.scorer_interface import (
+    BatchScorerInterface,
+    MaskParallelScorerInterface,
+)
 
 
-class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScorerInterface):
+class BaseTransformerDecoder(
+    AbsDecoder, BatchScorerInterface, MaskParallelScorerInterface
+):
     """Base class of Transfomer decoder module.
 
     Args:
@@ -305,14 +310,16 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScore
             y, cache: NN output value and cache per `self.decoders`.
             y.shape` is (batch, maxlen_out, token)
         """
-        x = self.embed(tgt) # (n_mask * n_beam, maxlen_out, D)
+        x = self.embed(tgt)  # (n_mask * n_beam, maxlen_out, D)
         new_cache = []
         if cache is None:
             cache = [None] * len(self.decoders)
 
         for c, decoder in zip(cache, self.decoders):
-            x, tgt_mask, tgt_lengths, memory, memory_mask = decoder.forward_partially_AR(
-                x, tgt_mask, tgt_lengths, memory, None, cache=c
+            x, tgt_mask, tgt_lengths, memory, memory_mask = (
+                decoder.forward_partially_AR(
+                    x, tgt_mask, tgt_lengths, memory, None, cache=c
+                )
             )
             new_cache.append(x)
 
@@ -320,7 +327,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScore
             self.batch_ids = torch.arange(x.size(0), device=x.device)
 
         if self.normalize_before:
-            y = self.after_norm(x[self.batch_ids[:x.size(0)], tgt_lengths.unsqueeze(0) - 1].squeeze(0))
+            y = self.after_norm(
+                x[self.batch_ids[: x.size(0)], tgt_lengths.unsqueeze(0) - 1].squeeze(0)
+            )
         else:
             y = x[self.batch_ids, tgt_lengths.unsqueeze(0) - 1].squeeze(0)
 
@@ -328,15 +337,19 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScore
             y = torch.log_softmax(self.output_layer(y), dim=-1)
 
         return y, torch.stack(new_cache)
-    
+
     def batch_score_partially_AR(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, yseq_lengths: torch.Tensor
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+        yseq_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, List[Any]]:
         # merge states
         if states[0] is None:
             batch_state = None
         else:
-            # reshape state of [mask * batch, layer, 1, D] 
+            # reshape state of [mask * batch, layer, 1, D]
             # into [layer, mask * batch, 1, D]
             batch_state = states.transpose(0, 1)
 
@@ -345,7 +358,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface, MaskParallelScore
         m = subsequent_mask(tgt_mask.size(-1), device=xs.device).unsqueeze(0)
         tgt_mask = tgt_mask & m
 
-        logp, states = self.forward_partially_AR(ys, tgt_mask, yseq_lengths, xs, cache=batch_state)
+        logp, states = self.forward_partially_AR(
+            ys, tgt_mask, yseq_lengths, xs, cache=batch_state
+        )
 
         # states is torch.Tensor, where shape is (layer, n_mask * n_beam, yseq_len, D)
         # reshape state to [n_mask * n_beam, layer, yseq_len, D]
