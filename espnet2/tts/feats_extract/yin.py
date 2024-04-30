@@ -8,10 +8,9 @@ import torch.nn.functional as F
 
 
 def differenceFunction(x, N, tau_max):
-    """
-    Compute difference function of data x. This corresponds to equation (6) in [1]
-    This solution is implemented directly with torch rfft.
+    """Compute difference function of data x. This corresponds to equation (6) in [1]
 
+    This solution is implemented directly with torch rfft.
 
     :param x: audio data (Tensor)
     :param N: length of data
@@ -51,10 +50,9 @@ def differenceFunction(x, N, tau_max):
 
 
 def differenceFunction_np(x, N, tau_max):
-    """
-    Compute difference function of data x. This corresponds to equation (6) in [1]
-    This solution is implemented directly with Numpy fft.
+    """Compute difference function of data x. This corresponds to equation (6) in [1]
 
+    This solution is implemented directly with Numpy fft.
 
     :param x: audio data
     :param N: length of data
@@ -77,8 +75,7 @@ def differenceFunction_np(x, N, tau_max):
 
 
 def cumulativeMeanNormalizedDifferenceFunction(df, N, eps=1e-8):
-    """
-    Compute cumulative mean normalized difference function (CMND).
+    """Compute cumulative mean normalized difference function (CMND).
 
     This corresponds to equation (8) in [1]
 
@@ -104,6 +101,7 @@ def cumulativeMeanNormalizedDifferenceFunction(df, N, eps=1e-8):
 
 def differenceFunctionTorch(xs: torch.Tensor, N, tau_max) -> torch.Tensor:
     """pytorch backend batch-wise differenceFunction
+
     has 1e-4 level error with input shape of (32, 22050*1.5)
     Args:
         xs:
@@ -116,7 +114,6 @@ def differenceFunctionTorch(xs: torch.Tensor, N, tau_max) -> torch.Tensor:
     xs = xs.double()
     w = xs.shape[-1]
     tau_max = min(tau_max, w)
-    zeros = torch.zeros((xs.shape[0], 1))
     x_cumsum = torch.cat(
         (
             torch.zeros((xs.shape[0], 1), device=xs.device),

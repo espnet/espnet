@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
@@ -159,16 +159,17 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -194,13 +195,12 @@ class Speech2Text:
         max_seq_len: int = 5,
         max_mask_parallel: int = 5,
     ):
-        assert check_argument_types()
 
         if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build S2T model
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
@@ -212,7 +212,7 @@ class Speech2Text:
             logging.info("Use quantized s2t model for decoding.")
 
             s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = s2t_model.decoder
@@ -248,7 +248,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -376,10 +376,11 @@ class Speech2Text:
         self.partial_ar = partial_ar
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
-        text_prev: Optional[Union[torch.Tensor, np.ndarray, str]] = None,
+        text_prev: Optional[Union[torch.Tensor, np.ndarray, str, List]] = None,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
         predict_time: Optional[bool] = None,
@@ -403,7 +404,6 @@ class Speech2Text:
             n-best list of (text, token, token_int, text_nospecial, hyp)
 
         """
-        assert check_argument_types()
 
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
@@ -483,8 +483,6 @@ class Speech2Text:
             encoder_interctc_res = self._decode_interctc(intermediate_outs)
             results = (results, encoder_interctc_res)
 
-        assert check_return_type(results)
-
         return results
 
     def _decode_single_sample(self, enc: torch.Tensor):
@@ -533,10 +531,10 @@ class Speech2Text:
 
         return results
 
+    @typechecked
     def _decode_interctc(
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
-        assert check_argument_types()
 
         exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
         res = {}
@@ -552,6 +550,7 @@ class Speech2Text:
         return res
 
     @torch.no_grad()
+    @typechecked
     def decode_long(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -560,6 +559,7 @@ class Speech2Text:
         end_time_threshold: str = "<29.00>",
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
+        skip_last_chunk_threshold: float = 0.2,
     ):
         """Decode unsegmented long-form speech.
 
@@ -574,8 +574,6 @@ class Speech2Text:
             utterances: list of tuples of (start_time, end_time, text)
 
         """
-
-        assert check_argument_types()
 
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
@@ -595,17 +593,25 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        assert (
-            speech.dim() == 1
-        ), f"speech must have one dimension, got size {speech.size()} instead"
+        if speech.dim() > 1:
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
+            speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
         utterances = []
         offset = 0
         text_prev = init_text
         while offset < len(speech):
             logging.info(f"Current start time in seconds: {offset / fs:.2f}")
-
             segment = speech[offset : offset + segment_len]
+            if len(segment) / fs < skip_last_chunk_threshold:
+                logging.warning(
+                    f"Skip the last chunk as it's too short: {len(segment) / fs:.2f}s"
+                )
+                offset += segment_len
+                continue
+
             # segment will be padded in __call__
             result = self.__call__(
                 speech=segment,
@@ -670,7 +676,6 @@ class Speech2Text:
                 utterances.append(utt)
 
             offset += round((new_start_time_id - first_time_id) * resolution * fs)
-            self.time_id = first_time_id
 
         return utterances
 
@@ -705,6 +710,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -747,7 +753,6 @@ def inference(
     max_seq_len: int,
     max_mask_parallel: int,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
@@ -864,7 +869,7 @@ def inference(
 
             # Write intermediate predictions to
             # encoder_interctc_layer<layer_idx>.txt
-            ibest_writer = writer[f"1best_recog"]
+            ibest_writer = writer["1best_recog"]
             if encoder_interctc_res is not None:
                 for idx, text in encoder_interctc_res.items():
                     ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = " ".join(

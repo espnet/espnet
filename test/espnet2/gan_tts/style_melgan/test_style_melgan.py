@@ -125,6 +125,10 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
+    try:
+        from scipy.signal import kaiser
+    except ImportError:
+        pytest.skip("Kaiser window was not found at scipy.signal. Check scipy version.")
     from parallel_wavegan.models import StyleMelGANGenerator as PWGStyleMelGANGenerator
 
     model_pwg = PWGStyleMelGANGenerator(**make_style_melgan_generator_args())

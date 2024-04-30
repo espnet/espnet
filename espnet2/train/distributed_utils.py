@@ -197,7 +197,7 @@ def free_port():
         return sock.getsockname()[1]
 
 
-def get_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -217,7 +217,7 @@ def get_rank(prior=None, launcher: str = None) -> Optional[int]:
         return _int_or_none(os.environ.get("RANK"))
 
 
-def get_world_size(prior=None, launcher: str = None) -> int:
+def get_world_size(prior=None, launcher: Optional[str] = None) -> int:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -237,7 +237,7 @@ def get_world_size(prior=None, launcher: str = None) -> int:
         return int(os.environ.get("WORLD_SIZE", "1"))
 
 
-def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_local_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     # LOCAL_RANK is same as GPU device id
 
     if prior is None:
@@ -280,7 +280,7 @@ def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
         return None
 
 
-def get_master_addr(prior=None, launcher: str = None) -> Optional[str]:
+def get_master_addr(prior=None, launcher: Optional[str] = None) -> Optional[str]:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -303,7 +303,7 @@ def get_master_port(prior=None) -> Optional[int]:
         return _int_or_none(os.environ.get("MASTER_PORT"))
 
 
-def get_node_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_node_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     """Get Node Rank.
 
     Use for "multiprocessing distributed" mode.
@@ -336,7 +336,7 @@ def get_node_rank(prior=None, launcher: str = None) -> Optional[int]:
         return _int_or_none(os.environ.get("RANK"))
 
 
-def get_num_nodes(prior=None, launcher: str = None) -> Optional[int]:
+def get_num_nodes(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     """Get the number of nodes.
 
     Use for "multiprocessing distributed" mode.

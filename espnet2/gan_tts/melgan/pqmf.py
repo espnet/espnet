@@ -10,7 +10,11 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.signal import kaiser
+
+try:
+    from scipy.signal import kaiser
+except ImportError:
+    from scipy.signal.windows import kaiser
 
 
 def design_prototype_filter(
