@@ -25,7 +25,6 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         token_list: List,
         corelm: AbsCoreLM,
         predictor: AbsPredictor,
-        postprocessor: Optional[AbsPostProcessor],
         share_emb: bool = True,
         extract_feats_in_collect_stats: bool = False,
     ):

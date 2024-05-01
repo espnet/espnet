@@ -115,7 +115,7 @@ class ARCoreLM(AbsCoreLM):
             encoder_output = None
             encoder_mask = None
 
-        decoder_input = self.dec_pos_enc(decoder_input)
+        decoder_input = self.dec_pos_enc(decoder_input, self.cache)
         for layer in self.decoders:
             decoder_input = layer(
                 decoder_input,

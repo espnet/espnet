@@ -66,3 +66,6 @@ class AbsPredictor(torch.nn.Module, ABC):
     
     def remove_cache(self):
         pass
+
+    def hidden_to_logits(self, **kwargs):
+        return self.forward(**kwargs)

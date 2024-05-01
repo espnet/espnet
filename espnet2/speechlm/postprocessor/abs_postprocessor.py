@@ -15,5 +15,6 @@ class AbsPostProcessor(torch.nn.Module, ABC):
     """
 
     @abstractmethod
+    @torch.no_grad()
     def forward(self, tokens: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
         raise NotImplementedError

@@ -25,7 +25,9 @@ from espnet2.speechlm.inference.inference import (
 )
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
 from espnet2.speechlm.definitions import modalities as speechlm_modalities
+from espnet2.tasks.speechlm import post_processor_choices
 
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -49,7 +51,6 @@ class SpeechLM:
         nbest: int = 1,
         sampling_temperature: float = 1.0,
         top_k: int = 20,
-        teacher_force: bool = False,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         modality: str = "codec",
@@ -65,6 +66,7 @@ class SpeechLM:
         self.device = device
         self.dtype = dtype
         self.train_args = train_args
+        self.modality = modality
 
         self.inference_method = SpeechLMInference(
             corelm = model.corelm,
@@ -78,7 +80,6 @@ class SpeechLM:
             nbest = nbest,
             sampling_temperature = sampling_temperature,
             top_k = top_k,
-            teacher_force = teacher_force,
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
             modality=modality,
@@ -98,11 +99,23 @@ class SpeechLM:
         
         prefix_len = kwargs["prefix_len"]
         prefix_len = prefix_len.cpu().tolist()[0][0]
-        return self.inference_method(
+        hypos = self.inference_method(
             dec_seq=dec_seq,
             enc_seq=enc_seq,
             prefix_len=prefix_len,
         )
+
+        hypos = [self.postprocess(h) for h in hypos]
+        return hypos
+    
+    def postprocess(self, hypo: SpeechLMHypothesis):
+        if self.modality == "codec":
+            waveform = self.postprocessor(
+                hypo.generated - self.train_args.token_bias["codec"]
+            )
+            setattr(hypo, "waveform", waveform)
+        else:
+            raise NotImplementedError
     
     @staticmethod
     def from_pretrained(
@@ -133,9 +146,10 @@ def inference(
     nbest: int = 1,
     sampling_temperature: float = 1.0,
     top_k: int = 20,
-    teacher_force: bool = False,
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
+    postprocessor: str = None,
+    postprocessor_conf: dict = {},
 ):
     """Run text-to-speech inference."""
     assert check_argument_types()
@@ -161,6 +175,7 @@ def inference(
     task_name = json.load(open(data_path_and_name_and_type[0][0]))['task']
     task = speechlm_tasks[task_name]
     output_name, output_modality = task.decoder_entries[-1][:2]
+    assert output_modality == postprocessor, f"Postprocessor should be {output_modality}"
 
     # 3. Build model
     speechlm_kwargs = dict(
@@ -173,7 +188,6 @@ def inference(
         nbest=nbest,
         sampling_temperature=sampling_temperature,
         top_k=top_k,
-        teacher_force=teacher_force,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         modality=output_modality,
@@ -183,6 +197,9 @@ def inference(
         model_tag=model_tag,
         **speechlm_kwargs
     )
+
+    post_processor_class = post_processor_choices.get_class(postprocessor)
+    post_processor = post_processor_class(**postprocessor_conf)
 
     # 4. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
@@ -200,9 +217,10 @@ def inference(
 
     # 5 Start for-loop
     output_dir = Path(output_dir)
-    (output_dir / f"{output_name}_{output_modality}").mkdir(parents=True, exist_ok=True)
-    (output_dir / "token").mkdir(parents=True, exist_ok=True)
-    (output_dir / "score").mkdir(parents=True, exist_ok=True)
+    (output_dir / output_name).mkdir(parents=True, exist_ok=True)
+    writer = open(output_dir / output_name / f"{output_name}.scp", 'w')
+    # (output_dir / "token").mkdir(parents=True, exist_ok=True)
+    # (output_dir / "score").mkdir(parents=True, exist_ok=True)
 
     for idx, (keys, batch) in enumerate(loader, 1):
         assert isinstance(batch, dict), type(batch)
@@ -211,9 +229,20 @@ def inference(
         assert _bs == 1, _bs
 
         start_time = time.perf_counter()
-        output_dict = speechlm(**batch)
-
+        batch = to_device(batch, device=device)
+        hypos = speechlm(**batch)
         key = keys[0]
+
+        for h_idx, hypo in enumerate(hypos):
+            if output_modality == "codec":
+                bias = speechlm.train_args.token_bias['codec']
+                waveform = post_processor(hypo.generated - bias)
+
+                wave_name = f"{key}_sample{idx}"
+                wave_path = output_dir / output_name / f"{wave_name}.wav"
+                writer.write(f"{wave_name} {str(wave_path)}\n")
+
+                
 
         assert 1 == 2
 
@@ -342,17 +371,14 @@ def get_parser():
         help="the temperature of softmax during sampling",
     )
     group.add_argument(
-        "--topk_k",
+        "--top_k",
         type=int,
         default=20,
         help="if positive, restrict the sampling to top-k tokens with highest probs."
     )
-    group.add_argument(
-        "--teacher_force",
-        type=str2bool,
-        default=False,
-        help="Whether to use teacher forcing",
-    )
+
+    group = parser.add_argument_group("Postprocessor related")
+    post_processor_choices.add_arguments(group)
 
     # TODO: handle the post-processor
     return parser

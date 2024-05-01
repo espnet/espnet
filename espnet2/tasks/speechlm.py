@@ -65,7 +65,7 @@ predictor_choices = ClassChoices(
     default="parallel",
 )
 
-postprocessor_choices = ClassChoices(
+post_processor_choices = ClassChoices(
     "postprocessor",
     classes=dict(
         codec=CodecPostProcessor,
@@ -295,14 +295,7 @@ class SpeechLMTask(AbsTask):
             **args.predictor_conf,
         )
 
-        # 3. Build Postprocessor module
-        if args.postprocessor is not None:
-            postprocessor_class = predictor_choices.get_class(args.postprocessor)
-            postprocessor = postprocessor_class(**args.postprocessor_conf)
-        else:
-            postprocessor = None
-
-        # 4. Build model
+        # 3. Build model
         model_class = model_choices.get_class(args.model)
         if args.codec_token_in_use is None:
             codec_token_in_use = args.codec_token_per_frame
@@ -313,7 +306,6 @@ class SpeechLMTask(AbsTask):
             token_list=token_list,
             corelm=corelm,
             predictor=predictor,
-            postprocessor=postprocessor,
             **args.model_conf,
         )
 
