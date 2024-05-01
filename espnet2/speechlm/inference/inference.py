@@ -101,10 +101,13 @@ class SpeechLMInference(object):
             logp = torch.softmax(
                 topk_values / self.sampling_temerature,
                 dim=-1
-            ).flatten(end_dim=-2)
-            inner_indices = torch.multinomial(logp, num_samples=1)
-            gen_token_idx = torch.gather(topk_indices, inner_indices, dim=-1)
-            gen_token_score = torch.gather(topk_values, inner_indices, dim=-1)
+            )
+            inner_indices = torch.multinomial(
+                logp.flatten(end_dim=-2), 
+                num_samples=1
+            ).view(logp[..., :1].size())
+            gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
+            gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
         
         elif self.search_algo in ["greedy_search", "teacher_force"]:
             gen_token_idx = topk_indices[:, :, :, 0]
