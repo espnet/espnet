@@ -95,7 +95,7 @@ class SpeechLMTask(AbsTask):
         # --predictor and --predictor_conf
         predictor_choices,
         # --postprocessor and --postprocessor_conf
-        postprocessor_choices,
+        post_processor_choices,
         # --model and --model_conf
         model_choices,
     ]

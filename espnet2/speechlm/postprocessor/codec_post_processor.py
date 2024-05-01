@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict
 
+import numpy as np
 import torch
 
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
@@ -8,8 +9,9 @@ from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 
 
 # Used in both data preparation stage and inference stage.
-class Codec_Tokenizer(object):
+class Codec_Tokenizer(torch.nn.Module):
     def __init__(self, codec_choice, codec_fs, device, dump_audio=False):
+        super(Codec_Tokenizer, self).__init__()
         self.codec_choice = codec_choice
         self.device = device
         self.dump_audio = dump_audio
@@ -54,7 +56,7 @@ class Codec_Tokenizer(object):
         if self.codec_choice == "DAC":
             raise NotImplementedError
         elif self.codec_choice == "EnCodec":
-            encoded_frames = [(codes.transpose(0, 1), None)]
+            encoded_frames = [(codes.transpose(1, 2), None)]
             waveform = self.codec.decode(encoded_frames)
         else:
             raise NotImplementedError
@@ -110,17 +112,16 @@ class CodecPostProcessor(AbsPostProcessor):
             device=device,
             dump_audio=dump_audio,
         )
+        self.sample_rate = self.tokenizer.sample_rate
         
-
     def forward(
         self, tokens: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict]:
-        B, _, nq = tokens.size()
-        assert B == 1, "Only batch size of 1 is allowed"
+        print(tokens.device)
 
-        for t in range(nq):
-            tokens[:, :, t] -= t * self.tokenizer.size_codebook
-        
-        waveform = self.tokenizer.decode(tokens)
+        for t in range(tokens.size(1)):
+            tokens[:, t] -= t * self.tokenizer.size_codebook
+
+        waveform = self.tokenizer.decode(tokens.unsqueeze(0)).squeeze(0)
         return waveform
 

@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union, List
 import numpy as np
 import soundfile as sf
 import torch
+import torchaudio
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -105,17 +106,7 @@ class SpeechLM:
             prefix_len=prefix_len,
         )
 
-        hypos = [self.postprocess(h) for h in hypos]
         return hypos
-    
-    def postprocess(self, hypo: SpeechLMHypothesis):
-        if self.modality == "codec":
-            waveform = self.postprocessor(
-                hypo.generated - self.train_args.token_bias["codec"]
-            )
-            setattr(hypo, "waveform", waveform)
-        else:
-            raise NotImplementedError
     
     @staticmethod
     def from_pretrained(
@@ -199,7 +190,7 @@ def inference(
     )
 
     post_processor_class = post_processor_choices.get_class(postprocessor)
-    post_processor = post_processor_class(**postprocessor_conf)
+    post_processor = post_processor_class(**postprocessor_conf).to(device)
 
     # 4. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
@@ -228,7 +219,6 @@ def inference(
         _bs = len(next(iter(batch.values())))
         assert _bs == 1, _bs
 
-        start_time = time.perf_counter()
         batch = to_device(batch, device=device)
         hypos = speechlm(**batch)
         key = keys[0]
@@ -236,15 +226,19 @@ def inference(
         for h_idx, hypo in enumerate(hypos):
             if output_modality == "codec":
                 bias = speechlm.train_args.token_bias['codec']
-                waveform = post_processor(hypo.generated - bias)
+                waveform = post_processor(hypo.generated - bias).cpu()
 
-                wave_name = f"{key}_sample{idx}"
+                print('waveform shape: ', waveform.size())
+
+                wave_name = f"{key}_sample{h_idx}"
                 wave_path = output_dir / output_name / f"{wave_name}.wav"
                 writer.write(f"{wave_name} {str(wave_path)}\n")
 
-                
+                torchaudio.save(
+                    wave_path, waveform, sample_rate=post_processor.sample_rate
+                )
 
-        assert 1 == 2
+                logging.info(f"save audio {wave_name}: {wave_path}")
 
 
 def get_parser():

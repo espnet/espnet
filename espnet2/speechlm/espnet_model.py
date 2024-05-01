@@ -12,7 +12,6 @@ from typeguard import check_argument_types
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
-from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.speechlm.net_utils import length_mask
@@ -34,7 +33,6 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         # modules
         self.corelm = corelm
         self.predictor = predictor
-        self.post_processor = postprocessor
         self.emb = torch.nn.Embedding(len(token_list), corelm.model_dim)
         if share_emb:
             self.emb.data = predictor.get_lookup_table()

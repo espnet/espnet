@@ -57,20 +57,15 @@ class SpeechLMInference(object):
             [s for s in self.token_bias.values() if s > self.valid_start] + [len(token_list)]
         )
     
+    @torch.no_grad()
     def __call__(
         self, 
         dec_seq: torch.Tensor,
         prefix_len: int,
         enc_seq: torch.Tensor = None,
     ) -> List[SpeechLMHypothesis]:
-        print('start train forward', flush =True)
-        self.train_forward(dec_seq, prefix_len, enc_seq)
-
-        print('start decoding', flush=True)
         method_name = f"inference_{self.search_type}"
-        ans = getattr(self, method_name)(dec_seq, prefix_len, enc_seq)
-        assert 1 == 2
-
+        return getattr(self, method_name)(dec_seq, prefix_len, enc_seq)
 
     def logits_to_token(
         self,
@@ -140,7 +135,7 @@ class SpeechLMInference(object):
 
         # (2) Prefix inference
         dec_seq = dec_seq.expand(self.nbest, -1, -1)
-        prefix_emb = self.emb(self.emb(dec_seq[:, :prefix_len]))
+        prefix_emb = self.emb(dec_seq[:, :prefix_len])
         _ = self.corelm(prefix_emb)
         if self.search_algo == "teacher_force":
             suffix = dec_seq[:, prefix_len + 1:] # skip modality start token
@@ -194,15 +189,11 @@ class SpeechLMInference(object):
         hypos = [
             SpeechLMHypothesis(
                 prefix=dec_seq[b, :prefix_len],
-                generated=generated["token"][b][finish_idx[b]:],
-                score=generated["score"][b][finish_idx[b]:]
+                generated=generated["token"][b][:finish_idx[b]],
+                score=generated["score"][b][:finish_idx[b]]
             )
             for b in range(self.nbest)
         ]
-
-        if self.search_algo == "teacher_force":
-            acc = hypos[0].generated.eq(suffix).int().sum() / suffix.numel()
-            logging.info(f"Teacher force accuracy: {acc.item()}")
 
         return hypos
 
@@ -229,7 +220,6 @@ class SpeechLMInference(object):
         enc_seq: torch.Tensor = None,
     ) -> List[SpeechLMHypothesis]:
         from espnet2.speechlm.net_utils import length_mask
-        torch.set_printoptions(sci_mode=False)
         target = dec_seq[:, 1:]
         target_emb = self.emb(target)
 
@@ -239,7 +229,6 @@ class SpeechLMInference(object):
         dec_length = torch.Tensor([dec_emb.size(1)]).long().to(self.device)
 
         pred, pred_lengths, others = self.corelm(dec_emb, dec_length)
-        print('full pred: ', pred[:, :, 0])
 
         logits, logits_lengths, others = self.predictor(
             pred,
