@@ -232,7 +232,7 @@ class TransformerLayer(torch.nn.Module):
             self.cross_attn_ln = None
 
         self.ffn = PositionwiseFeedForward(att_unit, unit, dropout_rate)
-        # self.ffn_ln = torch.nn.LayerNorm(att_unit)
+        self.ffn_ln = torch.nn.LayerNorm(att_unit)
 
     def forward(
         self,
@@ -242,18 +242,17 @@ class TransformerLayer(torch.nn.Module):
         src_masks: torch.Tensor = None,
         cache: Dict = None,
     ):
-        ######## Jinchuan: Take care of the layer norms here. Order is wrong!!!
         # self-attn
-        x = self.attn_ln(input)
-        x = x + self.attn(x, x, x, input_masks, cache)
+        x_norm = self.attn_ln(input)
+        x = input + self.attn(x_norm, x_norm, x_norm, input_masks, cache)
 
         # cross-attn
         if self.cross_attn and src is not None:
-            x = self.cross_attn_ln(x)
-            x = x + self.cross_attn(x, src, src, src_masks, cache)
+            x_norm = self.cross_attn_ln(x)
+            x = x + self.cross_attn(x_norm, src, src, src_masks, cache)
 
         # feed-forward
-        # x = self.ffn_ln(x)
-        x = x + self.ffn(x)
+        x_norm = self.ffn_ln(x)
+        x = x + self.ffn(x_norm)
 
         return x
