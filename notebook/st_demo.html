@@ -440,210 +440,54 @@ HTTP request sent, awaiting response... 200 OK
 Length: unspecified [text/html]
 Saving to: &#39;decode/download/fisher_callhome_spanish.transformer.v1.es-en/ggCWsF..tar.gz&#39;
 
+decode/download/fis     [ &lt;=&gt;                ]   3.26K  --.-KB/s    in 0s
 
-  decode/do     [&lt;=&gt;                 ]       0  --.-KB/s</div></div>
+2020-02-01 06:27:27 (71.2 MB/s) - &#39;decode/download/fisher_callhome_spanish.transformer.v1.es-en/ggCWsF..tar.gz&#39; saved [3338]
+
+
+gzip: stdin: not in gzip format
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  3338    0  3338    0     0  16944      0 --:--:-- --:--:-- --:--:-- 16944
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   408    0   408    0     0   4039      0 --:--:-- --:--:-- --:--:--  4039
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 97.8M    0 97.8M    0     0  82.9M      0 --:--:--  0:00:01 --:--:--  174M
+conf/tuning/train_pytorch_transformer_bpe_short_long.yaml
+conf/tuning/decode_pytorch_transformer_bpe.yaml
+conf/specaug.yaml
+data/train_sp.en/cmvn.ark
+exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best
+exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json
+Sucessfully downloaded zip file from https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3
+stage 0: Data preparation
+stage 1: Feature Generation
+steps/make_fbank_pitch.sh --cmd run.pl --nj 1 --write_utt2num_frames true decode/st_test/data decode/st_test/log decode/st_test/fbank
+utils/validate_data_dir.sh: WARNING: you have only one speaker.  This probably a bad idea.
+   Search for the word &#39;bold&#39; in http://kaldi-asr.org/doc/data_prep.html
+   for more information.
+utils/validate_data_dir.sh: Successfully validated data-directory decode/st_test/data
+steps/make_fbank_pitch.sh: [info]: no segments file exists: assuming wav.scp indexed by utterance.
+steps/make_fbank_pitch.sh: Succeeded creating filterbank and pitch features for data
+/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/dump.sh --cmd run.pl --nj 1 --do_delta false decode/st_test/data/feats.scp decode/download/fisher_callhome_spanish.transformer.v1.es-en/data/train_sp.en/cmvn.ark decode/st_test/log decode/st_test/dump
+stage 2: Json Data Preparation
+/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/data2json.sh --feat decode/st_test/dump/feats.scp decode/st_test/data decode/st_test/dict
+/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/feat_to_shape.sh --cmd run.pl --nj 1 --filetype  --preprocess-conf  --verbose 0 decode/st_test/dump/feats.scp decode/st_test/data/tmp-1PxS1/input_1/shape.scp
+sym2int.pl: replacing X with 1
+** Replaced 1 instances of OOVs with 1
+stage 3: Decoding
+
+Detokenizer Version $Revision: 4134 $
+Language: en
+Translated text: yes i&#39;m jose
+
+Finished
+</pre></div></div>
 </div>
-<p>decode/download/fis     [ &amp;lt;=&amp;gt;                ]   3.26K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-02-01 06:27:27 (71.2 MB/s) - ‘decode/download/fisher_callhome_spanish.transformer.v1.es-en/ggCWsF..tar.gz’ saved [3338]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3338    0  3338    0     0  16944      0 –:–:– –:–:– –:–:– 16944</dt><dd><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</dd>
-</dl>
-<p>100   408    0   408    0     0   4039      0 –:–:– –:–:– –:–:–  4039</p>
-<blockquote>
-<div><dl>
-<dt>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</dt><dd><blockquote>
-<div><blockquote>
-<div><p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<p>100 97.8M    0 97.8M    0     0  82.9M      0 –:–:–  0:00:01 –:–:–  174M
-conf/tuning/train_pytorch_transformer_bpe_short_long.yaml
-conf/tuning/decode_pytorch_transformer_bpe.yaml
-conf/specaug.yaml
-data/train_sp.en/cmvn.ark
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json
-Sucessfully downloaded zip file from <a class="reference external" href="https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3">https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3</a>
-stage 0: Data preparation
-stage 1: Feature Generation
-steps/make_fbank_pitch.sh –cmd run.pl –nj 1 –write_utt2num_frames true decode/st_test/data decode/st_test/log decode/st_test/fbank
-utils/validate_data_dir.sh: WARNING: you have only one speaker.  This probably a bad idea.</p>
-<blockquote>
-<div><p>Search for the word ‘bold’ in <a class="reference external" href="http://kaldi-asr.org/doc/data_prep.html">http://kaldi-asr.org/doc/data_prep.html</a>
-for more information.</p>
-</div></blockquote>
-<p>utils/validate_data_dir.sh: Successfully validated data-directory decode/st_test/data
-steps/make_fbank_pitch.sh: [info]: no segments file exists: assuming wav.scp indexed by utterance.
-steps/make_fbank_pitch.sh: Succeeded creating filterbank and pitch features for data
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/dump.sh –cmd run.pl –nj 1 –do_delta false decode/st_test/data/feats.scp decode/download/fisher_callhome_spanish.transformer.v1.es-en/data/train_sp.en/cmvn.ark decode/st_test/log decode/st_test/dump
-stage 2: Json Data Preparation
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/data2json.sh –feat decode/st_test/dump/feats.scp decode/st_test/data decode/st_test/dict
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/feat_to_shape.sh –cmd run.pl –nj 1 –filetype  –preprocess-conf  –verbose 0 decode/st_test/dump/feats.scp decode/st_test/data/tmp-1PxS1/input_1/shape.scp
-sym2int.pl: replacing X with 1
-** Replaced 1 instances of OOVs with 1
-stage 3: Decoding</p>
-<p>Detokenizer Version $Revision: 4134 $
-Language: en
-Translated text: yes i’m jose</p>
-<p>Finished
-&lt;/pre&gt;</p>
-</div></blockquote>
-</dd>
-</dl>
-</div></blockquote>
-<p>decode/download/fis     [ &lt;=&gt;                ]   3.26K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-02-01 06:27:27 (71.2 MB/s) - ‘decode/download/fisher_callhome_spanish.transformer.v1.es-en/ggCWsF..tar.gz’ saved [3338]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3338    0  3338    0     0  16944      0 –:–:– –:–:– –:–:– 16944</dt><dd><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</dd>
-</dl>
-<p>100   408    0   408    0     0   4039      0 –:–:– –:–:– –:–:–  4039</p>
-<blockquote>
-<div><dl>
-<dt>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</dt><dd><blockquote>
-<div><blockquote>
-<div><p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<p>100 97.8M    0 97.8M    0     0  82.9M      0 –:–:–  0:00:01 –:–:–  174M
-conf/tuning/train_pytorch_transformer_bpe_short_long.yaml
-conf/tuning/decode_pytorch_transformer_bpe.yaml
-conf/specaug.yaml
-data/train_sp.en/cmvn.ark
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json
-Sucessfully downloaded zip file from <a class="reference external" href="https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3">https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3</a>
-stage 0: Data preparation
-stage 1: Feature Generation
-steps/make_fbank_pitch.sh –cmd run.pl –nj 1 –write_utt2num_frames true decode/st_test/data decode/st_test/log decode/st_test/fbank
-utils/validate_data_dir.sh: WARNING: you have only one speaker.  This probably a bad idea.</p>
-<blockquote>
-<div><p>Search for the word ‘bold’ in <a class="reference external" href="http://kaldi-asr.org/doc/data_prep.html">http://kaldi-asr.org/doc/data_prep.html</a>
-for more information.</p>
-</div></blockquote>
-<p>utils/validate_data_dir.sh: Successfully validated data-directory decode/st_test/data
-steps/make_fbank_pitch.sh: [info]: no segments file exists: assuming wav.scp indexed by utterance.
-steps/make_fbank_pitch.sh: Succeeded creating filterbank and pitch features for data
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/dump.sh –cmd run.pl –nj 1 –do_delta false decode/st_test/data/feats.scp decode/download/fisher_callhome_spanish.transformer.v1.es-en/data/train_sp.en/cmvn.ark decode/st_test/log decode/st_test/dump
-stage 2: Json Data Preparation
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/data2json.sh –feat decode/st_test/dump/feats.scp decode/st_test/data decode/st_test/dict
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/feat_to_shape.sh –cmd run.pl –nj 1 –filetype  –preprocess-conf  –verbose 0 decode/st_test/dump/feats.scp decode/st_test/data/tmp-1PxS1/input_1/shape.scp
-sym2int.pl: replacing X with 1
-** Replaced 1 instances of OOVs with 1
-stage 3: Decoding</p>
-<p>Detokenizer Version $Revision: 4134 $
-Language: en
-Translated text: yes i’m jose</p>
-<p>Finished
-end{sphinxVerbatim}</p>
-</div></blockquote>
-</dd>
-</dl>
-</div></blockquote>
-<p>decode/download/fis     [ &lt;=&gt;                ]   3.26K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-02-01 06:27:27 (71.2 MB/s) - ‘decode/download/fisher_callhome_spanish.transformer.v1.es-en/ggCWsF..tar.gz’ saved [3338]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3338    0  3338    0     0  16944      0 –:–:– –:–:– –:–:– 16944</dt><dd><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</dd>
-</dl>
-<p>100   408    0   408    0     0   4039      0 –:–:– –:–:– –:–:–  4039</p>
-<blockquote>
-<div><dl>
-<dt>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</dt><dd><blockquote>
-<div><p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<p>100 97.8M    0 97.8M    0     0  82.9M      0 –:–:–  0:00:01 –:–:–  174M
-conf/tuning/train_pytorch_transformer_bpe_short_long.yaml
-conf/tuning/decode_pytorch_transformer_bpe.yaml
-conf/specaug.yaml
-data/train_sp.en/cmvn.ark
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.val5.avg.best
-exp/train_sp.en_lc.rm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans/results/model.json
-Sucessfully downloaded zip file from <a class="reference external" href="https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3">https://drive.google.com/open?id=1hawp5ZLw4_SIHIT3edglxbKIIkPVe8n3</a>
-stage 0: Data preparation
-stage 1: Feature Generation
-steps/make_fbank_pitch.sh –cmd run.pl –nj 1 –write_utt2num_frames true decode/st_test/data decode/st_test/log decode/st_test/fbank
-utils/validate_data_dir.sh: WARNING: you have only one speaker.  This probably a bad idea.</p>
-<blockquote>
-<div><p>Search for the word ‘bold’ in <a class="reference external" href="http://kaldi-asr.org/doc/data_prep.html">http://kaldi-asr.org/doc/data_prep.html</a>
-for more information.</p>
-</div></blockquote>
-<p>utils/validate_data_dir.sh: Successfully validated data-directory decode/st_test/data
-steps/make_fbank_pitch.sh: [info]: no segments file exists: assuming wav.scp indexed by utterance.
-steps/make_fbank_pitch.sh: Succeeded creating filterbank and pitch features for data
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/dump.sh –cmd run.pl –nj 1 –do_delta false decode/st_test/data/feats.scp decode/download/fisher_callhome_spanish.transformer.v1.es-en/data/train_sp.en/cmvn.ark decode/st_test/log decode/st_test/dump
-stage 2: Json Data Preparation
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/data2json.sh –feat decode/st_test/dump/feats.scp decode/st_test/data decode/st_test/dict
-/content/espnet/egs/fisher_callhome_spanish/st1/../../../utils/feat_to_shape.sh –cmd run.pl –nj 1 –filetype  –preprocess-conf  –verbose 0 decode/st_test/dump/feats.scp decode/st_test/data/tmp-1PxS1/input_1/shape.scp
-sym2int.pl: replacing X with 1
-** Replaced 1 instances of OOVs with 1
-stage 3: Decoding</p>
-<p>Detokenizer Version $Revision: 4134 $
-Language: en
-Translated text: yes i’m jose</p>
-<p>Finished</p>
-</dd>
-</dl>
-</div></blockquote>
 <p>As seen above, we successfully obtained the result: <strong>“Translated text: yes i’m jose”</strong>!</p>
 </section>
 <section id="English-translated-text-to-speech-synthesis">
@@ -878,98 +722,25 @@ Resolving drive.google.com (drive.google.com)... 172.217.214.102, 172.217.214.13
 Connecting to drive.google.com (drive.google.com)|172.217.214.102|:443... connected.
 HTTP request sent, awaiting response... 200 OK
 Length: unspecified [text/html]
-Saving to: &#39;/content/WGgpBx.tar.gz&#39;</div></div>
+Saving to: &#39;/content/WGgpBx.tar.gz&#39;
+
+/content/WGgpBx.tar     [ &lt;=&gt;                ]   3.18K  --.-KB/s    in 0s
+
+2020-01-31 06:29:11 (38.8 MB/s) - &#39;/content/WGgpBx.tar.gz&#39; saved [3259]
+
+
+gzip: stdin: not in gzip format
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  3259    0  3259    0     0  16886      0 --:--:-- --:--:-- --:--:-- 16886
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   388    0   388    0     0   2000      0 --:--:-- --:--:-- --:--:--  1989
+100 16.7G    0 16.7G    0     0  40.9M      0 --:--:--  0:06:59 --:--:-- 40.4M^C
+</pre></div></div>
 </div>
-<p>/content/WGgpBx.tar     [&amp;lt;=&amp;gt;                 ]       0  –.-KB/s
-/content/WGgpBx.tar     [ &amp;lt;=&amp;gt;                ]   3.18K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-01-31 06:29:11 (38.8 MB/s) - ‘/content/WGgpBx.tar.gz’ saved [3259]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3259    0  3259    0     0  16886      0 –:–:– –:–:– –:–:– 16886</dt><dd><blockquote>
-<div><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>100   388    0   388    0     0   2000      0 –:–:– –:–:– –:–:–  1989
-100 16.7G    0 16.7G    0     0  40.9M      0 –:–:–  0:06:59 –:–:– 40.4M^C
-&lt;/pre&gt;</p>
-</div></blockquote>
-</dd>
-</dl>
-<p>/content/WGgpBx.tar     [&lt;=&gt;                 ]       0  –.-KB/s
-/content/WGgpBx.tar     [ &lt;=&gt;                ]   3.18K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-01-31 06:29:11 (38.8 MB/s) - ‘/content/WGgpBx.tar.gz’ saved [3259]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3259    0  3259    0     0  16886      0 –:–:– –:–:– –:–:– 16886</dt><dd><blockquote>
-<div><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>100   388    0   388    0     0   2000      0 –:–:– –:–:– –:–:–  1989
-100 16.7G    0 16.7G    0     0  40.9M      0 –:–:–  0:06:59 –:–:– 40.4M^{}C
-end{sphinxVerbatim}</p>
-</div></blockquote>
-</dd>
-</dl>
-<p>/content/WGgpBx.tar     [&lt;=&gt;                 ]       0  –.-KB/s
-/content/WGgpBx.tar     [ &lt;=&gt;                ]   3.18K  –.-KB/s    in 0s</p>
-<blockquote>
-<div><blockquote>
-<div><p>2020-01-31 06:29:11 (38.8 MB/s) - ‘/content/WGgpBx.tar.gz’ saved [3259]</p>
-<p>gzip: stdin: not in gzip format
-tar: Child returned status 1
-tar: Error is not recoverable: exiting now</p>
-<blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<p>0     0    0     0    0     0      0      0 –:–:– –:–:– –:–:–     0</p>
-</div></blockquote>
-<dl>
-<dt>100  3259    0  3259    0     0  16886      0 –:–:– –:–:– –:–:– 16886</dt><dd><blockquote>
-<div><dl class="simple">
-<dt>% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</dt><dd><p>Dload  Upload   Total   Spent    Left  Speed</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>100   388    0   388    0     0   2000      0 –:–:– –:–:– –:–:–  1989
-100 16.7G    0 16.7G    0     0  40.9M      0 –:–:–  0:06:59 –:–:– 40.4M^C</p>
-</dd>
-</dl>
 <p>However, it takes too much time to finish downloading the dataset. So we cancel the cell above.</p>
 </section>
 <section id="Details-of-ESPnet-tools">
