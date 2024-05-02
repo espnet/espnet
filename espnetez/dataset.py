@@ -33,14 +33,17 @@ class ESPnetEZLhotseDataset(ESPnetEZDataset):
         supervisions: lhotse.SupervisionSet, path to the lhotse supervision manifest.
         recordings: lhotse.RecordingSet, path to the corresponding lhotse recordings manifest.
     """
+
     def __init__(self, supervisions, recordings):
 
         # lazy importing for lhotse
         try:
-           import lhotse
+            import lhotse
         except ImportError:
-            raise ImportError("Cannot import Lhotse. Have you installed it correctly ? "
-                              "See https://github.com/lhotse-speech/lhotse.")
+            raise ImportError(
+                "Cannot import Lhotse. Have you installed it correctly ? "
+                "See https://github.com/lhotse-speech/lhotse."
+            )
 
         supervisions = lhotse.load_manifest(supervisions)
         assert isinstance(supervisions, lhotse.SupervisionSet)
@@ -48,11 +51,7 @@ class ESPnetEZLhotseDataset(ESPnetEZDataset):
         assert isinstance(recordings, lhotse.RecordingSet)
 
         # these have to be mapped to dataset and data_info now.
-        #TODO
+        # TODO
 
         # call the parent init
         ESPnetEZDataset.__init__(dataset, data_info)
-
-
-
-
