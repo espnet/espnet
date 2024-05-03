@@ -13,20 +13,10 @@ from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.core_lm.ar import ARCoreLM
-from espnet2.speechlm.core_lm.nar import NARCoreLM
-from espnet2.speechlm.core_lm.ar_nar import ARNARCoreLM
+from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
+from espnet2.speechlm.core_lm.valle import ValleLM
+from espnet2.speechlm.core_lm.ar import ARLM
 
-# Predictor
-from espnet2.speechlm.predictor.abs_predictor import AbsPredictor
-from espnet2.speechlm.predictor.linear import (
-    ParallelPredictor,
-    DelayPredictor,
-)
-from espnet2.speechlm.predictor.multiscale import MultiScalePredictor
-from espnet2.speechlm.predictor.layer_select import LayerSelectPredictor
-
-# Postprocessor
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 from espnet2.speechlm.postprocessor.codec_post_processor import CodecPostProcessor
 
@@ -45,24 +35,12 @@ from espnet2.utils.types import str2bool, str_or_none, int_or_none
 corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
-        ar=ARCoreLM,
-        nar=NARCoreLM,
-        ar_nar=ARNARCoreLM,
+        multiscale=MultiScaleLM,
+        valle=ValleLM,
+        ar=ARLM,
     ),
     type_check=AbsCoreLM,
-    default="ar_nar",
-)
-
-predictor_choices = ClassChoices(
-    "predictor",
-    classes=dict(
-        parallel=ParallelPredictor,
-        delay=DelayPredictor,
-        multiscale=MultiScalePredictor,
-        layer_select=LayerSelectPredictor,
-    ),
-    type_check=AbsPredictor,
-    default="parallel",
+    default="multiscale",
 )
 
 post_processor_choices = ClassChoices(
@@ -92,8 +70,6 @@ class SpeechLMTask(AbsTask):
     class_choices_list = [
         # --corelm and --corelm_conf
         corelm_choices,
-        # --predictor and --predictor_conf
-        predictor_choices,
         # --postprocessor and --postprocessor_conf
         post_processor_choices,
         # --model and --model_conf
@@ -283,36 +259,26 @@ class SpeechLMTask(AbsTask):
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
-            encoder_decoder_format=args.encoder_decoder_format, **args.corelm_conf
-        )
-
-        # 2. Build Predictor module
-        predictor_class = predictor_choices.get_class(args.predictor)
-        predictor = predictor_class(
             vocab_size=len(token_list),
-            input_dim=corelm.model_dim,
             nq=args.codec_token_in_use,
-            **args.predictor_conf,
+            **args.corelm_conf
         )
 
         # 3. Build model
         model_class = model_choices.get_class(args.model)
-        if args.codec_token_in_use is None:
-            codec_token_in_use = args.codec_token_per_frame
-        else:
-            codec_token_in_use = args.codec_token_in_use
-        model = model_class(
-            nq=codec_token_in_use,
-            token_list=token_list,
-            corelm=corelm,
-            predictor=predictor,
-            **args.model_conf,
-        )
+        model = model_class(corelm=corelm, **args.model_conf)
 
-        # FIXME(kamo): Should be done in model?
-        # 3. Initialize
+        # 4. Initialize
         if args.init is not None:
             initialize(model, args.init)
+        else:
+            for m in model.modules():
+                if isinstance(m, torch.nn.Linear):
+                    torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
+                    if m.bias is not None:
+                        torch.nn.init.zeros_(m.bias)
+                elif isinstance(m, torch.nn.Embedding):
+                    torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
         assert check_return_type(model)
         return model

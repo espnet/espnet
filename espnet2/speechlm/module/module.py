@@ -15,7 +15,7 @@ class MultiHeadedAttention(torch.nn.Module):
 
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate, causal=False, flashattention=True):
+    def __init__(self, n_head, n_feat, dropout_rate, causal=False):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
@@ -29,11 +29,10 @@ class MultiHeadedAttention(torch.nn.Module):
 
         self.dropout_rate = dropout_rate
         self.causal = causal
-        self.flashattention = flashattention
 
         # check flashattention availability
         torch_version = torch.__version__
-        if flashattention and V(torch_version) < V("2.0.1"):
+        if V(torch_version) < V("2.0.1"):
             raise ValueError(f"Upgrade Pytorch 2.0.1+ to use flashattention")
 
     def forward(self, query, key, value, mask, cache):
@@ -68,7 +67,7 @@ class MultiHeadedAttention(torch.nn.Module):
         n_batch = query.size(0)
         q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
 
-        if len(cache) > 0:
+        if self.linear_k in cache and self.linear_v in cache > 0:
             _ = self.linear_k(key) # accumulate result in cache
             _ = self.linear_v(value)
             k = cache[self.linear_k].view(n_batch, -1, self.h, self.d_k)
@@ -204,7 +203,6 @@ class TransformerLayer(torch.nn.Module):
         dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         causal: bool = True,
-        flashattention: bool = False,
         cross_attention: bool = False,
     ):
         super(TransformerLayer, self).__init__()
@@ -214,7 +212,6 @@ class TransformerLayer(torch.nn.Module):
             att_unit,
             attention_dropout_rate,
             causal,
-            flashattention,
         )
         self.attn_ln = torch.nn.LayerNorm(att_unit)
 
@@ -224,7 +221,6 @@ class TransformerLayer(torch.nn.Module):
                 att_unit,
                 attention_dropout_rate,
                 False,
-                flashattention,
             )
             self.cross_attn_ln = torch.nn.LayerNorm(att_unit)
         else:
@@ -240,7 +236,7 @@ class TransformerLayer(torch.nn.Module):
         input_masks: torch.Tensor = None,
         src: torch.Tensor = None,
         src_masks: torch.Tensor = None,
-        cache: Dict = None,
+        cache: Dict = {},
     ):
         # self-attn
         x_norm = self.attn_ln(input)
@@ -253,6 +249,79 @@ class TransformerLayer(torch.nn.Module):
 
         # feed-forward
         x_norm = self.ffn_ln(x)
+        x = x + self.ffn(x_norm)
+
+        return x
+
+# https://github.com/enhuiz/vall-e/blob/3476d393d2133fa9b50d5ad999ca13b95fc22060/vall_e/vall_e/base.py#L136
+class AdaLN(torch.nn.Module):
+    def __init__(self, d_model, n_levels, eps=1e-5, k=0.1, c=2):
+        super().__init__()
+        self.eps = eps
+        self.emb = torch.nn.Embedding(n_levels, d_model * 2)
+        self.k = k
+        self.c = c
+        torch.nn.init.zeros_(self.emb.weight)
+
+    def forward(self, x, l):
+        logγ, β = self.emb(l).unsqueeze(1).chunk(2, dim=-1)
+
+        h = torch.nn.functional.layer_norm(x, x.shape[-1:], eps=self.eps)
+
+        h = self.c * (1 - (self.k * h).detach()) * h
+
+        y = logγ.exp() * h + β
+
+        return y
+
+class LevelAwareTransformerLayer(TransformerLayer):
+    def __init__(
+        self,
+        att_unit: int = 256,
+        head: int = 2,
+        unit: int = 1024,
+        dropout_rate: float = 0.0,
+        attention_dropout_rate: float = 0.0,
+        causal: bool = True,
+        cross_attention: bool = False,
+        n_level: int = 1,
+    ):
+        super(LevelAwareTransformerLayer, self).__init__(
+            att_unit=att_unit,
+            head=head,
+            unit=unit,
+            dropout_rate=dropout_rate,
+            attention_dropout_rate=attention_dropout_rate,
+            causal=causal,
+            cross_attention=cross_attention,
+        )
+
+        # Simply override the LayerNorm
+        self.attn_ln = AdaLN(att_unit, n_levels=n_level)
+        self.ffn_ln = AdaLN(att_unit, n_levels=n_level)
+        if cross_attention:
+            self.cross_attn_ln = AdaLN(att_unit, n_levels=n_level)
+
+    def forward(
+        self,
+        input: torch.Tensor,
+        level_idx: torch.Tensor,
+        input_masks: torch.Tensor = None,
+        src: torch.Tensor = None,
+        src_masks: torch.Tensor = None,
+        cache: Dict = {},
+    ):
+        # self-attn
+        x_norm = self.attn_ln(input, level_idx)
+        x = input + self.attn(x_norm, x_norm, x_norm, input_masks, cache)
+
+        # cross-attn
+        if self.cross_attn and src is not None:
+            x_norm = self.cross_attn_ln(x, level_idx)
+            x = x + self.cross_attn(x_norm, src, src, src_masks, cache)
+
+        # feed-forward
+        x_norm = self.ffn_ln(x, level_idx)
         x = x + self.ffn(x_norm)
 
         return x

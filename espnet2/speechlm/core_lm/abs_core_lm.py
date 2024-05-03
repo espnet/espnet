@@ -50,22 +50,13 @@ class AbsCoreLM(torch.nn.Module, ABC):
         decoder_input_lengths: torch.Tensor = None,
         encoder_input: torch.Tensor = None,
         encoder_input_lengths: torch.Tensor = None,
-        cache: Dict = None,
-        **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         raise NotImplementedError
 
-    @property
-    def model_dim(self) -> int:
-        return getattr(self, "_model_dim")
-    
-    @property
-    def encoder_decoder_format(self) -> int:
-        return getattr(self, "_encoder_decoder_format")
-    
-    # cache is for inference
-    def init_cache(self):
-        pass
-    
-    def remove_cache(self):
-        pass
+    def inference(
+        self,
+        prefix: torch.Tensor,
+        opts: dict = None,
+        suffix: torch.Tensor = None,
+    ):
+        raise NotImplementedError
