@@ -67,7 +67,7 @@ class MultiHeadedAttention(torch.nn.Module):
         n_batch = query.size(0)
         q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
 
-        if self.linear_k in cache and self.linear_v in cache > 0:
+        if self.linear_k in cache and self.linear_v in cache:
             _ = self.linear_k(key) # accumulate result in cache
             _ = self.linear_v(value)
             k = cache[self.linear_k].view(n_batch, -1, self.h, self.d_k)

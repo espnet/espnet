@@ -4,7 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict
+from dataclasses import dataclass
+from typing import Tuple, Dict, List
 
 import torch
 
@@ -60,3 +61,18 @@ class AbsCoreLM(torch.nn.Module, ABC):
         suffix: torch.Tensor = None,
     ):
         raise NotImplementedError
+  
+@dataclass
+class SpeechLMInferenceOptions:
+    device: str = 'cpu'
+    search_algo: str = 'sampling'
+    nbest: int = 1
+    sampling_temperature: float = 1.0
+    top_k: int = 20
+    maxlenratio: float = 0.0
+    minlenratio: float = 0.0
+    eos: int = 5
+    start: int = 1
+    masks: torch.Tensor = None
+    nq: int = None
+

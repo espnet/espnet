@@ -6,6 +6,7 @@
 from typing import Tuple, Dict
 
 import torch
+from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.module.module import MultiHeadedAttention
 
 
@@ -19,26 +20,6 @@ def length_mask(lengths: torch.Tensor) -> torch.Tensor:
 
 def causal_mask(qlen: int, device: torch.device) -> torch.Tensor:
     return torch.ones((qlen, qlen), device=device).tril_(0).unsqueeze(0)
-
-def install_kv_cache_hook(model, cache):
-    cache = {**cache} if cache is not None else {}
-    hooks = []
-
-    def save_to_cache(module, _, output):
-        if module not in cache:
-            # save as-is, for the first token or cross attention
-            cache[module] = output
-        else:
-            cache[module] = torch.cat([cache[module], output], dim=1).detach()
-        return cache[module]
-
-    def install_hooks(layer: torch.nn.Module):
-        if isinstance(layer, MultiHeadedAttention):
-            hooks.append(layer.linear_k.register_forward_hook(save_to_cache))
-            hooks.append(layer.linear_v.register_forward_hook(save_to_cache))
-
-    model.apply(install_hooks)
-    return cache, hooks
 
 def ce_loss(
         logits: torch.Tensor,
@@ -77,3 +58,61 @@ def ce_loss(
         weight = mask.sum()
 
         return loss, stats, weight
+
+def install_kv_cache_hook(model, cache):
+    cache = {**cache} if cache is not None else {}
+    hooks = []
+
+    def save_to_cache(module, _, output):
+        if module not in cache:
+            # save as-is, for the first token or cross attention
+            cache[module] = output
+        else:
+            cache[module] = torch.cat([cache[module], output], dim=1).detach()
+        return cache[module]
+
+    def install_hooks(layer: torch.nn.Module):
+        if isinstance(layer, MultiHeadedAttention):
+            hooks.append(layer.linear_k.register_forward_hook(save_to_cache))
+            hooks.append(layer.linear_v.register_forward_hook(save_to_cache))
+
+    model.apply(install_hooks)
+    return cache, hooks
+
+def logits_to_tokens(
+    logits: torch.Tensor,
+    opts: SpeechLMInferenceOptions,
+    allow_eos: bool = True
+):
+    assert logits.dim() == 4
+
+    # (1) Apply mask
+    mask = opts.masks
+    if allow_eos:
+        mask[..., opts.eos] = False
+    logits = logits.masked_fill_(mask, -1e20)
+    
+    # (2) token selection
+    topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
+
+    if opts.search_algo == "sampling":
+        logp = torch.softmax(
+            topk_values / opts.sampling_temerature,
+            dim=-1
+        )
+        inner_indices = torch.multinomial(
+            logp.flatten(end_dim=-2), 
+            num_samples=1
+        ).view(logp[..., :1].size())
+        gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
+        gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
+    
+    elif opts.search_algo in ["greedy_search", "teacher_force"]:
+        gen_token_idx = topk_indices[:, :, :, 0]
+        gen_token_score = topk_values[:, :, :, 0]
+
+    else:
+        raise NotImplementedError
+    
+    return gen_token_idx, gen_token_score
+    

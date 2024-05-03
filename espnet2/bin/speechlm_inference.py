@@ -19,15 +19,12 @@ import torchaudio
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.tasks.speechlm import SpeechLMTask
-from espnet2.speechlm.inference.inference import (
-    SpeechLMInference,
-    SpeechLMHypothesis,
-)
+from espnet2.tasks.speechlm import SpeechLMTask, post_processor_choices
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
 from espnet2.speechlm.definitions import modalities as speechlm_modalities
-from espnet2.tasks.speechlm import post_processor_choices
+from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 
+# utilities
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -46,45 +43,66 @@ class SpeechLM:
         model_file: Union[Path, str] = None,
         dtype: str = "float32",
         device: str = "cpu",
-        # Inference parameters:
-        search_type: str = "ar",
         search_algo: str = "sampling",
+        inference_nq: int = None,
         nbest: int = 1,
         sampling_temperature: float = 1.0,
         top_k: int = 20,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         modality: str = "codec",
+        post_processor_conf: dict = {},
     ):
-        """Initialize Text2Speech module."""
+        """Initialize SpeechLM module."""
         assert check_argument_types()
 
         # setup model
         model, train_args = SpeechLMTask.build_model_from_file(
             train_config, model_file, device
         )
-        model.to(dtype=getattr(torch, dtype)).eval()
+        self.model = model.to(dtype=getattr(torch, dtype)).eval()
         self.device = device
         self.dtype = dtype
         self.train_args = train_args
-        self.modality = modality
-
-        self.inference_method = SpeechLMInference(
-            corelm = model.corelm,
-            predictor = model.predictor,
-            emb = model.emb,
-            device = device,
-            token_list = train_args.token_list,
-            token_bias = train_args.token_bias,
-            search_type = search_type,
-            search_algo = search_algo,
-            nbest = nbest,
-            sampling_temperature = sampling_temperature,
-            top_k = top_k,
+        
+        # token_mask
+        token_bias = train_args.token_bias
+        token_list = train_args.token_list
+        inference_nq = model.corelm.nq if inference_nq is None else inference_nq
+        assert inference_nq <= model.corelm.nq
+        valid_start = token_bias[modality]
+        valid_end = min([s for s in token_bias.values() if s > valid_start] + [len(token_list)])
+        
+        masks = torch.ones(inference_nq, len(token_list)).to(device).bool()
+        if modality == "codec":
+            increment = (valid_end - valid_start) // model.corelm.nq
+            for l_idx in range(inference_nq):
+                masks[l_idx, valid_start + l_idx * increment: valid_start + (l_idx + 1) * increment] = False
+        else:
+            masks[:, valid_start: valid_end] = False
+        
+        # inference opts
+        self.inference_opts = SpeechLMInferenceOptions(
+            device=device,
+            search_algo=search_algo,
+            nbest=nbest,
+            sampling_temperature=sampling_temperature,
+            top_k=top_k,
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
-            modality=modality,
+            eos=train_args.token_list.index("<sos/eos>"),
+            start=train_args.token_list.index(f"<{modality}_start/end>"),
+            masks=masks,
+            nq=inference_nq if inference_nq is not None else model.corelm.nq,
         )
+
+        # post_processor
+        post_processor_class = post_processor_choices.get_class(modality)
+        self.post_processor = post_processor_class(**post_processor_conf).to(device)
+        if modality in ["codec"]:
+            self.bias = token_bias[modality]
+        else:
+            self.bias = 0
     
     def __call__(
         self,
@@ -98,15 +116,23 @@ class SpeechLM:
         if enc_seq is not None or enc_seq_lengths is not None:
             raise NotImplemented('encoder-decoder is not supported')
         
+        # language model inference
         prefix_len = kwargs["prefix_len"]
         prefix_len = prefix_len.cpu().tolist()[0][0]
-        hypos = self.inference_method(
-            dec_seq=dec_seq,
-            enc_seq=enc_seq,
-            prefix_len=prefix_len,
+        gen_tokens, gen_scores = self.model.corelm.inference(
+            prefix=dec_seq[:, :prefix_len],
+            opts=self.inference_opts,
+            enc_seq=None,
+            suffix=dec_seq[:, prefix_len + 1:]
         )
 
-        return hypos
+        # post-processing
+        generated = []
+        for gen_token in gen_tokens:
+            gen_token = gen_token - self.bias
+            generated.append(self.post_processor(gen_token))
+
+        return generated, gen_tokens, gen_scores
     
     @staticmethod
     def from_pretrained(
@@ -120,25 +146,30 @@ class SpeechLM:
 
 
 def inference(
+    # general
     output_dir: str,
     batch_size: int,
     ngpu: int,
     seed: int,
     num_workers: int,
-    dtype,
+    dtype: str,
     log_level: Union[int, str],
+    # data related
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
+    # model related
     train_config: Optional[str],
     model_file: Optional[str],
     model_tag: Optional[str],
-    search_type: str = "ar",
+    # inference related
     search_algo: str = "sampling",
     nbest: int = 1,
     sampling_temperature: float = 1.0,
     top_k: int = 20,
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
+    inference_nj: Optional[int] = 1,
+    # post_processor related
     postprocessor: str = None,
     postprocessor_conf: dict = {},
 ):
@@ -174,23 +205,21 @@ def inference(
         model_file=model_file,
         dtype=dtype,
         device=device,
-        search_type=search_type,
         search_algo=search_algo,
+        inference_nq=inference_nj,
         nbest=nbest,
         sampling_temperature=sampling_temperature,
         top_k=top_k,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         modality=output_modality,
+        post_processor_conf=postprocessor_conf,
     )
 
     speechlm = SpeechLM.from_pretrained(
         model_tag=model_tag,
         **speechlm_kwargs
     )
-
-    post_processor_class = post_processor_choices.get_class(postprocessor)
-    post_processor = post_processor_class(**postprocessor_conf).to(device)
 
     # 4. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
@@ -220,25 +249,25 @@ def inference(
         assert _bs == 1, _bs
 
         batch = to_device(batch, device=device)
-        hypos = speechlm(**batch)
+        contents, tokens, scores = speechlm(**batch)
         key = keys[0]
 
-        for h_idx, hypo in enumerate(hypos):
+        for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
+
             if output_modality == "codec":
-                bias = speechlm.train_args.token_bias['codec']
-                waveform = post_processor(hypo.generated - bias).cpu()
-
-                print('waveform shape: ', waveform.size())
-
                 wave_name = f"{key}_sample{h_idx}"
                 wave_path = output_dir / output_name / f"{wave_name}.wav"
                 writer.write(f"{wave_name} {str(wave_path)}\n")
 
                 torchaudio.save(
-                    wave_path, waveform, sample_rate=post_processor.sample_rate
+                    wave_path, 
+                    content.cpu(),
+                    sample_rate=speechlm.post_processor.sample_rate,
                 )
 
                 logging.info(f"save audio {wave_name}: {wave_path}")
+            
+            assert 1 == 2
 
 
 def get_parser():
@@ -325,7 +354,7 @@ def get_parser():
         "model_file will be overwritten",
     )
 
-    group = parser.add_argument_group("Decoding related")
+    group = parser.add_argument_group("Infernece related")
     group.add_argument(
         "--maxlenratio",
         type=float,
@@ -337,13 +366,6 @@ def get_parser():
         type=float,
         default=0.0,
         help="Minimum length ratio in decoding",
-    )
-    group.add_argument(
-        "--search_type",
-        type=str,
-        default="ar",
-        choices=["ar", "nar", "ar_nar"],
-        help="the search style of SpeechLM",
     )
     group.add_argument(
         "--search_algo",
@@ -370,6 +392,13 @@ def get_parser():
         default=20,
         help="if positive, restrict the sampling to top-k tokens with highest probs."
     )
+    group.add_argument(
+        "--inference_nj",
+        type=int,
+        default=None,
+        help="nj used in inference, should be the same or smaller than the nq in training"
+    )
+
 
     group = parser.add_argument_group("Postprocessor related")
     post_processor_choices.add_arguments(group)
