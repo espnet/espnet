@@ -179,19 +179,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             )
             new_scores[k] = mask_scores
             new_states[k] = mask_states
-            # else:
-            #     # compute scores and states for each masks.
-            #     scores = []
-            #     new_states[k] = []
-            #     for i_mask in n_mask:
-            #         mask_scores, mask_states = d.batch_score(
-            #             hyp.yseq[i_mask, :, :hyp.yseq_length[i_mask, 0]], # (n_beam, y_seq_len)
-            #             hyp.states[k][i_mask],
-            #             x.expand(hyp.yseq.size(1), *x.shape) # (n_beam, *x.shape)
-            #         )
-            #         scores.append(mask_scores) # [(n_beam, vocab_size)] * n_mask : Will be apply torch.stack later.
-            #         new_states[k].append(mask_states)
-            #     new_scores[k] = torch.stack(scores, dim=0) # (n_mask, n_beam, vocab_size)
 
         return new_scores, new_states
 
@@ -324,9 +311,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         )  # (n_beam, n_mask) -> (n_mask, n_beam) -> (n_mask * n_beam, 1)
         beam_mask = beam_mask * -100000.0
 
-        ##############################
-        #### COMPUTE FULL SCORERS ####
-        ##############################
+        # COMPUTE FULL SCORERS
         scores, states = self.score_full(
             running_hyps, x
         )  # scorers: (n_mask * n_beam, n_vocab)
@@ -345,9 +330,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             weighted_scores + beam_mask
         )  # (n_mask * n_beam, n_vocab). no score for padded hypos
 
-        #####################################
-        #### COMPUTE BATCHED BEAM SEARCH ####
-        #####################################
+        # COMPUTE BATCHED BEAM SEARCH
         # prev_hyp_ids and new_token_ids: (n_mask, beam_size)
         prev_hyp_ids, new_token_ids = self.batch_beam(weighted_scores)
 
@@ -368,13 +351,14 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         """
 
         Args:
-            running_hyps (PartiallyARHypothesis): _description_
+            running_hyps (PartiallyARHypothesis)
             prev_hyp_ids (torch.Tensor): (n_mask, n_new_beam)
             new_token_ids (torch.Tensor): (n_mask, n_new_beam)
             weighted_score (torch.Tensor): (n_mask * n_beam, vocab_size)
 
         Returns:
-            PartiallyARHypothesis: _description_
+            PartiallyARHypothesis
+
         """
         # hyp.yseq.shape : (n_mask, n_beam, longest_yseq)
         n_mask = len(self.masks)

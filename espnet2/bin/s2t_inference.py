@@ -186,14 +186,14 @@ class Speech2Text:
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
-        # default values that can be overwritten in __call__
-        lang_sym: str = "<eng>",
-        task_sym: str = "<asr>",
-        predict_time: bool = False,
         partial_ar: bool = False,
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = 5,
+        # default values that can be overwritten in __call__
+        lang_sym: str = "<eng>",
+        task_sym: str = "<asr>",
+        predict_time: bool = False,
     ):
 
         if ctc_weight > 0.0 and predict_time:
@@ -275,8 +275,7 @@ class Speech2Text:
             scorefilter=1.0,
         )
         if partial_ar:
-            beam_search_class = PartiallyARInference
-            beam_search = beam_search_class(
+            beam_search = PartiallyARInference(
                 s2t_model.ctc,
                 s2t_model.decoder,
                 threshold_probability=threshold_probability,
@@ -1066,11 +1065,12 @@ def get_parser():
         "If not given, refers from the training args",
     )
 
-    group = parser.add_argument_group("Semi-AR related")
+    group = parser.add_argument_group("Partially AR related")
     group.add_argument(
         "--partial_ar",
-        action="store_true",
-        help="Flag to use the semi-ar decoding",
+        type=str2bool,
+        default=False,
+        help="Flag to use the partially AR decoding",
     )
     group.add_argument(
         "--threshold_probability",
@@ -1083,7 +1083,7 @@ def get_parser():
         type=int,
         default=5,
         help="Maximum sequence length for each hypothesis."
-        + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
+        + "Will stop beam_search after max_seq_len iteration in partially AR decoding.",
     )
     group.add_argument(
         "--max_mask_parallel",

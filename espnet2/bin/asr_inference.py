@@ -1130,11 +1130,12 @@ def get_parser():
         help="If true, best hypothesis is selected by length-normalized scores",
     )
 
-    group = parser.add_argument_group("Semi-AR related")
+    group = parser.add_argument_group("Partially AR related")
     group.add_argument(
         "--partial_ar",
-        action="store_true",
-        help="Flag to use the semi-ar decoding",
+        type=str2bool,
+        default=False,
+        help="Flag to use the partially AR decoding",
     )
     group.add_argument(
         "--threshold_probability",
@@ -1147,7 +1148,7 @@ def get_parser():
         type=int,
         default=5,
         help="Maximum sequence length for each hypothesis."
-        + "Will stop beam_search after max_seq_len iteration in semi-AR decoding.",
+        + "Will stop beam_search after max_seq_len iteration in partially AR decoding.",
     )
     group.add_argument(
         "--max_mask_parallel",

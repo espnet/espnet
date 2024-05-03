@@ -18,14 +18,6 @@ from espnet.nets.beam_search import Hypothesis
 from espnet.nets.beam_search_partially_AR import PartiallyARBeamSearch
 from espnet.nets.scorer_interface import ScorerInterface
 
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
-
 
 class PartiallyARInference(torch.nn.Module):
     """Mask-CTC-based partially autoregressive inference"""
@@ -35,9 +27,9 @@ class PartiallyARInference(torch.nn.Module):
         ctc: CTC,
         decoder: AbsDecoder,
         threshold_probability: float,
-        sos: int = 4999,
-        eos: int = 4999,
-        mask_token: int = 5000,
+        sos: int = None,
+        eos: int = None,
+        mask_token: int = None,
         token_list: List[int] = None,
         scorers: Dict[str, ScorerInterface] = None,
         weights: Dict[str, float] = None,
