@@ -1,10 +1,6 @@
-# Model
-model: espnet
-model_conf:
-    share_emb: false
-  
-corelm: ar_nar
+corelm: valle
 corelm_conf:
+    share_emb: true
     pos_enc: sinusoidal
     att_unit: 512
     head: 8
@@ -14,14 +10,10 @@ corelm_conf:
     dropout_rate: 0.0
     positional_dropout_rate: 0.0
     attention_dropout_rate: 0.0
-    flashattention: true
-
-predictor: layer_select
-postprocessor: none
 
 # Dataloader
 batch_type: numel
-batch_bins: 40000
+batch_bins: 80000
 accum_grad: 1
 grad_clip: 2
 max_epoch: 100
@@ -34,19 +26,17 @@ optim_conf:
     lr: 0.0003
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 7000
+    warmup_steps: 20000
+
 best_model_criterion:
 -   - valid
     - acc
     - max
--   - valid
-    - loss
-    - min
 keep_nbest_models: 10
+
 
 # Global settings
 use_amp: true
-unused_parameters: true
 encoder_decoder_format: false
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8
