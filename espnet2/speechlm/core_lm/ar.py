@@ -72,13 +72,12 @@ class ARLM(AbsCoreLM):
         dec_seq_lengths: torch.Tensor = None,
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
-        cache: dict = {},
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         
         assert dec_seq.dim() == 3
         
         x = dec_seq[:, :-1]
-        logits = self.encode(x, cache=cache)
+        logits = self.encode(x)
 
         target = dec_seq[:, 1:]
         loss, stats, weight = ce_loss(logits, target, dec_seq_lengths - 1)
@@ -113,7 +112,7 @@ class ARLM(AbsCoreLM):
         # (2) prefix forward
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        _ = self.encode(prefix, cache=cache)
+        _ = self.encode(prefix[:, :-1], cache=cache) # exclude modality start
 
         # (3) inference loop
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
@@ -143,6 +142,7 @@ class ARLM(AbsCoreLM):
                 prev_tok = gen_tok
 
             # (3.2) detect ended hypotheses.
+            # TODO: fix the bug here. dimension mismatch. should be 1-d
             finish_idx = torch.where(
                 torch.any(prev_tok == opts.eos),
                 step,

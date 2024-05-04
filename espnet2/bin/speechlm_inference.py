@@ -116,11 +116,18 @@ class SpeechLM:
         if enc_seq is not None or enc_seq_lengths is not None:
             raise NotImplemented('encoder-decoder is not supported')
         
+        # training inference
+        # _ = self.model.corelm(
+        #     dec_seq=dec_seq,
+        #     dec_seq_lengths=dec_seq_lengths,
+        # )
+        # print('decoder sequence original length: ', dec_seq.size())
+        # print(f'end of training forward', flush=True)
+
         # language model inference
         prefix_len = kwargs["prefix_len"]
-        prefix_len = prefix_len.cpu().tolist()[0][0]
         gen_tokens, gen_scores = self.model.corelm.inference(
-            prefix=dec_seq[:, :prefix_len],
+            prefix=dec_seq[:, :prefix_len + 1],
             opts=self.inference_opts,
             enc_seq=None,
             suffix=dec_seq[:, prefix_len + 1:]
@@ -133,7 +140,7 @@ class SpeechLM:
             generated.append(self.post_processor(gen_token))
 
         return generated, gen_tokens, gen_scores
-    
+
     @staticmethod
     def from_pretrained(
         model_tag: Optional[str] = None,

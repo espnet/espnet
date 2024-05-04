@@ -82,7 +82,8 @@ def install_kv_cache_hook(model, cache):
 def logits_to_tokens(
     logits: torch.Tensor,
     opts: SpeechLMInferenceOptions,
-    allow_eos: bool = True
+    allow_eos: bool = True,
+    nq_level: int = None,
 ):
     assert logits.dim() == 4
 
@@ -90,14 +91,17 @@ def logits_to_tokens(
     mask = opts.masks
     if allow_eos:
         mask[..., opts.eos] = False
+    if nq_level is not None:
+        mask = mask[nq_level: nq_level + 1]
+    mask = mask.unsqueeze(0).unsqueeze(0)
     logits = logits.masked_fill_(mask, -1e20)
-    
+
     # (2) token selection
     topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
 
     if opts.search_algo == "sampling":
         logp = torch.softmax(
-            topk_values / opts.sampling_temerature,
+            topk_values / opts.sampling_temperature,
             dim=-1
         )
         inner_indices = torch.multinomial(

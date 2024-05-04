@@ -75,4 +75,3 @@ class SpeechLMInferenceOptions:
     start: int = 1
     masks: torch.Tensor = None
     nq: int = None
-
