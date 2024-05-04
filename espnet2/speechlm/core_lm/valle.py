@@ -199,6 +199,7 @@ class ValleLM(AbsCoreLM):
             assert suffix is not None
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
+        logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         generated = {"token": [], "score": []}
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
@@ -218,29 +219,37 @@ class ValleLM(AbsCoreLM):
             generated["score"].append(gen_score)
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step, 0].unsqueeze(1)
+                prev_tok = suffix[:, step: step + 1, 0]
             else:
                 prev_tok = gen_tok
 
             # (3.3) detect ended hypotheses.
             finish_idx = torch.where(
-                torch.any(prev_tok.squeeze(1) == opts.eos),
+                torch.logical_and(prev_tok[:, 0] == opts.eos, finish_idx == -1),
                 step,
                 finish_idx,
             )
 
             if torch.all(torch.ge(finish_idx, 0)):
-                logging.info(
-                    f"Early termination with sample lengths: {finish_idx.cpu().tolist()}"
-                )
                 break
 
-        finish_idx = torch.where(finish_idx.eq(-1), finish_idx, maxlen)
-
-        gen_tokens_ar = torch.cat(generated["token"], dim=1).unsqueeze(2)
-        gen_scores_ar = torch.cat(generated["score"], dim=1).unsqueeze(2)
-
+        logging.info(f"Terminate at steps: {finish_idx.cpu().tolist()}")
+        
         # (3.4) finalize auto-regressive
+        valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
+        if len(valid_idx) < prefix.size(0):
+            logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
+        elif len(valid_idx) == 0:
+            logging.warning(f"No valid examples. Return None")
+            return None, None
+        
+        finish_idx = finish_idx[valid_idx]
+        prefix, suffix = prefix[valid_idx], suffix[valid_idx]
+        gen_tokens_ar = torch.cat(generated["token"], dim=1)[valid_idx].unsqueeze(2)
+        gen_scores_ar = torch.cat(generated["score"], dim=1)[valid_idx].unsqueeze(2)
+        gen_tokens_ar = gen_tokens_ar[:, :finish_idx.max() + 1]
+        gen_scores_ar = gen_scores_ar[:, :finish_idx.max() + 1]
+
         for hook in hooks:
             hook.remove()
         cache = {}
@@ -254,13 +263,12 @@ class ValleLM(AbsCoreLM):
         prev_tok = prev_tok.unsqueeze(2)
 
         level_idx_th = torch.arange(1, opts.nq).long().to(opts.device)
-        level_idx_th = level_idx_th.unsqueeze(1).expand(-1, opts.nbest)
+        level_idx_th = level_idx_th.unsqueeze(1).expand(-1, len(valid_idx))
 
         prefix_len = prefix.size(1) - 1  # <sos> excluded
-        length = prefix_len + finish_idx
+        length = prefix_len + finish_idx + 1 # <eos> included
 
         generated = {"token": [], "score": []}
-
         # (4.2) search loop
         for step in range(1, opts.nq):
             logits = self.encode_nar(prev_tok, level_idx_th[step - 1], length)
@@ -271,8 +279,6 @@ class ValleLM(AbsCoreLM):
                 nq_level=step,
             )
             gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)
-
-            # print(f'generated token: ', gen_tok.size(), gen_tok, gen_tok[:, prefix_len:])
 
             generated["token"].append(gen_tok[:, prefix_len:])
             generated["score"].append(gen_score[:, prefix_len:])
@@ -295,8 +301,8 @@ class ValleLM(AbsCoreLM):
         gen_scores = torch.cat([gen_scores_ar, gen_scores_nar], dim=2)
 
         gen_tokens_list, gen_scores_list = [], []
-        for b in range(opts.nbest):
-            gen_tokens_list.append(gen_tokens[b][: finish_idx[b] - 1])
-            gen_scores_list.append(gen_scores[b][: finish_idx[b] - 1])
+        for b in range(len(valid_idx)):
+            gen_tokens_list.append(gen_tokens[b][: finish_idx[b]])
+            gen_scores_list.append(gen_scores[b][: finish_idx[b]])
 
         return gen_tokens_list, gen_scores_list

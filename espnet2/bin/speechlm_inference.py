@@ -125,10 +125,10 @@ class SpeechLM:
             raise NotImplemented("encoder-decoder is not supported")
 
         # training inference
-        # _ = self.model.corelm(
-        #     dec_seq=dec_seq,
-        #     dec_seq_lengths=dec_seq_lengths,
-        # )
+        _ = self.model.corelm(
+            dec_seq=dec_seq,
+            dec_seq_lengths=dec_seq_lengths,
+        )
 
         # language model inference
         prefix_len = kwargs["prefix_len"]
@@ -265,6 +265,8 @@ def inference(
 
         batch = to_device(batch, device=device)
         key = keys[0]
+        logging.info(f"Inference on example: {key}")
+
         contents, tokens, scores = speechlm(**batch)
         if contents is None:
             logging.info(f"fail on example: {key}")
@@ -284,7 +286,7 @@ def inference(
                 )
 
                 logging.info(f"save audio {wave_name}: {wave_path}")
-
+        
 
 def get_parser():
     """Get argument parser."""
