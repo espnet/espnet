@@ -118,7 +118,7 @@ class Speech2Text:
         partial_ar: bool = False,
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
-        max_mask_parallel: int = 5,
+        max_mask_parallel: int = -1,
     ):
 
         task = ASRTask if not enh_s2t_task else EnhS2TTask
@@ -307,16 +307,13 @@ class Speech2Text:
             )
 
             if partial_ar:
-                beam_search_class = PartiallyARInference
-                beam_search = beam_search_class(
+                beam_search = PartiallyARInference(
                     asr_model.ctc,
                     asr_model.decoder,
                     threshold_probability=threshold_probability,
                     sos=asr_model.sos,
                     eos=asr_model.eos,
-                    mask_token=len(
-                        token_list
-                    ),  # mask token is the last token in token_list to be added in SemiArInference.
+                    mask_token=len(token_list),
                     token_list=token_list,
                     scorers=scorers,
                     weights=weights,
@@ -1153,9 +1150,10 @@ def get_parser():
     group.add_argument(
         "--max_mask_parallel",
         type=int,
-        default=10,
+        default=-1,
         help="Maximum number of masks to predict in parallel."
-        + "If you got OOM error, try to decrease this value.",
+        + "If you got OOM error, try to decrease this value."
+        + "Default to -1, which means always predict all masks simultaneously.",
     )
     return parser
 

@@ -189,7 +189,7 @@ class Speech2Text:
         partial_ar: bool = False,
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
-        max_mask_parallel: int = 5,
+        max_mask_parallel: int = -1,
         # default values that can be overwritten in __call__
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
@@ -281,9 +281,7 @@ class Speech2Text:
                 threshold_probability=threshold_probability,
                 sos=s2t_model.sos,
                 eos=s2t_model.eos,
-                mask_token=len(
-                    token_list
-                ),  # mask token is the last token in token_list to be added in SemiArInference.
+                mask_token=len(token_list),
                 token_list=token_list,
                 scorers={"decoder": s2t_model.decoder},
                 weights=weights,
@@ -1088,9 +1086,10 @@ def get_parser():
     group.add_argument(
         "--max_mask_parallel",
         type=int,
-        default=10,
+        default=-1,
         help="Maximum number of masks to predict in parallel."
-        + "If you got OOM error, try to decrease this value.",
+        + "If you got OOM error, try to decrease this value."
+        + "Default to -1, which means always predict all masks simultaneously.",
     )
     return parser
 

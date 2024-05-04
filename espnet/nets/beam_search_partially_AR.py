@@ -3,17 +3,13 @@
 # This script is licensed under MIT license.
 # This script is the upgraded version used in https://arxiv.org/abs/2309.14922
 import logging
-import time
-from itertools import chain
 from typing import Any, Dict, List, NamedTuple, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from torch.nn.utils.rnn import pad_sequence
 
 from espnet.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
 from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.scorer_interface import MaskParallelScorerInterface
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
@@ -42,8 +38,6 @@ class PartiallyARHypothesis(NamedTuple):
     states: Dict[str, Any] = dict()
     yseq_length: torch.Tensor = torch.tensor([])
     eos: torch.Tensor = torch.tensor([])
-    start_idx: torch.Tensor = torch.tensor([])
-    end_idx: torch.Tensor = torch.tensor([])
 
     def asdict(self) -> dict:
         """Convert data to JSON-friendly dict."""
@@ -58,8 +52,9 @@ class PartiallyARBeamSearch(BatchBeamSearch):
     Partially autoregressive hypothesis is a set of BatchHypothesis.
 
     We need to use `add_mask` function to add a hypothesis for a mask.
-    Before search and beam search method, each partially autoregressive hypothesis is extracted to BatchHypothesis,
-    and applied the same process as the batched_beam_search.
+    Before search and beam search method, each partially autoregressive
+    hypothesis is extracted to BatchHypothesis, and applied the same process
+    as the batched_beam_search.
     """
 
     def __init__(self, *args, **kwargs):
@@ -75,13 +70,14 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         self.masks = []
         self.num_hyps_for_masks = []
 
-    def add_mask(self, primer: List[int], eos: int, start_id: int, end_id: int):
+    def add_mask(self, primer: List[int], eos: int):
         """Add a mask to a batch of hypotheses.
 
         Args:
             primer (torch.Tensor): Primer yseq.
+
         """
-        self.masks.append((primer, eos, start_id, end_id))
+        self.masks.append((primer, eos))
 
     def init_hyp(self, x: torch.Tensor) -> PartiallyARHypothesis:
         """Get an initial hypothesis data for each mask.
@@ -111,9 +107,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             (len(self.masks) * self.beam_size), dtype=x.dtype, device=x.device
         )
         eoses = torch.zeros(len(self.masks), dtype=torch.long, device=x.device)
-        start_ids = torch.zeros(len(self.masks), dtype=torch.long, device=x.device)
-        start_ids = torch.zeros(len(self.masks), dtype=torch.long, device=x.device)
-        end_ids = torch.zeros(len(self.masks), dtype=torch.long, device=x.device)
         self.num_hyps_for_masks = torch.ones(
             len(self.masks), dtype=torch.long, device=x.device
         )
@@ -123,8 +116,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             yseq_tensor[i, 0, : len(m[0])] = torch.LongTensor(m[0])
             yseq_length[i] = len(m[0])
             eoses[i] = torch.LongTensor([m[1]])
-            start_ids[i] = torch.LongTensor([m[2]])
-            end_ids[i] = torch.LongTensor([m[3]])
             self.num_hyps_for_masks[i] = 1
 
         hyp = PartiallyARHypothesis(
@@ -133,8 +124,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             states=init_states,
             yseq_length=yseq_length,
             eos=eoses,
-            start_idx=start_ids,
-            end_idx=end_ids,
         )
         return hyp
 
@@ -159,12 +148,13 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         new_states = dict()
         n_mask = len(self.masks)
         # Create batch of scores and states
-        # If states[key] is None, then it is the first iteration, and we cannot execute parallel computation over masks.
+        # If states[key] is None, then it is the first iteration,
+        # and we cannot execute parallel computation over masks.
         # If states[key] is not None, then it is second or later iteration.
-        # If decoder or lm is Transformer based model, we can apply parallel computation beacause we only need the last sequence to compute scores.
+        # If decoder or lm is Transformer based model, we can apply parallel
+        # computation beacause we only need the last sequence to compute scores.
         # Otherwise, we cannot apply parallel computation.`
         for k, d in self.full_scorers.items():
-            # if isinstance(d, MaskParallelScorerInterface):
             mask_scores, mask_states = d.batch_score_partially_AR(
                 hyp.yseq.reshape(
                     -1, hyp.yseq.shape[-1]
@@ -299,7 +289,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
             BatchHypothesis: Best sorted hypotheses
 
         """
-        part_ids = None  # no pre-beam
         weighted_scores = torch.zeros(
             len(self.masks) * self.beam_size,
             self.n_vocab,
@@ -318,10 +307,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
 
-        weighted_scores = (
-            weighted_scores + beam_mask
-        )  # (n_mask * n_beam, n_vocab). no score for padded hypos
-
         # add previous hyp scores
         weighted_scores += running_hyps.score.unsqueeze(
             1
@@ -339,142 +324,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         )
 
         return new_hyp
-
-    def _get_new_mask_parallel_hyp(
-        self,
-        running_hyps: PartiallyARHypothesis,
-        prev_hyp_ids: torch.Tensor,
-        new_token_ids: torch.Tensor,
-        weighted_scores: torch.Tensor,
-        states: Dict[str, torch.Tensor],  # , part_states: Dict[str, torch.Tensor]
-    ) -> PartiallyARHypothesis:
-        """
-
-        Args:
-            running_hyps (PartiallyARHypothesis)
-            prev_hyp_ids (torch.Tensor): (n_mask, n_new_beam)
-            new_token_ids (torch.Tensor): (n_mask, n_new_beam)
-            weighted_score (torch.Tensor): (n_mask * n_beam, vocab_size)
-
-        Returns:
-            PartiallyARHypothesis
-
-        """
-        # hyp.yseq.shape : (n_mask, n_beam, longest_yseq)
-        n_mask = len(self.masks)
-        new_yseq_length = running_hyps.yseq_length + 1
-        yseq_shape = running_hyps.yseq.shape
-        new_yseq = torch.zeros(
-            (n_mask, self.beam_size, yseq_shape[-1] + 1),
-            dtype=torch.int64,
-            device=running_hyps.yseq.device,
-        )
-        new_yseq[:, :, :-1] = running_hyps.yseq[self.mask_ids, prev_hyp_ids]
-        new_yseq[self.mask_ids, :, new_yseq_length.view(-1, 1) - 1] = (
-            new_token_ids.unsqueeze(1)
-        )  # (n_mask, 1, n_beam)
-
-        current_score = weighted_scores.view(
-            n_mask, self.beam_size, -1
-        )  # (n_mask, n_beam, vocab_size)
-        new_score = current_score[self.mask_ids, prev_hyp_ids, new_token_ids].view(
-            -1
-        )  # (n_mask, n_beam) => (n_mask * n_beam)
-
-        new_states = dict()
-        for k, v in states.items():
-            if isinstance(self.full_scorers[k], MaskParallelScorerInterface):
-                # Then v is a torch.Tensor of shape (n_mask * n_beam, 1, D)
-                # So we need to select the previous states with slicing.
-                # (n_mask * n_beam, layer, yseq_len, D) => (n_mask, n_beam, yseq_len, D) => (n_mask, n_beam, D) => (n_mask * n_beam, yseq_len, D)
-                state_shape = v.size()
-                new_states[k] = v.view(n_mask, self.beam_size, *state_shape[1:])[
-                    self.mask_ids, prev_hyp_ids
-                ].reshape(n_mask * self.beam_size, *state_shape[1:])
-            else:
-                # Then v depends on scorers. We need to use select_state of each scorers step by step.
-                new_states[k] = [
-                    [
-                        self.full_scorers[k].select_state(
-                            v[i_mask, i_beam], prev_hyp_ids[i_mask, i_beam]
-                        )
-                        for i_beam in range(self.beam_size)
-                    ]
-                    for i_mask in range(n_mask)
-                ]
-
-        return PartiallyARHypothesis(
-            score=new_score,
-            yseq=new_yseq,
-            yseq_length=new_yseq_length,
-            states=new_states,
-            eos=running_hyps.eos,
-            start_idx=running_hyps.start_idx,
-            end_idx=running_hyps.end_idx,
-        )
-
-    def _batch_select_and_pad(
-        self, hyps: PartiallyARHypothesis, ids_list: List[torch.Tensor]
-    ) -> PartiallyARHypothesis:
-        """
-        Args:
-            hyps (PartiallyARHypothesis): _description_
-            ids_list (List[List[int]]): _description_
-
-        Returns:
-            PartiallyARHypothesis: _description_
-        """
-        # Since the number of remaining ids differs,
-        # selecting and shifting the beam vector cannot be computed on parallel way and we need to iterate over masks.
-        n_mask = len(self.masks)
-        new_yseq = torch.zeros(
-            (n_mask, self.beam_size, hyps.yseq.shape[-1]),
-            dtype=torch.int64,
-            device=hyps.yseq.device,
-        )
-        new_score = torch.zeros(
-            (n_mask, self.beam_size), dtype=hyps.score.dtype, device=hyps.score.device
-        )
-        for i_mask in range(n_mask):
-            remaining_ids = ids_list[i_mask]
-            self.num_hyps_for_masks[i_mask] = remaining_ids.size(0)
-
-            new_yseq[i_mask, : remaining_ids.size(0)] = hyps.yseq[
-                i_mask, remaining_ids
-            ]  # (remain_beam, max_yseq_len)
-            new_score[i_mask, : remaining_ids.size(0)] = hyps.score.view(n_mask, -1)[
-                i_mask, remaining_ids
-            ]
-
-            for k, v in self.full_scorers.items():
-                if k in hyps.states and isinstance(v, MaskParallelScorerInterface):
-                    # Then v is a torch.Tensor of shape (n_mask * n_beam, layer, yseq_len, D)
-                    state_shape = hyps.states[k].size()
-                    current_states = hyps.states[k].view(
-                        n_mask, self.beam_size, *state_shape[1:]
-                    )
-                    current_states[i_mask, : remaining_ids.size(0)] = current_states[
-                        i_mask, remaining_ids
-                    ]
-
-                    hyps.states[k] = current_states.view(
-                        n_mask * self.beam_size, *state_shape[1:]
-                    )
-                else:
-                    # Then v depends on scorers. We need to use select_state of each scorers step by step.
-                    hyps.states[k][i_mask] = [
-                        hyps.states[k][i_mask][ri] for ri in remaining_ids
-                    ]
-
-        return PartiallyARHypothesis(
-            yseq=new_yseq,
-            score=new_score.view(-1),
-            yseq_length=hyps.yseq_length,
-            states=hyps.states,
-            eos=hyps.eos,
-            start_idx=hyps.start_idx,
-            end_idx=hyps.end_idx,
-        )
 
     def post_process(
         self,
@@ -519,8 +368,6 @@ class PartiallyARBeamSearch(BatchBeamSearch):
                 yseq_length=running_hyps.yseq_length + 1,
                 states=running_hyps.states,
                 eos=running_hyps.eos,
-                start_idx=running_hyps.start_idx,
-                end_idx=running_hyps.end_idx,
             )
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
@@ -550,14 +397,111 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         running_hyps = self._batch_select_and_pad(running_hyps, remained_ids_list)
         return running_hyps
 
+    def _get_new_mask_parallel_hyp(
+        self,
+        running_hyps: PartiallyARHypothesis,
+        prev_hyp_ids: torch.Tensor,
+        new_token_ids: torch.Tensor,
+        weighted_scores: torch.Tensor,
+        states: Dict[str, torch.Tensor],  # , part_states: Dict[str, torch.Tensor]
+    ) -> PartiallyARHypothesis:
+        # hyp.yseq.shape : (n_mask, n_beam, longest_yseq)
+        n_mask = len(self.masks)
+        new_yseq_length = running_hyps.yseq_length + 1
+        yseq_shape = running_hyps.yseq.shape
+        new_yseq = torch.zeros(
+            (n_mask, self.beam_size, yseq_shape[-1] + 1),
+            dtype=torch.int64,
+            device=running_hyps.yseq.device,
+        )
+        new_yseq[:, :, :-1] = running_hyps.yseq[self.mask_ids, prev_hyp_ids]
+        new_yseq[self.mask_ids, :, new_yseq_length.view(-1, 1) - 1] = (
+            new_token_ids.unsqueeze(1)
+        )  # (n_mask, 1, n_beam)
+
+        current_score = weighted_scores.view(
+            n_mask, self.beam_size, -1
+        )  # (n_mask, n_beam, vocab_size)
+        new_score = current_score[self.mask_ids, prev_hyp_ids, new_token_ids].view(
+            -1
+        )  # (n_mask, n_beam) => (n_mask * n_beam)
+
+        new_states = dict()
+        for k, v in states.items():
+            # v is a torch.Tensor of shape (n_mask * n_beam, 1, D)
+            # So we will select the previous states with slicing.
+            # (n_mask * n_beam, layer, yseq_len, D)
+            # => (n_mask, n_beam, layer, yseq_len, D)
+            # => (n_mask, n_beam, layer, yseq_len, D)
+            # => (n_mask * n_beam, layer, yseq_len, D)
+            state_shape = v.size()
+            new_states[k] = v.view(n_mask, self.beam_size, *state_shape[1:])[
+                self.mask_ids, prev_hyp_ids
+            ].reshape(n_mask * self.beam_size, *state_shape[1:])
+
+        return PartiallyARHypothesis(
+            score=new_score,
+            yseq=new_yseq,
+            yseq_length=new_yseq_length,
+            states=new_states,
+            eos=running_hyps.eos,
+        )
+
+    def _batch_select_and_pad(
+        self, hyps: PartiallyARHypothesis, ids_list: List[torch.Tensor]
+    ) -> PartiallyARHypothesis:
+        # Since the number of remaining ids differs,
+        # selecting and shifting the beam vector cannot be computed on parallel way
+        # and we need to iterate over masks.
+        n_mask = len(self.masks)
+        new_yseq = torch.zeros(
+            (n_mask, self.beam_size, hyps.yseq.shape[-1]),
+            dtype=torch.int64,
+            device=hyps.yseq.device,
+        )
+        new_score = torch.zeros(
+            (n_mask, self.beam_size), dtype=hyps.score.dtype, device=hyps.score.device
+        )
+        for i_mask in range(n_mask):
+            remaining_ids = ids_list[i_mask]
+            self.num_hyps_for_masks[i_mask] = remaining_ids.size(0)
+
+            new_yseq[i_mask, : remaining_ids.size(0)] = hyps.yseq[
+                i_mask, remaining_ids
+            ]  # (remain_beam, max_yseq_len)
+            new_score[i_mask, : remaining_ids.size(0)] = hyps.score.view(n_mask, -1)[
+                i_mask, remaining_ids
+            ]
+
+            for k, v in self.full_scorers.items():
+                # v is a torch.Tensor of shape (n_mask * n_beam, layer, yseq_len, D)
+                state_shape = hyps.states[k].size()
+                current_states = hyps.states[k].view(
+                    n_mask, self.beam_size, *state_shape[1:]
+                )
+                current_states[i_mask, : remaining_ids.size(0)] = current_states[
+                    i_mask, remaining_ids
+                ]
+                hyps.states[k] = current_states.view(
+                    n_mask * self.beam_size, *state_shape[1:]
+                )
+
+        return PartiallyARHypothesis(
+            yseq=new_yseq,
+            score=new_score.view(-1),
+            yseq_length=hyps.yseq_length,
+            states=hyps.states,
+            eos=hyps.eos,
+        )
+
     def _log_bests(self, bests: List[BatchHypothesis], maxlen, nbest_hyps_for_masks):
         for i, best in enumerate(bests):
-            logging.info(f"total log probability for mask {i}: {best.score:.2f}")
+            logging.info(f"total log prob (mask {i}): {best.score:.2f}")
             logging.info(
-                f"normalized log probability for mask {i}: {best.score / len(best.yseq):.2f}"
+                f"normalized log prob (mask {i}): {best.score / len(best.yseq):.2f}"
             )
             logging.info(
-                f"total number of ended hypotheses for mask {i}: {len(nbest_hyps_for_masks[i])}"
+                f"total number of ended hypo (mask {i}): {len(nbest_hyps_for_masks[i])}"
             )
             if self.token_list is not None:
                 logging.info(
