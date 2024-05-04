@@ -46,7 +46,7 @@ class ValleLM(AbsCoreLM):
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(f"unknown pos-enc option: {pos_enc}")
-        
+
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
         if share_emb:
@@ -81,7 +81,7 @@ class ValleLM(AbsCoreLM):
                     attention_dropout_rate=attention_dropout_rate,
                     causal=False,
                     cross_attention=False,
-                    n_level=nq - 1
+                    n_level=nq - 1,
                 )
                 for _ in range(nar_layer)
             ]
@@ -98,23 +98,23 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        
+
         assert dec_seq.dim() == 3
-        
+
         # Auto-Regressive part
         input_ar = dec_seq[:, :-1, 0]
         target_ar = dec_seq[:, 1:, 0]
         logits_ar = self.encode_ar(input_ar)
 
         loss_ar, stats_ar, weight_ar = ce_loss(
-            logits_ar.unsqueeze(2),
-            target_ar.unsqueeze(2), 
-            dec_seq_lengths - 1
+            logits_ar.unsqueeze(2), target_ar.unsqueeze(2), dec_seq_lengths - 1
         )
 
         # Non-Auto-Regressive part
         level_idx = random.randint(1, self.nq - 1)
-        level_idx_th = torch.Tensor([level_idx]).long().to(dec_seq.device).expand(dec_seq.size(0))
+        level_idx_th = (
+            torch.Tensor([level_idx]).long().to(dec_seq.device).expand(dec_seq.size(0))
+        )
         input_nar = dec_seq[:, 1:, :level_idx]
         target_nar = dec_seq[:, 1:, level_idx]
 
@@ -123,11 +123,9 @@ class ValleLM(AbsCoreLM):
             level_idx_th,
             dec_seq_lengths - 1,
         )
-        
+
         loss_nar, stats_nar, weight_nar = ce_loss(
-            logits_nar.unsqueeze(2),
-            target_nar.unsqueeze(2), 
-            dec_seq_lengths - 1
+            logits_nar.unsqueeze(2), target_nar.unsqueeze(2), dec_seq_lengths - 1
         )
 
         # Aggregate
@@ -151,14 +149,14 @@ class ValleLM(AbsCoreLM):
         for layer in self.ar_decoders:
             x_ar = layer(x_ar, cache=cache)
         x_ar = self.ar_post_ln(x_ar)
-        
+
         logits_ar = self.lm_head(x_ar)
 
         return logits_ar
 
     def encode_nar(
-        self, 
-        input_nar: torch.Tensor, 
+        self,
+        input_nar: torch.Tensor,
         level_idx: torch.Tensor,
         dec_seq_lengths: torch.Tensor = None,
     ):
@@ -191,10 +189,10 @@ class ValleLM(AbsCoreLM):
         # (2) auto-regressive prefix forward on first code layer
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        _ = self.encode_ar(prefix[:, :-1, 0], cache=cache) # exclude modality start
+        _ = self.encode_ar(prefix[:, :-1, 0], cache=cache)  # exclude modality start
 
         # (3) auto-regressive loop on first code layer
-        # (3.1) prepare 
+        # (3.1) prepare
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = int(prefix.size(1) * opts.maxlenratio)
         if opts.search_algo == "teacher_force":
@@ -216,8 +214,8 @@ class ValleLM(AbsCoreLM):
             )
             gen_tok, gen_score = gen_tok.squeeze(2), gen_tok.squeeze(2)
 
-            generated['token'].append(gen_tok)
-            generated['score'].append(gen_score)
+            generated["token"].append(gen_tok)
+            generated["score"].append(gen_score)
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step, 0].unsqueeze(1)
@@ -232,17 +230,20 @@ class ValleLM(AbsCoreLM):
             )
 
             if torch.all(torch.ge(finish_idx, 0)):
-                finish_idx = finish_idx +  1 # index to length -> + 1
-                logging.info(f"Early termination with sample lengths: {finish_idx.cpu().tolist()}")
+                logging.info(
+                    f"Early termination with sample lengths: {finish_idx.cpu().tolist()}"
+                )
                 break
+
+        finish_idx = torch.where(finish_idx.eq(-1), finish_idx, maxlen)
+
+        gen_tokens_ar = torch.cat(generated["token"], dim=1).unsqueeze(2)
+        gen_scores_ar = torch.cat(generated["score"], dim=1).unsqueeze(2)
 
         # (3.4) finalize auto-regressive
         for hook in hooks:
             hook.remove()
         cache = {}
-        
-        gen_tokens_ar = torch.cat(generated['token'], dim=1).unsqueeze(2)
-        gen_scores_ar = torch.cat(generated['score'], dim=1).unsqueeze(2)
 
         # (4) non-auto-regressive loop on remained code layers
         # (4.1) prepare
@@ -251,11 +252,11 @@ class ValleLM(AbsCoreLM):
         else:
             prev_tok = torch.cat([prefix[:, 1:, 0], gen_tokens_ar[:, :, 0]], dim=1)
         prev_tok = prev_tok.unsqueeze(2)
-        
+
         level_idx_th = torch.arange(1, opts.nq).long().to(opts.device)
         level_idx_th = level_idx_th.unsqueeze(1).expand(-1, opts.nbest)
 
-        prefix_len = prefix.size(1) - 1 # <sos> excluded
+        prefix_len = prefix.size(1) - 1  # <sos> excluded
         length = prefix_len + finish_idx
 
         generated = {"token": [], "score": []}
@@ -277,9 +278,13 @@ class ValleLM(AbsCoreLM):
             generated["score"].append(gen_score[:, prefix_len:])
 
             if opts.search_algo == "teacher_force":
-                prev_tok_layer = torch.cat([prefix[:, 1:, step], suffix[:, :, step]], dim=1)
+                prev_tok_layer = torch.cat(
+                    [prefix[:, 1:, step], suffix[:, :, step]], dim=1
+                )
             else:
-                prev_tok_layer = torch.cat([prefix[:, 1:, step], gen_tok[:, prefix_len:]], dim=1)
+                prev_tok_layer = torch.cat(
+                    [prefix[:, 1:, step], gen_tok[:, prefix_len:]], dim=1
+                )
             prev_tok = torch.cat([prev_tok, prev_tok_layer.unsqueeze(2)], dim=2)
 
         # (5) compose AR and NAR results
@@ -291,7 +296,7 @@ class ValleLM(AbsCoreLM):
 
         gen_tokens_list, gen_scores_list = [], []
         for b in range(opts.nbest):
-            gen_tokens_list.append(gen_tokens[b][:finish_idx[b] - 1])
-            gen_scores_list.append(gen_scores[b][:finish_idx[b] - 1])
-        
+            gen_tokens_list.append(gen_tokens[b][: finish_idx[b] - 1])
+            gen_scores_list.append(gen_scores[b][: finish_idx[b] - 1])
+
         return gen_tokens_list, gen_scores_list

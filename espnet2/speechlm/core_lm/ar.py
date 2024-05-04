@@ -20,6 +20,7 @@ from espnet2.speechlm.net_utils import (
     logits_to_tokens,
 )
 
+
 class ARLM(AbsCoreLM):
     def __init__(
         self,
@@ -41,7 +42,7 @@ class ARLM(AbsCoreLM):
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(f"unknown pos-enc option: {pos_enc}")
-        
+
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
         self.lm_head = torch.nn.Linear(att_unit, vocab_size * nq, bias=False)
         if share_emb:
@@ -73,9 +74,9 @@ class ARLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        
+
         assert dec_seq.dim() == 3
-        
+
         x = dec_seq[:, :-1]
         logits = self.encode(x)
 
@@ -83,7 +84,7 @@ class ARLM(AbsCoreLM):
         loss, stats, weight = ce_loss(logits, target, dec_seq_lengths - 1)
 
         return loss, stats, weight
-    
+
     def encode(self, x: torch.Tensor, cache={}):
         x = self.emb(x).sum(dim=2)
 
@@ -112,7 +113,7 @@ class ARLM(AbsCoreLM):
         # (2) prefix forward
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        _ = self.encode(prefix[:, :-1], cache=cache) # exclude modality start
+        _ = self.encode(prefix[:, :-1], cache=cache)  # exclude modality start
 
         # (3) inference loop
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
@@ -123,18 +124,21 @@ class ARLM(AbsCoreLM):
 
         generated = {"token": [], "score": []}
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
-        prev_tok = torch.Tensor([opts.start]).tile(opts.nbest, 1, opts.nq).long().to(opts.device)
+        prev_tok = (
+            torch.Tensor([opts.start])
+            .tile(opts.nbest, 1, opts.nq)
+            .long()
+            .to(opts.device)
+        )
         for step in range(maxlen):
             #  (3.1) Search
             logits = self.encode(prev_tok, cache=cache)
             gen_tok, gen_score = logits_to_tokens(
-                logits, 
-                opts,
-                allow_eos=step>=minlen
+                logits, opts, allow_eos=step >= minlen
             )
 
-            generated['token'].append(gen_tok)
-            generated['score'].append(gen_score)
+            generated["token"].append(gen_tok)
+            generated["score"].append(gen_score)
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step].unsqueeze(1)
@@ -150,20 +154,22 @@ class ARLM(AbsCoreLM):
             )
 
             if torch.all(torch.ge(finish_idx, 0)):
-                logging.info(f"Finish generation with sample lengths: {finish_idx.cpu().tolist()}")
+                logging.info(
+                    f"Finish generation with sample lengths: {finish_idx.cpu().tolist()}"
+                )
                 break
 
         # (4) finalize
         for hook in hooks:
             hook.remove()
-        
+
         generated = {
             "token": torch.cat(generated["token"], dim=1),
-            "score": torch.cat(generated["score"], dim=1)
+            "score": torch.cat(generated["score"], dim=1),
         }
         gen_tokens, gen_scores = [], []
         for b in range(opts.nbest):
-            gen_tokens.append(generated["token"][b][:finish_idx[b]])
-            gen_scores.append(generated["score"][b][:finish_idx[b]])
-        
+            gen_tokens.append(generated["token"][b][: finish_idx[b]])
+            gen_scores.append(generated["score"][b][: finish_idx[b]])
+
         return gen_tokens, gen_scores

@@ -18,46 +18,49 @@ def length_mask(lengths: torch.Tensor) -> torch.Tensor:
     ).long()
     return mask
 
+
 def causal_mask(qlen: int, device: torch.device) -> torch.Tensor:
     return torch.ones((qlen, qlen), device=device).tril_(0).unsqueeze(0)
 
+
 def ce_loss(
-        logits: torch.Tensor,
-        target: torch.Tensor,
-        lengths: torch.Tensor,
-        first_layer_weight: int = 1.0,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert logits.dim() == 4
-        assert logits.size()[:3] == target.size()
+    logits: torch.Tensor,
+    target: torch.Tensor,
+    lengths: torch.Tensor,
+    first_layer_weight: int = 1.0,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    assert logits.dim() == 4
+    assert logits.size()[:3] == target.size()
 
-        if first_layer_weight != 1.0 and logits.requires_grad:
-            def hook(grad):
-                grad[:, :, 0, :] *= first_layer_weight
-                return grad
-            logits.register_hook(hook)
+    if first_layer_weight != 1.0 and logits.requires_grad:
 
-        elem_loss = torch.nn.functional.cross_entropy(
-            logits.permute(0, 3, 1, 2), target, reduction="none"
-        )
+        def hook(grad):
+            grad[:, :, 0, :] *= first_layer_weight
+            return grad
 
-        mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
-        elem_loss = elem_loss * mask
-        loss = elem_loss.sum() / mask.sum() / logits.size(2)
+        logits.register_hook(hook)
 
-        pred = logits.argmax(dim=-1)
-        acc = torch.eq(pred, target).to(elem_loss.dtype) * mask
-        
-        stats = {}
-        for nq_idx in range(target.size(2)):
-            stats.update({
-                f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / mask.sum()
-            })
-        
-        acc = acc.sum() / mask.sum() / logits.size(2)
-        stats.update({"loss": loss.clone().detach(), "acc": acc})
-        weight = mask.sum()
+    elem_loss = torch.nn.functional.cross_entropy(
+        logits.permute(0, 3, 1, 2), target, reduction="none"
+    )
 
-        return loss, stats, weight
+    mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
+    elem_loss = elem_loss * mask
+    loss = elem_loss.sum() / mask.sum() / logits.size(2)
+
+    pred = logits.argmax(dim=-1)
+    acc = torch.eq(pred, target).to(elem_loss.dtype) * mask
+
+    stats = {}
+    for nq_idx in range(target.size(2)):
+        stats.update({f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / mask.sum()})
+
+    acc = acc.sum() / mask.sum() / logits.size(2)
+    stats.update({"loss": loss.clone().detach(), "acc": acc})
+    weight = mask.sum()
+
+    return loss, stats, weight
+
 
 def install_kv_cache_hook(model, cache):
     cache = {**cache} if cache is not None else {}
@@ -79,6 +82,7 @@ def install_kv_cache_hook(model, cache):
     model.apply(install_hooks)
     return cache, hooks
 
+
 def logits_to_tokens(
     logits: torch.Tensor,
     opts: SpeechLMInferenceOptions,
@@ -92,7 +96,7 @@ def logits_to_tokens(
     if allow_eos:
         mask[..., opts.eos] = False
     if nq_level is not None:
-        mask = mask[nq_level: nq_level + 1]
+        mask = mask[nq_level : nq_level + 1]
     mask = mask.unsqueeze(0).unsqueeze(0)
     logits = logits.masked_fill_(mask, -1e20)
 
@@ -100,23 +104,18 @@ def logits_to_tokens(
     topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
 
     if opts.search_algo == "sampling":
-        logp = torch.softmax(
-            topk_values / opts.sampling_temperature,
-            dim=-1
+        logp = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
+        inner_indices = torch.multinomial(logp.flatten(end_dim=-2), num_samples=1).view(
+            logp[..., :1].size()
         )
-        inner_indices = torch.multinomial(
-            logp.flatten(end_dim=-2), 
-            num_samples=1
-        ).view(logp[..., :1].size())
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
-    
+
     elif opts.search_algo in ["greedy_search", "teacher_force"]:
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0]
 
     else:
         raise NotImplementedError
-    
+
     return gen_token_idx, gen_token_score
-    

@@ -234,7 +234,7 @@ class SpeechLMTask(AbsTask):
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip('\n') for line in f]
+                token_list = [line.rstrip("\n") for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
@@ -259,9 +259,7 @@ class SpeechLMTask(AbsTask):
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
-            vocab_size=len(token_list),
-            nq=args.codec_token_in_use,
-            **args.corelm_conf
+            vocab_size=len(token_list), nq=args.codec_token_in_use, **args.corelm_conf
         )
 
         # 3. Build model

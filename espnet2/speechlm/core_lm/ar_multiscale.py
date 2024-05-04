@@ -45,7 +45,7 @@ class MultiScaleLM(AbsCoreLM):
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(f"unknown pos-enc option: {pos_enc}")
-        
+
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
         self.lm_head = torch.nn.Linear(g_att_unit, vocab_size, bias=False)
         if share_emb:
@@ -92,7 +92,9 @@ class MultiScaleLM(AbsCoreLM):
 
         # later shouls allow the local dimension is smaller than the global dimension.
         if g_att_unit != l_att_unit:
-            raise ValueError("currently attention size for global and local size should be the same")
+            raise ValueError(
+                "currently attention size for global and local size should be the same"
+            )
 
         self.nq = nq
         self.first_layer_weight = first_layer_weight
@@ -104,9 +106,9 @@ class MultiScaleLM(AbsCoreLM):
         encoder_input: torch.Tensor = None,
         encoder_input_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        
+
         assert decoder_input.dim() == 3
-        
+
         # embedding
         x = decoder_input[:, :-1]
         x = self.emb(x).sum(dim=2)
@@ -119,11 +121,13 @@ class MultiScaleLM(AbsCoreLM):
 
         # local
         B, T, _ = x.size()
-        placeholder = self.placeholder.expand(B, T, -1, -1) # [B, T, 1, D]
+        placeholder = self.placeholder.expand(B, T, -1, -1)  # [B, T, 1, D]
 
         target = decoder_input[:, 1:]
-        target_shift = torch.cat([placeholder, self.emb(target)], dim=2)[:, :, :-1] # [B, T, 1, D] - [B, T, nq, D]
-        x = x.unsqueeze(2) + target_shift 
+        target_shift = torch.cat([placeholder, self.emb(target)], dim=2)[
+            :, :, :-1
+        ]  # [B, T, 1, D] - [B, T, nq, D]
+        x = x.unsqueeze(2) + target_shift
         x = x.flatten(0, 1)
 
         x = self.l_pos_enc(x)
@@ -135,8 +139,10 @@ class MultiScaleLM(AbsCoreLM):
         logits = self.lm_head(x)
 
         loss, stats, weight = ce_loss(
-            logits, target, decoder_input_lengths - 1,
-            first_layer_weight=self.first_layer_weight
+            logits,
+            target,
+            decoder_input_lengths - 1,
+            first_layer_weight=self.first_layer_weight,
         )
         return loss, stats, weight
 

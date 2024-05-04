@@ -100,7 +100,9 @@ class IterableESPnetDataset(IterableDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.key_file = key_file
-        self.preprocess_prefix = preprocess_prefix if preprocess_prefix is not None else ""
+        self.preprocess_prefix = (
+            preprocess_prefix if preprocess_prefix is not None else ""
+        )
 
         self.debug_info = {}
         non_iterable_list = []
@@ -249,7 +251,7 @@ class IterableESPnetDataset(IterableDataset):
 
 
 class SplicedIterableESPnetDataset(IterableDataset):
-    """ A data iterator that is spliced from multiple IterableESPnetDataset """
+    """A data iterator that is spliced from multiple IterableESPnetDataset"""
 
     def __init__(
         self,
@@ -282,7 +284,7 @@ class SplicedIterableESPnetDataset(IterableDataset):
 
                 # the query result of spk_prompt is speaker-id, not np.array
                 # skip passing it to IterableDataset
-                if modality == 'spk':
+                if modality == "spk":
                     use_speaker_prompt = True
                     continue
 
@@ -312,7 +314,9 @@ class SplicedIterableESPnetDataset(IterableDataset):
             self.task_map[iterator] = json_dict["task"]
 
             if use_speaker_prompt:
-                self.speaker_prompt_config[iterator] = json_dict['speaker_prompt_length']
+                self.speaker_prompt_config[iterator] = json_dict[
+                    "speaker_prompt_length"
+                ]
 
         # Keep same interface with IterableDataset
         self.apply_utt2category = False
@@ -326,11 +330,13 @@ class SplicedIterableESPnetDataset(IterableDataset):
         # be used in multiple tasks.
         for iterator in self.data_iterators:
             for uid, data in iterator:
-                print('get an example: ',  uid, data, self.task_map[iterator], flush=True)
+                print(
+                    "get an example: ", uid, data, self.task_map[iterator], flush=True
+                )
                 uid = self.task_map[iterator] + "_" + uid
                 data = self.post_process(data, iterator)
                 yield uid, data
-    
+
     # Keep same interface with IterableDataset
     def has_name(self, name) -> bool:
         return name in self.names()
@@ -347,15 +353,13 @@ class SplicedIterableESPnetDataset(IterableDataset):
             string += f"## Sub-Dataset: {idx}, Task: {task} ##\n"
             string += f"{dataset}\n"
         return string
-    
+
     def post_process(self, data: Dict, iterator: IterableESPnetDataset):
         # (1) speaker prompt: dummy prompt, but with the correct length
         spk_conf = self.speaker_prompt_config[iterator]
         for key in data.keys():
-            if key in spk_conf['names']:
+            if key in spk_conf["names"]:
                 break
-        data[key] = np.ones(spk_conf['length']).astype(np.int32)
-        
+        data[key] = np.ones(spk_conf["length"]).astype(np.int32)
+
         return data
-
-

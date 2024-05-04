@@ -31,9 +31,10 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
+
 class SpeechLM:
-    """ SpeechLM class.
-    
+    """SpeechLM class.
+
     Examples: (TODO)
     """
 
@@ -64,23 +65,30 @@ class SpeechLM:
         self.device = device
         self.dtype = dtype
         self.train_args = train_args
-        
+
         # token_mask
         token_bias = train_args.token_bias
         token_list = train_args.token_list
         inference_nq = model.corelm.nq if inference_nq is None else inference_nq
         assert inference_nq <= model.corelm.nq
         valid_start = token_bias[modality]
-        valid_end = min([s for s in token_bias.values() if s > valid_start] + [len(token_list)])
-        
+        valid_end = min(
+            [s for s in token_bias.values() if s > valid_start] + [len(token_list)]
+        )
+
         masks = torch.ones(inference_nq, len(token_list)).to(device).bool()
         if modality == "codec":
             increment = (valid_end - valid_start) // model.corelm.nq
             for l_idx in range(inference_nq):
-                masks[l_idx, valid_start + l_idx * increment: valid_start + (l_idx + 1) * increment] = False
+                masks[
+                    l_idx,
+                    valid_start
+                    + l_idx * increment : valid_start
+                    + (l_idx + 1) * increment,
+                ] = False
         else:
-            masks[:, valid_start: valid_end] = False
-        
+            masks[:, valid_start:valid_end] = False
+
         # inference opts
         self.inference_opts = SpeechLMInferenceOptions(
             device=device,
@@ -103,19 +111,19 @@ class SpeechLM:
             self.bias = token_bias[modality]
         else:
             self.bias = 0
-    
+
     def __call__(
         self,
         dec_seq: torch.Tensor,
         dec_seq_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        
+
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
         if enc_seq is not None or enc_seq_lengths is not None:
-            raise NotImplemented('encoder-decoder is not supported')
-        
+            raise NotImplemented("encoder-decoder is not supported")
+
         # training inference
         # _ = self.model.corelm(
         #     dec_seq=dec_seq,
@@ -127,10 +135,10 @@ class SpeechLM:
         # language model inference
         prefix_len = kwargs["prefix_len"]
         gen_tokens, gen_scores = self.model.corelm.inference(
-            prefix=dec_seq[:, :prefix_len + 1],
+            prefix=dec_seq[:, : prefix_len + 1],
             opts=self.inference_opts,
             enc_seq=None,
-            suffix=dec_seq[:, prefix_len + 1:]
+            suffix=dec_seq[:, prefix_len + 1 :],
         )
 
         # post-processing
@@ -148,7 +156,7 @@ class SpeechLM:
     ):
         if model_tag is not None:
             raise ValueError("Model tag is not supported yet")
-        
+
         return SpeechLM(**kwargs)
 
 
@@ -195,16 +203,18 @@ def inference(
         device = "cuda"
     else:
         device = "cpu"
-    
+
     # 1. Set random-seed
     set_all_random_seed(seed)
 
     # 2. parse task
     assert len(data_path_and_name_and_type) == 1, "Can only do inference for one json"
-    task_name = json.load(open(data_path_and_name_and_type[0][0]))['task']
+    task_name = json.load(open(data_path_and_name_and_type[0][0]))["task"]
     task = speechlm_tasks[task_name]
     output_name, output_modality = task.decoder_entries[-1][:2]
-    assert output_modality == postprocessor, f"Postprocessor should be {output_modality}"
+    assert (
+        output_modality == postprocessor
+    ), f"Postprocessor should be {output_modality}"
 
     # 3. Build model
     speechlm_kwargs = dict(
@@ -223,10 +233,7 @@ def inference(
         post_processor_conf=postprocessor_conf,
     )
 
-    speechlm = SpeechLM.from_pretrained(
-        model_tag=model_tag,
-        **speechlm_kwargs
-    )
+    speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
     # 4. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
@@ -239,13 +246,13 @@ def inference(
         collate_fn=SpeechLMTask.build_collate_fn(speechlm.train_args, False),
         allow_variable_data_keys=False,
         inference=True,
-        multi_task_dataset=True
+        multi_task_dataset=True,
     )
 
     # 5 Start for-loop
     output_dir = Path(output_dir)
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    writer = open(output_dir / output_name / f"{output_name}.scp", 'w')
+    writer = open(output_dir / output_name / f"{output_name}.scp", "w")
     # (output_dir / "token").mkdir(parents=True, exist_ok=True)
     # (output_dir / "score").mkdir(parents=True, exist_ok=True)
 
@@ -267,13 +274,13 @@ def inference(
                 writer.write(f"{wave_name} {str(wave_path)}\n")
 
                 torchaudio.save(
-                    wave_path, 
+                    wave_path,
                     content.cpu(),
                     sample_rate=speechlm.post_processor.sample_rate,
                 )
 
                 logging.info(f"save audio {wave_name}: {wave_path}")
-            
+
 
 def get_parser():
     """Get argument parser."""
@@ -395,15 +402,14 @@ def get_parser():
         "--top_k",
         type=int,
         default=20,
-        help="if positive, restrict the sampling to top-k tokens with highest probs."
+        help="if positive, restrict the sampling to top-k tokens with highest probs.",
     )
     group.add_argument(
         "--inference_nj",
         type=int,
         default=None,
-        help="nj used in inference, should be the same or smaller than the nq in training"
+        help="nj used in inference, should be the same or smaller than the nq in training",
     )
-
 
     group = parser.add_argument_group("Postprocessor related")
     post_processor_choices.add_arguments(group)

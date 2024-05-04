@@ -14,10 +14,10 @@ class AbsCoreLM(torch.nn.Module, ABC):
     """
     The abstract CoreLM class for SpeechLM, which is the major component of SpeechLM.
     Most trainable parameters belong to this module.
-    
+
     In philosophy, the CoreLM are stacked Transformer Layers, whose input and output
-    are both dense representations (It also contains Positional Encoding). Other 
-    modules, such as embeddings, language model predictors, should not be included 
+    are both dense representations (It also contains Positional Encoding). Other
+    modules, such as embeddings, language model predictors, should not be included
     in this module.
 
     It shall support several styles:
@@ -32,14 +32,14 @@ class AbsCoreLM(torch.nn.Module, ABC):
       mainly be decoder-only architecture. Several representitives:
           SoundStorm: https://arxiv.org/abs/2305.09636
 
-    Auto-Regressive + Non-Auto-Regressive (AR + NRA): Hybrid of AR and NAR. 
+    Auto-Regressive + Non-Auto-Regressive (AR + NRA): Hybrid of AR and NAR.
       several representitives:
           Vall-E: https://arxiv.org/abs/2301.02111
-    
+
     For developers: If you build the model architecture yourself, try to keep the
-      model file dependency within espnet2.speechlm so it would be easier to 
+      model file dependency within espnet2.speechlm so it would be easier to
       transplant your model in the future.
-    
+
     It shall also support external-sourced pre-trained models, especially those from
       HuggingFace.
     """
@@ -61,11 +61,12 @@ class AbsCoreLM(torch.nn.Module, ABC):
         suffix: torch.Tensor = None,
     ):
         raise NotImplementedError
-  
+
+
 @dataclass
 class SpeechLMInferenceOptions:
-    device: str = 'cpu'
-    search_algo: str = 'sampling'
+    device: str = "cpu"
+    search_algo: str = "sampling"
     nbest: int = 1
     sampling_temperature: float = 1.0
     top_k: int = 20

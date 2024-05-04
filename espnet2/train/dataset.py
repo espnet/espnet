@@ -584,7 +584,7 @@ class ESPnetDataset(AbsDataset):
             self.install_speaker_prompt(uid, data)
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
-            key_prefix = self.task + " " if hasattr(self, 'task') else ""
+            key_prefix = self.task + " " if hasattr(self, "task") else ""
             data = self.preprocess(key_prefix + uid, data)
 
         # 3. Force data-precision
@@ -612,14 +612,16 @@ class ESPnetDataset(AbsDataset):
         assert check_return_type(retval)
         return retval
 
+
 # (Jinchuan) Nearly the same as ESPnetDataset, but with added features
 # specifically designed to SpeechLM.
 class EspnetSpeechLMDataset(ESPnetDataset):
-    def __init__(self, 
-            example_list: List,
-            task: str,
-            **kwargs,
-            ):
+    def __init__(
+        self,
+        example_list: List,
+        task: str,
+        **kwargs,
+    ):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map
@@ -629,7 +631,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 if v not in self.spk2utt:
                     self.spk2utt[v] = []
                 self.spk2utt[v].append(k)
-        
+
         # (2) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
         for key in self.loader_dict.keys():
@@ -642,23 +644,24 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         self.task = task
 
     def install_speaker_prompt(self, uid: str, data: Dict):
-        """ Assume the names are utt2spk and wav.scp. Hard code here. """
-        if 'utt2spk' in self.loader_dict:
-            spk = self.loader_dict['utt2spk'][uid]
+        """Assume the names are utt2spk and wav.scp. Hard code here."""
+        if "utt2spk" in self.loader_dict:
+            spk = self.loader_dict["utt2spk"][uid]
             utts = self.spk2utt[spk]
 
-            if len(utts) == 1: # at least itself
+            if len(utts) == 1:  # at least itself
                 utt = utts[0]
             else:
                 while True:
                     utt = random.sample(utts, 1)[0]
                     if uid != utt:
                         break
-            
-            if 'wav.scp' not in self.loader_dict:
+
+            if "wav.scp" not in self.loader_dict:
                 raise ValueError("speaker prompt is sampled from wav.scp loader")
-            
-            data['utt2spk'] = self.loader_dict['wav.scp'][utt]
+
+            data["utt2spk"] = self.loader_dict["wav.scp"][utt]
+
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet
@@ -706,8 +709,9 @@ class ESPnetMultiTaskDataset(AbsDataset):
             example_list = [line.strip().split()[0] for line in open(path)]
             if self.key_dict is not None:
                 example_list = [
-                    e for e in example_list 
-                    if json_dict["task"] + '_' + e in self.key_dict
+                    e
+                    for e in example_list
+                    if json_dict["task"] + "_" + e in self.key_dict
                 ]
 
             dataset = EspnetSpeechLMDataset(
@@ -719,12 +723,12 @@ class ESPnetMultiTaskDataset(AbsDataset):
             self.datasets.append(dataset)
 
             # iterator_map is for merged dataset -> with task prefix
-            self.iterator_map.update({
-                json_dict["task"] + '_' + e: dataset for e in example_list
-            })
+            self.iterator_map.update(
+                {json_dict["task"] + "_" + e: dataset for e in example_list}
+            )
 
         self.encoder_decoder_format = getattr(
-            kwargs['preprocess'], "encoder_decoder_format", False
+            kwargs["preprocess"], "encoder_decoder_format", False
         )
         self.apply_utt2category = False
         self.example_list = list(self.iterator_map.keys())
@@ -752,6 +756,6 @@ class ESPnetMultiTaskDataset(AbsDataset):
             string += f"## Sub-Dataset: {idx}; Task: {dataset.task} ##\n"
             string += f"{dataset}\n"
         return string
-    
+
     def __len__(self):
         return sum([len(d.example_list) for d in self.datasets])

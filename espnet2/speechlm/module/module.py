@@ -44,7 +44,7 @@ class MultiHeadedAttention(torch.nn.Module):
             value (torch.Tensor): Value tensor (#batch, time2, size).
             mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
                 (#batch, time1, time2).
-            cache (dict): with format [torch.nn.Module: Tensor], 
+            cache (dict): with format [torch.nn.Module: Tensor],
                 with tensor size (#batch, time1/time2, size),
                 the KV-Cache.
 
@@ -57,35 +57,40 @@ class MultiHeadedAttention(torch.nn.Module):
 
         if self.causal and mask is not None:
             raise ValueError("Cannot require causality when mask is provided.")
-        
+
         assert isinstance(cache, dict)
         if len(cache) > 0 and not self.causal:
             raise ValueError("Cache is only used in causal attention")
-        
+
         causal = self.causal if self.linear_k not in cache else False
-        
+
         n_batch = query.size(0)
         q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
 
         if self.linear_k in cache and self.linear_v in cache:
-            _ = self.linear_k(key) # accumulate result in cache
+            _ = self.linear_k(key)  # accumulate result in cache
             _ = self.linear_v(value)
             k = cache[self.linear_k].view(n_batch, -1, self.h, self.d_k)
             v = cache[self.linear_v].view(n_batch, -1, self.h, self.d_k)
         else:
             k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
             v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
-        
-        x = torch.nn.functional.scaled_dot_product_attention(
-            q.transpose(1, 2),
-            k.transpose(1, 2),
-            v.transpose(1, 2),
-            attn_mask=mask.bool().unsqueeze(1) if mask is not None else None,
-            dropout_p=self.dropout_rate,
-            is_causal=causal,
-        ).transpose(1, 2).flatten(2, 3)
+
+        x = (
+            torch.nn.functional.scaled_dot_product_attention(
+                q.transpose(1, 2),
+                k.transpose(1, 2),
+                v.transpose(1, 2),
+                attn_mask=mask.bool().unsqueeze(1) if mask is not None else None,
+                dropout_p=self.dropout_rate,
+                is_causal=causal,
+            )
+            .transpose(1, 2)
+            .flatten(2, 3)
+        )
 
         return self.linear_out(x)
+
 
 class PositionwiseFeedForward(torch.nn.Module):
     """Positionwise feed forward layer.
@@ -109,6 +114,7 @@ class PositionwiseFeedForward(torch.nn.Module):
         """Forward function."""
         return self.w_2(self.dropout(self.activation(self.w_1(x))))
 
+
 def _pre_hook(
     state_dict,
     prefix,
@@ -128,6 +134,7 @@ def _pre_hook(
     k = prefix + "pe"
     if k in state_dict:
         state_dict.pop(k)
+
 
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding.
@@ -185,14 +192,15 @@ class PositionalEncoding(torch.nn.Module):
             torch.Tensor: Encoded tensor (batch, time, `*`).
         """
         self.extend_pe(x)
-        if cache is not None and len(cache) > 0: # Inference time
+        if cache is not None and len(cache) > 0:  # Inference time
             entry = next(iter(cache.values()))
             assert isinstance(entry, torch.Tensor) and entry.dim() == 3
             start = entry.size(1)
         else:
             start = 0
-        x = x * self.xscale + self.pe[:, start: start + x.size(1)]
+        x = x * self.xscale + self.pe[:, start : start + x.size(1)]
         return self.dropout(x)
+
 
 class TransformerLayer(torch.nn.Module):
     def __init__(
@@ -253,6 +261,7 @@ class TransformerLayer(torch.nn.Module):
 
         return x
 
+
 # https://github.com/enhuiz/vall-e/blob/3476d393d2133fa9b50d5ad999ca13b95fc22060/vall_e/vall_e/base.py#L136
 class AdaLN(torch.nn.Module):
     def __init__(self, d_model, n_levels, eps=1e-5, k=0.1, c=2):
@@ -273,6 +282,7 @@ class AdaLN(torch.nn.Module):
         y = logγ.exp() * h + β
 
         return y
+
 
 class LevelAwareTransformerLayer(TransformerLayer):
     def __init__(

@@ -107,11 +107,13 @@ special_tokens = [
     "<unkown_task_identifer>",
 ]
 
+
 def pad_until(token_list, until):
     assert until > len(token_list)
     for idx in range(len(token_list), until):
         token_list.append(f"<unused_token_{idx}>")
     return token_list
+
 
 special_tokens = pad_until(special_tokens, 32)
 

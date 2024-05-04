@@ -7,7 +7,6 @@ import torch
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 
 
-
 # Used in both data preparation stage and inference stage.
 class Codec_Tokenizer(torch.nn.Module):
     def __init__(self, codec_choice, codec_fs, device, dump_audio=False):
@@ -20,7 +19,9 @@ class Codec_Tokenizer(torch.nn.Module):
             try:
                 import dac
             except:
-                raise ImportError("Please install DAC with: pip install descript-audio-codec")
+                raise ImportError(
+                    "Please install DAC with: pip install descript-audio-codec"
+                )
 
             model_path = dac.utils.download(
                 model_type=str(codec_fs).replace("000", "khz")
@@ -30,16 +31,16 @@ class Codec_Tokenizer(torch.nn.Module):
             self.size_codebook = self.codec.codebook_size
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder_rates)
-        
+
         elif self.codec_choice == "EnCodec":
             try:
                 from encodec import EncodecModel
             except:
                 raise ImportError("Please install Encodec with: pip install -U encodec")
-            
+
             model_name = "encodec_model_" + str(codec_fs).replace("000", "khz")
             self.codec = getattr(EncodecModel, model_name)().to(device)
-            bandwidth = 6.0 # 8 codebooks
+            bandwidth = 6.0  # 8 codebooks
             # bandwidth = max(self.codec.target_bandwidths) # 32 codebooks, too large
             self.codec.set_target_bandwidth(bandwidth)
             self.n_codebook = self.codec.quantizer.get_num_quantizers_for_bandwidth(
@@ -60,7 +61,7 @@ class Codec_Tokenizer(torch.nn.Module):
             waveform = self.codec.decode(encoded_frames)
         else:
             raise NotImplementedError
-        
+
         return waveform
 
     def __call__(self, wavs):
@@ -94,11 +95,12 @@ class Codec_Tokenizer(torch.nn.Module):
 
         return codes, resyn_audio
 
+
 class CodecPostProcessor(AbsPostProcessor):
     """The abstract Post-Processor class for SpeechLM"""
 
     def __init__(
-        self, 
+        self,
         codec_choice: str = "encodec",
         codec_fs: int = 24000,
         device: str = "cpu",
@@ -113,9 +115,10 @@ class CodecPostProcessor(AbsPostProcessor):
             dump_audio=dump_audio,
         )
         self.sample_rate = self.tokenizer.sample_rate
-        
+
     def forward(
-        self, tokens: torch.Tensor,
+        self,
+        tokens: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict]:
         print(tokens.device)
 
@@ -124,4 +127,3 @@ class CodecPostProcessor(AbsPostProcessor):
 
         waveform = self.tokenizer.decode(tokens.unsqueeze(0)).squeeze(0)
         return waveform
-

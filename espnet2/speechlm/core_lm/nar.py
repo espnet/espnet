@@ -13,6 +13,7 @@ from espnet2.speechlm.module.module import (
 )
 from espnet2.speechlm.net_utils import length_mask
 
+
 class NARCoreLM(AbsCoreLM):
     def __init__(
         self,
@@ -33,7 +34,7 @@ class NARCoreLM(AbsCoreLM):
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(f"unknown pos-enc option: {pos_enc}")
-        
+
         self.decoders = torch.nn.ModuleList(
             [
                 TransformerLayer(
@@ -54,10 +55,10 @@ class NARCoreLM(AbsCoreLM):
 
         if encoder_decoder_format:
             raise ValueError("AR-NAR model cannot be encoder-decoder format")
-        
+
         self._encoder_decoder_format = False
         self._model_dim = att_unit
-    
+
     def forward(
         self,
         decoder_input: torch.Tensor,
@@ -66,7 +67,7 @@ class NARCoreLM(AbsCoreLM):
         encoder_input_lengths: torch.Tensor = None,
         cache: Dict = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        
+
         assert encoder_input == None and encoder_input_lengths == None
 
         if decoder_input.dim() == 4:

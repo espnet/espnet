@@ -2402,9 +2402,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             for entry in entries:
                 name, modality, _ = entry
 
-                value, _ = self.modality_specific_processing(
-                    data[name], modality
-                )
+                value, _ = self.modality_specific_processing(data[name], modality)
                 seqs.append(value)
 
         # (3) splice
@@ -2427,9 +2425,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
-        
-        prefix_len = len(new_data['dec_seq']) - len(seqs[-1]) // self.codec_token_in_use - 1
-        new_data['prefix_len'] = np.array([prefix_len])
+
+        prefix_len = (
+            len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
+        )
+        new_data["prefix_len"] = np.array([prefix_len])
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
@@ -2441,19 +2441,21 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     def modality_specific_processing(self, value, modality):
 
-        if modality in ["codec", 'spk']:
+        if modality in ["codec", "spk"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
             value = value + self.token_bias["codec"]
 
-            if modality == 'spk':
+            if modality == "spk":
                 if len(value) <= self.speaker_prompt_length:
                     pad_len = self.speaker_prompt_length - len(value)
                     pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
                     value = np.concatenate([value, pad])
                 else:
-                    start = random.randint(0, len(value) - self.speaker_prompt_length - 1)
-                    value = value[start: start + self.speaker_prompt_length]
+                    start = random.randint(
+                        0, len(value) - self.speaker_prompt_length - 1
+                    )
+                    value = value[start : start + self.speaker_prompt_length]
 
             value = value.flatten()
             conti_feat = None
