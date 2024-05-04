@@ -267,8 +267,6 @@ def inference(
 
                 logging.info(f"save audio {wave_name}: {wave_path}")
             
-            assert 1 == 2
-
 
 def get_parser():
     """Get argument parser."""

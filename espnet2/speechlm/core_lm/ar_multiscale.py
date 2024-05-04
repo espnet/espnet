@@ -144,6 +144,7 @@ class MultiScaleLM(AbsCoreLM):
         self,
         prefix: torch.Tensor,
         opts: dict = None,
+        enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
         raise NotImplementedError
