@@ -121,6 +121,7 @@ class ARLM(AbsCoreLM):
         if opts.search_algo == "teacher_force" and suffix is not None:
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
+        logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         generated = {"token": [], "score": []}
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
@@ -141,35 +142,49 @@ class ARLM(AbsCoreLM):
             generated["score"].append(gen_score)
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step].unsqueeze(1)
+                prev_tok = suffix[:, step: step + 1]
             else:
                 prev_tok = gen_tok
 
             # (3.2) detect ended hypotheses.
-            # TODO: fix the bug here. dimension mismatch. should be 1-d
             finish_idx = torch.where(
-                torch.any(prev_tok == opts.eos),
+                torch.logical_and(prev_tok[:, 0, 0] == opts.eos, finish_idx == -1),
                 step,
                 finish_idx,
             )
 
             if torch.all(torch.ge(finish_idx, 0)):
                 logging.info(
-                    f"Finish generation with sample lengths: {finish_idx.cpu().tolist()}"
+                    f"Finish generation with steps: {finish_idx.cpu().tolist()}"
                 )
                 break
+
+            if step == maxlen - 1:
+                logging.warning(
+                    f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
+                    f"Consider increasing the maxlenratio"
+                )
+
+        valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
+
+        if len(valid_idx) == 0:
+            logging.warning(f"No valid examples. Return None")
+            return None, None
+        
+        generated = {
+            "token": torch.cat(generated["token"], dim=1)[valid_idx],
+            "score": torch.cat(generated["score"], dim=1)[valid_idx],
+        }
+        finish_idx = finish_idx[valid_idx]
 
         # (4) finalize
         for hook in hooks:
             hook.remove()
 
-        generated = {
-            "token": torch.cat(generated["token"], dim=1),
-            "score": torch.cat(generated["score"], dim=1),
-        }
         gen_tokens, gen_scores = [], []
-        for b in range(opts.nbest):
+        for b in range(len(valid_idx)):
             gen_tokens.append(generated["token"][b][: finish_idx[b]])
             gen_scores.append(generated["score"][b][: finish_idx[b]])
-
+            assert not torch.any(gen_tokens[-1].eq(opts.eos))
+        
         return gen_tokens, gen_scores

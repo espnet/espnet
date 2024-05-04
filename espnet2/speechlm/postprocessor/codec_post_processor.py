@@ -120,7 +120,6 @@ class CodecPostProcessor(AbsPostProcessor):
         self,
         tokens: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict]:
-        print(tokens.device)
 
         for t in range(tokens.size(1)):
             tokens[:, t] -= t * self.tokenizer.size_codebook

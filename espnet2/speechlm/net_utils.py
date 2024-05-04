@@ -93,8 +93,8 @@ def logits_to_tokens(
 
     # (1) Apply mask
     mask = opts.masks
-    if allow_eos:
-        mask[..., opts.eos] = False
+    if allow_eos: # only predict eos in the first code
+        mask[..., 0, opts.eos] = False
     if nq_level is not None:
         mask = mask[nq_level : nq_level + 1]
     mask = mask.unsqueeze(0).unsqueeze(0)
@@ -103,7 +103,7 @@ def logits_to_tokens(
     # (2) token selection
     topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
 
-    if opts.search_algo == "sampling":
+    if opts.search_algo in ["sampling", "teacher_force"]:
         logp = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
         inner_indices = torch.multinomial(logp.flatten(end_dim=-2), num_samples=1).view(
             logp[..., :1].size()
@@ -111,11 +111,11 @@ def logits_to_tokens(
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
 
-    elif opts.search_algo in ["greedy_search", "teacher_force"]:
+    elif opts.search_algo in ["greedy_search"]:
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0]
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
 
     return gen_token_idx, gen_token_score

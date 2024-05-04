@@ -129,8 +129,6 @@ class SpeechLM:
         #     dec_seq=dec_seq,
         #     dec_seq_lengths=dec_seq_lengths,
         # )
-        # print('decoder sequence original length: ', dec_seq.size())
-        # print(f'end of training forward', flush=True)
 
         # language model inference
         prefix_len = kwargs["prefix_len"]
@@ -140,6 +138,9 @@ class SpeechLM:
             enc_seq=None,
             suffix=dec_seq[:, prefix_len + 1 :],
         )
+
+        if gen_tokens is None and gen_scores is None:
+            return None, None, None
 
         # post-processing
         generated = []
@@ -263,8 +264,11 @@ def inference(
         assert _bs == 1, _bs
 
         batch = to_device(batch, device=device)
-        contents, tokens, scores = speechlm(**batch)
         key = keys[0]
+        contents, tokens, scores = speechlm(**batch)
+        if contents is None:
+            logging.info(f"fail on example: {key}")
+            continue
 
         for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
 
