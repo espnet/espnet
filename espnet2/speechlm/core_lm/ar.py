@@ -85,7 +85,7 @@ class ARLM(AbsCoreLM):
 
         return loss, stats, weight
 
-    def encode(self, x: torch.Tensor, cache={}):
+    def encode(self, x: torch.Tensor, cache: dict={}):
         x = self.emb(x).sum(dim=2)
 
         x = self.pos_enc(x, cache)

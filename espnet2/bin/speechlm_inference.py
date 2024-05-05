@@ -124,11 +124,12 @@ class SpeechLM:
         if enc_seq is not None or enc_seq_lengths is not None:
             raise NotImplemented("encoder-decoder is not supported")
 
-        # training inference
-        _ = self.model.corelm(
-            dec_seq=dec_seq,
-            dec_seq_lengths=dec_seq_lengths,
-        )
+        # training inference, only for debug
+        # with torch.no_grad():
+        #     _ = self.model.corelm(
+        #         dec_seq=dec_seq,
+        #         dec_seq_lengths=dec_seq_lengths,
+        #     )
 
         # language model inference
         prefix_len = kwargs["prefix_len"]

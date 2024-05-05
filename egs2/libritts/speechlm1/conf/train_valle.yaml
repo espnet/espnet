@@ -13,7 +13,7 @@ corelm_conf:
 
 # Dataloader
 batch_type: numel
-batch_bins: 80000
+batch_bins: 60000
 accum_grad: 1
 grad_clip: 2
 max_epoch: 100
@@ -23,7 +23,7 @@ log_interval: 500
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.0003
+    lr: 0.001
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 20000
