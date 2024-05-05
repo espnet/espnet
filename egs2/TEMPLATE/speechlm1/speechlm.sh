@@ -43,7 +43,8 @@ expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
-local_data_opts="" # Options to be passed to local/data.sh.
+local_data_opts=""  # Options to be passed to local/data.sh.
+data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition 
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
@@ -157,9 +158,13 @@ if [ -z "${inference_tag}" ]; then
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
+if [ -z ${data_tag} ]; then
+    data_tag=${train_set}_${task}
+fi
+
 # The directory used for collect-stats mode
 if [ -z "${speechlm_stats_dir}" ]; then
-    speechlm_stats_dir="${expdir}/speechlm_stats_${tag}"
+    speechlm_stats_dir="${expdir}/speechlm_stats_${data_tag}"
 fi
 # The directory used for training commands
 if [ -z "${speechlm_exp}" ]; then
@@ -167,7 +172,7 @@ if [ -z "${speechlm_exp}" ]; then
 fi
 
 if [ -z ${token_list_dir} ]; then
-    token_list_dir=data/token_list/${tag}
+    token_list_dir=data/token_list/${data_tag}
 fi
 
 if [ ${task} == "multi_task" ]; then
@@ -291,10 +296,10 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "codec" ]; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
-                    # scripts/feats/codec_tokenization.sh \
-                    #     --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
-                    #     --codec_fs ${fs} \
-                    #     --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
+                    scripts/feats/codec_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
+                        --codec_fs ${fs} \
+                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
@@ -441,12 +446,12 @@ if ! "${skip_train}"; then
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${speechlm_stats_dir}"
 
         # (Jinchuan) we only care about the #frames / #patches.
-        for module in encoder decoder; do
+        for module in enc dec; do
             for dset in train valid; do
-                if [ -f ${speechlm_stats_dir}/${dset}/${module}_sequence_shape ]; then
-                    cat ${speechlm_stats_dir}/${dset}/${module}_sequence_shape |\
+                if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_shape ]; then
+                    cat ${speechlm_stats_dir}/${dset}/${module}_seq_shape |\
                     awk -F ',' '{print $1}' \
-                    > ${speechlm_stats_dir}/${dset}/${module}_sequence_lengths
+                    > ${speechlm_stats_dir}/${dset}/${module}_seq_lengths
                 fi
             done
         done
@@ -465,13 +470,13 @@ if ! "${skip_train}"; then
             _opts+="--config ${train_config} "
         fi
 
-        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/decoder_sequence_lengths "
-        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/decoder_sequence_lengths "
-        if [ -f ${speechlm_stats_dir}/train/encoder_sequence_shape ]; then
-            _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/encoder_sequence_lengths "
+        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/dec_seq_lengths "
+        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/dec_seq_lengths "
+        if [ -f ${speechlm_stats_dir}/train/enc_seq_shape ]; then
+            _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/enc_seq_lengths "
         fi
-        if [ -f ${speechlm_stats_dir}/valid/encoder_sequence_shape ]; then
-            _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/encoder_sequence_lengths "
+        if [ -f ${speechlm_stats_dir}/valid/enc_seq_shape ]; then
+            _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/enc_seq_lengths "
         fi
         
         log "Generate '${speechlm_exp}/run.sh'. You can resume the process from stage 7 using this script"
@@ -509,30 +514,14 @@ else
     log "Skip training stages"
 fi
 
-
 if [ -n "${download_model}" ]; then
-    log "Use ${download_model} for decoding and evaluation"
-    tts_exp="${expdir}/${download_model}"
-    mkdir -p "${tts_exp}"
-
-    # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${tts_exp}/config.txt"
-
-    # Get the path of each file
-    _model_file=$(<"${tts_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
-    _train_config=$(<"${tts_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
-
-    # Create symbolic links
-    ln -sf "${_model_file}" "${tts_exp}"
-    ln -sf "${_train_config}" "${tts_exp}"
-    inference_model=$(basename "${_model_file}")
-
+    log "Use ${download_model} for inference and evaluation"
+    # Not supported yet
 fi
-exit 0;
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Decoding: training_dir=${tts_exp}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Inference: training_dir=${speechlm_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -547,140 +536,48 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        _scp=wav.scp
-        if [[ "${audio_format}" == *ark* ]]; then
-            _type=kaldi_ark
-        else
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
-        fi
-
-        log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
-        mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${speechlm_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
-
-
         for dset in ${test_sets}; do
-            _data="${data_feats}/${dset}"
-            _speech_data="${_data}"
-            _dir="${tts_exp}/${inference_tag}/${dset}"
+            test_json="${data_feats}/${dset}/data.json"
+            _dir="${speechlm_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
-            mkdir -p "${_logdir}"
+            mkdir -p ${_logdir}
 
-            _ex_opts=""
-            if [ -n "${teacher_dumpdir}" ]; then
-                # Use groundtruth of durations
-                _teacher_dir="${teacher_dumpdir}/${dset}"
-                _ex_opts+="--data_path_and_name_and_type ${_teacher_dir}/durations,durations,text_int "
-                # Overwrite speech arguments if use knowledge distillation
-                if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
-                    _speech_data="${_teacher_dir}/denorm"
-                    _scp=feats.scp
-                    _type=npy
-                fi
-            fi
-
-            # Add speaker embedding to the inputs if needed
-            if "${use_spk_embed}"; then
-                _spk_embed_dir="${dumpdir}/${spk_embed_tag}/${dset}"
-                _ex_opts+="--data_path_and_name_and_type ${_spk_embed_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
-            fi
-
-            # Add spekaer ID to the inputs if needed
-            if "${use_sid}"; then
-                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
-            fi
-
-            # Add language ID to the inputs if needed
-            if "${use_lid}"; then
-                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
-            fi
-
-            # 0. Copy feats_type
-            cp "${_data}/feats_type" "${_dir}/feats_type"
+            ${python} pyscripts/utils/make_example_list_speechlm.py \
+                --json_files ${test_json} \
+                --output_file ${_logdir}/example_list
 
             # 1. Split the key file
-            key_file=${_data}/text
+            key_file=${_logdir}/example_list
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
             for n in $(seq "${_nj}"); do
-                split_scps+=" ${_logdir}/keys.${n}.scp"
+                split_scps+=" ${_logdir}/example_list.${n}"
             done
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit decoding jobs
-            log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
-                ${python} -m espnet2.bin.tts_inference \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/speechlm_inference.JOB.log \
+                ${python} -m espnet2.bin.speechlm_inference \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/text,text,text" \
-                    --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
-                    --key_file "${_logdir}"/keys.JOB.scp \
-                    --model_file "${tts_exp}"/"${inference_model}" \
-                    --train_config "${tts_exp}"/config.yaml \
+                    --data_path_and_name_and_type ${test_json},json,json \
+                    --key_file "${_logdir}"/example_list.JOB \
+                    --model_file "${speechlm_exp}"/"${inference_model}" \
+                    --train_config "${speechlm_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    --vocoder_file "${vocoder_file}" \
-                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
+                    ${_opts} ${inference_args} \
+                    || { cat $(grep -l -i error "${_logdir}"/speechlm_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
-                mkdir -p "${_dir}"/norm
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/norm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
-                mkdir -p "${_dir}"/denorm
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/denorm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
-                mkdir -p "${_dir}"/wav
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                    rm -rf "${_logdir}/output.${i}"/wav
-                done
-                find "${_dir}/wav" -name "*.wav" | while read -r line; do
-                    echo "$(basename "${line}" .wav) ${line}"
-                done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-                mkdir -p "${_dir}"/att_ws
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                    rm -rf "${_logdir}/output.${i}"/att_ws
-                done
-            fi
-            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/probs" ]; then
-                mkdir -p "${_dir}"/probs
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                    rm -rf "${_logdir}/output.${i}"/probs
-                done
-            fi
+            # TODO
         done
     fi
 else
     log "Skip the evaluation stages"
 fi
-
+exit 0;
 
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if [ -z "${download_model}" ]; then

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict
 
+import json
 import numpy as np
 import torch
 
@@ -50,6 +51,28 @@ class Codec_Tokenizer(torch.nn.Module):
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder.ratios)
 
+        elif self.codec_choice == "Academic":
+            try:
+                from academicodec.models.hificodec.vqvae import VQVAE
+            except:
+                raise ImportError(
+                    "Cannot find AcadamicCodec."
+                    "Check https://github.com/yangdongchao/AcademiCodec.git"
+                )
+
+            model_type = str(codec_fs).replace("000", "k")
+            eg_path = f"AcademiCodec/egs/HiFi-Codec-{model_type}-320d"
+            ckpt_path = f"{eg_path}/checkpoint/HiFi-Codec-{model_type}-320d"
+            config_path = f"{eg_path}/config_{model_type}_320d.json"
+            self.codec = VQVAE(config_path, ckpt_path, with_encoder=True).to(device)
+
+            conf = json.load(open(config_path))
+
+            self.n_codebook = conf["n_code_groups"] * 2
+            self.size_codebook = conf["n_codes"]
+            self.sample_rate = conf["sampling_rate"]
+            self.subsample = np.prod(np.array(conf["upsample_rates"]))
+
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
@@ -81,6 +104,14 @@ class Codec_Tokenizer(torch.nn.Module):
             codes = encoded_frames[0][0].transpose(1, 2)
             if self.dump_audio:
                 resyn_audio = self.codec.decode(encoded_frames).squeeze(1)
+            else:
+                resyn_audio = None
+
+        elif self.codec_choice == "Academic":
+            codes = self.codec.encode(wavs.transpose(1, 2))
+            if self.dump_audio:
+                resyn_audio = self.codec(codes).squeeze(1)
+                print("resyn audio size: ", resyn_audio.size(), flush=True)
             else:
                 resyn_audio = None
 
