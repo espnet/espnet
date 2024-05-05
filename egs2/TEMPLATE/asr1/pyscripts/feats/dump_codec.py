@@ -85,6 +85,17 @@ class Codec_Tokenizer(object):
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
+    def decode(self, codes):
+        if self.codec_choice == "DAC":
+            raise NotImplementedError
+        elif self.codec_choice == "EnCodec":
+            encoded_frames = [(codes.transpose(0, 1), None)]
+            waveform = self.codec.decode(encoded_frames)
+        else:
+            raise NotImplementedError
+        
+        return waveform
+
     def __call__(self, wavs):
         # All wavs in shape of [batch_size, 1, num_samples]
         assert wavs.dim() == 3 and wavs.size(1) == 1
@@ -93,7 +104,7 @@ class Codec_Tokenizer(object):
             z, codes = self.codec.encode(wavs)[:2]
             codes = codes.transpose(1, 2)
             if self.dump_audio:
-                resyn_audio = self.codec.decode(z).squeeze(1)
+                raise NotImplementedError
             else:
                 resyn_audio = None
 
@@ -115,7 +126,7 @@ class Codec_Tokenizer(object):
         codes = codes.int().flatten(start_dim=1)
 
         return codes, resyn_audio
-
+    
 
 def dump_codec(
     rspecifier,
