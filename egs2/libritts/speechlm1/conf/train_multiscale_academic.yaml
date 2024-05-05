@@ -1,0 +1,50 @@
+corelm: multiscale
+corelm_conf:
+    share_emb: true
+    pos_enc: sinusoidal
+    # global transformer
+    g_att_unit: 768
+    g_head: 8
+    g_unit: 1536
+    g_layer: 18
+    # local transformer
+    l_att_unit: 768
+    l_head: 8
+    l_unit: 1536
+    l_layer: 6
+    dropout_rate: 0.0
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.0
+    first_layer_weight: 3.0
+
+# Dataloader
+batch_type: numel
+batch_bins: 50000
+accum_grad: 1
+grad_clip: 2
+max_epoch: 100
+num_workers: 4
+log_interval: 500
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+
+# Global settings
+use_amp: false
+use_tf32: true
+encoder_decoder_format: false
+codec_token_per_frame: 4 # encodec
+codec_token_in_use: 4
+speaker_prompt_length: 150 # 50fps, a.k.a., 3s

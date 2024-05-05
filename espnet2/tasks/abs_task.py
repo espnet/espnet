@@ -468,6 +468,12 @@ class AbsTask(ABC):
             default=True,
             help="Enable cudnn-deterministic mode",
         )
+        group.add_argument(
+            "--use_tf32",
+            type=str2bool,
+            default=False,
+            help="Enable TensorFloat32 on CUDA and CUDNN",
+        )
 
         group = parser.add_argument_group("collect stats mode related")
         group.add_argument(
@@ -1267,6 +1273,15 @@ class AbsTask(ABC):
         if args.detect_anomaly:
             logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
             torch.autograd.set_detect_anomaly(args.detect_anomaly)
+        
+        if args.use_tf32:
+            # Accelerate matmul at the cost of precision.
+            # Only effective with Ampere GPUs and above
+            # https://pytorch.org/docs/stable/notes/cuda.html
+            assert not args.use_amp, "amp is not compatible with tf32"
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            logging.info(f"Using TensorFloat32 at the cost of matmul precision")
 
         if (
             args.collect_stats

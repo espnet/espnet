@@ -9,15 +9,14 @@ train_set=train-clean-460
 valid_set=dev-clean
 test_sets="dev-clean test-clean"
 
-train_config=conf/train_multiscale.yaml
-# train_config=conf/train_ar.yaml
-train_config=conf/train_valle.yaml
+train_config=conf/train_multiscale_academic.yaml
+# train_config=conf/train_valle_academic.yaml
 inference_config=conf/decode_encodec.yaml
 
 ./speechlm.sh \
     --stage 9 --stop_stage 9 \
     --task "tts" \
-    --fs 24000 \
+    --fs 16000 \
     --ngpu 4 \
     --nj 32 \
     --inference_nj 1 --gpu_inference true \
@@ -27,4 +26,7 @@ inference_config=conf/decode_encodec.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
+    --dumpdir dump_acadamic \
+    --data_tag train-clean-460_tts_acadamic \
+    --codec_choice Academic \
     "$@"

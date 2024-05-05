@@ -1,0 +1,44 @@
+corelm: valle
+corelm_conf:
+    share_emb: true
+    pos_enc: sinusoidal
+    att_unit: 768
+    head: 8
+    unit: 1536
+    ar_layer: 12
+    nar_layer: 12
+    dropout_rate: 0.0
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.0
+
+# Dataloader
+batch_type: numel
+batch_bins: 30000
+accum_grad: 1
+grad_clip: 2
+max_epoch: 100
+num_workers: 4
+log_interval: 100
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+
+# Global settings
+use_amp: false
+use_tf32: true
+encoder_decoder_format: false
+codec_token_per_frame: 4 # encodec
+codec_token_in_use: 4
+speaker_prompt_length: 150 # 50fps, a.k.a., 3s
