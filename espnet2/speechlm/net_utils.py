@@ -10,10 +10,11 @@ from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.module.module import MultiHeadedAttention
 
 
-def length_mask(lengths: torch.Tensor) -> torch.Tensor:
+def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
     assert lengths.dim() == 1
+    maxlen = maxlen if maxlen is not None else lengths.max()
     mask = torch.le(
-        torch.arange(lengths.max(), device=lengths.device).unsqueeze(0),
+        torch.arange(maxlen, device=lengths.device).unsqueeze(0),
         lengths.unsqueeze(1),
     ).long()
     return mask
@@ -27,6 +28,7 @@ def ce_loss(
     logits: torch.Tensor,
     target: torch.Tensor,
     lengths: torch.Tensor,
+    prefix_len: torch.Tensor = None,
     first_layer_weight: int = 1.0,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert logits.dim() == 4
@@ -45,17 +47,25 @@ def ce_loss(
     )
 
     mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
+    if prefix_len is not None:
+        target_mask = length_mask(prefix_len, maxlen=lengths.max()).to(elem_loss.dtype).unsqueeze(-1)
+        target_mask = mask * torch.abs(target_mask - 1)
+    else:
+        target_mask = mask
+    
+    # compute loss on each token
     elem_loss = elem_loss * mask
     loss = elem_loss.sum() / mask.sum() / logits.size(2)
 
+    # compute accuracy only on target tokens only
     pred = logits.argmax(dim=-1)
-    acc = torch.eq(pred, target).to(elem_loss.dtype) * mask
+    acc = torch.eq(pred, target).to(elem_loss.dtype) * target_mask
 
     stats = {}
     for nq_idx in range(target.size(2)):
-        stats.update({f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / mask.sum()})
+        stats.update({f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()})
 
-    acc = acc.sum() / mask.sum() / logits.size(2)
+    acc = acc.sum() / target_mask.sum() / logits.size(2)
     stats.update({"loss": loss.clone().detach(), "acc": acc})
     weight = mask.sum()
 

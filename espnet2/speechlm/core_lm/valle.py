@@ -97,6 +97,7 @@ class ValleLM(AbsCoreLM):
         dec_seq_lengths: torch.Tensor = None,
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
+        prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
 
         assert dec_seq.dim() == 3
@@ -107,7 +108,10 @@ class ValleLM(AbsCoreLM):
         logits_ar = self.encode_ar(input_ar)
 
         loss_ar, stats_ar, weight_ar = ce_loss(
-            logits_ar.unsqueeze(2), target_ar.unsqueeze(2), dec_seq_lengths - 1
+            logits_ar.unsqueeze(2), 
+            target_ar.unsqueeze(2), 
+            dec_seq_lengths - 1, 
+            prefix_len,
         )
 
         # Non-Auto-Regressive part
@@ -125,7 +129,10 @@ class ValleLM(AbsCoreLM):
         )
 
         loss_nar, stats_nar, weight_nar = ce_loss(
-            logits_nar.unsqueeze(2), target_nar.unsqueeze(2), dec_seq_lengths - 1
+            logits_nar.unsqueeze(2), 
+            target_nar.unsqueeze(2), 
+            dec_seq_lengths - 1,
+            prefix_len,
         )
 
         # Aggregate

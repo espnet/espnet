@@ -82,6 +82,8 @@ class Codec_Tokenizer(torch.nn.Module):
         elif self.codec_choice == "EnCodec":
             encoded_frames = [(codes.transpose(1, 2), None)]
             waveform = self.codec.decode(encoded_frames)
+        elif self.codec_choice == "Academic":
+            return self.codec(codes).squeeze(1)
         else:
             raise NotImplementedError
 
@@ -110,8 +112,7 @@ class Codec_Tokenizer(torch.nn.Module):
         elif self.codec_choice == "Academic":
             codes = self.codec.encode(wavs.transpose(1, 2))
             if self.dump_audio:
-                resyn_audio = self.codec(codes).squeeze(1)
-                print("resyn audio size: ", resyn_audio.size(), flush=True)
+                resyn_audio = self.decode(codes)
             else:
                 resyn_audio = None
 

@@ -107,6 +107,7 @@ class MultiScaleLM(AbsCoreLM):
         dec_seq_lengths: torch.Tensor = None,
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
+        prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
 
         assert dec_seq.dim() == 3
@@ -137,6 +138,7 @@ class MultiScaleLM(AbsCoreLM):
             logits,
             target,
             dec_seq_lengths - 1,
+            prefix_len,
             first_layer_weight=self.first_layer_weight,
         )
         return loss, stats, weight
