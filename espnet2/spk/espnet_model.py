@@ -1,16 +1,15 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
@@ -19,8 +18,8 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):
-    """
-    Speaker embedding extraction model.
+    """Speaker embedding extraction model.
+
     Core model for diverse speaker-related tasks (e.g., verification, open-set
     identification, diarization)
 
@@ -39,6 +38,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     (e.g., ASR, SE, target speaker extraction).
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -47,9 +47,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        loss: Optional[List[AbsLoss]],
+        loss: Optional[AbsLoss],
     ):
-        assert check_argument_types()
 
         super().__init__()
 
@@ -61,17 +60,19 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.projector = projector
         self.loss = loss
 
+    @typechecked
     def forward(
         self,
         speech: torch.Tensor,
-        spk_labels: torch.Tensor = None,
-        spf_labels: torch.Tensor = None,
-        task_tokens: torch.Tensor = None,
+        spk_labels: Optional[torch.Tensor] = None,
+        task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """
-        Feed-forward through encoder layers and aggregate into utterance-level
+    ) -> Union[
+        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
+    ]:
+        """Feed-forward through encoder layers and aggregate into utterance-level
+
         feature.
 
         Args:
@@ -80,7 +81,6 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             extract_embd: a flag which doesn't go through the classification
                 head when set True
             spk_labels: (Batch, )
-            spf_labels: (Batch, )
             one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
             task tokens used in case of token-based trainings
@@ -114,25 +114,12 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 4. calculate loss
         assert spk_labels is not None, "spk_labels is None, cannot compute loss"
+        loss = self.loss(spk_embd, spk_labels.squeeze())
 
-        loss_dict = {}
-        for idx, loss_fn in enumerate(self.loss):
-            if loss_fn is not None:
-                if idx == 0:
-                    loss = loss_fn(spk_embd, spk_labels.squeeze())
-                    loss_dict["spk_loss"] = loss
-                elif idx == 1 and spf_labels is not None:
-                    loss = loss_fn(spk_embd, spf_labels.squeeze())
-                    loss_dict["spf_loss"] = loss
+        stats = dict(loss=loss.detach())
 
-        # combine losses
-        loss_tensor = torch.stack(list(loss_dict.values())).sum()
-        stats = {k: v.detach() for k, v in loss_dict.items()}
-
-        loss_tensor, stats, weight = force_gatherable(
-            (loss_tensor, stats, batch_size), loss_tensor.device
-        )
-        return loss_tensor, stats, weight
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
 
     def extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
@@ -184,7 +171,6 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
-        spf_labels: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self.extract_feats(speech, speech_lengths)
