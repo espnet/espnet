@@ -159,7 +159,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             fi
             echo "preparing ${dataset} dataset ..."
             ./local/prepare_${dataset}.sh || \
-                echo "preparing ${dataset} failed" && exit 1;
+                { echo "preparing ${dataset} failed" && exit 1; }
             touch data/.${dataset}.done
         fi
     done
