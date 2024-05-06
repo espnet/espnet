@@ -168,7 +168,7 @@ fi
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag="$(basename "${train_config}" .yaml)_${feats_type}"
+        tag="$(basename "${train_config}" .yaml)_${feats_type}_fs${fs}"
     else
         tag="train_${feats_type}"
     fi

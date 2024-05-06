@@ -84,8 +84,8 @@ codec_conf:
         include_final_outputs: true      # whether to include final outputs for loss calculation
     use_mel_loss: true     # whether to use mel-spectrogram loss
     mel_loss_params:
-        range_start: 10
-        range_end: 10
+        range_start: 6
+        range_end: 11
         window: hann        # window type
         n_mels: 80          # number of Mel basis
         fmin: 0             # minimum frequency for Mel basis
