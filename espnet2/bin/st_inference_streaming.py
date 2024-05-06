@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
@@ -57,14 +57,15 @@ class Speech2TextStreaming:
 
     """
 
+    @typechecked
     def __init__(
         self,
         st_train_config: Union[Path, str],
-        st_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        st_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -83,10 +84,9 @@ class Speech2TextStreaming:
         incremental_decode: bool = False,
         blank_penalty: float = 1.0,
         hold_n: int = 0,
-        transducer_conf: dict = None,
+        transducer_conf: Optional[dict] = None,
         hugging_face_decoder: bool = False,
     ):
-        assert check_argument_types()
 
         # 1. Build ST model
         scorers = {}
@@ -227,9 +227,11 @@ class Speech2TextStreaming:
                 ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
                 hold_n=hold_n,
                 transducer_conf=transducer_conf,
-                joint_network=st_model.st_joint_network
-                if hasattr(st_model, "st_joint_network")
-                else None,
+                joint_network=(
+                    st_model.st_joint_network
+                    if hasattr(st_model, "st_joint_network")
+                    else None
+                ),
             )
             self.hugging_face_model = None
             self.hugging_face_linear_in = None
@@ -383,6 +385,7 @@ class Speech2TextStreaming:
         return feats, feats_lengths, next_states
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -394,7 +397,6 @@ class Speech2TextStreaming:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -453,10 +455,10 @@ class Speech2TextStreaming:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -495,7 +497,6 @@ def inference(
     transducer_conf: Optional[dict],
     hugging_face_decoder: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

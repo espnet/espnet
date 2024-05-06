@@ -1,11 +1,11 @@
-"""
-Abstract SDE classes, Reverse SDE, and VE/VP SDEs.
+"""Abstract SDE classes, Reverse SDE, and VE/VP SDEs.
 
 Taken and adapted from
 https://github.com/yang-song/score_sde_pytorch
 and
 https://github.com/sp-uhh/sgmse
 """
+
 import abc
 import warnings
 
@@ -38,13 +38,17 @@ class SDE(abc.ABC):
     @abc.abstractmethod
     def marginal_prob(self, x, t, *args):
         """Parameters to determine the marginal distribution of
-        the SDE, $p_t(x|args)$."""
+
+        the SDE, $p_t(x|args)$.
+        """
         pass
 
     @abc.abstractmethod
     def prior_sampling(self, shape, *args):
         """Generate one sample from the prior distribution,
-        $p_T(x|args)$ with shape `shape`."""
+
+        $p_T(x|args)$ with shape `shape`.
+        """
         pass
 
     @abc.abstractmethod
@@ -136,7 +140,9 @@ class SDE(abc.ABC):
 
             def discretize(self, x, t, *args):
                 """Create discretized iteration rules for the reverse
-                diffusion sampler."""
+
+                diffusion sampler.
+                """
                 f, G = discretize_fn(x, t, *args)
                 rev_f = f - G[:, None, None, None] ** 2 * score_model(x, t, *args) * (
                     0.5 if self.probability_flow else 1.0
@@ -237,7 +243,8 @@ class OUVESDE(SDE):
 
 class OUVPSDE(SDE):
     def __init__(self, beta_min, beta_max, stiffness=1, N=1000, **ignored_kwargs):
-        """
+        """OUVPSDE class.
+
         !!! SGMSE authors observed instabilities around t=0.2. !!!
 
         Construct an Ornstein-Uhlenbeck Variance Preserving SDE:
@@ -309,7 +316,9 @@ class OUVPSDE(SDE):
 
 def batch_broadcast(a, x):
     """Broadcasts a over all dimensions of x, except the batch dimension,
-    which must match."""
+
+    which must match.
+    """
 
     if len(a.shape) != 1:
         a = a.squeeze()

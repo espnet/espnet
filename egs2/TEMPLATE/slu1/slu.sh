@@ -270,7 +270,11 @@ else
     exit 2
 fi
 
-utt_extra_files="transcript"
+if [ $use_transcript = true ]; then
+    utt_extra_files="transcript"
+else
+    utt_extra_files=""
+fi
 
 # Use the same text as SLU for bpe training if not specified.
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"

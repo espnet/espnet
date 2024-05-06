@@ -41,18 +41,14 @@ CTA_REDUCE_SIZE = 128
 
 
 class I_Op(enum.Enum):
-    """
-    Represents an operation that is performed on the input tensor
-    """
+    """Represents an operation that is performed on the input tensor"""
 
     EXPONENTIAL = 0
     IDENTITY = 1
 
 
 class R_Op(enum.Enum):
-    """
-    Represents a reduction operation performed on the input tensor
-    """
+    """Represents a reduction operation performed on the input tensor"""
 
     ADD = 0
     MAXIMUM = 1
@@ -60,8 +56,7 @@ class R_Op(enum.Enum):
 
 @cuda.jit(device=True)
 def CTAReduce(tid: int, x, storage, count: int, R_opid: int):
-    """
-    CUDA Warp reduction kernel.
+    """CUDA Warp reduction kernel.
 
     It is a device kernel to be called by other kernels.
 
@@ -123,8 +118,7 @@ def CTAReduce(tid: int, x, storage, count: int, R_opid: int):
 
 @cuda.jit()
 def _reduce_rows(I_opid: int, R_opid: int, acts, output, num_rows: int):
-    """
-    CUDA Warp reduction kernel which reduces via the R_Op.Maximum
+    """CUDA Warp reduction kernel which reduces via the R_Op.Maximum
 
     Reduces the input data such that I_Op = Identity and R_op = Maximum.
     The result is stored in the blockIdx, and is stored as an identity op.
@@ -192,8 +186,7 @@ def _reduce_rows(I_opid: int, R_opid: int, acts, output, num_rows: int):
 
 @cuda.jit()
 def _reduce_minus(I_opid: int, R_opid: int, acts, output, num_rows: int):
-    """
-    CUDA Warp reduction kernel which reduces via the R_Op.Add
+    """CUDA Warp reduction kernel which reduces via the R_Op.Add
 
     Reduces the input data such that I_Op = Exponential and R_op = Add.
     The result is stored in the blockIdx, and is stored as an exp op.
@@ -268,8 +261,8 @@ def ReduceHelper(
     minus: bool,
     stream,
 ):
-    """
-    CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes
+    """CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes
+
     the result to `output` according to I_op id.
 
     The result is stored in the blockIdx.
@@ -314,8 +307,7 @@ def ReduceHelper(
 
 
 def reduce_exp(acts: torch.Tensor, denom, rows: int, cols: int, minus: bool, stream):
-    """
-    Helper method to call the Warp Reduction Kernel to perform `exp` reduction.
+    """Helper method to call the Warp Reduction Kernel to perform `exp` reduction.
 
     Note:
         Efficient warp occurs at input shapes of 2 ^ K.
@@ -350,8 +342,7 @@ def reduce_exp(acts: torch.Tensor, denom, rows: int, cols: int, minus: bool, str
 
 
 def reduce_max(acts: torch.Tensor, denom, rows: int, cols: int, minus: bool, stream):
-    """
-    Helper method to call the Warp Reduction Kernel to perform `max` reduction.
+    """Helper method to call the Warp Reduction Kernel to perform `max` reduction.
 
     Note:
         Efficient warp occurs at input shapes of 2 ^ K.

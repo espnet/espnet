@@ -1,10 +1,11 @@
 """Piecewise linear warm up learning rate scheduler module."""
+
 from typing import List, Union
 
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
@@ -17,6 +18,7 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -24,7 +26,6 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_lr_list: List[float] = [0.0, 0.001],
         last_epoch: int = -1,
     ):
-        assert check_argument_types()
         self.warmup_steps_list = warmup_steps_list
         self.warmup_lr_list = warmup_lr_list
 

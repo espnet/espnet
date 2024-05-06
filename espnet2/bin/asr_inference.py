@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     get_hugging_face_model_lm_head,
@@ -39,7 +39,6 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -77,17 +76,18 @@ class Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        asr_train_config: Union[Path, str] = None,
-        asr_model_file: Union[Path, str] = None,
-        transducer_conf: dict = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        asr_train_config: Union[Path, str, None] = None,
+        asr_model_file: Union[Path, str, None] = None,
+        transducer_conf: Optional[Dict] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -115,7 +115,6 @@ class Speech2Text:
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
     ):
-        assert check_argument_types()
 
         task = ASRTask if not enh_s2t_task else EnhS2TTask
 
@@ -128,8 +127,8 @@ class Speech2Text:
                     "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build ASR model
         scorers = {}
@@ -155,7 +154,7 @@ class Speech2Text:
             logging.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
-                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
         decoder = asr_model.decoder
@@ -178,7 +177,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                    lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
@@ -275,17 +274,17 @@ class Speech2Text:
             hugging_face_model.to(device=device).eval()
 
             if "num_beams" not in hugging_face_decoder_conf:
-                hugging_face_decoder_conf[
-                    "num_beams"
-                ] = hugging_face_model.config.num_beams
+                hugging_face_decoder_conf["num_beams"] = (
+                    hugging_face_model.config.num_beams
+                )
 
             if (
                 hugging_face_model.config.pad_token_id is None
                 and "pad_token_id" not in hugging_face_decoder_conf
             ):
-                hugging_face_decoder_conf[
-                    "pad_token_id"
-                ] = hugging_face_model.config.eos_token_id
+                hugging_face_decoder_conf["pad_token_id"] = (
+                    hugging_face_model.config.eos_token_id
+                )
 
             beam_search = None
             beam_search_transducer = None
@@ -386,9 +385,6 @@ class Speech2Text:
             else:
                 tokenizer = None
         elif "whisper" in token_type:
-            tokenizer_language = asr_train_args.preprocessor_conf.get(
-                "tokenizer_language", "en"
-            )
             tokenizer = build_tokenizer(
                 token_type=token_type,
                 bpemodel=bpemodel,
@@ -463,13 +459,13 @@ class Speech2Text:
         self.multi_asr = multi_asr
 
     @torch.no_grad()
-    def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> Union[
+    @typechecked
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
         ListOfHypothesis,
+        List[ListOfHypothesis],
         Tuple[
             ListOfHypothesis,
-            Optional[Dict[int, List[str]]],
+            Union[Dict[int, List[str]], None],
         ],
     ]:
         """Inference
@@ -480,7 +476,6 @@ class Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -517,7 +512,6 @@ class Speech2Text:
 
                 # c. Passed the encoder result and the beam search
                 ret = self._decode_single_sample(enc_spk[0])
-                assert check_return_type(ret)
                 results.append(ret)
 
         else:
@@ -535,14 +529,13 @@ class Speech2Text:
             if intermediate_outs is not None:
                 encoder_interctc_res = self._decode_interctc(intermediate_outs)
                 results = (results, encoder_interctc_res)
-            assert check_return_type(results)
 
         return results
 
+    @typechecked
     def _decode_interctc(
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
-        assert check_argument_types()
 
         exclude_ids = [self.asr_model.blank_id, self.asr_model.sos, self.asr_model.eos]
         res = {}
@@ -557,7 +550,8 @@ class Speech2Text:
 
         return res
 
-    def _decode_single_sample(self, enc: torch.Tensor):
+    @typechecked
+    def _decode_single_sample(self, enc: torch.Tensor) -> ListOfHypothesis:
         if self.beam_search_transducer:
             logging.info("encoder output length: " + str(enc.shape[0]))
             nbest_hyps = self.beam_search_transducer(enc)
@@ -684,6 +678,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -729,7 +724,6 @@ def inference(
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
@@ -867,12 +861,12 @@ def inference(
 
                 # Write intermediate predictions to
                 # encoder_interctc_layer<layer_idx>.txt
-                ibest_writer = writer[f"1best_recog"]
+                ibest_writer = writer["1best_recog"]
                 if encoder_interctc_res is not None:
                     for idx, text in encoder_interctc_res.items():
-                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][
-                            key
-                        ] = " ".join(text)
+                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = (
+                            " ".join(text)
+                        )
 
 
 def get_parser():

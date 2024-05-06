@@ -103,10 +103,7 @@ def upsample_conv_2d(x, w, k=None, factor=2, gain=1):
 
     # Check weight shape.
     assert len(w.shape) == 4
-    convH = w.shape[2]
-    convW = w.shape[3]
-    inC = w.shape[1]
-    outC = w.shape[0]
+    _, inC, convH, convW = w.shape
 
     assert convW == convH
 

@@ -57,6 +57,57 @@ if [ ! -e visual.done ]; then
         else
             echo "python_speech_features is already installed."
         fi
+
+        # Install torchlm
+        if ! python3 -c "import torchlm" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install torchlm --no-deps
+            )
+        else
+            echo "torchlm is already installed."
+        fi
+
+        # Install onnx
+        if ! python3 -c "import onnx" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install onnx
+            )
+        else
+            echo "onnx is already installed."
+        fi
+
+        # Install onnxruntime
+        if ! python3 -c "import torchlm" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install onnxruntime
+            )
+        else
+            echo "onnxruntime is already installed."
+        fi
+
+        # Install av
+        if ! python3 -c "import av" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install av
+            )
+        else
+            echo "av is already installed."
+        fi
+
+        # Install torchvision
+        if ! python3 -c "import torchvision" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install torchvision --no-deps
+            )
+        else
+            echo "torchvision is already installed."
+        fi
+
     )
     touch visual.done
 else

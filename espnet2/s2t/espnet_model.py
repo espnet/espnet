@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.cuda.amp import autocast
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -25,6 +25,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
 class ESPnetS2TModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -52,7 +53,6 @@ class ESPnetS2TModel(AbsESPnetModel):
         sym_na: str = "<na>",  # not available
         extract_feats_in_collect_stats: bool = True,
     ):
-        assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 

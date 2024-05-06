@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
@@ -59,6 +59,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -88,8 +89,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     ) -> None:
         """Construct an ESPnetASRTransducerModel object."""
         super().__init__()
-
-        assert check_argument_types()
 
         # The following labels ID are reserved:
         #    - 0: Blank symbol.

@@ -3,7 +3,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -29,7 +29,6 @@ from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
-from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
@@ -246,20 +245,18 @@ class SpeakerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn()
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             if train:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
@@ -275,7 +272,6 @@ class SpeakerTask(AbsTask):
 
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -298,12 +294,11 @@ class SpeakerTask(AbsTask):
         # trial pair in the validation/inference phase.
         retval = ("speech2", "trial", "spk_labels", "task_tokens")
 
-        assert check_return_type(retval)
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
-        assert check_argument_types()
 
         if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
@@ -360,5 +355,4 @@ class SpeakerTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model

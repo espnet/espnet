@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
@@ -296,6 +296,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
 class BranchformerEncoder(AbsEncoder):
     """Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -322,7 +323,6 @@ class BranchformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -489,9 +489,11 @@ class BranchformerEncoder(AbsEncoder):
             num_blocks,
             lambda lnum: BranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args)
-                if use_attn
-                else None,
+                (
+                    encoder_selfattn_layer(*encoder_selfattn_layer_args)
+                    if use_attn
+                    else None
+                ),
                 cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
                 dropout_rate,
                 merge_method,

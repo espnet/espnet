@@ -1,8 +1,8 @@
 import copy
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -44,13 +44,14 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     URL: https://github.com/openai/whisper
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
         encoder_output_size: int,
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
         load_origin_token_embedding=False,
     ):
         try:
@@ -63,7 +64,6 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
             )
             raise e
 
-        assert check_argument_types()
         super().__init__()
 
         assert whisper_model in whisper.available_models()
@@ -157,6 +157,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         tgt: torch.Tensor,
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
+        *,
         cache: List[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.

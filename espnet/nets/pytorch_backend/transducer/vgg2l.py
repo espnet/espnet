@@ -39,9 +39,7 @@ class VGG2L(torch.nn.Module):
         else:
             self.output = torch.nn.Linear(128 * ((idim // 2) // 2), odim)
 
-    def forward(
-        self, feats: torch.Tensor, feats_mask: torch.Tensor
-    ) -> Union[
+    def forward(self, feats: torch.Tensor, feats_mask: torch.Tensor) -> Union[
         Tuple[torch.Tensor, torch.Tensor],
         Tuple[Tuple[torch.Tensor, torch.Tensor], torch.Tensor],
     ]:

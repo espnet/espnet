@@ -1,9 +1,10 @@
 """Warm up learning rate scheduler module."""
+
 from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
@@ -24,13 +25,13 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        assert check_argument_types()
         self.warmup_steps = warmup_steps
 
         # __init__() must be invoked before setting field
