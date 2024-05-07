@@ -1826,6 +1826,7 @@ def _apply_dynamic_filter(p, last_attended_idx, backward_window=1, forward_windo
 
 class GDCAttLoc(torch.nn.Module):
     """Global duration control attention module.
+
     Reference: Singing-Tacotron: Global Duration Control Attention and Dynamic
     Filter for End-to-end Singing Voice Synthesis
     (https://arxiv.org/abs/2202.07907)
@@ -1884,6 +1885,7 @@ class GDCAttLoc(torch.nn.Module):
         forward_window=3,
     ):
         """Calcualte AttLoc forward propagation.
+
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
         :param torch.Tensor trans_token: Global transition token

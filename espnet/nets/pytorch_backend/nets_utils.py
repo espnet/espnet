@@ -207,8 +207,8 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
-    """
-    Make mask tensor containing indices of padded part.
+    """Make mask tensor containing indices of padded part.
+
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
@@ -589,8 +589,8 @@ def trim_by_ctc_posterior(
     masks: torch.Tensor,
     pos_emb: torch.Tensor = None,
 ):
-    """
-    Trim the encoder hidden output using CTC posterior.
+    """Trim the encoder hidden output using CTC posterior.
+
     The continuous frames in the tail that confidently represent
     blank symbols are trimmed.
     """
