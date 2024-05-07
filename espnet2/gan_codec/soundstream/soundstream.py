@@ -317,7 +317,7 @@ class SoundStream(AbsGANCodec):
 
         stats.update(loss=loss.item())
 
-        if self.loss_balancer is not None:
+        if self.loss_balancer is not None and self.training:
             # any loss built on audio_hat is processed by balancer
             balanced_losses = {
                 "reconstruct": reconstruct_loss,
