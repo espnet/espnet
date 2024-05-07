@@ -36,7 +36,7 @@ skip_upload_hf=true   # Skip uploading to hugging face stages.
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
-nj=12                 # The number of parallel jobs.
+nj=4                 # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
@@ -255,10 +255,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${feats_type}" = raw ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
-
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
-            # cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
             # for x in music noise speech; do
             #     cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             # done
@@ -287,6 +291,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
             cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt"
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086
@@ -313,10 +322,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
             # category2utt will be used bydata sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
-            for x in music noise speech; do
-                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
-            done
-            cp data/rirs.scp ${data_feats}/rirs.scp
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
+            # for x in music noise speech; do
+            #     cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            # done
+            # cp data/rirs.scp ${data_feats}/rirs.scp
 
             echo "${feats_type}" > "${data_feats}/${train_set}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
@@ -459,6 +473,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
+            --spf2utt ${_spk_train_dir}/spf2utt \
             --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
             --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \
