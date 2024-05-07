@@ -69,6 +69,34 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
 
         return self.codec(**batch)
 
+    def encode(self, audio: torch.Tensor, **kwargs):
+        """Codec Encoding Process.
+
+        Args:
+            audio (Tensor): Audio waveform tensor (B, T_wav).
+            target_bw (float): Target bandwidth.
+
+        Returns:
+            Tensor: Generated codecs.
+        """
+        batch = dict(x=audio)
+        batch.update(kwargs)
+        return self.codec.encode(**batch)
+
+    def decode(
+        self,
+        codes: torch.Tensor,
+    ):
+        """Codec Decoding Process.
+
+        Args:
+            codes (Tensor): Audio waveform tensor (B, T_wav).
+
+        Returns:
+            Tensor: Generated waveform.
+        """
+        return self.codec.decode(codes)
+
     def collect_feats(
         self,
         audio: torch.Tensor,

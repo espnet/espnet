@@ -92,6 +92,7 @@ def kmeans(samples, num_clusters: int, num_iters: int = 10):
 
         means = torch.where(zero_mask[..., None], means, new_means)
 
+    # Cluster centroids and number of frames per cluster
     return means, bins
 
 
@@ -206,22 +207,39 @@ class EuclideanCodebook(nn.Module):
         return quantize
 
     def forward(self, x):
-        shape, dtype = x.shape, x.dtype
-        x = self.preprocess(x)
+        """Codebook Forward with EMA.
 
+        Args:
+            x (Tensor): Vector for quantization (B, T, D)
+
+        Return:
+            Tensor: Quantized output (B, T, D)
+            Tensor: Codebook Index (B, T)
+        """
+        shape, dtype = x.shape, x.dtype
+        x = self.preprocess(x)  # (BxT, D)
+
+        # Initialize the embedding (only activated for the first time)
         self.init_embed_(x)
 
-        embed_ind = self.quantize(x)
-        embed_onehot = F.one_hot(embed_ind, self.codebook_size).type(dtype)
-        embed_ind = self.postprocess_emb(embed_ind, shape)
-        quantize = self.dequantize(embed_ind)
+        # Quantization Process
+        embed_ind = self.quantize(x)  # (BxT)
+        embed_onehot = F.one_hot(embed_ind, self.codebook_size).type(dtype)  # (BxT, V)
+        embed_ind = self.postprocess_emb(embed_ind, shape)  # (B, T)
+        quantize = self.dequantize(embed_ind)  # (B, T, D)
 
         if self.training:
             # We do the expiry of code at that point as buffers are in sync
             # and all the workers will take the same decision.
             self.expire_codes_(x)
+
+            # ema update number of frames per cluster
             ema_inplace(self.cluster_size, embed_onehot.sum(0), self.decay)
-            embed_sum = x.t() @ embed_onehot
+
+            # Use encoder embedding to update ema with assignments
+            embed_sum = x.t() @ embed_onehot  # (D, BxT) @ (BxT, V) -> (D, V)
+
+            # ema udpate embedding
             ema_inplace(self.embed_avg, embed_sum.t(), self.decay)
             cluster_size = (
                 laplace_smoothing(self.cluster_size, self.codebook_size, self.epsilon)
@@ -325,6 +343,7 @@ class VectorQuantization(nn.Module):
 
 class ResidualVectorQuantization(nn.Module):
     """Residual vector quantization implementation.
+
     Follows Algorithm 1. in https://arxiv.org/pdf/2107.03312.pdf
     """
 
@@ -350,6 +369,11 @@ class ResidualVectorQuantization(nn.Module):
 
             all_indices.append(indices)
             all_losses.append(loss)
+
+        if self.training:
+            # Solving subtle bug with STE and RVQ
+            # For more, https://github.com/facebookresearch/encodec/issues/25
+            quantized_out = x + (quantized_out - x).detach()
 
         out_losses, out_indices = map(torch.stack, (all_losses, all_indices))
         return quantized_out, out_indices, out_losses

@@ -21,3 +21,21 @@ class AbsGANCodec(ABC, torch.nn.Module):
     ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], int]]:
         """Return generator or discriminator loss."""
         raise NotImplementedError
+
+    @abstractmethod
+    def encode(
+        self,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Return encoded codecs from waveform."""
+        raise NotImplemented
+
+    @abstractmethod
+    def decode(
+        self,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Return decoded waveform from codecs."""
+        raise NotImplemented
