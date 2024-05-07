@@ -5,9 +5,9 @@ import torch
 
 
 class AbsFeatsExtractDiscrete(torch.nn.Module, ABC):
-    """
-    Parse the discrete token sequence into structured data format for
-    predicting. E.g.,
+    """Parse the discrete token sequence
+
+    into structured data format for predicting. E.g.,
     (1) keep as sequence
     (2) resize as a matrix
     (3) multi-resolution ...

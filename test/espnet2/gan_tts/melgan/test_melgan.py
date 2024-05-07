@@ -136,7 +136,7 @@ except ImportError:
 )
 def test_parallel_wavegan_compatibility():
     try:
-        from scipy.signal import kaiser
+        from scipy.signal import kaiser  # NOQA
     except ImportError:
         pytest.skip("Kaiser window was not found at scipy.signal. Check scipy version.")
     from parallel_wavegan.models import MelGANGenerator as PWGMelGANGenerator

@@ -98,7 +98,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
             discrete_feats, discrete_feats_lengths = self.discrete_feats_extract(
                 discrete_speech, discrete_speech_lengths
             )
-            feats, feats_lengths = speech, speech_lengths
+            feats, feats_lengths = speech, speech_lengths  # noqa
 
             # Extract auxiliary features
             if self.pitch_extract is not None and pitch is None:
@@ -193,12 +193,12 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         """
         # feature extraction
-        feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = speech, speech_lengths  # noqa
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=discrete_feats_lengths,
+                feats_lengths=discrete_feats_lengths,  # noqa
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
@@ -206,15 +206,15 @@ class ESPnetTTS2Model(AbsESPnetModel):
             energy, energy_lengths = self.energy_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=discrete_feats_lengths,
+                feats_lengths=discrete_feats_lengths,  # noqa
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
 
         # store in dict
         feats_dict = dict(
-            discrete_feats=discrete_feats,
-            discrete_feats_lengths=discrete_feats_lengths,
+            discrete_feats=discrete_feats,  # noqa
+            discrete_feats_lengths=discrete_feats_lengths,  # noqa
         )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
