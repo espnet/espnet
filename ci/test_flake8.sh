@@ -8,7 +8,6 @@ set -euo pipefail
 flake8_black_list="\
 espnet/asr/asr_utils.py
 espnet/asr/chainer_backend/asr.py
-espnet/asr/pytorch_backend/asr.py
 espnet/bin/asr_enhance.py
 espnet/lm/chainer_backend/extlm.py
 espnet/lm/chainer_backend/lm.py
@@ -55,7 +54,6 @@ espnet/utils/deterministic_utils.py
 espnet/utils/dynamic_import.py
 espnet/utils/fill_missing_args.py
 espnet/utils/io_utils.py
-espnet/utils/spec_augment.py
 espnet/utils/training/batchfy.py
 espnet/utils/training/evaluator.py
 espnet/utils/training/iterators.py

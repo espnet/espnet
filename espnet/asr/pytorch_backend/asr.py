@@ -80,11 +80,13 @@ class DistributedDictSummary:
     """
 
     def __init__(self, device=None):
+        """Initialize Distributed DictSummary."""
         self._local_summary = reporter_module.DictSummary()
         self._summary_names = None
         self._device = device
 
     def add(self, d):
+        """Add values of the same names."""
         if self._summary_names is None:
             # This assumes that `d` always includes the same name list,
             # and the name list is identical accross all processes.
@@ -92,6 +94,7 @@ class DistributedDictSummary:
         return self._local_summary.add(d)
 
     def compute_mean(self):
+        """Compute Mean stats."""
         # Even if `self._local_summary` doesn't have a few keys
         # due to invalid observations like NaN, zero, etc,
         # `raw_values` can properly these entries
@@ -146,6 +149,7 @@ class CustomEvaluator(BaseEvaluator):
     """
 
     def __init__(self, model, iterator, target, device, ngpu=None, use_ddp=False):
+        """Initialize Custom Evaluator."""
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.device = device
@@ -159,7 +163,7 @@ class CustomEvaluator(BaseEvaluator):
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
-        """Main evaluate routine for CustomEvaluator."""
+        """Evaluate routine (main) for CustomEvaluator."""
         iterator = self._iterators["main"]
 
         if self.eval_hook:
@@ -226,6 +230,7 @@ class CustomUpdater(StandardUpdater):
         use_apex=False,
         use_ddp=False,
     ):
+        """Initliaze Custom Updater."""
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -240,7 +245,7 @@ class CustomUpdater(StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        """Main update routine of the CustomUpdater."""
+        """Update routine of the CustomUpdater (main)."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator("main")
@@ -305,6 +310,7 @@ class CustomUpdater(StandardUpdater):
         optimizer.zero_grad()
 
     def update(self):
+        """Update Method."""
         self.update_core()
         # #iterations with accum_grad > 1
         # Ref.: https://github.com/espnet/espnet/issues/777
@@ -452,6 +458,7 @@ class CustomConverterMulEnc(object):
 
 
 def is_writable_process(args, worldsize, rank, localrank):
+    """Verify if process is writable."""
     return not args.use_ddp or rank == 0
 
 
@@ -1465,7 +1472,7 @@ def recog(args):
 
 
 def enhance(args):
-    """Dumping enhanced speech and mask.
+    """Dump enhanced speech and mask.
 
     Args:
         args (namespace): The program arguments.
