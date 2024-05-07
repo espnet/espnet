@@ -3,7 +3,7 @@
 ##########################################################
 codec: soundstream
 codec_conf:
-    sampling_rate: 16000
+    sampling_rate: 24000
 
     # generator related
     generator_params:
@@ -84,21 +84,22 @@ codec_conf:
         include_final_outputs: true      # whether to include final outputs for loss calculation
     use_mel_loss: true     # whether to use mel-spectrogram loss
     mel_loss_params:
-        n_fft: 1024        # fft points
-        hop_length: 256    # hop size
-        win_length: null   # window length
-        window: hann       # window type
-        n_mels: 80         # number of Mel basis
-        fmin: 0            # minimum frequency for Mel basis
-        fmax: null         # maximum frequency for Mel basis
-        log_base: null     # null represent natural log
-    lambda_codec: 1.0      # loss scaling coefficient for codec commitment loss
-    lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
-    lambda_mel: 45.0       # loss scaling coefficient for Mel loss
+        range_start: 6
+        range_end: 11
+        window: hann        # window type
+        n_mels: 80          # number of Mel basis
+        fmin: 0             # minimum frequency for Mel basis
+        fmax: null          # maximum frequency for Mel basis
+        log_base: null      # null represent natural log
+    lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
+    lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
+    lambda_reconstruct: 0.0 # loss scaling coefficient for speech reconstruction loss [CHANGED]
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
+    lambda_mel: 45.0        # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
-    cache_generator_outputs: true # whether to cache generator outputs in the training
+    cache_generator_outputs: false # whether to cache generator outputs in the training [CHANGED]
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -106,8 +107,8 @@ codec_conf:
 # optimizer setting for generator
 optim: adamw
 optim_conf:
-    lr: 2.0e-4
-    betas: [0.8, 0.99]
+    lr: 3.0e-4
+    betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
 scheduler: exponentiallr
@@ -116,8 +117,8 @@ scheduler_conf:
 # optimizer setting for discriminator
 optim2: adamw
 optim2_conf:
-    lr: 2.0e-4
-    betas: [0.8, 0.99]
+    lr: 3.0e-4
+    betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
 scheduler2: exponentiallr
@@ -129,17 +130,17 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 10000 # number of iterations per epoch
-max_epoch: 60              # number of epochs
+num_iters_per_epoch: 5000 # number of iterations per epoch
+max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
+batch_size: 4
+batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 8000
+chunk_length: 61440
 num_cache_chunks: 64
 
-batch_size: 16
-batch_type: unsorted      # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
