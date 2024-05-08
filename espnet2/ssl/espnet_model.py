@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 from packaging.version import parse as V
 from torch.nn import functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -32,6 +32,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 class ESPnetSSLModel(AbsESPnetModel):
     """A generic SSL model"""
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -47,8 +48,6 @@ class ESPnetSSLModel(AbsESPnetModel):
         feature_grad_mult: Optional[float] = 0.1,
         extract_feats_in_collect_stats: bool = True,
     ):
-
-        assert check_argument_types()
 
         super().__init__()
         self.vocab_size = vocab_size
@@ -119,6 +118,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         y_pad: torch.Tensor = None,
         y_pad_length: torch.Tensor = None,
         use_mask=True,
+        use_final_output: bool = True,
     ):
         """Frontend + Encoder"""
 
@@ -161,7 +161,10 @@ class ESPnetSSLModel(AbsESPnetModel):
             feats, feats_lengths, masks=pad_masks, return_all_hs=True
         )
 
-        encoder_out = encoder_out[1][:-1] + [encoder_out[0]]
+        if use_final_output:
+            encoder_out = encoder_out[1][:-1] + [encoder_out[0]]
+        else:
+            encoder_out = encoder_out[1]
         del feats, feats_lengths, pad_masks
 
         return encoder_out, mask_info, features_pen

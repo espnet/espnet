@@ -33,7 +33,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: linear_w2v
+    input_layer: wav2vec
     normalize_before: false
     pos_enc_layer_type: conv
 

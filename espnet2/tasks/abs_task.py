@@ -1759,6 +1759,8 @@ class AbsTask(ABC):
                 batches = [batch[rank] for batch in batches]
             else:
                 batches = batches[rank::world_size]
+        elif iter_options.batch_type == "grouped":
+            batches = [batch[0] for batch in batches]
 
         return SequenceIterFactory(
             dataset=dataset,

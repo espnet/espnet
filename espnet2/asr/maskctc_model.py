@@ -17,6 +17,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet.nets.beam_search import Hypothesis
@@ -48,6 +49,7 @@ class MaskCTCModel(ESPnetASRModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
+        masker: Optional[AbsMasker],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
         decoder: MLMDecoder,

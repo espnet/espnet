@@ -177,7 +177,7 @@ def _compute_mask_indices(
         if mask_type == "static":
             lengths = torch.full((num_mask,), mask_length)
         elif mask_type == "uniform":
-            lengths = torch.randint(mask_other, mask_length * 2 + 1, size=(num_mask,))
+            lengths = torch.randint(int(mask_other), mask_length * 2 + 1, size=(num_mask,))
         elif mask_type == "normal":
             lengths = torch.normal(mask_length, mask_other, size=(num_mask,))
             lengths = torch.maximum(torch.ones(1), torch.round(lengths)).int()

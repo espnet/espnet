@@ -9,7 +9,6 @@ import torch
 from torch import Tensor, nn
 from torch.nn import Module
 from torch.nn import functional as F
-from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
