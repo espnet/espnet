@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
@@ -16,9 +16,9 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 class Subsampling(AbsPreEncoder):
     """Conv Preencoder w/ subsampling."""
 
+    @typechecked
     def __init__(self, input_size: int, output_size: int, dropout: float = 0.0):
         """Initialize the module."""
-        assert check_argument_types()
         super().__init__()
 
         self.subsampling = Conv2dSubsampling(
