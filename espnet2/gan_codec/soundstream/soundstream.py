@@ -22,6 +22,7 @@ from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
 )
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
+from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
@@ -29,7 +30,6 @@ from espnet2.gan_tts.hifigan.loss import (
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
 )
-from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
@@ -327,7 +327,7 @@ class SoundStream(AbsGANCodec):
                 balanced_losses.update(feat_match=feat_match_loss)
             if self.use_mel_loss:
                 balanced_losses.update(mel=mel_loss)
-            
+
             balanced_loss, norm_stats = self.loss_balancer(balanced_losses, audio_hat)
             stats.update(norm_stats)
 
