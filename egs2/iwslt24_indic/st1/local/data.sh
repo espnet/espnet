@@ -52,9 +52,11 @@ local/download_and_unpack.sh ${IWSLT24_INDIC} ${tgt_lang} ${remove_archive}
 for split in train dev; do
     for ext in en ${tgt_lang} yaml; do
         filename=${IWSLT24_INDIC}/en-${tgt_lang}/data/${split}/txt/${split}.${ext}
+        # shellcheck disable=SC1003
         sed -i -e '$a\' "${filename}"
     done
 done
+# shellcheck disable=SC1003
 sed -i -e '$a\' "${IWSLT24_INDIC}/en-${tgt_lang}/data/tst-COMMON/txt/tst-COMMON.yaml"
 
 log "Preparing data in ESPnet format..."
