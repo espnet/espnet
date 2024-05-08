@@ -1,10 +1,12 @@
 import typing as tp
 
 from torch import nn
+
 from espnet2.gan_codec.shared.encoder.seanet import (
     apply_parametrization_norm,
     get_norm_module,
 )
+
 
 class NormConv2d(nn.Module):
     """Wrapper around Conv2d and normalization applied to this conv
@@ -27,6 +29,7 @@ class NormConv2d(nn.Module):
         x = self.conv(x)
         x = self.norm(x)
         return x
+
 
 class NormConvTranspose2d(nn.Module):
     """Wrapper around ConvTranspose2d and normalization applied to this conv

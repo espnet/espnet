@@ -127,7 +127,7 @@ class Encodec(SoundStream):
 
 
 class EncodecDiscriminator(torch.nn.Module):
-    """ Encodec Discriminator with only Multi-Scale STFT discriminator module """
+    """Encodec Discriminator with only Multi-Scale STFT discriminator module"""
 
     def __init__(
         self,
@@ -156,7 +156,7 @@ class EncodecDiscriminator(torch.nn.Module):
             activation (str): activation function choice of convolutional layer
             activation_params (Dict[str, Any]): parameters for activation function)
         """
-        
+
         super().__init__()
 
         self.msstft = MultiScaleSTFTDiscriminator(**msstft_discriminator_params)
@@ -169,7 +169,7 @@ class EncodecDiscriminator(torch.nn.Module):
 
         Returns:
             List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Only one 
+                which consists of each layer output tensors. Only one
                 discriminator here, but still make it as List of List for
                 consistency.
         """
