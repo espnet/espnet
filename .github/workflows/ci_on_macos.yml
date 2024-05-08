@@ -23,6 +23,10 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - name: Install gettext
+        run: |
+          brew install gettext
+          brew link --force gettext
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
