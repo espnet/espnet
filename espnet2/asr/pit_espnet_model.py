@@ -17,6 +17,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 if V(torch.__version__) >= V("1.6.0"):
@@ -130,6 +131,7 @@ class ESPnetASRModel(SingleESPnetASRModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
+        masker: Optional[AbsMasker],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
@@ -165,7 +167,7 @@ class ESPnetASRModel(SingleESPnetASRModel):
             specaug=specaug,
             normalize=normalize,
             preencoder=preencoder,
-            masker=None,
+            masker=masker,
             encoder=encoder,
             postencoder=postencoder,
             decoder=decoder,
