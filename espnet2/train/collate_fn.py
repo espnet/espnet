@@ -271,7 +271,8 @@ class HuBERTCollateFn(CommonCollateFn):
                         self.center_speech,
                     )
 
-                # For fbank features, we need to downsample after cropping instead of before
+                # For fbank features, we need to downsample 
+                # after cropping instead of before
                 if self.input_emb == "subsampling" and self.label_downsampling > 1 and label is not None:
                     label = label[: -2 : self.label_downsampling // 2][
                         : -2 : self.label_downsampling // 2
