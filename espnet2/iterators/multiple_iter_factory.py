@@ -2,12 +2,13 @@ import logging
 from typing import Callable, Collection, Iterator
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 
 
 class MultipleIterFactory(AbsIterFactory):
+    @typechecked
     def __init__(
         self,
         build_funcs: Collection[Callable[[], AbsIterFactory]],
@@ -15,7 +16,6 @@ class MultipleIterFactory(AbsIterFactory):
         shuffle: bool = False,
         validate_each_iter_factory: bool = False,
     ):
-        assert check_argument_types()
         self.build_funcs = list(build_funcs)
         self.seed = seed
         self.shuffle = shuffle

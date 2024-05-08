@@ -3,19 +3,18 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
-from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -52,14 +51,15 @@ class GenerateText:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlen: int = 100,
         minlen: int = 0,
@@ -73,7 +73,6 @@ class GenerateText:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
     ):
-        assert check_argument_types()
 
         # 1. Build language model
         lm, lm_train_args = LMTask.build_model_from_file(
@@ -192,6 +191,7 @@ class GenerateText:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, text: Union[str, torch.Tensor, np.ndarray]) -> ListOfHypothesis:
         """Inference
 
@@ -204,7 +204,6 @@ class GenerateText:
             List of (text, token, token_int, hyp)
 
         """
-        assert check_argument_types()
 
         if isinstance(text, str):
             tokens = self.tokenizer.text2tokens(text)
@@ -240,12 +239,11 @@ class GenerateText:
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
-            text = None
+            _text = None
             if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            results.append((text, token, token_int, hyp))
+                _text = self.tokenizer.tokens2text(token)
+            results.append((_text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -279,6 +277,7 @@ class GenerateText:
         return GenerateText(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlen: int,
@@ -308,7 +307,6 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

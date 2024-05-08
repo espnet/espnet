@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import pytest
 
 from espnet2.fileio.npy_scp import NpyScpReader, NpyScpWriter
 

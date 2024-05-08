@@ -2,15 +2,15 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 
 
 class PhonemePredictor(torch.nn.Module):
-    """
-    Phoneme Predictor module in VISinger.
-    """
+    """Phoneme Predictor module in VISinger."""
 
+    @typechecked
     def __init__(
         self,
         vocabs: int,
@@ -32,8 +32,7 @@ class PhonemePredictor(torch.nn.Module):
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
     ):
-        """
-        Initialize PhonemePredictor module.
+        """Initialize PhonemePredictor module.
 
         Args:
             vocabs (int): The number of vocabulary.
@@ -82,8 +81,7 @@ class PhonemePredictor(torch.nn.Module):
         self.linear1 = torch.nn.Linear(hidden_channels, vocabs)
 
     def forward(self, x, x_mask):
-        """
-        Perform forward propagation.
+        """Perform forward propagation.
 
         Args:
             x (Tensor): The input tensor of shape (B, dim, length).

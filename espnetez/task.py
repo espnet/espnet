@@ -1,13 +1,14 @@
-# ESPnet-Easy Task class
+# ESPnet-EZ Task class
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -64,13 +65,13 @@ TASK_CLASSES = dict(
 )
 
 
-def get_easy_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
+def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
 
     if use_custom_dataset:
-        return get_easy_task_with_dataset(task_name)
+        return get_ez_task_with_dataset(task_name)
 
-    class ESPnetEasyTask(task_class):
+    class ESPnetEZTask(task_class):
         build_model_fn = None
 
         @classmethod
@@ -80,13 +81,13 @@ def get_easy_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
             else:
                 return task_class.build_model(args=args)
 
-    return ESPnetEasyTask
+    return ESPnetEZTask
 
 
-def get_easy_task_with_dataset(task_name: str) -> AbsTask:
+def get_ez_task_with_dataset(task_name: str) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
 
-    class ESPnetEasyDataTask(task_class):
+    class ESPnetEZDataTask(task_class):
         build_model_fn = None
         train_dataset = None
         valid_dataset = None
@@ -160,13 +161,13 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 )
 
         @classmethod
+        @typechecked
         def build_sequence_iter_factory(
             cls,
             args: argparse.Namespace,
             iter_options: IteratorOptions,
             mode: str,
         ) -> AbsIterFactory:
-            assert check_argument_types()
 
             if mode == "train":
                 dataset = cls.train_dataset
@@ -267,22 +268,22 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
             raise NotImplementedError
 
         @classmethod
+        @typechecked
         def build_streaming_iterator(
             cls,
             data_path_and_name_and_type,
             preprocess_fn,
             collate_fn,
-            key_file: str = None,
+            key_file: Optional[str] = None,
             batch_size: int = 1,
             dtype: str = np.float32,
             num_workers: int = 1,
             allow_variable_data_keys: bool = False,
             ngpu: int = 0,
             inference: bool = False,
-            mode: str = None,
+            mode: Optional[str] = None,
         ) -> DataLoader:
             """Build DataLoader using iterable dataset"""
-            assert check_argument_types()
             if mode == "train" and cls.train_dataloader is not None:
                 return cls.train_dataloader
             elif mode == "valid" and cls.valid_dataloader is not None:
@@ -317,4 +318,4 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 **kwargs,
             )
 
-    return ESPnetEasyDataTask
+    return ESPnetEZDataTask

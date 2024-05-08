@@ -6,7 +6,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -63,6 +63,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -85,7 +86,6 @@ class TransformerEncoder(AbsEncoder):
         layer_drop_rate: float = 0.0,
         use_flash_attn=False,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
