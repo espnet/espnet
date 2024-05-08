@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -37,16 +37,17 @@ class Text2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        mt_train_config: Union[Path, str] = None,
-        mt_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        mt_train_config: Union[Path, str, None] = None,
+        mt_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -60,7 +61,6 @@ class Text2Text:
         nbest: int = 1,
         normalize_length: bool = False,
     ):
-        assert check_argument_types()
 
         # 1. Build MT model
         scorers = {}
@@ -175,6 +175,7 @@ class Text2Text:
         self.nbest = nbest
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, src_text: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -186,7 +187,6 @@ class Text2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(src_text, np.ndarray):
@@ -237,7 +237,6 @@ class Text2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -270,6 +269,7 @@ class Text2Text:
         return Text2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -301,7 +301,6 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:

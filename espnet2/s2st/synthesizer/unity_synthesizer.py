@@ -4,16 +4,15 @@
 
 """Translatotron Synthesizer related modules for ESPnet2."""
 
-import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
@@ -27,6 +26,7 @@ class UnitYSynthesizer(AbsSynthesizer):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # decoder related
@@ -78,7 +78,6 @@ class UnitYSynthesizer(AbsSynthesizer):
                 assume that spembs will be provided as the input.
             spk_embed_integration_type (str): How to integrate speaker embedding.
         """
-        assert check_argument_types()
         super().__init__()
 
         self.spks = None

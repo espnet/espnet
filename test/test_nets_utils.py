@@ -36,6 +36,7 @@ def test_make_pad_mask(test_case):
 @pytest.mark.parametrize("test_case", test_cases)
 def test_trace_make_pad_mask(test_case):
     """Test if onnx-convertible make_pad_mask can be traced with torch.jit.trace
+
     If it's traceable then it can be exported to ONNX.
     """
     args, input_names, kwargs_trace, kwargs_non_trace = get_args(test_case.copy())

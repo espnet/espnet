@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
 from torch.nn.parallel import data_parallel
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.uasr import UASRTask
@@ -93,6 +93,7 @@ def get_parser():
     return parser
 
 
+@typechecked
 def extract_feature(
     uasr_train_config: Optional[str],
     uasr_model_file: Optional[str],
@@ -107,7 +108,6 @@ def extract_feature(
     dset: str,
     log_level: Union[int, str],
 ):
-    assert check_argument_types()
 
     logging.basicConfig(
         level=log_level,

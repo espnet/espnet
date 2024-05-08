@@ -27,4 +27,4 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
         self,
         pred,
     ) -> torch.Tensor:
-        raise NotImplemented
+        raise NotImplementedError
