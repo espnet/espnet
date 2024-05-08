@@ -3,14 +3,14 @@
 ##########################################################
 codec: soundstream
 codec_conf:
-    sampling_rate: 16000
+    sampling_rate: 24000
 
     # generator related
     generator_params:
-        hidden_dim: 8
+        hidden_dim: 512
         encdec_channels: 1
-        encdec_n_filters: 2
-        encdec_n_residual_layers: 1
+        encdec_n_filters: 32
+        encdec_n_residual_layers: 3
         encdec_ratios: [8, 5, 4, 2]
         encdec_activation: ELU
         encdec_activation_params:
@@ -24,17 +24,17 @@ codec_conf:
         encdec_pad_mode: reflect
         encdec_true_skip: false
         encdec_compress: 2
-        encdec_lstm: 1
+        encdec_lstm: 2
         decoder_trim_right_ratio: 1.0
         decoder_final_activation: null
         decoder_final_activation_params: null
-        quantizer_n_q: 2
+        quantizer_n_q: 32
         quantizer_bins: 1024
         quantizer_decay: 0.99
         quantizer_kmeans_init: true
-        quantizer_kmeans_iters: 5
+        quantizer_kmeans_iters: 50
         quantizer_threshold_ema_dead_code: 2
-        quantizer_target_bandwidth: [0.5, 1]
+        quantizer_target_bandwidth: [2, 4, 8, 16, 32]
 
     # discriminator related
     discriminator_params:
@@ -86,17 +86,17 @@ codec_conf:
     mel_loss_params:
         range_start: 6
         range_end: 11
-        window: hann       # window type
-        n_mels: 80         # number of Mel basis
-        fmin: 0            # minimum frequency for Mel basis
-        fmax: null         # maximum frequency for Mel basis
-        log_base: null     # null represent natural log
-    lambda_quantization: 1.0       # loss scaling coefficient for codec quantization loss
+        window: hann        # window type
+        n_mels: 80          # number of Mel basis
+        fmin: 0             # minimum frequency for Mel basis
+        fmax: null          # maximum frequency for Mel basis
+        log_base: null      # null represent natural log
+    lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 0.1         # loss scaling coefficient for adversarial loss
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0        # loss scaling coefficient for Mel loss
-    lambda_feat_match: 10.0 # loss scaling coefficient for feat match loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
@@ -105,20 +105,20 @@ codec_conf:
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
-optim: adamw
+optim: adam # [CHANGED]
 optim_conf:
     lr: 2.0e-4
-    betas: [0.8, 0.99]
+    betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
 scheduler: exponentiallr
 scheduler_conf:
     gamma: 0.999875
 # optimizer setting for discriminator
-optim2: adamw
+optim2: adam
 optim2_conf:
     lr: 2.0e-4
-    betas: [0.8, 0.99]
+    betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
 scheduler2: exponentiallr
@@ -130,14 +130,15 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 2    # number of iterations per epoch
-max_epoch: 2              # number of epochs
+num_iters_per_epoch: 5000 # number of iterations per epoch
+max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 2             # batch bins (feats_type=raw)
+batch_size: 8             # CHANGED
 batch_type: unsorted      # how to make batch
 
+
 iterator_type: chunk
-chunk_length: 16000
+chunk_length: 24000 # CHANGED
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
@@ -146,8 +147,8 @@ sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 1            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
-log_interval: 1          # log interval in iterations
-keep_nbest_models: 1      # number of models to keep
+log_interval: 50          # log interval in iterations
+keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping

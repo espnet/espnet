@@ -163,6 +163,9 @@ class CommonPreprocessor(AbsPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
+        # for padding of chunk iterator, working when > 0
+        min_sample_size: int = -1,
+        audio_pad_value: Union[float, int] = 0.0,
         # only use for whisper
         whisper_language: Optional[str] = None,
         whisper_task: Optional[str] = None,
@@ -263,6 +266,10 @@ class CommonPreprocessor(AbsPreprocessor):
         else:
             self.data_aug = None
         self.data_aug_prob = data_aug_prob
+
+        # for padding of chunk iterator, working when > 0
+        self.min_sample_size = min_sample_size
+        self.audio_pad_value = audio_pad_value
 
     def _convolve_rir(self, speech, power, rirs, tgt_fs=None, single_channel=False):
         rir_path = np.random.choice(rirs)
@@ -369,6 +376,32 @@ class CommonPreprocessor(AbsPreprocessor):
             speech = speech + scale * noise
         return speech, noise
 
+    def _pad_speech(self, speech):
+        # NOTE(jiatong): Padding for chunk iterator
+        #                other padding are conducted in collate_fn
+
+        # right pad with given value
+        if speech.ndim == 1 and speech.shape[0] < self.min_sample_size:
+            # single channel cases
+            speech = np.pad(
+                speech,
+                (0, self.min_sample_size + 1 - speech.shape[0]),
+                mode="constant",
+                constant_values=(0, self.audio_pad_value),
+            )
+        elif speech.ndim == 2 and speech.shape[1] < self.min_sample_size:
+            # multi channel cases
+            speech = speech.T
+            speech = np.pad(
+                speech,
+                ((0, 0), (0, self.min_sample_size + 1 - speech.shape[1])),
+                mode="constant",
+                constant_values=((0, 0), (0, self.audio_pad_value)),
+            )
+
+        logging.info(speech.shape)
+        return speech
+
     @typechecked
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
@@ -413,6 +446,11 @@ class CommonPreprocessor(AbsPreprocessor):
                     data[self.speech_name] = self.data_aug(
                         data[self.speech_name], self.fs
                     )
+
+            if self.train and self.min_sample_size > 0:
+                # NOTE(jiatong): Padding for chunk iterator
+                #                other padding are conducted in collate_fn
+                data[self.speech_name] = self._pad_speech(data[self.speech_name])
 
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]

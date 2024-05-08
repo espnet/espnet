@@ -84,9 +84,8 @@ codec_conf:
         include_final_outputs: true      # whether to include final outputs for loss calculation
     use_mel_loss: true     # whether to use mel-spectrogram loss
     mel_loss_params:
-        n_fft: 1024         # fft points
-        hop_length: 256     # hop size
-        win_length: null    # window length
+        range_start: 6
+        range_end: 11
         window: hann        # window type
         n_mels: 80          # number of Mel basis
         fmin: 0             # minimum frequency for Mel basis
@@ -96,8 +95,8 @@ codec_conf:
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
     lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
-    lambda_mel: 45.0        # loss scaling coefficient for Mel loss
-    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
+    lambda_mel: 45.0        # loss scaling coefficient for Mel loss [CHANGED]
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss [CHANGED]
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
@@ -131,15 +130,15 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 10000 # number of iterations per epoch
-max_epoch: 60              # number of epochs
+num_iters_per_epoch: 5000 # number of iterations per epoch
+max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_size: 4
 batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 61440
+chunk_length: 48000 # CHANGED]
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
