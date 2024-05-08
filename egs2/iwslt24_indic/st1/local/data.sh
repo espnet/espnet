@@ -39,7 +39,7 @@ fi
 
 # check tgt_lang
 tgt_langs="hi_bn_ta"
-if [ ! "$(echo ${tgt_langs} | grep -q ${tgt_lang})" ]; then
+if ! echo "${tgt_langs}" | grep -q "${tgt_lang}"; then
     log "Error: ${tgt_lang} is not supported. It must be one of hi, bn, or ta."
     exit 1;
 fi
