@@ -117,6 +117,7 @@ def test_enh_asr_model(
         specaug=None,
         normalize=None,
         preencoder=None,
+        masker=None,
         postencoder=None,
         joint_network=None,
     )
