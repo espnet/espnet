@@ -22,8 +22,7 @@ def get_new_manifests(input_dir, output_filename):
     id2wav = {Path(w).stem: w for w in wavs}
     recordings = []
     supervisions = []
-    for c_k in segcuts.data.keys():
-        c_cut = segcuts.data[c_k]
+    for c_cut in segcuts.data:
 
         speaker = c_cut.supervisions[0].speaker
         gss_id = (
