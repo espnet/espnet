@@ -27,9 +27,6 @@ jobs:
         run: |
           brew install gettext
           brew link --force gettext
-      - name: Set DYLD_LIBRARY_PATH
-        run: |
-          export DYLD_LIBRARY_PATH=/usr/local/opt/gettext/lib:$DYLD_LIBRARY_PATH
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
