@@ -568,7 +568,7 @@ class ASRTask(AbsTask):
             preencoder_class = preencoder_choices.get_class(args.preencoder)
             if (
                 "input_size" not in args.preencoder_conf
-                and args.preencoder is not "sinc"
+                and args.preencoder != "sinc"
             ):
                 preencoder = preencoder_class(
                     input_size=input_size, **args.preencoder_conf
