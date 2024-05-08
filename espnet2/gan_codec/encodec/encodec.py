@@ -1,7 +1,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import torch
 
@@ -12,8 +12,10 @@ from espnet2.gan_codec.soundstream.soundstream import SoundStream
 
 
 class Encodec(SoundStream):
-    """Encodec Modle.
-    The key difference between this and SoundStream is the discriminator
+    """
+    Encodec Model: https://arxiv.org/abs/2210.13438
+    The key differences between this and SoundStream are the discriminator
+    and loss balancer. Check SoundStream model for many details
     """
 
     def __init__(
@@ -79,9 +81,8 @@ class Encodec(SoundStream):
         use_mel_loss: bool = True,
         mel_loss_params: Dict[str, Any] = {
             "fs": 24000,
-            "n_fft": 1024,
-            "hop_length": 256,
-            "win_length": None,
+            "range_start": 6,
+            "range_end": 11,
             "window": "hann",
             "n_mels": 80,
             "fmin": 0,
@@ -99,7 +100,7 @@ class Encodec(SoundStream):
         use_loss_balancer: bool = False,
         balance_ema_decay: float = 0.99,
     ):
-        # (Jinchuan) re-apply everything except the discriminator config.
+        # Note(Jinchuan): re-apply everything except the discriminator config.
         # Init discriminator from default config and then override it.
         super(Encodec, self).__init__(
             sampling_rate=sampling_rate,
@@ -126,6 +127,8 @@ class Encodec(SoundStream):
 
 
 class EncodecDiscriminator(torch.nn.Module):
+    """ Encodec Discriminator with only Multi-Scale STFT discriminator module """
+
     def __init__(
         self,
         msstft_discriminator_params: Dict[str, Any] = {
@@ -140,12 +143,37 @@ class EncodecDiscriminator(torch.nn.Module):
             "activation_params": {"negative_slope: 0.3"},
         },
     ):
-        """Encodec Discriminator with only Multi-Scale STFT discriminator module"""
+        """Initialize Encodec Discriminator module.
+
+        Args: msstft_discriminator_params (Dict[str, Any]) with following arguments:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            filters (int): Number of filters in convolutions.
+            norm (str): normalization choice of Convolutional layers
+            n_ffts (Sequence[int]): Size of FFT for each scale.
+            hop_lengths (Sequence[int]): Length of hop between STFT windows for each scale.
+            win_lengths (Sequence[int]): Window size for each scale.
+            activation (str): activation function choice of convolutional layer
+            activation_params (Dict[str, Any]): parameters for activation function)
+        """
+        
         super().__init__()
 
         self.msstft = MultiScaleSTFTDiscriminator(**msstft_discriminator_params)
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
+        """Calculate forward propagation.
+
+        Args:
+            x (Tensor): Input noise signal (B, 1, T).
+
+        Returns:
+            List[List[Tensor]]: List of list of each discriminator outputs,
+                which consists of each layer output tensors. Only one 
+                discriminator here, but still make it as List of List for
+                consistency.
+        """
+
         msstft_out = self.msstft(x)
 
         return msstft_out

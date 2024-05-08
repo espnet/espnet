@@ -209,12 +209,6 @@ class MultiScaleSTFTDiscriminator(MultiDiscriminator):
         return x.view(-1, 1, T)
 
     def forward(self, x: torch.Tensor):
-        # (Jinchuan): to be compatible with the loss function, revise
-        # the output format to [
-        #   [fmap_1, ..., fmap_N, logit], -> 1st discrimiantor
-        #   ...
-        #   [fmap_1, ..., fmap_N, logit], -> Kth discriminator
-        # ]
 
         ans = []
         for disc in self.discriminators:
