@@ -27,6 +27,9 @@ Then, run the fine-tuning on summarization using the previously trained model as
 - token_type: bpe
 - SUMM scoring function: local/score.sh
 
+## Uploaded Models
+- Whisper : https://huggingface.co/espnet/slueted_whisper_summ
+
 ## Complex prediction head with SFM feature extractor
 ### Hubert
 - SLU config: [conf/tuning/hubert_complex.yaml](conf/tuning/hubert_complex.yaml)

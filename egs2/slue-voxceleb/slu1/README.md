@@ -2,156 +2,398 @@
 # RESULTS
 
 ## Environments
-- date: `Tue Dec 28 12:28:28 EST 2021`
-- python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
-- espnet version: `espnet 0.10.3a2`
-- pytorch version: `pytorch 1.8.1+cu102`
-- Git hash: `6bf3c2a4f138d35331634d2e879bbc5c32a5266e`
-  - Commit date: `Mon Dec 22 15:41:32 EST 2021`
-- Intent Classification results reported only on Positive and Neutral class
+- date: `Fri Mar  8 14:12:05 CST 2024`
+- python version: `3.9.13 (main, Aug 25 2022, 23:26:10)  [GCC 11.2.0]`
+- espnet version: `espnet 202402`
+- pytorch version: `pytorch 2.1.0+cu121`
+- Git hash: `dd643549fb1865232569cae406bbf5e106e105de`
+  - Commit date: `Fri Mar 8 13:14:52 2024 -0600`
 
+## Data Download
+Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/voxceleb and set VOXCELEB in db.sh to downloaded path
 
-## Without pre-training
-- SLU config: [conf/tuning/train_asr_no_pretrain.yaml](conf/tuning/train_asr_no_pretrain.yaml)
-- token_type: word
-- script: run.sh
+## General Information
+- token_type: bpe
+- nbpe: 1000
+- scoring function: local/score.sh
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|62.4|63.6|
+## Lightweight prediction head with SFM feature extractor
+### Hubert
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/hubert_lightweight.yaml](conf/tuning/hubert_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With TERA SSL Pretrain
-- SLU config: [conf/tuning/train_asr_tera.yaml](conf/tuning/train_asr_tera.yaml)
-- token_type: word
-- script: run.sh
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|37.2|
+|decode_asr_slu_model_valid.loss.ave/test|3426|41.0|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|62.5|62.4|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/hubert_lightweight_asr.yaml](conf/tuning/hubert_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With VQ-APC SSL Pretrain
-- SLU config: [conf/tuning/train_asr_vq_apc.yaml](conf/tuning/train_asr_vq_apc.yaml)
-- token_type: word
-- script: run.sh
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|16.2|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|19.0|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|61.3|62.1|
+### Wav2vec2
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/w2v2_lightweight.yaml](conf/tuning/w2v2_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With Wav2Vec2 SSL Pretrain
-- SLU config: [conf/tuning/train_asr_wav2vec2.yaml](conf/tuning/train_asr_wav2vec2.yaml)
-- token_type: word
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|40.0|
+|decode_asr_slu_model_valid.loss.ave/test|3426|40.6|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.5|64.4|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/w2v2_lightweight_asr.yaml](conf/tuning/w2v2_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With Hubert SSL Pretrain
-- SLU config: [conf/tuning/train_asr_hubert.yaml](conf/tuning/train_asr_hubert.yaml)
-- token_type: word
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|18.7|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|21.7|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.5|65.2|
+### WavLM
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/wavlm_lightweight.yaml](conf/tuning/wavlm_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With WavLM SSL Pretrain
-- SLU config: [conf/tuning/train_asr_wavlm.yaml](conf/tuning/train_asr_wavlm.yaml)
-- token_type: word
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|38.9|
+|decode_asr_slu_model_valid.loss.ave/test|3426|43.3|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|66.9|66.9|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/wavlm_lightweight_asr.yaml](conf/tuning/wavlm_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With Gigaspeech ASR Pretrain
-- SLU config: [conf/tuning/train_asr_gigaspeech.yaml](conf/tuning/train_asr_gigaspeech.yaml)
-- token_type: word
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|11.8|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|14.1|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|66.3|66.6|
+### Whisper
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/whisper_lightweight.yaml](conf/tuning/whisper_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With SGPISpeech ASR Pretrain
-- SLU config: [conf/tuning/train_asr_sgpispeech.yaml](conf/tuning/train_asr_sgpispeech.yaml)
-- token_type: word
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|44.7|
+|decode_asr_slu_model_valid.loss.ave/test|3426|49.6|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|63.3|64.1|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/whisper_lightweight_asr.yaml](conf/tuning/whisper_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With IEMOCAP SLU Pretrain
-- SLU config: [conf/tuning/train_asr_iemocap.yaml](conf/tuning/train_asr_iemocap.yaml)
-- token_type: word
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|13.0|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|15.0|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|62.4|62.9|
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/owsm_lightweight.yaml](conf/tuning/owsm_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With SWBD Sentiment SLU Pretrain
-- SLU config: [conf/tuning/train_asr_swbd_sentiment.yaml](conf/tuning/train_asr_swbd_sentiment.yaml)
-- token_type: word
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|42.2|
+|decode_asr_slu_model_valid.loss.ave/test|3426|47.2|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.7|64.8|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/owsm_lightweight_asr.yaml](conf/tuning/owsm_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With WavLM and IEMOCAP SLU Pretrain
-- SLU config: [conf/tuning/train_asr_iemocap_wavlm.yaml](conf/tuning/train_asr_iemocap_wavlm.yaml)
-- token_type: word
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|14.9|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|17.4|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.3|65.2|
+### SWBD Sentiment
+- Pretrained model: https://huggingface.co/espnet/YushiUeda_swbd_sentiment_asr_train_asr_conformer 
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/swbd_sentiment_lightweight.yaml](conf/tuning/swbd_sentiment_lightweight.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-## With WavLM and SWBD Sentiment SLU Pretrain
-- SLU config: [conf/tuning/train_asr_swbd_sentiment_wavlm.yaml](conf/tuning/train_asr_swbd_sentiment_wavlm.yaml)
-- token_type: word
-- use_transcript: true
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|36.6|
+|decode_asr_slu_model_valid.loss.ave/test|3426|36.4|
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.9|65.7|
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/swbd_sentiment_lightweight_asr.yaml](conf/tuning/swbd_sentiment_lightweight_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
 
-## With BERT LM Pretrain
-- SLU config: [conf/tuning/train_asr_bert.yaml](conf/tuning/train_asr_bert.yaml)
-- token_type: word
-- pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
-- use_transcript: true
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|44.6|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|47.5|
 
+## Complex prediction head with SFM feature extractor
+### Hubert
+#### SA results
+- SLU config: [conf/tuning/hubert_complex.yaml](conf/tuning/hubert_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|64.7|65.1|
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.9|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.2|
 
-## With DeBERTa LM Pretrain
-- SLU config: [conf/tuning/train_asr_deberta.yaml](conf/tuning/train_asr_deberta.yaml)
-- token_type: word
-- pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
-- use_transcript: true
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|66.2|66.9|
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|12.8|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|15.5|
 
-## With WavLM SSL and BERT LM Pretrain
-- SLU config: [conf/tuning/train_asr_bert_wavlm.yaml](conf/tuning/train_asr_bert_wavlm.yaml)
-- token_type: word
-- pretrained_model: exp/slu_train_asr_wavlm_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
-- use_transcript: true
+### Wav2vec2
+#### SA results
+- SLU config: [conf/tuning/w2v2_complex.yaml](conf/tuning/w2v2_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|66.8|65.7|
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.5|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|53.3|
 
-## With WavLM SSL and DeBERTa LM Pretrain
-- SLU config: [conf/tuning/train_asr_deberta_wavlm.yaml](conf/tuning/train_asr_deberta_wavlm.yaml)
-- token_type: word
-- pretrained_model: exp/slu_train_asr_wavlm_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
-- use_transcript: true
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
 
-|dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
-|---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|954|66.9|66.5|
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|14.3|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|17.2|
+
+### WavLM
+#### SA results
+- SLU config: [conf/tuning/wavlm_complex.yaml](conf/tuning/wavlm_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|47.8|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.0|
+
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|9.6|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|11.4|
+
+### Whisper
+#### SA results
+- SLU config: [conf/tuning/whisper_complex.yaml](conf/tuning/whisper_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|45.2|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|51.0|
+
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|12.8|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|14.9|
+
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+#### SA results
+- SLU config: [conf/tuning/owsm_complex.yaml](conf/tuning/owsm_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.8|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.8|
+
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|14.0|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|16.5|
+
+### SWBD Sentiment
+- Pretrained model: https://huggingface.co/espnet/YushiUeda_swbd_sentiment_asr_train_asr_conformer 
+#### SA results
+- SLU config: [conf/tuning/swbd_sentiment_complex.yaml](conf/tuning/swbd_sentiment_complex.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|45.2|
+|decode_asr_slu_model_valid.acc.ave_10best/test|3426|49.7|
+
+#### ASR results
+- Inference config: [conf/decode_asr_ctc0.3_beam10.yaml](conf/decode_asr_ctc0.3_beam10.yaml)
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/org/devel|1437|33.5|
+|decode_asr_ctc0.3_beam10_slu_model_valid.cer_ctc.ave/test|3426|36.4|
+
+## Fine-tuning representations with SFM feature extractor
+### Hubert
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/hubert_finetune.yaml](conf/tuning/hubert_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|42.4|
+|decode_asr_slu_model_valid.loss.ave/test|3426|46.5|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/hubert_finetune_asr.yaml](conf/tuning/hubert_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|12.3|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|14.8|
+
+### Wav2vec2
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/w2v2_finetune.yaml](conf/tuning/w2v2_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|41.8|
+|decode_asr_slu_model_valid.loss.ave/test|3426|45.0|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/w2v2_finetune_asr.yaml](conf/tuning/w2v2_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|12.5|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|14.7|
+
+### WavLM
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/wavlm_finetune.yaml](conf/tuning/wavlm_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|45.0|
+|decode_asr_slu_model_valid.loss.ave/test|3426|47.9|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/wavlm_finetune_asr.yaml](conf/tuning/wavlm_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|10.3|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|12.1|
+
+### Whisper
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/whisper_finetune.yaml](conf/tuning/whisper_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|48.2|
+|decode_asr_slu_model_valid.loss.ave/test|3426|51.8|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/whisper_finetune_asr.yaml](conf/tuning/whisper_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|18.2|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|20.5|
+
+### OWSM
+- Pretrained model: https://huggingface.co/espnet/owsm_v3.1_ebf
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/owsm_finetune.yaml](conf/tuning/owsm_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|44.2|
+|decode_asr_slu_model_valid.loss.ave/test|3426|47.8|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/owsm_finetune_asr.yaml](conf/tuning/owsm_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|12.6|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|15.0|
+
+### SWBD Sentiment
+- Pretrained model: https://huggingface.co/espnet/YushiUeda_swbd_sentiment_asr_train_asr_conformer 
+#### SA results
+- local_data_opts: "--use_classifier true"
+- SLU config: [conf/tuning/swbd_sentiment_finetune.yaml](conf/tuning/swbd_sentiment_finetune.yaml)
+- Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+
+|dataset|Snt| F1 (%)|
+|---|---|---|---|---|
+|decode_asr_slu_model_valid.loss.ave/org/devel|1437|41.6|
+|decode_asr_slu_model_valid.loss.ave/test|3426|46.1|
+
+#### ASR results
+- local_data_opts: "--run_only_asr true"
+- SLU config: [conf/tuning/swbd_sentiment_finetune_asr.yaml](conf/tuning/swbd_sentiment_finetune_asr.yaml)
+- Inference config: [conf/decode_asr_ctc.yaml](conf/decode_asr_ctc.yaml)
+- local_score_opts: "true"
+
+|dataset|Snt| WER |
+|---|---|---|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/org/devel|1437|31.1|
+|decode_asr_ctc_slu_model_valid.cer_ctc.ave/test|3426|34.6|
