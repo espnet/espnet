@@ -566,10 +566,7 @@ class ASRTask(AbsTask):
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
-            if (
-                "input_size" not in args.preencoder_conf
-                and args.preencoder != "sinc"
-            ):
+            if "input_size" not in args.preencoder_conf and args.preencoder != "sinc":
                 preencoder = preencoder_class(
                     input_size=input_size, **args.preencoder_conf
                 )
