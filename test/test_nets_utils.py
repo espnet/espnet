@@ -37,7 +37,7 @@ def test_make_pad_mask_device(test_case):
     """Test if mask is created on the correct device."""
     _tc = test_case.copy()
     lengths = _tc.pop("lengths")
-    device = "meta"
+    device = torch.ones(1).to(device="meta").device
     non_traceable_result_with_device = make_pad_mask(lengths, device=device, **_tc)
     non_traceable_result_no_device = make_pad_mask(lengths, **_tc)
     traceable_result_with_device = make_pad_mask(torch.LongTensor(lengths), device=device, **_tc)

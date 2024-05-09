@@ -70,6 +70,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None, device=None):
             If set, masks will be the same shape as this tensor.
         length_dim (int, optional): Dimension indicator of the above tensor.
             See the example.
+        device (str, optional): device of the mask. Overrides xs.device.
 
     Returns:
         Tensor: Mask tensor containing indices of padded part.
@@ -209,7 +210,9 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None, device=None):
         ind = tuple(
             slice(None) if i in (0, length_dim) else None for i in range(xs.dim())
         )
-        mask = mask[ind].expand_as(xs).to(xs.device)
+        mask = mask[ind].expand_as(xs)
+        if device is None:
+            mask = mask.to(xs.device)
     return mask
 
 
