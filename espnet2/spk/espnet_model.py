@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import typechecked
@@ -116,21 +116,25 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             return spk_embd
 
         # 4. calculate loss
-        assert spk_labels is not None, "spk_labels is None, cannot compute loss" 
+        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
         # for SASV, loss will be a list of two losses: spk_loss and spf_loss
-        if len(self.loss)==2:
+        if len(self.loss) == 2:
             assert spf_labels is not None, "spf_labels is None, cannot compute spf_loss"
             spk_loss = self.loss[0](spk_embd, spk_labels.squeeze())
             spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
             loss = spk_loss + spf_loss
             stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())
             stats["loss"] = loss.detach()
-            loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
             return loss, stats, weight
-        else: # for spk task, loss will be a single loss
+        else:  # for spk task, loss will be a single loss
             loss = self.loss[0](spk_embd, spk_labels.squeeze())
             stats = dict(loss=loss.detach())
-            loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
             return loss, stats, weight
 
     def extract_feats(

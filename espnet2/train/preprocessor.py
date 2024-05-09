@@ -1901,7 +1901,7 @@ class SpkPreprocessor(CommonPreprocessor):
         if train:
             with open(spk2utt, "r") as f_s2u:
                 self.spk2utt = f_s2u.readlines()
-            if spf2utt is not None and spf2utt != '':
+            if spf2utt is not None and spf2utt != "":
                 with open(spf2utt, "r") as f_spf2u:
                     self.spf2utt = f_spf2u.readlines()
             else:

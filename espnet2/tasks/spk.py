@@ -362,10 +362,10 @@ class SpeakerTask(AbsTask):
                     loss_class(
                         nout=projector_output_size,
                         nclasses=args.spk_num if i == 0 else args.spf_num,
-                        **loss_conf
+                        **loss_conf,
                     )
                 )
-        else: # for spk task, loss is a single loss
+        else:  # for spk task, loss is a single loss
             loss_class = loss_choices.get_class(args.loss)
             loss = loss_class(
                 nout=projector_output_size,
