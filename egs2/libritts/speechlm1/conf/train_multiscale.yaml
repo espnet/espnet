@@ -13,7 +13,7 @@ corelm_conf:
 
 # Dataloader
 batch_type: numel
-batch_bins: 30000
+batch_bins: 28000
 accum_grad: 1
 grad_clip: 5
 max_epoch: 50

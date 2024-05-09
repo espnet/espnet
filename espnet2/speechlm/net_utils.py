@@ -7,7 +7,7 @@ from typing import Tuple, Dict
 
 import torch
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.module.module import MultiHeadedAttention
+from espnet2.speechlm.module.transformer import MultiHeadAttention
 
 
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
@@ -85,7 +85,7 @@ def install_kv_cache_hook(model, cache):
         return cache[module]
 
     def install_hooks(layer: torch.nn.Module):
-        if isinstance(layer, MultiHeadedAttention):
+        if isinstance(layer, MultiHeadAttention):
             hooks.append(layer.linear_k.register_forward_hook(save_to_cache))
             hooks.append(layer.linear_v.register_forward_hook(save_to_cache))
 
