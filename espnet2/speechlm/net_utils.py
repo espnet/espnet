@@ -13,7 +13,7 @@ from espnet2.speechlm.module.transformer import MultiHeadAttention
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
     assert lengths.dim() == 1
     maxlen = maxlen if maxlen is not None else lengths.max()
-    mask = torch.le(
+    mask = torch.lt(
         torch.arange(maxlen, device=lengths.device).unsqueeze(0),
         lengths.unsqueeze(1),
     ).long()

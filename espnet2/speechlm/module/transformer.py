@@ -121,16 +121,21 @@ class ResidualAttentionBlock(nn.Module):
 
 class TransformerDecoder(nn.Module):
     def __init__(
-        self, n_ctx: int, n_state: int, n_head: int, n_layer: int,
-        causal: bool = True
+        self, 
+        n_ctx: int, 
+        n_state: int, 
+        n_head: int, 
+        n_layer: int,
+        causal: bool = True,
+        layer_class = ResidualAttentionBlock,
     ):
         super().__init__()
 
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
-        self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
+        self.blocks = nn.ModuleList(
             [
-                ResidualAttentionBlock(n_state, n_head, cross_attention=False)
+                layer_class(n_state, n_head, cross_attention=False)
                 for _ in range(n_layer)
             ]
         )
@@ -155,71 +160,3 @@ class TransformerDecoder(nn.Module):
 
         x = self.ln(x)
         return x
-
-
-class ResidualAttentionBlockLevelAware(ResidualAttentionBlock):
-    def __init__(self, n_state: int, n_head: int, n_level: int, cross_attention: bool = False):
-        super(ResidualAttentionBlockLevelAware, self).__init__(
-            n_state=n_state,
-            n_head=n_head,
-            cross_attention=cross_attention,
-        )
-
-        self.attn_ln = AdaLN(n_state, n_level)
-        self.cross_attn_ln = AdaLN(n_state, n_level) if cross_attention else None
-        self.mlp_ln = AdaLN(n_state, n_level)
-
-    def forward(
-        self,
-        x: Tensor,
-        level: Tensor,
-        xa: Optional[Tensor] = None,
-        mask: Optional[Tensor] = None,
-        kv_cache: Optional[dict] = None,
-    ):
-        x = x + self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)[0]
-        if self.cross_attn:
-            x = x + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)[0]
-        x = x + self.mlp(self.mlp_ln(x, level))
-        return x
-
-
-class TransformerDecoderLevelAware(nn.Module):
-    def __init__(
-        self, n_ctx: int, n_state: int, n_head: int, n_layer: int, n_level: int,
-        causal: bool = True
-    ):
-        super().__init__()
-
-        self.pos_emb = nn.Embedding(n_ctx, n_state)
-
-        self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
-            [
-                ResidualAttentionBlockLevelAware(n_state, n_head, n_level, cross_attention=False)
-                for _ in range(n_layer)
-            ]
-        )
-        self.ln = AdaLN(n_state, n_level)
-
-        mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
-        if causal:
-            self.register_buffer("mask", mask, persistent=False)
-        else:
-            self.mask = None
-
-    def forward(self, x: Tensor, level: Tensor, kv_cache: Optional[dict] = None):
-        """
-        x : torch.LongTensor, shape = (batch_size, <= n_ctx)
-            the text tokens
-        """
-        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
-        x = x + self.pos_emb.weight[offset : offset + x.shape[1]].unsqueeze(0)
-
-        for block in self.blocks:
-            x = block(x, level, mask=self.mask, kv_cache=kv_cache)
-
-        x = self.ln(x, level)
-        return x
-
-
-

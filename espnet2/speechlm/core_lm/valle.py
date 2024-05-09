@@ -11,12 +11,11 @@ import random
 import logging
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.module.transformer import (
-    TransformerDecoder,
-    TransformerDecoderLevelAware,
-)
+from espnet2.speechlm.module.transformer import TransformerDecoder
+from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.net_utils import (
     ce_loss,
+    length_mask,
     install_kv_cache_hook,
     logits_to_tokens,
 )
@@ -49,14 +48,22 @@ class ValleLM(AbsCoreLM):
             causal=True
         )
 
-        self.nar_decoder = TransformerDecoderLevelAware(
+        self.nar_decoder = ValleNARDecoder(
+            n_level=nq - 1,
             n_ctx=n_ctx,
             n_state=att_unit,
             n_head=head,
             n_layer=nar_layer,
-            n_level=nq - 1,
-            causal=False
+            causal=False,
         )
+
+        # self.nar_decoder = TransformerDecoder(
+        #     n_ctx=n_ctx,
+        #     n_state=att_unit,
+        #     n_head=head,
+        #     n_layer=nar_layer,
+        #     causal=False,
+        # )
 
         self.nq = nq
 
@@ -71,21 +78,21 @@ class ValleLM(AbsCoreLM):
 
         assert dec_seq.dim() == 3
 
+        batch_size = dec_seq.size(0)
+        dec_seq_emb = self.emb(dec_seq) # [B, T, nq, D]
+
         # Auto-Regressive part
-        input_ar = dec_seq[:, :-1, 0]
+        input_ar_emb = self.prepare_input(dec_seq_emb, prefix_len, 1)[:, :-1] # [B, T, D]
         target_ar = dec_seq[:, 1:, 0]
-        h_ar = self.ar_decoder(self.emb(input_ar))
+        h_ar = self.ar_decoder(input_ar_emb)
         logits_ar = self.lm_head(h_ar)
 
         # Non-Auto-Regressive part
-        level_idx = random.randint(5, 5)
-        level_idx_th = torch.ones_like(dec_seq[:, 0, 0]) * level_idx
-        input_nar = dec_seq[:, 1:, :level_idx]
-        target_nar = dec_seq[:, 1:, level_idx]
-        h_nar = self.nar_decoder(
-            self.emb(input_nar).sum(2),
-            level_idx_th - 1,
-        ) # [B, T, D]
+        level_idx_th = torch.randint(1, self.nq, (batch_size,), device=dec_seq.device).long()
+        input_nar_emb = self.prepare_input(dec_seq_emb, prefix_len, level_idx_th)[:, 1:]
+        batch_idx = torch.arange(batch_size, device=dec_seq.device)
+        target_nar = dec_seq[batch_idx, 1:, level_idx_th]
+        h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1)
         logits_nar = self.lm_head(h_nar)
 
         # merge and compute loss
@@ -105,6 +112,21 @@ class ValleLM(AbsCoreLM):
         stats.pop("acc_layer1")
 
         return loss, stats, weight
+    
+    def prepare_input(self, dec_seq_emb, prefix_len, level):
+        # (1) level mask, [B, 1, nq, 1], True is to include
+        if isinstance(level, int):
+            level = torch.ones_like(dec_seq_emb[:, 0, 0, 0]) * level
+        level_mask = length_mask(level, maxlen=self.nq).bool()
+        level_mask = level_mask.unsqueeze(1).unsqueeze(3)
+
+        # (2) prefix mask, [B, T, 1, 1], True is the prefix
+        prefix_mask = length_mask(prefix_len, maxlen=dec_seq_emb.size(1)).bool()
+        prefix_mask = prefix_mask.unsqueeze(2).unsqueeze(3)
+
+        # (3) mask and then sum
+        mask = torch.logical_or(level_mask, prefix_mask)
+        return dec_seq_emb.masked_fill_(~mask, 0.0).sum(2)
 
     @torch.no_grad()
     def inference(
@@ -237,3 +259,12 @@ class ValleLM(AbsCoreLM):
             gen_scores_list.append(gen_scores[b][: finish_idx[b]])
 
         return gen_tokens_list, gen_scores_list
+
+
+if __name__ == "__main__":
+    model = ValleLM(vocab_size=10, nq=8, n_ctx=20)
+    dec_seq = torch.randint(0, 9, (2, 5, 8)).long()
+    dec_seq_lengths = torch.Tensor([4, 5]).long()
+    prefix_len = torch.Tensor([2, 3]).long()
+
+    _ = model(dec_seq, dec_seq_lengths, prefix_len=prefix_len,)
