@@ -78,7 +78,7 @@ class SpeechLM:
 
         masks = torch.ones(inference_nq, len(token_list)).to(device).bool()
         if modality == "codec":
-            increment = (valid_end - valid_start) // model.corelm.nq
+            increment = (valid_end - valid_start) // train_args.codec_token_per_frame
             for l_idx in range(inference_nq):
                 masks[
                     l_idx,

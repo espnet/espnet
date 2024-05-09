@@ -11,13 +11,11 @@ import random
 import logging
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.module.module import (
-    TransformerLayer,
-    LevelAwareTransformerLayer,
-    PositionalEncoding,
+from espnet2.speechlm.module.transformer import (
+    TransformerDecoder,
+    TransformerDecoderLevelAware,
 )
 from espnet2.speechlm.net_utils import (
-    length_mask,
     ce_loss,
     install_kv_cache_hook,
     logits_to_tokens,
@@ -30,64 +28,35 @@ class ValleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
-        pos_enc: str = None,
         att_unit: int = 256,
         head: int = 2,
-        unit: int = 1024,
         ar_layer: int = 4,
         nar_layer: int = 4,
-        dropout_rate: float = 0.0,
-        positional_dropout_rate: float = 0.0,
-        attention_dropout_rate: float = 0.0,
+        n_ctx: int = 3000,
     ):
         super(ValleLM, self).__init__()
-
-        if pos_enc == "sinusoidal":
-            pos_enc_class = PositionalEncoding
-        else:
-            raise ValueError(f"unknown pos-enc option: {pos_enc}")
 
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
         if share_emb:
             self.lm_head.weight = self.emb.weight
 
-        # Auto-Regressive part
-        self.ar_decoders = torch.nn.ModuleList(
-            [
-                TransformerLayer(
-                    att_unit=att_unit,
-                    head=head,
-                    unit=unit,
-                    dropout_rate=dropout_rate,
-                    attention_dropout_rate=attention_dropout_rate,
-                    causal=True,
-                    cross_attention=False,
-                )
-                for _ in range(ar_layer)
-            ]
+        self.ar_decoder = TransformerDecoder(
+            n_ctx=n_ctx,
+            n_state=att_unit,
+            n_head=head,
+            n_layer=ar_layer,
+            causal=True
         )
-        self.ar_post_ln = torch.nn.LayerNorm(att_unit)
-        self.ar_pos_enc = pos_enc_class(att_unit, positional_dropout_rate)
 
-        # Non-Auto-Regressive part
-        self.nar_decoders = torch.nn.ModuleList(
-            [
-                LevelAwareTransformerLayer(
-                    att_unit=att_unit,
-                    head=head,
-                    unit=unit,
-                    dropout_rate=dropout_rate,
-                    attention_dropout_rate=attention_dropout_rate,
-                    causal=False,
-                    cross_attention=False,
-                    n_level=nq - 1,
-                )
-                for _ in range(nar_layer)
-            ]
+        self.nar_decoder = TransformerDecoderLevelAware(
+            n_ctx=n_ctx,
+            n_state=att_unit,
+            n_head=head,
+            n_layer=nar_layer,
+            n_level=nq - 1,
+            causal=False
         )
-        self.nar_post_ln = torch.nn.LayerNorm(att_unit)
-        self.nar_pos_enc = pos_enc_class(att_unit, positional_dropout_rate)
 
         self.nq = nq
 
@@ -105,82 +74,37 @@ class ValleLM(AbsCoreLM):
         # Auto-Regressive part
         input_ar = dec_seq[:, :-1, 0]
         target_ar = dec_seq[:, 1:, 0]
-        logits_ar = self.encode_ar(input_ar)
-
-        loss_ar, stats_ar, weight_ar = ce_loss(
-            logits_ar.unsqueeze(2), 
-            target_ar.unsqueeze(2), 
-            dec_seq_lengths - 1, 
-            prefix_len,
-        )
+        h_ar = self.ar_decoder(self.emb(input_ar))
+        logits_ar = self.lm_head(h_ar)
 
         # Non-Auto-Regressive part
-        level_idx = random.randint(1, self.nq - 1)
-        level_idx_th = (
-            torch.Tensor([level_idx]).long().to(dec_seq.device).expand(dec_seq.size(0))
-        )
+        level_idx = random.randint(5, 5)
+        level_idx_th = torch.ones_like(dec_seq[:, 0, 0]) * level_idx
         input_nar = dec_seq[:, 1:, :level_idx]
         target_nar = dec_seq[:, 1:, level_idx]
+        h_nar = self.nar_decoder(
+            self.emb(input_nar).sum(2),
+            level_idx_th - 1,
+        ) # [B, T, D]
+        logits_nar = self.lm_head(h_nar)
 
-        logits_nar = self.encode_nar(
-            input_nar,
-            level_idx_th,
+        # merge and compute loss
+        logits = torch.stack([logits_ar, logits_nar], dim=2)
+        target = torch.stack([target_ar, target_nar], dim=2)
+
+        loss, stats, weight = ce_loss(
+            logits, 
+            target,
             dec_seq_lengths - 1,
+            prefix_len - 1,
         )
 
-        loss_nar, stats_nar, weight_nar = ce_loss(
-            logits_nar.unsqueeze(2), 
-            target_nar.unsqueeze(2), 
-            dec_seq_lengths - 1,
-            prefix_len,
-        )
+        stats["acc_ar"] = stats["acc_layer0"]
+        stats["acc_nar"] = stats["acc_layer1"]
+        stats.pop("acc_layer0")
+        stats.pop("acc_layer1")
 
-        # Aggregate
-        loss = (loss_ar + loss_nar) / 2
-        weight = weight_ar + weight_nar
-        stats = {
-            "loss": loss.item(),
-            "loss_ar": loss_ar.item(),
-            "loss_nar": loss_nar.item(),
-            "acc_ar": stats_ar[f"acc_layer0"],
-            "acc_nar": stats_nar[f"acc_layer0"],
-            "acc": (stats_ar[f"acc_layer0"] + stats_nar[f"acc_layer0"]) / 2,
-            "weight": weight,
-        }
         return loss, stats, weight
-
-    def encode_ar(self, input_ar: torch.Tensor, cache: dict = {}):
-        x_ar = self.emb(input_ar)
-
-        x_ar = self.ar_pos_enc(x_ar, cache=cache)
-        for layer in self.ar_decoders:
-            x_ar = layer(x_ar, cache=cache)
-        x_ar = self.ar_post_ln(x_ar)
-
-        logits_ar = self.lm_head(x_ar)
-
-        return logits_ar
-
-    def encode_nar(
-        self,
-        input_nar: torch.Tensor,
-        level_idx: torch.Tensor,
-        dec_seq_lengths: torch.Tensor = None,
-    ):
-        if dec_seq_lengths is not None:
-            mask = length_mask(dec_seq_lengths).unsqueeze(1)
-        else:
-            mask = None
-        x_nar = self.emb(input_nar).sum(dim=2)
-
-        x_nar = self.nar_pos_enc(x_nar)
-        for layer in self.nar_decoders:
-            x_nar = layer(x_nar, level_idx - 1, mask)
-        x_nar = self.nar_post_ln(x_nar)
-
-        logits_nar = self.lm_head(x_nar)
-
-        return logits_nar
 
     @torch.no_grad()
     def inference(

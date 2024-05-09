@@ -15,7 +15,6 @@ from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.valle import ValleLM
-from espnet2.speechlm.core_lm.ar import ARLM
 
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 from espnet2.speechlm.postprocessor.codec_post_processor import CodecPostProcessor
@@ -37,7 +36,6 @@ corelm_choices = ClassChoices(
     classes=dict(
         multiscale=MultiScaleLM,
         valle=ValleLM,
-        ar=ARLM,
     ),
     type_check=AbsCoreLM,
     default="multiscale",

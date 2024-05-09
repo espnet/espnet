@@ -32,7 +32,7 @@ def get_parser():
     parser.add_argument("--codec_fs", type=int, default=16000)
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
-    parser.add_argument("--rank", type=int, default=0)
+    parser.add_argument("--rank", type=int, default=1)
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
