@@ -1901,9 +1901,11 @@ class SpkPreprocessor(CommonPreprocessor):
         if train:
             with open(spk2utt, "r") as f_s2u:
                 self.spk2utt = f_s2u.readlines()
-            if spf2utt is not None:
+            if spf2utt is not None and spf2utt != '':
                 with open(spf2utt, "r") as f_spf2u:
                     self.spf2utt = f_spf2u.readlines()
+            else:
+                self.spf2utt = None
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
 
@@ -1940,7 +1942,7 @@ class SpkPreprocessor(CommonPreprocessor):
         msg = f"{name}(train={self.train}"
         if self.spk2label:
             msg += f", len(spk2label)={len(self.spk2label)}"
-        if self.spf2label:
+        if self.spf2label is not None:
             msg += f", len(spf2label)={len(self.spf2label)}"
         for key in ("target_duration", "sample_rate", "num_eval"):
             if getattr(self, key):
@@ -1958,17 +1960,20 @@ class SpkPreprocessor(CommonPreprocessor):
     def _make_label_mapping(self):
         label_idx = 0
         self.spk2label = {}
-        self.spf2label = {}
         for spk in self.spk2utt:
             spk = spk.strip().split(" ")[0]
             self.spk2label[spk] = label_idx
             label_idx += 1
+
         label_idx = 0
+        self.spf2label = {}
         if self.spf2utt is not None:
             for spf in self.spf2utt:
                 spf = spf.strip().split(" ")[0]
                 self.spf2label[spf] = label_idx
                 label_idx += 1
+        else:
+            self.spf2label = None
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         if self.train:
@@ -2138,7 +2143,6 @@ class SpkPreprocessor(CommonPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-
         data = self._text_process(data)
         data = self._speech_process(data)
 

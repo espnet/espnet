@@ -1274,6 +1274,13 @@ class AbsTask(ABC):
                 dtype=getattr(torch, args.train_dtype),
                 device="cuda" if args.ngpu > 0 else "cpu",
             )
+            # Move the weights of the loss functions to the device
+            if isinstance(model.loss, list):
+                for loss in model.loss:
+                    if hasattr(loss, 'weight'):
+                        device="cuda" if args.ngpu > 0 else "cpu"
+                        loss.weight = torch.nn.Parameter(loss.weight.to(device))
+
             for t in args.freeze_param:
                 for k, p in model.named_parameters():
                     if k.startswith(t + ".") or k == t:
@@ -1782,7 +1789,7 @@ class AbsTask(ABC):
             batches = batches[: iter_options.num_batches]
 
         bs_list = [len(batch) for batch in batches]
-
+        
         logging.info(f"[{mode}] dataset:\n{dataset}")
         logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
         logging.info(
@@ -2093,6 +2100,12 @@ class AbsTask(ABC):
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
         model.to(device)
+        # Move the weights of the loss functions to the device
+        if isinstance(model.loss, list):
+            for loss in model.loss:
+                if hasattr(loss, 'weight'):
+                    device="cuda" if args.ngpu > 0 else "cpu"
+                    loss.weight = torch.nn.Parameter(loss.weight.to(device))
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)

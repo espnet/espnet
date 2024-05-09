@@ -72,6 +72,11 @@ inference_model=valid.eer.best.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 
+# Speaker Task related
+multi_task=false      # Apply multi-task learning in speaker recognition
+sasv_task=false       # Apply speaker anti-spoofing task in speaker recognition
+spf_args=             # Parameters for spoofing
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
 valid_set=        # Name of validation set used for monitoring/tuning network training.
@@ -263,10 +268,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
                 cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
             fi
-            # for x in music noise speech; do
-            #     cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
-            # done
-            # cp data/rirs.scp ${data_feats}/rirs.scp
+            for x in music noise speech; do
+                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            done
+            cp data/rirs.scp ${data_feats}/rirs.scp
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
@@ -327,10 +332,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
                 cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
             fi
-            # for x in music noise speech; do
-            #     cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
-            # done
-            # cp data/rirs.scp ${data_feats}/rirs.scp
+            for x in music noise speech; do
+                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            done
+            cp data/rirs.scp ${data_feats}/rirs.scp
 
             echo "${feats_type}" > "${data_feats}/${train_set}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
@@ -444,6 +449,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${spk_config} "
     fi
 
+    # Check if multi_task and sasv_task are both true
+    if [ "$multi_task" = true ] && [ "$sasv_task" = true ]; then
+        spf_args="--train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
+                    --spf2utt ${_spk_train_dir}/spf2utt \
+                    --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d' ')"
+    fi
+
     log "Spk training started... log: '${spk_exp}/train.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
@@ -467,18 +479,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
-            --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
             --train_shape_file ${spk_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
-            --spf2utt ${_spk_train_dir}/spf2utt \
             --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
-            --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
+            ${spf_args} \
             ${_opts} ${spk_args}
 fi
 

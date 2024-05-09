@@ -352,16 +352,17 @@ class SpeakerTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        # for SASV task, loss is a list of two losses, spk_loss and spf_loss
+        # for SASV task, two losses are present: spk_loss and spf_loss
+        losses = []
         if args.spf_num is not None:
-            loss = []
             for i in range(2):
+                loss_conf = args.loss[i].get("loss_conf", {})
                 loss_class = loss_choices.get_class(args.loss[i]["name"])
-                loss.append(
+                losses.append(
                     loss_class(
                         nout=projector_output_size,
                         nclasses=args.spk_num if i == 0 else args.spf_num,
-                        **args.loss_conf,
+                        **loss_conf
                     )
                 )
         else: # for spk task, loss is a single loss
@@ -371,6 +372,7 @@ class SpeakerTask(AbsTask):
                 nclasses=args.spk_num,
                 **args.loss_conf,
             )
+            losses.append(loss)
 
         model = ESPnetSpeakerModel(
             frontend=frontend,
@@ -379,7 +381,7 @@ class SpeakerTask(AbsTask):
             encoder=encoder,
             pooling=pooling,
             projector=projector,
-            loss=loss,
+            loss=losses,
             # **args.model_conf, # uncomment when model_conf exists
         )
 
