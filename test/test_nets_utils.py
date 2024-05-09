@@ -41,7 +41,7 @@ def test_make_pad_mask_device(test_case):
     non_traceable_result_with_device = make_pad_mask(lengths, device=device, **_tc)
     non_traceable_result_no_device = make_pad_mask(lengths, **_tc)
     traceable_result_with_device = make_pad_mask(torch.LongTensor(lengths), device=device, **_tc)
-    assert (non_traceable_result_with_device.device == device == traceable_result_with_device) and (non_traceable_result_no_device.device != device)
+    assert (non_traceable_result_with_device.device == device == traceable_result_with_device.device) and (non_traceable_result_no_device.device != device)
 
 @pytest.mark.parametrize("test_case", test_cases)
 def test_trace_make_pad_mask(test_case):
