@@ -17,6 +17,29 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - nbpe: 1000
 - scoring function: local/score.sh
 
+## Pretrained Models
+### Lightweight prediction head with SFM feature extractor
+#### SA
+- WavLM: https://huggingface.co/espnet/sluevoxceleb_wavlm_lightweight_sa
+- OWSM: https://huggingface.co/espnet/sluevoxceleb_owsm_lightweight_sa
+- Whisper: https://huggingface.co/espnet/sluevoxceleb_whisper_lightweight_sa
+#### ASR
+- WavLM: https://huggingface.co/espnet/sluevoxceleb_wavlm_lightweight_asr 
+- OWSM: https://huggingface.co/espnet/sluevoxceleb_owsm_lightweight_asr 
+- Whisper: https://huggingface.co/espnet/sluevoxceleb_whisper_lightweight_asr
+### Complex prediction head with SFM feature extractor
+- WavLM: https://huggingface.co/espnet/sluevoxceleb_wavlm_complex_slu
+- OWSM: https://huggingface.co/espnet/sluevoxceleb_owsm_complex_slu
+- Whisper: https://huggingface.co/espnet/sluevoxceleb_whisper_complex_slu
+### Fine-tuning representations with SFM feature extractor
+#### SA
+- OWSM: https://huggingface.co/espnet/sluevoxceleb_owsm_finetune_sa
+- Whisper: https://huggingface.co/espnet/sluevoxceleb_whisper_finetune_sa
+#### ASR
+- WavLM: https://huggingface.co/espnet/sluevoxceleb_wavlm_finetune_asr 
+- OWSM: https://huggingface.co/espnet/sluevoxceleb_owsm_finetune_asr 
+- Whisper: https://huggingface.co/espnet/sluevoxceleb_whisper_finetune_asr 
+
 ## Lightweight prediction head with SFM feature extractor
 ### Hubert
 #### SA results
