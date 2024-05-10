@@ -25,7 +25,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|37.2|
 |decode_asr_slu_model_valid.loss.ave/test|3426|41.0|
 
@@ -47,7 +47,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|40.0|
 |decode_asr_slu_model_valid.loss.ave/test|3426|40.6|
 
@@ -69,7 +69,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|38.9|
 |decode_asr_slu_model_valid.loss.ave/test|3426|43.3|
 
@@ -91,7 +91,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|44.7|
 |decode_asr_slu_model_valid.loss.ave/test|3426|49.6|
 
@@ -114,7 +114,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|42.2|
 |decode_asr_slu_model_valid.loss.ave/test|3426|47.2|
 
@@ -137,7 +137,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|36.6|
 |decode_asr_slu_model_valid.loss.ave/test|3426|36.4|
 
@@ -159,7 +159,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.9|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.2|
 
@@ -177,7 +177,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.5|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|53.3|
 
@@ -195,7 +195,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|47.8|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.0|
 
@@ -213,7 +213,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|45.2|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|51.0|
 
@@ -232,7 +232,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|46.8|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|52.8|
 
@@ -251,7 +251,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.acc.ave_10best/org/devel|1437|45.2|
 |decode_asr_slu_model_valid.acc.ave_10best/test|3426|49.7|
 
@@ -271,7 +271,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|42.4|
 |decode_asr_slu_model_valid.loss.ave/test|3426|46.5|
 
@@ -293,7 +293,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|41.8|
 |decode_asr_slu_model_valid.loss.ave/test|3426|45.0|
 
@@ -315,7 +315,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|45.0|
 |decode_asr_slu_model_valid.loss.ave/test|3426|47.9|
 
@@ -337,7 +337,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|48.2|
 |decode_asr_slu_model_valid.loss.ave/test|3426|51.8|
 
@@ -360,7 +360,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|44.2|
 |decode_asr_slu_model_valid.loss.ave/test|3426|47.8|
 
@@ -383,7 +383,7 @@ Download data from https://huggingface.co/datasets/asapp/slue/tree/main/data/vox
 - Inference config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
 
 |dataset|Snt| F1 (%)|
-|---|---|---|---|---|
+|---|---|---|
 |decode_asr_slu_model_valid.loss.ave/org/devel|1437|41.6|
 |decode_asr_slu_model_valid.loss.ave/test|3426|46.1|
 
