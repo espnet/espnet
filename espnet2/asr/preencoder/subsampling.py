@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-#  2021, Carnegie Mellon University;  Xuankai Chang
+#  2024, Carnegie Mellon University;  William Chen
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Linear Projection."""
+"""Subsampling Pre-encoder."""
 
 from typing import Tuple
 
@@ -31,7 +31,7 @@ class Subsampling(AbsPreEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward."""
         output, _ = self.subsampling(input, x_mask=None)
-        return output, ((input_lengths - 1) // 2 - 1) // 2  # input_lengths - 2
+        return output, ((input_lengths - 1) // 2 - 1) // 2
 
     def output_size(self) -> int:
         """Get the output size."""
