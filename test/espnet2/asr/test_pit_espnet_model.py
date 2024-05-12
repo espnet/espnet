@@ -30,6 +30,7 @@ def test_pit_espnet_model(encoder_arch, num_inf):
         specaug=None,
         normalize=None,
         preencoder=None,
+        masker=None,
         encoder=encoder,
         postencoder=None,
         decoder=decoder,

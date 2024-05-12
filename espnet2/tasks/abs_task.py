@@ -440,6 +440,36 @@ class AbsTask(ABC):
             type=str2bool,
             help="Enable sharded training provided by fairscale",
         )
+        group.add_argument(
+            "--static_graph",
+            default=False,
+            type=str2bool,
+            help="Static DDP gradient graph",
+        )
+        group.add_argument(
+            "--gradient_as_bucket_view",
+            default=False,
+            type=str2bool,
+            help="DDP buckets are views of tensors",
+        )
+        group.add_argument(
+            "--broadcast_buffers",
+            default=True,
+            type=str2bool,
+            help="Sync buffers in DDP",
+        )
+        group.add_argument(
+            "--bucket_cap_mb",
+            type=int,
+            default=25,
+            help="Size of DDP buckets in mb",
+        )
+        group.add_argument(
+            "--compress_gradients",
+            default=False,
+            type=str2bool,
+            help="Cast DDP gradients to bf16",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -804,6 +834,13 @@ class AbsTask(ABC):
             default=False,
             help="Use multiple iterator mode",
         )
+        group.add_argument(
+            "--validate_each_iter_factory",
+            type=str2bool,
+            default=True,
+            help="Whether to validate after looping through all dataset shards "
+            " or after each shard",
+        )
 
         group = parser.add_argument_group("Chunk iterator related")
         group.add_argument(
@@ -981,7 +1018,10 @@ class AbsTask(ABC):
             if fairscale is None:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim = fairscale.optim.oss.OSS(
-                params=model.parameters(), optim=optim_class, **args.optim_conf
+                params=model.parameters(),
+                optim=optim_class,
+                broadcast_fp16=True,
+                **args.optim_conf,
             )
         else:
             if args.exclude_weight_decay:
@@ -1697,7 +1737,10 @@ class AbsTask(ABC):
         if iter_options.num_batches is not None:
             batches = batches[: iter_options.num_batches]
 
-        bs_list = [len(batch) for batch in batches]
+        if iter_options.batch_type == "grouped":
+            bs_list = [len(batch[0]) for batch in batches]
+        else:
+            bs_list = [len(batch) for batch in batches]
 
         logging.info(f"[{mode}] dataset:\n{dataset}")
         logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
@@ -1706,23 +1749,25 @@ class AbsTask(ABC):
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
-        if iter_options.distributed:
+        if iter_options.distributed and iter_options.batch_type == "grouped":
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
-            for batch in batches:
-                if len(batch) < world_size:
-                    raise RuntimeError(
-                        f"The batch-size must be equal or more than world_size: "
-                        f"{len(batch)} < {world_size}"
-                    )
-            batches = [batch[rank::world_size] for batch in batches]
+
+            if iter_options.batch_type == "grouped":
+                if iter_options.train:
+                    np.random.RandomState().shuffle(batches)
+                batches = [batch[rank] for batch in batches]
+            else:
+                batches = batches[rank::world_size]
+        elif iter_options.batch_type == "grouped":
+            batches = [batch[0] for batch in batches]
 
         return SequenceIterFactory(
             dataset=dataset,
             batches=batches,
             seed=args.seed,
             num_iters_per_epoch=iter_options.num_iters_per_epoch,
-            shuffle=iter_options.train,
+            shuffle=iter_options.train and iter_options.batch_type != "grouped",
             shuffle_within_batch=args.shuffle_within_batch,
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
@@ -1970,12 +2015,11 @@ class AbsTask(ABC):
             [str(Path(s) / f"split.{i}") for s in iter_options.shape_files]
             for i in range(num_splits)
         ]
+        iters_per_epoch = iter_options.num_iters_per_epoch
+        if not args.validate_each_iter_factory and iters_per_epoch is not None:
+            iters_per_epoch = (iters_per_epoch + i) // num_splits
         num_iters_per_epoch_list = [
-            (
-                (iter_options.num_iters_per_epoch + i) // num_splits
-                if iter_options.num_iters_per_epoch is not None
-                else None
-            )
+            iters_per_epoch if iter_options.num_iters_per_epoch is not None else None
             for i in range(num_splits)
         ]
         max_cache_size = iter_options.max_cache_size / num_splits
@@ -2007,7 +2051,10 @@ class AbsTask(ABC):
 
         # 3. Build MultipleIterFactory
         return MultipleIterFactory(
-            build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed
+            build_funcs=build_funcs,
+            shuffle=iter_options.train,
+            seed=args.seed,
+            validate_each_iter_factory=args.validate_each_iter_factory,
         )
 
     @classmethod

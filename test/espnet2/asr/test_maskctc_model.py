@@ -44,6 +44,7 @@ def test_maskctc(
         specaug=None,
         normalize=None,
         preencoder=None,
+        masker=None,
         encoder=encoder,
         postencoder=None,
         decoder=decoder,

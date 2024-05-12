@@ -1,10 +1,14 @@
 import math
+import random
 from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
+import scipy.signal
+import soundfile
 import torch
 from typeguard import typechecked
 
+from espnet2.train.preprocessor import detect_non_silence
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -55,6 +59,18 @@ class HuBERTCollateFn(CommonCollateFn):
         window_size: float = 25,
         window_shift: float = 20,
         sample_rate: float = 16,
+        noise_scp: str = "data/noise/wav.scp",
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "-5_20",
+        dynamic_mixing_gain_db: float = 5.0,
+        dynamic_mixing_prob=0.1,
+        mix_speech: bool = False,
+        reverb_speech: bool = False,
+        rir_scp: str = "data/rirs/wav.scp",
+        rir_apply_prob: float = 0.3,
+        center_speech: bool = False,
+        train: bool = True,
+        input_emb: str = "linear",
     ):
         super().__init__(
             float_pad_value=float_pad_value,
@@ -71,6 +87,128 @@ class HuBERTCollateFn(CommonCollateFn):
         self.window_size = window_size
         self.window_shift = window_shift
         self.sample_rate = sample_rate
+        self.train = train
+        self.mix_speech = mix_speech
+        self.reverb_speech = reverb_speech
+        self.dynamic_mixing_prob = dynamic_mixing_prob
+        self.noise_apply_prob = noise_apply_prob
+        self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
+        self.rir_apply_prob = rir_apply_prob
+        self.center_speech = center_speech
+        self.input_emb = input_emb
+
+        if train and mix_speech and noise_scp is not None:
+            self.noises = {}
+            self.noise_paths = []
+            with open(noise_scp, "r", encoding="utf-8") as f:
+                for line in f:
+                    sps = line.strip().split(None, 1)
+                    if len(sps) == 1:
+                        noise_path = sps[0]
+                    else:
+                        noise_path = sps[1]
+                    self.noise_paths.append(noise_path)
+            sps = noise_db_range.split("_")
+            if len(sps) == 1:
+                self.noise_db_low = self.noise_db_high = float(sps[0])
+            elif len(sps) == 2:
+                self.noise_db_low, self.noise_db_high = float(sps[0]), float(sps[1])
+            else:
+                raise ValueError(
+                    "Format error: '{noise_db_range}' e.g. -3_4 -> [-3db,4db]"
+                )
+        else:
+            self.noises = None
+
+        if train and reverb_speech and rir_scp is not None:
+            self.rirs = {}
+            self.rir_paths = []
+            with open(rir_scp, "r", encoding="utf-8") as f:
+                for line in f:
+                    sps = line.strip().split(None, 1)
+                    if len(sps) == 1:
+                        rir_path = sps[0]
+                    else:
+                        rir_path = sps[1]
+                    self.rir_paths.append(rir_path)
+        else:
+            self.rirs = None
+
+    def _read_rir_audio_(self):
+        rir_path = np.random.choice(self.rir_paths)
+        rir = None
+        if rir_path is not None:
+            if rir_path in self.rirs:
+                rir = self.rirs[rir_path]
+            else:
+                with soundfile.SoundFile(rir_path) as f:
+                    rir = f.read(dtype=np.float32, always_2d=False)
+                    if rir.ndim == 2:
+                        rir = np.mean(rir, axis=1)
+                self.rirs[rir_path] = rir
+        return rir
+
+    def _read_noise_audio_(self):
+        noise_path = np.random.choice(self.noise_paths)
+        noise = None
+        if noise_path is not None:
+            if noise_path in self.noises:
+                noise = self.noises[noise_path]
+            else:
+                with soundfile.SoundFile(noise_path) as f:
+                    noise = f.read(dtype=np.float32, always_2d=False)
+                self.noises[noise_path] = noise
+        return noise
+
+    def _get_aligned_reverb_signal(self, speech):
+        rir = self._read_rir_audio_()
+        # speech.shape: [mics=1, samples]
+        # rir.shape: [mics=1, samples2]
+
+        speech = speech.reshape(1, -1)
+        rir = rir.reshape(1, -1)
+
+        power = (speech[detect_non_silence(speech)] ** 2).mean()
+        dt = np.argmax(rir, axis=1).min()
+        speech2 = scipy.signal.convolve(speech, rir, mode="full")[
+            :, dt : dt + speech.shape[1]
+        ]
+
+        # Reverse mean power to the original power
+        power2 = (speech2[detect_non_silence(speech2)] ** 2).mean()
+        speech2 = np.sqrt(power / max(power2, 1e-10)) * speech2
+
+        return speech2.flatten()
+
+    def _add_noise_wavlm(self, data, speech, speech_id):
+        power = (speech[detect_non_silence(speech)] ** 2).mean()
+        if self.dynamic_mixing_prob >= np.random.random() or len(data) == 1:
+            noise = self._read_noise_audio_().squeeze()
+            noise_db = np.random.uniform(self.noise_db_low, self.noise_db_high)
+        else:
+            noise = random.choice(data)
+            while noise[0] == speech_id:
+                noise = random.choice(data)
+            noise = noise[1]["speech"]
+            speech_length = speech.shape[0]
+            noise_db = np.random.uniform(
+                -self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db
+            )
+
+        length = min(np.random.randint(1, len(speech) // 2 + 1), len(noise))
+        speech_start = np.random.randint(0, len(speech) - length + 1)
+        noise_start = np.random.randint(0, len(noise) - length + 1)
+
+        noise_power = (noise**2).mean()
+        scale = (
+            10 ** (-noise_db / 20) * np.sqrt(power) / np.sqrt(max(noise_power, 1e-10))
+        )
+        noise = noise * scale
+        speech[speech_start : speech_start + length] += noise[
+            noise_start : noise_start + length
+        ]
+
+        return speech
 
     def __repr__(self):
         return (
@@ -84,34 +222,72 @@ class HuBERTCollateFn(CommonCollateFn):
         self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
     ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
         assert "speech" in data[0][1]
-        assert "text" in data[0][1]
         if self.pad:
             num_frames = max([sample["speech"].shape[0] for uid, sample in data])
         else:
             num_frames = min([sample["speech"].shape[0] for uid, sample in data])
 
         new_data = []
-        for uid, sample in data:
-            waveform, label = sample["speech"], sample["text"]
-            assert waveform.ndim == 1
-            length = waveform.size
-            # The MFCC feature is 10ms per frame, while the HuBERT's transformer output
-            # is 20ms per frame. Downsample the KMeans label if it's generated by MFCC
-            # features.
-            if self.label_downsampling > 1:
-                label = label[:: self.label_downsampling]
-            if self.crop_audio:
-                waveform, label, length = _crop_audio_label(
-                    waveform,
-                    label,
-                    length,
-                    num_frames,
-                    self.rand_crop,
-                    self.window_size,
-                    self.window_shift,
-                    self.sample_rate,
-                )
-            new_data.append((uid, dict(speech=waveform, text=label)))
+        if self.train or self.label_downsampling > 1:
+            for uid, sample in data:
+                waveform = sample["speech"]
+                label = sample["text"] if "text" in sample else None
+                assert waveform.ndim == 1
+                length = waveform.size
+
+                # WavLM Noise
+                if (
+                    self.train
+                    and self.mix_speech
+                    and self.noise_apply_prob >= np.random.random()
+                ):
+                    waveform = self._add_noise_wavlm(data, waveform, uid)
+
+                # Reverberation Augmentation
+                if (
+                    self.train
+                    and self.reverb_speech
+                    and self.rir_apply_prob >= np.random.random()
+                ):
+                    waveform = self._get_aligned_reverb_signal(waveform)
+
+                # The MFCC feature is 10ms per frame
+                # While the HuBERT's transformer output
+                # is 20ms per frame. Downsample the KMeans label
+                # if it's generated by MFCC features.
+                if (
+                    self.input_emb != "subsampling"
+                    and self.label_downsampling > 1
+                    and label is not None
+                ):
+                    label = label[:: self.label_downsampling]
+
+                if self.train and self.crop_audio:
+                    waveform, label, length = _crop_audio_label(
+                        waveform,
+                        label,
+                        length,
+                        num_frames,
+                        self.rand_crop,
+                        self.window_size,
+                        self.window_shift,
+                        self.sample_rate,
+                        self.center_speech,
+                    )
+
+                # For fbank features, we need to downsample
+                # after cropping instead of before
+                if (
+                    self.input_emb == "subsampling"
+                    and self.label_downsampling > 1
+                    and label is not None
+                ):
+                    label = label[: -2 : self.label_downsampling // 2][
+                        : -2 : self.label_downsampling // 2
+                    ]
+                new_data.append((uid, dict(speech=waveform, text=label)))
+        else:
+            new_data = data
 
         return common_collate_fn(
             new_data,
@@ -130,6 +306,7 @@ def _crop_audio_label(
     window_size: int = 25,
     window_shift: int = 20,
     sample_rate: int = 16,
+    center_speech: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Collate the audio and label at the same time.
 
@@ -159,21 +336,20 @@ def _crop_audio_label(
         frame_offset = torch.randint(diff, size=(1,))
     elif waveform.size < num_frames:
         num_frames = waveform.size
+    if center_speech:
+        label_offset = frame_offset + 256 - window_size * sample_rate
+        num_label = num_frames + 512 - window_size * sample_rate
+    else:
+        label_offset = frame_offset - window_size * sample_rate
+        num_label = num_frames - window_size * sample_rate
     label_offset = max(
-        math.floor(
-            (frame_offset - window_size * sample_rate) / (window_shift * sample_rate)
-        )
-        + 1,
+        math.floor((label_offset) / (window_shift * sample_rate)) + 1,
         0,
     )
-    num_label = (
-        math.floor(
-            (num_frames - window_size * sample_rate) / (window_shift * sample_rate)
-        )
-        + 1
-    )
+    num_label = math.floor((num_label) / (window_shift * sample_rate)) + 1
     waveform = waveform[frame_offset : frame_offset + num_frames]
-    label = label[label_offset : label_offset + num_label]
+    if label is not None:
+        label = label[label_offset : label_offset + num_label]
     length = num_frames
 
     return waveform, label, length
