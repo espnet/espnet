@@ -18,7 +18,7 @@ from espnet2.ssl.espnet_model import ESPnetSSLModel
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, EBranchformerEncoder])
 @pytest.mark.parametrize("loss_fn", [HuBERTLossCrossEntropy, HuBERTLoss])
-def test_espnet_model_wav2vec(frontend_arch, preencoder_arch, encoder_arch, loss_fn):
+def test_espnet_model_wav2vec(encoder_arch, loss_fn):
     frontend = CNNFrontend('group_norm', 'standard', True, [(3, 3, 2)])
     preencoder = LinearProjection(3, 2)
     masker = HubertMasker(4, 0.8, 'static', 0.0, 2, False, 0, 0.0, 'static', 0.0, 2, False, 0)
