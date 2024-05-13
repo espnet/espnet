@@ -1,3 +1,5 @@
+"""Frontend module."""
+
 from typing import List, Optional, Tuple, Union
 
 import numpy
@@ -10,6 +12,8 @@ from espnet2.enh.layers.dnn_wpe import DNN_WPE
 
 
 class Frontend(nn.Module):
+    """Frontend class."""
+
     def __init__(
         self,
         idim: int,
@@ -34,6 +38,7 @@ class Frontend(nn.Module):
         ref_channel: int = -1,
         bdropout_rate=0.0,
     ):
+        """Initialize frontend."""
         super().__init__()
 
         self.use_beamformer = use_beamformer
@@ -86,6 +91,7 @@ class Frontend(nn.Module):
     def forward(
         self, x: ComplexTensor, ilens: Union[torch.LongTensor, numpy.ndarray, List[int]]
     ) -> Tuple[ComplexTensor, torch.LongTensor, Optional[ComplexTensor]]:
+        """Calculate frontend forward propagation."""
         assert len(x) == len(ilens), (len(x), len(ilens))
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
@@ -124,6 +130,7 @@ class Frontend(nn.Module):
 
 
 def frontend_for(args, idim):
+    """Instantiate an frontend module given the program arguments.."""
     return Frontend(
         idim=idim,
         # WPE options

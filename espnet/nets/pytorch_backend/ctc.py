@@ -1,3 +1,4 @@
+"""Pytorch CTC module."""
 import logging
 
 import numpy as np
@@ -9,7 +10,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class CTC(torch.nn.Module):
-    """CTC module
+    """CTC module.
 
     :param int odim: dimension of outputs
     :param int eprojs: number of encoder projection units
@@ -19,6 +20,7 @@ class CTC(torch.nn.Module):
     """
 
     def __init__(self, odim, eprojs, dropout_rate, ctc_type="builtin", reduce=True):
+        """Initialize CTC."""
         super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -53,6 +55,7 @@ class CTC(torch.nn.Module):
         self.reduce = reduce
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
+        """Process Loss function."""
         if self.ctc_type in ["builtin", "cudnnctc"]:
             th_pred = th_pred.log_softmax(2)
             # Use the deterministic CuDNN implementation of CTC loss to avoid
@@ -70,7 +73,7 @@ class CTC(torch.nn.Module):
             raise NotImplementedError
 
     def forward(self, hs_pad, hlens, ys_pad):
-        """CTC forward
+        """Calculate CTC forward.
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
@@ -132,7 +135,7 @@ class CTC(torch.nn.Module):
         return self.loss
 
     def softmax(self, hs_pad):
-        """softmax of frame activations
+        """Calculate softmax of frame activations.
 
         :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
         :return: log softmax applied 3d tensor (B, Tmax, odim)
@@ -142,7 +145,7 @@ class CTC(torch.nn.Module):
         return self.probs
 
     def log_softmax(self, hs_pad):
-        """log_softmax of frame activations
+        """Calculate log_softmax of frame activations.
 
         :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
         :return: log softmax applied 3d tensor (B, Tmax, odim)
@@ -151,7 +154,7 @@ class CTC(torch.nn.Module):
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
     def argmax(self, hs_pad):
-        """argmax of frame activations
+        """Calculate argmax of frame activations.
 
         :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
         :return: argmax applied 2d tensor (B, Tmax)
@@ -160,7 +163,7 @@ class CTC(torch.nn.Module):
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)
 
     def forced_align(self, h, y, blank_id=0):
-        """forced alignment.
+        """Calculate forced alignment.
 
         :param torch.Tensor h: hidden state sequence, 2d tensor (T, D)
         :param torch.Tensor y: id sequence tensor 1d tensor (L)
@@ -226,7 +229,7 @@ class CTC(torch.nn.Module):
 
 
 def ctc_for(args, odim, reduce=True):
-    """Returns the CTC module for the given args and output dimension
+    """Return the CTC module for the given args and output dimension.
 
     :param Namespace args: the program args
     :param int odim : The output dimension

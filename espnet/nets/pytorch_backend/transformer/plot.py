@@ -1,3 +1,4 @@
+"""pytorch_backend/transformer/plot module."""
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -10,6 +11,7 @@ from espnet.asr import asr_utils
 
 
 def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
+    """Plot and save attention."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -45,6 +47,7 @@ def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
 
 
 def savefig(plot, filename):
+    """Save figure."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -122,7 +125,10 @@ def plot_multi_head_attention(
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
+    """Plot Attention Report class."""
+
     def plotfn(self, *args, **kwargs):
+        """Process plot function."""
         kwargs["ikey"] = self.ikey
         kwargs["iaxis"] = self.iaxis
         kwargs["okey"] = self.okey
@@ -131,11 +137,13 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
         plot_multi_head_attention(*args, **kwargs)
 
     def __call__(self, trainer):
+        """Process call function."""
         attn_dict, uttid_list = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
         self.plotfn(self.data_dict, uttid_list, attn_dict, self.outdir, suffix, savefig)
 
     def get_attention_weights(self):
+        """Get attention weights."""
         return_batch, uttid_list = self.transform(self.data, return_uttid=True)
         batch = self.converter([return_batch], self.device)
         if isinstance(batch, tuple):
@@ -145,6 +153,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
         return att_ws, uttid_list
 
     def log_attentions(self, logger, step):
+        """Log attentions."""
         def log_fig(plot, filename):
             import matplotlib
 

@@ -1,3 +1,5 @@
+"""Streaming/segment module."""
+
 import numpy as np
 import torch
 
@@ -10,6 +12,7 @@ class SegmentStreamingE2E(object):
     """
 
     def __init__(self, e2e, recog_args, rnnlm=None):
+        """Initialize Segment Streaming E2E class."""
         self._e2e = e2e
         self._recog_args = recog_args
         self._char_list = e2e.char_list
@@ -41,7 +44,6 @@ class SegmentStreamingE2E(object):
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
-
         self._previous_input.extend(x)
         h, ilen = self._e2e.subsample_frames(x)
 

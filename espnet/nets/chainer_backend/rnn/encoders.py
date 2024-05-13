@@ -1,3 +1,4 @@
+"""Chainer rnn encoders module."""
 import logging
 
 import chainer
@@ -26,6 +27,7 @@ class RNNP(chainer.Chain):
     """
 
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout, typ="blstm"):
+        """Initialize RNNP."""
         super(RNNP, self).__init__()
         bidir = typ[0] == "b"
         if bidir:
@@ -54,7 +56,7 @@ class RNNP(chainer.Chain):
         self.bidir = bidir
 
     def __call__(self, xs, ilens):
-        """RNNP forward.
+        """Calculate RNNP forward propagation.
 
         Args:
             xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
@@ -103,6 +105,7 @@ class RNN(chainer.Chain):
     """
 
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="lstm"):
+        """Initialize RNN."""
         super(RNN, self).__init__()
         bidir = typ[0] == "b"
         if bidir:
@@ -159,6 +162,7 @@ class VGG2L(chainer.Chain):
     """
 
     def __init__(self, in_channel=1):
+        """Initialize VGG2L."""
         super(VGG2L, self).__init__()
         with self.init_scope():
             # CNN layer (VGG motivated)
@@ -239,6 +243,7 @@ class Encoder(chainer.Chain):
     def __init__(
         self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1
     ):
+        """Initialize Encoder."""
         super(Encoder, self).__init__()
         typ = etype.lstrip("vgg").rstrip("p")
         if typ not in ["lstm", "gru", "blstm", "bgru"]:
@@ -289,7 +294,7 @@ class Encoder(chainer.Chain):
                 self.conv_subsampling_factor = 1
 
     def __call__(self, xs, ilens):
-        """Encoder forward.
+        """Calculate Encoder forward propagation.
 
         Args:
             xs (chainer.Variable): Batch of padded character ids. (B, Tmax)

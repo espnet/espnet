@@ -215,7 +215,6 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
     select rows to create mask tensor.
     """
-
     if xs is None:
         device = lengths.device
     else:
@@ -256,6 +255,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
 
 
 def triu_onnx(x):
+    """Make TriU for ONNX."""
     arange = torch.arange(x.size(0), device=x.device)
     mask = arange.unsqueeze(-1).expand(-1, x.size(0)) <= arange
     return x * mask
@@ -594,7 +594,6 @@ def trim_by_ctc_posterior(
     The continuous frames in the tail that confidently represent
     blank symbols are trimmed.
     """
-
     # Empirical settings
     frame_tolerance = 5
     conf_tolerance = 0.95

@@ -1,3 +1,4 @@
+"""Chainer CTC module."""
 import logging
 
 import chainer
@@ -17,6 +18,7 @@ class CTC(chainer.Chain):
     """
 
     def __init__(self, odim, eprojs, dropout_rate):
+        """Initialize CTC class."""
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
@@ -25,7 +27,7 @@ class CTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        """CTC forward.
+        """Compute CTC forward.
 
         Args:
             hs (list of chainer.Variable | N-dimension array):
@@ -69,7 +71,7 @@ class CTC(chainer.Chain):
         return self.loss
 
     def log_softmax(self, hs):
-        """Log_softmax of frame activations.
+        """Compute Log_softmax of frame activations.
 
         Args:
             hs (list of chainer.Variable | N-dimension array):

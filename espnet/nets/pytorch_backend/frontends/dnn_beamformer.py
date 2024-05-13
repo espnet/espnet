@@ -15,7 +15,7 @@ from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
 
 
 class DNN_Beamformer(torch.nn.Module):
-    """DNN mask based Beamformer
+    """DNN mask based Beamformer.
 
     Citation:
         Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
@@ -36,6 +36,7 @@ class DNN_Beamformer(torch.nn.Module):
         ref_channel: int = -1,
         beamformer_type="mvdr",
     ):
+        """Initialize DNN Beamformer."""
         super().__init__()
         self.mask = MaskEstimator(
             btype, bidim, blayers, bunits, bprojs, dropout_rate, nmask=bnmask
@@ -54,7 +55,7 @@ class DNN_Beamformer(torch.nn.Module):
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
-        """The forward function
+        """Calculate DNN_Beamformer forward propagation.
 
         Notation:
             B: Batch
@@ -135,7 +136,10 @@ class DNN_Beamformer(torch.nn.Module):
 
 
 class AttentionReference(torch.nn.Module):
+    """Attention Reference class."""
+
     def __init__(self, bidim, att_dim):
+        """Initialize Attention Reference."""
         super().__init__()
         self.mlp_psd = torch.nn.Linear(bidim, att_dim)
         self.gvec = torch.nn.Linear(att_dim, 1)
@@ -143,7 +147,7 @@ class AttentionReference(torch.nn.Module):
     def forward(
         self, psd_in: ComplexTensor, ilens: torch.LongTensor, scaling: float = 2.0
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
-        """The forward function
+        """Calculate AttentionReference forward propagation.
 
         Args:
             psd_in (ComplexTensor): (B, F, C, C)
