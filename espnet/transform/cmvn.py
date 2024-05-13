@@ -1,3 +1,5 @@
+"""CMVN module."""
+
 import io
 
 import h5py
@@ -6,6 +8,8 @@ import numpy as np
 
 
 class CMVN(object):
+    """CMVN class."""
+
     def __init__(
         self,
         stats,
@@ -17,6 +21,7 @@ class CMVN(object):
         reverse=False,
         std_floor=1.0e-20,
     ):
+        """Initialize class."""
         self.stats_file = stats
         self.norm_means = norm_means
         self.norm_vars = norm_vars
@@ -82,6 +87,7 @@ class CMVN(object):
             self.scale[spk] = 1 / std
 
     def __repr__(self):
+        """Return a printable representation of the class."""
         return (
             "{name}(stats_file={stats_file}, "
             "norm_means={norm_means}, norm_vars={norm_vars}, "
@@ -95,6 +101,7 @@ class CMVN(object):
         )
 
     def __call__(self, x, uttid=None):
+        """Process call method."""
         if self.utt2spk is not None:
             spk = self.utt2spk[uttid]
         else:
@@ -116,12 +123,16 @@ class CMVN(object):
 
 
 class UtteranceCMVN(object):
+    """Utterance CMVN class."""
+
     def __init__(self, norm_means=True, norm_vars=False, std_floor=1.0e-20):
+        """Initialize class."""
         self.norm_means = norm_means
         self.norm_vars = norm_vars
         self.std_floor = std_floor
 
     def __repr__(self):
+        """Return a printable representation of the class."""
         return "{name}(norm_means={norm_means}, norm_vars={norm_vars})".format(
             name=self.__class__.__name__,
             norm_means=self.norm_means,
@@ -129,6 +140,7 @@ class UtteranceCMVN(object):
         )
 
     def __call__(self, x, uttid=None):
+        """Process call method."""
         # x: [Time, Dim]
         square_sums = (x**2).sum(axis=0)
         mean = x.mean(axis=0)

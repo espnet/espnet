@@ -38,7 +38,7 @@ import_alias = dict(
 
 
 class Transformation(object):
-    """Apply some functions to the mini-batch
+    """Apply some functions to the mini-batch.
 
     Examples:
         >>> kwargs = {"process": [{"type": "fbank",
@@ -56,6 +56,7 @@ class Transformation(object):
     """
 
     def __init__(self, conffile=None):
+        """Initialize Transformation."""
         if conffile is not None:
             if isinstance(conffile, dict):
                 self.conf = copy.deepcopy(conffile)
@@ -95,13 +96,14 @@ class Transformation(object):
             )
 
     def __repr__(self):
+        """Return string details of the class."""
         rep = "\n" + "\n".join(
             "    {}: {}".format(k, v) for k, v in self.functions.items()
         )
         return "{}({})".format(self.__class__.__name__, rep)
 
     def __call__(self, xs, uttid_list=None, **kwargs):
-        """Return new mini-batch
+        """Return new mini-batch.
 
         :param Union[Sequence[np.ndarray], np.ndarray] xs:
         :param Union[Sequence[str], str] uttid_list:
