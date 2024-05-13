@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Chainer LM module."""
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -52,6 +53,7 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
     @staticmethod
     def add_arguments(parser):
+        """Append additional arguments to parser."""
         parser.add_argument(
             "--type",
             type=str,
@@ -70,7 +72,7 @@ class DefaultRNNLM(LMInterface, link.Chain):
 
 
 class ClassifierWithState(link.Chain):
-    """A wrapper for a chainer RNNLM
+    """A wrapper for a chainer RNNLM.
 
     :param link.Chain predictor : The RNNLM
     :param function lossfun: The loss function to use
@@ -83,6 +85,7 @@ class ClassifierWithState(link.Chain):
         lossfun=softmax_cross_entropy.softmax_cross_entropy,
         label_key=-1,
     ):
+        """Initialize class."""
         if not (isinstance(label_key, (int, str))):
             raise TypeError("label_key must be int or str, but is %s" % type(label_key))
 
@@ -96,7 +99,7 @@ class ClassifierWithState(link.Chain):
             self.predictor = predictor
 
     def __call__(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.
+        """Compute the loss value for an input and label pair.
 
             It also computes accuracy and stores it to the attribute.
             When ``label_key`` is ``int``, the corresponding element in ``args``
@@ -113,7 +116,6 @@ class ClassifierWithState(link.Chain):
         :return loss value
         :rtype chainer.Variable
         """
-
         if isinstance(self.label_key, int):
             if not (-len(args) <= self.label_key < len(args)):
                 msg = "Label key %d is out of bounds" % self.label_key
@@ -137,7 +139,7 @@ class ClassifierWithState(link.Chain):
         return state, self.loss
 
     def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
+        """Predict log probabilities for given state and input x using the predictor.
 
         :param state : the state
         :param x : the input
@@ -151,7 +153,7 @@ class ClassifierWithState(link.Chain):
             return state, F.log_softmax(z).data
 
     def final(self, state):
-        """Predict final log probabilities for given state using the predictor
+        """Predict final log probabilities for given state using the predictor.
 
         :param state : the state
         :return log probability vector
@@ -166,7 +168,7 @@ class ClassifierWithState(link.Chain):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
-    """A chainer RNNLM
+    """A chainer RNNLM.
 
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
@@ -175,6 +177,7 @@ class RNNLM(chainer.Chain):
     """
 
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
+        """Initialize class."""
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
@@ -196,6 +199,7 @@ class RNNLM(chainer.Chain):
         self.typ = typ
 
     def __call__(self, state, x):
+        """Compute RNNLM call."""
         if state is None:
             if self.typ == "lstm":
                 state = {"c": [None] * self.n_layers, "h": [None] * self.n_layers}
@@ -236,7 +240,7 @@ class RNNLM(chainer.Chain):
 
 
 class BPTTUpdater(training.updaters.StandardUpdater):
-    """An updater for a chainer LM
+    """An updater for a chainer LM.
 
     :param chainer.dataset.Iterator train_iter : The train iterator
     :param optimizer:
@@ -246,12 +250,14 @@ class BPTTUpdater(training.updaters.StandardUpdater):
     """
 
     def __init__(self, train_iter, optimizer, schedulers, device, accum_grad):
+        """Initialize BPTT Updater."""
         super(BPTTUpdater, self).__init__(train_iter, optimizer, device=device)
         self.scheduler = ChainerScheduler(schedulers, optimizer)
         self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        """Run main update optimizer."""
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
         train_iter = self.get_iterator("main")
@@ -293,7 +299,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
 
 class LMEvaluator(BaseEvaluator):
-    """A custom evaluator for a chainer LM
+    """A custom evaluator for a chainer LM.
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
     :param eval_model : The model to evaluate
@@ -301,9 +307,11 @@ class LMEvaluator(BaseEvaluator):
     """
 
     def __init__(self, val_iter, eval_model, device):
+        """Initialize LM Evaluator."""
         super(LMEvaluator, self).__init__(val_iter, eval_model, device=device)
 
     def evaluate(self):
+        """Compute evaluation."""
         val_iter = self.get_iterator("main")
         target = self.get_target("main")
         loss = 0
@@ -325,7 +333,7 @@ class LMEvaluator(BaseEvaluator):
 
 
 def train(args):
-    """Train with the given args
+    """Train with the given args.
 
     :param Namespace args: The program arguments
     """

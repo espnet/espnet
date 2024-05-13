@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 
 def load_dataset(path, label_dict, outdir=None):
-    """Load and save HDF5 that contains a dataset and stats for LM
+    """Load and save HDF5 that contains a dataset and stats for LM.
 
     Args:
         path (str): The path of an input text dataset file
@@ -59,14 +59,13 @@ def load_dataset(path, label_dict, outdir=None):
 
 
 def read_tokens(filename, label_dict):
-    """Read tokens as a sequence of sentences
+    """Read tokens as a sequence of sentences.
 
     :param str filename : The name of the input file
     :param dict label_dict : dictionary that maps token label string to its ID number
     :return list of ID sequences
     :rtype list
     """
-
     data = []
     unk = label_dict["<unk>"]
     for ln in tqdm(open(filename, "r", encoding="utf-8")):
@@ -89,7 +88,6 @@ def count_tokens(data, unk_id=None):
         tuple: tuple of number of token occurrences and number of oov tokens
 
     """
-
     n_tokens = 0
     n_oovs = 0
     for sentence in data:
@@ -100,7 +98,7 @@ def count_tokens(data, unk_id=None):
 
 
 def compute_perplexity(result):
-    """Computes and add the perplexity to the LogReport
+    """Compute and add the perplexity to the LogReport.
 
     :param dict result: The current observations
     """
@@ -122,6 +120,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
     def __init__(
         self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True, shuffle=True
     ):
+        """Initialize class."""
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
         # Number of completed sweeps over the dataset. In this case, it is
@@ -163,6 +162,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
         self._previous_epoch_detail = -1.0
 
     def __next__(self):
+        """Yield next value."""
         # This iterator returns a list representing a mini-batch. Each item
         # indicates a sentence pair like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
         # represented by token IDs.
@@ -192,20 +192,24 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
         return batch
 
     def start_shuffle(self):
+        """Shuffle batch indices."""
         random.shuffle(self.batch_indices)
 
     @property
     def epoch_detail(self):
+        """Return epoch detail."""
         # Floating point version of epoch.
         return self.iteration / len(self.batch_indices)
 
     @property
     def previous_epoch_detail(self):
+        """Return previous epoch detail."""
         if self._previous_epoch_detail < 0:
             return None
         return self._previous_epoch_detail
 
     def serialize(self, serializer):
+        """Append values to serializer."""
         # It is important to serialize the state to be recovered on resume.
         self.iteration = serializer("iteration", self.iteration)
         self.epoch = serializer("epoch", self.epoch)
@@ -225,7 +229,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 
 
 class MakeSymlinkToBestModel(extension.Extension):
-    """Extension that makes a symbolic link to the best model
+    """Extension that makes a symbolic link to the best model.
 
     :param str key: Key of value
     :param str prefix: Prefix of model files and link target
@@ -233,6 +237,7 @@ class MakeSymlinkToBestModel(extension.Extension):
     """
 
     def __init__(self, key, prefix="model", suffix="best"):
+        """Initialize class."""
         super(MakeSymlinkToBestModel, self).__init__()
         self.best_model = -1
         self.min_loss = 0.0
@@ -241,6 +246,7 @@ class MakeSymlinkToBestModel(extension.Extension):
         self.suffix = suffix
 
     def __call__(self, trainer):
+        """Compute class call."""
         observation = trainer.observation
         if self.key in observation:
             loss = observation[self.key]
@@ -255,6 +261,7 @@ class MakeSymlinkToBestModel(extension.Extension):
                 logging.info("best model is " + src)
 
     def serialize(self, serializer):
+        """Append values to serializer."""
         if isinstance(serializer, chainer.serializer.Serializer):
             serializer("_best_model", self.best_model)
             serializer("_min_loss", self.min_loss)
@@ -272,7 +279,7 @@ class MakeSymlinkToBestModel(extension.Extension):
 # TODO(Hori): currently it only works with character-word level LM.
 #             need to consider any types of subwords-to-word mapping.
 def make_lexical_tree(word_dict, subword_dict, word_unk):
-    """Make a lexical tree to compute word-level probabilities"""
+    """Make a lexical tree to compute word-level probabilities."""
     # node [dict(subword_id -> node), word_id, word_set[start-1, end]]
     root = [{}, -1, None]
     for w, wid in word_dict.items():
