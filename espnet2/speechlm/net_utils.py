@@ -86,8 +86,8 @@ def install_kv_cache_hook(model, cache):
 
     def install_hooks(layer: torch.nn.Module):
         if isinstance(layer, MultiHeadAttention):
-            hooks.append(layer.linear_k.register_forward_hook(save_to_cache))
-            hooks.append(layer.linear_v.register_forward_hook(save_to_cache))
+            hooks.append(layer.key.register_forward_hook(save_to_cache))
+            hooks.append(layer.value.register_forward_hook(save_to_cache))
 
     model.apply(install_hooks)
     return cache, hooks
@@ -113,7 +113,7 @@ def logits_to_tokens(
     # (2) token selection
     topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
 
-    if opts.search_algo in ["sampling", "teacher_force"]:
+    if opts.search_algo in ["sampling"]:
         logp = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
         inner_indices = torch.multinomial(logp.flatten(end_dim=-2), num_samples=1).view(
             logp[..., :1].size()
@@ -121,7 +121,7 @@ def logits_to_tokens(
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
 
-    elif opts.search_algo in ["greedy_search"]:
+    elif opts.search_algo in ["greedy_search", "teacher_force"]:
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0]
 

@@ -116,23 +116,26 @@ class SpeechLM:
         self,
         dec_seq: torch.Tensor,
         dec_seq_lengths: torch.Tensor,
+        prefix_len: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
         if enc_seq is not None or enc_seq_lengths is not None:
-            raise NotImplemented("encoder-decoder is not supported")
+            raise NotImplementedError("encoder-decoder is not supported")
+        
+        prefix_len = prefix_len.squeeze(1)
 
         # training inference, only for debug
         # with torch.no_grad():
         #     _ = self.model.corelm(
         #         dec_seq=dec_seq,
         #         dec_seq_lengths=dec_seq_lengths,
+        #         prefix_len=prefix_len,
         #     )
 
         # language model inference
-        prefix_len = kwargs["prefix_len"]
         gen_tokens, gen_scores = self.model.corelm.inference(
             prefix=dec_seq[:, : prefix_len + 1],
             opts=self.inference_opts,

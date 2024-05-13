@@ -2,21 +2,27 @@ from typing import Optional
 from torch import Tensor, nn
 
 from espnet2.speechlm.module.transformer import (
-    LayerNorm,
     ResidualAttentionBlock,
     TransformerDecoder,
 )
 
 class AdaLN(nn.Module):
-    def __init__(self, n_state):
+    def __init__(self, n_state, eps=1e-5):
         super().__init__()
-        self.ln = LayerNorm(n_state, elementwise_affine=False)
-        self.proj = nn.Linear(n_state, n_state * 2)
+        self.weight = nn.Linear(n_state, n_state, bias=False)
+        self.bias = nn.Linear(n_state, n_state, bias=False)
+        nn.init.constant_(self.weight.weight, 1.0)
+        nn.init.constant_(self.bias.weight, 0.0)
+        
         self.n_state = n_state
+        self.eps = eps
 
     def forward(self, x: Tensor, level_emb: Tensor):
-        w, b = self.proj(level_emb).split(self.n_state, dim=-1)
-        return w.unsqueeze(1) * self.ln(x) + b.unsqueeze(1)
+        w = self.weight(level_emb).unsqueeze(1)
+        b = self.bias(level_emb).unsqueeze(1)
+        x = nn.functional.layer_norm(x, (self.n_state,), eps=self.eps)
+        x = w * x + b
+        return x
 
 class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
     def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):

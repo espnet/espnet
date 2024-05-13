@@ -7,7 +7,6 @@
 
 from typing import Tuple, Dict
 import torch
-import random
 import logging
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
