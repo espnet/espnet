@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Fill missing args methods."""
+
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 

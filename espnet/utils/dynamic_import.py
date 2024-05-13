@@ -1,8 +1,10 @@
+"""Dynamic Import method."""
+
 import importlib
 
 
 def dynamic_import(import_path, alias=dict()):
-    """dynamic import module and class
+    """Dynamic import module and class.
 
     :param str import_path: syntax 'module_name:class_name'
         e.g., 'espnet.transform.add_deltas:AddDeltas'
