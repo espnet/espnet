@@ -53,3 +53,9 @@ def test_bayes_risk_ctc(ctc_args):
     bayes_risk_ctc_loss = bayes_risk_ctc(*ctc_args)
 
     assert torch.abs(builtin_ctc_loss - bayes_risk_ctc_loss) < 1e-6
+
+
+@pytest.mark.parametrize("ctc_type", ["builtin"])
+def test_ctc_no_bias(ctc_type, ctc_args):
+    ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type, bias=False)
+    ctc.argmax(ctc_args[0])

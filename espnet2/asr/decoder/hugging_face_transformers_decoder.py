@@ -6,7 +6,7 @@
 
 import copy
 import logging
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -43,6 +43,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
+        from_pretrained_kwargs: Dict[str, Any] = {},
     ):
         super().__init__()
 
@@ -56,8 +57,11 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.causal_lm = causal_lm
 
         if self.causal_lm:
-            model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path, **from_pretrained_kwargs
+            )
             self.decoder = get_hugging_face_model_network(model)
+            self.decoder_dtype = self.decoder.dtype
 
             if hasattr(self.decoder, "word_embeddings"):
                 self.decoder_word_embeddings = self.decoder.word_embeddings
@@ -74,7 +78,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             ):
                 self.decoder_pad_token_id = self.decoder.config.pad_token_id
             else:
-                self.decoder_pad_token_id = 1
+                self.decoder_pad_token_id = self.decoder.config.eos_token_id
 
             tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
             self.tokenizer_padding_side = tokenizer.padding_side
@@ -93,6 +97,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 self.decoder = model.model.decoder
             else:
                 self.decoder = model.decoder
+
+            self.decoder_dtype = self.decoder.dtype
 
         model.resize_token_embeddings(vocab_size)
 
@@ -151,6 +157,10 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             hs_mask = (~make_pad_mask(hlens)).to(hs_pad.device).float()
             args["encoder_attention_mask"] = hs_mask
 
+        # this is needed if transformers layers need to have a dtype
+        # different from the rest of model (for FlashAttention)
+        self.decoder.to(dtype=self.decoder_dtype)
+
         x = self.decoder(**args).last_hidden_state
 
         if self.causal_lm:
@@ -179,6 +189,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                     ]
                 )
 
+        x = x.to(dtype=self.lm_head.weight.dtype)
         x = self.lm_head(x)
 
         return x, ys_in_lens
@@ -219,12 +230,14 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
             enc_out_list.append(torch.cat(enc_out_element, dim=1))
 
-        args["inputs_embeds"] = torch.vstack(enc_out_list)
+        args["inputs_embeds"] = torch.vstack(enc_out_list).to(dtype=self.decoder_dtype)
 
         no_loss_lengths = self.prefix.size(1) + hlens + self.postfix.size(1) - 1
         inputs_lengths = no_loss_lengths + ys_in_lens
 
-        hs_mask = (~make_pad_mask(inputs_lengths)).to(enc_out.device).float()
+        hs_mask = (~make_pad_mask(inputs_lengths)).to(
+            enc_out.device, dtype=self.decoder_dtype
+        )
 
         if self.tokenizer_padding_side == "left":
             args["attention_mask"] = hs_mask.flip([1])
