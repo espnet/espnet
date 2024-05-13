@@ -1,10 +1,11 @@
+"""Utils for training routine."""
 import logging
 
 import chainer
 
 
 def check_early_stop(trainer, epochs):
-    """Checks an early stopping trigger and warns the user if it's the case
+    """Check an early stopping trigger and warns the user if it's the case.
 
     :param trainer: The trainer used for training
     :param epochs: The maximum number of epochs
@@ -19,7 +20,7 @@ def check_early_stop(trainer, epochs):
 
 
 def set_early_stop(trainer, args, is_lm=False):
-    """Sets the early stop trigger given the program arguments
+    """Set the early stop trigger given the program arguments.
 
     :param trainer: The trainer used for training
     :param args: The program arguments

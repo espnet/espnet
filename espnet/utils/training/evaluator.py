@@ -1,12 +1,15 @@
+"""Evaluator classes & methods."""
+
 from chainer.training.extensions import Evaluator
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 
 
 class BaseEvaluator(Evaluator):
-    """Base Evaluator in ESPnet"""
+    """Base Evaluator in ESPnet."""
 
     def __call__(self, trainer=None):
+        """Process call function."""
         ret = super().__call__(trainer)
         try:
             if trainer is not None:

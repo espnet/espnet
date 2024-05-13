@@ -1,3 +1,5 @@
+"""Batchfy methods."""
+
 import itertools
 import logging
 
@@ -16,7 +18,7 @@ def batchfy_by_seq(
     okey="output",
     oaxis=0,
 ):
-    """Make batch set from json dictionary
+    """Make batch set from json dictionary.
 
     :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
     :param int batch_size: batch size
@@ -94,7 +96,7 @@ def batchfy_by_bin(
     ikey="input",
     okey="output",
 ):
-    """Make variably sized batch set, which maximizes
+    """Make variably sized batch set, which maximizes.
 
     the number of bins up to `batch_bins`.
 
@@ -187,7 +189,7 @@ def batchfy_by_frame(
     ikey="input",
     okey="output",
 ):
-    """Make variable batch set, which maximizes the number of frames to max_batch_frame.
+    """Make variable batch set, which maximizes the num of frames to max_batch_frame.
 
     :param Dict[str, Dict[str, Any]] sorteddata: dictionary loaded from data.json
     :param int max_frames_in: Maximum input frames of a batch
@@ -286,6 +288,7 @@ def batchfy_by_frame(
 
 
 def batchfy_shuffle(data, batch_size, min_batch_size, num_batches, shortest_first):
+    """Process Batchfy by shuffle."""
     import random
 
     logging.info("use shuffled batch.")
@@ -343,7 +346,7 @@ def make_batchset(
     iaxis=0,
     oaxis=0,
 ):
-    """Make batch set from json dictionary
+    """Make batch set from json dictionary.
 
     if utts have "category" value,
 
@@ -384,7 +387,6 @@ def make_batchset(
         reserved for future research, -1 means all axis.)
     :return: List[List[Tuple[str, dict]]] list of batches
     """
-
     # check args
     if count not in BATCH_COUNT_CHOICES:
         raise ValueError(
