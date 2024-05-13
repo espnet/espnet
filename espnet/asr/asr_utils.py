@@ -1,3 +1,4 @@
+"""Common Utils for ASR in ESPnet."""
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -26,6 +27,7 @@ class CompareValueTrigger(object):
     """
 
     def __init__(self, key, compare_fn, trigger=(1, "epoch")):
+        """Initialize Compare Value Trigger."""
         from chainer import training
 
         self._key = key
@@ -110,6 +112,7 @@ else:
             oaxis=0,
             subsampling_factor=1,
         ):
+            """Initialize Plot Attention Report."""
             self.att_vis_fn = att_vis_fn
             self.data = copy.deepcopy(data)
             self.data_dict = {k: v for k, v in copy.deepcopy(data)}
@@ -365,6 +368,7 @@ else:
             oaxis=0,
             subsampling_factor=1,
         ):
+            """Initialize Plot CTC Report."""
             self.ctc_vis_fn = ctc_vis_fn
             self.data = copy.deepcopy(data)
             self.data_dict = {k: v for k, v in copy.deepcopy(data)}
@@ -651,7 +655,7 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
 
 
 def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.55):
-    """Adds noise from a standard normal distribution to the gradients.
+    """Add noise from a standard normal distribution to the gradients.
 
     The standard deviation (`sigma`) is controlled by the three hyper-parameters below.
     `sigma` goes to zero (no noise) with more iterations.
@@ -733,7 +737,7 @@ def torch_save(path, model):
 
 
 def snapshot_object(target, filename):
-    """Returns a trainer extension to take snapshots of a given object.
+    """Return a trainer extension to take snapshots of a given object.
 
     Args:
         target (model): Object to serialize.

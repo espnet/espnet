@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""Extensions for Language model routines."""
 # Copyright 2018 Mitsubishi Electric Research Laboratories (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -14,6 +14,8 @@ from espnet.lm.lm_utils import make_lexical_tree
 
 # Definition of a multi-level (subword/word) language model
 class MultiLevelLM(chainer.Chain):
+    """Define of a multi-level (subword/word) language model."""
+
     logzero = -10000000000.0
     zero = 1.0e-10
 
@@ -27,6 +29,7 @@ class MultiLevelLM(chainer.Chain):
         oov_penalty=1.0,
         open_vocab=True,
     ):
+        """Initialize Multilevel LM."""
         super(MultiLevelLM, self).__init__()
         self.wordlm = wordlm
         self.subwordlm = subwordlm
@@ -44,6 +47,7 @@ class MultiLevelLM(chainer.Chain):
         self.normalized = True
 
     def __call__(self, state, x):
+        """Process call routine."""
         # update state with input label x
         if state is None:  # make initial states and log-prob vectors
             wlm_state, z_wlm = self.wordlm(None, self.xp_word_eos)
@@ -94,6 +98,7 @@ class MultiLevelLM(chainer.Chain):
         return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, clm_logprob), log_y
 
     def final(self, state):
+        """Obtain final scores."""
         clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
         if node is not None and node[1] >= 0:  # check if the node is word end
             w = self.xp.full(1, node[1], "i")
@@ -105,12 +110,15 @@ class MultiLevelLM(chainer.Chain):
 
 # Definition of a look-ahead word language model
 class LookAheadWordLM(chainer.Chain):
+    """Define of a look-ahead word language model."""
+
     logzero = -10000000000.0
     zero = 1.0e-10
 
     def __init__(
         self, wordlm, word_dict, subword_dict, oov_penalty=0.0001, open_vocab=True
     ):
+        """Initialize LookAheadWord LM."""
         super(LookAheadWordLM, self).__init__()
         self.wordlm = wordlm
         self.word_eos = word_dict["<eos>"]
@@ -126,6 +134,7 @@ class LookAheadWordLM(chainer.Chain):
         self.normalized = True
 
     def __call__(self, state, x):
+        """Process call routine."""
         # update state with input label x
         if state is None:  # make initial states and cumlative probability vector
             wlm_state, z_wlm = self.wordlm(None, self.xp_word_eos)
@@ -191,6 +200,7 @@ class LookAheadWordLM(chainer.Chain):
         return (wlm_state, cumsum_probs, new_node), log_y
 
     def final(self, state):
+        """Obtain final scores."""
         wlm_state, cumsum_probs, node = state
         if node is not None and node[1] >= 0:  # check if the node is word end
             w = self.xp.full(1, node[1], "i")

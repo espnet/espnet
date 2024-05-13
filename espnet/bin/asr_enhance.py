@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Enhance noisy speech for speech recognition."""
+
 import logging
 import os
 import random
@@ -13,6 +15,7 @@ from espnet.asr.pytorch_backend.asr import enhance
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
+    """Get parser for ASR Enhance."""
     parser = configargparse.ArgumentParser(
         description="Enhance noisy speech for speech recognition",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
@@ -136,6 +139,7 @@ def get_parser():
 
 
 def main(args):
+    """Process main routine."""
     parser = get_parser()
     args = parser.parse_args(args)
 
