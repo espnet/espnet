@@ -137,7 +137,7 @@ class SpeechLM:
 
         # language model inference
         gen_tokens, gen_scores = self.model.corelm.inference(
-            prefix=dec_seq[:, : prefix_len + 1],
+            prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
             enc_seq=None,
             suffix=dec_seq[:, prefix_len + 1 :],

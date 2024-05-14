@@ -298,7 +298,7 @@ if ! "${skip_data_prep}"; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/codec_tokenization.sh \
                         --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
-                        --codec_fs ${fs} \
+                        --codec_fs ${fs} --dump_audio false \
                         --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
 
                 elif [ ${_modality} == "g2p" ]; then
