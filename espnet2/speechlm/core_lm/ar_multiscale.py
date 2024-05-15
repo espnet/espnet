@@ -126,8 +126,6 @@ class MultiScaleLM(AbsCoreLM):
         # (2) Prefix forward
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        # Note(Jinchuan): exclude the last prefix, which is opts.start and will become
-        # the original value of g_prev_tok
         prefix_emb = self.emb(prefix).sum(2)
         _ = self.g_decoders(prefix_emb, kv_cache=g_cache)
 
