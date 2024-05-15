@@ -55,11 +55,13 @@ class MultiScaleLM(AbsCoreLM):
             n_head=l_head,
             n_layer=l_layer,
         )
+
         self.placeholder = torch.nn.parameter.Parameter(
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-        # later shouls allow the local dimension is smaller than the global dimension.
+        # later shouls allow the local dimension to be smaller than the global dimension.
+        # for efficient local modeling
         if g_att_unit != l_att_unit:
             raise ValueError(
                 "currently attention size for global and local size should be the same"
@@ -126,7 +128,7 @@ class MultiScaleLM(AbsCoreLM):
         suffix = suffix.expand(opts.nbest, -1, -1)
         # Note(Jinchuan): exclude the last prefix, which is opts.start and will become
         # the original value of g_prev_tok
-        prefix_emb = self.emb(prefix[:, :-1]).sum(2)
+        prefix_emb = self.emb(prefix).sum(2)
         _ = self.g_decoders(prefix_emb, kv_cache=g_cache)
 
         # (3) global loop

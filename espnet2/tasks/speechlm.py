@@ -38,7 +38,7 @@ corelm_choices = ClassChoices(
         valle=ValleLM,
     ),
     type_check=AbsCoreLM,
-    default="multiscale",
+    default="valle",
 )
 
 post_processor_choices = ClassChoices(
