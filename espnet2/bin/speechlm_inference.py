@@ -125,14 +125,6 @@ class SpeechLM:
 
         prefix_len = prefix_len.squeeze(1)
 
-        # training inference, only for debug
-        # with torch.no_grad():
-        #     _ = self.model.corelm(
-        #         dec_seq=dec_seq,
-        #         dec_seq_lengths=dec_seq_lengths,
-        #         prefix_len=prefix_len,
-        #     )
-
         # language model inference
         gen_tokens, gen_scores = self.model.corelm.inference(
             prefix=dec_seq[:, :prefix_len],
