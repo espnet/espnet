@@ -57,7 +57,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
     def inference(
         self,
         prefix: torch.Tensor,
-        opts: dict = None,
+        opts: Optional[Dict] = None,
         suffix: torch.Tensor = None,
     ):
         raise NotImplementedError
