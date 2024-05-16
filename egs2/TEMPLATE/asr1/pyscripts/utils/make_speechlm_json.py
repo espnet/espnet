@@ -4,8 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """
-Espnet SpeechLM toolkit natually supports multi-tasking, for which it adopts a more
-flexible data organization strategy. Check the information below for better
+ESPnet SpeechLM toolkit naturally supports multi-tasking, for which it adopts a more
+flexible data organization strategy. Check the information below for a better
 understanding.
 
 1. Data and Modality definition.
