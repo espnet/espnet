@@ -70,7 +70,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${data_dir_textlm}/train
     # use external data
     if [ ! -e ${data_dir_textlm}/librispeech-lm-norm.txt.gz ]; then
