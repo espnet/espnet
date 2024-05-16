@@ -1,19 +1,29 @@
 import collections
 import copy
 import functools
+import json
 import logging
 import numbers
+import random
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Union, List
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import h5py
-import json
 import humanfriendly
 import kaldiio
 import numpy as np
 import torch
-import random
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 

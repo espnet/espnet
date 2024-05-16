@@ -1,10 +1,12 @@
 from typing import Optional
+
 from torch import Tensor, nn
 
 from espnet2.speechlm.module.transformer import (
     ResidualAttentionBlock,
     TransformerDecoder,
 )
+
 
 class AdaLN(nn.Module):
     def __init__(self, n_state, eps=1e-5):
@@ -13,7 +15,7 @@ class AdaLN(nn.Module):
         self.bias = nn.Linear(n_state, n_state, bias=False)
         nn.init.constant_(self.weight.weight, 1.0)
         nn.init.constant_(self.bias.weight, 0.0)
-        
+
         self.n_state = n_state
         self.eps = eps
 
@@ -24,16 +26,19 @@ class AdaLN(nn.Module):
         x = w * x + b
         return x
 
+
 class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
     def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
         super(ResidualAttentionBlockAdaLM, self).__init__(
-            n_state=n_state, n_head=n_head, cross_attention=cross_attention,    
+            n_state=n_state,
+            n_head=n_head,
+            cross_attention=cross_attention,
         )
 
         for name, module in self.named_modules():
             if isinstance(module, nn.LayerNorm):
                 setattr(self, name, AdaLN(n_state))
-    
+
     def forward(
         self,
         x: Tensor,
@@ -44,20 +49,26 @@ class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
     ):
         x = x + self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)[0]
         if self.cross_attn:
-            x = x + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)[0]
+            x = (
+                x
+                + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)[
+                    0
+                ]
+            )
         x = x + self.mlp(self.mlp_ln(x, level))
         return x
 
+
 class ValleNARDecoder(TransformerDecoder):
     def __init__(
-        self, 
+        self,
         n_level: int,
         n_ctx: int,
         n_state: int,
         n_head: int,
         n_layer: int,
         causal: bool = True,
-        layer_class = ResidualAttentionBlockAdaLM,
+        layer_class=ResidualAttentionBlockAdaLM,
     ):
         super(ValleNARDecoder, self).__init__(
             n_ctx=n_ctx,
@@ -65,12 +76,12 @@ class ValleNARDecoder(TransformerDecoder):
             n_head=n_head,
             n_layer=n_layer,
             causal=causal,
-            layer_class=layer_class
+            layer_class=layer_class,
         )
 
         self.level_emb = nn.Embedding(n_level, n_state)
         self.ln = AdaLN(n_state)
-    
+
     def forward(self, x: Tensor, level: Tensor, kv_cache: Optional[dict] = None):
         level = self.level_emb(level)
 
@@ -82,4 +93,3 @@ class ValleNARDecoder(TransformerDecoder):
 
         x = self.ln(x, level)
         return x
-

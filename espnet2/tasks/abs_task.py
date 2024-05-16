@@ -1276,7 +1276,7 @@ class AbsTask(ABC):
         if args.detect_anomaly:
             logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
             torch.autograd.set_detect_anomaly(args.detect_anomaly)
-        
+
         if args.use_tf32:
             # Accelerate matmul at the cost of precision.
             # Only effective with Ampere GPUs and above

@@ -5,17 +5,14 @@
 
 # Implementation of UniAudio architecture: https://arxiv.org/abs/2310.00704
 
-from typing import Tuple, Dict
-import torch
 import logging
+from typing import Dict, Tuple
+
+import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import (
-    ce_loss,
-    install_kv_cache_hook,
-    logits_to_tokens,
-)
+from espnet2.speechlm.net_utils import ce_loss, install_kv_cache_hook, logits_to_tokens
 
 
 class MultiScaleLM(AbsCoreLM):
@@ -33,8 +30,8 @@ class MultiScaleLM(AbsCoreLM):
         n_ctx: int = 3000,
         first_layer_weight: int = 1.0,
     ):
-        """ Initialize MultiScaleLM
-        
+        """Initialize MultiScaleLM
+
         Args:
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
@@ -49,7 +46,7 @@ class MultiScaleLM(AbsCoreLM):
             first_layer_weight (int): a factor to scale the gradient for the first-layer codes.
         """
         super(MultiScaleLM, self).__init__()
-        
+
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
         self.lm_head = torch.nn.Linear(g_att_unit, vocab_size, bias=False)
         if share_emb:
@@ -93,7 +90,7 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        """ Auto-Regresive MultiScale forward for training
+        """Auto-Regresive MultiScale forward for training
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
@@ -108,25 +105,25 @@ class MultiScaleLM(AbsCoreLM):
 
         # global
         x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2) # [B, T, nq, D] -> [B, T, D]
-        x = self.g_decoders(x) 
-        
+        x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
+        x = self.g_decoders(x)
+
         # global-to-local
         B, T, _ = x.size()
         placeholder = self.placeholder.tile(B, T, 1, 1)
         target = dec_seq[:, 1:]
         target_shift = torch.cat([placeholder, self.emb(target)], dim=2)[
             :, :, :-1
-        ] # [B, T, nq, D]
+        ]  # [B, T, nq, D]
         x = x.unsqueeze(2) + target_shift
-        
+
         # local
-        x = x.flatten(0, 1) # [B * T, nq, D]
+        x = x.flatten(0, 1)  # [B * T, nq, D]
         x = self.l_decoders(x)
-        x = x.view(target_shift.size()) # [B, T, nq, D]
+        x = x.view(target_shift.size())  # [B, T, nq, D]
 
         # loss
-        logits = self.lm_head(x) # [B, T, nq, V]
+        logits = self.lm_head(x)  # [B, T, nq, V]
         loss, stats, weight = ce_loss(
             logits,
             target,
@@ -145,7 +142,7 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
-        """ Auto-Regresive MultiScale Inference.
+        """Auto-Regresive MultiScale Inference.
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).
@@ -172,7 +169,7 @@ class MultiScaleLM(AbsCoreLM):
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
-        
+
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
 
         g_generated = {"token": [], "score": []}
@@ -182,16 +179,16 @@ class MultiScaleLM(AbsCoreLM):
             .long()
             .to(opts.device)
         )
-        g_prev_emb = self.emb(g_prev_tok).sum(2) # [B, 1, D]
+        g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
         for g_step in range(maxlen):
-            g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache) # [B, 1, D]
+            g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache)  # [B, 1, D]
 
             # (3.2) local initialization
             l_cache, l_hooks = install_kv_cache_hook(self.l_decoders, {})
 
             # (3.3) local loop
             l_generated = {"token": [], "score": []}
-            l_prev_emb = self.placeholder.tile(opts.nbest, 1, 1) # [B, 1, D]
+            l_prev_emb = self.placeholder.tile(opts.nbest, 1, 1)  # [B, 1, D]
             for l_step in range(opts.nq):
                 l_hidden = l_prev_emb + g_hidden
                 l_hidden = self.l_decoders(l_hidden, kv_cache=l_cache)
@@ -207,35 +204,35 @@ class MultiScaleLM(AbsCoreLM):
                 gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)
 
                 if opts.search_algo == "teacher_force":
-                    l_prev_tok = suffix[:, g_step: g_step + 1, l_step]
+                    l_prev_tok = suffix[:, g_step : g_step + 1, l_step]
                 else:
                     l_prev_tok = gen_tok
                 l_prev_emb = self.emb(l_prev_tok)
 
-                l_generated['token'].append(gen_tok)
-                l_generated['score'].append(gen_score)
-            
+                l_generated["token"].append(gen_tok)
+                l_generated["score"].append(gen_score)
+
             # (3.4) local finalize
             for hook in l_hooks:
                 hook.remove()
-            
-            gen_tokens_local = torch.stack(l_generated['token'], dim=2) # [B, 1, nq]
-            gen_scores_local = torch.stack(l_generated['score'], dim=2)
 
-            g_generated['token'].append(gen_tokens_local)
-            g_generated['score'].append(gen_scores_local)
+            gen_tokens_local = torch.stack(l_generated["token"], dim=2)  # [B, 1, nq]
+            gen_scores_local = torch.stack(l_generated["score"], dim=2)
+
+            g_generated["token"].append(gen_tokens_local)
+            g_generated["score"].append(gen_scores_local)
 
             if opts.search_algo == "teacher_force":
-                g_prev_tok = suffix[:, g_step: g_step + 1]
+                g_prev_tok = suffix[:, g_step : g_step + 1]
             else:
                 g_prev_tok = gen_tokens_local
-            g_prev_emb = self.emb(g_prev_tok).sum(2) # [B, 1, D]
-            
+            g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
+
             # (3.5) detect ended hypotheses
             finish_idx = torch.where(
                 torch.logical_and(g_prev_tok[:, 0, 0] == opts.eos, finish_idx == -1),
                 g_step,
-                finish_idx
+                finish_idx,
             )
 
             if torch.all(torch.ge(finish_idx, 0)):
@@ -248,7 +245,7 @@ class MultiScaleLM(AbsCoreLM):
                 )
 
         logging.info(f"Finish with lengths: {finish_idx}")
-        
+
         # (4) global finalize & build hypotheses
         for hook in g_hooks:
             hook.remove()

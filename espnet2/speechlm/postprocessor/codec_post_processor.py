@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
-from typing import Tuple, Dict
-
 import json
+from abc import ABC, abstractmethod
+from typing import Dict, Tuple
+
 import numpy as np
 import torch
 
@@ -72,27 +72,25 @@ class Codec_Tokenizer(torch.nn.Module):
             self.size_codebook = conf["n_codes"]
             self.sample_rate = conf["sampling_rate"]
             self.subsample = np.prod(np.array(conf["upsample_rates"]))
-        
+
         # temporary code, will remove later
         elif self.codec_choice == "UniAudio":
             try:
                 from models.soundstream import SoundStream
                 from omegaconf import OmegaConf
             except:
-                raise ImportError(
-                    "Download the Codec from"
-                )
+                raise ImportError("Download the Codec from")
 
             model_path = "UniAudio/codec/universal_model/model.pth"
             model_config = "UniAudio/codec/universal_model/config.yaml"
             config = OmegaConf.load(model_config)
             model = SoundStream(**config.generator.config)
 
-            state_dict = torch.load(model_path, map_location='cpu')
-            model.load_state_dict(state_dict['codec_model'])
+            state_dict = torch.load(model_path, map_location="cpu")
+            model.load_state_dict(state_dict["codec_model"])
             model = model.to(device)
             self.codec = model
-            
+
             self.n_codebook = 8
             self.sample_rate = 16000
             self.size_codebook = 1024
@@ -102,7 +100,7 @@ class Codec_Tokenizer(torch.nn.Module):
             raise ValueError(f"Codec {codec_choice} is not supported")
 
     def decode(self, codes):
-        """ codes in shape [B, T, nq] """
+        """codes in shape [B, T, nq]"""
         if self.codec_choice == "DAC":
             raise NotImplementedError
         elif self.codec_choice == "EnCodec":
@@ -145,7 +143,7 @@ class Codec_Tokenizer(torch.nn.Module):
                 resyn_audio = self.decode(codes)
             else:
                 resyn_audio = None
-        
+
         elif self.codec_choice == "UniAudio":
             codes = self.codec.encode(wavs).permute(1, 2, 0)
             if self.dump_audio:

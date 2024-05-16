@@ -7,15 +7,14 @@ import argparse
 import logging
 import os
 import sys
-import kaldiio
-import torch
-import numpy as np
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet2.utils.types import str2bool
+import kaldiio
+import numpy as np
+import torch
 
 from espnet2.speechlm.postprocessor.codec_post_processor import Codec_Tokenizer
-
+from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

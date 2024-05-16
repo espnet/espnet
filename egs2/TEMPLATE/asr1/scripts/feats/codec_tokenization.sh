@@ -52,7 +52,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p "${output_dir}"
     _logdir=${tgt_dir}/logdir
     mkdir -p "${_logdir}"
-    
+
     nutt=$(<"${src_dir}"/${file_name}.scp wc -l)
     _nj=$((nj<nutt?nj:nutt))
 
@@ -76,7 +76,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --wav_wspecifier ${wav_wspecifier} \
             ${tokenization_opts} \
             "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
-    
+
     for n in $(seq ${_nj}); do
         cat ${output_dir}/${file_name}_codec_${codec_choice}.${n}.scp || exit 1;
     done > ${tgt_dir}/${file_name}.scp || exit 1

@@ -1,15 +1,15 @@
 """Iterable dataset module."""
 
 import copy
+import json
 from io import StringIO
 from pathlib import Path
-from typing import Callable, Collection, Dict, Iterator, Optional, Tuple, Union, List
+from typing import Callable, Collection, Dict, Iterator, List, Optional, Tuple, Union
 
 import kaldiio
 import numpy as np
 import soundfile
 import torch
-import json
 from torch.utils.data.dataset import IterableDataset
 from typeguard import typechecked
 

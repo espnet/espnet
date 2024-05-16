@@ -15,12 +15,12 @@ understanding.
      - audio codec
      - discrete tokens from speech self-supervised learning (SSL) models.
      - etc.
-   
+
    Each kind of data is represented by a simple triplet:
      - name: the attribute / file name of this data
      - modality: modality, specifically how the data is represented in discrete form
      - load_method: how the index file if loaded.
-     
+
      E.g., for the triplet ("text", "g2p", "text")
      - name=text, in the data preparation stage, there should be a file named "text";
        in the data loader, there should be an attributed named "text"
@@ -28,14 +28,14 @@ understanding.
        tokenizer
      - load_method=text, the original file is loaded as a text file.
      - This triplet specify that, the original "text" file will be loaded as text-style
-       data and then be tokenized into phone sequence. The phone sequence is then 
+       data and then be tokenized into phone sequence. The phone sequence is then
        considered as an attribute named "text".
-     
+
      E.g., similarly, triplet ("wav.scp", "codec", "kaldi_ark") means:
      - The original file "wav.scp" will be loaded as a kaldi-ark style file and then
        be treated as audio codec sequence. The audio codec sequence is also named as
        an attribute "wav.scp" during training.
-    
+
     The available modalities are listed in: espnet2.speechlm.definitions.py
 
 2. Task definition:
@@ -44,12 +44,12 @@ understanding.
     E.g., for a very naive Text-to-Speech task, we predict audio sequence based
     on phone sequence. In LM context, each training example can be represented as:
       phone1, ..., phoneN, audio_code1, ..., audio_codeN
-    
+
     Generally, the definition of a task is exactly the definition of how this task
     is represented as a sequence. E.g., the naive TTS task is defined as:
         [("text", "g2p", "text"), ("wav.scp", "codec", "kaldi_ark")]
-        
-    
+
+
         SpeechLMTask(
             encoder_entries=[("text", "g2p", "text")],
             decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
@@ -59,10 +59,10 @@ understanding.
       - ("text", "g2p", "text")
       - ("wav.scp", "codec", "kaldi_ark")
     And:
-    
-   
-   
-   which consists of a 
+
+
+
+   which consists of a
    condition part and a target part. For different tasks, the composition of the
    conditions and targets can vary. The definition of each task is in:
      espnet2.speechlm.definitions.py
@@ -73,7 +73,7 @@ understanding.
             decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
             target_entries=[("wav.scp", "codec", "kaldi_ark")],
         )
-        
+
 2. For a given tasks, we need to prepare the conditions and targets before training,
    which is usually the tokenization process for multiple forms of data. E.g., codec
    tokenization
@@ -81,12 +81,12 @@ understanding.
 """
 
 import argparse
+import json
 import logging
 import os
 import sys
-import json
-
 from pathlib import Path
+
 from espnet2.speechlm.definitions import tasks
 
 logging.basicConfig(
@@ -181,26 +181,26 @@ def main():
             valid_example_ids.append(example_id)
         else:
             logging.warning(f"Example {example_id} is not complete")
-    
+
     logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
 
     # (3) dump each entry only for valid examples. All entries are ordered.
-    entry_path = Path(args.output_json).parent / 'entries'
+    entry_path = Path(args.output_json).parent / "entries"
     entry_path.mkdir(parents=True, exist_ok=True)
-    writers = {name: open(entry_path / name, 'w') for name in needed_names}
+    writers = {name: open(entry_path / name, "w") for name in needed_names}
     for example_id in valid_example_ids:
         for name in needed_names:
             writers[name].write(f"{example_id} {example_dict[example_id][name]}\n")
-    
+
     metadata["data_files"] = []
     for name, modality, _type in all_entries_required:
         file_path = str(entry_path / name)
         triplet = f"{file_path},{modality},{_type}"
-        metadata['data_files'].append(triplet)
-    
-    metadata['num_examples'] = len(valid_example_ids)
-    metadata['examples'] = valid_example_ids
-        
+        metadata["data_files"].append(triplet)
+
+    metadata["num_examples"] = len(valid_example_ids)
+    metadata["examples"] = valid_example_ids
+
     # dump json
     with open(args.output_json, "wb") as writer:
         writer.write(
