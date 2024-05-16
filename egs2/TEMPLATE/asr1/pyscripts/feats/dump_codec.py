@@ -60,8 +60,8 @@ def dump_codec(
         device = torch.device("cuda:0")
     else:
         device = torch.device("cpu")
-        logging.warning("Codec tokenization with CPU can be very slow.")
-        logging.warning("Change batch_size=1 for CPU tokenization")
+        logger.warning("Codec tokenization with CPU can be very slow.")
+        logger.warning("Change batch_size=1 for CPU tokenization")
         args.batch_size = 1
 
     # (2) Codec model
