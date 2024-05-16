@@ -73,14 +73,14 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${data_dir_textlm}/train
     # use external data
-    if [ ! -e ${data_dir_textlm}/librispeech-lm-norm.txt.gz ]; then
+    if [ ! -e ${data_dir_textlm}/train/librispeech-lm-norm.txt.gz ]; then
         log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P ${data_dir_textlm}/train/
     fi
     if [ ! -e ${data_dir_textlm}/train/text ]; then
         # provide utterance id to each texts
         # e.g., librispeech_lng_00003686 A BANK CHECK
-        zcat ${data_dir}/textlm/librispeech-lm-norm.txt.gz | \
+        zcat ${data_dir_textlm}/train/librispeech-lm-norm.txt.gz | \
             awk '{ printf("textlm_librispeech_lng_%08d %s\n",NR,$0) } ' > ${data_dir_textlm}/train/text
     fi
 
