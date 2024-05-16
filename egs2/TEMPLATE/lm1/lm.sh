@@ -458,7 +458,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     if "${use_text}"; then
-        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/text/"*; do
                 if [ -d "${_dir}" ]; then
                     echo "${data_feats}/${dset}/text/$(basename ${_dir})"
