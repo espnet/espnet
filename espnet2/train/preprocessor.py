@@ -2503,7 +2503,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value.repeat(self.codec_token_in_use, axis=0)
             conti_feat = None
 
-        # TODO: Continuous modalities
+        # TODO[jinchuan]: Continuous modalities
         else:
             raise NotImplementedError
 
