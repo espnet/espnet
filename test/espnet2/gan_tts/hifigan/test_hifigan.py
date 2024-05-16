@@ -186,6 +186,10 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
+    try:
+        from scipy.signal import kaiser
+    except ImportError:
+        pytest.skip("Kaiser window was not found at scipy.signal. Check scipy version.")
     from parallel_wavegan.models import HiFiGANGenerator as PWGHiFiGANGenerator
 
     model_pwg = PWGHiFiGANGenerator(**make_hifigan_generator_args())

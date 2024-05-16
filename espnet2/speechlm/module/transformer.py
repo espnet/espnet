@@ -18,6 +18,7 @@ class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
         return super().forward(x.float()).type(x.dtype)
 
+
 class Linear(nn.Linear):
     def forward(self, x: Tensor) -> Tensor:
         return F.linear(
@@ -25,6 +26,7 @@ class Linear(nn.Linear):
             self.weight.to(x.dtype),
             None if self.bias is None else self.bias.to(x.dtype),
         )
+
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, n_state: int, n_head: int):
@@ -109,13 +111,13 @@ class ResidualAttentionBlock(nn.Module):
 
 class TransformerDecoder(nn.Module):
     def __init__(
-        self, 
-        n_ctx: int, 
-        n_state: int, 
-        n_head: int, 
+        self,
+        n_ctx: int,
+        n_state: int,
+        n_head: int,
         n_layer: int,
         causal: bool = True,
-        layer_class = ResidualAttentionBlock,
+        layer_class=ResidualAttentionBlock,
     ):
         super().__init__()
 

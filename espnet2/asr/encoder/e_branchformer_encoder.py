@@ -10,10 +10,10 @@ Reference:
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -184,6 +184,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 class EBranchformerEncoder(AbsEncoder):
     """E-Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -214,7 +215,6 @@ class EBranchformerEncoder(AbsEncoder):
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 

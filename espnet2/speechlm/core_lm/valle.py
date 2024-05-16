@@ -5,17 +5,18 @@
 
 # Implementation of Vall-E: https://arxiv.org/abs/2301.02111
 
-from typing import Tuple, Dict
-import torch
 import logging
+from typing import Dict, Tuple
+
+import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.net_utils import (
     ce_loss,
-    length_mask,
     install_kv_cache_hook,
+    length_mask,
     logits_to_tokens,
 )
 
@@ -32,8 +33,8 @@ class ValleLM(AbsCoreLM):
         nar_layer: int = 4,
         n_ctx: int = 3000,
     ):
-        """ Initialize Vall-E model
-        
+        """Initialize Vall-E model
+
         Args:
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
@@ -52,11 +53,7 @@ class ValleLM(AbsCoreLM):
             self.lm_head.weight = self.emb.weight
 
         self.ar_decoder = TransformerDecoder(
-            n_ctx=n_ctx,
-            n_state=att_unit,
-            n_head=head,
-            n_layer=ar_layer,
-            causal=True
+            n_ctx=n_ctx, n_state=att_unit, n_head=head, n_layer=ar_layer, causal=True
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -78,7 +75,7 @@ class ValleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        """ Vall-E forward for training
+        """Vall-E forward for training
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
@@ -93,28 +90,34 @@ class ValleLM(AbsCoreLM):
         assert dec_seq.dim() == 3
 
         batch_size = dec_seq.size(0)
-        dec_seq_emb = self.emb(dec_seq) # [B, T, nq, D]
+        dec_seq_emb = self.emb(dec_seq)  # [B, T, nq, D]
 
         # Auto-Regressive part
-        input_ar_emb = self.prepare_input(dec_seq_emb, prefix_len, 1)[:, :-1] # [B, T, D]
+        input_ar_emb = self.prepare_input(dec_seq_emb, prefix_len, 1)[
+            :, :-1
+        ]  # [B, T, D]
         target_ar = dec_seq[:, 1:, 0]
         h_ar = self.ar_decoder(input_ar_emb)
-        logits_ar = self.lm_head(h_ar) # [B, T, V]
+        logits_ar = self.lm_head(h_ar)  # [B, T, V]
 
         # Non-Auto-Regressive part
-        level_idx_th = torch.randint(1, self.nq, (batch_size,), device=dec_seq.device).long()
-        input_nar_emb = self.prepare_input(dec_seq_emb, prefix_len, level_idx_th)[:, 1:] # [B, T, V]
+        level_idx_th = torch.randint(
+            1, self.nq, (batch_size,), device=dec_seq.device
+        ).long()
+        input_nar_emb = self.prepare_input(dec_seq_emb, prefix_len, level_idx_th)[
+            :, 1:
+        ]  # [B, T, V]
         batch_idx = torch.arange(batch_size, device=dec_seq.device)
         target_nar = dec_seq[batch_idx, 1:, level_idx_th]
         h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1)
-        logits_nar = self.lm_head(h_nar) # [B, T, V]
+        logits_nar = self.lm_head(h_nar)  # [B, T, V]
 
         # merge and compute loss
-        logits = torch.stack([logits_ar, logits_nar], dim=2) # [B, T, 2, V]
-        target = torch.stack([target_ar, target_nar], dim=2) # [B, T, 2]
+        logits = torch.stack([logits_ar, logits_nar], dim=2)  # [B, T, 2, V]
+        target = torch.stack([target_ar, target_nar], dim=2)  # [B, T, 2]
 
         loss, stats, weight = ce_loss(
-            logits, 
+            logits,
             target,
             dec_seq_lengths - 1,
             prefix_len - 1,
@@ -124,7 +127,7 @@ class ValleLM(AbsCoreLM):
         stats["acc_nar"] = stats["acc_layer1"]
         stats.pop("acc_layer0")
         stats.pop("acc_layer1")
-        
+
         return loss, stats, weight
 
     def prepare_input(self, dec_seq_emb, prefix_len, level):
@@ -150,7 +153,7 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
-        """ Vall-E Inference.
+        """Vall-E Inference.
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
@@ -166,7 +169,7 @@ class ValleLM(AbsCoreLM):
         # (2) auto-regressive prefix forward on first code layer
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        prefix_emb = self.emb(prefix).sum(dim=2) # [B, T, D]
+        prefix_emb = self.emb(prefix).sum(dim=2)  # [B, T, D]
         _ = self.ar_decoder(prefix_emb, kv_cache=cache)
 
         # (3) auto-regressive loop on first code layer
@@ -184,9 +187,9 @@ class ValleLM(AbsCoreLM):
         prev_tok = torch.Tensor([opts.start]).tile(opts.nbest, 1).long().to(opts.device)
         for step in range(maxlen):
             #  (3.2) AR loop
-            prev_emb = self.emb(prev_tok) # [B, 1, D]
+            prev_emb = self.emb(prev_tok)  # [B, 1, D]
             h_ar = self.ar_decoder(prev_emb, kv_cache=cache)
-            logits = self.lm_head(h_ar) # [B, 1, V]
+            logits = self.lm_head(h_ar)  # [B, 1, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
@@ -200,9 +203,9 @@ class ValleLM(AbsCoreLM):
             generated["score"].append(gen_score)
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step: step + 1, 0]
+                prev_tok = suffix[:, step : step + 1, 0]
             else:
-                prev_tok = gen_tok # [B, 1]
+                prev_tok = gen_tok  # [B, 1]
 
             # (3.3) detect ended hypotheses.
             finish_idx = torch.where(
@@ -215,7 +218,7 @@ class ValleLM(AbsCoreLM):
                 break
 
         logging.info(f"Terminate at steps: {finish_idx.cpu().tolist()}")
-        
+
         # (3.4) finalize auto-regressive
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         if len(valid_idx) < prefix.size(0):
@@ -223,13 +226,15 @@ class ValleLM(AbsCoreLM):
         elif len(valid_idx) == 0:
             logging.warning(f"No valid examples. Return None")
             return None, None
-        
+
         finish_idx = finish_idx[valid_idx]
         prefix_emb, suffix = prefix_emb[valid_idx], suffix[valid_idx]
-        gen_tokens_ar = torch.cat(generated["token"], dim=1)[valid_idx].unsqueeze(2) # [B, T, 1]
+        gen_tokens_ar = torch.cat(generated["token"], dim=1)[valid_idx].unsqueeze(
+            2
+        )  # [B, T, 1]
         gen_scores_ar = torch.cat(generated["score"], dim=1)[valid_idx].unsqueeze(2)
-        gen_tokens_ar = gen_tokens_ar[:, :finish_idx.max() + 1] # to include <sos>
-        gen_scores_ar = gen_scores_ar[:, :finish_idx.max() + 1]
+        gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1]  # to include <sos>
+        gen_scores_ar = gen_scores_ar[:, : finish_idx.max() + 1]
 
         for hook in hooks:
             hook.remove()
@@ -241,38 +246,40 @@ class ValleLM(AbsCoreLM):
             prev_tok = suffix[:, :, 0]
         else:
             prev_tok = gen_tokens_ar[:, :, 0]
-        start_emb = self.emb.weight[opts.start].tile(opts.nbest, 1, 1) # [B, 1, D]
-        prev_emb = torch.cat([prefix_emb[:, 1:], start_emb, self.emb(prev_tok)], dim=1) # [B, T, D]
+        start_emb = self.emb.weight[opts.start].tile(opts.nbest, 1, 1)  # [B, 1, D]
+        prev_emb = torch.cat(
+            [prefix_emb[:, 1:], start_emb, self.emb(prev_tok)], dim=1
+        )  # [B, T, D]
 
         ones = torch.ones_like(valid_idx)
         generated = {"token": [], "score": []}
         # (4.2) NAR loop
         for step in range(1, opts.nq):
-            h_nar = self.nar_decoder(prev_emb, ones * step - 1) # [B, T, D]
-            logits = self.lm_head(h_nar) # [B, T, V]
+            h_nar = self.nar_decoder(prev_emb, ones * step - 1)  # [B, T, D]
+            logits = self.lm_head(h_nar)  # [B, T, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
                 allow_eos=False,
                 nq_level=step,
             )
-            gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2) # [B, T]
+            gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)  # [B, T]
 
-            generated["token"].append(gen_tok[:, prefix.size(1):])
-            generated["score"].append(gen_score[:, prefix.size(1):])
+            generated["token"].append(gen_tok[:, prefix.size(1) :])
+            generated["score"].append(gen_score[:, prefix.size(1) :])
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, :, step]
             else:
                 prev_tok = gen_tok
-            prev_emb[:, prefix.size(1):] += self.emb(prev_tok) # [B, T, D]
-            prev_emb[:, prefix.size(1) - 1: prefix.size(1)] += start_emb
+            prev_emb[:, prefix.size(1) :] += self.emb(prev_tok)  # [B, T, D]
+            prev_emb[:, prefix.size(1) - 1 : prefix.size(1)] += start_emb
 
         # (5) combine AR and NAR results
-        gen_tokens_nar = torch.stack(generated["token"], dim=2) # [B, T, nq]
+        gen_tokens_nar = torch.stack(generated["token"], dim=2)  # [B, T, nq]
         gen_scores_nar = torch.stack(generated["score"], dim=2)
 
-        gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2) # [B, T, nq]
+        gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2)  # [B, T, nq]
         gen_scores = torch.cat([gen_scores_ar, gen_scores_nar], dim=2)
 
         gen_tokens_list, gen_scores_list = [], []

@@ -4,10 +4,12 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import json
 import logging
 import json
 
 from pathlib import Path
+
 from espnet2.speechlm.definitions import tasks
 
 
@@ -94,26 +96,26 @@ def main():
             valid_example_ids.append(example_id)
         else:
             logging.warning(f"Example {example_id} is not complete")
-    
+
     logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
 
     # (3) dump each entry only for valid examples. All entries are ordered.
-    entry_path = Path(args.output_json).parent / 'entries'
+    entry_path = Path(args.output_json).parent / "entries"
     entry_path.mkdir(parents=True, exist_ok=True)
-    writers = {name: open(entry_path / name, 'w') for name in needed_names}
+    writers = {name: open(entry_path / name, "w") for name in needed_names}
     for example_id in valid_example_ids:
         for name in needed_names:
             writers[name].write(f"{example_id} {example_dict[example_id][name]}\n")
-    
+
     metadata["data_files"] = []
     for name, modality, _type in all_entries_required:
         file_path = str(entry_path / name)
         triplet = f"{file_path},{modality},{_type}"
-        metadata['data_files'].append(triplet)
-    
-    metadata['num_examples'] = len(valid_example_ids)
-    metadata['examples'] = valid_example_ids
-        
+        metadata["data_files"].append(triplet)
+
+    metadata["num_examples"] = len(valid_example_ids)
+    metadata["examples"] = valid_example_ids
+
     # dump json
     with open(args.output_json, "wb") as writer:
         writer.write(

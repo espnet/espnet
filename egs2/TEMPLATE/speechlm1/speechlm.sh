@@ -44,7 +44,7 @@ python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts=""  # Options to be passed to local/data.sh.
-data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition 
+data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
@@ -181,7 +181,7 @@ if [ ${task} == "multi_task" ]; then
         echo "and directly use the prepared train/valid yaml files"
         echo "You can prepare the yaml files for each task one by one"
         echo "and merge them as: "
-        echo "speechlm.sh --train_yamls 'a.yaml,b.yaml' --valid_yamls 'a.yaml,b.yaml'" || exit 1; 
+        echo "speechlm.sh --train_yamls 'a.yaml,b.yaml' --valid_yamls 'a.yaml,b.yaml'" || exit 1;
     fi
 fi
 
@@ -283,7 +283,7 @@ if ! "${skip_data_prep}"; then
             opts=""
             for prepare_opt in ${prepare_opts}; do
                 mkdir -p ${data_feats}/${dset}/token_lists
-                
+
                 IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
                 # for discrete operations, we will also generate a vocabulary.
 
@@ -312,7 +312,7 @@ if ! "${skip_data_prep}"; then
                         --g2p "${g2p}" \
                         --write_vocabulary true
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
-                
+
                 elif [ ${_modality} == "spk" ]; then
                     echo "copy utt2spk file"
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
@@ -349,7 +349,7 @@ if ! "${skip_train}"; then
         train_jsons=${data_feats}/${train_set}/data.json
         log "No train_jsons provided. Use the prepared one: ${train_jsons}"
     fi
-    
+
     for train_json in $train_jsons; do
         _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
     done
@@ -390,7 +390,7 @@ if ! "${skip_train}"; then
         ${python} pyscripts/utils/make_example_list_speechlm.py \
             --json_files ${valid_jsons} \
             --output_file ${speechlm_stats_dir}/valid/example_list
-        
+
         # 1. Split the key file
         _logdir="${speechlm_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -478,7 +478,7 @@ if ! "${skip_train}"; then
         if [ -f ${speechlm_stats_dir}/valid/enc_seq_shape ]; then
             _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/enc_seq_lengths "
         fi
-        
+
         log "Generate '${speechlm_exp}/run.sh'. You can resume the process from stage 7 using this script"
         mkdir -p "${speechlm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${speechlm_exp}/run.sh"; chmod +x "${speechlm_exp}/run.sh"
 

@@ -10,7 +10,7 @@ log() {
 }
 SECONDS=0
 
-stage=-1
+stage=0
 stop_stage=1
 trim_all_silence=true
 
@@ -37,8 +37,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: local/donwload_and_untar.sh"
     # download the original corpus
     if [ ! -e "${db_root}"/LibriTTS/.complete ]; then
+	mkdir -p ${db_root}
         for part in dev-clean dev-other test-clean test-other train-clean-100 train-clean-360 train-other-500; do
-            local/download_and_untar.sh "${db_root}" "${data_url}" "${part}"
+            ./local/download_and_untar.sh "${db_root}" "${data_url}" "${part}"
         done
         touch "${db_root}/LibriTTS/.complete"
     else

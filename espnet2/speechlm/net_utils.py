@@ -3,9 +3,10 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 
 import torch
+
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import MultiHeadAttention
 
@@ -48,11 +49,15 @@ def ce_loss(
 
     mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
     if prefix_len is not None:
-        target_mask = length_mask(prefix_len, maxlen=lengths.max()).to(elem_loss.dtype).unsqueeze(-1)
+        target_mask = (
+            length_mask(prefix_len, maxlen=lengths.max())
+            .to(elem_loss.dtype)
+            .unsqueeze(-1)
+        )
         target_mask = mask * torch.abs(target_mask - 1)
     else:
         target_mask = mask
-    
+
     # compute loss on each token
     elem_loss = elem_loss * mask
     loss = elem_loss.sum() / mask.sum() / logits.size(2)
@@ -63,7 +68,9 @@ def ce_loss(
 
     stats = {}
     for nq_idx in range(target.size(2)):
-        stats.update({f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()})
+        stats.update(
+            {f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()}
+        )
 
     acc = acc.sum() / target_mask.sum() / logits.size(2)
     stats.update({"loss": loss.clone().detach(), "acc": acc})
@@ -103,7 +110,7 @@ def logits_to_tokens(
 
     # (1) Apply mask
     mask = opts.masks
-    if allow_eos: # only predict eos in the first code
+    if allow_eos:  # only predict eos in the first code
         mask[..., 0, opts.eos] = False
     if nq_level is not None:
         mask = mask[nq_level : nq_level + 1]

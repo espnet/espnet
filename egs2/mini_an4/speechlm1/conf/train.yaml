@@ -2,7 +2,7 @@
 model: espnet
 model_conf:
     share_emb: true
-  
+
 corelm: espnet_builtin
 corelm_conf:
     pos_enc: sinusoidal
@@ -15,7 +15,7 @@ corelm_conf:
     positional_dropout_rate: 0.0
     attention_dropout_rate: 0.0
     flashattention: true
-  
+
 predictor: multiscale
 predictor_conf:
     pos_enc: sinusoidal

@@ -1,35 +1,32 @@
 import argparse
+import json
 import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
-import json
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
-
-# Top-level model
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.valle import ValleLM
-
+from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
 from espnet2.speechlm.postprocessor.codec_post_processor import CodecPostProcessor
-
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 
+# Top-level model
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import SpeechLMPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool, str_or_none, int_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 corelm_choices = ClassChoices(
     "corelm",

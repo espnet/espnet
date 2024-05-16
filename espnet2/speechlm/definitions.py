@@ -3,8 +3,8 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import List, Tuple
 from dataclasses import dataclass
+from typing import List, Tuple
 
 
 # (1) Modality definition

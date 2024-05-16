@@ -7,15 +7,14 @@ import argparse
 import logging
 import os
 import sys
-import kaldiio
-import torch
-import numpy as np
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet2.utils.types import str2bool
+import kaldiio
+import numpy as np
+import torch
 
 from espnet2.speechlm.postprocessor.codec_post_processor import Codec_Tokenizer
-
+from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -61,12 +60,12 @@ def dump_codec(
         device = torch.device("cuda:0")
     else:
         device = torch.device("cpu")
-        logging.warning("Codec tokenization with CPU can be very slow.")
-        logging.warning("Change batch_size=1 for CPU tokenization")
+        logger.warning("Codec tokenization with CPU can be very slow.")
+        logger.warning("Change batch_size=1 for CPU tokenization")
         args.batch_size = 1
 
     # (2) Codec model
-    print("build with codec_choice: ", codec_choice, flush=True)
+    logger.info("build with codec_choice: ", codec_choice)
     tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
 
     # (3) Tokenizer loop

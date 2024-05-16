@@ -4,8 +4,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import logging
 import json
+import json
+import logging
 from pathlib import Path
 
 from espnet2.speechlm.definitions import modalities, special_tokens
@@ -66,7 +67,7 @@ def main():
 
         modality_vocab = []
         for vocab in vocabs:
-            this_vocab = [e.rstrip('\n') for e in open(vocab)]
+            this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
                 if e not in modality_vocab:
                     modality_vocab.append(e)

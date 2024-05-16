@@ -6,8 +6,7 @@ import torch.nn.functional as F
 
 
 class AFMS(nn.Module):
-    """
-    Alpha-Feature map scaling, added to the output of each residual block[1,2].
+    """Alpha-Feature map scaling, added to the output of each residual block[1,2].
 
     Reference:
     [1] RawNet2 : https://www.isca-speech.org/archive/Interspeech_2020/pdfs/1011.pdf

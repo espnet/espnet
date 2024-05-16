@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -17,6 +17,7 @@ def ListsToTensor(xs):
 
 
 class FrameScoreFeats(AbsFeatsExtract):
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -28,7 +29,6 @@ class FrameScoreFeats(AbsFeatsExtract):
     ):
         if win_length is None:
             win_length = n_fft
-        assert check_argument_types()
         super().__init__()
 
         self.fs = fs
@@ -154,6 +154,7 @@ class FrameScoreFeats(AbsFeatsExtract):
 
 
 class SyllableScoreFeats(AbsFeatsExtract):
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
@@ -165,7 +166,6 @@ class SyllableScoreFeats(AbsFeatsExtract):
     ):
         if win_length is None:
             win_length = n_fft
-        assert check_argument_types()
         super().__init__()
 
         self.fs = fs
