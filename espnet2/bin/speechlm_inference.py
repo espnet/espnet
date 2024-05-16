@@ -31,7 +31,7 @@ from espnet.utils.cli_utils import get_commandline_args
 class SpeechLM:
     """SpeechLM class.
 
-    Examples: (TODO)
+    Examples: TODO(Jinchuan): will finish this when the code is stable.
     """
 
     def __init__(
@@ -100,7 +100,7 @@ class SpeechLM:
             nq=inference_nq if inference_nq is not None else model.corelm.nq,
         )
 
-        # post_processor
+        # post_processor: transform tokens to the target modality. E.g., speech, text.
         post_processor_class = post_processor_choices.get_class(modality)
         self.post_processor = post_processor_class(**post_processor_conf).to(device)
         if modality in ["codec"]:
@@ -121,19 +121,13 @@ class SpeechLM:
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
         if enc_seq is not None or enc_seq_lengths is not None:
-            raise NotImplementedError("encoder-decoder is not supported")
-        
-        prefix_len = prefix_len.squeeze(1)
-
-        # training inference, only for debug
-        # with torch.no_grad():
-        #     _ = self.model.corelm(
-        #         dec_seq=dec_seq,
-        #         dec_seq_lengths=dec_seq_lengths,
-        #         prefix_len=prefix_len,
-        #     )
+            raise NotImplementedError("encoder-decoder is not supported yet.")
 
         # language model inference
+        # Note(Jinchuan): the token dec_seq[prefix_len] is exactly 
+        # self.inference_opts.start and will be handled by the 
+        # inference algorithm. We discard it here.
+        prefix_len = prefix_len.squeeze(1)
         gen_tokens, gen_scores = self.model.corelm.inference(
             prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
@@ -435,7 +429,6 @@ def get_parser():
     group = parser.add_argument_group("Postprocessor related")
     post_processor_choices.add_arguments(group)
 
-    # TODO: handle the post-processor
     return parser
 
 

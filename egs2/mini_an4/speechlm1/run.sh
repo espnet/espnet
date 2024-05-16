@@ -5,10 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-# format: file,name,type
-
 ./speechlm.sh \
-    --stage 8 --stop_stage 8 \
     --task "plain_tts" \
     --codec_token_per_frame 12 \
     --nj 1 \

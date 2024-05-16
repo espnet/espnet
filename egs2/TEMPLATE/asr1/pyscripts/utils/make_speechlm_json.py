@@ -3,99 +3,12 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""
-Espnet SpeechLM toolkit natually supports multi-tasking, for which it adopts a more
-flexible data organization strategy. Check the information below for better
-understanding.
-
-1. Data and Modality definition.
-   Many modalities can be used in SpeechLM, such as:
-     - text BPE
-     - phone
-     - audio codec
-     - discrete tokens from speech self-supervised learning (SSL) models.
-     - etc.
-   
-   Each kind of data is represented by a simple triplet:
-     - name: the attribute / file name of this data
-     - modality: modality, specifically how the data is represented in discrete form
-     - load_method: how the index file if loaded.
-     
-     E.g., for the triplet ("text", "g2p", "text")
-     - name=text, in the data preparation stage, there should be a file named "text";
-       in the data loader, there should be an attributed named "text"
-     - modality="g2p", the data is transformed into discrete phone sequence by G2P
-       tokenizer
-     - load_method=text, the original file is loaded as a text file.
-     - This triplet specify that, the original "text" file will be loaded as text-style
-       data and then be tokenized into phone sequence. The phone sequence is then 
-       considered as an attribute named "text".
-     
-     E.g., similarly, triplet ("wav.scp", "codec", "kaldi_ark") means:
-     - The original file "wav.scp" will be loaded as a kaldi-ark style file and then
-       be treated as audio codec sequence. The audio codec sequence is also named as
-       an attribute "wav.scp" during training.
-    
-    The available modalities are listed in: espnet2.speechlm.definitions.py
-
-2. Task definition:
-
-    Many tasks can be represented as sequential modeling.
-    E.g., for a very naive Text-to-Speech task, we predict audio sequence based
-    on phone sequence. In LM context, each training example can be represented as:
-      phone1, ..., phoneN, audio_code1, ..., audio_codeN
-    
-    Generally, the definition of a task is exactly the definition of how this task
-    is represented as a sequence. E.g., the naive TTS task is defined as:
-        [("text", "g2p", "text"), ("wav.scp", "codec", "kaldi_ark")]
-        
-    
-        SpeechLMTask(
-            encoder_entries=[("text", "g2p", "text")],
-            decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-            target_entries=[("wav.scp", "codec", "kaldi_ark")],
-        )
-    So the sequence is spliced by the entry definition, in order:
-      - ("text", "g2p", "text")
-      - ("wav.scp", "codec", "kaldi_ark")
-    And:
-    
-   
-   
-   which consists of a 
-   condition part and a target part. For different tasks, the composition of the
-   conditions and targets can vary. The definition of each task is in:
-     espnet2.speechlm.definitions.py
-
-   E.g., A simple TTS task (plain TTS in definition.py) is:
-        tasks["plain_tts"] = SpeechLMTask(
-            encoder_entries=[("text", "g2p", "text")],
-            decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-            target_entries=[("wav.scp", "codec", "kaldi_ark")],
-        )
-        
-2. For a given tasks, we need to prepare the conditions and targets before training,
-   which is usually the tokenization process for multiple forms of data. E.g., codec
-   tokenization
-
-"""
-
 import argparse
 import logging
-import os
-import sys
 import json
 
 from pathlib import Path
 from espnet2.speechlm.definitions import tasks
-
-logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
-)
-logger = logging.getLogger("build combined vocabulary")
 
 
 def get_parser():

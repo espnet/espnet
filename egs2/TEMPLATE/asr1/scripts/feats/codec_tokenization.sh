@@ -39,7 +39,7 @@ if [ $# -ne 0 ]; then
     exit 0
 fi
 
-# TODO: check the installation of the used codec models
+# TODO (Jinchuan): check the installation of the used codec models
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [[ ${file_name} == *.scp ]]; then

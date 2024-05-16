@@ -5,21 +5,10 @@
 
 import argparse
 import logging
-import os
-import sys
 import json
 from pathlib import Path
 
 from espnet2.speechlm.definitions import modalities, special_tokens
-
-logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
-)
-logger = logging.getLogger("build combined vocabulary")
-
 
 def get_parser():
     parser = argparse.ArgumentParser(

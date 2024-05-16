@@ -92,7 +92,7 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+    ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ Auto-Regresive MultiScale forward for training
 
         Args:
@@ -102,7 +102,7 @@ class MultiScaleLM(AbsCoreLM):
                 may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
-            prefix_len_lengths (LongTensor): Lengths of condition part in dec_seq (B,).
+            prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
         """
         assert dec_seq.dim() == 3
 
@@ -141,7 +141,7 @@ class MultiScaleLM(AbsCoreLM):
     def inference(
         self,
         prefix: torch.Tensor,
-        opts: dict = SpeechLMInferenceOptions,
+        opts: SpeechLMInferenceOptions,
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):

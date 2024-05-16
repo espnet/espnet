@@ -87,7 +87,7 @@ class ValleLM(AbsCoreLM):
                 may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
-            prefix_len_lengths (LongTensor): Lengths of condition part in dec_seq (B,).
+            prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
         """
 
         assert dec_seq.dim() == 3
@@ -146,7 +146,7 @@ class ValleLM(AbsCoreLM):
     def inference(
         self,
         prefix: torch.Tensor,
-        opts: dict = SpeechLMInferenceOptions,
+        opts: SpeechLMInferenceOptions,
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
