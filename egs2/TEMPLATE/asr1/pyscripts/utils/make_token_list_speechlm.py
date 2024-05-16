@@ -82,7 +82,7 @@ def main():
                 if e not in modality_vocab:
                     modality_vocab.append(e)
                 else:
-                    logging.warning(f"Duplicated token: {e}. It has been seen before")
+                    logger.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
             f"Modality has {len(modality_vocab)} starting from {len(token_list)}"
