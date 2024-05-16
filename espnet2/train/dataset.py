@@ -690,7 +690,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
         self.datasets = []
         for triplet in path_name_type_list:
             path, _, _type = triplet
-            assert _type == "json", f"Non-Json triplet: {triplet}"
+            assert _type == "dataset_json", f"Non-Json triplet: {triplet}"
             json_dict = json.load(open(path))
 
             this_path_name_type_list = []
@@ -746,9 +746,9 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
     def names(self) -> Tuple[str, ...]:
         if self.encoder_decoder_format:
-            return ("enc_seq", "dec_seq")
+            return ("enc_seq", "dec_seq", "prefix_len")
         else:
-            return ("dec_seq",)
+            return ("dec_seq", "prefix_len")
 
     def __repr__(self):
         string = "##### Multi-Task Dataset #####\n"

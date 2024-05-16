@@ -351,7 +351,7 @@ if ! "${skip_train}"; then
     fi
     
     for train_json in $train_jsons; do
-        _data_opts+="--train_data_path_and_name_and_type ${train_json},json,json "
+        _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
     done
 
     if [ -z ${valid_jsons} ]; then
@@ -359,7 +359,7 @@ if ! "${skip_train}"; then
         log "No valid_jsons provided. Use the prepared one: ${valid_jsons}"
     fi
     for valid_json in $valid_jsons; do
-        _data_opts+="--valid_data_path_and_name_and_type ${valid_json},json,json "
+        _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
     done
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -562,7 +562,7 @@ if ! "${skip_eval}"; then
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/speechlm_inference.JOB.log \
                 ${python} -m espnet2.bin.speechlm_inference \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type ${test_json},json,json \
+                    --data_path_and_name_and_type ${test_json},_,dataset_json \
                     --key_file "${_logdir}"/example_list.JOB \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
                     --train_config "${speechlm_exp}"/config.yaml \
