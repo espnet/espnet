@@ -42,7 +42,7 @@ class SpeechLM:
         dtype: str = "float32",
         device: str = "cpu",
         search_algo: str = "sampling",
-        inference_nq: int = None,
+        inference_nq: Optional[int] = None,
         nbest: int = 1,
         sampling_temperature: float = 1.0,
         top_k: int = 20,
@@ -159,7 +159,7 @@ class SpeechLM:
 @typechecked
 def inference(
     # general
-    output_dir: str,
+    output_dir: Path,
     batch_size: int,
     ngpu: int,
     seed: int,
@@ -246,7 +246,6 @@ def inference(
     )
 
     # 5 Start for-loop
-    output_dir = Path(output_dir)
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
     (output_dir / "token").mkdir(parents=True, exist_ok=True)
     (output_dir / "score").mkdir(parents=True, exist_ok=True)
@@ -317,7 +316,7 @@ def get_parser():
 
     parser.add_argument(
         "--output_dir",
-        type=str,
+        type=Path,
         required=True,
         help="The path of output directory",
     )

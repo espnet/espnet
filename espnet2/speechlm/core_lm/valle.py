@@ -256,7 +256,9 @@ class ValleLM(AbsCoreLM):
         # (4.2) NAR loop
         for step in range(1, opts.nq):
             h_nar = self.nar_decoder(prev_emb, ones * step - 1)  # [B, T, D]
-            logits = self.lm_head(h_nar)  # [B, T, V]
+            # Note(Jinchuan): NAR uses greedy decoding. We still use the sampling but
+            # with an extremely small temperature.
+            logits = self.lm_head(h_nar) / 0.00001 # [B, T, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
@@ -271,14 +273,14 @@ class ValleLM(AbsCoreLM):
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, :, step]
             else:
-                prev_tok = gen_tok
-            prev_emb[:, prefix.size(1) :] += self.emb(prev_tok)  # [B, T, D]
+                prev_tok = generated["token"][-1]
+            prev_emb[:, prefix.size(1):] += self.emb(prev_tok)  # [B, T, D]
             prev_emb[:, prefix.size(1) - 1 : prefix.size(1)] += start_emb
 
         # (5) combine AR and NAR results
         gen_tokens_nar = torch.stack(generated["token"], dim=2)  # [B, T, nq]
         gen_scores_nar = torch.stack(generated["score"], dim=2)
-
+        
         gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2)  # [B, T, nq]
         gen_scores = torch.cat([gen_scores_ar, gen_scores_nar], dim=2)
 
@@ -286,5 +288,5 @@ class ValleLM(AbsCoreLM):
         for b in range(len(valid_idx)):
             gen_tokens_list.append(gen_tokens[b][: finish_idx[b]])
             gen_scores_list.append(gen_scores[b][: finish_idx[b]])
-
+        
         return gen_tokens_list, gen_scores_list
