@@ -84,7 +84,7 @@ def main():
                 else:
                     logger.warning(f"Duplicated token: {e}. It has been seen before")
 
-        logging.info(
+        logger.info(
             f"Modality has {len(modality_vocab)} starting from {len(token_list)}"
         )
         token_bias[modality] = len(token_list)
