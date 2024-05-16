@@ -52,7 +52,7 @@ def main():
     for json_file in args.data_json:
         read_handle = open(json_file)
         all_vocab = all_vocab + json.load(read_handle)["vocabularies"]
-    logging.info(f"Find all token_list files: {all_vocab}")
+    logger.info(f"Find all token_list files: {all_vocab}")
 
     # (2) Assign each token_list file to the modality
     vocab_dict = {modality: [] for modality in modalities}
