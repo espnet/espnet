@@ -65,7 +65,7 @@ def dump_codec(
         args.batch_size = 1
 
     # (2) Codec model
-    print("build with codec_choice: ", codec_choice, flush=True)
+    logger.info("build with codec_choice: ", codec_choice)
     tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
 
     # (3) Tokenizer loop
