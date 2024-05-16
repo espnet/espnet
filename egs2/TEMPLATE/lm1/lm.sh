@@ -53,7 +53,7 @@ max_wav_duration=20  # Maximum duration in second.
 
 # Kmeans related
 km_dir=                     # Path to pretrained kmeans model
-learn_kmeans=false          # boolean flag to note whether to learn kmeans
+learn_kmeans=true           # boolean flag to note whether to learn kmeans
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh, needed when kmeans is trained
 kmeans_feature="hubert_base/6" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21), needed when kmeans is trained
 portion=0.1
