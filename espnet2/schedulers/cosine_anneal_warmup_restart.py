@@ -13,7 +13,8 @@ from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
 
 class CosineAnnealingWarmupRestarts(_LRScheduler, AbsBatchStepScheduler):
-    """
+    """Cosine Annealing Warmup Restart.
+
     optimizer (Optimizer): Wrapped optimizer.
     first_cycle_steps (int): First cycle step size.
     cycle_mult(float): Cycle steps magnification. Default: -1.

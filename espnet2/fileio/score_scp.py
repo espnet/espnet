@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 
@@ -40,12 +40,12 @@ class XMLReader(collections.abc.Mapping):
         >>> tempo, note_list = reader['key1']
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
         dtype=np.int16,
     ):
-        assert check_argument_types()
         assert m21 is not None, (
             "Cannot load music21 package. ",
             "Please install Muskit modules via ",
@@ -141,12 +141,12 @@ class XMLWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
         scpfile: Union[Path, str],
     ):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
@@ -212,13 +212,13 @@ class MIDReader(collections.abc.Mapping):
         >>> tempo, note_list = reader['key1']
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
         add_rest=True,
         dtype=np.int16,
     ):
-        assert check_argument_types()
         assert miditoolkit is not None, (
             "Cannot load miditoolkit package. ",
             "Please install Muskit modules via ",
@@ -284,12 +284,12 @@ class SingingScoreReader(collections.abc.Mapping):
 
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
         dtype=np.int16,
     ):
-        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.data = read_2columns_text(fname)
@@ -331,12 +331,12 @@ class SingingScoreWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
         scpfile: Union[Path, str],
     ):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)

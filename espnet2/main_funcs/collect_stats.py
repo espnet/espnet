@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.nn.parallel import data_parallel
 from torch.utils.data import DataLoader
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
@@ -17,6 +17,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 @torch.no_grad()
+@typechecked
 def collect_stats(
     model: Union[AbsESPnetModel, None],
     train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
@@ -33,7 +34,6 @@ def collect_stats(
     This method is used before executing train().
 
     """
-    assert check_argument_types()
 
     npy_scp_writers = {}
     for itr, mode in zip([train_iter, valid_iter], ["train", "valid"]):

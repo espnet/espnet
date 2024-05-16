@@ -8,7 +8,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
@@ -45,6 +45,7 @@ class FastSpeech2(AbsTTS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -224,7 +225,6 @@ class FastSpeech2(AbsTTS):
                 calculation.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters

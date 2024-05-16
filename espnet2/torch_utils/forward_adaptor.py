@@ -1,5 +1,5 @@
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 
 class ForwardAdaptor(torch.nn.Module):
@@ -20,8 +20,8 @@ class ForwardAdaptor(torch.nn.Module):
         >>> model(x)
     """
 
+    @typechecked
     def __init__(self, module: torch.nn.Module, name: str):
-        assert check_argument_types()
         super().__init__()
         self.module = module
         self.name = name

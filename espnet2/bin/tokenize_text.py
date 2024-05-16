@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List, Optional
 
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
@@ -60,6 +60,7 @@ def field2slice(field: Optional[str]) -> slice:
     return slic
 
 
+@typechecked
 def tokenize(
     input: str,
     output: str,
@@ -79,7 +80,6 @@ def tokenize(
     g2p: Optional[str],
     add_nonsplit_symbol: List[str],
 ):
-    assert check_argument_types()
 
     logging.basicConfig(
         level=log_level,
@@ -96,7 +96,7 @@ def tokenize(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    cleaner = TextCleaner(cleaner)
+    cleaner: TextCleaner = TextCleaner(cleaner)
     tokenizer = build_tokenizer(
         token_type=token_type,
         bpemodel=bpemodel,
@@ -110,7 +110,7 @@ def tokenize(
 
     counter = Counter()
     if field is not None:
-        field = field2slice(field)
+        field: slice = field2slice(field)
 
     for line in fin:
         line = line.rstrip()

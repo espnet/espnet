@@ -12,7 +12,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
@@ -47,6 +47,7 @@ class GANTrainerOptions(TrainerOptions):
     """Trainer option dataclass for GANTrainer."""
 
     generator_first: bool
+    skip_discriminator_prob: float
 
 
 class GANTrainer(Trainer):
@@ -58,9 +59,9 @@ class GANTrainer(Trainer):
     """
 
     @classmethod
+    @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
         """Build options consumed by train(), eval(), and plot_attention()."""
-        assert check_argument_types()
         return build_dataclass(GANTrainerOptions, args)
 
     @classmethod
@@ -72,8 +73,15 @@ class GANTrainer(Trainer):
             default=False,
             help="Whether to update generator first.",
         )
+        parser.add_argument(
+            "--skip_discriminator_prob",
+            type=float,
+            default=0.0,
+            help="If > 0, skip the discriminator step with a probability",
+        )
 
     @classmethod
+    @typechecked
     def train_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -87,7 +95,6 @@ class GANTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> bool:
         """Train one epoch."""
-        assert check_argument_types()
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad
@@ -99,6 +106,7 @@ class GANTrainer(Trainer):
         use_wandb = options.use_wandb
         generator_first = options.generator_first
         distributed = distributed_option.distributed
+        skip_discriminator_prob = options.skip_discriminator_prob
 
         # Check unavailable options
         # TODO(kan-bayashi): Support the use of these options
@@ -145,6 +153,20 @@ class GANTrainer(Trainer):
             else:
                 turns = ["discriminator", "generator"]
             for turn in turns:
+                # (Jinchuan) skip some updates of discriminator to avoid
+                # being over-powered. Synchronized globally.
+                if skip_discriminator_prob > 0.0 and turn == "discriminator":
+                    if torch.distributed.is_initialized():
+                        skip_disc = torch.distributed.broadcast(torch.rand(1), src=0)
+                    else:
+                        skip_disc = torch.rand(1)
+                    if skip_disc.item() < skip_discriminator_prob:
+                        try:
+                            model.codec._cache = None
+                        except:
+                            pass
+                        continue
+
                 with autocast(scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
                         retval = model(forward_generator=turn == "generator", **batch)
@@ -307,6 +329,7 @@ class GANTrainer(Trainer):
 
     @classmethod
     @torch.no_grad()
+    @typechecked
     def validate_one_epoch(
         cls,
         model: torch.nn.Module,
@@ -316,7 +339,6 @@ class GANTrainer(Trainer):
         distributed_option: DistributedOption,
     ) -> None:
         """Validate one epoch."""
-        assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed

@@ -43,7 +43,7 @@ def ComputeErrorRates(scores, labels):
             key=itemgetter(1),
         )
     )
-    sorted_labels = []
+
     labels = [labels[i] for i in sorted_indexes]
     fnrs = []
     fprs = []
