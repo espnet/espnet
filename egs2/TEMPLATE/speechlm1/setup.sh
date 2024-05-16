@@ -34,7 +34,7 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/asr1/"${f}"
+    target="${dir}"/../../TEMPLATE/speechlm1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
