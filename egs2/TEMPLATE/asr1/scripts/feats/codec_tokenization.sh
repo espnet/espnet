@@ -45,7 +45,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [[ ${file_name} == *.scp ]]; then
         file_name="${file_name%.scp}"
     else
-        echo file_name should ends with .scp suffix. ${file_name}
+        echo "file_name should end with .scp suffix. ${file_name}"
     fi
 
     output_dir=${tgt_dir}/data
