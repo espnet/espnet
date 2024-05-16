@@ -149,7 +149,7 @@ class ValleLM(AbsCoreLM):
     def inference(
         self,
         prefix: torch.Tensor,
-        opts: dict = SpeechLMInferenceOptions,
+        opts: Dict = SpeechLMInferenceOptions,
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
