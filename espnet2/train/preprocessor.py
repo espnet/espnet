@@ -2342,22 +2342,23 @@ class S2TPreprocessor(CommonPreprocessor):
 class SpeechLMPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for SpeechLM models"""
 
+    @typechecked
     def __init__(
         self,
         token_list: List,
         token_bias: Dict,
-        encoder_decoder_format: bool = False,
+        encoder_decoder_format: Optional[bool] = False,
         # codec related:
         codec_token_per_frame: int = 1,
-        codec_token_in_use: int = None,
+        codec_token_in_use: Optional[int] = None,
         # tokenizer related: Phone & BPE
-        unk_symbol: str = "<unk>",
-        space_symbol: str = "<space>",
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
-        g2p_type: str = None,
-        bpemodel: Union[Path, str, Iterable[str]] = None,
-        bpe_encode_kwargs: Dict = None,
-        text_cleaner: str = None,
+        unk_symbol: Optional[str] = "<unk>",
+        space_symbol: Optional[str] = "<space>",
+        non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
+        g2p_type: Optional[str] = None,
+        bpemodel: Optional[Union[Path, str, Iterable[str]]] = None,
+        bpe_encode_kwargs: Optional[Dict] = None,
+        text_cleaner: Optional[str] = None,
         # speaker prompt
         speaker_prompt_length: int = 1800,
     ):
@@ -2408,10 +2409,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
