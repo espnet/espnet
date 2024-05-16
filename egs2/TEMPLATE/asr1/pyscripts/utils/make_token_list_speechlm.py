@@ -71,7 +71,7 @@ def main():
     for modality, vocabs in vocab_dict.items():
         if len(vocabs) == 0:
             continue
-        logging.info(
+        logger.info(
             f"Get vocab for modality: {modality} with token_list files: {vocabs}"
         )
 
