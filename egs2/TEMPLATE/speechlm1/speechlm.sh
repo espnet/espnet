@@ -371,7 +371,7 @@ if ! "${skip_train}"; then
     fi
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: SpeechlLM collect stats: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
+        log "Stage 7: SpeechLM collect stats: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
         mkdir -p ${speechlm_stats_dir}
 
         _opts=
