@@ -5,23 +5,19 @@
 
 import argparse
 import logging
-import shutil
 import sys
-import time
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union, List
 
-import numpy as np
-import soundfile as sf
 import torch
 import torchaudio
+from kaldiio import WriteHelper
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.tasks.speechlm import SpeechLMTask, post_processor_choices
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
-from espnet2.speechlm.definitions import modalities as speechlm_modalities
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 
 # utilities
@@ -89,7 +85,7 @@ class SpeechLM:
         else:
             masks[:, valid_start:valid_end] = False
 
-        # inference opts
+        # inference options
         self.inference_opts = SpeechLMInferenceOptions(
             device=device,
             search_algo=search_algo,
@@ -118,7 +114,9 @@ class SpeechLM:
         dec_seq_lengths: torch.Tensor,
         prefix_len: torch.Tensor,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+    ) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
+        """ Run SpeechLM inference """
+        assert check_argument_types()
 
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
@@ -193,7 +191,7 @@ def inference(
     postprocessor: str = None,
     postprocessor_conf: dict = {},
 ):
-    """Run text-to-speech inference."""
+    """Run SpeechLM inference."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -257,11 +255,14 @@ def inference(
     # 5 Start for-loop
     output_dir = Path(output_dir)
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    writer = open(output_dir / output_name / f"{output_name}.scp", "w")
-    # (output_dir / "token").mkdir(parents=True, exist_ok=True)
-    # (output_dir / "score").mkdir(parents=True, exist_ok=True)
+    (output_dir / "token").mkdir(parents=True, exist_ok=True)
+    (output_dir / "score").mkdir(parents=True, exist_ok=True)
 
-    for idx, (keys, batch) in enumerate(loader, 1):
+    writer = open(output_dir / output_name / f"{output_name}_list", "w")
+    token_writer = WriteHelper(f'ark:{str(output_dir / "token" / "token")}.ark')
+    score_writer = WriteHelper(f'ark:{str(output_dir / "score" / "score")}.ark')
+
+    for _, (keys, batch) in enumerate(loader, 1):
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
@@ -277,25 +278,35 @@ def inference(
             continue
 
         for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
+            example_name = f"{key}_sample{h_idx}"
 
             if output_modality == "codec":
-                wave_name = f"{key}_sample{h_idx}"
-                wave_path = output_dir / output_name / f"{wave_name}.wav"
-                writer.write(f"{wave_name} {str(wave_path)}\n")
+                wave_path = output_dir / output_name / f"{example_name}.wav"
+                writer.write(f"{example_name} {str(wave_path)}\n")
 
                 torchaudio.save(
                     wave_path,
                     content.cpu(),
                     sample_rate=speechlm.post_processor.sample_rate,
                 )
+                logging.info(f"save audio {example_name}: {wave_path}")
+            
+            else:
+                raise NotImplementedError(f"Output modality {output_modality} is not supported")
 
-                logging.info(f"save audio {wave_name}: {wave_path}")
-        
+            if isinstance(token, torch.Tensor):
+                token = token.int().flatten().cpu().numpy()
+            if isinstance(score, torch.Tensor):
+                score = score.float().flatten().cpu().numpy()
+
+            token_writer[example_name] = token
+            score_writer[example_name] = score
+
 
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
-        description="TTS inference",
+        description="SpeechLM inference",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 

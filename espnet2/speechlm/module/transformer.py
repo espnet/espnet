@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+# Copyright 2024 Jinchuan Tian
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+# Derived from OpenAI Whisper model file:
+# https://github.com/openai/whisper/blob/main/whisper/model.py
+
 from typing import Iterable, Optional
 
 import numpy as np
@@ -9,26 +17,6 @@ from torch import Tensor, nn
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
         return super().forward(x.float()).type(x.dtype)
-
-class AdaLN(nn.Module):
-    def __init__(self, d_model, n_levels, eps=1e-5, k=0.1, c=2):
-        super().__init__()
-        self.eps = eps
-        self.emb = torch.nn.Embedding(n_levels, d_model * 2)
-        self.k = k
-        self.c = c
-        torch.nn.init.zeros_(self.emb.weight)
-
-    def forward(self, x, l):
-        logγ, β = self.emb(l).unsqueeze(1).chunk(2, dim=-1)
-
-        h = torch.nn.functional.layer_norm(x, x.shape[-1:], eps=self.eps)
-
-        h = self.c * (1 - (self.k * h).detach()) * h
-
-        y = logγ.exp() * h + β
-
-        return y
 
 class Linear(nn.Linear):
     def forward(self, x: Tensor) -> Tensor:

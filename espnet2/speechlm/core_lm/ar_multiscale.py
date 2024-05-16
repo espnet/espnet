@@ -33,6 +33,21 @@ class MultiScaleLM(AbsCoreLM):
         n_ctx: int = 3000,
         first_layer_weight: int = 1.0,
     ):
+        """ Initialize MultiScaleLM
+        
+        Args:
+            vocab_size (int): Dimention of vocabulary.
+            nq (int): Number of codes for each token / frame, usually for speech codec.
+            share_emb (bool): If true, share the embedding and lm_head weight.
+            g_att_unit (int): Dimention of global Transformer attention.
+            g_head (int): Number of heads in global Transformer attention.
+            g_layer (int): Number of layers in global Transformer.
+            l_att_unit (int): Dimention of local Transformer attention.
+            l_head (int): Number of heads in local Transformer attention.
+            l_layer (int): Number of layers in local Transformer.
+            n_ctx (int): maximum context length of global Transformer.
+            first_layer_weight (int): a factor to scale the gradient for the first-layer codes.
+        """
         super(MultiScaleLM, self).__init__()
         
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
@@ -50,7 +65,7 @@ class MultiScaleLM(AbsCoreLM):
 
         # Local part
         self.l_decoders = TransformerDecoder(
-            n_ctx=n_ctx, # change to nq a bit later.
+            n_ctx=nq,
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
@@ -78,17 +93,27 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+        """ Auto-Regresive MultiScale forward for training
 
+        Args:
+            dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
+            dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
+                may not be used.
+            enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
+                keep the interface, may not be used.
+            prefix_len_lengths (LongTensor): Lengths of condition part in dec_seq (B,).
+        """
         assert dec_seq.dim() == 3
 
         # global
         x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2)
-        x = self.g_decoders(x)
+        x = self.emb(x).sum(dim=2) # [B, T, nq, D] -> [B, T, D]
+        x = self.g_decoders(x) 
         
         # global-to-local
         B, T, _ = x.size()
-        placeholder = self.placeholder.tile(B, T, 1, 1)  # [B, T, 1, D]
+        placeholder = self.placeholder.tile(B, T, 1, 1)
         target = dec_seq[:, 1:]
         target_shift = torch.cat([placeholder, self.emb(target)], dim=2)[
             :, :, :-1
@@ -98,10 +123,10 @@ class MultiScaleLM(AbsCoreLM):
         # local
         x = x.flatten(0, 1) # [B * T, nq, D]
         x = self.l_decoders(x)
-        x = x.view(target_shift.size())
+        x = x.view(target_shift.size()) # [B, T, nq, D]
 
         # loss
-        logits = self.lm_head(x)
+        logits = self.lm_head(x) # [B, T, nq, V]
         loss, stats, weight = ce_loss(
             logits,
             target,
@@ -120,6 +145,16 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
+        """ Auto-Regresive MultiScale Inference.
+
+        Args:
+            prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).
+            opts (SpeechLMInferenceOptions): inference options.
+            enc_seq (LongTensor): Encoder token sequence (B, T_enc, nq).
+            suffix (LongTensor): suffix part of dec_seq (B, T_dec, nq),
+                usually the target sequence for teacher-forcing.
+        """
+
         # (1) global initialization
         g_cache, g_hooks = install_kv_cache_hook(self.g_decoders, {})
 
@@ -130,6 +165,7 @@ class MultiScaleLM(AbsCoreLM):
         _ = self.g_decoders(prefix_emb, kv_cache=g_cache)
 
         # (3) global loop
+        # (3.1) global initialization
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = int(prefix.size(1) * opts.maxlenratio)
         if opts.search_algo == "teacher_force":
@@ -146,7 +182,7 @@ class MultiScaleLM(AbsCoreLM):
             .long()
             .to(opts.device)
         )
-        g_prev_emb = self.emb(g_prev_tok).sum(2)
+        g_prev_emb = self.emb(g_prev_tok).sum(2) # [B, 1, D]
         for g_step in range(maxlen):
             g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache) # [B, 1, D]
 
@@ -167,6 +203,7 @@ class MultiScaleLM(AbsCoreLM):
                     allow_eos=(l_step == 0 and g_step >= minlen),
                     nq_level=l_step,
                 )
+                # [B, 1, 1] -> [B, 1]
                 gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)
 
                 if opts.search_algo == "teacher_force":
@@ -182,7 +219,7 @@ class MultiScaleLM(AbsCoreLM):
             for hook in l_hooks:
                 hook.remove()
             
-            gen_tokens_local = torch.stack(l_generated['token'], dim=2)
+            gen_tokens_local = torch.stack(l_generated['token'], dim=2) # [B, 1, nq]
             gen_scores_local = torch.stack(l_generated['score'], dim=2)
 
             g_generated['token'].append(gen_tokens_local)
@@ -192,7 +229,7 @@ class MultiScaleLM(AbsCoreLM):
                 g_prev_tok = suffix[:, g_step: g_step + 1]
             else:
                 g_prev_tok = gen_tokens_local
-            g_prev_emb = self.emb(g_prev_tok).sum(2)
+            g_prev_emb = self.emb(g_prev_tok).sum(2) # [B, 1, D]
             
             # (3.5) detect ended hypotheses
             finish_idx = torch.where(
@@ -209,10 +246,10 @@ class MultiScaleLM(AbsCoreLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
-        
+
         logging.info(f"Finish with lengths: {finish_idx}")
         
-        # global finalize
+        # (4) global finalize & build hypotheses
         for hook in g_hooks:
             hook.remove()
 

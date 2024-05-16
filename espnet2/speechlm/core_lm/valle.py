@@ -32,6 +32,18 @@ class ValleLM(AbsCoreLM):
         nar_layer: int = 4,
         n_ctx: int = 3000,
     ):
+        """ Initialize Vall-E model
+        
+        Args:
+            vocab_size (int): Dimention of vocabulary.
+            nq (int): Number of codes for each token / frame, usually for speech codec.
+            share_emb (bool): If true, share the embedding and lm_head weight.
+            att_unit (int): Dimention of Transformer attention.
+            head (int): Number of heads in Transformer attention.
+            ar_layer (int): Number of layers in AR Transformer.
+            nar_layer (int): Number of layers in NAR Transformer.
+            n_ctx (int): maximum context length of AR & NAR Transformer.
+        """
         super(ValleLM, self).__init__()
 
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
@@ -66,6 +78,17 @@ class ValleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+        """ Vall-E forward for training
+
+        Args:
+            dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
+            dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
+                may not be used.
+            enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
+                keep the interface, may not be used.
+            prefix_len_lengths (LongTensor): Lengths of condition part in dec_seq (B,).
+        """
 
         assert dec_seq.dim() == 3
 
@@ -76,19 +99,19 @@ class ValleLM(AbsCoreLM):
         input_ar_emb = self.prepare_input(dec_seq_emb, prefix_len, 1)[:, :-1] # [B, T, D]
         target_ar = dec_seq[:, 1:, 0]
         h_ar = self.ar_decoder(input_ar_emb)
-        logits_ar = self.lm_head(h_ar)
+        logits_ar = self.lm_head(h_ar) # [B, T, V]
 
         # Non-Auto-Regressive part
         level_idx_th = torch.randint(1, self.nq, (batch_size,), device=dec_seq.device).long()
-        input_nar_emb = self.prepare_input(dec_seq_emb, prefix_len, level_idx_th)[:, 1:]
+        input_nar_emb = self.prepare_input(dec_seq_emb, prefix_len, level_idx_th)[:, 1:] # [B, T, V]
         batch_idx = torch.arange(batch_size, device=dec_seq.device)
         target_nar = dec_seq[batch_idx, 1:, level_idx_th]
         h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1)
-        logits_nar = self.lm_head(h_nar)
+        logits_nar = self.lm_head(h_nar) # [B, T, V]
 
         # merge and compute loss
-        logits = torch.stack([logits_ar, logits_nar], dim=2)
-        target = torch.stack([target_ar, target_nar], dim=2)
+        logits = torch.stack([logits_ar, logits_nar], dim=2) # [B, T, 2, V]
+        target = torch.stack([target_ar, target_nar], dim=2) # [B, T, 2]
 
         loss, stats, weight = ce_loss(
             logits, 
@@ -115,7 +138,7 @@ class ValleLM(AbsCoreLM):
         prefix_mask = length_mask(prefix_len, maxlen=dec_seq_emb.size(1)).bool()
         prefix_mask = prefix_mask.unsqueeze(2).unsqueeze(3)
 
-        # (3) mask and then sum
+        # (3) mask and then sum in nq-axis.
         mask = torch.logical_or(level_mask, prefix_mask)
         return dec_seq_emb.masked_fill(~mask, 0.0).sum(2)
 
@@ -127,17 +150,27 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
+        """ Vall-E Inference.
+
+        Args:
+            prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
+            opts (SpeechLMInferenceOptions): inference options.
+            enc_seq (LongTensor): Encoder token sequence (B, T, nq).
+            suffix (LongTensor): suffix part of dec_seq (B, T, nq),
+                usually the target sequence for teacher-forcing.
+        """
+
         # (1) initialization
         cache, hooks = install_kv_cache_hook(self.ar_decoder, {})
 
         # (2) auto-regressive prefix forward on first code layer
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        prefix_emb = self.emb(prefix).sum(dim=2)
+        prefix_emb = self.emb(prefix).sum(dim=2) # [B, T, D]
         _ = self.ar_decoder(prefix_emb, kv_cache=cache)
 
         # (3) auto-regressive loop on first code layer
-        # (3.1) prepare
+        # (3.1) AR initialization
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = int(prefix.size(1) * opts.maxlenratio)
         if opts.search_algo == "teacher_force":
@@ -150,16 +183,17 @@ class ValleLM(AbsCoreLM):
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
         prev_tok = torch.Tensor([opts.start]).tile(opts.nbest, 1).long().to(opts.device)
         for step in range(maxlen):
-            #  (3.2) search loop
-            prev_emb = self.emb(prev_tok)
+            #  (3.2) AR loop
+            prev_emb = self.emb(prev_tok) # [B, 1, D]
             h_ar = self.ar_decoder(prev_emb, kv_cache=cache)
-            logits = self.lm_head(h_ar)
+            logits = self.lm_head(h_ar) # [B, 1, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
                 allow_eos=step >= minlen,
                 nq_level=0,
             )
+            # [B, 1, 1] -> [B, 1]
             gen_tok, gen_score = gen_tok.squeeze(2), gen_tok.squeeze(2)
 
             generated["token"].append(gen_tok)
@@ -168,7 +202,7 @@ class ValleLM(AbsCoreLM):
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step: step + 1, 0]
             else:
-                prev_tok = gen_tok
+                prev_tok = gen_tok # [B, 1]
 
             # (3.3) detect ended hypotheses.
             finish_idx = torch.where(
@@ -192,7 +226,7 @@ class ValleLM(AbsCoreLM):
         
         finish_idx = finish_idx[valid_idx]
         prefix_emb, suffix = prefix_emb[valid_idx], suffix[valid_idx]
-        gen_tokens_ar = torch.cat(generated["token"], dim=1)[valid_idx].unsqueeze(2)
+        gen_tokens_ar = torch.cat(generated["token"], dim=1)[valid_idx].unsqueeze(2) # [B, T, 1]
         gen_scores_ar = torch.cat(generated["score"], dim=1)[valid_idx].unsqueeze(2)
         gen_tokens_ar = gen_tokens_ar[:, :finish_idx.max() + 1] # to include <sos>
         gen_scores_ar = gen_scores_ar[:, :finish_idx.max() + 1]
@@ -201,8 +235,8 @@ class ValleLM(AbsCoreLM):
             hook.remove()
         cache = {}
 
-        # (4) non-auto-regressive loop on remained code layers
-        # (4.1) prepare
+        # (4) non-auto-regressive loop on the remained code layers
+        # (4.1) NAR initialization
         if opts.search_algo == "teacher_force":
             prev_tok = suffix[:, :, 0]
         else:
@@ -212,10 +246,10 @@ class ValleLM(AbsCoreLM):
 
         ones = torch.ones_like(valid_idx)
         generated = {"token": [], "score": []}
-        # (4.2) search loop
+        # (4.2) NAR loop
         for step in range(1, opts.nq):
-            h_nar = self.nar_decoder(prev_emb, ones * step - 1)
-            logits = self.lm_head(h_nar)
+            h_nar = self.nar_decoder(prev_emb, ones * step - 1) # [B, T, D]
+            logits = self.lm_head(h_nar) # [B, T, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
@@ -231,14 +265,14 @@ class ValleLM(AbsCoreLM):
                 prev_tok = suffix[:, :, step]
             else:
                 prev_tok = gen_tok
-            prev_emb[:, prefix.size(1):] += self.emb(prev_tok)
+            prev_emb[:, prefix.size(1):] += self.emb(prev_tok) # [B, T, D]
             prev_emb[:, prefix.size(1) - 1: prefix.size(1)] += start_emb
 
-        # (5) compose AR and NAR results
-        gen_tokens_nar = torch.stack(generated["token"], dim=2)
+        # (5) combine AR and NAR results
+        gen_tokens_nar = torch.stack(generated["token"], dim=2) # [B, T, nq]
         gen_scores_nar = torch.stack(generated["score"], dim=2)
 
-        gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2)
+        gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2) # [B, T, nq]
         gen_scores = torch.cat([gen_scores_ar, gen_scores_nar], dim=2)
 
         gen_tokens_list, gen_scores_list = [], []
@@ -247,12 +281,3 @@ class ValleLM(AbsCoreLM):
             gen_scores_list.append(gen_scores[b][: finish_idx[b]])
 
         return gen_tokens_list, gen_scores_list
-
-
-if __name__ == "__main__":
-    model = ValleLM(vocab_size=10, nq=8, n_ctx=20)
-    dec_seq = torch.randint(0, 9, (2, 5, 8)).long()
-    dec_seq_lengths = torch.Tensor([4, 5]).long()
-    prefix_len = torch.Tensor([2, 3]).long()
-
-    _ = model(dec_seq, dec_seq_lengths, prefix_len=prefix_len,)
