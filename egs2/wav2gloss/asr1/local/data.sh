@@ -37,7 +37,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to ${WAV2GLOSS}"
 
     git lfs install
-    git clone --depth=1 https://huggingface.co/datasets/wav2gloss/fieldwork ${WAV2GLOSS}
+    git clone --depth=1 -b src https://huggingface.co/datasets/wav2gloss/fieldwork ${WAV2GLOSS}
 
     # untar everything
     for f in ${WAV2GLOSS}/data/*/audio; do
