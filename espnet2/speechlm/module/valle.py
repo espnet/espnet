@@ -28,11 +28,18 @@ class AdaLN(nn.Module):
 
 
 class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
-    def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
+    def __init__(
+            self, 
+            n_state: int, 
+            n_head: int, 
+            cross_attention: bool = False,
+            causal: bool = False,
+        ):
         super(ResidualAttentionBlockAdaLM, self).__init__(
             n_state=n_state,
             n_head=n_head,
             cross_attention=cross_attention,
+            causal=causal,
         )
 
         for name, module in self.named_modules():
@@ -47,14 +54,9 @@ class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
         mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
     ):
-        x = x + self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)[0]
+        x = x + self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)
         if self.cross_attn:
-            x = (
-                x
-                + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)[
-                    0
-                ]
-            )
+            x = x + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)
         x = x + self.mlp(self.mlp_ln(x, level))
         return x
 
@@ -82,14 +84,17 @@ class ValleNARDecoder(TransformerDecoder):
         self.level_emb = nn.Embedding(n_level, n_state)
         self.ln = AdaLN(n_state)
 
-    def forward(self, x: Tensor, level: Tensor, kv_cache: Optional[dict] = None):
+    def forward(self, x: Tensor, level: Tensor, mask: Tensor = None, kv_cache: Optional[dict] = None):
+        if self.causal and mask is not None:
+            raise ValueError("mask is not allowed when causal")
+
         level = self.level_emb(level)
 
         offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
         x = x + self.pos_emb.weight[offset : offset + x.shape[1]].unsqueeze(0)
 
         for block in self.blocks:
-            x = block(x, level=level, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, level=level, mask=mask, kv_cache=kv_cache)
 
         x = self.ln(x, level)
         return x

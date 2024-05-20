@@ -109,7 +109,9 @@ class ValleLM(AbsCoreLM):
         ]  # [B, T, V]
         batch_idx = torch.arange(batch_size, device=dec_seq.device)
         target_nar = dec_seq[batch_idx, 1:, level_idx_th]
-        h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1)
+        mask = length_mask(dec_seq_lengths - 1).bool()
+        mask = mask.unsqueeze(1).unsqueeze(1) # [B, 1, 1, T]
+        h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1, mask=mask)
         logits_nar = self.lm_head(h_nar)  # [B, T, V]
 
         # merge and compute loss
@@ -252,10 +254,12 @@ class ValleLM(AbsCoreLM):
         )  # [B, T, D]
 
         ones = torch.ones_like(valid_idx)
+        mask = length_mask(prefix.size(1) + finish_idx).bool()
+        mask = mask.unsqueeze(1).unsqueeze(1)
         generated = {"token": [], "score": []}
         # (4.2) NAR loop
         for step in range(1, opts.nq):
-            h_nar = self.nar_decoder(prev_emb, ones * step - 1)  # [B, T, D]
+            h_nar = self.nar_decoder(prev_emb, ones * step - 1, mask=mask)  # [B, T, D]
             # Note(Jinchuan): NAR uses greedy decoding. We still use the sampling but
             # with an extremely small temperature.
             logits = self.lm_head(h_nar) / 0.00001 # [B, T, V]
