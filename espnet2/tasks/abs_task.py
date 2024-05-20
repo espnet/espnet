@@ -448,6 +448,12 @@ class AbsTask(ABC):
             type=str2bool,
             help="Enable sharded training provided by fairscale",
         )
+        group.add_argument(
+            "--use_fsdp",
+            default=False,
+            type=str2bool,
+            help="if true, use pytorch builtin FullyShardedDataParallel",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
