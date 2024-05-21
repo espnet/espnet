@@ -151,33 +151,25 @@ pitch_normalize: None      # normalizer for the pitch feature
 freeze_param: [
 "postfrontend.upstream"
 ]
-postfrontend: s3prl
+postfrontend: fused
 postfrontend_conf:
-    postfrontend_conf:
-        upstream: hubert_large_ll60k
-    download_dir: ./hub
-    multilayer_feature: True
+  postfrontends:
+    - postfrontend_type: s3prl
+      postfrontend_conf:
+        upstream: hf_hubert_custom
+        path_or_url: TencentGameMate/chinese-hubert-large
+      download_dir: ./hub
+      multilayer_feature: True
 
-# we can also use the following frontend configs
+    - postfrontend_type: s3prl
+      postfrontend_conf:
+        upstream: hf_mert_custom
+        path_or_url: m-a-p/MERT-v1-330M
+      download_dir: ./hub
+      multilayer_feature: True
 
-# 1. (MERT):
-
-# postfrontend: s3prl
-# postfrontend_conf:
-#     postfrontend_conf:
-#         upstream: hf_mert_custom
-#         path_or_url: m-a-p/MERT-v1-330M
-#     download_dir: ./hub
-#     multilayer_feature: True
-
-# 2. (Chinese Hubert):
-# postfrontend: s3prl
-# postfrontend_conf:
-#     postfrontend_conf:
-#         upstream: hf_hubert_custom
-#         path_or_url: TencentGameMate/chinese-hubert-large
-#     download_dir: ./hub
-#     multilayer_feature: True
+  align_method: linear_projection
+  proj_dim: 100
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
