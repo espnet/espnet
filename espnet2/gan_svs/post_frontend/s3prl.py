@@ -13,7 +13,9 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlPostFrontend(AbsFrontend):
-    """Pretrained SSL model for VISinger2 Plus. Based on S3prlFrontend, S3prlPostFrontend added a resampler to resample the input audio to the sample rate of the pretrained model."""
+    """Pretrained SSL model for VISinger2 Plus. Based on S3prlFrontend,
+    S3prlPostFrontend added a resampler to resample the input audio to
+    the sample rate of the pretrained model."""
 
     @typechecked
     def __init__(
@@ -108,8 +110,9 @@ class S3prlPostFrontend(AbsFrontend):
             input_lengths = input_lengths * self.fs / self.input_fs
             input_lengths = input_lengths.ceil().long()
 
-        with torch.no_grad():
-            feats, feats_lens = self.upstream(input, input_lengths)
+        # You can choose to freeze parameters in the configuration by setting `freeze_param`
+        feats, feats_lens = self.upstream(input, input_lengths)
+
         if self.layer != -1:
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]

@@ -13,7 +13,7 @@ class FusedPostFrontends(AbsFrontend):
     @typechecked
     def __init__(
         self,
-        frontends=None,
+        postfrontends=None,
         align_method="linear_projection",
         proj_dim=100,
         fs=16000,
@@ -23,33 +23,33 @@ class FusedPostFrontends(AbsFrontend):
         self.align_method = (
             align_method  # fusing method : linear_projection only for now
         )
-        self.proj_dim = proj_dim  # dim of the projection done on each frontend
-        self.frontends = []  # list of the frontends to combine
+        self.proj_dim = proj_dim  # dim of the projection done on each postfrontend
+        self.postfrontends = []  # list of the postfrontends to combine
 
-        for i, frontend in enumerate(frontends):
-            frontend_type = frontend["frontend_type"]
-            if frontend_type == "default":
+        for i, postfrontend in enumerate(postfrontends):
+            postfrontend_type = postfrontend["postfrontend_type"]
+            if postfrontend_type == "default":
                 n_mels, fs, n_fft, win_length, hop_length = (
-                    frontend.get("n_mels", 80),
+                    postfrontend.get("n_mels", 80),
                     fs,
-                    frontend.get("n_fft", 512),
-                    frontend.get("win_length"),
-                    frontend.get("hop_length", 128),
+                    postfrontend.get("n_fft", 512),
+                    postfrontend.get("win_length"),
+                    postfrontend.get("hop_length", 128),
                 )
                 window, center, normalized, onesided = (
-                    frontend.get("window", "hann"),
-                    frontend.get("center", True),
-                    frontend.get("normalized", False),
-                    frontend.get("onesided", True),
+                    postfrontend.get("window", "hann"),
+                    postfrontend.get("center", True),
+                    postfrontend.get("normalized", False),
+                    postfrontend.get("onesided", True),
                 )
                 fmin, fmax, htk, apply_stft = (
-                    frontend.get("fmin", None),
-                    frontend.get("fmax", None),
-                    frontend.get("htk", False),
-                    frontend.get("apply_stft", True),
+                    postfrontend.get("fmin", None),
+                    postfrontend.get("fmax", None),
+                    postfrontend.get("htk", False),
+                    postfrontend.get("apply_stft", True),
                 )
 
-                self.frontends.append(
+                self.postfrontends.append(
                     DefaultFrontend(
                         n_mels=n_mels,
                         n_fft=n_fft,
@@ -66,17 +66,17 @@ class FusedPostFrontends(AbsFrontend):
                         apply_stft=apply_stft,
                     )
                 )
-            elif frontend_type == "s3prl":
-                frontend_conf, download_dir, multilayer_feature = (
-                    frontend.get("frontend_conf"),
-                    frontend.get("download_dir"),
-                    frontend.get("multilayer_feature"),
+            elif postfrontend_type == "s3prl":
+                postfrontend_conf, download_dir, multilayer_feature = (
+                    postfrontend.get("postfrontend_conf"),
+                    postfrontend.get("download_dir"),
+                    postfrontend.get("multilayer_feature"),
                 )
-                self.frontends.append(
+                self.postfrontends.append(
                     S3prlPostFrontend(
                         fs=fs,
                         input_fs=input_fs,
-                        postfrontend_conf=frontend_conf,
+                        postfrontend_conf=postfrontend_conf,
                         download_dir=download_dir,
                         multilayer_feature=multilayer_feature,
                     )
@@ -85,10 +85,14 @@ class FusedPostFrontends(AbsFrontend):
             else:
                 raise NotImplementedError  # frontends are only default or s3prl
 
-        self.frontends = torch.nn.ModuleList(self.frontends)
+        self.postfrontends = torch.nn.ModuleList(self.postfrontends)
 
-        self.gcd = np.gcd.reduce([frontend.hop_length for frontend in self.frontends])
-        self.factors = [frontend.hop_length // self.gcd for frontend in self.frontends]
+        self.gcd = np.gcd.reduce(
+            [postfrontend.hop_length for postfrontend in self.postfrontends]
+        )
+        self.factors = [
+            postfrontend.hop_length // self.gcd for postfrontend in self.postfrontends
+        ]
         if torch.cuda.is_available():
             dev = "cuda"
         else:
@@ -96,25 +100,25 @@ class FusedPostFrontends(AbsFrontend):
         if self.align_method == "linear_projection":
             self.projection_layers = [
                 torch.nn.Linear(
-                    in_features=frontend.output_size(),
+                    in_features=postfrontend.output_size(),
                     out_features=self.factors[i] * self.proj_dim,
                 )
-                for i, frontend in enumerate(self.frontends)
+                for i, postfrontend in enumerate(self.postfrontends)
             ]
             self.projection_layers = torch.nn.ModuleList(self.projection_layers)
             self.projection_layers = self.projection_layers.to(torch.device(dev))
 
     def output_size(self) -> int:
-        return len(self.frontends) * self.proj_dim
+        return len(self.postfrontends) * self.proj_dim
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # step 0 : get all frontends features
         self.feats = []
-        for frontend in self.frontends:
+        for postfrontend in self.postfrontends:
             with torch.no_grad():
-                input_feats, feats_lens = frontend.forward(input, input_lengths)
+                input_feats, feats_lens = postfrontend.forward(input, input_lengths)
             self.feats.append([input_feats, feats_lens])
 
         if (
@@ -122,13 +126,13 @@ class FusedPostFrontends(AbsFrontend):
         ):  # TODO(Dan): to add other align methods
             # first step : projections
             self.feats_proj = []
-            for i, frontend in enumerate(self.frontends):
+            for i, postfrontend in enumerate(self.postfrontends):
                 input_feats = self.feats[i][0]
                 self.feats_proj.append(self.projection_layers[i](input_feats))
 
             # 2nd step : reshape
             self.feats_reshaped = []
-            for i, frontend in enumerate(self.frontends):
+            for i, postfrontend in enumerate(self.postfrontends):
                 input_feats_proj = self.feats_proj[i]
                 bs, nf, dim = input_feats_proj.shape
                 input_feats_reshaped = torch.reshape(
