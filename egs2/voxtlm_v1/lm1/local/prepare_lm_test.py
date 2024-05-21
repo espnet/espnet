@@ -59,4 +59,4 @@ if __name__ == "__main__":
 
     prepare_lm(test_file, out_dir / "text.textlm", "textlm_")
 
-    prepare_lm(test_file, out_dir / "text.speechlm", "speechlm_")
+    prepare_lm(test_file, out_dir / "text.speechlm", "unitlm_")

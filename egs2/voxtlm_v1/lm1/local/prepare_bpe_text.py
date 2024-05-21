@@ -22,7 +22,7 @@ if __name__ == "__main__":
             if line.startswith("asr") or line.startswith("tts"):
                 fout.write(line)
                 i = i + 1
-                if i > args.num:
+                if i > args.num_utterances:
                     break
 
     print("Successfully created BPE training file")
