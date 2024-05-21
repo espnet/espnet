@@ -121,9 +121,7 @@ class FusedPostFrontends(AbsFrontend):
                 input_feats, feats_lens = postfrontend.forward(input, input_lengths)
             self.feats.append([input_feats, feats_lens])
 
-        if (
-            self.align_method == "linear_projection"
-        ):  # TODO(Dan): to add other align methods
+        if self.align_method == "linear_projection":
             # first step : projections
             self.feats_proj = []
             for i, postfrontend in enumerate(self.postfrontends):
