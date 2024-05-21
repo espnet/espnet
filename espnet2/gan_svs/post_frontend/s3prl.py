@@ -110,7 +110,8 @@ class S3prlPostFrontend(AbsFrontend):
             input_lengths = input_lengths * self.fs / self.input_fs
             input_lengths = input_lengths.ceil().long()
 
-        # You can choose to freeze parameters in the configuration by setting `freeze_param`
+        # You can choose to freeze parameters in the configuration
+        # by setting `freeze_param`
         feats, feats_lens = self.upstream(input, input_lengths)
 
         if self.layer != -1:
