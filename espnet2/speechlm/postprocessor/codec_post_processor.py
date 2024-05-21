@@ -96,6 +96,29 @@ class Codec_Tokenizer(torch.nn.Module):
             self.size_codebook = 1024
             self.subsample = 320
 
+        # temporary code, will remove later
+        elif self.codec_choice == "inhouse":
+            try:
+                from models.soundstream import SoundStream
+                from omegaconf import OmegaConf
+            except:
+                raise ImportError("Download the Codec from")
+
+            model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"
+            model_config = "encodec_16k_6kbps_multiDisc/config.yaml"
+            config = OmegaConf.load(model_config)
+            model = SoundStream(**config.generator.config)
+
+            state_dict = torch.load(model_path, map_location="cpu")
+            model.load_state_dict(state_dict["codec_model"])
+            model = model.to(device)
+            self.codec = model
+
+            self.n_codebook = 8
+            self.sample_rate = 16000
+            self.size_codebook = 1024
+            self.subsample = 320
+
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
@@ -112,11 +135,16 @@ class Codec_Tokenizer(torch.nn.Module):
             codes = codes.permute(2, 0, 1)
             wav = self.codec.decode(codes)
             return wav
+        elif self.codec_choice == "inhouse":
+            codes = codes.permute(2, 0, 1)
+            wav = self.codec.decode(codes)
+            return wav
         else:
             raise NotImplementedError
 
         return waveform
 
+    # TODO(Jinchuan): to unify the decode step
     def __call__(self, wavs):
         # All wavs in shape of [batch_size, 1, num_samples]
         assert wavs.dim() == 3 and wavs.size(1) == 1
@@ -150,10 +178,17 @@ class Codec_Tokenizer(torch.nn.Module):
                 resyn_audio = self.decode(codes).squeeze(1)
             else:
                 resyn_audio = None
+        
+        elif self.codec_choice == "inhouse":
+            codes = self.codec.encode(wavs).permute(1, 2, 0)
+            if self.dump_audio:
+                resyn_audio = self.decode(codes).squeeze(1)
+            else:
+                resyn_audio = None
 
         else:
             raise NotImplementedError
-
+        
         # All codes in shape of [batch_size, T, n_codebook]
         # All resyn_audio in shape of [batch_size, num_samples]
         shift = torch.arange(self.n_codebook).to(self.device)

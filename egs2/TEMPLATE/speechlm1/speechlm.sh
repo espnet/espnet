@@ -303,14 +303,14 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
-                    ${python} -m espnet2.bin.tokenize_text \
-                        --token_type "phn" -f 2- \
-                        --input "${data_audio}/${dset}/${_name}" \
-                        --output "${data_feats}/${dset}/token_lists/g2p_token_list" \
-                        --non_linguistic_symbols "${nlsyms_txt}" \
-                        --cleaner "${cleaner}" \
-                        --g2p "${g2p}" \
-                        --write_vocabulary true
+                    # ${python} -m espnet2.bin.tokenize_text \
+                    #     --token_type "phn" -f 2- \
+                    #     --input "${data_audio}/${dset}/${_name}" \
+                    #     --output "${data_feats}/${dset}/token_lists/g2p_token_list" \
+                    #     --non_linguistic_symbols "${nlsyms_txt}" \
+                    #     --cleaner "${cleaner}" \
+                    #     --g2p "${g2p}" \
+                    #     --write_vocabulary true
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 elif [ ${_modality} == "spk" ]; then

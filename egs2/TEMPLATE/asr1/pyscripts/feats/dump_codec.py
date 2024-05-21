@@ -57,7 +57,11 @@ def dump_codec(
 ):
     # (1) Device
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        if torch.cuda.device_count() > 1:
+            device_id = rank % torch.cuda.device_count()
+        else:
+            device_id = 0
+        device = torch.device(f"cuda:{device_id}")
     else:
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
@@ -65,7 +69,7 @@ def dump_codec(
         args.batch_size = 1
 
     # (2) Codec model
-    logger.info("build with codec_choice: ", codec_choice)
+    logger.info(f"build with codec_choice: {codec_choice}")
     tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
 
     # (3) Tokenizer loop
