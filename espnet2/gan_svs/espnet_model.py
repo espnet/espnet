@@ -38,7 +38,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
     @typechecked
     def __init__(
         self,
-        frontend: Optional[AbsFrontend],
+        postfrontend: Optional[AbsFrontend],
         text_extract: Optional[AbsFeatsExtract],
         feats_extract: Optional[AbsFeatsExtract],
         score_feats_extract: Optional[AbsFeatsExtract],
@@ -66,7 +66,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.svs = svs
-        self.frontend = frontend
+        self.postfrontend = postfrontend
         assert hasattr(
             svs, "generator"
         ), "generator module must be registered as svs.generator"
@@ -256,15 +256,13 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     feats_lengths=feats_lengths,
                 )
 
-            if self.frontend is not None:
-                # Frontend
-                #  e.g. STFT and Feature extract
-                #       data_loader may send time-domain signal in this case
-                # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-                asr_feats, asr_feats_lengths = self.frontend(singing, singing_lengths)
+            if self.postfrontend is not None:
+                # extract features using pretrained SSL models like HuBERT
+                ssl_feats, ssl_feats_lengths = self.postfrontend(
+                    singing, singing_lengths
+                )
             else:
-                # No frontend and no feature extract
-                asr_feats, asr_feats_lengths = singing, singing_lengths
+                ssl_feats, ssl_feats_lengths = singing, singing_lengths
 
             # Normalize
             if self.normalize is not None:
@@ -338,10 +336,10 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
-        if self.frontend is not None:
-            batch.update(asr_feats=asr_feats, asr_feats_lengths=asr_feats_lengths)
+        if self.postfrontend is not None:
+            batch.update(ssl_feats=ssl_feats, ssl_feats_lengths=ssl_feats_lengths)
         else:
-            batch.update(asr_feats=None, asr_feats_lengths=None)
+            batch.update(ssl_feats=None, ssl_feats_lengths=None)
         return self.svs(**batch)
 
     def collect_feats(

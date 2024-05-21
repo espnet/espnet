@@ -43,8 +43,8 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
-frontend_choices = ClassChoices(
-    name="frontend",
+postfrontend_choices = ClassChoices(
+    name="postfrontend",
     classes=dict(
         s3prl=S3prlPostFrontend,
         fused=FusedPostFrontends,
@@ -142,8 +142,8 @@ class GANSVSTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
-        # --frontend and --frontend_conf
-        frontend_choices,
+        # --postfrontend and --postfrontend_conf
+        postfrontend_choices,
         # --score_extractor and --score_extractor_conf
         score_feats_extractor_choices,
         # --feats_extractor and --feats_extractor_conf
@@ -272,7 +272,7 @@ class GANSVSTask(AbsTask):
     @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -352,19 +352,19 @@ class GANSVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
-        # 1. frontend
-        if args.input_size is None and args.frontend is not None:
+        # 1. ssl postfrontend
+        if args.input_size is None and args.postfrontend is not None:
             # Extract features in the model
-            frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(
-                **args.frontend_conf, input_fs=args.svs_conf["sampling_rate"]
+            postfrontend_class = postfrontend_choices.get_class(args.postfrontend)
+            postfrontend = postfrontend_class(
+                **args.postfrontend_conf, input_fs=args.svs_conf["sampling_rate"]
             )
-            input_size = frontend.output_size()
+            input_size = postfrontend.output_size()
         else:
             # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
-            frontend = None
+            args.postfrontend = None
+            args.postfrontend_conf = {}
+            postfrontend = None
             input_size = args.input_size
 
         # 2. Normalization layer
@@ -434,7 +434,7 @@ class GANSVSTask(AbsTask):
 
         # 5. Build model
         model = ESPnetGANSVSModel(
-            frontend=frontend,
+            postfrontend=postfrontend,
             text_extract=score_feats_extract,
             feats_extract=feats_extract,
             score_feats_extract=score_feats_extract,

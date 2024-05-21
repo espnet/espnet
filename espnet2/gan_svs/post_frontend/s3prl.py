@@ -20,7 +20,7 @@ class S3prlPostFrontend(AbsFrontend):
         self,
         fs: Union[int, str] = 16000,
         input_fs: Union[int, str] = 24000,
-        frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
+        postfrontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         download_dir: str = None,
         multilayer_feature: bool = False,
         layer: int = -1,
@@ -45,12 +45,14 @@ class S3prlPostFrontend(AbsFrontend):
         if download_dir is not None:
             s3prl.util.download.set_dir(download_dir)
 
-        assert frontend_conf.get("upstream", None) in S3PRLUpstream.available_names()
+        assert (
+            postfrontend_conf.get("upstream", None) in S3PRLUpstream.available_names()
+        )
         upstream = S3PRLUpstream(
-            frontend_conf.get("upstream"),
-            path_or_url=frontend_conf.get("path_or_url", None),
-            normalize=frontend_conf.get("normalize", False),
-            extra_conf=frontend_conf.get("extra_conf", None),
+            postfrontend_conf.get("upstream"),
+            path_or_url=postfrontend_conf.get("path_or_url", None),
+            normalize=postfrontend_conf.get("normalize", False),
+            extra_conf=postfrontend_conf.get("extra_conf", None),
         )
         if getattr(upstream.upstream, "model", None):
             if getattr(upstream.upstream.model, "feature_grad_mult", None) is not None:
@@ -72,7 +74,7 @@ class S3prlPostFrontend(AbsFrontend):
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.frontend_type = "s3prl"
         self.hop_length = self.featurizer.downsample_rate
-        self.tile_factor = frontend_conf.get("tile_factor", 1)
+        self.tile_factor = postfrontend_conf.get("tile_factor", 1)
         self.resampler = torchaudio.transforms.Resample(orig_freq=input_fs, new_freq=fs)
         self.fs = fs
         self.input_fs = input_fs

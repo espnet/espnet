@@ -76,7 +76,7 @@ class FusedPostFrontends(AbsFrontend):
                     S3prlPostFrontend(
                         fs=fs,
                         input_fs=input_fs,
-                        frontend_conf=frontend_conf,
+                        postfrontend_conf=frontend_conf,
                         download_dir=download_dir,
                         multilayer_feature=multilayer_feature,
                     )

@@ -431,8 +431,8 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        asr_feats: torch.Tensor = None,
-        asr_feats_lengths: torch.Tensor = None,
+        ssl_feats: torch.Tensor = None,
+        ssl_feats_lengths: torch.Tensor = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
@@ -450,10 +450,12 @@ class VITS(AbsGANSVS):
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, Lmax, odim).
+            feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
+            ssl_feats (Tensor): SSL feature tensor (B, T_feats, hubert_channels).
+            ssl_feats_lengths (Tensor): SSL feature length tensor (B,).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, T_text).
             label_lengths (Optional[Dict]): key is "lab" or "score";
@@ -461,6 +463,7 @@ class VITS(AbsGANSVS):
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
+            ying (Optional[Tensor]): Batch of padded ying (B, T_feats).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, T_text).
             slur (FloatTensor): Batch of padded slur (B, T_text).
@@ -478,14 +481,14 @@ class VITS(AbsGANSVS):
 
         """
 
-        if asr_feats is not None:
-            if asr_feats.shape[1] > feats.shape[1]:
-                asr_feats = asr_feats[:, : feats.shape[1], :]
-            elif asr_feats.shape[1] < feats.shape[1]:
-                padding = (0, 0, 0, feats.shape[1] - asr_feats.shape[1], 0, 0)
-                asr_feats = torch.nn.functional.pad(asr_feats, padding)
+        if ssl_feats is not None:
+            if ssl_feats.shape[1] > feats.shape[1]:
+                ssl_feats = ssl_feats[:, : feats.shape[1], :]
+            elif ssl_feats.shape[1] < feats.shape[1]:
+                padding = (0, 0, 0, feats.shape[1] - ssl_feats.shape[1], 0, 0)
+                ssl_feats = torch.nn.functional.pad(ssl_feats, padding)
 
-            concatenated_feats = torch.cat([feats, asr_feats], dim=2)
+            concatenated_feats = torch.cat([feats, ssl_feats], dim=2)
         else:
             concatenated_feats = feats
 
