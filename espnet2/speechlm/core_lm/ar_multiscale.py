@@ -48,9 +48,14 @@ class MultiScaleLM(AbsCoreLM):
         super(MultiScaleLM, self).__init__()
 
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
-        self.lm_head = torch.nn.Linear(g_att_unit, vocab_size, bias=False)
-        if share_emb:
+        self.lm_head = torch.nn.Linear(l_att_unit, vocab_size, bias=False)
+        if share_emb and g_att_unit == l_att_unit:
             self.lm_head.weight = self.emb.weight
+        
+        if g_att_unit != l_att_unit:
+            self.g2l = torch.nn.Linear(g_att_unit, l_att_unit)
+        else:
+            self.g2l = torch.nn.Identity()
 
         # Global part
         self.g_decoders = TransformerDecoder(
@@ -71,13 +76,6 @@ class MultiScaleLM(AbsCoreLM):
         self.placeholder = torch.nn.parameter.Parameter(
             torch.randn(l_att_unit, requires_grad=True)
         )
-
-        # later shouls allow the local dimension to be smaller than the global dimension.
-        # for efficient local modeling
-        if g_att_unit != l_att_unit:
-            raise ValueError(
-                "currently attention size for global and local size should be the same"
-            )
 
         self.nq = nq
         self.first_layer_weight = first_layer_weight
@@ -107,12 +105,14 @@ class MultiScaleLM(AbsCoreLM):
         x = dec_seq[:, :-1]
         x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
         x = self.g_decoders(x)
+        x = self.g2l(x)
 
         # global-to-local
         B, T, _ = x.size()
         placeholder = self.placeholder.tile(B, T, 1, 1)
         target = dec_seq[:, 1:]
-        target_shift = torch.cat([placeholder, self.emb(target)], dim=2)[
+        target_emb = self.g2l(self.emb(target))
+        target_shift = torch.cat([placeholder, target_emb], dim=2)[
             :, :, :-1
         ]  # [B, T, nq, D]
         x = x.unsqueeze(2) + target_shift
@@ -182,6 +182,7 @@ class MultiScaleLM(AbsCoreLM):
         g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
         for g_step in range(maxlen):
             g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache)  # [B, 1, D]
+            g_hidden = self.g2l(g_hidden)
 
             # (3.2) local initialization
             l_cache, l_hooks = install_kv_cache_hook(self.l_decoders, {})
@@ -207,7 +208,7 @@ class MultiScaleLM(AbsCoreLM):
                     l_prev_tok = suffix[:, g_step : g_step + 1, l_step]
                 else:
                     l_prev_tok = gen_tok
-                l_prev_emb = self.emb(l_prev_tok)
+                l_prev_emb = self.g2l(self.emb(l_prev_tok))
 
                 l_generated["token"].append(gen_tok)
                 l_generated["score"].append(gen_score)

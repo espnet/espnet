@@ -96,6 +96,7 @@ class TrainerOptions:
     max_epoch: int
     seed: int
     sharded_ddp: bool
+    use_fsdp: bool
     patience: Optional[int]
     keep_nbest_models: Union[int, List[int]]
     nbest_averaging_interval: int
@@ -307,6 +308,12 @@ class Trainer:
                     mixed_precision=mixed_precision,      
                 )
                 logging.info(f"warp model into FSDP with dtype {dtype}")
+
+                # Note(Jinchuan) when using FSDP, the optimizers should be re-build as the
+                # parameters they are in charge have been sharded.
+                assert len(optimizers) == 1, "Only one optimizer is supported yet"
+                assert len(optimizers[0].param_groups) == 1, "Only one parameger group is supported yet"
+                optimizers[0].param_groups[0]['params'] = dp_model.parameters()
 
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
