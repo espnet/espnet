@@ -262,7 +262,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     singing, singing_lengths
                 )
             else:
-                ssl_feats, ssl_feats_lengths = singing, singing_lengths
+                ssl_feats, ssl_feats_lengths = None, None
 
             # Normalize
             if self.normalize is not None:
