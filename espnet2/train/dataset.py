@@ -741,6 +741,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
             kwargs["preprocess"], "encoder_decoder_format", False
         )
         self.apply_utt2category = False
+        self.example_list = list(self.iterator_map.keys())
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
         iterator = self.iterator_map[uid]
