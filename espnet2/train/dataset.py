@@ -643,10 +643,11 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
         # (2) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
+        example_dict = {k: None for k in example_list} # hash for faster query 
         for key in self.loader_dict.keys():
             loader = self.loader_dict[key]
             if isinstance(loader, Dict):
-                loader = {k: v for k, v in loader.items() if k in example_list}
+                loader = {k: v for k, v in loader.items() if k in example_dict}
                 self.loader_dict[key] = loader
 
         # (3) keep task
@@ -740,7 +741,6 @@ class ESPnetMultiTaskDataset(AbsDataset):
             kwargs["preprocess"], "encoder_decoder_format", False
         )
         self.apply_utt2category = False
-        self.example_list = list(self.iterator_map.keys())
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
         iterator = self.iterator_map[uid]

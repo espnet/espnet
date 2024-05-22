@@ -64,13 +64,13 @@ from espnet2.train.distributed_utils import (
 )
 from espnet2.train.iterable_dataset import (
     IterableESPnetDataset,
-    SplicedIterableESPnetDataset,
 )
 from espnet2.train.trainer import Trainer
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.fsdp import warp_fsdp
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,
@@ -1321,6 +1321,10 @@ class AbsTask(ABC):
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
 
+            # Note(Jinchuan): have to warp FSDP before building optimizers
+            if args.use_fsdp:
+                model = warp_fsdp(model, use_amp=args.use_amp)
+
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)
 
@@ -1342,6 +1346,7 @@ class AbsTask(ABC):
 
                 schedulers.append(scheduler)
 
+            # printed #param will be devided by #GPU when using FSDP
             logging.info(pytorch_cudnn_version())
             logging.info(model_summary(model))
             for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
