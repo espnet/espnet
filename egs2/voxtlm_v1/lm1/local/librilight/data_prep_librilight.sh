@@ -27,7 +27,7 @@ mkdir -p $dst || exit 1
 wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
-for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
+for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort | grep -v logdir); do
   reader=$(basename $reader_dir)
   if ! [ $reader -eq $reader ]; then  # not integer.
     echo "$0: unexpected subdirectory name $reader"

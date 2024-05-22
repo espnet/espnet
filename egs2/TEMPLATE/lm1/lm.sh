@@ -53,7 +53,7 @@ max_wav_duration=20  # Maximum duration in second.
 
 # Kmeans related
 km_dir=                     # Path to pretrained kmeans model
-learn_kmeans=false          # boolean flag to note whether to learn kmeans
+learn_kmeans=true           # boolean flag to note whether to learn kmeans
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh, needed when kmeans is trained
 kmeans_feature="hubert_base/6" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21), needed when kmeans is trained
 portion=0.1
@@ -457,7 +457,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     if "${use_text}"; then
-        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/text/"*; do
                 if [ -d "${_dir}" ]; then
                     echo "${data_feats}/${dset}/text/$(basename ${_dir})"
