@@ -102,7 +102,7 @@ class Codec_Tokenizer(torch.nn.Module):
                 from models.soundstream import SoundStream
                 from omegaconf import OmegaConf
             except:
-                raise ImportError("Download the Codec from")
+                raise ImportError("fail to use inhouse codec")
 
             model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"
             model_config = "encodec_16k_6kbps_multiDisc/config.yaml"

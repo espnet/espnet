@@ -7,6 +7,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 import kaldiio
 import numpy as np
@@ -67,10 +68,22 @@ def dump_codec(
         logger.warning("Codec tokenization with CPU can be very slow.")
         logger.warning("Change batch_size=1 for CPU tokenization")
         args.batch_size = 1
+    logging.info(f"working with device: {device}")
 
     # (2) Codec model
     logger.info(f"build with codec_choice: {codec_choice}")
-    tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
+    for _ in range(1000):
+        try:
+            tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
+            break
+        except:
+            logging.info("GPU is not available for now. wait for 10s ...")
+            time.sleep(10)
+            tokenizer = None
+        
+    if tokenizer is None:
+        raise ValueError("Cannot build the tokenizer, maybe because the GPU is busy")
+
 
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)
