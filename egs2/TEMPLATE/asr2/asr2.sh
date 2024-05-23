@@ -568,18 +568,18 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 if "${skip_data_prep}"; then
-    skip_stages+=" 1 2 3 4 5 6"
+    skip_stages+="1 2 3 4 5 6 "
 fi
 if "${skip_train}"; then
-    skip_stages+=" 5 6 7 8 9 10 11 12 13"
+    skip_stages+="5 6 7 8 9 10 11 12 13 "
 elif ! "${use_lm}"; then
-    skip_stages+=" 8 9 10"
+    skip_stages+="8 9 10 "
 fi
 if ! "${use_ngram}"; then
-    skip_stages+=" 11"
+    skip_stages+="11 "
 fi
 if "${skip_eval}"; then
-    skip_stages+=" 14 15"
+    skip_stages+="14 15 "
 fi
 
 if "${skip_packing}"; then
