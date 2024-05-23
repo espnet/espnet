@@ -1,3 +1,5 @@
+import torch
+
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
@@ -60,12 +62,24 @@ class NumElementsBatchSampler(AbsSampler):
             feat_dims = [np.prod(d[keys[0]][1:]) for d in utt2shapes]
         else:
             feat_dims = None
+        
+        # Note (Jinchuan): the increment size of global batch size, which 
+        # should be a integer multiples of world_size when working in 
+        # the distributed mode. This ensure that each GPU will always
+        # have the same local batch size -> better workload balance.
+        if torch.distributed.is_initialized():
+            increment = torch.distributed.get_world_size()
+        else:
+            increment = 1
 
         # Decide batch-sizes
         batch_sizes = []
         current_batch_keys = []
         for key in keys:
             current_batch_keys.append(key)
+            if len(current_batch_keys) % increment != 0:
+                continue
+
             # shape: (Length, dim1, dim2, ...)
             if padding:
                 for d, s in zip(utt2shapes, shape_files):
