@@ -1,0 +1,1088 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "kNbxe3gyfbPi"
+      },
+      "source": [
+        "# CMU 11751/18781 Fall 2022: ESPnet Tutorial\n",
+        "\n",
+        "[ESPnet](https://github.com/espnet/espnet) is a widely-used end-to-end speech processing toolkit. It has supported various speech processing tasks. ESPnet uses PyTorch as a main deep learning engine, and also follows Kaldi style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.\n",
+        "\n",
+        "Main references:\n",
+        "- [ESPnet repository](https://github.com/espnet/espnet)\n",
+        "- [ESPnet documentation](https://espnet.github.io/espnet/)\n",
+        "- [ESPnet tutorial in Speech Recognition and Understanding (Fall 2021)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb)\n",
+        "- [Recitation in Multilingual NLP (Spring 2022)](https://colab.research.google.com/drive/1tY6PxF_M5Nx5n488x0DrpujJOyqW-ATi?usp=sharing)\n",
+        "\n",
+        "Author: Siddhant Arora (siddhana@andrew.cmu.edu) This notebook was modified from the material made by Yifan Peng (yifanpen@andrew.cmu.edu)\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "pwxgDdlMUE60"
+      },
+      "source": [
+        "## ❗Important Notes❗\n",
+        "- We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU, you may fail to connect to a GPU backend for some time.\n",
+        "- There are multiple in-class checkpoints ✅ throughout this tutorial. There will also be some after-class excersices 📗 after the tutorial. **Your participation points are based on these tasks.** Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.\n",
+        "- Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using `File -> Print` in the menu bar.\n",
+        "- This tutorial covers the basics of ESPnet, which will be the foundation of the next tutorial on Wednesday."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wl9JFMNJ5iYu"
+      },
+      "source": [
+        "## Objectives\n",
+        "After this tutorial, you are expected to know:\n",
+        "- How to run existing recipes (data prep, training, inference and scoring) in ESPnet2\n",
+        "- How to change the training and decoding configurations\n",
+        "- How to create a new recipe from scratch\n",
+        "- Where to find resources if you encounter an issue\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gGg1N9jufpf2"
+      },
+      "source": [
+        "## Useful links\n",
+        "\n",
+        "- Installation https://espnet.github.io/espnet/installation.html\n",
+        "- Usage https://espnet.github.io/espnet/espnet2_tutorial.html\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "S0LaeC3RzECk"
+      },
+      "source": [
+        "# Install ESPnet\n",
+        "\n",
+        "- This is a full installation method to perform data preprocessing, training, inference, scoring, and so on.\n",
+        "\n",
+        "- We prepare various ways of installation. Please read https://espnet.github.io/espnet/installation.html#step-2-installation-espnet for more details.\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ff1e4zYNaBcO"
+      },
+      "source": [
+        "## Function to print date and time\n",
+        "\n",
+        "We first define a function to print the current date and time, which will be used in multiple places below."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "U674ZP6DaA3M"
+      },
+      "outputs": [],
+      "source": [
+        "def print_date_and_time():\n",
+        "  from datetime import datetime\n",
+        "  import pytz\n",
+        "\n",
+        "  now = datetime.now(pytz.timezone(\"America/New_York\"))\n",
+        "  print(\"=\" * 60)\n",
+        "  print(f' Current date and time: {now.strftime(\"%m/%d/%Y %H:%M:%S\")}')\n",
+        "  print(\"=\" * 60)\n",
+        "\n",
+        "# example output\n",
+        "print_date_and_time()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "V2xth6tgUxRg"
+      },
+      "source": [
+        "## Check GPU type\n",
+        "\n",
+        "Let's check the GPU type of this allocated environment."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "Kq2y5LnoU3-t"
+      },
+      "outputs": [],
+      "source": [
+        "!nvidia-smi"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "n1G9slDo0AuF"
+      },
+      "source": [
+        "## Download ESPnet\n",
+        "\n",
+        "We use `git clone` to download the source code of ESPnet and then go to a specific commit.\n",
+        "\n",
+        "**Important:** In other versions of ESPnet, you may encounter errors related to imcompatible package versions (`numba`). Please use the same commit to avoid such issues."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "St7lke2P0GUP"
+      },
+      "outputs": [],
+      "source": [
+        "# It takes a few seconds\n",
+        "!git clone --depth 5 https://github.com/espnet/espnet"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lZGnBSEaz1Zt"
+      },
+      "source": [
+        "## Setup Python environment based on anaconda\n",
+        "\n",
+        "There are several other installation methods, but **we highly recommend the anaconda-based one**.\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "4F80yqAIz86B"
+      },
+      "outputs": [],
+      "source": [
+        "# It takes 30 seconds\n",
+        "%cd /content/espnet/tools\n",
+        "!./setup_anaconda.sh anaconda espnet 3.9"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Wd-_lSQv1ML4"
+      },
+      "source": [
+        "## Install ESPnet (same procedure as your first tutorial)\n",
+        "\n",
+        "This step installs PyTorch and other required tools.\n",
+        "\n",
+        "We specify `CUDA_VERSION=11.6` for PyTorch 1.12.1. We also support many other versions. Please check https://github.com/espnet/espnet/blob/master/tools/installers/install_torch.sh for the detailed version list.\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "i_E98PPZ1PbB"
+      },
+      "outputs": [],
+      "source": [
+        "# It may take 12 minutes\n",
+        "%cd /content/espnet/tools\n",
+        "!make TH_VERSION=1.12.1 CUDA_VERSION=11.6"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "xIdONxMlmK2N"
+      },
+      "source": [
+        "If other listed packages are necessary, install any of them using\n",
+        "```\n",
+        ". ./activation_python.sh && ./installers/install_xxx.sh\n",
+        "``` \n",
+        "\n",
+        "We show two examples, although they are not used in this demo."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "crOimKYMWy9T"
+      },
+      "outputs": [],
+      "source": [
+        "# s3prl and fairseq are necessary if you want to use self-supervised pre-trained models\n",
+        "# It takes 50s\n",
+        "%cd /content/espnet/tools\n",
+        "\n",
+        "!. ./activate_python.sh && ./installers/install_s3prl.sh\n",
+        "!. ./activate_python.sh && ./installers/install_fairseq.sh    # install s3prl to use Wav2Vec2 / HuBERT model series"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "41alrKGO4d3v"
+      },
+      "source": [
+        "# Run an existing recipe\n",
+        "\n",
+        "ESPnet has a number of recipes (130 recipes on Sep. 11, 2022).\n",
+        "Please refer to https://github.com/espnet/espnet/blob/master/egs2/README.md for a complete list.\n",
+        "\n",
+        "Please also check the general usage of the recipe in https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "H6uBU3Mahsaj"
+      },
+      "source": [
+        "**CMU AN4 recipe**\n",
+        "\n",
+        "In this tutorial, we will use the CMU `an4` recipe.\n",
+        "This is a small-scale speech recognition task mainly used for testing.\n",
+        "\n",
+        "First, let's go to the recipe directory."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "GO2hG6CZ4er5"
+      },
+      "outputs": [],
+      "source": [
+        "%cd /content/espnet/egs2/an4/asr1\n",
+        "!ls"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "nxy5AxZtwBAp"
+      },
+      "source": [
+        "```\n",
+        "egs2/an4/asr1/\n",
+        " - conf/      # Configuration files for training, inference, etc.\n",
+        " - scripts/   # Bash utilities of espnet2\n",
+        " - pyscripts/ # Python utilities of espnet2\n",
+        " - steps/     # From Kaldi utilities\n",
+        " - utils/     # From Kaldi utilities\n",
+        " - db.sh      # The directory path of each corpora\n",
+        " - path.sh    # Setup script for environment variables\n",
+        " - cmd.sh     # Configuration for your backend of job scheduler\n",
+        " - run.sh     # Entry point\n",
+        " - asr.sh     # Invoked by run.sh\n",
+        " ```"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "TpKyJwL1k2YE"
+      },
+      "source": [
+        "⭕ **[SSL] Get the `dump_hubert_feature.sh` script and the `training config` ready.**\n",
+        "* GitHub: https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc.git)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "nZfQsZp9nUzt"
+      },
+      "outputs": [],
+      "source": [
+        "!rm -r ESPnet_SSL_ASR_tutorial_misc\n",
+        "!git clone https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc.git\n",
+        "!cp ESPnet_SSL_ASR_tutorial_misc/dump_ssl_feature.sh ./local\n",
+        "!cp ESPnet_SSL_ASR_tutorial_misc/dump_feats.py ./local\n",
+        "!cp ESPnet_SSL_ASR_tutorial_misc/feats_loaders.py ./local\n",
+        "!chmod +x local/dump_ssl_feature.sh\n",
+        "!cp ESPnet_SSL_ASR_tutorial_misc/train_asr_demo_branchformer.yaml ./conf"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "v9h_fs_9wb0L"
+      },
+      "source": [
+        "ESPnet is designed for various use cases (local machines or cluster machines) based on Kaldi tools. If you use it in the cluster machines, please also check https://kaldi-asr.org/doc/queue.html\n",
+        "\n",
+        "The main stages can be parallelized by various jobs."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "7JZqgQEywL16"
+      },
+      "outputs": [],
+      "source": [
+        "!cat run.sh\n",
+        "!ls conf\n",
+        "!ls local"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Msp-8cLBg0Zs"
+      },
+      "source": [
+        "`run.sh` calls `asr.sh`, which completes the entire speech recognition experiments, including data preparation, training, inference, and scoring. They are separated into multiple stages (totally 16).\n",
+        "\n",
+        "Instead of executing the entire pipeline by `run.sh`, let's run it stage-by-stage to understand the process in each stage."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GJUcVDYB40A-"
+      },
+      "source": [
+        "## Data preparation\n",
+        "\n",
+        "**Stage 1: Data preparation: download raw data, split the entire set into train/dev/test, and prepare them in the Kaldi format**\n",
+        "\n",
+        "Note that `--stage <N>` is to start from this stage and `--stop_stage <N>` is to stop after this stage. We also need to specify the train, dev and test sets."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "gLDwMc4G4x1C"
+      },
+      "outputs": [],
+      "source": [
+        "# a few seconds\n",
+        "!./asr.sh --stage 1 --stop_stage 1 --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\""
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9ORceFPOkLQJ"
+      },
+      "source": [
+        "After this stage is finished, please check the newly created `data` directory:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "iLY4zuPFiAWK"
+      },
+      "outputs": [],
+      "source": [
+        "!ls data"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "S85-3X82kWbm"
+      },
+      "source": [
+        "In this recipe, we use `train_nodev` as a training set, `train_dev` as a validation set (monitor the training progress by checking the validation score). We also use `test` and `train_dev` sets for the final speech recognition evaluation.\n",
+        "\n",
+        "Let's check one of the training data directories:\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "OyAbGjDElKFA"
+      },
+      "outputs": [],
+      "source": [
+        "!ls -1 data/train_nodev/"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Mob1Pd_ylPyb"
+      },
+      "source": [
+        "These are the speech and corresponding text and speaker information in the Kaldi format. To understand their meanings, please check https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory.\n",
+        "\n",
+        "Please also check the official documentation of Kaldi: https://kaldi-asr.org/doc/data_prep.html\n",
+        "\n",
+        "```\n",
+        "spk2utt # Speaker information\n",
+        "text    # Transcription file\n",
+        "utt2spk # Speaker information\n",
+        "wav.scp # Audio file\n",
+        "```"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "kVom1NvZ6Mnx"
+      },
+      "source": [
+        "**Stage 2: Speed perturbation** (one of the data augmentation methods)\n",
+        "\n",
+        "We do not use speed perturbation for this demo. But you can turn it on by adding an argument `--speed_perturb_factors \"0.9 1.0 1.1\"` to the shell script.\n",
+        "\n",
+        "Note that we perform speed perturbation and save the augmented data in the disk before training. Another approach is to perform data augmentation during training, such as SpecAug."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "hoYaonp96M04"
+      },
+      "outputs": [],
+      "source": [
+        "!./asr.sh --stage 2 --stop_stage 2 --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\""
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9EAZ0E_s6Zdy"
+      },
+      "source": [
+        "**Stage 3: Format wav.scp: data/ -> dump/raw**\n",
+        "\n",
+        "We dump the data with specified format (flac in this case) for the efficient use of the data.\n",
+        "\n",
+        "```\n",
+        "# ====== Recreating \"wav.scp\" ======\n",
+        "# Kaldi-wav.scp, which can describe the file path with unix-pipe, like \"cat /some/path |\",\n",
+        "# shouldn't be used in training process.\n",
+        "# \"format_wav_scp.sh\" dumps such pipe-style-wav to real audio file\n",
+        "# and it can also change the audio-format and sampling rate.\n",
+        "# If nothing is need, then format_wav_scp.sh does nothing:\n",
+        "# i.e. the input file format and rate is same as the output.\n",
+        "```\n",
+        "\n",
+        "Note that `--nj <N>` means the number of CPU jobs. Please set it appropriately by considering your CPU resources and disk access."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "1OiHotER6cwZ"
+      },
+      "outputs": [],
+      "source": [
+        "# 25 seconds\n",
+        "!./asr.sh --stage 3 --stop_stage 3 --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\" --nj 4"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9EbvOUMUcuyM"
+      },
+      "source": [
+        "#### ⭕ [SSL] Stage 3.5: Extract SSL features\n",
+        "\n",
+        "We dump the SSL features of the data with specified format (kaldi mat in this case) for the efficient use of the data.\n",
+        "\n",
+        "* First, we need to prepare the pretrained SSL models. In this colab, we use HuBERT models. We have three choices:\n",
+        "  1.  HuBERT through FairSeq API; Model choices can be found from [fairseq/hubert pretrained models](https://github.com/facebookresearch/fairseq/tree/main/examples/hubert#pre-trained-and-fine-tuned-asr-models)\n",
+        "      ```\n",
+        "      Example usage: \n",
+        "      mkdir -p downloads/hubert_pretrained_models\n",
+        "      wget https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt -O ./downloads/hubert_pretrained_models/hubert_large_ll60k.pt\n",
+        "      Append the following arguments: \n",
+        "        --feature_type hubert --hubert_type fairseq --hubert_url \"https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt\" --hubert_dir_path \"./downloads/hubert_pretrained_models\" --layer 23\n",
+        "      ```\n",
+        "  2.  HuBERT from ESPnet;\n",
+        "      ```\n",
+        "      Example usage:\n",
+        "      # Download model\n",
+        "      ./asr.sh --skip_data_prep true --skip_train true --skip_eval true --skip_upload true --download_model simpleoier/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\"\n",
+        "      Append the following arguments:\n",
+        "        --feature_type hubert --hubert_type espnet --hubert_dir_path \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/site-packages/espnet_model_zoo/models--simpleoier--simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/snapshots/4256c702685249202f333348a87c13143985b90b/exp/hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/valid.loss.ave.pth\" --layer 12\n",
+        "      ```\n",
+        "  3.  HuBERT through S3PRL API. S3prl also supports many other SSL models. Model choices can be found from `s3prl_upstream_names` [here](https://github.com/s3prl/s3prl/tree/master/s3prl/upstream#upstream-information)\n",
+        "      ```\n",
+        "      Append the following arguments:\n",
+        "        --feature_type s3prl --s3prl_upstream_name hubert_large_ll60k --layer 24\n",
+        "      ```\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gM2lAnRIPst-"
+      },
+      "source": [
+        "* Second, we extract the hubert features and copy the `feats.scp` into data dirs.\n",
+        "\n",
+        "  ```\n",
+        "  # ====== Creating \"feats.scp\" ======\n",
+        "  # Kaldi-feats.scp, which describe the file path (ark file) and offset,\n",
+        "  ```\n",
+        "\n",
+        "  Note that `--nj <N>` means the number of CPU / GPU jobs. Please set it appropriately by considering your CPU resources and disk access. `local/dump_ssl_feature.sh` is the entry script.\n",
+        "\n",
+        "  ##### 📗 Check the shape of dumped feature [1.0 pt]\n",
+        "  We will finally read the dumped feature and print the shape information to check if it is successful. The expected output is\n",
+        "  ```\n",
+        "  fkai-an311-b (155, 1024)\n",
+        "  ```"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "L0Pjm8Knd3L0"
+      },
+      "outputs": [],
+      "source": [
+        "# 5 min\n",
+        "# 'dump_hubert_feature.sh' reads wave files from a common dir, so we symbolically link dump/raw/test in dump/raw/org\n",
+        "!ln -s /content/espnet/egs2/an4/asr1/dump/raw/test /content/espnet/egs2/an4/asr1/dump/raw/org\n",
+        "!rm -r ssl_feats/\n",
+        "\n",
+        "# Fairseq HuBERT large example\n",
+        "# !mkdir -p downloads/hubert_pretrained_models\n",
+        "# !wget https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt -O ./downloads/hubert_pretrained_models/hubert_large_ll60k.pt\n",
+        "# !local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets \"test\" --use_gpu true --nj 1 --feature_type hubert --hubert_type fairseq --hubert_url \"https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt\" --hubert_dir_path \"./downloads/hubert_pretrained_models\" --layer 23\n",
+        "\n",
+        "# S3PRL HuBERT large example\n",
+        "!local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets \"test\" --use_gpu true --nj 1 --feature_type s3prl --s3prl_upstream_name wavlm_large --layer 24\n",
+        "#!local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets \"test\" --use_gpu true --nj 1 --feature_type s3prl --s3prl_upstream_name hubert_large_ll60k --layer 24\n",
+        "\n",
+        "# copy the feats.scp to data/*\n",
+        "!cp ssl_feats/s3prl/train_nodev/feats.scp data/train_nodev\n",
+        "!cp ssl_feats/s3prl/train_dev/feats.scp data/train_dev\n",
+        "!cp ssl_feats/s3prl/test/feats.scp data/test\n",
+        "\n",
+        "# Print the shape of dumped features.\n",
+        "!/content/espnet/tools/anaconda/envs/espnet/bin/python3 -c \"import kaldiio; reader=kaldiio.ReadHelper('scp:data/train_nodev/feats.scp'); key, array = next(reader.generator); print(key, array.shape)\""
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mBNriNUUM3Tw"
+      },
+      "source": [
+        "### ⭕ [SSL] Stage 3: Format feats.scp: data/ -> dump/extracted\n",
+        "\n",
+        "Because we want to use extracted feature instead of raw wave, we need to run step 3 again**. It only construct a new dump/extracted folder, with some superficial commands.\n",
+        "\n",
+        "👀 From now on, `--feats_type \"extracted\"` will be added."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "oEcKPvKZmziv"
+      },
+      "outputs": [],
+      "source": [
+        "# 25 seconds\n",
+        "!./asr.sh --stage 3 --stop_stage 3 --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\" --feats_type \"extracted\" --nj 4"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_P3gdQMR7H88"
+      },
+      "source": [
+        "**Stage 4: Remove long/short data: dump/extracted/org -> dump/raw**\n",
+        "\n",
+        "Too long and too short audio data are harmful for efficient training. Those utterances are removed for training. But for inference and scoring, we still use the full data, which is important for fair comparison."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "_ociO4Nx7Ia9"
+      },
+      "outputs": [],
+      "source": [
+        "!./asr.sh --stage 4 --stop_stage 4 --feats_type \"extracted\" --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\""
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "jtrtBRPe7Ygz"
+      },
+      "source": [
+        "**Stage 5: Generate token_list from dump/extracted/train_nodev/text using BPE.**\n",
+        "\n",
+        "This is important for text processing. Here, we make a dictionary simply using the English characters.\n",
+        "We use the `sentencepiece` toolkit developed by Google."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "6sTbbss77Y26"
+      },
+      "outputs": [],
+      "source": [
+        "!./asr.sh --stage 5 --stop_stage 5 --feats_type \"extracted\" --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\""
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_Y5IlGWz7sXd"
+      },
+      "source": [
+        "## Language modeling (skipped in this tutorial)\n",
+        "\n",
+        "**Stages 6--9: Stages related to language modeling.**\n",
+        "\n",
+        "We skip the language modeling part in the recipe (stages 6 -- 9) in this tutorial."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7iWoWZTIzDQh"
+      },
+      "source": [
+        "## How to change the configs?\n",
+        "\n",
+        "Let's revisit the configs, since this is probably the most important part to improve the performance.\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "toGSk_SzoBqD"
+      },
+      "source": [
+        "### Config file based\n",
+        "All training options are changed in the config file.\n",
+        "\n",
+        "Pleae check https://espnet.github.io/espnet/espnet2_training_option.html\n",
+        "\n",
+        "Let's first check config files prepared in the `an4` recipe\n",
+        "\n",
+        "\n",
+        "- LSTM-based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_rnn.yaml\n",
+        "- Transformer based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_transformer.yaml\n",
+        "\n",
+        "You can run\n",
+        "\n",
+        "**RNN**\n",
+        "```\n",
+        "./asr.sh --stage 10 \\\n",
+        "   --feats_type \"extracted\" \\\n",
+        "   --train_set train_nodev \\\n",
+        "   --valid_set train_dev \\\n",
+        "   --test_sets \"train_dev test\" \\\n",
+        "   --nj 4 \\\n",
+        "   --inference_nj 4 \\\n",
+        "   --use_lm false \\\n",
+        "   --asr_config conf/train_asr_rnn.yaml \n",
+        "```\n",
+        "\n",
+        "**Transformer**\n",
+        "```\n",
+        "./asr.sh --stage 10 \\\n",
+        "   --feats_type \"extracted\" \\\n",
+        "   --train_set train_nodev \\    \n",
+        "   --valid_set train_dev \\\n",
+        "   --test_sets \"train_dev test\" \\\n",
+        "   --nj 4 \\\n",
+        "   --inference_nj 4 \\\n",
+        "   --use_lm false \\\n",
+        "   --asr_config conf/train_asr_transformer.yaml\n",
+        "```\n",
+        "\n",
+        "You can also find various configs in other recipes `espnet/egs2/*/asr1/conf/`, including \n",
+        "- Conformer `egs2/librispeech/asr1/conf/tuning/train_asr_conformer10_hop_length160.yaml`\n",
+        "- Branchformer `egs2/librispeech/asr1/conf/tuning/train_asr_branchformer_hop_length160_e18_linear3072.yaml`\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rYzNLITz7wyG"
+      },
+      "source": [
+        "### Command line argument based\n",
+        "\n",
+        "You can also customize it by passing the command line arguments, e.g., \n",
+        "\n",
+        "```\n",
+        "./run.sh --stage 10 --asr_args \"--model_conf ctc_weight=0.3\"\n",
+        "```\n",
+        "```\n",
+        "./run.sh --stage 10 --asr_args \"--optim_conf lr=0.1\"\n",
+        "```\n",
+        "\n",
+        "This approach has a highest priority. Thus, the arguments passed in the command line will overwrite those defined in the config file. This is convenient if you only want to change a few arguments.\n",
+        "\n",
+        "Please refer to https://espnet.github.io/espnet/espnet2_tutorial.html#change-the-configuration-for-training for more details."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "va0OvyqM4c-l"
+      },
+      "source": [
+        "## 📗 Exercise 1\n",
+        "\n",
+        "Run training, inference and scoring on AN4 using a new config.\n",
+        "Here is an example config using [Branchformer](https://proceedings.mlr.press/v162/peng22a.html) (Peng et al, ICML 2022).\n",
+        "\n",
+        "### ⭕ [SSL] Config modifications:\n",
+        "1. Frontend is set to `null`. \n",
+        "2. A `preencoder` is added to reduce input dimension.\n",
+        "3. In the `encoder`, the subsampling is reduced to 2 (input_layer is conv2d2)\n",
+        "\n",
+        "### ⭕ [SSL] Normalization\n",
+        "1. Gobal Mean normalization\n",
+        "   * Compute the statistics (mean / var) on the full training set. This is done in stage 10. Both mean and var are considered.\n",
+        "   * This is set by default in `asr.sh by`, specifically the argument `--feats_normalize global_mvn`.\n",
+        "2. Utterance Mean normalization\n",
+        "   * Compute the statistics (mean / var) on each single utterance. By default, ESPnet only normalize the mean.\n",
+        "   * This can specified to `asr.sh` by `--feats_normalize utt_mvn`. Whatever the value is, as long as it is not `global_mvn`.\n",
+        "3. No normalization\n",
+        "   * Nothing is done in the feature.\n",
+        "   * This can be specified by `--feats_normalize null --asr_args \"--normalize null\"`\n",
+        "\n",
+        "Similarly, we create a config file named `train_asr_demo_branchformer.yaml` and start training.\n",
+        "\n",
+        "```\n",
+        "batch_type: numel\n",
+        "batch_bins: 4000000\n",
+        "accum_grad: 1    # gradient accumulation steps\n",
+        "max_epoch: 40\n",
+        "patience: 10\n",
+        "init: xavier_uniform\n",
+        "best_model_criterion:  # criterion to save best models\n",
+        "-   - valid\n",
+        "    - acc\n",
+        "    - max\n",
+        "keep_nbest_models: 10  # save nbest models and average these checkpoints\n",
+        "use_amp: true    # whether to use automatic mixed precision\n",
+        "num_att_plot: 0  # do not save attention plots to save time in the demo\n",
+        "num_workers: 2   # number of workers in dataloader\n",
+        "\n",
+        "frontend: null  # Since extracted features are used, frontend is not used.\n",
+        "\n",
+        "preencoder: linear\n",
+        "preencoder_conf:\n",
+        "    input_size: 1024\n",
+        "    output_size: 128\n",
+        "\n",
+        "encoder: branchformer\n",
+        "encoder_conf:\n",
+        "    output_size: 256\n",
+        "    use_attn: true\n",
+        "    attention_heads: 4\n",
+        "    attention_layer_type: rel_selfattn\n",
+        "    pos_enc_layer_type: rel_pos\n",
+        "    rel_pos_type: latest\n",
+        "    use_cgmlp: true\n",
+        "    cgmlp_linear_units: 1024\n",
+        "    cgmlp_conv_kernel: 31\n",
+        "    use_linear_after_conv: false\n",
+        "    gate_activation: identity\n",
+        "    merge_method: concat\n",
+        "    cgmlp_weight: 0.5               # used only if merge_method is \"fixed_ave\"\n",
+        "    attn_branch_drop_rate: 0.0      # used only if merge_method is \"learned_ave\"\n",
+        "    num_blocks: 12\n",
+        "    dropout_rate: 0.1\n",
+        "    positional_dropout_rate: 0.1\n",
+        "    attention_dropout_rate: 0.1\n",
+        "    input_layer: conv2d2\n",
+        "    stochastic_depth_rate: 0.0\n",
+        "\n",
+        "decoder: transformer\n",
+        "decoder_conf:\n",
+        "    attention_heads: 4\n",
+        "    linear_units: 1024\n",
+        "    num_blocks: 3\n",
+        "    dropout_rate: 0.1\n",
+        "    positional_dropout_rate: 0.1\n",
+        "    self_attention_dropout_rate: 0.1\n",
+        "    src_attention_dropout_rate: 0.1\n",
+        "\n",
+        "model_conf:\n",
+        "    ctc_weight: 0.3  # joint CTC/attention training\n",
+        "    lsm_weight: 0.1  # label smoothing weight\n",
+        "    length_normalized_loss: false\n",
+        "\n",
+        "optim: adam\n",
+        "optim_conf:\n",
+        "    lr: 0.0002\n",
+        "scheduler: warmuplr  # linearly increase and exponentially decrease\n",
+        "scheduler_conf:\n",
+        "    warmup_steps: 200\n",
+        "```\n",
+        "\n",
+        "My result is shown below:\n",
+        "```\n",
+        "## exp/asr_train_asr_demo_branchformer_extracted_bpe30\n",
+        "### WER\n",
+        "\n",
+        "|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "|---|---|---|---|---|---|---|---|---|\n",
+        "|decode_asr_asr_model_valid.acc.ave/test|130|773|95.9|2.6|1.6|0.0|4.1|16.9|\n",
+        "|decode_asr_asr_model_valid.acc.ave/train_dev|100|591|92.0|5.9|2.0|0.2|8.1|28.0|\n",
+        "\n",
+        "### CER\n",
+        "\n",
+        "|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "|---|---|---|---|---|---|---|---|---|\n",
+        "|decode_asr_asr_model_valid.acc.ave/test|130|2565|98.1|0.1|1.8|0.1|2.0|16.9|\n",
+        "|decode_asr_asr_model_valid.acc.ave/train_dev|100|1915|95.5|0.7|3.8|0.2|4.7|28.0|\n",
+        "\n",
+        "### TER\n",
+        "\n",
+        "|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "|---|---|---|---|---|---|---|---|---|\n",
+        "|decode_asr_asr_model_valid.acc.ave/test|130|2695|98.1|0.1|1.7|0.1|1.9|16.9|\n",
+        "|decode_asr_asr_model_valid.acc.ave/train_dev|100|2015|95.7|0.7|3.6|0.1|4.5|28.0|\n",
+        "```\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "1QM20QOG1UFt"
+      },
+      "outputs": [],
+      "source": [
+        "# ~10 min\n",
+        "# Run multiple stages\n",
+        "!rm -r exp/asr_train_asr_demo_branchformer_extracted_bpe30\n",
+        "!./asr.sh --stage 10 --stop_stage 13 --feats_type \"extracted\" --feats_normalize utt_mvn --train_set train_nodev --valid_set train_dev --test_sets \"train_dev test\" --nj 4 --ngpu 1 --use_lm false --gpu_inference true --inference_nj 1 --asr_config conf/train_asr_demo_branchformer.yaml --inference_config conf/decode_asr.yaml"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "2MfKENtS8yHH"
+      },
+      "outputs": [],
+      "source": [
+        "# Load the TensorBoard notebook extension\n",
+        "%load_ext tensorboard\n",
+        "\n",
+        "# Launch tensorboard before training\n",
+        "%tensorboard --logdir /content/espnet/egs2/an4/asr1/exp/asr_train_asr_demo_branchformer_extracted_bpe30/tensorboard"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "UeO90c034o7U"
+      },
+      "outputs": [],
+      "source": [
+        "# NOTE: Exercise 1 Result 1 (HuBERT)\n",
+        "!scripts/utils/show_asr_result.sh exp\n",
+        "from IPython.display import Image, display\n",
+        "display(Image('exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png', width=400))\n",
+        "\n",
+        "print_date_and_time()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# NOTE: Exercise 1 Result 2 (WavLM)\n",
+        "!scripts/utils/show_asr_result.sh exp\n",
+        "from IPython.display import Image, display\n",
+        "display(Image('exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png', width=400))\n",
+        "\n",
+        "print_date_and_time()"
+      ],
+      "metadata": {
+        "id": "BqhPiiN7ixSS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# NOTE: Exercise 1 Result 3 (WavLM utt_mvn)\n",
+        "!scripts/utils/show_asr_result.sh exp\n",
+        "from IPython.display import Image, display\n",
+        "display(Image('exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png', width=400))\n",
+        "\n",
+        "print_date_and_time()"
+      ],
+      "metadata": {
+        "id": "36mNXcnswCOh"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gLlT9ZDXvIp7"
+      },
+      "source": [
+        "## 📗 Questions\n",
+        "1. What is the difference between [HuBERT](https://arxiv.org/abs/2106.07447) and [WavLM](https://arxiv.org/abs/2110.13900)? [1 pt]\n",
+        "\n",
+        "  ```\n",
+        "  WavLM is a newer model which uses masked speech denoising to create an embedding applicable to multiple downstream tasks, not just ASR.\n",
+        "  ```\n",
+        "2. Get the ASR performance of one more SSL feature, WavLM, and show the results. [1 pt]\n",
+        "  \n",
+        "  Hint: change the s3prl_upstream_name to `wavlm_large` at stage 3.5 and run the following stages.\n",
+        "\n",
+        "  ```\n",
+        "  # RESULTS\n",
+        "  ## Environments\n",
+        "  - date: `Sat Feb 25 03:26:54 UTC 2023`\n",
+        "  - python version: `3.9.16 (main, Jan 11 2023, 16:05:54)  [GCC 11.2.0]`\n",
+        "  - espnet version: `espnet 202301`\n",
+        "  - pytorch version: `pytorch 1.12.1`\n",
+        "  - Git hash: `15a6dc1501b65211725a4fb514fcf5dd24f7ae95`\n",
+        "    - Commit date: `Thu Feb 23 22:04:23 2023 -0500`\n",
+        "\n",
+        "  ## exp/asr_train_asr_demo_branchformer_extracted_bpe30\n",
+        "  ### WER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|773|63.5|13.6|22.9|2.2|38.7|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|591|59.6|18.1|22.3|2.4|42.8|82.0|\n",
+        "\n",
+        "  ### CER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|2565|80.6|2.6|16.8|1.4|20.8|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|1915|78.0|4.6|17.4|0.8|22.8|82.0|\n",
+        "\n",
+        "  ### TER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|2695|81.6|2.4|16.0|1.3|19.8|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|2015|79.1|4.4|16.6|0.7|21.7|82.0|\n",
+        "\n",
+        "  ============================================================\n",
+        "   Current date and time: 02/24/2023 22:26:55\n",
+        "  ============================================================\n",
+        "  ```\n",
+        "\n",
+        "3. Compare the performance between HuBERT, WavLM and MFCC features. Which is better? How much is it? Why do you think it is better in one sentence? [1 pt]\n",
+        "  ```\n",
+        "  It seems like HuBERT performed slightly better than WavLM, probably because HuBERT is more specifically focused on this ASR.\n",
+        "  ```\n",
+        "\n",
+        "4. Make a exploration of normalization mentioned in [Stage 10](~/experiments/espnet/egs2/librimix/asr1) for either HuBRET or WavLM feature. Report the performance. [1 pt]\n",
+        "\n",
+        "   Hint: you may change the number of epochs to get better performance.\n",
+        "   ```\n",
+        "  <!-- Generated by scripts/utils/show_asr_result.sh -->\n",
+        "  # RESULTS\n",
+        "  ## Environments\n",
+        "  - date: `Sat Feb 25 04:31:27 UTC 2023`\n",
+        "  - python version: `3.9.16 (main, Jan 11 2023, 16:05:54)  [GCC 11.2.0]`\n",
+        "  - espnet version: `espnet 202301`\n",
+        "  - pytorch version: `pytorch 1.12.1`\n",
+        "  - Git hash: `15a6dc1501b65211725a4fb514fcf5dd24f7ae95`\n",
+        "    - Commit date: `Thu Feb 23 22:04:23 2023 -0500`\n",
+        "\n",
+        "  ## exp/asr_train_asr_demo_branchformer_extracted_bpe30\n",
+        "  ### WER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|773|63.5|13.6|22.9|2.2|38.7|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|591|59.6|18.1|22.3|2.4|42.8|82.0|\n",
+        "\n",
+        "  ### CER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|2565|80.6|2.6|16.8|1.4|20.8|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|1915|78.0|4.6|17.4|0.8|22.8|82.0|\n",
+        "\n",
+        "  ### TER\n",
+        "\n",
+        "  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|\n",
+        "  |---|---|---|---|---|---|---|---|---|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/test|130|2695|81.6|2.4|16.0|1.3|19.8|79.2|\n",
+        "  |decode_asr_asr_model_valid.acc.ave/train_dev|100|2015|79.1|4.4|16.6|0.7|21.7|82.0|\n",
+        "\n",
+        "  ============================================================\n",
+        "  Current date and time: 02/24/2023 23:31:28\n",
+        "  ============================================================\n",
+        "   ```"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "gN3Y7mnK-IHS"
+      },
+      "source": [
+        "## Contribute to ESPnet\n",
+        "\n",
+        "Please follow https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md to upload your pre-trained model to [Hugging Face](https://huggingface.co/espnet) and make a pull request in the [ESPnet repository](https://github.com/espnet/espnet/pulls)."
+      ]
+    }
+  ],
+  "metadata": {
+    "accelerator": "GPU",
+    "colab": {
+      "provenance": []
+    },
+    "gpuClass": "standard",
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}

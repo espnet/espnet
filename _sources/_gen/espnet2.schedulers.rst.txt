@@ -4,56 +4,12 @@ espnet2.schedulers package
 
 
 
-.. _espnet2.schedulers.warmup_lr:
-
-espnet2.schedulers.warmup_lr
-----------------------------
-
-.. automodule:: espnet2.schedulers.warmup_lr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.schedulers.piecewise_linear_warmup_lr:
-
-espnet2.schedulers.piecewise_linear_warmup_lr
----------------------------------------------
-
-.. automodule:: espnet2.schedulers.piecewise_linear_warmup_lr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.schedulers.warmup_step_lr:
 
 espnet2.schedulers.warmup_step_lr
 ---------------------------------
 
 .. automodule:: espnet2.schedulers.warmup_step_lr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.schedulers.noam_lr:
-
-espnet2.schedulers.noam_lr
---------------------------
-
-.. automodule:: espnet2.schedulers.noam_lr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.schedulers.cosine_anneal_warmup_restart:
-
-espnet2.schedulers.cosine_anneal_warmup_restart
------------------------------------------------
-
-.. automodule:: espnet2.schedulers.cosine_anneal_warmup_restart
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,12 +26,23 @@ espnet2.schedulers.__init__
     :show-inheritance:
 
 
-.. _espnet2.schedulers.abs_scheduler:
+.. _espnet2.schedulers.piecewise_linear_warmup_lr:
 
-espnet2.schedulers.abs_scheduler
---------------------------------
+espnet2.schedulers.piecewise_linear_warmup_lr
+---------------------------------------------
 
-.. automodule:: espnet2.schedulers.abs_scheduler
+.. automodule:: espnet2.schedulers.piecewise_linear_warmup_lr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.schedulers.cosine_anneal_warmup_restart:
+
+espnet2.schedulers.cosine_anneal_warmup_restart
+-----------------------------------------------
+
+.. automodule:: espnet2.schedulers.cosine_anneal_warmup_restart
     :members:
     :undoc-members:
     :show-inheritance:
@@ -87,6 +54,39 @@ espnet2.schedulers.warmup_reducelronplateau
 -------------------------------------------
 
 .. automodule:: espnet2.schedulers.warmup_reducelronplateau
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.schedulers.abs_scheduler:
+
+espnet2.schedulers.abs_scheduler
+--------------------------------
+
+.. automodule:: espnet2.schedulers.abs_scheduler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.schedulers.noam_lr:
+
+espnet2.schedulers.noam_lr
+--------------------------
+
+.. automodule:: espnet2.schedulers.noam_lr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.schedulers.warmup_lr:
+
+espnet2.schedulers.warmup_lr
+----------------------------
+
+.. automodule:: espnet2.schedulers.warmup_lr
     :members:
     :undoc-members:
     :show-inheritance:

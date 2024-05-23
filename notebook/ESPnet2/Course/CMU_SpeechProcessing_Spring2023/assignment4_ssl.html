@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMU 11751/18781 Fall 2022: ESPnet Tutorial &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="CMU 11751/18781 2021: ESPnet Tutorial" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html" />
+    <link rel="prev" title="ESPnet-S2ST realtime demonstration" href="s2st_demo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202402
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#❗Important-Notes❗">❗Important Notes❗</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Objectives">Objectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Useful-links">Useful links</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Install-ESPnet">Install ESPnet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Function-to-print-date-and-time">Function to print date and time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Check-GPU-type">Check GPU type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Download-ESPnet">Download ESPnet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Setup-Python-environment-based-on-anaconda">Setup Python environment based on anaconda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Install-ESPnet-(same-procedure-as-your-first-tutorial)">Install ESPnet (same procedure as your first tutorial)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Run-an-existing-recipe">Run an existing recipe</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Data-preparation">Data preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#⭕-[SSL]-Stage-3.5:-Extract-SSL-features">⭕ [SSL] Stage 3.5: Extract SSL features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#⭕-[SSL]-Stage-3:-Format-feats.scp:-data/--&gt;-dump/extracted">⭕ [SSL] Stage 3: Format feats.scp: data/ -&gt; dump/extracted</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Language-modeling-(skipped-in-this-tutorial)">Language modeling (skipped in this tutorial)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#How-to-change-the-configs?">How to change the configs?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#📗-Exercise-1">📗 Exercise 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#📗-Questions">📗 Questions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Contribute-to-ESPnet">Contribute to ESPnet</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CMU 11751/18781 Fall 2022: ESPnet Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="CMU-11751/18781-Fall-2022:-ESPnet-Tutorial">
+<h1>CMU 11751/18781 Fall 2022: ESPnet Tutorial<a class="headerlink" href="#CMU-11751/18781-Fall-2022:-ESPnet-Tutorial" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://github.com/espnet/espnet">ESPnet</a> is a widely-used end-to-end speech processing toolkit. It has supported various speech processing tasks. ESPnet uses PyTorch as a main deep learning engine, and also follows Kaldi style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.</p>
+<p>Main references: - <a class="reference external" href="https://github.com/espnet/espnet">ESPnet repository</a> - <a class="reference external" href="https://espnet.github.io/espnet/">ESPnet documentation</a> - <a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb">ESPnet tutorial in Speech Recognition and Understanding (Fall 2021)</a> - <a class="reference external" href="https://colab.research.google.com/drive/1tY6PxF_M5Nx5n488x0DrpujJOyqW-ATi?usp=sharing">Recitation in Multilingual NLP (Spring 2022)</a></p>
+<p>Author: Siddhant Arora (<a class="reference external" href="mailto:siddhana&#37;&#52;&#48;andrew&#46;cmu&#46;edu">siddhana<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>) This notebook was modified from the material made by Yifan Peng (<a class="reference external" href="mailto:yifanpen&#37;&#52;&#48;andrew&#46;cmu&#46;edu">yifanpen<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
+<section id="❗Important-Notes❗">
+<h2>❗Important Notes❗<a class="headerlink" href="#❗Important-Notes❗" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU, you may fail to connect to a GPU backend for some time.</p></li>
+<li><p>There are multiple in-class checkpoints ✅ throughout this tutorial. There will also be some after-class excersices 📗 after the tutorial. <strong>Your participation points are based on these tasks.</strong> Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.</p></li>
+<li><p>Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Print</span></code> in the menu bar.</p></li>
+<li><p>This tutorial covers the basics of ESPnet, which will be the foundation of the next tutorial on Wednesday.</p></li>
+</ul>
+</section>
+<section id="Objectives">
+<h2>Objectives<a class="headerlink" href="#Objectives" title="Permalink to this headline">¶</a></h2>
+<p>After this tutorial, you are expected to know: - How to run existing recipes (data prep, training, inference and scoring) in ESPnet2 - How to change the training and decoding configurations - How to create a new recipe from scratch - Where to find resources if you encounter an issue</p>
+</section>
+<section id="Useful-links">
+<h2>Useful links<a class="headerlink" href="#Useful-links" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Installation <a class="reference external" href="https://espnet.github.io/espnet/installation.html">https://espnet.github.io/espnet/installation.html</a></p></li>
+<li><p>Usage <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html">https://espnet.github.io/espnet/espnet2_tutorial.html</a></p></li>
+</ul>
+</section>
+</section>
+<section id="Install-ESPnet">
+<h1>Install ESPnet<a class="headerlink" href="#Install-ESPnet" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>This is a full installation method to perform data preprocessing, training, inference, scoring, and so on.</p></li>
+<li><p>We prepare various ways of installation. Please read <a class="reference external" href="https://espnet.github.io/espnet/installation.html#step-2-installation-espnet">https://espnet.github.io/espnet/installation.html#step-2-installation-espnet</a> for more details.</p></li>
+</ul>
+<section id="Function-to-print-date-and-time">
+<h2>Function to print date and time<a class="headerlink" href="#Function-to-print-date-and-time" title="Permalink to this headline">¶</a></h2>
+<p>We first define a function to print the current date and time, which will be used in multiple places below.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">print_date_and_time</span><span class="p">():</span>
+  <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+  <span class="kn">import</span> <span class="nn">pytz</span>
+
+  <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;America/New_York&quot;</span><span class="p">))</span>
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39; Current date and time: </span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %H:%M:%S&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+
+<span class="c1"># example output</span>
+<span class="n">print_date_and_time</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Check-GPU-type">
+<h2>Check GPU type<a class="headerlink" href="#Check-GPU-type" title="Permalink to this headline">¶</a></h2>
+<p>Let’s check the GPU type of this allocated environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!nvidia-smi
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Download-ESPnet">
+<h2>Download ESPnet<a class="headerlink" href="#Download-ESPnet" title="Permalink to this headline">¶</a></h2>
+<p>We use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> to download the source code of ESPnet and then go to a specific commit.</p>
+<p><strong>Important:</strong> In other versions of ESPnet, you may encounter errors related to imcompatible package versions (<code class="docutils literal notranslate"><span class="pre">numba</span></code>). Please use the same commit to avoid such issues.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes a few seconds
+!git clone --depth 5 https://github.com/espnet/espnet
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Setup-Python-environment-based-on-anaconda">
+<h2>Setup Python environment based on anaconda<a class="headerlink" href="#Setup-Python-environment-based-on-anaconda" title="Permalink to this headline">¶</a></h2>
+<p>There are several other installation methods, but <strong>we highly recommend the anaconda-based one</strong>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 30 seconds
+%cd /content/espnet/tools
+!./setup_anaconda.sh anaconda espnet 3.9
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Install-ESPnet-(same-procedure-as-your-first-tutorial)">
+<h2>Install ESPnet (same procedure as your first tutorial)<a class="headerlink" href="#Install-ESPnet-(same-procedure-as-your-first-tutorial)" title="Permalink to this headline">¶</a></h2>
+<p>This step installs PyTorch and other required tools.</p>
+<p>We specify <code class="docutils literal notranslate"><span class="pre">CUDA_VERSION=11.6</span></code> for PyTorch 1.12.1. We also support many other versions. Please check <a class="reference external" href="https://github.com/espnet/espnet/blob/master/tools/installers/install_torch.sh">https://github.com/espnet/espnet/blob/master/tools/installers/install_torch.sh</a> for the detailed version list.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It may take 12 minutes
+%cd /content/espnet/tools
+!make TH_VERSION=1.12.1 CUDA_VERSION=11.6
+</pre></div>
+</div>
+</div>
+<p>If other listed packages are necessary, install any of them using</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>. ./activation_python.sh &amp;&amp; ./installers/install_xxx.sh
+</pre></div>
+</div>
+<p>We show two examples, although they are not used in this demo.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># s3prl and fairseq are necessary if you want to use self-supervised pre-trained models
+# It takes 50s
+%cd /content/espnet/tools
+
+!. ./activate_python.sh &amp;&amp; ./installers/install_s3prl.sh
+!. ./activate_python.sh &amp;&amp; ./installers/install_fairseq.sh    # install s3prl to use Wav2Vec2 / HuBERT model series
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Run-an-existing-recipe">
+<h1>Run an existing recipe<a class="headerlink" href="#Run-an-existing-recipe" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet has a number of recipes (130 recipes on Sep. 11, 2022). Please refer to <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/README.md">https://github.com/espnet/espnet/blob/master/egs2/README.md</a> for a complete list.</p>
+<p>Please also check the general usage of the recipe in <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2">https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2</a></p>
+<p><strong>CMU AN4 recipe</strong></p>
+<p>In this tutorial, we will use the CMU <code class="docutils literal notranslate"><span class="pre">an4</span></code> recipe. This is a small-scale speech recognition task mainly used for testing.</p>
+<p>First, let’s go to the recipe directory.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/egs2/an4/asr1
+!ls
+</pre></div>
+</div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>egs2/an4/asr1/
+ - conf/      # Configuration files for training, inference, etc.
+ - scripts/   # Bash utilities of espnet2
+ - pyscripts/ # Python utilities of espnet2
+ - steps/     # From Kaldi utilities
+ - utils/     # From Kaldi utilities
+ - db.sh      # The directory path of each corpora
+ - path.sh    # Setup script for environment variables
+ - cmd.sh     # Configuration for your backend of job scheduler
+ - run.sh     # Entry point
+ - asr.sh     # Invoked by run.sh
+</pre></div>
+</div>
+<p>⭕ <strong>[SSL] Get the ``dump_hubert_feature.sh`` script and the ``training config`` ready.</strong> * GitHub: <a class="reference external" href="https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc.git">https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc.git</a>)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!rm -r ESPnet_SSL_ASR_tutorial_misc
+!git clone https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc.git
+!cp ESPnet_SSL_ASR_tutorial_misc/dump_ssl_feature.sh ./local
+!cp ESPnet_SSL_ASR_tutorial_misc/dump_feats.py ./local
+!cp ESPnet_SSL_ASR_tutorial_misc/feats_loaders.py ./local
+!chmod +x local/dump_ssl_feature.sh
+!cp ESPnet_SSL_ASR_tutorial_misc/train_asr_demo_branchformer.yaml ./conf
+</pre></div>
+</div>
+</div>
+<p>ESPnet is designed for various use cases (local machines or cluster machines) based on Kaldi tools. If you use it in the cluster machines, please also check <a class="reference external" href="https://kaldi-asr.org/doc/queue.html">https://kaldi-asr.org/doc/queue.html</a></p>
+<p>The main stages can be parallelized by various jobs.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat run.sh
+!ls conf
+!ls local
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">run.sh</span></code> calls <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code>, which completes the entire speech recognition experiments, including data preparation, training, inference, and scoring. They are separated into multiple stages (totally 16).</p>
+<p>Instead of executing the entire pipeline by <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>, let’s run it stage-by-stage to understand the process in each stage.</p>
+<section id="Data-preparation">
+<h2>Data preparation<a class="headerlink" href="#Data-preparation" title="Permalink to this headline">¶</a></h2>
+<p><strong>Stage 1: Data preparation: download raw data, split the entire set into train/dev/test, and prepare them in the Kaldi format</strong></p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">&lt;N&gt;</span></code> is to start from this stage and <code class="docutils literal notranslate"><span class="pre">--stop_stage</span> <span class="pre">&lt;N&gt;</span></code> is to stop after this stage. We also need to specify the train, dev and test sets.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># a few seconds
+!./asr.sh --stage 1 --stop_stage 1 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p>After this stage is finished, please check the newly created <code class="docutils literal notranslate"><span class="pre">data</span></code> directory:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls data
+</pre></div>
+</div>
+</div>
+<p>In this recipe, we use <code class="docutils literal notranslate"><span class="pre">train_nodev</span></code> as a training set, <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> as a validation set (monitor the training progress by checking the validation score). We also use <code class="docutils literal notranslate"><span class="pre">test</span></code> and <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> sets for the final speech recognition evaluation.</p>
+<p>Let’s check one of the training data directories:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls -1 data/train_nodev/
+</pre></div>
+</div>
+</div>
+<p>These are the speech and corresponding text and speaker information in the Kaldi format. To understand their meanings, please check <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory</a>.</p>
+<p>Please also check the official documentation of Kaldi: <a class="reference external" href="https://kaldi-asr.org/doc/data_prep.html">https://kaldi-asr.org/doc/data_prep.html</a></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>spk2utt # Speaker information
+text    # Transcription file
+utt2spk # Speaker information
+wav.scp # Audio file
+</pre></div>
+</div>
+<p><strong>Stage 2: Speed perturbation</strong> (one of the data augmentation methods)</p>
+<p>We do not use speed perturbation for this demo. But you can turn it on by adding an argument <code class="docutils literal notranslate"><span class="pre">--speed_perturb_factors</span> <span class="pre">&quot;0.9</span> <span class="pre">1.0</span> <span class="pre">1.1&quot;</span></code> to the shell script.</p>
+<p>Note that we perform speed perturbation and save the augmented data in the disk before training. Another approach is to perform data augmentation during training, such as SpecAug.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 2 --stop_stage 2 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 3: Format wav.scp: data/ -&gt; dump/raw</strong></p>
+<p>We dump the data with specified format (flac in this case) for the efficient use of the data.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># ====== Recreating &quot;wav.scp&quot; ======
+# Kaldi-wav.scp, which can describe the file path with unix-pipe, like &quot;cat /some/path |&quot;,
+# shouldn&#39;t be used in training process.
+# &quot;format_wav_scp.sh&quot; dumps such pipe-style-wav to real audio file
+# and it can also change the audio-format and sampling rate.
+# If nothing is need, then format_wav_scp.sh does nothing:
+# i.e. the input file format and rate is same as the output.
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">--nj</span> <span class="pre">&lt;N&gt;</span></code> means the number of CPU jobs. Please set it appropriately by considering your CPU resources and disk access.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 25 seconds
+!./asr.sh --stage 3 --stop_stage 3 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --nj 4
+</pre></div>
+</div>
+</div>
+<section id="⭕-[SSL]-Stage-3.5:-Extract-SSL-features">
+<h3>⭕ [SSL] Stage 3.5: Extract SSL features<a class="headerlink" href="#⭕-[SSL]-Stage-3.5:-Extract-SSL-features" title="Permalink to this headline">¶</a></h3>
+<p>We dump the SSL features of the data with specified format (kaldi mat in this case) for the efficient use of the data.</p>
+<ul class="simple">
+<li><p>First, we need to prepare the pretrained SSL models. In this colab, we use HuBERT models. We have three choices:</p>
+<ol class="arabic simple">
+<li><p>HuBERT through FairSeq API; Model choices can be found from <a class="reference external" href="https://github.com/facebookresearch/fairseq/tree/main/examples/hubert#pre-trained-and-fine-tuned-asr-models">fairseq/hubert pretrained models</a>
+<code class="docutils literal notranslate"><span class="pre">Example</span> <span class="pre">usage:</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">mkdir</span> <span class="pre">-p</span> <span class="pre">downloads/hubert_pretrained_models</span>&#160;&#160;&#160;&#160; <span class="pre">wget</span> <span class="pre">https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt</span> <span class="pre">-O</span> <span class="pre">./downloads/hubert_pretrained_models/hubert_large_ll60k.pt</span>&#160;&#160;&#160;&#160; <span class="pre">Append</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">arguments:</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">--feature_type</span> <span class="pre">hubert</span> <span class="pre">--hubert_type</span> <span class="pre">fairseq</span> <span class="pre">--hubert_url</span> <span class="pre">&quot;https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt&quot;</span> <span class="pre">--hubert_dir_path</span> <span class="pre">&quot;./downloads/hubert_pretrained_models&quot;</span> <span class="pre">--layer</span> <span class="pre">23</span></code></p></li>
+<li><p>HuBERT from ESPnet;
+<code class="docutils literal notranslate"><span class="pre">Example</span> <span class="pre">usage:</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Download</span> <span class="pre">model</span>&#160;&#160;&#160;&#160; <span class="pre">./asr.sh</span> <span class="pre">--skip_data_prep</span> <span class="pre">true</span> <span class="pre">--skip_train</span> <span class="pre">true</span> <span class="pre">--skip_eval</span> <span class="pre">true</span> <span class="pre">--skip_upload</span> <span class="pre">true</span> <span class="pre">--download_model</span> <span class="pre">simpleoier/simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw</span> <span class="pre">--train_set</span> <span class="pre">train_nodev</span> <span class="pre">--valid_set</span> <span class="pre">train_dev</span> <span class="pre">--test_sets</span> <span class="pre">&quot;train_dev</span> <span class="pre">test&quot;</span>&#160;&#160;&#160;&#160; <span class="pre">Append</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">arguments:</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">--feature_type</span> <span class="pre">hubert</span> <span class="pre">--hubert_type</span> <span class="pre">espnet</span> <span class="pre">--hubert_dir_path</span> <span class="pre">&quot;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/site-packages/espnet_model_zoo/models--simpleoier--simpleoier_librispeech_hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/snapshots/4256c702685249202f333348a87c13143985b90b/exp/hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/valid.loss.ave.pth&quot;</span> <span class="pre">--layer</span> <span class="pre">12</span></code></p></li>
+<li><p>HuBERT through S3PRL API. S3prl also supports many other SSL models. Model choices can be found from <code class="docutils literal notranslate"><span class="pre">s3prl_upstream_names</span></code> <a class="reference external" href="https://github.com/s3prl/s3prl/tree/master/s3prl/upstream#upstream-information">here</a> <code class="docutils literal notranslate"><span class="pre">Append</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">arguments:</span>&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">--feature_type</span> <span class="pre">s3prl</span> <span class="pre">--s3prl_upstream_name</span> <span class="pre">hubert_large_ll60k</span> <span class="pre">--layer</span> <span class="pre">24</span></code></p></li>
+</ol>
+</li>
+</ul>
+<ul>
+<li><p>Second, we extract the hubert features and copy the <code class="docutils literal notranslate"><span class="pre">feats.scp</span></code> into data dirs.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># ====== Creating &quot;feats.scp&quot; ======
+# Kaldi-feats.scp, which describe the file path (ark file) and offset,
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">--nj</span> <span class="pre">&lt;N&gt;</span></code> means the number of CPU / GPU jobs. Please set it appropriately by considering your CPU resources and disk access. <code class="docutils literal notranslate"><span class="pre">local/dump_ssl_feature.sh</span></code> is the entry script.</p>
+<p class="rubric" id="check-the-shape-of-dumped-feature-1-0-pt">📗 Check the shape of dumped feature [1.0 pt]</p>
+<p>We will finally read the dumped feature and print the shape information to check if it is successful. The expected output is</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>fkai-an311-b (155, 1024)
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 5 min
+# &#39;dump_hubert_feature.sh&#39; reads wave files from a common dir, so we symbolically link dump/raw/test in dump/raw/org
+!ln -s /content/espnet/egs2/an4/asr1/dump/raw/test /content/espnet/egs2/an4/asr1/dump/raw/org
+!rm -r ssl_feats/
+
+# Fairseq HuBERT large example
+# !mkdir -p downloads/hubert_pretrained_models
+# !wget https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt -O ./downloads/hubert_pretrained_models/hubert_large_ll60k.pt
+# !local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets &quot;test&quot; --use_gpu true --nj 1 --feature_type hubert --hubert_type fairseq --hubert_url &quot;https://dl.fbaipublicfiles.com/hubert/hubert_large_ll60k.pt&quot; --hubert_dir_path &quot;./downloads/hubert_pretrained_models&quot; --layer 23
+
+# S3PRL HuBERT large example
+!local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets &quot;test&quot; --use_gpu true --nj 1 --feature_type s3prl --s3prl_upstream_name wavlm_large --layer 24
+#!local/dump_ssl_feature.sh --feat_dir ssl_feats --datadir dump/raw/org --train_set train_nodev --dev_set train_dev --test_sets &quot;test&quot; --use_gpu true --nj 1 --feature_type s3prl --s3prl_upstream_name hubert_large_ll60k --layer 24
+
+# copy the feats.scp to data/*
+!cp ssl_feats/s3prl/train_nodev/feats.scp data/train_nodev
+!cp ssl_feats/s3prl/train_dev/feats.scp data/train_dev
+!cp ssl_feats/s3prl/test/feats.scp data/test
+
+# Print the shape of dumped features.
+!/content/espnet/tools/anaconda/envs/espnet/bin/python3 -c &quot;import kaldiio; reader=kaldiio.ReadHelper(&#39;scp:data/train_nodev/feats.scp&#39;); key, array = next(reader.generator); print(key, array.shape)&quot;
+</pre></div>
+</div>
+</div>
+<section id="⭕-[SSL]-Stage-3:-Format-feats.scp:-data/--&gt;-dump/extracted">
+<h4>⭕ [SSL] Stage 3: Format feats.scp: data/ -&gt; dump/extracted<a class="headerlink" href="#⭕-[SSL]-Stage-3:-Format-feats.scp:-data/-->-dump/extracted" title="Permalink to this headline">¶</a></h4>
+<p>Because we want to use extracted feature instead of raw wave, we need to run step 3 again**. It only construct a new dump/extracted folder, with some superficial commands.</p>
+<p>👀 From now on, <code class="docutils literal notranslate"><span class="pre">--feats_type</span> <span class="pre">&quot;extracted&quot;</span></code> will be added.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 25 seconds
+!./asr.sh --stage 3 --stop_stage 3 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --feats_type &quot;extracted&quot; --nj 4
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 4: Remove long/short data: dump/extracted/org -&gt; dump/raw</strong></p>
+<p>Too long and too short audio data are harmful for efficient training. Those utterances are removed for training. But for inference and scoring, we still use the full data, which is important for fair comparison.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 4 --stop_stage 4 --feats_type &quot;extracted&quot; --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 5: Generate token_list from dump/extracted/train_nodev/text using BPE.</strong></p>
+<p>This is important for text processing. Here, we make a dictionary simply using the English characters. We use the <code class="docutils literal notranslate"><span class="pre">sentencepiece</span></code> toolkit developed by Google.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 5 --stop_stage 5 --feats_type &quot;extracted&quot; --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="Language-modeling-(skipped-in-this-tutorial)">
+<h2>Language modeling (skipped in this tutorial)<a class="headerlink" href="#Language-modeling-(skipped-in-this-tutorial)" title="Permalink to this headline">¶</a></h2>
+<p><strong>Stages 6–9: Stages related to language modeling.</strong></p>
+<p>We skip the language modeling part in the recipe (stages 6 – 9) in this tutorial.</p>
+</section>
+<section id="How-to-change-the-configs?">
+<h2>How to change the configs?<a class="headerlink" href="#How-to-change-the-configs?" title="Permalink to this headline">¶</a></h2>
+<p>Let’s revisit the configs, since this is probably the most important part to improve the performance.</p>
+<p>All training options are changed in the config file.</p>
+<p>Pleae check <a class="reference external" href="https://espnet.github.io/espnet/espnet2_training_option.html">https://espnet.github.io/espnet/espnet2_training_option.html</a></p>
+<p>Let’s first check config files prepared in the <code class="docutils literal notranslate"><span class="pre">an4</span></code> recipe</p>
+<ul class="simple">
+<li><p>LSTM-based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_rnn.yaml</p></li>
+<li><p>Transformer based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_transformer.yaml</p></li>
+</ul>
+<p>You can run</p>
+<p><strong>RNN</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./asr.sh --stage 10 \
+   --feats_type &quot;extracted&quot; \
+   --train_set train_nodev \
+   --valid_set train_dev \
+   --test_sets &quot;train_dev test&quot; \
+   --nj 4 \
+   --inference_nj 4 \
+   --use_lm false \
+   --asr_config conf/train_asr_rnn.yaml
+</pre></div>
+</div>
+<p><strong>Transformer</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./asr.sh --stage 10 \
+   --feats_type &quot;extracted&quot; \
+   --train_set train_nodev \
+   --valid_set train_dev \
+   --test_sets &quot;train_dev test&quot; \
+   --nj 4 \
+   --inference_nj 4 \
+   --use_lm false \
+   --asr_config conf/train_asr_transformer.yaml
+</pre></div>
+</div>
+<p>You can also find various configs in other recipes <code class="docutils literal notranslate"><span class="pre">espnet/egs2/*/asr1/conf/</span></code>, including - Conformer <code class="docutils literal notranslate"><span class="pre">egs2/librispeech/asr1/conf/tuning/train_asr_conformer10_hop_length160.yaml</span></code> - Branchformer <code class="docutils literal notranslate"><span class="pre">egs2/librispeech/asr1/conf/tuning/train_asr_branchformer_hop_length160_e18_linear3072.yaml</span></code></p>
+<p>You can also customize it by passing the command line arguments, e.g.,</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./run.sh --stage 10 --asr_args &quot;--model_conf ctc_weight=0.3&quot;
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./run.sh --stage 10 --asr_args &quot;--optim_conf lr=0.1&quot;
+</pre></div>
+</div>
+<p>This approach has a highest priority. Thus, the arguments passed in the command line will overwrite those defined in the config file. This is convenient if you only want to change a few arguments.</p>
+<p>Please refer to <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html#change-the-configuration-for-training">https://espnet.github.io/espnet/espnet2_tutorial.html#change-the-configuration-for-training</a> for more details.</p>
+</section>
+<section id="📗-Exercise-1">
+<h2>📗 Exercise 1<a class="headerlink" href="#📗-Exercise-1" title="Permalink to this headline">¶</a></h2>
+<p>Run training, inference and scoring on AN4 using a new config. Here is an example config using <a class="reference external" href="https://proceedings.mlr.press/v162/peng22a.html">Branchformer</a> (Peng et al, ICML 2022).</p>
+<ol class="arabic simple">
+<li><p>Frontend is set to <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">preencoder</span></code> is added to reduce input dimension.</p></li>
+<li><p>In the <code class="docutils literal notranslate"><span class="pre">encoder</span></code>, the subsampling is reduced to 2 (input_layer is conv2d2)</p></li>
+</ol>
+<ol class="arabic simple">
+<li><p>Gobal Mean normalization</p>
+<ul class="simple">
+<li><p>Compute the statistics (mean / var) on the full training set. This is done in stage 10. Both mean and var are considered.</p></li>
+<li><p>This is set by default in <code class="docutils literal notranslate"><span class="pre">asr.sh</span> <span class="pre">by</span></code>, specifically the argument <code class="docutils literal notranslate"><span class="pre">--feats_normalize</span> <span class="pre">global_mvn</span></code>.</p></li>
+</ul>
+</li>
+<li><p>Utterance Mean normalization</p>
+<ul class="simple">
+<li><p>Compute the statistics (mean / var) on each single utterance. By default, ESPnet only normalize the mean.</p></li>
+<li><p>This can specified to <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code> by <code class="docutils literal notranslate"><span class="pre">--feats_normalize</span> <span class="pre">utt_mvn</span></code>. Whatever the value is, as long as it is not <code class="docutils literal notranslate"><span class="pre">global_mvn</span></code>.</p></li>
+</ul>
+</li>
+<li><p>No normalization</p>
+<ul class="simple">
+<li><p>Nothing is done in the feature.</p></li>
+<li><p>This can be specified by <code class="docutils literal notranslate"><span class="pre">--feats_normalize</span> <span class="pre">null</span> <span class="pre">--asr_args</span> <span class="pre">&quot;--normalize</span> <span class="pre">null&quot;</span></code></p></li>
+</ul>
+</li>
+</ol>
+<p>Similarly, we create a config file named <code class="docutils literal notranslate"><span class="pre">train_asr_demo_branchformer.yaml</span></code> and start training.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>batch_type: numel
+batch_bins: 4000000
+accum_grad: 1    # gradient accumulation steps
+max_epoch: 40
+patience: 10
+init: xavier_uniform
+best_model_criterion:  # criterion to save best models
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10  # save nbest models and average these checkpoints
+use_amp: true    # whether to use automatic mixed precision
+num_att_plot: 0  # do not save attention plots to save time in the demo
+num_workers: 2   # number of workers in dataloader
+
+frontend: null  # Since extracted features are used, frontend is not used.
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024
+    output_size: 128
+
+encoder: branchformer
+encoder_conf:
+    output_size: 256
+    use_attn: true
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    use_cgmlp: true
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    merge_method: concat
+    cgmlp_weight: 0.5               # used only if merge_method is &quot;fixed_ave&quot;
+    attn_branch_drop_rate: 0.0      # used only if merge_method is &quot;learned_ave&quot;
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d2
+    stochastic_depth_rate: 0.0
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 3
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3  # joint CTC/attention training
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.0002
+scheduler: warmuplr  # linearly increase and exponentially decrease
+scheduler_conf:
+    warmup_steps: 200
+</pre></div>
+</div>
+<p>My result is shown below:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>## exp/asr_train_asr_demo_branchformer_extracted_bpe30
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|773|95.9|2.6|1.6|0.0|4.1|16.9|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|591|92.0|5.9|2.0|0.2|8.1|28.0|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|2565|98.1|0.1|1.8|0.1|2.0|16.9|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|1915|95.5|0.7|3.8|0.2|4.7|28.0|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|2695|98.1|0.1|1.7|0.1|1.9|16.9|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|2015|95.7|0.7|3.6|0.1|4.5|28.0|
+</pre></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># ~10 min
+# Run multiple stages
+!rm -r exp/asr_train_asr_demo_branchformer_extracted_bpe30
+!./asr.sh --stage 10 --stop_stage 13 --feats_type &quot;extracted&quot; --feats_normalize utt_mvn --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --nj 4 --ngpu 1 --use_lm false --gpu_inference true --inference_nj 1 --asr_config conf/train_asr_demo_branchformer.yaml --inference_config conf/decode_asr.yaml
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the TensorBoard notebook extension</span>
+<span class="o">%</span><span class="n">load_ext</span> <span class="n">tensorboard</span>
+
+<span class="c1"># Launch tensorboard before training</span>
+<span class="o">%</span><span class="n">tensorboard</span> <span class="o">--</span><span class="n">logdir</span> <span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">espnet</span><span class="o">/</span><span class="n">egs2</span><span class="o">/</span><span class="n">an4</span><span class="o">/</span><span class="n">asr1</span><span class="o">/</span><span class="n">exp</span><span class="o">/</span><span class="n">asr_train_asr_demo_branchformer_extracted_bpe30</span><span class="o">/</span><span class="n">tensorboard</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># NOTE: Exercise 1 Result 1 (HuBERT)
+!scripts/utils/show_asr_result.sh exp
+from IPython.display import Image, display
+display(Image(&#39;exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png&#39;, width=400))
+
+print_date_and_time()
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># NOTE: Exercise 1 Result 2 (WavLM)
+!scripts/utils/show_asr_result.sh exp
+from IPython.display import Image, display
+display(Image(&#39;exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png&#39;, width=400))
+
+print_date_and_time()
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># NOTE: Exercise 1 Result 3 (WavLM utt_mvn)
+!scripts/utils/show_asr_result.sh exp
+from IPython.display import Image, display
+display(Image(&#39;exp/asr_train_asr_demo_branchformer_extracted_bpe30/images/acc.png&#39;, width=400))
+
+print_date_and_time()
+</pre></div>
+</div>
+</div>
+</section>
+<section id="📗-Questions">
+<h2>📗 Questions<a class="headerlink" href="#📗-Questions" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>What is the difference between <a class="reference external" href="https://arxiv.org/abs/2106.07447">HuBERT</a> and <a class="reference external" href="https://arxiv.org/abs/2110.13900">WavLM</a>? [1 pt]</p></li>
+</ol>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WavLM is a newer model which uses masked speech denoising to create an embedding applicable to multiple downstream tasks, not just ASR.
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Get the ASR performance of one more SSL feature, WavLM, and show the results. [1 pt]</p></li>
+</ol>
+<p>Hint: change the s3prl_upstream_name to <code class="docutils literal notranslate"><span class="pre">wavlm_large</span></code> at stage 3.5 and run the following stages.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># RESULTS
+## Environments
+- date: `Sat Feb 25 03:26:54 UTC 2023`
+- python version: `3.9.16 (main, Jan 11 2023, 16:05:54)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `15a6dc1501b65211725a4fb514fcf5dd24f7ae95`
+  - Commit date: `Thu Feb 23 22:04:23 2023 -0500`
+
+## exp/asr_train_asr_demo_branchformer_extracted_bpe30
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|773|63.5|13.6|22.9|2.2|38.7|79.2|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|591|59.6|18.1|22.3|2.4|42.8|82.0|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|2565|80.6|2.6|16.8|1.4|20.8|79.2|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|1915|78.0|4.6|17.4|0.8|22.8|82.0|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/test|130|2695|81.6|2.4|16.0|1.3|19.8|79.2|
+|decode_asr_asr_model_valid.acc.ave/train_dev|100|2015|79.1|4.4|16.6|0.7|21.7|82.0|
+
+============================================================
+ Current date and time: 02/24/2023 22:26:55
+============================================================
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Compare the performance between HuBERT, WavLM and MFCC features. Which is better? How much is it? Why do you think it is better in one sentence? [1 pt]</p></li>
+</ol>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>It seems like HuBERT performed slightly better than WavLM, probably because HuBERT is more specifically focused on this ASR.
+</pre></div>
+</div>
+<ol class="arabic" start="4">
+<li><p>Make a exploration of normalization mentioned in <a class="reference external" href="~/experiments/espnet/egs2/librimix/asr1">Stage 10</a> for either HuBRET or WavLM feature. Report the performance. [1 pt]</p>
+<p>Hint: you may change the number of epochs to get better performance. ``` # RESULTS ## Environments</p>
+</li>
+</ol>
+<ul class="simple">
+<li><p>date: <code class="docutils literal notranslate"><span class="pre">Sat</span> <span class="pre">Feb</span> <span class="pre">25</span> <span class="pre">04:31:27</span> <span class="pre">UTC</span> <span class="pre">2023</span></code></p></li>
+<li><p>python version: <code class="docutils literal notranslate"><span class="pre">3.9.16</span> <span class="pre">(main,</span> <span class="pre">Jan</span> <span class="pre">11</span> <span class="pre">2023,</span> <span class="pre">16:05:54)</span>&#160; <span class="pre">[GCC</span> <span class="pre">11.2.0]</span></code></p></li>
+<li><p>espnet version: <code class="docutils literal notranslate"><span class="pre">espnet</span> <span class="pre">202301</span></code></p></li>
+<li><p>pytorch version: <code class="docutils literal notranslate"><span class="pre">pytorch</span> <span class="pre">1.12.1</span></code></p></li>
+<li><p>Git hash: <code class="docutils literal notranslate"><span class="pre">15a6dc1501b65211725a4fb514fcf5dd24f7ae95</span></code></p>
+<ul>
+<li><p>Commit date: <code class="docutils literal notranslate"><span class="pre">Thu</span> <span class="pre">Feb</span> <span class="pre">23</span> <span class="pre">22:04:23</span> <span class="pre">2023</span> <span class="pre">-0500</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>## exp/asr_train_asr_demo_branchformer_extracted_bpe30 ### WER</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>dataset</p></th>
+<th class="head"><p>Snt</p></th>
+<th class="head"><p>Wrd</p></th>
+<th class="head"><p>Corr</p></th>
+<th class="head"><p>Sub</p></th>
+<th class="head"><p>Del</p></th>
+<th class="head"><p>Ins</p></th>
+<th class="head"><p>Err</p></th>
+<th class="head"><p>S.Err</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>decode_asr_asr_model_valid.acc.ave/test</p></td>
+<td><p>130</p></td>
+<td><p>773</p></td>
+<td><p>63.5</p></td>
+<td><p>13.6</p></td>
+<td><p>22.9</p></td>
+<td><p>2.2</p></td>
+<td><p>38.7</p></td>
+<td><p>79.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>decode_asr_asr_model_valid.acc.ave/train_dev</p></td>
+<td><p>100</p></td>
+<td><p>591</p></td>
+<td><p>59.6</p></td>
+<td><p>18.1</p></td>
+<td><p>22.3</p></td>
+<td><p>2.4</p></td>
+<td><p>42.8</p></td>
+<td><p>82.0</p></td>
+</tr>
+</tbody>
+</table>
+<p>### CER</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>dataset</p></th>
+<th class="head"><p>Snt</p></th>
+<th class="head"><p>Wrd</p></th>
+<th class="head"><p>Corr</p></th>
+<th class="head"><p>Sub</p></th>
+<th class="head"><p>Del</p></th>
+<th class="head"><p>Ins</p></th>
+<th class="head"><p>Err</p></th>
+<th class="head"><p>S.Err</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>decode_asr_asr_model_valid.acc.ave/test</p></td>
+<td><p>130</p></td>
+<td><p>2565</p></td>
+<td><p>80.6</p></td>
+<td><p>2.6</p></td>
+<td><p>16.8</p></td>
+<td><p>1.4</p></td>
+<td><p>20.8</p></td>
+<td><p>79.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>decode_asr_asr_model_valid.acc.ave/train_dev</p></td>
+<td><p>100</p></td>
+<td><p>1915</p></td>
+<td><p>78.0</p></td>
+<td><p>4.6</p></td>
+<td><p>17.4</p></td>
+<td><p>0.8</p></td>
+<td><p>22.8</p></td>
+<td><p>82.0</p></td>
+</tr>
+</tbody>
+</table>
+<p>### TER</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>dataset</p></th>
+<th class="head"><p>Snt</p></th>
+<th class="head"><p>Wrd</p></th>
+<th class="head"><p>Corr</p></th>
+<th class="head"><p>Sub</p></th>
+<th class="head"><p>Del</p></th>
+<th class="head"><p>Ins</p></th>
+<th class="head"><p>Err</p></th>
+<th class="head"><p>S.Err</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>decode_asr_asr_model_valid.acc.ave/test</p></td>
+<td><p>130</p></td>
+<td><p>2695</p></td>
+<td><p>81.6</p></td>
+<td><p>2.4</p></td>
+<td><p>16.0</p></td>
+<td><p>1.3</p></td>
+<td><p>19.8</p></td>
+<td><p>79.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>decode_asr_asr_model_valid.acc.ave/train_dev</p></td>
+<td><p>100</p></td>
+<td><p>2015</p></td>
+<td><p>79.1</p></td>
+<td><p>4.4</p></td>
+<td><p>16.6</p></td>
+<td><p>0.7</p></td>
+<td><p>21.7</p></td>
+<td><p>82.0</p></td>
+</tr>
+</tbody>
+</table>
+<p>============================================================ Current date and time: 02/24/2023 23:31:28 ============================================================ ```</p>
+</section>
+<section id="Contribute-to-ESPnet">
+<h2>Contribute to ESPnet<a class="headerlink" href="#Contribute-to-ESPnet" title="Permalink to this headline">¶</a></h2>
+<p>Please follow <a class="reference external" href="https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md">https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md</a> to upload your pre-trained model to <a class="reference external" href="https://huggingface.co/espnet">Hugging Face</a> and make a pull request in the <a class="reference external" href="https://github.com/espnet/espnet/pulls">ESPnet repository</a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="s2st_demo.html" class="btn btn-neutral float-left" title="ESPnet-S2ST realtime demonstration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html" class="btn btn-neutral float-right" title="CMU 11751/18781 2021: ESPnet Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

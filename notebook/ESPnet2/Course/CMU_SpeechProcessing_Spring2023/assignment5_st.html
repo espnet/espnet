@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMU 11492/11692 Spring 2023: Speech Translation &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="CMU 11492/11692 Spring 2023: Text to Speech" href="assignment8_tts.html" />
+    <link rel="prev" title="CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)" href="assignment1_espnet-tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202402
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11492/11692 Spring 2023: Speech Translation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Objectives">Objectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#❗Important-Notes❗">❗Important Notes❗</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ESPnet-installation-(Inference-vesion)">ESPnet installation (Inference vesion)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-Translation">Speech Translation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Overview-of-the-ESPnet-ST-v2">Overview of the ESPnet-ST-v2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#1.-Offline-Speech-to-text-Translation-(ST)">1. Offline Speech-to-text Translation (ST)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#1.1-Model-download">1.1 Model download</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#1.2-Model-Setup">1.2 Model Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#1.3-Translate-our-example-recordings">1.3 Translate our example recordings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Task1-(✅-Checkpoint-1-(2-point))">Task1 (✅ Checkpoint 1 (2 point))</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#1.4-Translate-your-own-live-recordings">1.4 Translate your own live-recordings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Task2-(✅-Checkpoint-2-(1-point))">Task2 (✅ Checkpoint 2 (1 point))</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#2.-Simultaneous-Speech-to-text-Translation-(SST)">2. Simultaneous Speech-to-text Translation (SST)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Question3-(✅-Checkpoint-3-(1-point))">Question3 (✅ Checkpoint 3 (1 point))</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Question4-(✅-Checkpoint-4-(1-point))">Question4 (✅ Checkpoint 4 (1 point))</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CMU 11492/11692 Spring 2023: Speech Translation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="CMU-11492/11692-Spring-2023:-Speech-Translation">
+<h1>CMU 11492/11692 Spring 2023: Speech Translation<a class="headerlink" href="#CMU-11492/11692-Spring-2023:-Speech-Translation" title="Permalink to this headline">¶</a></h1>
+<p>In this demonstration, we will show you some demonstrations of speech translation systems in ESPnet.</p>
+<p>Main references: - <a class="reference external" href="https://github.com/espnet/espnet">ESPnet repository</a> - <a class="reference external" href="https://espnet.github.io/espnet/">ESPnet documentation</a> - <a class="reference external" href="https://colab.research.google.com/drive/1htcM-N6ChTB1tx3C69WqQ6JhyevqKskH?usp=sharing">ESPnet-ST-v2 demo</a> - <a class="reference external" href="https://github.com/ftshijt/espnet/tree/merge_s2st_st">ESPnet-ST repo (WIP)</a></p>
+<p>Author: - Jiatong Shi (<a class="reference external" href="mailto:jiatongs&#37;&#52;&#48;andrew&#46;cmu&#46;edu">jiatongs<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
+<section id="Objectives">
+<h2>Objectives<a class="headerlink" href="#Objectives" title="Permalink to this headline">¶</a></h2>
+<p>After this demonstration, you are expected to understand some latest advancements in speech translation.</p>
+</section>
+<section id="❗Important-Notes❗">
+<h2>❗Important Notes❗<a class="headerlink" href="#❗Important-Notes❗" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU time, you may not be able to use GPU for some time.</p></li>
+<li><p>There are multiple in-class checkpoints ✅ throughout this tutorial. <strong>Your participation points are based on these tasks.</strong> Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.</p></li>
+<li><p>Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Print</span></code> in the menu bar.</p></li>
+</ul>
+</section>
+<section id="ESPnet-installation-(Inference-vesion)">
+<h2>ESPnet installation (Inference vesion)<a class="headerlink" href="#ESPnet-installation-(Inference-vesion)" title="Permalink to this headline">¶</a></h2>
+<p>Different from previous assignment where we install the full version of ESPnet, we use a lightweight ESPnet package, which mainly designed for inference purpose. The installation with the light version can be much faster than a full installation. Noted that this is an active on-going work in ESPnet. The codebase is still in merging, so we will use a branch from our development fork for this assignment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!pip install typeguard==2.13.3
+!git clone --depth 5 -b merge_s2st_st https://github.com/ftshijt/espnet.git
+!cd espnet &amp;&amp; pip install .
+!pip install -q espnet_model_zoo
+</pre></div>
+</div>
+</div>
+<p>We also have some other toolkits/packages needed for this assignment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!pip install --upgrade --no-cache-dir gdown
+!git clone --depth 1 https://github.com/kan-bayashi/ParallelWaveGAN.git
+!cd ParallelWaveGAN &amp;&amp; pip install .
+!pip install pysndfile
+!pip install sacrebleu
+!pip install mosestokenizer
+!git clone https://github.com/facebookresearch/SimulEval.git
+!cd SimulEval &amp;&amp; pip install -e .
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Speech-Translation">
+<h2>Speech Translation<a class="headerlink" href="#Speech-Translation" title="Permalink to this headline">¶</a></h2>
+<p>Speech translation is a typical task that translate speech in a language into text/speech in another language. In this tutorial, we will show you the some latest models (in ESPnet-ST-v2) in the field of speech translation and demonstrate using them in different scenarios, including</p>
+<ul class="simple">
+<li><p>offline speech-to-text translation</p></li>
+<li><p>simultaneous speech-to-text translation</p></li>
+<li><p>speech-to-speech translation</p></li>
+</ul>
+</section>
+<section id="Overview-of-the-ESPnet-ST-v2">
+<h2>Overview of the ESPnet-ST-v2<a class="headerlink" href="#Overview-of-the-ESPnet-ST-v2" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet-ST-v2 is a revamp of the open-source ESPnet-ST toolkit necessitated by the broadening interests of the spoken language translation community. ESPnet-ST-v2 supports 1) offline speech-to-text translation (ST), 2) simultaneous speech-to-text translation (SST), and 3) offline speech-to-speech translation (S2ST) – each task is supported with a wide variety of approaches, differentiating ESPnet-ST-v2 from other open source spoken language translation toolkits. This toolkit offers
+state-of-the-art architectures such as transducers, hybrid CTC/attention, multi-decoders with searchable intermediates, time-synchronous blockwise CTC/attention, Translatotron models, and direct discrete unit models.</p>
+<p><img alt="picture" src="https://drive.google.com/uc?id=1taR-6Cq4akhhq3oQtgR7Y9mWD0vaEm4z" /></p>
+<p>In general, the toolkit is organizd in a pythonic way to support model training/inference, while we also provide recipes for data preparation, model training, and evaluation.</p>
+<p><img alt="pitcture" src="https://drive.google.com/uc?id=1I3w9BAYBhyaf440pBr6VX885f7oJN3mp" /></p>
+</section>
+<section id="1.-Offline-Speech-to-text-Translation-(ST)">
+<h2>1. Offline Speech-to-text Translation (ST)<a class="headerlink" href="#1.-Offline-Speech-to-text-Translation-(ST)" title="Permalink to this headline">¶</a></h2>
+<section id="1.1-Model-download">
+<h3>1.1 Model download<a class="headerlink" href="#1.1-Model-download" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># Download pretrained st model
+!gdown 1Sn2rAZXVSm1hrCj5OIlq61EgbjKXNGdq
+!unzip -o st_train_st_ctc_md_conformer_asrinit_v3_noamp_batch50m_ctcsamp0.1_lr1e-3_raw_en_es_bpe_tc4000_sp_valid.acc.ave.zip
+</pre></div>
+</div>
+</div>
+</section>
+<section id="1.2-Model-Setup">
+<h3>1.2 Model Setup<a class="headerlink" href="#1.2-Model-Setup" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">espnet2.bin.st_inference</span> <span class="kn">import</span> <span class="n">Speech2Text</span>
+
+<span class="n">lang</span><span class="o">=</span><span class="s2">&quot;es&quot;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span>
+
+<span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="p">(</span>
+    <span class="n">st_model_file</span><span class="o">=</span><span class="s2">&quot;/content/exp/st_train_st_ctc_md_conformer_asrinit_v3_noamp_batch50m_ctcsamp0.1_lr1e-3_raw_en_es_bpe_tc4000_sp/valid.acc.ave_10best.pth&quot;</span><span class="p">,</span>
+    <span class="n">st_train_config</span><span class="o">=</span><span class="s2">&quot;/content/exp/st_train_st_ctc_md_conformer_asrinit_v3_noamp_batch50m_ctcsamp0.1_lr1e-3_raw_en_es_bpe_tc4000_sp/config.yaml&quot;</span><span class="p">,</span>
+    <span class="n">beam_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">ctc_weight</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+    <span class="n">asr_beam_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">asr_ctc_weight</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="1.3-Translate-our-example-recordings">
+<h3>1.3 Translate our example recordings<a class="headerlink" href="#1.3-Translate-our-example-recordings" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!git clone https://github.com/ftshijt/ESPnet_st_egs.git
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">soundfile</span> <span class="k">as</span> <span class="nn">sf</span>
+<span class="kn">import</span> <span class="nn">librosa.display</span>
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Audio</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">sacrebleu.metrics</span> <span class="kn">import</span> <span class="n">BLEU</span>
+
+<span class="n">bleu</span> <span class="o">=</span> <span class="n">BLEU</span><span class="p">()</span>
+
+<span class="n">egs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;ESPnet_st_egs/st/egs.csv&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">egs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+  <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;lang&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">lang</span> <span class="ow">or</span> <span class="n">lang</span> <span class="o">==</span> <span class="s2">&quot;multilingual&quot;</span><span class="p">:</span>
+    <span class="n">speech</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">sf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;ESPnet_st_egs/&quot;</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="n">fs</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;sr&quot;</span><span class="p">])</span>
+    <span class="n">text</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">speech2text</span><span class="p">(</span><span class="n">speech</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">fs</span><span class="p">))</span>
+    <span class="n">librosa</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">waveplot</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference source text: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;src_text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Translation results: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference target text: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;tgt_text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sentence BLEU Score: </span><span class="si">{</span><span class="n">bleu</span><span class="o">.</span><span class="n">sentence_score</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;tgt_text&#39;</span><span class="p">]])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Task1-(✅-Checkpoint-1-(2-point))">
+<h3>Task1 (✅ Checkpoint 1 (2 point))<a class="headerlink" href="#Task1-(✅-Checkpoint-1-(2-point))" title="Permalink to this headline">¶</a></h3>
+<p>We have printout the sentence BLEU score of the model. Can you compute the corpus BLEU with <a class="reference external" href="https://github.com/mjpost/sacrebleu#using-sacrebleu-from-python">examples in sacreBLEU</a> based on the five utterances in the example?</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># CHECKPOINT1</span>
+
+<span class="n">refs</span> <span class="o">=</span> <span class="p">[[</span>
+    <span class="s2">&quot;Acabo de regresar de una comunidad que tiene el secreto de la supervivencia humana .&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;En última instancia , avanzar , creo que tenemos que darle lugar al miedo .&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Cuando recién ingresaba a la universidad tuve mi primer clase de biología .&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Comparte sus experiencias con ellos .&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Cada vez que estén de vacaciones y alguien colapse , puede ser un pariente o alguien enfrente de Uds. , pueden encontrarlo .&quot;</span><span class="p">,</span>
+<span class="p">]]</span>
+
+<span class="c1"># Please fill the translation results to here</span>
+<span class="n">hyps</span> <span class="o">=</span> <span class="p">[</span>
+
+<span class="p">]</span>
+
+<span class="c1"># Please compute the corpus bleu score</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="1.4-Translate-your-own-live-recordings">
+<h3>1.4 Translate your own live-recordings<a class="headerlink" href="#1.4-Translate-your-own-live-recordings" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Record your own voice</p></li>
+<li><p>Tralsate your vocie with the ST system</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># from https://gist.github.com/korakot/c21c3476c024ad6d56d5f48b0bca92be</span>
+
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">Javascript</span>
+<span class="kn">from</span> <span class="nn">google.colab</span> <span class="kn">import</span> <span class="n">output</span>
+<span class="kn">from</span> <span class="nn">base64</span> <span class="kn">import</span> <span class="n">b64decode</span>
+
+<span class="n">RECORD</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">const sleep = time =&gt; new Promise(resolve =&gt; setTimeout(resolve, time))</span>
+<span class="s2">const b2text = blob =&gt; new Promise(resolve =&gt; {</span>
+<span class="s2">  const reader = new FileReader()</span>
+<span class="s2">  reader.onloadend = e =&gt; resolve(e.srcElement.result)</span>
+<span class="s2">  reader.readAsDataURL(blob)</span>
+<span class="s2">})</span>
+<span class="s2">var record = time =&gt; new Promise(async resolve =&gt; {</span>
+<span class="s2">  stream = await navigator.mediaDevices.getUserMedia({ audio: true })</span>
+<span class="s2">  recorder = new MediaRecorder(stream)</span>
+<span class="s2">  chunks = []</span>
+<span class="s2">  recorder.ondataavailable = e =&gt; chunks.push(e.data)</span>
+<span class="s2">  recorder.start()</span>
+<span class="s2">  await sleep(time)</span>
+<span class="s2">  recorder.onstop = async ()=&gt;{</span>
+<span class="s2">    blob = new Blob(chunks)</span>
+<span class="s2">    text = await b2text(blob)</span>
+<span class="s2">    resolve(text)</span>
+<span class="s2">  }</span>
+<span class="s2">  recorder.stop()</span>
+<span class="s2">})</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">record</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;audio.wav&#39;</span><span class="p">):</span>
+  <span class="n">display</span><span class="p">(</span><span class="n">Javascript</span><span class="p">(</span><span class="n">RECORD</span><span class="p">))</span>
+  <span class="n">s</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">eval_js</span><span class="p">(</span><span class="s1">&#39;record(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sec</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">))</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+<span class="n">audio</span> <span class="o">=</span> <span class="s1">&#39;audio.wav&#39;</span>
+<span class="n">second</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Speak to your microphone </span><span class="si">{</span><span class="n">second</span><span class="si">}</span><span class="s2"> sec...&quot;</span><span class="p">)</span>
+<span class="n">record</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">audio</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
+
+
+<span class="kn">import</span> <span class="nn">librosa</span>
+<span class="kn">import</span> <span class="nn">librosa.display</span>
+<span class="n">speech</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">audio</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">)</span>
+<span class="n">librosa</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">waveplot</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">pysndfile</span>
+<span class="n">pysndfile</span><span class="o">.</span><span class="n">sndio</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;audio_ds.wav&#39;</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;wav&#39;</span><span class="p">,</span> <span class="n">enc</span><span class="o">=</span><span class="s1">&#39;pcm16&#39;</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Audio</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Task2-(✅-Checkpoint-2-(1-point))">
+<h3>Task2 (✅ Checkpoint 2 (1 point))<a class="headerlink" href="#Task2-(✅-Checkpoint-2-(1-point))" title="Permalink to this headline">¶</a></h3>
+<p>Please follow the same procedure as previous examples and print out the translation results. (You can directly use the <code class="docutils literal notranslate"><span class="pre">speech2text</span></code> function)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># [CHECKPOINT2]</span>
+<span class="c1"># Follow the same procedure as previous examples, print out the translation results</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="2.-Simultaneous-Speech-to-text-Translation-(SST)">
+<h2>2. Simultaneous Speech-to-text Translation (SST)<a class="headerlink" href="#2.-Simultaneous-Speech-to-text-Translation-(SST)" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># Download retrained sst model
+!gdown 1ekUeMvmaB3ZhAIY_KAb_we1zhIRFZhtu
+!unzip -o /content/st_train_st_ctc_conformer_asrinit_v2_streaming_40block_nohier_18lyr_raw_en_es_bpe_tc4000_sp_valid.acc.ave.zip
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">espnet2.bin.st_inference_streaming</span> <span class="kn">import</span> <span class="n">Speech2TextStreaming</span>
+
+<span class="n">lang</span><span class="o">=</span><span class="s2">&quot;es&quot;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span>
+
+<span class="n">speech2textstreaming</span> <span class="o">=</span> <span class="n">Speech2TextStreaming</span><span class="p">(</span>
+    <span class="n">st_model_file</span><span class="o">=</span><span class="s2">&quot;/content/exp/st_train_st_ctc_conformer_asrinit_v2_streaming_40block_nohier_18lyr_raw_en_es_bpe_tc4000_sp/valid.acc.ave_10best.pth&quot;</span><span class="p">,</span>
+    <span class="n">st_train_config</span><span class="o">=</span><span class="s2">&quot;/content/exp/st_train_st_ctc_conformer_asrinit_v2_streaming_40block_nohier_18lyr_raw_en_es_bpe_tc4000_sp/config.yaml&quot;</span><span class="p">,</span>
+    <span class="n">penalty</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+    <span class="n">blank_penalty</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">beam_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">ctc_weight</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">incremental_decode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">time_sync</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">soundfile</span> <span class="k">as</span> <span class="nn">sf</span>
+<span class="kn">import</span> <span class="nn">librosa.display</span>
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Audio</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">sacrebleu.metrics</span> <span class="kn">import</span> <span class="n">BLEU</span>
+
+<span class="n">bleu</span> <span class="o">=</span> <span class="n">BLEU</span><span class="p">()</span>
+
+<span class="n">egs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;ESPnet_st_egs/st/egs.csv&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">egs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+  <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;lang&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">lang</span> <span class="ow">or</span> <span class="n">lang</span> <span class="o">==</span> <span class="s2">&quot;multilingual&quot;</span><span class="p">:</span>
+    <span class="n">speech</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">sf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;ESPnet_st_egs/&quot;</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="n">fs</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;sr&quot;</span><span class="p">])</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">speech2textstreaming</span><span class="p">(</span><span class="n">speech</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">fs</span><span class="p">))</span>
+    <span class="n">librosa</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">waveplot</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference source text: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;src_text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Translation results: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference target text: </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;tgt_text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sentence BLEU Score: </span><span class="si">{</span><span class="n">bleu</span><span class="o">.</span><span class="n">sentence_score</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;tgt_text&#39;</span><span class="p">]])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Question3-(✅-Checkpoint-3-(1-point))">
+<h3>Question3 (✅ Checkpoint 3 (1 point))<a class="headerlink" href="#Question3-(✅-Checkpoint-3-(1-point))" title="Permalink to this headline">¶</a></h3>
+<p>How is the performance of the streaming model compared to the offline model? Could you provide some explanation on the performances differences?</p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[YOUR ANSWER HERE]</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!simuleval --source /content/ESPnet_st_egs/st/wav.scp --target /content/ESPnet_st_egs/st/ref.detok.trn --agent /content/espnet/egs2/TEMPLATE/st1/pyscripts/utils/simuleval_agent.py --batch_size 1 --ngpu 0 --st_train_config /content/exp/st_train_st_ctc_conformer_asrinit_v2_streaming_40block_nohier_18lyr_raw_en_es_bpe_tc4000_sp/config.yaml --st_model_file exp/st_train_st_ctc_conformer_asrinit_v2_streaming_40block_nohier_18lyr_raw_en_es_bpe_tc4000_sp/valid.acc.ave_10best.pth --disable_repetition_detection false --beam_size 10 --sim_chunk_length 2048 --backend streaming --ctc_weight 0.5 --incremental_decode true --penalty 0.4 --blank_penalty 0.7 --time_sync true --latency-metrics LAAL AL AP DAL
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Question4-(✅-Checkpoint-4-(1-point))">
+<h3>Question4 (✅ Checkpoint 4 (1 point))<a class="headerlink" href="#Question4-(✅-Checkpoint-4-(1-point))" title="Permalink to this headline">¶</a></h3>
+<p>Despite from BLEU, we have LAACL, AL, AP, DAL for evaluation. AL (average lagging) is one of the most widely used metrics in recent works. Please use one sentence to describe what AL is.</p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[YOUR ANSWER HERE]</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="assignment1_espnet-tutorial.html" class="btn btn-neutral float-left" title="CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="assignment8_tts.html" class="btn btn-neutral float-right" title="CMU 11492/11692 Spring 2023: Text to Speech" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

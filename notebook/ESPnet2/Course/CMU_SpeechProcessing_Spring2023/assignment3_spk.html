@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMU 11492/11692 Spring 2023: Speaker Recognition &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="CMU 11492/11692 Spring 2023: Spoken Language Understanding" href="assignment6_slu.html" />
+    <link rel="prev" title="CMU 11492/11692 Spring 2023: Speech Enhancement" href="assignment7_se.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202402
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment7_se.html#Contents">Contents</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11492/11692 Spring 2023: Speaker Recognition</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Objectives">Objectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#❗Important-Notes❗">❗Important Notes❗</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ESPnet-installation">ESPnet installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Speaker-Recognition">Speaker Recognition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Dataset">Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Data-Preparation">Data Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Data-Preprocessing">Data Preprocessing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Question1-(✅-Checkpoint-1-(1-point))">Question1 (✅ Checkpoint 1 (1 point))</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Use-Pre-trained-speaker-representation">Use Pre-trained speaker representation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Extract-speaker-embedding-from-SpeechBrain">Extract speaker embedding from SpeechBrain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Training-for-speaker-recognition">Training for speaker recognition</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Question2-(✅-Checkpoint-2-(0.5-point))">Question2 (✅ Checkpoint 2 (0.5 point))</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Question3-(✅-Checkpoint-3-(0.5-point))">Question3 (✅ Checkpoint 3 (0.5 point))</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Question4-(✅-Checkpoint-4-(0.5-point))">Question4 (✅ Checkpoint 4 (0.5 point))</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CMU 11492/11692 Spring 2023: Speaker Recognition</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="CMU-11492/11692-Spring-2023:-Speaker-Recognition">
+<h1>CMU 11492/11692 Spring 2023: Speaker Recognition<a class="headerlink" href="#CMU-11492/11692-Spring-2023:-Speaker-Recognition" title="Permalink to this headline">¶</a></h1>
+<p>In this demonstration, we will show you the procedure to conduct speaker recognition with the ASR functions of ESPnet.</p>
+<p>Main references: - <a class="reference external" href="https://github.com/espnet/espnet">ESPnet repository</a> - <a class="reference external" href="https://espnet.github.io/espnet/">ESPnet documentation</a></p>
+<p>Author: - Jiatong Shi (<a class="reference external" href="mailto:jiatongs&#37;&#52;&#48;andrew&#46;cmu&#46;edu">jiatongs<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
+<section id="Objectives">
+<h2>Objectives<a class="headerlink" href="#Objectives" title="Permalink to this headline">¶</a></h2>
+<p>After this demonstration, you are expected to understand the main procedure of using ESPnet ASR functions for speaker recognition.</p>
+</section>
+<section id="❗Important-Notes❗">
+<h2>❗Important Notes❗<a class="headerlink" href="#❗Important-Notes❗" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU time, you may not be able to use GPU for some time.</p></li>
+<li><p>There are multiple in-class checkpoints ✅ throughout this tutorial. <strong>Your participation points are based on these tasks.</strong> Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.</p></li>
+<li><p>Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Print</span></code> in the menu bar.</p></li>
+</ul>
+</section>
+<section id="ESPnet-installation">
+<h2>ESPnet installation<a class="headerlink" href="#ESPnet-installation" title="Permalink to this headline">¶</a></h2>
+<p>We follow the ESPnet installation as the previous tutorials (takes around 15 minutes).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!git clone --depth 5 -b 2023spring_speaker_recognition https://github.com/espnet/espnet
+
+%cd /content/espnet/tools
+!./setup_anaconda.sh anaconda espnet 3.9
+
+# # It may take 12 minutes
+%cd /content/espnet/tools
+!make TH_VERSION=1.12.1 CUDA_VERSION=11.6
+
+!. ./activate_python.sh &amp;&amp; installers/install_speechbrain.sh
+!. ./activate_python.sh &amp;&amp; installers/install_rawnet.sh
+!. ./activate_python.sh &amp;&amp; pip install ipykernel
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Speaker-Recognition">
+<h2>Speaker Recognition<a class="headerlink" href="#Speaker-Recognition" title="Permalink to this headline">¶</a></h2>
+<p>Speaker recognition is a typical task that conduct utterance-level classification. Specifically, we will map an utterance into a pre-defined category. Recall that the ASR is doing a sequence-to-sequence task, so we can easily utilize ASR by using a 1-length sequence (i.e., class). Following this concept, we can start to implement the speaker recognition system! Noted that following the definition of the lecture, today, we will focus on <strong>speaker identification</strong> (close-set classification)
+instead of <strong>speaker verification</strong>.</p>
+</section>
+<section id="Dataset">
+<h2>Dataset<a class="headerlink" href="#Dataset" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mini_librispeech</span></code> is a tiny subset of <code class="docutils literal notranslate"><span class="pre">librispeech</span></code> dataset for development usage. Because of the free-license and cleaness of the data, <code class="docutils literal notranslate"><span class="pre">librispeech</span></code> has been one of the most widely used corpora in the speech community. For more details, please refer to its <a class="reference external" href="http://www.danielpovey.com/files/2015_icassp_librispeech.pdf">original paper</a>. In this demonstration, we will use the train set of <code class="docutils literal notranslate"><span class="pre">mini_librispeech</span></code> to train and test a simple speaker recognition model.</p>
+<p>First of all, let’s get into the directory to check the structure.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/egs2/mini_librispeech/sid1
+!ls -l
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Data-Preparation">
+<h2>Data Preparation<a class="headerlink" href="#Data-Preparation" title="Permalink to this headline">¶</a></h2>
+<p>Similar to the previous tutorials, we will use the Kaldi-style format for the data preparation. The differences in this recipe is that we need to predict speaker ID instead of predicting transcription. Therefore, a straightforward process is to simply change the <code class="docutils literal notranslate"><span class="pre">text</span></code> into <code class="docutils literal notranslate"><span class="pre">utt2spk</span></code>.</p>
+<p>So final files after preparation should be:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>wav.scp text utt2spk spk2utt
+</pre></div>
+</div>
+<p>But on the other hand, we change the format of text into</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>utt_id1 spk_id0
+utt_id2 spk_id0
+utt_id3 spk_id1
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">spk_id0</span></code> and <code class="docutils literal notranslate"><span class="pre">spk_id1</span></code> refers to the speaker IDs</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./run.sh --stage 1 --stop_stage 1
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Data-Preprocessing">
+<h2>Data Preprocessing<a class="headerlink" href="#Data-Preprocessing" title="Permalink to this headline">¶</a></h2>
+<p>For data preprocessing, we follow the similar way in previous tutorials/assignments.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./run.sh --stage 2 --stop_stage 5
+</pre></div>
+</div>
+</div>
+<section id="Question1-(✅-Checkpoint-1-(1-point))">
+<h3>Question1 (✅ Checkpoint 1 (1 point))<a class="headerlink" href="#Question1-(✅-Checkpoint-1-(1-point))" title="Permalink to this headline">¶</a></h3>
+<p>In previous tutorials, we usually use character as our modeling units. But for here, we use a speaker id, which is a sequence of character, representing one speaker. So, in our preprocessing, which tokenizer (e.g., char, bpe, phn, word) is actually used to achieve speaker prediction? Please also indicate your reason(s).</p>
+<p>To help you understand more, please check the documentation at <a class="reference external" href="https://espnet.github.io/espnet/search.html?q=tokenizer&amp;check_keywords=yes&amp;area=default">https://espnet.github.io/espnet/search.html?q=tokenizer&amp;check_keywords=yes&amp;area=default</a></p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[ANSWER HERE]</p>
+</section>
+</section>
+<section id="Use-Pre-trained-speaker-representation">
+<h2>Use Pre-trained speaker representation<a class="headerlink" href="#Use-Pre-trained-speaker-representation" title="Permalink to this headline">¶</a></h2>
+<p>One feature in ESPnet is to adopt pre-trained speaker representation from other toolkits (including TDNN-based speaker embedding extraction from <a class="reference external" href="https://github.com/speechbrain/speechbrain">speechbrain</a> and RawNet-based speaker embedding from <a class="reference external" href="https://github.com/Jungjee/RawNet">RawNet</a>. We can efficiently extract the speaker embedding with our supported scripts.</p>
+<p>The speaker embedding can be used for text-to-speech purpose to handle multi-speaker synthesis. In this demonstration, we directly use the extraction model for speaker recognition.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat ./local/extract_xvector.sh
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./local/extract_xvector.sh
+</pre></div>
+</div>
+</div>
+<p>After calculating the xvectors, we also can analysis the embedding by <a class="reference external" href="https://en.wikipedia.org/wiki/T-distributed_stochastic_neighbor_embedding">t-SNE algorithm</a>. The t-sne image is located at the extracted xvector folder</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">display</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Image</span><span class="p">(</span><span class="s1">&#39;dump/extracted/train/tsne.png&#39;</span><span class="p">))</span>
+<br/></pre></div>
+</div>
+</div>
+<section id="Extract-speaker-embedding-from-SpeechBrain">
+<h3>Extract speaker embedding from SpeechBrain<a class="headerlink" href="#Extract-speaker-embedding-from-SpeechBrain" title="Permalink to this headline">¶</a></h3>
+<p>Similarly, we can also extract speaker embedding from speechbrain.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat ./local/extract_xvector_speechbrain.sh
+!./local/extract_xvector_speechbrain.sh
+</pre></div>
+</div>
+</div>
+<p>Similar to the speechbrain-based embedding, we can visualize the embeddings from RawNet with t-SNE plot.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">display</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Image</span><span class="p">(</span><span class="s1">&#39;dump/extracted_speechbrain/train/tsne.png&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Training-for-speaker-recognition">
+<h2>Training for speaker recognition<a class="headerlink" href="#Training-for-speaker-recognition" title="Permalink to this headline">¶</a></h2>
+<p>First, let’s use xvector trained from TDNN (speech-brain model) to conduct speaker recognition.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat ./run_xvector_speechbrain.sh
+!./run_xvector_speechbrain.sh
+</pre></div>
+</div>
+</div>
+<section id="Question2-(✅-Checkpoint-2-(0.5-point))">
+<h3>Question2 (✅ Checkpoint 2 (0.5 point))<a class="headerlink" href="#Question2-(✅-Checkpoint-2-(0.5-point))" title="Permalink to this headline">¶</a></h3>
+<p>We still use the ASR scoring scheme for our evaluation because it is already sufficient. Please briefly discuss which metric can be used for evaluation of the accuracy/error rate of speaker recognition results.</p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[ANSWER HERE]</p>
+<p>Then, let’s use RawNet-based xvector to conduct speaker recognition</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat ./run_xvector.sh
+!./run_xvector.sh
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Question3-(✅-Checkpoint-3-(0.5-point))">
+<h3>Question3 (✅ Checkpoint 3 (0.5 point))<a class="headerlink" href="#Question3-(✅-Checkpoint-3-(0.5-point))" title="Permalink to this headline">¶</a></h3>
+<p>Clearly, we find some differences in the number between TDNN-based speaker embedding and RawNet-based speaker embedding. Could you briefly exaplin some possible reasons that why we could get such different results?</p>
+<p>References: - <a class="reference external" href="https://arxiv.org/abs/2203.08488">RawNet</a> - <a class="reference external" href="https://www.danielpovey.com/files/2018_icassp_xvectors.pdf">Xvector (TDNN-based)</a></p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[ANSWER HERE]</p>
+<p>We can also use ESPnet ASR model directly for speaker recognition purpose by predicting the target as speaker ID.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./run.sh --stage 10
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Question4-(✅-Checkpoint-4-(0.5-point))">
+<h3>Question4 (✅ Checkpoint 4 (0.5 point))<a class="headerlink" href="#Question4-(✅-Checkpoint-4-(0.5-point))" title="Permalink to this headline">¶</a></h3>
+<p>We could get reasonable performances with the ASR model. However, we could easily find that the training is much more time-consuming than those with speaker embeddings. Could you please explain why we have such differences?</p>
+<p>(For question-based checkpoint: please directly answer it in the text box)</p>
+<p>[ANSWER HERE]</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="assignment7_se.html" class="btn btn-neutral float-left" title="CMU 11492/11692 Spring 2023: Speech Enhancement" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="assignment6_slu.html" class="btn btn-neutral float-right" title="CMU 11492/11692 Spring 2023: Spoken Language Understanding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

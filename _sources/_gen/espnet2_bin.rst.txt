@@ -4368,15 +4368,16 @@ gan_svs_train.py
                             [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,piecewiselinearwarmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                             [--scheduler2_conf SCHEDULER2_CONF]
                             [--generator_first GENERATOR_FIRST]
-                            [--token_list TOKEN_LIST] [--odim ODIM]
-                            [--model_conf MODEL_CONF]
+                            [--input_size INPUT_SIZE] [--token_list TOKEN_LIST]
+                            [--odim ODIM] [--model_conf MODEL_CONF]
                             [--use_preprocessor USE_PREPROCESSOR]
                             [--token_type {bpe,char,word,phn}]
                             [--bpemodel BPEMODEL]
                             [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                             [--cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner}]
                             [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
-                            [--fs FS]
+                            [--fs FS] [--postfrontend {s3prl,fused,None}]
+                            [--postfrontend_conf POSTFRONTEND_CONF]
                             [--score_feats_extract {frame_score_feats,syllable_score_feats}]
                             [--score_feats_extract_conf SCORE_FEATS_EXTRACT_CONF]
                             [--feats_extract {fbank,log_spectrogram,linear_spectrogram}]
@@ -4799,6 +4800,8 @@ gan_svs_train.py
     
       Task related
     
+      --input_size INPUT_SIZE
+                            The number of input dimension of the feature (default: None)
       --token_list TOKEN_LIST
                             A text mapping int-id to token (default: None)
       --odim ODIM           The number of dimension of output feature (default: None)
@@ -4812,6 +4815,10 @@ gan_svs_train.py
       --token_type {bpe,char,word,phn}
                             The text will be tokenized in the specified level token (default: phn)
       --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
+      --postfrontend {s3prl,fused,None}
+                            The postfrontend type (default: None)
+      --postfrontend_conf POSTFRONTEND_CONF
+                            The keyword arguments for postfrontend (default: {})
       --score_feats_extract {frame_score_feats,syllable_score_feats}
                             The score_feats_extract type (default: frame_score_feats)
       --score_feats_extract_conf SCORE_FEATS_EXTRACT_CONF
