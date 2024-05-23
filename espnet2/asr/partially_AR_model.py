@@ -113,11 +113,12 @@ class PartiallyARInference(torch.nn.Module):
                 [self.mask_token] + y_in.tolist()[0] + [self.mask_token],
                 device=y_in.device,
             )
-            return [Hypothesis(yseq=yseq)], {}
+            return [Hypothesis(yseq=yseq)]
 
         # partially autoregressive decoding from here
         # First, merge the masked tokens
-        yseq_with_mask = torch.LongTensor([x[0] for x in groupby(y_in[0])])
+        yseq_with_mask = torch.LongTensor([
+            x[0] for x in groupby(y_in[0])]).unsqueeze(0).to(y_in.device)
         merged_mask_len = torch.cat(
             (
                 torch.LongTensor([0]),
@@ -159,7 +160,7 @@ class PartiallyARInference(torch.nn.Module):
                     if mask_idx < len(yseq_with_mask[0]) - 1
                     else [self.eos]
                 )
-                self.beam_search.add_mask(self.primer + hyp_primer, next_token)
+                self.beam_search.add_mask(self.primer + prev_tokens, next_token)
 
             # run beam search and save to `result`
             hypos = self.beam_search(enc_out.squeeze(0), self.max_seq_len)
