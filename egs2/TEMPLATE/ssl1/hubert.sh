@@ -36,7 +36,8 @@ stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
-skip_upload_hf=true  # Skip uploading to hugging face stages.
+skip_packing=true    # Skip the packing stage.
+skip_upload_hf=true  # Skip uploading to huggingface stage.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -100,7 +101,8 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}")
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload_hf # Skip packing and uploading stages (default="${skip_upload_hf}").
+    --skip_packing   # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_hf # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
@@ -636,21 +638,25 @@ ssl_exp="${expdir}/hubert_iter${train_stop_iter}_${ssl_tag}"
 km_tag="kmeans_iter${train_stop_iter}_${feature_list[${train_stop_iter}]}_${train_set}_portion${portion_km}"
 packed_model="${ssl_exp}/${ssl_exp##*/}_${inference_ssl_model%.*}.zip"
 # Skip pack preparation if using a downloaded model
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "Stage 8: Pack model: ${packed_model}"
+if ! "${skip_packing}"; then
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Pack model: ${packed_model}"
 
-    _opts=
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
+        _opts=
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack ssl \
+            --ssl_train_config "${ssl_exp}"/config.yaml \
+            --ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
+            ${_opts} \
+            --option "${ssl_exp}"/images \
+            --option "${expdir}/${km_tag}/km_${n_clusters_list[${train_stop_iter}]}.mdl" \
+            --outpath "${packed_model}"
     fi
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack ssl \
-        --ssl_train_config "${ssl_exp}"/config.yaml \
-        --ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
-        ${_opts} \
-        --option "${ssl_exp}"/images \
-        --option "${expdir}/${km_tag}/km_${n_clusters_list[${train_stop_iter}]}.mdl" \
-        --outpath "${packed_model}"
+else
+    log "Skip the packing stage"
 fi
 
 if ! "${skip_upload_hf}"; then
@@ -659,6 +665,11 @@ if ! "${skip_upload_hf}"; then
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
         exit 1
         log "Stage 9: Upload model to HuggingFace: ${hf_repo}"
+
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 8 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
