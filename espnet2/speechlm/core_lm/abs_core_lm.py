@@ -5,9 +5,10 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple, Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
+
 
 @dataclass
 class SpeechLMInferenceOptions:
@@ -22,6 +23,7 @@ class SpeechLMInferenceOptions:
     start: int = 1
     masks: torch.Tensor = None
     nq: int = None
+
 
 class AbsCoreLM(torch.nn.Module, ABC):
     """
@@ -42,7 +44,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
     For developers: to build a new core_lm model, try to follow:
         (1) Build with Espnet Espnet internal modules:
             Use modules from `espnet2.speechlm.module.transformer.py`. If you get
-            some modules that is specific to your model, put them under 
+            some modules that is specific to your model, put them under
             `espnet2.speechlm.module.<model_name>.py`.
         (2) or, Build with HuggingFace model/modules:
             Put everyhing in `espnet2.speechlm.core_lm.<model_name>.py`. Usually
@@ -60,7 +62,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
-        """ Model forward
+        """Model forward
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
@@ -80,7 +82,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
-        """ Inference
+        """Inference
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).

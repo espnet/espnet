@@ -5,11 +5,11 @@
 
 import argparse
 import json
-import json
 import logging
 from pathlib import Path
 
 from espnet2.speechlm.definitions import modalities, special_tokens
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
