@@ -70,7 +70,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.fsdp import warp_fsdp
+from espnet2.torch_utils.fsdp import warp_fsdp
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,

@@ -74,9 +74,12 @@ except Exception:
 
 try:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from espnet2.torch_utils.fsdp import (
+        get_model_and_optimizer_state_dict_fsdp,
+        prepare_for_resume_fsdp,
+    )
 except Exception:
     FSDP = None
-
 
 @dataclasses.dataclass
 class TrainerOptions:
@@ -163,6 +166,9 @@ class Trainer:
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
         )
+        if isinstance(model, FSDP):
+            states = prepare_for_resume_fsdp(states, model, optimizers)
+
         model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
         for optimizer, state in zip(optimizers, states["optimizers"]):
@@ -382,7 +388,11 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
-                model_state_dict = model.state_dict()
+                if isinstance(model, FSDP):
+                    model_state_dict, optim_state_dict = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
+                else:
+                    model_state_dict = model.state_dict()
+                    optim_state_dict = [o.state_dict() for o in optimizers]
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
@@ -406,7 +416,7 @@ class Trainer:
                     {
                         "model": model_state_dict,
                         "reporter": reporter.state_dict(),
-                        "optimizers": [o.state_dict() for o in optimizers],
+                        "optimizers": optim_state_dict,
                         "schedulers": [
                             s.state_dict() if s is not None else None
                             for s in schedulers
@@ -495,6 +505,11 @@ class Trainer:
                         _removed.append(str(p))
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
+            else:
+                # NOTE (Jinchuan): call this on each rank as we need allreduce to
+                # collect the state_dict from all ranks when using FSDP.
+                if isinstance(model, FSDP):
+                    _ = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:

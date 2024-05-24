@@ -1,6 +1,29 @@
+#!/usr/bin/env python3
+
+# Copyright 2024 Jinchuan Tian
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+# NOTE (Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
+# FSDP will have higher training performance given a large number of GPUs
+# and sufficient communication bandwidth. However, it will have extra 
+# requirements for model architecture.
+# Before using this feature, make sure you read the following documents
+# https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html
+# https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html
+# https://pytorch.org/docs/stable/fsdp.html
+# NOTE (Jinchuan): The code is based on Pytorch 2.0.1. Pytorch FSDP APIs
+# are subjected to rapid change. We follow this document:
+# https://pytorch.org/docs/2.0/fsdp.html?highlight=fsdp#module-torch.distributed.fsdp
+
 import torch
 import functools
 from packaging.version import parse as V
+from torch.distributed.fsdp import (
+    FullyShardedDataParallel as FSDP,
+    MixedPrecision,
+    StateDictType,
+    FullStateDictConfig,
+)
 
 def sum_parameter(module: torch.nn.Module):
     total_sum = 0
@@ -24,20 +47,6 @@ def transformer_auto_wrap_policy(
         return False
 
 def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int = 30 * 1e6):
-    # NOTE (Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
-    # FSDP will have higher training performance given a large number of GPUs
-    # and sufficient communication bandwidth. However, it will have extra 
-    # requirements for model architecture.
-    # Before using this feature, make sure you read the following documents
-    # https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html
-    # https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html
-    # https://pytorch.org/docs/stable/fsdp.html
-    try:
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import MixedPrecision
-    except ImportError:
-        raise ImportError("Your pytorch doesn't support FSDP, try to upgrade")
-    
     # auto_warp_policy
     # NOTE (Jinchuan): we only apply FSDP to layers (typically transformer layers)
     # but not for the other modules, such as embeddings. The remained modules
@@ -78,8 +87,41 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
 
     # NOTE(Jinchuan) Since our models are usually not very large, we currently 
     # don't consider more advanced choices such as cpu_offload.
+    # sync_module_states=True: in case a pre-trained model is loaded.
     return FSDP(
         model,
         auto_wrap_policy=auto_wrap_policy,
-        mixed_precision=mixed_precision,      
+        mixed_precision=mixed_precision,
+        sync_module_states=True, 
     )
+
+def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
+    """ get model and optimizer state dict when the model is warpped by FSDP """
+    FSDP.set_state_dict_type(
+        model,
+        StateDictType.FULL_STATE_DICT,
+        FullStateDictConfig(rank0_only=False),
+    )
+    state_dict = model.state_dict()
+
+    if len(optimizers) > 1:
+        raise ValueError(f"currently FSDP can only support one optimizer")
+    optim_state_dict = [FSDP.optim_state_dict(model, optimizers[0])]
+
+    return state_dict, optim_state_dict
+
+def prepare_for_resume_fsdp(states, model, optimizers):
+    """ modify the optimizer states so it can be loaded into a optimizer 
+        over the sharded parameters.
+    """
+    if len(optimizers) > 1:
+        raise ValueError(f"currently FSDP can only support one optimizer")
+    optimizer = optimizers[0]
+
+    states['optimizers'][0] = FSDP.optim_state_dict_to_load(
+        states['optimizers'][0],
+        model,
+        optimizer,
+    )
+
+    return states
