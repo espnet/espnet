@@ -76,10 +76,10 @@ class PartiallyARInference(torch.nn.Module):
     def set_hyp_primer(self, primer: List[int]):
         self.primer = primer
 
-    def forward(self, x: torch.Tensor, *args, **kwargs) -> List[Hypothesis]:
+    def forward(self, enc_out: torch.Tensor, *args, **kwargs) -> List[Hypothesis]:
         """Perform Semi-AR inference"""
         # greedy ctc outputs
-        enc_out = x.unsqueeze(0)
+        enc_out = enc_out.unsqueeze(0)
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(enc_out)).max(dim=-1)
         y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
         y_idx = torch.nonzero(y_hat != 0).squeeze(-1).cpu()
