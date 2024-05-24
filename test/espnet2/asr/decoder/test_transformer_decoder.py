@@ -12,9 +12,9 @@ from espnet2.asr.decoder.transformer_decoder import (  # noqa: H301
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch
-from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 
 @pytest.mark.parametrize("input_layer", ["linear", "embed"])
