@@ -1,0 +1,63 @@
+batch_type: folded
+batch_size: 64
+accum_grad: 2    # gradient accumulation steps
+max_epoch: 100
+patience: none
+init: xavier_uniform
+best_model_criterion:  # criterion to save best models
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10  # save nbest models and average these checkpoints
+use_amp: true    # whether to use automatic mixed precision
+num_att_plot: 0  # do not save attention plots to save time in the demo
+num_workers: 2   # number of workers in dataloader
+
+encoder: transformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3  # joint CTC/attention training
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr  # linearly increase and exponentially decrease
+scheduler_conf:
+    warmup_steps: 800
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2

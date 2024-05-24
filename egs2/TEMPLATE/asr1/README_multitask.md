@@ -130,16 +130,15 @@ ASR inference stage.
 
 ASR scoring stage: error rates (char / word / token) are computed.
 
-### 14-16. (Optional) Pack results for upload
+### 14. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
-If you want to run this stage, you need to register your account in zenodo.
+It packs the trained model files to prepare for uploading to Hugging Face.
 
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 
-#### Stage 16-18: Upload model
+#### 15: (Optional) Upload model
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
