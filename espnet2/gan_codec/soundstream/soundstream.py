@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """SoundStream Modules."""
-
+import functools
 import copy
 import logging
 import math
@@ -191,7 +191,9 @@ class SoundStream(AbsGANCodec):
         # (not used for the training)
         self.fs = sampling_rate
         self.num_streams = generator_params["quantizer_n_q"]
-        self.frame_shift = reduce(lambda x, y: x * y, generator_params["encdec_ratios"])
+        self.frame_shift = functools.reduce(
+            lambda x, y: x * y, generator_params["encdec_ratios"]
+        )
         self.code_size_per_stream = [
             generator_params["quantizer_bins"]
         ] * self.num_streams
