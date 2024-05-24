@@ -90,7 +90,7 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
-        """ Auto-Regresive MultiScale forward for training
+        """Auto-Regresive MultiScale forward for training
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).

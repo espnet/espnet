@@ -124,8 +124,8 @@ class SpeechLM:
             raise NotImplementedError("encoder-decoder is not supported yet.")
 
         # language model inference
-        # Note(Jinchuan): the token dec_seq[prefix_len] is exactly 
-        # self.inference_opts.start and will be handled by the 
+        # Note(Jinchuan): the token dec_seq[prefix_len] is exactly
+        # self.inference_opts.start and will be handled by the
         # inference algorithm. We discard it here.
         prefix_len = prefix_len.squeeze(1)
         gen_tokens, gen_scores = self.model.corelm.inference(
