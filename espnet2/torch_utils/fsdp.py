@@ -11,8 +11,9 @@
 # https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html
 # https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html
 # https://pytorch.org/docs/stable/fsdp.html
+
 # NOTE (Jinchuan): The code is based on Pytorch 2.0.1. Pytorch FSDP APIs
-# are subjected to rapid change. We follow this document:
+# are subjected to rapid change. We mainly follow this document:
 # https://pytorch.org/docs/2.0/fsdp.html?highlight=fsdp#module-torch.distributed.fsdp
 
 import torch
@@ -23,6 +24,10 @@ from torch.distributed.fsdp import (
     MixedPrecision,
     StateDictType,
     FullStateDictConfig,
+)
+from torch.distributed.fsdp.api import (
+    FullOptimStateDictConfig,
+    CPUOffload,
 )
 
 def sum_parameter(module: torch.nn.Module):
@@ -64,19 +69,16 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
     )
 
     # precison
-    # NOTE (Jinchuan): when amp is not applied, FSDP use float32; otherwise
-    # bfloat16 is adopted. Please note Espnet supports amp training only with
-    # bfloat16. The FSDP may possibly need a new scaler when bfloat16 is adopted.
-    # According to:
-    # https://github.com/pytorch/pytorch/issues/76607#issuecomment-1967021369
-    # the original scaler can still be used.
+    # NOTE (Jinchuan): this is 
     if (
         V(torch.__version__) >= V("1.10.0")
         and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
         and use_amp
     ):
-        dtype = torch.bfloat16
+        if torch.cuda.is_bf16_supported():
+            dtype = torch.bfloat16
+        else:
+            dtype = torch.float16
     else:
         dtype = torch.float32
     mixed_precision = MixedPrecision(
@@ -92,7 +94,8 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
         model,
         auto_wrap_policy=auto_wrap_policy,
         mixed_precision=mixed_precision,
-        sync_module_states=True, 
+        sync_module_states=True,
+        cpu_offload=CPUOffload(offload_params=False),
     )
 
 def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
@@ -100,7 +103,8 @@ def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
     FSDP.set_state_dict_type(
         model,
         StateDictType.FULL_STATE_DICT,
-        FullStateDictConfig(rank0_only=False),
+        FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
+        FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
     )
     state_dict = model.state_dict()
 

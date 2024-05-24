@@ -46,9 +46,11 @@ if V(torch.__version__) >= V("1.6.0"):
     if (
         V(torch.__version__) >= V("1.10.0")
         and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
     ):
-        autocast_args = dict(dtype=torch.bfloat16)
+        if torch.cuda.is_bf16_supported():
+            autocast_args = dict(dtype=torch.bfloat16)
+        else:
+            autocast_args = dict(dtype=torch.float16)
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -78,8 +80,10 @@ try:
         get_model_and_optimizer_state_dict_fsdp,
         prepare_for_resume_fsdp,
     )
+    from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 except Exception:
     FSDP = None
+    ShardedGradScaler = None
 
 @dataclasses.dataclass
 class TrainerOptions:
@@ -223,6 +227,8 @@ class Trainer:
                         "Requiring fairscale. Do 'pip install fairscale'"
                     )
                 scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
+            elif isinstance(model, FSDP):
+                scaler = ShardedGradScaler()
             else:
                 scaler = GradScaler()
         else:
@@ -631,10 +637,7 @@ class Trainer:
                         )
                 del _model
 
-            with autocast(
-                scaler is not None,
-                **autocast_args,
-            ):
+            with autocast(options.use_amp, **autocast_args):
                 with reporter.measure_time("forward_time"):
                     retval = model(**batch)
 
@@ -722,11 +725,17 @@ class Trainer:
                     )
 
                 # compute the gradient norm to check if it is normal or not
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(),
-                    max_norm=grad_clip,
-                    norm_type=grad_clip_type,
-                )
+                if isinstance(model, FSDP):
+                    grad_norm = model.clip_grad_norm_(
+                        max_norm=grad_clip, 
+                        norm_type=grad_clip_type
+                    )
+                else:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(),
+                        max_norm=grad_clip,
+                        norm_type=grad_clip_type,
+                    )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
                     grad_norm = torch.tensor(grad_norm)
@@ -851,10 +860,7 @@ class Trainer:
             # NOTE (Jinchuan): autocast should also be enabled in validation stage 
             # if both amp and FSDP are enabled, as the warpped model is only compatible
             # with the specified dtype.
-            with autocast(
-                autocast_args.get("dtype", torch.float32) != torch.float32,
-                **autocast_args,
-            ):
+            with autocast(options.use_amp, **autocast_args):
                 retval = model(**batch)
             if isinstance(retval, dict):
                 stats = retval["stats"]
