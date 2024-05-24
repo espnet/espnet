@@ -938,6 +938,7 @@ class VITS(AbsGANSVS):
         self,
         text: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
+        ssl_feats: Optional[torch.Tensor] = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -957,6 +958,7 @@ class VITS(AbsGANSVS):
         Args:
             text (Tensor): Input text index tensor (T_text,).
             feats (Tensor): Feature tensor (T_feats, aux_channels).
+            ssl_feats (Tensor): SSL Feature tensor (T_feats, hubert_channels).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, T_text).
             melody (Optional[Dict]): key is "lab" or "score";
@@ -1005,6 +1007,16 @@ class VITS(AbsGANSVS):
         if use_teacher_forcing:
             assert feats is not None
             assert pitch is not None
+
+            if ssl_feats is not None:
+                if ssl_feats.shape[0] > feats.shape[0]:
+                    ssl_feats = ssl_feats[: feats.shape[0], :]
+                elif ssl_feats.shape[0] < feats.shape[0]:
+                    padding = (0, 0, feats.shape[0] - ssl_feats.shape[0], 0, 0)
+                    ssl_feats = torch.nn.functional.pad(ssl_feats, padding)
+
+                feats = torch.cat([feats, ssl_feats], dim=1)
+
             feats = feats[None].transpose(1, 2)
             feats_lengths = torch.tensor(
                 [feats.size(2)],
