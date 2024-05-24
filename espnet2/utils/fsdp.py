@@ -2,8 +2,29 @@ import torch
 import functools
 from packaging.version import parse as V
 
-def warp_fsdp(model: torch.nn.Module, use_amp: bool = False):
-    # Note(Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
+def sum_parameter(module: torch.nn.Module):
+    total_sum = 0
+    for param in module.parameters():
+        total_sum += param.numel()
+    return total_sum
+
+def transformer_auto_wrap_policy(
+    module_cls_list,
+    module: torch.nn.Module,
+    recurse: bool = False,
+    nonwrapped_numel: int = -1,
+    min_num_params: int = 30 * 1e6,
+):
+    if recurse: # always be recursive to the children
+        return True
+    else:
+        for module_cls in module_cls_list:
+            if isinstance(module, module_cls) and sum_parameter(module) > min_num_params:
+                return True
+        return False
+
+def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int = 30 * 1e6):
+    # NOTE (Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
     # FSDP will have higher training performance given a large number of GPUs
     # and sufficient communication bandwidth. However, it will have extra 
     # requirements for model architecture.
@@ -13,13 +34,12 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False):
     # https://pytorch.org/docs/stable/fsdp.html
     try:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
         from torch.distributed.fsdp import MixedPrecision
     except ImportError:
         raise ImportError("Your pytorch doesn't support FSDP, try to upgrade")
     
     # auto_warp_policy
-    # Note(Jinchuan): we only apply FSDP to layers (typically transformer layers)
+    # NOTE (Jinchuan): we only apply FSDP to layers (typically transformer layers)
     # but not for the other modules, such as embeddings. The remained modules
     # are usually small so applying FSDP to them may not have too much benefit. 
     # They would have some parameter-sharing strategy during training, which is not 
@@ -30,11 +50,12 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False):
         raise ValueError("layer_cls for model is empty. Cannot use FSDP")
     auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
-        transformer_layer_cls=set(model.layer_cls)
+        module_cls_list=model.layer_cls,
+        min_num_params=min_num_params,
     )
 
     # precison
-    # Note(Jinchuan): when amp is not applied, FSDP use float32; otherwise
+    # NOTE (Jinchuan): when amp is not applied, FSDP use float32; otherwise
     # bfloat16 is adopted. Please note Espnet supports amp training only with
     # bfloat16. The FSDP may possibly need a new scaler when bfloat16 is adopted.
     # According to:
@@ -55,7 +76,7 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False):
         buffer_dtype=dtype,
     )
 
-    # Note(Jinchuan) Since our models are usually not very large, we currently 
+    # NOTE(Jinchuan) Since our models are usually not very large, we currently 
     # don't consider more advanced choices such as cpu_offload.
     return FSDP(
         model,

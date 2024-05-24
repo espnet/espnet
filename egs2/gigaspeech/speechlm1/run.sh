@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=gigaspeech_train_xl
+train_set=gigaspeech_train_xl_spkid
 valid_set=gigaspeech_dev
 test_sets="gigaspeech_test"
 

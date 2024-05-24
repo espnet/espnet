@@ -454,6 +454,12 @@ class AbsTask(ABC):
             type=str2bool,
             help="if true, use pytorch builtin FullyShardedDataParallel",
         )
+        group.add_argument(
+            "--min_num_params_fsdp",
+            default=30 * 1e6,
+            type=int,
+            help="The minimum #params for a nn.Module to be warpped by FSDP",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -1323,7 +1329,11 @@ class AbsTask(ABC):
 
             # Note(Jinchuan): have to warp FSDP before building optimizers
             if args.use_fsdp:
-                model = warp_fsdp(model, use_amp=args.use_amp)
+                model = warp_fsdp(
+                    model, 
+                    use_amp=args.use_amp, 
+                    min_num_params=args.min_num_params_fsdp,
+                )
 
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)

@@ -766,7 +766,9 @@ class Trainer:
                 for iopt, optimizer in enumerate(optimizers):
                     if optim_idx is not None and iopt != optim_idx:
                         continue
-                    optimizer.zero_grad()
+                    # Note(Jinchuan): set_to_none reduces memory operations.
+                    # https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
+                    optimizer.zero_grad(set_to_none=True)
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
@@ -831,7 +833,14 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            retval = model(**batch)
+            # NOTE (Jinchuan): autocast should also be enabled in validation stage 
+            # if both amp and FSDP are enabled, as the warpped model is only compatible
+            # with the specified dtype.
+            with autocast(
+                autocast_args.get("dtype", torch.float32) != torch.float32,
+                **autocast_args,
+            ):
+                retval = model(**batch)
             if isinstance(retval, dict):
                 stats = retval["stats"]
                 weight = retval["weight"]
