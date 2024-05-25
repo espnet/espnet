@@ -2,6 +2,7 @@
 
 ## XLS-R ASR Single-task
 
+- parameters for `run.sh`: `lang="full"; task="transcription"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
 - date: `Tue Feb  6 09:04:03 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -95,6 +96,7 @@
 
 ## XLS-R Segmentation Single-task
 
+- parameters for `run.sh`: `lang="full"; task="underlying"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
 - date: `Tue Feb  6 06:30:25 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -188,6 +190,7 @@
 
 ## XLS-R Glossing Single-task
 
+- parameters for `run.sh`: `lang="full"; task="gloss"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
 - date: `Tue Feb  6 05:58:22 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -281,6 +284,7 @@
 
 ## XLS-R Translation Single-task
 
+- parameters for `run.sh`: `lang="full"; task="translation"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
 - date: `Tue Feb  6 22:39:59 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -374,6 +378,7 @@
 
 ## XLS-R Multi-task
 
+- parameters for `run.sh`: `lang="full"; task="all"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
 - date: `Sun Feb 11 13:59:49 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -689,6 +694,7 @@
 
 ## WavLM ASR Single-task
 
+- parameters for `run.sh`: `lang="full"; task="transcription"; asr_config="conf/tuning/train_wavlm_conformer.yaml"`
 - date: `Tue Feb  6 12:54:24 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -782,6 +788,7 @@
 
 ## WavLM Segmentation Single-task
 
+- parameters for `run.sh`: `lang="full"; task="underlying"; asr_config="conf/tuning/train_wavlm_conformer.yaml"`
 - date: `Tue Feb  6 06:17:11 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -875,6 +882,7 @@
 
 ## WavLM Glossing Single-task
 
+- parameters for `run.sh`: `lang="full"; task="gloss"; asr_config="conf/tuning/train_wavlm_conformer.yaml"`
 - date: `Tue Feb  6 10:46:55 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -968,6 +976,7 @@
 
 ## WavLM Translation Single-task
 
+- parameters for `run.sh`: `lang="full"; task="translation"; asr_config="conf/tuning/train_wavlm_conformer.yaml"`
 - date: `Tue Feb  6 09:25:28 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
@@ -1061,6 +1070,7 @@
 
 ## WavLM Multi-task
 
+- parameters for `run.sh`: `lang="full"; task="all"; asr_config="conf/tuning/train_wavlm_conformer.yaml"`
 - date: `Sun Feb 11 05:03:28 EST 2024`
 - python version: `3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:40:32) [GCC 12.3.0]`
 - espnet version: `espnet 202310`
