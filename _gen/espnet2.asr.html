@@ -162,6 +162,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.asr package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-espnet-model-1">espnet2.asr.espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-init-1">espnet2.asr.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-partially-ar-model-1">espnet2.asr.partially_AR_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-ctc-1">espnet2.asr.ctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-bayes-risk-ctc-1">espnet2.asr.bayes_risk_ctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-pit-espnet-model-1">espnet2.asr.pit_espnet_model</a></li>
@@ -375,6 +376,28 @@ GPU memory usage</p>
 <section id="espnet2-asr-init-1">
 <span id="espnet2-asr-init"></span><h2>espnet2.asr.__init__<a class="headerlink" href="#espnet2-asr-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.__init__"></span></section>
+<section id="espnet2-asr-partially-ar-model-1">
+<span id="espnet2-asr-partially-ar-model"></span><h2>espnet2.asr.partially_AR_model<a class="headerlink" href="#espnet2-asr-partially-ar-model-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.partially_AR_model"></span><dl class="class">
+<dt id="espnet2.asr.partially_AR_model.PartiallyARInference">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.partially_AR_model.</code><code class="sig-name descname">PartiallyARInference</code><span class="sig-paren">(</span><em class="sig-param">ctc: espnet2.asr.ctc.CTC</em>, <em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">threshold_probability: float</em>, <em class="sig-param">sos: int = None</em>, <em class="sig-param">eos: int = None</em>, <em class="sig-param">mask_token: int = None</em>, <em class="sig-param">token_list: List[int] = None</em>, <em class="sig-param">scorers: Dict[str</em>, <em class="sig-param">espnet.nets.scorer_interface.ScorerInterface] = None</em>, <em class="sig-param">weights: Dict[str</em>, <em class="sig-param">float] = None</em>, <em class="sig-param">beam_size: int = 10</em>, <em class="sig-param">max_seq_len: int = 5</em>, <em class="sig-param">max_mask_parallel: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/partially_AR_model.html#PartiallyARInference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.partially_AR_model.PartiallyARInference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Mask-CTC-based partially autoregressive inference</p>
+<p>Initialize Mask-CTC inference</p>
+<dl class="method">
+<dt id="espnet2.asr.partially_AR_model.PartiallyARInference.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/partially_AR_model.html#PartiallyARInference.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.partially_AR_model.PartiallyARInference.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform Semi-AR inference</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.partially_AR_model.PartiallyARInference.set_hyp_primer">
+<code class="sig-name descname">set_hyp_primer</code><span class="sig-paren">(</span><em class="sig-param">primer: List[int]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/partially_AR_model.html#PartiallyARInference.set_hyp_primer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.partially_AR_model.PartiallyARInference.set_hyp_primer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-ctc-1">
 <span id="espnet2-asr-ctc"></span><h2>espnet2.asr.ctc<a class="headerlink" href="#espnet2-asr-ctc-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.ctc"></span><dl class="class">
@@ -5702,7 +5725,7 @@ label: Label ID for LM. (1,)</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.transformer_decoder.</code><code class="sig-name descname">BaseTransformerDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">input_layer: str = 'embed'</em>, <em class="sig-param">use_output_layer: bool = True</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface" title="espnet.nets.scorer_interface.BatchScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.BatchScorerInterface</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface" title="espnet.nets.scorer_interface.BatchScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.BatchScorerInterface</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.MaskParallelScorerInterface" title="espnet.nets.scorer_interface.MaskParallelScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.MaskParallelScorerInterface</span></code></a></p>
 <p>Base class of Transfomer decoder module.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -5753,6 +5776,11 @@ and next state list for ys.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score_partially_AR">
+<code class="sig-name descname">batch_score_partially_AR</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor, yseq_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.batch_score_partially_AR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score_partially_AR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em>, <em class="sig-param">return_hs: bool = False</em>, <em class="sig-param">return_all_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward decoder.</p>
@@ -5801,6 +5829,32 @@ dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
 <li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
 <li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
 used for searchable hidden ints</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NN output value and cache per <cite>self.decoders</cite>.
+y.shape` is (batch, maxlen_out, token)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>y, cache</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_partially_AR">
+<code class="sig-name descname">forward_partially_AR</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">tgt_lengths: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward_partially_AR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_partially_AR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward one step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tgt</strong> – input token ids, int64 (n_mask * n_beam, maxlen_out)</p></li>
+<li><p><strong>tgt_mask</strong> – input token mask,  (n_mask * n_beam, maxlen_out)
+dtype=torch.uint8 in PyTorch 1.2-
+dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
+<li><p><strong>tgt_lengths</strong> – (n_mask * n_beam, )</p></li>
+<li><p><strong>memory</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

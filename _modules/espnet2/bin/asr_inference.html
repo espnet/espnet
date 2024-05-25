@@ -245,6 +245,7 @@
     <span class="n">get_hugging_face_model_network</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.s4_decoder</span> <span class="kn">import</span> <span class="n">S4Decoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.partially_AR_model</span> <span class="kn">import</span> <span class="n">PartiallyARInference</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ExtendedHypothesis</span> <span class="k">as</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span>
@@ -342,6 +343,10 @@
         <span class="n">lang_prompt_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">nlp_prompt_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prompt_token_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">partial_ar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">threshold_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">max_mask_parallel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="n">task</span> <span class="o">=</span> <span class="n">ASRTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
@@ -529,7 +534,22 @@
                 <span class="n">length_bonus</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
             <span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">time_sync</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">partial_ar</span><span class="p">:</span>
+                <span class="n">beam_search</span> <span class="o">=</span> <span class="n">PartiallyARInference</span><span class="p">(</span>
+                    <span class="n">asr_model</span><span class="o">.</span><span class="n">ctc</span><span class="p">,</span>
+                    <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span>
+                    <span class="n">threshold_probability</span><span class="o">=</span><span class="n">threshold_probability</span><span class="p">,</span>
+                    <span class="n">sos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
+                    <span class="n">eos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+                    <span class="n">mask_token</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
+                    <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+                    <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
+                    <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                    <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
+                    <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+                    <span class="n">max_mask_parallel</span><span class="o">=</span><span class="n">max_mask_parallel</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">time_sync</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">asr_model</span><span class="p">,</span> <span class="s2">&quot;ctc&quot;</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
                         <span class="s2">&quot;BeamSearchTimeSync without CTC is not supported.&quot;</span>
@@ -951,6 +971,10 @@
     <span class="n">lang_prompt_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">nlp_prompt_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">prompt_token_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">partial_ar</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">threshold_probability</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_mask_parallel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;batch decoding is not implemented&quot;</span><span class="p">)</span>
@@ -1006,6 +1030,10 @@
         <span class="n">prompt_token_file</span><span class="o">=</span><span class="n">prompt_token_file</span><span class="p">,</span>
         <span class="n">lang_prompt_token</span><span class="o">=</span><span class="n">lang_prompt_token</span><span class="p">,</span>
         <span class="n">nlp_prompt_token</span><span class="o">=</span><span class="n">nlp_prompt_token</span><span class="p">,</span>
+        <span class="n">partial_ar</span><span class="o">=</span><span class="n">partial_ar</span><span class="p">,</span>
+        <span class="n">threshold_probability</span><span class="o">=</span><span class="n">threshold_probability</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">max_mask_parallel</span><span class="o">=</span><span class="n">max_mask_parallel</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -1325,6 +1353,35 @@
         <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If true, best hypothesis is selected by length-normalized scores&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Partially AR related&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--partial_ar&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Flag to use the partially AR decoding&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--threshold_probability&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Threshold for probability of the token to be masked&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--max_seq_len&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum sequence length for each hypothesis.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Will stop beam_search after max_seq_len iteration in partially AR decoding.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--max_mask_parallel&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of masks to predict in parallel.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;If you got OOM error, try to decrease this value.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Default to -1, which means always predict all masks simultaneously.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">parser</span></div>
 

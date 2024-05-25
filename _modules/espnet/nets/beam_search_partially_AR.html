@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet.nets.beam_search_partially_AR &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202402
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/ESPnet2/Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet.nets.beam_search_partially_AR</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet.nets.beam_search_partially_AR</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Beam search module for partially autoregressive decoding.</span>
+<span class="c1"># Copyright 2024 Masao Someki</span>
+<span class="c1"># This script is licensed under MIT license.</span>
+<span class="c1"># This script is the upgraded version used in https://arxiv.org/abs/2309.14922</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search</span> <span class="kn">import</span> <span class="n">BatchBeamSearch</span><span class="p">,</span> <span class="n">BatchHypothesis</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">end_detect</span>
+
+<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Hypothesis"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.Hypothesis">[docs]</a><span class="k">class</span> <span class="nc">Hypothesis</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hypothesis data type.&quot;&quot;&quot;</span>
+
+    <span class="n">yseq</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">score</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">states</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Hypothesis.asdict"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.Hypothesis.asdict">[docs]</a>    <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert data to JSON-friendly dict.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="n">score</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="PartiallyARHypothesis"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis">[docs]</a><span class="k">class</span> <span class="nc">PartiallyARHypothesis</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hypothesis data type for partially autoregressive decoding.&quot;&quot;&quot;</span>
+
+    <span class="n">yseq</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">score</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">states</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">yseq_length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([])</span>
+    <span class="n">eos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([])</span>
+
+<div class="viewcode-block" id="PartiallyARHypothesis.asdict"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.asdict">[docs]</a>    <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert data to JSON-friendly dict.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="n">score</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="PartiallyARBeamSearch"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch">[docs]</a><span class="k">class</span> <span class="nc">PartiallyARBeamSearch</span><span class="p">(</span><span class="n">BatchBeamSearch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Partially autoregressive beam search implementation.</span>
+<span class="sd">    Partially autoregressive hypothesis is a set of BatchHypothesis.</span>
+
+<span class="sd">    We need to use `add_mask` function to add a hypothesis for a mask.</span>
+<span class="sd">    Before search and beam search method, each partially autoregressive</span>
+<span class="sd">    hypothesis is extracted to BatchHypothesis, and applied the same process</span>
+<span class="sd">    as the batched_beam_search.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beam_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beam_arange</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># remove mask token</span>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.init_masks"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_masks">[docs]</a>    <span class="k">def</span> <span class="nf">init_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.add_mask"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.add_mask">[docs]</a>    <span class="k">def</span> <span class="nf">add_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primer</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">eos</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a mask to a batch of hypotheses.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            primer (torch.Tensor): Primer yseq.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">primer</span><span class="p">,</span> <span class="n">eos</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.init_hyp"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_hyp">[docs]</a>    <span class="k">def</span> <span class="nf">init_hyp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PartiallyARHypothesis</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial hypothesis data for each mask.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): The encoder output feature</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PartiallyARHypothesis: The initial hypothesis.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;add_mask must be called before init_hyp&quot;</span>
+
+        <span class="n">init_states</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># Dict[str, List[torch.Tensor]]</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">init_state</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_init_state</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">init_states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">init_state</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">))]</span>
+
+        <span class="n">longest_yseq</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">])</span>
+        <span class="n">yseq_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">longest_yseq</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask, n_beam, max_yseq)</span>
+        <span class="n">yseq_length</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">eoses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beam_arange</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_arange</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">):</span>
+            <span class="n">yseq_tensor</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">yseq_length</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">eoses</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">hyp</span> <span class="o">=</span> <span class="n">PartiallyARHypothesis</span><span class="p">(</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="n">yseq_tensor</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">,</span>
+            <span class="n">states</span><span class="o">=</span><span class="n">init_states</span><span class="p">,</span>
+            <span class="n">yseq_length</span><span class="o">=</span><span class="n">yseq_length</span><span class="p">,</span>
+            <span class="n">eos</span><span class="o">=</span><span class="n">eoses</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">hyp</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.score_full"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.score_full">[docs]</a>    <span class="k">def</span> <span class="nf">score_full</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">is_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hyp (PartiallyARHypothesis): Hypothesis with prefix tokens to score</span>
+<span class="sd">            x (torch.Tensor): Corresponding input feature</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of</span>
+<span class="sd">                score dict of `hyp` that has string keys of `self.full_scorers`</span>
+<span class="sd">                and tensor score values of shape: `(self.n_vocab,)`,</span>
+<span class="sd">                and state dict that has string keys</span>
+<span class="sd">                and state values of `self.full_scorers`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_scores</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">new_states</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span>
+        <span class="c1"># Create batch of scores and states</span>
+        <span class="c1"># If states[key] is None, then it is the first iteration,</span>
+        <span class="c1"># and we cannot execute parallel computation over masks.</span>
+        <span class="c1"># If states[key] is not None, then it is second or later iteration.</span>
+        <span class="c1"># If decoder or lm is Transformer based model, we can apply parallel</span>
+        <span class="c1"># computation beacause we only need the last sequence to compute scores.</span>
+        <span class="c1"># Otherwise, we cannot apply parallel computation.`</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mask_scores</span><span class="p">,</span> <span class="n">mask_states</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score_partially_AR</span><span class="p">(</span>
+                <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">),</span>  <span class="c1"># (n_mask * n_beam, y_seq_len)</span>
+                <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+                <span class="p">),</span>  <span class="c1"># (n_beam, *x.shape)</span>
+                <span class="n">hyp</span><span class="o">.</span><span class="n">yseq_length</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>  <span class="c1"># (n_mask * n_beam)</span>
+            <span class="p">)</span>
+            <span class="n">new_scores</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask_scores</span>
+            <span class="n">new_states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask_states</span>
+
+        <span class="k">return</span> <span class="n">new_scores</span><span class="p">,</span> <span class="n">new_states</span></div>
+
+    <span class="k">def</span> <span class="nf">_select</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span> <span class="n">i_mask</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">i_beam</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Hypothesis</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Hypothesis</span><span class="p">(</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="n">i_mask</span><span class="p">,</span> <span class="n">i_beam</span><span class="p">,</span> <span class="p">:</span> <span class="n">hyps</span><span class="o">.</span><span class="n">yseq_length</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]],</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">i_mask</span><span class="p">,</span> <span class="n">i_beam</span><span class="p">],</span>
+            <span class="n">scores</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
+<span class="sd">            maxlenratio (float): Input length ratio to obtain max output length.</span>
+<span class="sd">                If maxlenratio=0.0 (default), it uses a end-detect function</span>
+<span class="sd">                to automatically find maximum hypothesis lengths</span>
+<span class="sd">                If maxlenratio&lt;0.0, its absolute value is interpreted</span>
+<span class="sd">                as a constant max output length.</span>
+<span class="sd">            minlenratio (float): Input length ratio to obtain min output length.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Hypothesis]: N-best decoding results</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set length bounds</span>
+        <span class="k">if</span> <span class="n">max_seq_len</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">maxlen</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxlen</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;decoder input length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxlen</span><span class="p">))</span>
+
+        <span class="c1"># initialize mask ids</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># running_hyps is PartiallyARHypothesis.</span>
+        <span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_hyp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># ended_hyps will be list of ended_hyps for each masks</span>
+        <span class="n">ended_hyps</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">))]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxlen</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;position &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>  <span class="c1"># PartiallyARHypothesis</span>
+
+            <span class="c1"># post process of one iteration</span>
+            <span class="c1"># running_hyps is BatchHypothesis</span>
+            <span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_process</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">best</span><span class="p">,</span> <span class="n">ended_hyps</span><span class="p">)</span>
+
+            <span class="c1"># end detection</span>
+            <span class="k">if</span> <span class="n">end_detect</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">asdict</span><span class="p">()</span> <span class="k">for</span> <span class="n">eh</span> <span class="ow">in</span> <span class="n">ended_hyps</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">eh</span><span class="p">],</span> <span class="n">i</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end detected at </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no hypothesis. Finish decoding.&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;remained hypotheses: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">nbest_hyps_for_masks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">sorted</span><span class="p">(</span><span class="n">ended_hyp</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ended_hyp</span> <span class="ow">in</span> <span class="n">ended_hyps</span>
+        <span class="p">]</span>
+        <span class="c1"># check the number of hypotheses reaching to eos</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">nbest_mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nbest_hyps_for_masks</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbest_mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;there is no N-best results for mask </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">bests</span> <span class="o">=</span> <span class="p">[</span><span class="n">nbest_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">nbest_mask</span> <span class="ow">in</span> <span class="n">nbest_hyps_for_masks</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_bests</span><span class="p">(</span><span class="n">bests</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">nbest_hyps_for_masks</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bests</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.batch_beam"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.batch_beam">[docs]</a>    <span class="k">def</span> <span class="nf">batch_beam</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">weighted_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Batch-compute topk full token ids and partial token ids.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            weighted_scores (torch.Tensor): The weighted sum scores for each tokens.</span>
+<span class="sd">                Its shape is `(n_beam, self.vocab_size)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:</span>
+<span class="sd">                The topk full (prev_hyp, new_token) ids</span>
+<span class="sd">                and partial (prev_hyp, new_token) ids.</span>
+<span class="sd">                Their shapes are all `(self.beam_size,)`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">weighted_scores</span> <span class="o">=</span> <span class="n">weighted_scores</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">top_ids</span> <span class="o">=</span> <span class="n">weighted_scores</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># (n_mask, beam_size)</span>
+        <span class="c1"># Because of the flatten above, `top_ids` is organized as:</span>
+        <span class="c1"># [hyp1 * V + token1, hyp2 * V + token2, ..., hypK * V + tokenK],</span>
+        <span class="c1"># where V is `self.n_vocab` and K is `self.beam_size`</span>
+        <span class="k">if</span> <span class="n">is_torch_1_9_plus</span><span class="p">:</span>
+            <span class="n">prev_hyp_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">top_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">&quot;trunc&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prev_hyp_ids</span> <span class="o">=</span> <span class="n">top_ids</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span>
+        <span class="n">new_token_ids</span> <span class="o">=</span> <span class="n">top_ids</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span>
+
+        <span class="k">return</span> <span class="n">prev_hyp_ids</span><span class="p">,</span> <span class="n">new_token_ids</span>  <span class="c1"># (n_mask, n_beam)</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.search"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">running_hyps</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PartiallyARHypothesis</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search new tokens for running hypotheses and encoded speech x.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            running_hyps (BatchHypothesis): Running hypotheses on beam</span>
+<span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BatchHypothesis: Best sorted hypotheses</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">weighted_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask * n_beam, n_vocab)</span>
+        <span class="n">beam_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_arange</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># (n_beam, n_mask) -&gt; (n_mask, n_beam) -&gt; (n_mask * n_beam, 1)</span>
+        <span class="n">beam_mask</span> <span class="o">=</span> <span class="n">beam_mask</span> <span class="o">*</span> <span class="o">-</span><span class="mf">100000.0</span>
+
+        <span class="c1"># COMPUTE FULL SCORERS</span>
+        <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span>
+            <span class="n">running_hyps</span><span class="p">,</span> <span class="n">x</span>
+        <span class="p">)</span>  <span class="c1"># scorers: (n_mask * n_beam, n_vocab)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="p">:</span>
+            <span class="n">weighted_scores</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="c1"># add previous hyp scores</span>
+        <span class="n">weighted_scores</span> <span class="o">+=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+            <span class="mi">1</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask * n_beam, n_vocab) + (n_mask * n_beam, 1)</span>
+        <span class="n">weighted_scores</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">weighted_scores</span> <span class="o">+</span> <span class="n">beam_mask</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask * n_beam, n_vocab). no score for padded hypos</span>
+
+        <span class="c1"># COMPUTE BATCHED BEAM SEARCH</span>
+        <span class="c1"># prev_hyp_ids and new_token_ids: (n_mask, beam_size)</span>
+        <span class="n">prev_hyp_ids</span><span class="p">,</span> <span class="n">new_token_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_beam</span><span class="p">(</span><span class="n">weighted_scores</span><span class="p">)</span>
+
+        <span class="n">new_hyp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_new_mask_parallel_hyp</span><span class="p">(</span>
+            <span class="n">running_hyps</span><span class="p">,</span> <span class="n">prev_hyp_ids</span><span class="p">,</span> <span class="n">new_token_ids</span><span class="p">,</span> <span class="n">weighted_scores</span><span class="p">,</span> <span class="n">states</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_hyp</span></div>
+
+<div class="viewcode-block" id="PartiallyARBeamSearch.post_process"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.post_process">[docs]</a>    <span class="k">def</span> <span class="nf">post_process</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">maxlen</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">running_hyps</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span>
+        <span class="n">ended_hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchHypothesis</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform post-processing of beam search iterations.</span>
+<span class="sd">        Extract BatchHypothesis for each mask, and perform post-process.</span>
+<span class="sd">        Then merge BatchHypothesis.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i (int): The length of hypothesis tokens.</span>
+<span class="sd">            maxlen (int): The maximum length of tokens in beam search.</span>
+<span class="sd">            maxlenratio (int): The maximum length ratio in beam search.</span>
+<span class="sd">            running_hyps (BatchHypothesis): The running hypotheses in beam search.</span>
+<span class="sd">            ended_hyps (List[Hypothesis]): The ended hypotheses in beam search.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BatchHypothesis: The new running hypotheses.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span>
+        <span class="c1"># add eos in the final loop to avoid that there are no ended hyps</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ended_hyps</span><span class="p">[</span><span class="n">i_mask</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">i_mask</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_mask</span><span class="p">)]</span>
+        <span class="p">):</span>
+            <span class="n">yseq_shape</span> <span class="o">=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">yseq_eos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">yseq_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">yseq_eos</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span>
+            <span class="n">yseq_eos</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span><span class="p">,</span> <span class="p">:,</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq_length</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">running_hyps</span><span class="o">.</span><span class="n">eos</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">running_hyps</span> <span class="o">=</span> <span class="n">PartiallyARHypothesis</span><span class="p">(</span>
+                <span class="n">yseq</span><span class="o">=</span><span class="n">yseq_eos</span><span class="p">,</span>
+                <span class="n">score</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                <span class="n">yseq_length</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">states</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">states</span><span class="p">,</span>
+                <span class="n">eos</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># add ended hypotheses to a final list, and removed them from current hypotheses</span>
+        <span class="c1"># (this will be a probmlem, number of hyps &lt; beam)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beam_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+
+        <span class="n">remained_ids_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i_mask</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)):</span>
+            <span class="c1"># check if there is any ended hypo for mask i.</span>
+            <span class="n">is_eos</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span>
+                    <span class="n">i_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_ids</span><span class="p">,</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq_length</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">]</span>
+                <span class="o">==</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">eos</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_eos</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">hyp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">i_mask</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+                <span class="n">ended_hyps</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
+
+            <span class="n">remained_ids_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">is_eos</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_select_and_pad</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">remained_ids_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">running_hyps</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_new_mask_parallel_hyp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">running_hyps</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span>
+        <span class="n">prev_hyp_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">new_token_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">weighted_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>  <span class="c1"># , part_states: Dict[str, torch.Tensor]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PartiallyARHypothesis</span><span class="p">:</span>
+        <span class="c1"># hyp.yseq.shape : (n_mask, n_beam, longest_yseq)</span>
+        <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span>
+        <span class="n">new_yseq_length</span> <span class="o">=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq_length</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">yseq_shape</span> <span class="o">=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">new_yseq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">yseq_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">new_yseq</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span><span class="p">,</span> <span class="n">prev_hyp_ids</span><span class="p">]</span>
+        <span class="n">new_yseq</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span><span class="p">,</span> <span class="p">:,</span> <span class="n">new_yseq_length</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">new_token_ids</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask, 1, n_beam)</span>
+
+        <span class="n">current_score</span> <span class="o">=</span> <span class="n">weighted_scores</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask, n_beam, vocab_size)</span>
+        <span class="n">new_score</span> <span class="o">=</span> <span class="n">current_score</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span><span class="p">,</span> <span class="n">prev_hyp_ids</span><span class="p">,</span> <span class="n">new_token_ids</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>  <span class="c1"># (n_mask, n_beam) =&gt; (n_mask * n_beam)</span>
+
+        <span class="n">new_states</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">states</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># v is a torch.Tensor of shape (n_mask * n_beam, 1, D)</span>
+            <span class="c1"># So we will select the previous states with slicing.</span>
+            <span class="c1"># (n_mask * n_beam, layer, yseq_len, D)</span>
+            <span class="c1"># =&gt; (n_mask, n_beam, layer, yseq_len, D)</span>
+            <span class="c1"># =&gt; (n_mask, n_beam, layer, yseq_len, D)</span>
+            <span class="c1"># =&gt; (n_mask * n_beam, layer, yseq_len, D)</span>
+            <span class="n">state_shape</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+            <span class="n">new_states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="o">*</span><span class="n">state_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mask_ids</span><span class="p">,</span> <span class="n">prev_hyp_ids</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="o">*</span><span class="n">state_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="n">PartiallyARHypothesis</span><span class="p">(</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">new_score</span><span class="p">,</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="n">new_yseq</span><span class="p">,</span>
+            <span class="n">yseq_length</span><span class="o">=</span><span class="n">new_yseq_length</span><span class="p">,</span>
+            <span class="n">states</span><span class="o">=</span><span class="n">new_states</span><span class="p">,</span>
+            <span class="n">eos</span><span class="o">=</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_batch_select_and_pad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">PartiallyARHypothesis</span><span class="p">,</span> <span class="n">ids_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PartiallyARHypothesis</span><span class="p">:</span>
+        <span class="c1"># Since the number of remaining ids differs,</span>
+        <span class="c1"># selecting and shifting the beam vector cannot be computed on parallel way</span>
+        <span class="c1"># and we need to iterate over masks.</span>
+        <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span>
+        <span class="n">new_yseq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">new_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i_mask</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_mask</span><span class="p">):</span>
+            <span class="n">remaining_ids</span> <span class="o">=</span> <span class="n">ids_list</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_hyps_for_masks</span><span class="p">[</span><span class="n">i_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">remaining_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">new_yseq</span><span class="p">[</span><span class="n">i_mask</span><span class="p">,</span> <span class="p">:</span> <span class="n">remaining_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span>
+                <span class="n">i_mask</span><span class="p">,</span> <span class="n">remaining_ids</span>
+            <span class="p">]</span>  <span class="c1"># (remain_beam, max_yseq_len)</span>
+            <span class="n">new_score</span><span class="p">[</span><span class="n">i_mask</span><span class="p">,</span> <span class="p">:</span> <span class="n">remaining_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">hyps</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span>
+                <span class="n">i_mask</span><span class="p">,</span> <span class="n">remaining_ids</span>
+            <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># v is a torch.Tensor of shape (n_mask * n_beam, layer, yseq_len, D)</span>
+                <span class="n">state_shape</span> <span class="o">=</span> <span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+                <span class="n">current_states</span> <span class="o">=</span> <span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">n_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="o">*</span><span class="n">state_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="p">)</span>
+                <span class="n">current_states</span><span class="p">[</span><span class="n">i_mask</span><span class="p">,</span> <span class="p">:</span> <span class="n">remaining_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">current_states</span><span class="p">[</span>
+                    <span class="n">i_mask</span><span class="p">,</span> <span class="n">remaining_ids</span>
+                <span class="p">]</span>
+                <span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_states</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">n_mask</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span> <span class="o">*</span><span class="n">state_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">PartiallyARHypothesis</span><span class="p">(</span>
+            <span class="n">yseq</span><span class="o">=</span><span class="n">new_yseq</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">new_score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">yseq_length</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">yseq_length</span><span class="p">,</span>
+            <span class="n">states</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="p">,</span>
+            <span class="n">eos</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_log_bests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bests</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BatchHypothesis</span><span class="p">],</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">nbest_hyps_for_masks</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">best</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bests</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total log prob (mask </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;normalized log prob (mask </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;total number of ended hypo (mask </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps_for_masks</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;best hypo: &quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">maxlen</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;best hypo length: </span><span class="si">{}</span><span class="s2"> == max output length: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxlen</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;decoding may be stopped by the max output length limitation, &quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;please consider to increase the maxlenratio.&quot;</span>
+                <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

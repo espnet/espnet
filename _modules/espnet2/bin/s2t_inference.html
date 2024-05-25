@@ -241,6 +241,7 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.s4_decoder</span> <span class="kn">import</span> <span class="n">S4Decoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.partially_AR_model</span> <span class="kn">import</span> <span class="n">PartiallyARInference</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.s2t</span> <span class="kn">import</span> <span class="n">S2TTask</span>
@@ -413,6 +414,10 @@
         <span class="n">quantize_lm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
         <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
+        <span class="n">partial_ar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">threshold_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">max_mask_parallel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="c1"># default values that can be overwritten in __call__</span>
         <span class="n">lang_sym</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;eng&gt;&quot;</span><span class="p">,</span>
         <span class="n">task_sym</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;asr&gt;&quot;</span><span class="p">,</span>
@@ -497,40 +502,56 @@
             <span class="n">length_bonus</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
             <span class="n">scorefilter</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearch</span><span class="p">(</span>
-            <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
-            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
-            <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
-            <span class="n">sos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
-            <span class="n">eos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
-            <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
-            <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
-            <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
-            <span class="n">normalize_length</span><span class="o">=</span><span class="n">normalize_length</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">partial_ar</span><span class="p">:</span>
+            <span class="n">beam_search</span> <span class="o">=</span> <span class="n">PartiallyARInference</span><span class="p">(</span>
+                <span class="n">s2t_model</span><span class="o">.</span><span class="n">ctc</span><span class="p">,</span>
+                <span class="n">s2t_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span>
+                <span class="n">threshold_probability</span><span class="o">=</span><span class="n">threshold_probability</span><span class="p">,</span>
+                <span class="n">sos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
+                <span class="n">eos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+                <span class="n">mask_token</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
+                <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+                <span class="n">scorers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;decoder&quot;</span><span class="p">:</span> <span class="n">s2t_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">},</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
+                <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="n">max_mask_parallel</span><span class="o">=</span><span class="n">max_mask_parallel</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearch</span><span class="p">(</span>
+                <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
+                <span class="n">sos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
+                <span class="n">eos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
+                <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+                <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
+                <span class="n">normalize_length</span><span class="o">=</span><span class="n">normalize_length</span><span class="p">,</span>
+            <span class="p">)</span>
 
-        <span class="c1"># TODO(karita): make all scorers batchfied</span>
-        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">non_batch</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">k</span>
-                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beam_search</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">)</span>
-            <span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearch</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearch implementation is selected.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;As non-batch scorers </span><span class="si">{</span><span class="n">non_batch</span><span class="si">}</span><span class="s2"> are found, &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;fall back to non-batch implementation.&quot;</span>
-                <span class="p">)</span>
+            <span class="c1"># TODO(karita): make all scorers batchfied</span>
+            <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">non_batch</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">k</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beam_search</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearch</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearch implementation is selected.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;As non-batch scorers </span><span class="si">{</span><span class="n">non_batch</span><span class="si">}</span><span class="s2"> are found, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;fall back to non-batch implementation.&quot;</span>
+                    <span class="p">)</span>
 
-            <span class="n">beam_search</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">scorer</span> <span class="ow">in</span> <span class="n">scorers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scorer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-                    <span class="n">scorer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beam_search: </span><span class="si">{</span><span class="n">beam_search</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">beam_search</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">scorer</span> <span class="ow">in</span> <span class="n">scorers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scorer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                        <span class="n">scorer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beam_search: </span><span class="si">{</span><span class="n">beam_search</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># 5. [Optional] Build Text converter: e.g. bpe-sym -&gt; Text</span>
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -576,6 +597,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">lang_sym</span> <span class="o">=</span> <span class="n">lang_sym</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">task_sym</span> <span class="o">=</span> <span class="n">task_sym</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">predict_time</span> <span class="o">=</span> <span class="n">predict_time</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">partial_ar</span> <span class="o">=</span> <span class="n">partial_ar</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="nd">@typechecked</span>
@@ -706,11 +729,14 @@
 
             <span class="c1"># remove sos/eos and get results</span>
             <span class="n">last_pos</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">start_pos</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_ar</span> <span class="k">else</span> <span class="mi">0</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:</span><span class="n">last_pos</span><span class="p">]</span>
+                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="n">start_pos</span><span class="p">:</span><span class="n">last_pos</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:</span><span class="n">last_pos</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">token_int</span> <span class="o">=</span> <span class="n">token_int</span><span class="p">[</span><span class="n">token_int</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="n">start_pos</span><span class="p">:</span><span class="n">last_pos</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">partial_ar</span><span class="p">:</span>
+                <span class="n">token_int</span> <span class="o">=</span> <span class="n">token_int</span><span class="p">[</span><span class="n">token_int</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
 
             <span class="c1"># remove blank symbol id</span>
             <span class="n">token_int</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
@@ -947,6 +973,10 @@
     <span class="n">lang_sym</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">task_sym</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">predict_time</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">partial_ar</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">threshold_probability</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_mask_parallel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;batch decoding is not implemented&quot;</span><span class="p">)</span>
@@ -999,6 +1029,10 @@
         <span class="n">lang_sym</span><span class="o">=</span><span class="n">lang_sym</span><span class="p">,</span>
         <span class="n">task_sym</span><span class="o">=</span><span class="n">task_sym</span><span class="p">,</span>
         <span class="n">predict_time</span><span class="o">=</span><span class="n">predict_time</span><span class="p">,</span>
+        <span class="n">partial_ar</span><span class="o">=</span><span class="n">partial_ar</span><span class="p">,</span>
+        <span class="n">threshold_probability</span><span class="o">=</span><span class="n">threshold_probability</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">max_mask_parallel</span><span class="o">=</span><span class="n">max_mask_parallel</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -1257,6 +1291,34 @@
         <span class="s2">&quot;If not given, refers from the training args&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Partially AR related&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--partial_ar&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Flag to use the partially AR decoding&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--threshold_probability&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Threshold for probability of the token to be masked&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--max_seq_len&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum sequence length for each hypothesis.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Will stop beam_search after max_seq_len iteration in partially AR decoding.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--max_mask_parallel&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of masks to predict in parallel.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;If you got OOM error, try to decrease this value.&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;Default to -1, which means always predict all masks simultaneously.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">parser</span></div>
 
 

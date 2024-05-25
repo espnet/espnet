@@ -81,6 +81,17 @@ espnet.nets.e2e_mt_common
     :show-inheritance:
 
 
+.. _espnet.nets.beam_search_partially_AR:
+
+espnet.nets.beam_search_partially_AR
+------------------------------------
+
+.. automodule:: espnet.nets.beam_search_partially_AR
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.batch_beam_search_online:
 
 espnet.nets.batch_beam_search_online

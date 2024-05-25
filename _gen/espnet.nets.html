@@ -143,6 +143,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-tts-interface-1">espnet.nets.tts_interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-beam-search-timesync-streaming-1">espnet.nets.beam_search_timesync_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-e2e-mt-common-1">espnet.nets.e2e_mt_common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-nets-beam-search-partially-ar-1">espnet.nets.beam_search_partially_AR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-batch-beam-search-online-1">espnet.nets.batch_beam_search_online</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-batch-beam-search-1">espnet.nets.batch_beam_search</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-asr-interface-1">espnet.nets.asr_interface</a></li>
@@ -405,14 +406,14 @@ based on length-normalized scores rather than the accumulated scores</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – The extended encoder output feature</p></li>
-<li><p><strong>hyps</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Current list of hypothesis</p></li>
+<li><p><strong>hyps</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Current list of hypothesis</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The extended hypothesis</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -435,7 +436,7 @@ to automatically find maximum hypothesis lengths</p></li>
 <dd class="field-even"><p>N-best decoding results</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a>]</p>
+<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -966,6 +967,253 @@ pre_beam is used to select candidates from vocab to extend hypotheses</p></li>
 </dd></dl>
 
 </section>
+<section id="espnet-nets-beam-search-partially-ar-1">
+<span id="espnet-nets-beam-search-partially-ar"></span><h2>espnet.nets.beam_search_partially_AR<a class="headerlink" href="#espnet-nets-beam-search-partially-ar-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.nets.beam_search_partially_AR"></span><dl class="class">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_partially_AR.</code><code class="sig-name descname">Hypothesis</code><a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#Hypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Hypothesis data type.</p>
+<p>Create new instance of Hypothesis(yseq, score, scores, states)</p>
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis.asdict">
+<code class="sig-name descname">asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; dict<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#Hypothesis.asdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis.asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert data to JSON-friendly dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis.score">
+<code class="sig-name descname">score</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis.scores">
+<code class="sig-name descname">scores</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis.scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis.states">
+<code class="sig-name descname">states</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis.states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.Hypothesis.yseq">
+<code class="sig-name descname">yseq</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.Hypothesis.yseq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_partially_AR.</code><code class="sig-name descname">PartiallyARBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="espnet.nets.batch_beam_search.BatchBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.batch_beam_search.BatchBeamSearch</span></code></a></p>
+<p>Partially autoregressive beam search implementation.
+Partially autoregressive hypothesis is a set of BatchHypothesis.</p>
+<p>We need to use <cite>add_mask</cite> function to add a hypothesis for a mask.
+Before search and beam search method, each partially autoregressive
+hypothesis is extracted to BatchHypothesis, and applied the same process
+as the batched_beam_search.</p>
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.add_mask">
+<code class="sig-name descname">add_mask</code><span class="sig-paren">(</span><em class="sig-param">primer: List[int], eos: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.add_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.add_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a mask to a batch of hypotheses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>primer</strong> (<em>torch.Tensor</em>) – Primer yseq.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.batch_beam">
+<code class="sig-name descname">batch_beam</code><span class="sig-paren">(</span><em class="sig-param">weighted_scores: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.batch_beam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.batch_beam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch-compute topk full token ids and partial token ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>weighted_scores</strong> (<em>torch.Tensor</em>) – The weighted sum scores for each tokens.
+Its shape is <cite>(n_beam, self.vocab_size)</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The topk full (prev_hyp, new_token) ids
+and partial (prev_hyp, new_token) ids.
+Their shapes are all <cite>(self.beam_size,)</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">max_seq_len: int = None</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search_partially_AR.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform beam search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
+<li><p><strong>maxlenratio</strong> (<em>float</em>) – Input length ratio to obtain max output length.
+If maxlenratio=0.0 (default), it uses a end-detect function
+to automatically find maximum hypothesis lengths
+If maxlenratio&lt;0.0, its absolute value is interpreted
+as a constant max output length.</p></li>
+<li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best decoding results</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_hyp">
+<code class="sig-name descname">init_hyp</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet.nets.beam_search_partially_AR.PartiallyARHypothesis<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.init_hyp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_hyp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an initial hypothesis data for each mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – The encoder output feature</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The initial hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis" title="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis">PartiallyARHypothesis</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_masks">
+<code class="sig-name descname">init_masks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.init_masks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.init_masks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.post_process">
+<code class="sig-name descname">post_process</code><span class="sig-paren">(</span><em class="sig-param">i: int, maxlen: int, running_hyps: espnet.nets.beam_search_partially_AR.PartiallyARHypothesis, ended_hyps: List[List[espnet.nets.beam_search_partially_AR.Hypothesis]]</em><span class="sig-paren">)</span> &#x2192; espnet.nets.batch_beam_search.BatchHypothesis<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.post_process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.post_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform post-processing of beam search iterations.
+Extract BatchHypothesis for each mask, and perform post-process.
+Then merge BatchHypothesis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<em>int</em>) – The length of hypothesis tokens.</p></li>
+<li><p><strong>maxlen</strong> (<em>int</em>) – The maximum length of tokens in beam search.</p></li>
+<li><p><strong>maxlenratio</strong> (<em>int</em>) – The maximum length ratio in beam search.</p></li>
+<li><p><strong>running_hyps</strong> (<a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis"><em>BatchHypothesis</em></a>) – The running hypotheses in beam search.</p></li>
+<li><p><strong>ended_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The ended hypotheses in beam search.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The new running hypotheses.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis">BatchHypothesis</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.score_full">
+<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.beam_search_partially_AR.PartiallyARHypothesis</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">is_first: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.score_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new hypothesis by <cite>self.full_scorers</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis" title="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis"><em>PartiallyARHypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>score dict of <cite>hyp</cite> that has string keys of <cite>self.full_scorers</cite>
+and tensor score values of shape: <cite>(self.n_vocab,)</cite>,
+and state dict that has string keys
+and state values of <cite>self.full_scorers</cite></p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Dict[str, torch.Tensor], Dict[str, Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.search">
+<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">running_hyps: espnet.nets.beam_search_partially_AR.PartiallyARHypothesis</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet.nets.beam_search_partially_AR.PartiallyARHypothesis<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARBeamSearch.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARBeamSearch.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Search new tokens for running hypotheses and encoded speech x.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>running_hyps</strong> (<a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis"><em>BatchHypothesis</em></a>) – Running hypotheses on beam</p></li>
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Best sorted hypotheses</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis">BatchHypothesis</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_partially_AR.</code><code class="sig-name descname">PartiallyARHypothesis</code><a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARHypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Hypothesis data type for partially autoregressive decoding.</p>
+<p>Create new instance of PartiallyARHypothesis(yseq, score, states, yseq_length, eos)</p>
+<dl class="method">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.asdict">
+<code class="sig-name descname">asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; dict<a class="reference internal" href="../_modules/espnet/nets/beam_search_partially_AR.html#PartiallyARHypothesis.asdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert data to JSON-friendly dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.eos">
+<code class="sig-name descname">eos</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.eos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.score">
+<code class="sig-name descname">score</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.states">
+<code class="sig-name descname">states</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.yseq">
+<code class="sig-name descname">yseq</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.yseq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.yseq_length">
+<code class="sig-name descname">yseq_length</code><a class="headerlink" href="#espnet.nets.beam_search_partially_AR.PartiallyARHypothesis.yseq_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet-nets-batch-beam-search-online-1">
 <span id="espnet-nets-batch-beam-search-online"></span><h2>espnet.nets.batch_beam_search_online<a class="headerlink" href="#espnet-nets-batch-beam-search-online-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.batch_beam_search_online"></span><p>Parallel beam search module for online simulation.</p>
@@ -996,14 +1244,14 @@ WITH BLOCKWISE SYNCHRONOUS BEAM SEARCH”
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – The extended encoder output feature</p></li>
-<li><p><strong>hyps</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Current list of hypothesis</p></li>
+<li><p><strong>hyps</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Current list of hypothesis</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The extended hypothesis</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1026,7 +1274,7 @@ to automatically find maximum hypothesis lengths</p></li>
 <dd class="field-even"><p>N-best decoding results</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a>]</p>
+<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1056,7 +1304,7 @@ to automatically find maximum hypothesis lengths</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for
 sequential attention (T, D)</p></li>
@@ -1154,7 +1402,7 @@ Their shapes are all <cite>(self.beam_size,)</cite></p>
 <dd class="field-even"><p>The initial hypothesis.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1196,7 +1444,7 @@ Its values are states of the scorers.</p>
 <li><p><strong>maxlen</strong> (<em>int</em>) – The maximum length of tokens in beam search.</p></li>
 <li><p><strong>maxlenratio</strong> (<em>int</em>) – The maximum length ratio in beam search.</p></li>
 <li><p><strong>running_hyps</strong> (<a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis"><em>BatchHypothesis</em></a>) – The running hypotheses in beam search.</p></li>
-<li><p><strong>ended_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The ended hypotheses in beam search.</p></li>
+<li><p><strong>ended_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The ended hypotheses in beam search.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1215,7 +1463,7 @@ Its values are states of the scorers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
 Sequential attn computes attn first on pre_x then on x,
@@ -1245,7 +1493,7 @@ and state values of <cite>self.full_scorers</cite></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>ids</strong> (<em>torch.Tensor</em>) – 2D tensor of new partial tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
@@ -1903,7 +2151,7 @@ thereby attending to two sources in sequence.</p></li>
 <dd class="field-even"><p>N-best decoding results</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a>]</p>
+<dd class="field-odd"><p>list[<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1920,7 +2168,7 @@ thereby attending to two sources in sequence.</p></li>
 <dd class="field-even"><p>The initial hypothesis.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1989,15 +2237,15 @@ Its values are states of the scorers.</p>
 <li><p><strong>i</strong> (<em>int</em>) – The length of hypothesis tokens.</p></li>
 <li><p><strong>maxlen</strong> (<em>int</em>) – The maximum length of tokens in beam search.</p></li>
 <li><p><strong>maxlenratio</strong> (<em>int</em>) – The maximum length ratio in beam search.</p></li>
-<li><p><strong>running_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The running hypotheses in beam search.</p></li>
-<li><p><strong>ended_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The ended hypotheses in beam search.</p></li>
+<li><p><strong>running_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The running hypotheses in beam search.</p></li>
+<li><p><strong>ended_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – The ended hypotheses in beam search.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The new running hypotheses.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis">Hypothesis</a>]</p>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis">Hypothesis</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2009,7 +2257,7 @@ Its values are states of the scorers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
 Sequential attn computes attn first on pre_x then on x,
@@ -2039,7 +2287,7 @@ and state values of <cite>self.full_scorers</cite></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
+<li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>ids</strong> (<em>torch.Tensor</em>) – 1D tensor of new partial tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
 </ul>
@@ -2067,7 +2315,7 @@ and state values of <cite>self.part_scorers</cite></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>running_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search.Hypothesis" title="espnet.nets.beam_search.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – Running hypotheses on beam</p></li>
+<li><p><strong>running_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.beam_search_partially_AR.Hypothesis" title="espnet.nets.beam_search_partially_AR.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – Running hypotheses on beam</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
 Sequential attn computes attn first on pre_x then on x,
@@ -2476,6 +2724,12 @@ and next state list for ys.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.nets.scorer_interface.MaskParallelScorerInterface">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.scorer_interface.</code><code class="sig-name descname">MaskParallelScorerInterface</code><a class="reference internal" href="../_modules/espnet/nets/scorer_interface.html#MaskParallelScorerInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorer_interface.MaskParallelScorerInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet.nets.scorer_interface.ScorerInterface" title="espnet.nets.scorer_interface.ScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.ScorerInterface</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
@@ -15985,7 +16239,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <p>Construct an MultiHeadedAttention object.</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">mask</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">mask</em>, <em class="sig-param">expand_kv=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute scaled dot product attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -15995,13 +16249,21 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <li><p><strong>value</strong> (<em>torch.Tensor</em>) – Value tensor (#batch, time2, size).</p></li>
 <li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, 1, time2) or
 (#batch, time1, time2).</p></li>
+<li><p><strong>expand_kv</strong> (<em>bool</em>) – Used only for partially autoregressive (PAR) decoding.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Output tensor (#batch, time1, d_model).</p>
+</dl>
+<p>When set to <cite>True</cite>, <cite>Linear</cite> layers are computed only for the first batch.
+This is useful to reduce the memory usage during decoding when the batch size is
+#beam_size x #mask_count, which can be very large. Typically, in single waveform
+inference of PAR, <cite>Linear</cite> layers should not be computed for all batches
+for source-attention.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Output tensor (#batch, time1, d_model).</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>torch.Tensor</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.Tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -16033,7 +16295,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv">
-<code class="sig-name descname">forward_qkv</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention.forward_qkv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_qkv</code><span class="sig-paren">(</span><em class="sig-param">query</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">expand_kv=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention.forward_qkv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transform query, key and value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -16041,6 +16303,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <li><p><strong>query</strong> (<em>torch.Tensor</em>) – Query tensor (#batch, time1, size).</p></li>
 <li><p><strong>key</strong> (<em>torch.Tensor</em>) – Key tensor (#batch, time2, size).</p></li>
 <li><p><strong>value</strong> (<em>torch.Tensor</em>) – Value tensor (#batch, time2, size).</p></li>
+<li><p><strong>expand_kv</strong> (<em>bool</em>) – Used only for partially autoregressive (PAR) decoding.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -16329,6 +16592,11 @@ torch.Tensor: Encoded memory mask (#batch, maxlen_in).</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer.forward_partially_AR">
+<code class="sig-name descname">forward_partially_AR</code><span class="sig-paren">(</span><em class="sig-param">tgt</em>, <em class="sig-param">tgt_mask</em>, <em class="sig-param">tgt_lengths</em>, <em class="sig-param">memory</em>, <em class="sig-param">memory_mask</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder_layer.html#DecoderLayer.forward_partially_AR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer.forward_partially_AR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
