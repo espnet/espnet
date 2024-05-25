@@ -1,5 +1,11 @@
 # RESULTS
 
+## Wav2Gloss: Generating Interlinear Glossed Text from Speech
+- Accepted to ACL 2024
+- Source code for reproducing E2E SSL-finetuned model (WavLM, XLS-R)
+- Paper: https://arxiv.org/abs/2403.13169
+
+
 ## XLS-R ASR Single-task
 
 - parameters for `run.sh`: `lang="full"; task="transcription"; asr_config="conf/tuning/train_xls_r_conformer.yaml"`
