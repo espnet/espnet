@@ -40,16 +40,16 @@ class CodecTokenizerImpl(torch.nn.Module):
 
         if self.codec_choice == "Espnet":
             from espnet2.bin.gan_codec_inference import AudioCoding
-            model, _ = AudioCoding(
+            model = AudioCoding(
                 train_config=config_path,
                 model_file=checkpoint_path,
-                device=device,
+                device=str(device),
             )
             self.codec = model
 
-            meta_info = self.codec.meta_info()
-            self.n_codebook = meta_info["num_streams"]
-            self.size_codebook = meta_info["code_size_per_stream"]
+            meta_info = self.codec.model.meta_info()
+            self.n_codebook = min(meta_info["num_streams"], 8)
+            self.size_codebook = meta_info["code_size_per_stream"][0]
             self.sample_rate = meta_info["fs"]
             self.subsample = meta_info["frame_shift"]
 
@@ -98,11 +98,13 @@ class CodecTokenizerImpl(torch.nn.Module):
         Output:
             waveform (torch.Tensor): float tensor in shape [B, n_sample]
         """
-        if self.codec_choice == "DAC":
+        if self.codec_choice == "Espnet":
+            codes = codes.permute(2, 0, 1)
+            waveform = self.codec.decode(codes)["resyn_audio"].squeeze(1)
+
+        elif self.codec_choice == "DAC":
             z = self.codec.quantizer.from_codes(codes.transpose(1, 2))[0]
-            print('z: ', z.size())
             waveform = self.codec.decode(z).squeeze(1)
-            print('waveform: ', waveform.size())
 
         elif self.codec_choice == "EnCodec":
             encoded_frames = [(codes.transpose(1, 2), None)]
@@ -130,7 +132,14 @@ class CodecTokenizerImpl(torch.nn.Module):
 
         # (1) Tokenization
         # All codes in shape of [batch_size, T, n_codebook]
-        if self.codec_choice == "DAC":
+        if self.codec_choice == "Espnet":
+            
+            # TODO(Jinchuan): pin jiatong to support batch inference
+            assert wavs.size(0) == 1, "Espnet codec doesn't support batch inference"
+            codes = self.codec(wavs.view(-1), encode_only=False)["codes"]
+            codes = codes.permute(1, 2, 0)[:, :, :self.n_codebook]
+            
+        elif self.codec_choice == "DAC":
             z, codes = self.codec.encode(wavs)[:2]
             codes = codes.transpose(1, 2)
         
