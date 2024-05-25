@@ -97,11 +97,11 @@ def extract_loudness(signal, sampling_rate, block_size, n_fft=2048):
     return S
 
 
-# TODO (Yifeng): Some functions are not used here such as crepe,
+# TODO(Yifeng): Some functions are not used here such as crepe,
 #  maybe we can remove them later or only import used functions.
 def extract_pitch(signal, sampling_rate, block_size):
     length = signal.shape[-1] // block_size
-    f0 = crepe.predict(
+    f0 = crepe.predict(  # noqa
         signal,
         sampling_rate,
         step_size=int(1000 * block_size / sampling_rate),

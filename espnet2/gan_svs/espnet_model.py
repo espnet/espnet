@@ -9,8 +9,9 @@ from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -34,8 +35,10 @@ else:
 class ESPnetGANSVSModel(AbsGANESPnetModel):
     """ESPnet model for GAN-based singing voice synthesis task."""
 
+    @typechecked
     def __init__(
         self,
+        postfrontend: Optional[AbsFrontend],
         text_extract: Optional[AbsFeatsExtract],
         feats_extract: Optional[AbsFeatsExtract],
         score_feats_extract: Optional[AbsFeatsExtract],
@@ -50,7 +53,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         svs: AbsGANSVS,
     ):
         """Initialize ESPnetGANSVSModel module."""
-        assert check_argument_types()
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract
@@ -64,6 +66,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.svs = svs
+        self.postfrontend = postfrontend
         assert hasattr(
             svs, "generator"
         ), "generator module must be registered as svs.generator"
@@ -253,6 +256,14 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     feats_lengths=feats_lengths,
                 )
 
+            if self.postfrontend is not None:
+                # extract features using pretrained SSL models like HuBERT
+                ssl_feats, ssl_feats_lengths = self.postfrontend(
+                    singing, singing_lengths
+                )
+            else:
+                ssl_feats, ssl_feats_lengths = None, None
+
             # Normalize
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
@@ -325,6 +336,10 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
+        if self.postfrontend is not None:
+            batch.update(ssl_feats=ssl_feats, ssl_feats_lengths=ssl_feats_lengths)
+        else:
+            batch.update(ssl_feats=None, ssl_feats_lengths=None)
         return self.svs(**batch)
 
     def collect_feats(

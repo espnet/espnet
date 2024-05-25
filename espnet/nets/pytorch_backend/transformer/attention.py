@@ -36,13 +36,14 @@ class MultiHeadedAttention(nn.Module):
         self.attn = None
         self.dropout = nn.Dropout(p=dropout_rate)
 
-    def forward_qkv(self, query, key, value):
+    def forward_qkv(self, query, key, value, expand_kv=False):
         """Transform query, key and value.
 
         Args:
             query (torch.Tensor): Query tensor (#batch, time1, size).
             key (torch.Tensor): Key tensor (#batch, time2, size).
             value (torch.Tensor): Value tensor (#batch, time2, size).
+            expand_kv (bool): Used only for partially autoregressive (PAR) decoding.
 
         Returns:
             torch.Tensor: Transformed query tensor (#batch, n_head, time1, d_k).
@@ -52,8 +53,24 @@ class MultiHeadedAttention(nn.Module):
         """
         n_batch = query.size(0)
         q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
-        k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
-        v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
+
+        if expand_kv:
+            k_shape = key.shape
+            k = (
+                self.linear_k(key[:1, :, :])
+                .expand(n_batch, k_shape[1], k_shape[2])
+                .view(n_batch, -1, self.h, self.d_k)
+            )
+            v_shape = value.shape
+            v = (
+                self.linear_v(value[:1, :, :])
+                .expand(n_batch, v_shape[1], v_shape[2])
+                .view(n_batch, -1, self.h, self.d_k)
+            )
+        else:
+            k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
+            v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
+
         q = q.transpose(1, 2)  # (batch, head, time1, d_k)
         k = k.transpose(1, 2)  # (batch, head, time2, d_k)
         v = v.transpose(1, 2)  # (batch, head, time2, d_k)
@@ -92,7 +109,7 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, mask):
+    def forward(self, query, key, value, mask, expand_kv=False):
         """Compute scaled dot product attention.
 
         Args:
@@ -101,12 +118,18 @@ class MultiHeadedAttention(nn.Module):
             value (torch.Tensor): Value tensor (#batch, time2, size).
             mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
                 (#batch, time1, time2).
+            expand_kv (bool): Used only for partially autoregressive (PAR) decoding.
+        When set to `True`, `Linear` layers are computed only for the first batch.
+        This is useful to reduce the memory usage during decoding when the batch size is
+        #beam_size x #mask_count, which can be very large. Typically, in single waveform
+        inference of PAR, `Linear` layers should not be computed for all batches
+        for source-attention.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time1, d_model).
 
         """
-        q, k, v = self.forward_qkv(query, key, value)
+        q, k, v = self.forward_qkv(query, key, value, expand_kv)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         return self.forward_attention(v, scores, mask)
 
