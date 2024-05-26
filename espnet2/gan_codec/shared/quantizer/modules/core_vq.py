@@ -278,6 +278,7 @@ class VectorQuantization(nn.Module):
         kmeans_iters: int = 50,
         threshold_ema_dead_code: int = 2,
         commitment_weight: float = 1.0,
+        quantizer_dropout: bool = False,
     ):
         super().__init__()
         _codebook_dim: int = default(codebook_dim, dim)
@@ -303,6 +304,7 @@ class VectorQuantization(nn.Module):
             threshold_ema_dead_code=threshold_ema_dead_code,
         )
         self.codebook_size = codebook_size
+        self.quantizer_dropout = quantizer_dropout
 
     @property
     def codebook(self):
@@ -320,7 +322,7 @@ class VectorQuantization(nn.Module):
         quantize = rearrange(quantize, "b n d -> b d n")
         return quantize
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         device = x.device
         x = rearrange(x, "b d n -> b n d")
         x = self.project_in(x)
@@ -330,15 +332,24 @@ class VectorQuantization(nn.Module):
         if self.training:
             quantize = x + (quantize - x).detach()
 
-        loss = torch.tensor([0.0], device=device, requires_grad=self.training)
-
+        commit_loss = torch.tensor([0.0], device=device, requires_grad=self.training)
+        quant_loss = torch.tensor([0.0], device=device, requires_grad=self.training)
         if self.training:
-            commit_loss = F.mse_loss(quantize.detach(), x)
-            loss = loss + commit_loss
+            if self.quantizer_dropout:
+                _commit_loss = F.mse_loss(quantize.detach(), x, reduction="none").mean([1, 2])
+                commit_loss = commit_loss + (_commit_loss * mask).mean()
+                _quant_loss = F.mse_loss(quantize, x.detach(), reduction="none").mean([1, 2])
+                quant_loss = quant_loss + (_quant_loss * mask).mean()
+                
+            else:
+                _commit_loss = F.mse_loss(quantize.detach(), x)
+                commit_loss = commit_loss + _commit_loss
+                _quant_loss = F.mse_loss(quantize, x.detach(), reduction="none")
+                quant_loss = quant_loss + _quant_loss
 
         quantize = self.project_out(quantize)
         quantize = rearrange(quantize, "b n d -> b d n")
-        return quantize, embed_ind, loss
+        return quantize, embed_ind, commit_loss, quant_loss
 
 
 class ResidualVectorQuantization(nn.Module):
@@ -352,31 +363,43 @@ class ResidualVectorQuantization(nn.Module):
         self.layers = nn.ModuleList(
             [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
         )
+        self.quantizer_dropout = kwargs.get("quantizer_dropout")
 
     def forward(self, x, n_q: Optional[int] = None):
         quantized_out = 0.0
         residual = x
 
-        all_losses = []
+        all_commit_losses = []
+        all_quant_losses = []
         all_indices = []
 
         n_q = n_q or len(self.layers)
+        if self.training:
+            n_q = torch.ones((x.shape[0],)) * len(self.layers) + 1
+            dropout = torch.randint(1, len(self.layers) + 1, (x.shape[0],))
+            n_dropout = int(x.shape[0] * self.quantizer_dropout)
+            n_q[:n_dropout] = dropout[:n_dropout]
+            n_q = n_q.to(x.device)
 
-        for layer in self.layers[:n_q]:
-            quantized, indices, loss = layer(residual)
+        for i, layer in enumerate(self.layers):
+            if self.training is False and i >= n_q:
+                break
+            mask = torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
+            quantized, indices, commit_loss, quant_loss = layer(residual, mask)
             residual = residual - quantized
-            quantized_out = quantized_out + quantized
+            quantized_out = quantized_out + quantized * mask[:, None, None]
 
             all_indices.append(indices)
-            all_losses.append(loss)
+            all_commit_losses.append(commit_loss)
+            all_quant_losses.append(quant_loss)
 
         if self.training:
             # Solving subtle bug with STE and RVQ
             # For more, https://github.com/facebookresearch/encodec/issues/25
             quantized_out = x + (quantized_out - x).detach()
 
-        out_losses, out_indices = map(torch.stack, (all_losses, all_indices))
-        return quantized_out, out_indices, out_losses
+        out_commit_losses, out_quant_losses, out_indices = map(torch.stack, (all_commit_losses, all_quant_losses, all_indices))
+        return quantized_out, out_indices, out_commit_losses, out_quant_losses
 
     def encode(
         self, x: torch.Tensor, n_q: Optional[int] = None, st: Optional[int] = None

@@ -10,6 +10,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm, weight_norm
+from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
 from espnet2.gan_codec.shared.encoder.seanet import (
     SLSTM,
@@ -174,7 +175,10 @@ class SEANetDecoder(nn.Module):
         self.n_residual_layers = n_residual_layers
         self.hop_length = np.prod(self.ratios)
 
-        act = getattr(nn, activation)
+        if activation == "Snake":
+            act = Snake1d
+        else:
+            act = getattr(nn, activation)
         mult = int(2 ** len(self.ratios))
         model: List[nn.Module] = [
             SConv1d(
