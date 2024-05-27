@@ -10,7 +10,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils import spectral_norm, weight_norm
-from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
 from espnet2.gan_codec.shared.encoder.seanet import (
     SLSTM,
@@ -19,6 +18,7 @@ from espnet2.gan_codec.shared.encoder.seanet import (
     apply_parametrization_norm,
     get_norm_module,
 )
+from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
 
 def unpad1d(x: torch.Tensor, paddings: Tuple[int, int]):

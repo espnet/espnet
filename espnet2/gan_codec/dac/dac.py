@@ -2,8 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """DAC Modules."""
-import functools
 import copy
+import functools
 import logging
 import math
 import random
@@ -17,10 +17,12 @@ from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
+from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
+    MultiScaleMultiPeriodMultiBandDiscriminator,
+)
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
-from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import MultiScaleMultiPeriodMultiBandDiscriminator
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
@@ -593,7 +595,9 @@ class DACGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
 
         # Forward quantizer
-        quantized, _, _, commit_loss, quantization_loss = self.quantizer(encoder_out, self.frame_rate, bw)
+        quantized, _, _, commit_loss, quantization_loss = self.quantizer(
+            encoder_out, self.frame_rate, bw
+        )
 
         # quantization_loss = self.l1_quantization_loss(
         #     encoder_out, quantized.detach()
@@ -693,11 +697,16 @@ class DACDiscriminator(nn.Module):
             "band_discriminator_params": {
                 "hop_factor": 0.25,
                 "sample_rate": 24000,
-                "bands": [(0.0, 0.1), (0.1, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)],
+                "bands": [
+                    (0.0, 0.1),
+                    (0.1, 0.25),
+                    (0.25, 0.5),
+                    (0.5, 0.75),
+                    (0.75, 1.0),
+                ],
                 "channel": 32,
-            }
+            },
         },
-        
         scale_follow_official_norm: bool = False,
     ):
         """Initialize DAC Discriminator module.

@@ -336,11 +336,15 @@ class VectorQuantization(nn.Module):
         quant_loss = torch.tensor([0.0], device=device, requires_grad=self.training)
         if self.training:
             if self.quantizer_dropout:
-                _commit_loss = F.mse_loss(quantize.detach(), x, reduction="none").mean([1, 2])
+                _commit_loss = F.mse_loss(quantize.detach(), x, reduction="none").mean(
+                    [1, 2]
+                )
                 commit_loss = commit_loss + (_commit_loss * mask).mean()
-                _quant_loss = F.mse_loss(quantize, x.detach(), reduction="none").mean([1, 2])
+                _quant_loss = F.mse_loss(quantize, x.detach(), reduction="none").mean(
+                    [1, 2]
+                )
                 quant_loss = quant_loss + (_quant_loss * mask).mean()
-                
+
             else:
                 _commit_loss = F.mse_loss(quantize.detach(), x)
                 commit_loss = commit_loss + _commit_loss
@@ -398,7 +402,9 @@ class ResidualVectorQuantization(nn.Module):
             # For more, https://github.com/facebookresearch/encodec/issues/25
             quantized_out = x + (quantized_out - x).detach()
 
-        out_commit_losses, out_quant_losses, out_indices = map(torch.stack, (all_commit_losses, all_quant_losses, all_indices))
+        out_commit_losses, out_quant_losses, out_indices = map(
+            torch.stack, (all_commit_losses, all_quant_losses, all_indices)
+        )
         return quantized_out, out_indices, out_commit_losses, out_quant_losses
 
     def encode(

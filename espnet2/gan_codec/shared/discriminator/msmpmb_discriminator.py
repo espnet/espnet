@@ -1,11 +1,16 @@
+from typing import Any, Dict, List, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
 from einops import rearrange
 from torch.nn.utils import weight_norm
-from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator, HiFiGANMultiPeriodDiscriminator
-from typing import Any, Dict, List, Optional
+
+from espnet2.gan_tts.hifigan.hifigan import (
+    HiFiGANMultiPeriodDiscriminator,
+    HiFiGANMultiScaleDiscriminator,
+)
 
 
 def WNConv1d(*args, **kwargs):
@@ -115,7 +120,7 @@ class MultiBandDiscriminator(nn.Module):
             win_length=self.window_length,
             hop_length=self.hop_length,
             power=None,
-            return_complex=True
+            return_complex=True,
         ).to(x.device)
         x = stft(x)
         x = torch.view_as_real(x)
@@ -168,8 +173,7 @@ class MultiScaleMultiPeriodMultiBandDiscriminator(nn.Module):
             "sample_rate": 24000,
             "bands": [(0.0, 0.1), (0.1, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)],
             "channel": 32,
-        }
-            
+        },
     ):
         """Discriminator that combines multiple discriminators.
 
@@ -196,7 +200,14 @@ class MultiScaleMultiPeriodMultiBandDiscriminator(nn.Module):
 
         # discs += [MPD(p) for p in periods]
         discs += [MultiScaleDiscriminator(r, sample_rate=sample_rate) for r in rates]
-        discs += [MultiBandDiscriminator(f, sample_rate=band_discriminator_params["sample_rate"], bands=band_discriminator_params["bands"]) for f in fft_sizes]
+        discs += [
+            MultiBandDiscriminator(
+                f,
+                sample_rate=band_discriminator_params["sample_rate"],
+                bands=band_discriminator_params["bands"],
+            )
+            for f in fft_sizes
+        ]
         self.discriminators = nn.ModuleList(discs)
 
     def preprocess(self, y):

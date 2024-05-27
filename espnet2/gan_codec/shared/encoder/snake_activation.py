@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 from torch.nn.utils import weight_norm
-    
+
+
 @torch.jit.script
 def snake(x, alpha):
     shape = x.shape
@@ -21,5 +22,5 @@ class Snake1d(nn.Module):
 
     def forward(self, x):
         channels = x.shape[1]
-        self.alpha_repeat = self.alpha.repeat(1, channels,1).to(x.device)
+        self.alpha_repeat = self.alpha.repeat(1, channels, 1).to(x.device)
         return snake(x, self.alpha_repeat)

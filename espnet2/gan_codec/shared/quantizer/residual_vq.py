@@ -91,7 +91,13 @@ class ResidualVectorQuantizer(nn.Module):
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
         quantized, codes, commit_loss, quantization_loss = self.vq(x, n_q=n_q)
         bw = torch.tensor(n_q * bw_per_q).to(x)
-        return quantized, codes, bw, torch.mean(commit_loss), torch.mean(quantization_loss)
+        return (
+            quantized,
+            codes,
+            bw,
+            torch.mean(commit_loss),
+            torch.mean(quantization_loss),
+        )
 
     def get_num_quantizers_for_bandwidth(
         self, sample_rate: int, bandwidth: Optional[float] = None
