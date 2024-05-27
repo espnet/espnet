@@ -5,6 +5,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any
+
 import torch
 
 
@@ -17,6 +18,7 @@ class AbsTokenizer(torch.nn.Module, ABC):
     BPE tokens -> text
     ...
     """
+
     @abstractmethod
     @torch.no_grad()
     def forward(self, tokens: torch.Tensor) -> Any:

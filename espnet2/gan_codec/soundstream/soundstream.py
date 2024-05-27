@@ -2,8 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """SoundStream Modules."""
-import functools
 import copy
+import functools
 import logging
 import math
 import random

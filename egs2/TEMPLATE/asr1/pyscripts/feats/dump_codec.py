@@ -35,12 +35,16 @@ def get_parser():
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
-        "--checkpoint_path", type=str, default=None,
-        help="checkpoint path for Espnet (and potentially other) codec model"
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="checkpoint path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
-        "--config_path", type=str, default=None,
-        help="config path for Espnet (and potentially other) codec model"
+        "--config_path",
+        type=str,
+        default=None,
+        help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
@@ -77,9 +81,9 @@ def dump_codec(
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
     tokenizer = CodecTokenizerImpl(
-        codec_choice, 
-        codec_fs, 
-        device, 
+        codec_choice,
+        codec_fs,
+        device,
         dump_audio,
         checkpoint_path,
         config_path,
