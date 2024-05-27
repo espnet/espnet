@@ -72,7 +72,7 @@ def dump_codec(
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
         logger.warning("Change batch_size=1 for CPU tokenization")
-        args.batch_size = 1
+        batch_size = 1
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
