@@ -400,7 +400,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 constant_values=((0, 0), (0, self.audio_pad_value)),
             )
 
-        logging.info(speech.shape)
+        # logging.info(speech.shape)
         return speech
 
     @typechecked

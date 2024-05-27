@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """DAC Modules."""
-
+import functools
 import copy
 import logging
 import math
@@ -189,6 +189,21 @@ class DAC(AbsGANCodec):
         # store sampling rate for saving wav file
         # (not used for the training)
         self.fs = sampling_rate
+        self.num_streams = generator_params["quantizer_n_q"]
+        self.frame_shift = functools.reduce(
+            lambda x, y: x * y, generator_params["encdec_ratios"]
+        )
+        self.code_size_per_stream = [
+            generator_params["quantizer_bins"]
+        ] * self.num_streams
+
+    def meta_info(self) -> Dict[str, Any]:
+        return {
+            "fs": self.fs,
+            "num_streams": self.num_streams,
+            "frame_shift": self.frame_shift,
+            "code_size_per_stream": self.code_size_per_stream,
+        }
 
     def forward(
         self,

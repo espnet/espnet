@@ -18,6 +18,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_codec.soundstream import SoundStream
+from espnet2.gan_codec.dac import DAC
 from espnet2.tasks.gan_codec import GANCodecTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -61,7 +62,7 @@ class AudioCoding:
         self.always_fix_seed = always_fix_seed
 
         decode_conf = {}
-        if isinstance(self.codec, SoundStream):
+        if isinstance(self.codec, SoundStream) or isinstance(self.codec, DAC):
             decode_conf.update(
                 target_bw=target_bandwidth,
             )
