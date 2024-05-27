@@ -40,6 +40,10 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
             codec, "discriminator"
         ), "discriminator module must be registered as codec.discriminator"
 
+    def meta_info(self) -> Dict[str, Any]:
+        """Return meta information of the codec."""
+        return self.codec.meta_info()
+
     def forward(
         self,
         audio: torch.Tensor,
