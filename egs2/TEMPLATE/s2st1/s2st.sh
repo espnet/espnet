@@ -78,6 +78,7 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 
 # Discrete unit-related
 use_discrete_unit=false         # Whether to use discrete unit
+kmeans_opts=                    # The options given to scripts/feats/perform_kmeans.sh
 clustering_stage=1              # clustering stage
 clustering_stop_stage=100       # clustering stop stage
 clustering_num_threads=20       # Number of threads used for kmeans clustering
@@ -214,6 +215,7 @@ Options:
 
     # Discrete unit related
     --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --kmeans_opts              # The options given to kmeans step (default="${kmeans_opts}").
     --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
     --km_tag=                  # KMeans tagging (default="${km_tag}")
     --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
@@ -484,6 +486,7 @@ if ! "${skip_data_prep}"; then
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
+
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
@@ -493,6 +496,13 @@ if ! "${skip_data_prep}"; then
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
                 done
+
+                # Even if use_tgt_lang is false for training, it is required for test set evaluation
+                if [ ${use_tgt_lang} = false ] && [ "${dset}" != "${train_set}" ] && [ "${dset}" != "${train_set}" ]; then
+                    cp data/"${dset}"/text.${tgt_lang} "${data_feats}${_suf}/${dset}"
+                    expand_utt_extra_files="${expand_utt_extra_files} text.${tgt_lang}"
+                fi
+
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
                 for extra_file in ${expand_utt_extra_files}; do
@@ -502,7 +512,7 @@ if ! "${skip_data_prep}"; then
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp.${src_lang},wav.scp,wav.scp.${tgt_lang},reco2file_and_channel,reco2dur}
 
                 _src_opts=
-		_tgt_opts=
+                _tgt_opts=
                 if [ -e data/"${dset}"/segments.${src_lang} ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
                     # into utterances. The file format of segments:
@@ -533,7 +543,7 @@ if ! "${skip_data_prep}"; then
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${src_lang}" \
-		    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
+                    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
                     "data/${dset}/wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}"
                 ln -sf "wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}/wav.scp"
 
@@ -719,13 +729,18 @@ if ! "${skip_data_prep}"; then
                 exit 2
             fi
 
-            # Remove empty text
-            for utt_extra_file in ${utt_extra_files}; do
-                <${data_feats}/org/${dset}/${utt_extra_file} \
-                    awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
-            done
+            # TODO(Lai Jiang): remove from the filtered wav files instead of original
+            # # Remove empty text
+            # for utt_extra_file in ${utt_extra_files}; do
+            #     <${data_feats}/org/${dset}/${utt_extra_file} \
+            #         awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
+            # done
 
             # fix_data_dir.sh leaves only utts which exist in all files
+            # Need to filter twice to get the intersection
+            cp "${data_feats}/${dset}/wav.scp.${src_lang}" "${data_feats}/${dset}/wav.scp"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+            cp "${data_feats}/${dset}/wav.scp.${tgt_lang}" "${data_feats}/${dset}/wav.scp"
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
@@ -884,7 +899,7 @@ if ! "${skip_data_prep}"; then
                 _dir=${kmeans_data_dir}/${dset}
                 mkdir -p ${_dir}
                 cp ${data_feats}/${dset}/{feats_type,spk2utt,utt2spk} ${_dir}
-                cp ${data_feats}/${dset}/text.${tgt_lang} ${_dir}/text
+                [[ -e ${data_feats}/${dset}/text.${tgt_lang} ]] && cp ${data_feats}/${dset}/text.${tgt_lang} ${_dir}/text
                 cp ${data_feats}/${dset}/utt2num_samples.${tgt_lang} ${_dir}/utt2num_samples
                 cp ${data_feats}/${dset}/wav.scp.${tgt_lang} ${_dir}/wav.scp
             done
@@ -910,7 +925,8 @@ if ! "${skip_data_prep}"; then
                 --num_threads ${clustering_num_threads} \
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
-                --dictdir "${unit_tokendir}"
+                --dictdir "${unit_tokendir}" \
+                ${kmeans_opts}
 
             # Copy generated pseudo labels to original dump dir
             for dset in ${train_set} ${valid_set} ${test_sets}; do
@@ -1423,10 +1439,9 @@ if ! "${skip_eval}"; then
             if [ -e "${_logdir}/output.${_nj}/wav" ]; then
                 mkdir -p "${_dir}"/wav
                 for i in $(seq "${_nj}"); do
-                    # mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-		    for file in "${_logdir}/output.${i}"/wav/*.wav; do
-		        mv -- "${file}" "${_dir}"/wav
-		    done
+                    for file in "${_logdir}/output.${i}"/wav/*.wav; do
+                        mv -- "${file}" "${_dir}"/wav
+                    done
                     rm -rf "${_logdir}/output.${i}"/wav
                 done
                 find "${_dir}/wav" -name "*.wav" | while read -r line; do

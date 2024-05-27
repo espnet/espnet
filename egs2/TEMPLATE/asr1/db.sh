@@ -113,7 +113,7 @@ VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
 CVSS=
-FLEURS=downloads
+FLEURS=downloads/fleurs
 MICROSOFT_SPEECH_CORPUS=
 EASYCOM=
 BABEL_101=
@@ -217,6 +217,9 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
+SPEECH_MATRIX=
+EUROPARL_ST=
+
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
