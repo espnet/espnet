@@ -24,8 +24,8 @@ train_config=conf/train_dac.yaml
 inference_config=conf/decode.yaml
 
 ./codec.sh \
-    --stage 5 \
-    --stop_stage 5 \
+    --stage 1 \
+    --stop_stage 6 \
     --local_data_opts "--trim_all_silence false" \
     --fs ${fs} \
     --train_config "${train_config}" \
