@@ -2,8 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """SoundStream Modules."""
-
 import copy
+import functools
 import logging
 import math
 import random
@@ -190,6 +190,13 @@ class SoundStream(AbsGANCodec):
         # store sampling rate for saving wav file
         # (not used for the training)
         self.fs = sampling_rate
+        self.num_streams = generator_params["quantizer_n_q"]
+        self.frame_shift = functools.reduce(
+            lambda x, y: x * y, generator_params["encdec_ratios"]
+        )
+        self.code_size_per_stream = [
+            generator_params["quantizer_bins"]
+        ] * self.num_streams
 
         # loss balancer
         if use_loss_balancer:
@@ -199,6 +206,14 @@ class SoundStream(AbsGANCodec):
             )
         else:
             self.loss_balancer = None
+
+    def meta_info(self) -> Dict[str, Any]:
+        return {
+            "fs": self.fs,
+            "num_streams": self.num_streams,
+            "frame_shift": self.frame_shift,
+            "code_size_per_stream": self.code_size_per_stream,
+        }
 
     def forward(
         self,

@@ -328,7 +328,7 @@ if ! "${skip_data_prep}"; then
                 if [ -f ${data_feats}/${dset}/token_lists/${_modality}_token_list ]; then
                     opts+="--token_list ${data_feats}/${dset}/token_lists/${_modality}_token_list "
                 fi
-            done
+            done; wait
 
             # The metadata for this dataset/task is saved in a yaml file
             ${python} pyscripts/utils/make_speechlm_json.py \

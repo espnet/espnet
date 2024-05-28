@@ -12,8 +12,8 @@ from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.valle import ValleLM
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
-from espnet2.speechlm.postprocessor.abs_postprocessor import AbsPostProcessor
-from espnet2.speechlm.postprocessor.codec_post_processor import CodecPostProcessor
+from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -38,12 +38,12 @@ corelm_choices = ClassChoices(
     default="valle",
 )
 
-post_processor_choices = ClassChoices(
-    "postprocessor",
+tokenizer_choices = ClassChoices(
+    "tokenizer",
     classes=dict(
-        codec=CodecPostProcessor,
+        codec=CodecTokenizer,
     ),
-    type_check=AbsPostProcessor,
+    type_check=AbsTokenizer,
     default=None,
 )
 
@@ -65,8 +65,8 @@ class SpeechLMTask(AbsTask):
     class_choices_list = [
         # --corelm and --corelm_conf
         corelm_choices,
-        # --postprocessor and --postprocessor_conf
-        post_processor_choices,
+        # --tokenizer and --tokenizer_conf
+        tokenizer_choices,
         # --model and --model_conf
         model_choices,
     ]

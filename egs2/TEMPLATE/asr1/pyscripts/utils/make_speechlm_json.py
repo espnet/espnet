@@ -6,8 +6,6 @@
 import argparse
 import json
 import logging
-import json
-
 from pathlib import Path
 
 from espnet2.speechlm.definitions import tasks

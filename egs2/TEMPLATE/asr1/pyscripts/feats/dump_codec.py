@@ -13,7 +13,7 @@ import kaldiio
 import numpy as np
 import torch
 
-from espnet2.speechlm.postprocessor.codec_post_processor import Codec_Tokenizer
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizerImpl
 from espnet2.utils.types import str2bool
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -36,6 +36,18 @@ def get_parser():
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="checkpoint path for Espnet (and potentially other) codec model",
+    )
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        default=None,
+        help="config path for Espnet (and potentially other) codec model",
+    )
+    parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
     )
     parser.add_argument(
@@ -46,15 +58,17 @@ def get_parser():
 
 
 def dump_codec(
-    rspecifier,
-    wspecifier,
-    vocab_file,
-    wav_wspecifier,
-    codec_choice,
-    codec_fs,
-    batch_size,
-    dump_audio,
-    rank,
+    rspecifier: str,
+    wspecifier: str,
+    vocab_file: str,
+    wav_wspecifier: str,
+    codec_choice: str,
+    codec_fs: int,
+    batch_size: int,
+    dump_audio: bool,
+    rank: int,
+    checkpoint_path: str = None,
+    config_path: str = None,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -67,23 +81,18 @@ def dump_codec(
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
         logger.warning("Change batch_size=1 for CPU tokenization")
-        args.batch_size = 1
-    logging.info(f"working with device: {device}")
+        batch_size = 1
 
-    # (2) Codec model
+    # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    for _ in range(1000):
-        try:
-            tokenizer = Codec_Tokenizer(codec_choice, codec_fs, device, dump_audio)
-            break
-        except:
-            logging.info("GPU is not available for now. wait for 10s ...")
-            time.sleep(10)
-            tokenizer = None
-        
-    if tokenizer is None:
-        raise ValueError("Cannot build the tokenizer, maybe because the GPU is busy")
-
+    tokenizer = CodecTokenizerImpl(
+        codec_choice,
+        codec_fs,
+        device,
+        dump_audio,
+        checkpoint_path,
+        config_path,
+    )
 
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)
