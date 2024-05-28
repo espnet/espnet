@@ -87,6 +87,32 @@ class CodecTokenizerImpl(torch.nn.Module):
             self.size_codebook = self.codec.quantizer.bins
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder.ratios)
+        
+        elif self.codec_choice == "inhouse":
+            try:
+                from models.soundstream import SoundStream
+                from omegaconf import OmegaConf
+            except:
+                raise ImportError("fail to use inhouse codec")
+
+            model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"
+            model_config = "encodec_16k_6kbps_multiDisc/config.yaml"
+            config = OmegaConf.load(model_config)
+            model = SoundStream(**config.generator.config)
+
+            state_dict = torch.load(model_path, map_location="cpu")
+            model.load_state_dict(state_dict["codec_model"])
+            model = model.to(device)
+            self.codec = model
+
+            self.n_codebook = 8
+            self.sample_rate = 16000
+            self.size_codebook = 1024
+            self.subsample = 320
+
+        else:
+            raise ValueError(f"Codec {codec_choice} is not supported")
+
 
     @torch.no_grad()
     def decode(self, codes):
@@ -108,6 +134,11 @@ class CodecTokenizerImpl(torch.nn.Module):
         elif self.codec_choice == "EnCodec":
             encoded_frames = [(codes.transpose(1, 2), None)]
             waveform = self.codec.decode(encoded_frames).squeeze(1)
+
+        elif self.codec_choice == "inhouse":
+            codes = codes.permute(2, 0, 1)
+            wav = self.codec.decode(codes).squeeze(1)
+            return wav
 
         else:
             raise NotImplementedError
@@ -132,7 +163,6 @@ class CodecTokenizerImpl(torch.nn.Module):
         # (1) Tokenization
         # All codes in shape of [batch_size, T, n_codebook]
         if self.codec_choice == "Espnet":
-
             # TODO(Jinchuan): pin jiatong to support batch inference
             assert wavs.size(0) == 1, "Espnet codec doesn't support batch inference"
             codes = self.codec(wavs.view(-1), encode_only=False)["codes"]
@@ -145,6 +175,9 @@ class CodecTokenizerImpl(torch.nn.Module):
         elif self.codec_choice == "EnCodec":
             encoded_frames = self.codec.encode(wavs)
             codes = encoded_frames[0][0].transpose(1, 2)
+        
+        elif self.codec_choice == "inhouse":
+            codes = self.codec.encode(wavs).permute(1, 2, 0)
 
         else:
             raise NotImplementedError
