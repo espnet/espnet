@@ -303,14 +303,17 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
-                    # ${python} -m espnet2.bin.tokenize_text \
-                    #     --token_type "phn" -f 2- \
-                    #     --input "${data_audio}/${dset}/${_name}" \
-                    #     --output "${data_feats}/${dset}/token_lists/g2p_token_list" \
-                    #     --non_linguistic_symbols "${nlsyms_txt}" \
-                    #     --cleaner "${cleaner}" \
-                    #     --g2p "${g2p}" \
-                    #     --write_vocabulary true
+                    # Use a small portion (up to 100k examples) for efficiency
+                    cat ${data_audio}/${dset}/${_name} | shuf | head -n 100000 \
+                      > ${data_audio}/${dset}/${_name}.g2p_train
+                    ${python} -m espnet2.bin.tokenize_text \
+                        --token_type "phn" -f 2- \
+                        --input "${data_audio}/${dset}/${_name}.g2p_train" \
+                        --output "${data_feats}/${dset}/token_lists/g2p_token_list" \
+                        --non_linguistic_symbols "${nlsyms_txt}" \
+                        --cleaner "${cleaner}" \
+                        --g2p "${g2p}" \
+                        --write_vocabulary true
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 elif [ ${_modality} == "spk" ]; then
