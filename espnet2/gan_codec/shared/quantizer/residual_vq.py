@@ -89,7 +89,6 @@ class ResidualVectorQuantizer(nn.Module):
         """
         bw_per_q = self.get_bandwidth_per_quantizer(sample_rate)
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
-<<<<<<< HEAD
 
         if not self.quantizer_dropout:
             quantized, codes, commit_loss = self.vq(x, n_q=n_q)
