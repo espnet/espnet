@@ -383,7 +383,7 @@ class ResidualVectorQuantization(nn.Module):
     def forward(self, x, n_q: Optional[int] = None):
         quantized_out = 0.0
         residual = x
-        
+
         if not self.quantizer_dropout:
             all_losses = []
             all_indices = []
