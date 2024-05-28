@@ -47,9 +47,6 @@ class MultiScaleDiscriminator(nn.Module):
         self.rate = rate
 
     def forward(self, x):
-        # x = AudioSignal(x, self.sample_rate)
-        # x.resample(self.sample_rate // self.rate)
-        # x = x.audio_data
         resample_transform = torchaudio.transforms.Resample(
             orig_freq=self.sample_rate, new_freq=self.sample_rate // self.rate
         ).to(x.device)
