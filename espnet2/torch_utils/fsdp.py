@@ -4,17 +4,21 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # NOTE (Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
-# FSDP will have higher training performance given a large number of GPUs
+# FSDP will have higher training throughput given a large number of GPUs
 # and sufficient communication bandwidth. However, it will have extra 
 # requirements for model architecture.
-# Before using this feature, make sure you read the following documents
+# Before using this feature, make sure you read the following toturials about FSDP:
 # https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html
 # https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html
 # https://pytorch.org/docs/stable/fsdp.html
 
-# NOTE (Jinchuan): The code is based on Pytorch 2.0.1. Pytorch FSDP APIs
-# are subjected to rapid change. We mainly follow this document:
-# https://pytorch.org/docs/2.0/fsdp.html?highlight=fsdp#module-torch.distributed.fsdp
+# NOTE (Jinchuan): Pytorch APIs of FSDP is subjected to rapid change. We intend to
+# supprot this FSDP feature from torch 2.0.1+ .
+# Current code can work on the following torch versions:
+#   - 2.0.1
+#   - 2.3.0
+# Please raise an issue in https://github.com/espnet/espnet if this code doesn't work
+# on specific torch version above 2.0.1
 
 import torch
 import functools
@@ -25,16 +29,13 @@ from torch.distributed.fsdp import (
     StateDictType,
     FullStateDictConfig,
 )
-from torch.distributed.fsdp.api import (
-    FullOptimStateDictConfig,
-    CPUOffload,
-)
+try:
+    from torch.distributed.fsdp import FullOptimStateDictConfig
+except: # torch 2.0.1
+    from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
 def sum_parameter(module: torch.nn.Module):
-    total_sum = 0
-    for param in module.parameters():
-        total_sum += param.numel()
-    return total_sum
+    return sum([p.numel() for p in module.parameters()])
 
 def transformer_auto_wrap_policy(
     module_cls_list,
@@ -53,15 +54,13 @@ def transformer_auto_wrap_policy(
 
 def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int = 30 * 1e6):
     # auto_warp_policy
-    # NOTE (Jinchuan): we only apply FSDP to layers (typically transformer layers)
-    # but not for the other modules, such as embeddings. The remained modules
-    # are usually small so applying FSDP to them may not have too much benefit. 
-    # They would have some parameter-sharing strategy during training, which is not 
-    # allowed in FSDP.
-    if not hasattr(model, "layer_cls"):
+    # NOTE (Jinchuan): the model should have this layer_cls attribute to indicate
+    # which modules should be warpped by FSDP. We strongly recommend users to only
+    # specify this as the model layer definition (typically Transformer layer).
+    # Fail to do so may leads to unexpected behavior. See FSDP official documents
+    # for more details.
+    if not hasattr(model, "layer_cls") or len(model.layer_cls) == 0:
         raise ValueError("Specify the layer_cls feature in model to use FSDP")
-    if len(model.layer_cls) == 0:
-        raise ValueError("layer_cls for model is empty. Cannot use FSDP")
     auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
         module_cls_list=model.layer_cls,
@@ -88,15 +87,15 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
     )
 
     # NOTE(Jinchuan) Since our models are usually not very large, we currently 
-    # don't consider more advanced choices such as cpu_offload.
+    # don't consider more advanced choices such as cpu_offload etc.
     # sync_module_states=True: in case a pre-trained model is loaded.
     return FSDP(
         model,
         auto_wrap_policy=auto_wrap_policy,
         mixed_precision=mixed_precision,
         sync_module_states=True,
-        cpu_offload=CPUOffload(offload_params=False),
     )
+
 
 def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
     """ get model and optimizer state dict when the model is warpped by FSDP """
@@ -120,12 +119,11 @@ def prepare_for_resume_fsdp(states, model, optimizers):
     """
     if len(optimizers) > 1:
         raise ValueError(f"currently FSDP can only support one optimizer")
-    optimizer = optimizers[0]
 
     states['optimizers'][0] = FSDP.optim_state_dict_to_load(
         states['optimizers'][0],
         model,
-        optimizer,
+        optimizers[0],
     )
 
     return states

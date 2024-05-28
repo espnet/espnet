@@ -1356,7 +1356,7 @@ class AbsTask(ABC):
 
                 schedulers.append(scheduler)
 
-            # printed #param will be devided by #GPU when using FSDP
+            # NOTE(Jinchuan) printed #param will be devided by #GPU when using FSDP
             logging.info(pytorch_cudnn_version())
             logging.info(model_summary(model))
             for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):

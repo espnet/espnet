@@ -74,14 +74,14 @@ try:
 except Exception:
     s3prl = None
 
-try:
+if V(torch.__version__) >= V("2.0.1"):
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
     from espnet2.torch_utils.fsdp import (
         get_model_and_optimizer_state_dict_fsdp,
         prepare_for_resume_fsdp,
     )
-    from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-except Exception:
+else:
     FSDP = None
     ShardedGradScaler = None
 
@@ -270,7 +270,7 @@ class Trainer:
                     sharded_optimizer=optimizers,
                 )
 
-            elif isinstance(model, FSDP):
+            elif isinstance(model, FSDP): # already warpped in FSDP
                 dp_model = model
 
             else:
@@ -512,7 +512,7 @@ class Trainer:
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
             else:
-                # NOTE (Jinchuan): call this on each rank as we need allreduce to
+                # NOTE (Jinchuan): call this on each rank, as we need allreduce to
                 # collect the state_dict from all ranks when using FSDP.
                 if isinstance(model, FSDP):
                     _ = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
@@ -860,7 +860,10 @@ class Trainer:
             # NOTE (Jinchuan): autocast should also be enabled in validation stage 
             # if both amp and FSDP are enabled, as the warpped model is only compatible
             # with the specified dtype.
-            with autocast(options.use_amp, **autocast_args):
+            with autocast(
+                options.use_amp and isinstance(model, FSDP),
+                **autocast_args
+            ):
                 retval = model(**batch)
             if isinstance(retval, dict):
                 stats = retval["stats"]
