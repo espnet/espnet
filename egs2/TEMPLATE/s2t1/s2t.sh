@@ -24,23 +24,23 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1              # Processes starts from the specified stage.
-stop_stage=10000     # Processes is stopped at the specified stage.
-skip_stages=         # Spicify the stage to be skipped
-skip_data_prep=false # Skip data preparation stages.
-skip_train=false     # Skip training stages.
-skip_eval=false      # Skip decoding and evaluation stages.
-skip_upload=true # Skip packing and uploading to zenodo
-skip_upload_hf=true  # Skip uploading to hugging face stages.
-eval_valid_set=false # Run decoding for the validation set
-ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes.
-nj=32                # The number of parallel jobs.
-inference_nj=32      # The number of parallel jobs in decoding.
-gpu_inference=false  # Whether to perform gpu decoding.
-dumpdir=dump         # Directory to dump features.
-expdir=exp           # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands.
+stage=1                 # Processes starts from the specified stage.
+stop_stage=10000        # Processes is stopped at the specified stage.
+skip_stages=            # Spicify the stage to be skipped
+skip_data_prep=false    # Skip data preparation stages.
+skip_train=false        # Skip training stages.
+skip_eval=false         # Skip decoding and evaluation stages.
+skip_packing=true       # Skip the packing stage.
+skip_upload_hf=true     # Skip uploading to huggingface stage.
+eval_valid_set=false    # Run decoding for the validation set
+ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1             # The number of nodes.
+nj=32                   # The number of parallel jobs.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
+dumpdir=dump            # Directory to dump features.
+expdir=exp              # Directory to save experiments.
+python=python3          # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -152,23 +152,23 @@ Usage: $0 --train_set "<train_set_name>" --valid_set "<valid_set_name>" --test_s
 
 Options:
     # General configuration
-    --stage          # Processes starts from the specified stage (default="${stage}").
-    --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
-    --skip_stages    # Spicify the stage to be skipped (default="${skip_stages}").
-    --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --skip_upload_hf    # Skip packing and uploading stages (default="${skip_upload_hf}").
-    --eval_valid_set # Run decoding for the validation set (default="${eval_valid_set}").
-    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes (default="${num_nodes}").
-    --nj             # The number of parallel jobs (default="${nj}").
-    --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
-    --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
-    --dumpdir        # Directory to dump features (default="${dumpdir}").
-    --expdir         # Directory to save experiments (default="${expdir}").
-    --python         # Specify python to execute espnet commands (default="${python}").
+    --stage              # Processes starts from the specified stage (default="${stage}").
+    --stop_stage         # Processes is stopped at the specified stage (default="${stop_stage}").
+    --skip_stages        # Spicify the stage to be skipped (default="${skip_stages}").
+    --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
+    --skip_train         # Skip training stages (default="${skip_train}").
+    --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --eval_valid_set     # Run decoding for the validation set (default="${eval_valid_set}").
+    --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes          # The number of nodes (default="${num_nodes}").
+    --nj                 # The number of parallel jobs (default="${nj}").
+    --inference_nj       # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference      # Whether to perform gpu decoding (default="${gpu_inference}").
+    --dumpdir            # Directory to dump features (default="${dumpdir}").
+    --expdir             # Directory to save experiments (default="${expdir}").
+    --python             # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -527,14 +527,11 @@ fi
 if "${skip_eval}"; then
     skip_stages+="12 13 "
 fi
-if [ -n "${download_model}" ]; then
+if [ "${skip_packing}" = "true" ] || [ -n "${download_model}" ]; then
     skip_stages+="14 "
 fi
-if "${skip_upload}"; then
-    skip_stages+="14 15 "
-fi
 if "${skip_upload_hf}"; then
-    skip_stages+="14 16 "
+    skip_stages+="15 "
 fi
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
@@ -1676,70 +1673,16 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~
         --outpath "${packed_model}"
 fi
 
-
 if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~ [[:space:]]15[[:space:]] ]]; then
-    log "Stage 15: Upload model to Zenodo: ${packed_model}"
-    log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
-
-    # To upload your model, you need to do:
-    #   1. Sign up to Zenodo: https://zenodo.org/
-    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
-
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="
-git checkout $(git show -s --format=%H)"
-
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
-    fi
-    # /some/where/espnet/egs2/foo/s2t1/ -> foo/s2t1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/s2t1 -> foo
-    _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-    # Generate description file
-    cat << EOF > "${s2t_exp}"/description
-This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-<p>&nbsp;</p>
-<ul>
-<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-<li><strong>Evaluate in the recipe</strong><pre>
-<code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-</pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${s2t_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>S2T config</strong><pre><code>$(cat "${s2t_exp}"/config.yaml)</code></pre></li>
-<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
-</ul>
-EOF
-
-    # NOTE(kamo): The model file is uploaded here, but not published yet.
-    #   Please confirm your record at Zenodo and publish it by yourself.
-
-    # shellcheck disable=SC2086
-    espnet_model_zoo_upload \
-        --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-        --description_file "${s2t_exp}"/description \
-        --creator_name "${_creator_name}" \
-        --license "CC-BY-4.0" \
-        --use_sandbox false \
-        --publish false
-fi
-
-
-if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~ [[:space:]]16[[:space:]] ]]; then
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
-    log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+    log "Stage 15: Upload model to HuggingFace: ${hf_repo}"
+
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 14 first."
+        exit 1
+    fi
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
     [ -z "${gitlfs}" ] && \
