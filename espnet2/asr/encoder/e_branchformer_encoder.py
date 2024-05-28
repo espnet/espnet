@@ -427,6 +427,7 @@ class EBranchformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -468,11 +469,19 @@ class EBranchformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None and 0 <= max_layer < len(self.encoders):
+            if return_all_hs or (
+                max_layer is not None and 0 <= max_layer < len(self.encoders)
+            ):
                 for layer_idx, encoder_layer in enumerate(self.encoders):
                     xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= max_layer:
-                        break
+                    if return_all_hs:
+                        if isinstance(xs_pad, tuple):
+                            intermediate_outs.append(xs_pad[0])
+                        else:
+                            intermediate_outs.append(xs_pad)
+                    if max_layer is not None and 0 <= max_layer < len(self.encoders):
+                        if layer_idx >= max_layer:
+                            break
             else:
                 xs_pad, masks = self.encoders(xs_pad, masks)
         else:

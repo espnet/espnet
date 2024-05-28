@@ -40,15 +40,12 @@ sclite \
 echo "Write ASR result in ${asr_expdir}/${valid_inference_folder}/${score_folder}/result_asr.txt"
 grep -e Avg -e SPKR -m 2 "${asr_expdir}/${valid_inference_folder}/${score_folder}/result_asr.txt"
 
-if [ -d "${test_inference_folder}" ]; then
-	sclite \
-		-r "${asr_expdir}/${test_inference_folder}/${score_folder}/ref_asr.trn" trn \
-		-h "${asr_expdir}/${test_inference_folder}/${score_folder}/hyp_asr.trn" trn \
-		-i rm -o all stdout > "${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
-	echo "Write ASR result in ${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
-	grep -e Avg -e SPKR -m 2 "${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
-else
-	echo "[Warning] Skip ASR result on test set as it does not exist."
-fi
+sclite \
+	-r "${asr_expdir}/${test_inference_folder}/${score_folder}/ref_asr.trn" trn \
+	-h "${asr_expdir}/${test_inference_folder}/${score_folder}/hyp_asr.trn" trn \
+	-i rm -o all stdout > "${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
+echo "Write ASR result in ${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
+grep -e Avg -e SPKR -m 2 "${asr_expdir}/${test_inference_folder}/${score_folder}/result_asr.txt"
+
 
 exit 0
