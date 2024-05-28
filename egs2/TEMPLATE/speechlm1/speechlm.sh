@@ -45,6 +45,9 @@ python=python3       # Specify python to execute espnet commands.
 # Data preparation related
 local_data_opts=""  # Options to be passed to local/data.sh.
 data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition
+hf_datasets=""      # Datasets hosts in huggingface hub. We provide several datasets that have been
+                    # tokenized already so users can directly pass this argument to train over these
+                    # datasets.
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
@@ -296,16 +299,17 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "codec" ]; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
-                    scripts/feats/codec_tokenization.sh \
-                        --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
-                        --codec_fs ${fs} --dump_audio false \
-                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
+                    # scripts/feats/codec_tokenization.sh \
+                    #     --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
+                    #     --codec_fs ${fs} --dump_audio false \
+                    #     --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
                     # Use a small portion (up to 100k examples) for efficiency
-                    cat ${data_audio}/${dset}/${_name} | shuf | head -n 100000 \
-                      > ${data_audio}/${dset}/${_name}.g2p_train
+                    nutt=$(min "10000" "$(wc -l < ${data_audio}/${dset}/${_name})")
+                    cat ${data_audio}/${dset}/${_name} | head -n 10000 \
+                      > ${data_audio}/${dset}/${_name}.g2p_train && echo ""
                     ${python} -m espnet2.bin.tokenize_text \
                         --token_type "phn" -f 2- \
                         --input "${data_audio}/${dset}/${_name}.g2p_train" \
@@ -328,14 +332,17 @@ if ! "${skip_data_prep}"; then
                 if [ -f ${data_feats}/${dset}/token_lists/${_modality}_token_list ]; then
                     opts+="--token_list ${data_feats}/${dset}/token_lists/${_modality}_token_list "
                 fi
-            done; wait
+            done
 
             # The metadata for this dataset/task is saved in a yaml file
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
+                --root ${PWD} \
                 ${opts}
         done
+
+        # TODO(Jinchuan): upload the dataset to huggingface for sharing.
     fi
 
 else
