@@ -19,11 +19,11 @@ See the following pages before asking the question:
 
 # INITIAL RESULTS
 
-- 22.5 kHz VITS adaptation
+- 22.05 kHz VITS adaptation
 
 
 ## Pretrained Models
 
-### hifitts_vits_multispeaker_22k
-https://huggingface.co/jes3275/hifitts_vits_multispeaker_22k
+### hifitts_vits_multispeaker_22.05k
+https://huggingface.co/jes3275/hifitts_vits_multispeaker_22.05k
 
