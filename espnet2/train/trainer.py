@@ -554,7 +554,7 @@ class Trainer:
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
-        scaler: Optional[GradScaler],
+        scaler: Optional[Union[GradScaler, ShardedGradScaler]],
         reporter: SubReporter,
         summary_writer,
         options: TrainerOptions,
