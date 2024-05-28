@@ -30,4 +30,3 @@ if [ ! -e "${db_root}/hi_fi_tts_v0" ]; then
 else
     echo "Already exists. Skipped."
 fi
-

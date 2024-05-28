@@ -26,4 +26,3 @@ See the following pages before asking the question:
 
 ### hifitts_vits_multispeaker_22.05k
 https://huggingface.co/jes3275/hifitts_vits_multispeaker_22.05k
-
