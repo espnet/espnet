@@ -105,7 +105,7 @@ token_list_dir=
 
 # TODO(Jinchuan): Upload model related
 hf_repo=
-hu_data_repo=
+hf_data_repo=
 
 help_message=""
 
@@ -308,7 +308,7 @@ if ! "${skip_data_prep}"; then
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
-                    # Use a small portion (up to 100k examples) for efficiency
+                    # # Use a small portion (up to 100k examples) for efficiency
                     nutt=$(min "10000" "$(wc -l < ${data_audio}/${dset}/${_name})")
                     cat ${data_audio}/${dset}/${_name} | head -n 10000 \
                       > ${data_audio}/${dset}/${_name}.g2p_train && echo ""
@@ -606,7 +606,8 @@ if ! "${skip_upload_hf_data}"; then
         fi
 
         huggingface-cli repo create -y ${hf_data_repo} --type dataset
-        huggingface-cli upload --repo-type dataset ${hf_data_repo} ${data_feats} ${data_feats}
+        huggingface-cli upload --repo-type dataset ${hf_data_repo} \
+            ${data_feats} ${data_feats}
     fi
 fi
 
