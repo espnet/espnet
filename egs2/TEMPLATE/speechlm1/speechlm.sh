@@ -32,7 +32,8 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
-skip_upload_hf=true # Skip uploading to hugging face stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
+skip_upload_hf_data=true  # Skip uploading the prepared dataset to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -104,6 +105,7 @@ token_list_dir=
 
 # TODO(Jinchuan): Upload model related
 hf_repo=
+hu_data_repo=
 
 help_message=""
 
@@ -589,6 +591,24 @@ else
 fi
 
 # TODO(Jinchuan) Evaluation and model upload stages
+
+
+# TODO(Jinchuan) Upload the prepared data and trained models
+if ! "${skip_upload_hf_data}"; then
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "upload the prepared ${task} dataset prepared in ${data_feats}"
+        if [ -z ${hf_data_repo} ]; then
+            echo "ERROR: You need to setup the variable hf_data_repo" && exit 1;
+        fi
+
+        if [ "$(huggingface-cli whoami)" == "Not logged in" ]; then
+            echo "You should login huggingface-cli before uploading the dataset" && exit 1;
+        fi
+
+        huggingface-cli repo create -y ${hf_data_repo} --type dataset
+        huggingface-cli upload --repo-type dataset ${hf_data_repo} ${data_feats} ${data_feats}
+    fi
+fi
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
