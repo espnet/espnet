@@ -40,7 +40,7 @@ class AudioCoding:
         model_file: Union[Path, str, None] = None,
         target_bandwidth: Union[Path, str, None] = None,
         dtype: str = "float32",
-        device: str = "cpu",
+        device: Union[str, torch.device] = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
     ):
