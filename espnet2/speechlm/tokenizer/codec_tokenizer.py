@@ -18,6 +18,7 @@ class CodecTokenizer(AbsTokenizer):
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
+        max_token_per_frame: int = 8,
     ):
         """Codec Tokenizer implementation that is used in:
         (1) waveform tokenization during data prep stage;
