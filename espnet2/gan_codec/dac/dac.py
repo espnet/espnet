@@ -599,10 +599,6 @@ class DACGenerator(nn.Module):
             encoder_out, self.frame_rate, bw
         )
 
-        # quantization_loss = self.l1_quantization_loss(
-        #     encoder_out, quantized.detach()
-        # ) + self.l2_quantization_loss(encoder_out, quantized.detach())
-
         resyn_audio = self.decoder(quantized)
 
         if use_dual_decoder:
