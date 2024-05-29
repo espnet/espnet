@@ -96,7 +96,8 @@ blank="<blank>"     # CTC blank symbol.
 sos_eos="<sos/eos>" # sos and eos symbols.
 tokenization_choices=""
 codec_choice="EnCodec"
-codec_opts=""
+codec_checkpoint_path=null
+codec_config_path=null
 semantic_choice="WavLM"
 semantic_opts=""
 g2p="g2p_en"
@@ -305,7 +306,9 @@ if ! "${skip_data_prep}"; then
                     scripts/feats/codec_tokenization.sh \
                         --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
                         --codec_fs ${fs} --dump_audio false \
-                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} ${codec_opts}
+                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} \
+                        --checkpoint_path ${codec_checkpoint_path} \
+                        --config_path ${codec_config_path}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"

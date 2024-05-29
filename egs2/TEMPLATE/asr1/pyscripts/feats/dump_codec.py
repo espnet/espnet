@@ -13,7 +13,7 @@ import kaldiio
 import numpy as np
 import torch
 
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizerImpl
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -85,7 +85,7 @@ def dump_codec(
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    tokenizer = CodecTokenizerImpl(
+    tokenizer = CodecTokenizer(
         codec_choice,
         codec_fs,
         device,
