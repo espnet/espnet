@@ -703,13 +703,14 @@ class ESPnetMultiTaskDataset(AbsDataset):
             assert _type == "dataset_json", f"Non-Json triplet: {triplet}"
             json_dict = json.load(open(path))
 
+            root = json_dict["root"]
             this_path_name_type_list = []
             for triplet in json_dict["data_files"]:
                 path, _, _type = triplet.strip().split(",")
                 # use the stem file name as the name
                 this_path_name_type_list.append(
                     (
-                        path,
+                        root + '/' + path,
                         path.split("/")[-1],
                         _type,
                     )

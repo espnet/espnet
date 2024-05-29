@@ -46,9 +46,10 @@ python=python3       # Specify python to execute espnet commands.
 # Data preparation related
 local_data_opts=""  # Options to be passed to local/data.sh.
 data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition
-hf_datasets=""      # Datasets hosts in huggingface hub. We provide several datasets that have been
+hf_datacards=""     # Datasets hosts in huggingface hub. We provide several datasets that have been
                     # tokenized already so users can directly pass this argument to train over these
                     # datasets.
+hf_cache_dir=downloads # cache directory to download the huggingface datasets
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
@@ -355,21 +356,32 @@ fi
 
 
 if ! "${skip_train}"; then
-
-    _data_opts=""
+    # NOTE(Jinchuan): training is based on either:
+    #  (1) datasets prepared from stage 1-4; or
+    #  (2) pre-prepared data.json files.
+    # However, in both cases, all huggingface datasets will be considered.
     if [ -z ${train_jsons} ]; then
         train_jsons=${data_feats}/${train_set}/data.json
         log "No train_jsons provided. Use the prepared one: ${train_jsons}"
     fi
 
-    for train_json in $train_jsons; do
-        _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
-    done
-
     if [ -z ${valid_jsons} ]; then
         valid_jsons=${data_feats}/${valid_set}/data.json
         log "No valid_jsons provided. Use the prepared one: ${valid_jsons}"
     fi
+
+    if [ -z ${test_jsons} ]; then
+        for _dset in ${test_sets}; do
+            test_jsons+="${data_feats}/${test_set}/data.json "
+        done
+        log "No test_jsons provided. Use the prepared one: ${test_jsons}"
+    fi
+
+    _data_opts=""
+    for train_json in $train_jsons; do
+        _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
+    done
+
     for valid_json in $valid_jsons; do
         _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
     done
