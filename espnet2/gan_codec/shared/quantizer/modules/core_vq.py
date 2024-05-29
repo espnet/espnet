@@ -343,17 +343,19 @@ class VectorQuantization(nn.Module):
             quantize = rearrange(quantize, "b n d -> b d n")
             return quantize, embed_ind, loss
         else:
-            commit_loss = torch.tensor([0.0], device=device, requires_grad=self.training)
+            commit_loss = torch.tensor(
+                [0.0], device=device, requires_grad=self.training
+            )
             quant_loss = torch.tensor([0.0], device=device, requires_grad=self.training)
             if self.training:
                 if self.quantizer_dropout:
-                    _commit_loss = F.mse_loss(quantize.detach(), x, reduction="none").mean(
-                        [1, 2]
-                    )
+                    _commit_loss = F.mse_loss(
+                        quantize.detach(), x, reduction="none"
+                    ).mean([1, 2])
                     commit_loss = commit_loss + (_commit_loss * mask).mean()
-                    _quant_loss = F.mse_loss(quantize, x.detach(), reduction="none").mean(
-                        [1, 2]
-                    )
+                    _quant_loss = F.mse_loss(
+                        quantize, x.detach(), reduction="none"
+                    ).mean([1, 2])
                     quant_loss = quant_loss + (_quant_loss * mask).mean()
 
                 else:
