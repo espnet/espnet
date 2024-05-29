@@ -11,7 +11,7 @@ n_shift=256
 win_length=null
 
 opts=
-if [ "${fs}" -eq 48000 ]; then
+if [ "${fs}" -eq 44100 ]; then
     # To suppress recreation, specify wav format
     opts="--audio_format wav "
 else
