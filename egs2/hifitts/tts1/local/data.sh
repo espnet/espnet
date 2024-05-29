@@ -31,9 +31,9 @@ if [ -z "${HIFITTS}" ]; then
 fi
 db_root=${HIFITTS}
 
-train_set=tr_no_dev
-dev_set=dev
-eval_set=test
+train_set="tr_no_dev"
+dev_set="dev"
+eval_set="test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
