@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train-clean-960
-valid_set=dev-clean
-test_sets="dev-clean test-clean"
+train_set=test_clean
+valid_set=dev_clean
+test_sets="test_other"
 
 train_config=conf/train_valle.yaml
 inference_config=conf/decode_encodec.yaml
