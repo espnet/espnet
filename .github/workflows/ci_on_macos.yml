@@ -42,4 +42,4 @@ jobs:
           # CC: /usr/local/bin/gcc-11
           # CXX: /usr/local/bin/g++-11
         run: |
-          ./ci/install.sh
+          ./ci/install_macos.sh
