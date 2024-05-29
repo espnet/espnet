@@ -422,7 +422,6 @@ class ResidualVectorQuantization(nn.Module):
                 if self.training is False and i >= n_q:
                     break
                 mask = torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
-                if self.quantizer_dropout:
                 quantized, indices, commit_loss, quant_loss = layer(residual, mask)
                 residual = residual - quantized
                 quantized_out = quantized_out + quantized * mask[:, None, None]
