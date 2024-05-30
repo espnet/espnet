@@ -2,12 +2,11 @@
 
 import argparse
 import logging
-import os
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -224,9 +223,8 @@ class ASRTransducerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -241,11 +239,11 @@ class ASRTransducerTask(AbsTask):
             : Callable collate function.
 
         """
-        assert check_argument_types()
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
@@ -260,7 +258,6 @@ class ASRTransducerTask(AbsTask):
             : Callable pre-processing function.
 
         """
-        assert check_argument_types()
 
         if args.use_preprocessor:
             retval = CommonPreprocessor(
@@ -272,24 +269,23 @@ class ASRTransducerTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
             )
         else:
             retval = None
 
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -330,11 +326,11 @@ class ASRTransducerTask(AbsTask):
 
         """
         retval = ()
-        assert check_return_type(retval)
 
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRTransducerModel:
         """Required data depending on task mode.
 
@@ -346,7 +342,6 @@ class ASRTransducerTask(AbsTask):
             model: ASR Transducer model.
 
         """
-        assert check_argument_types()
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -432,7 +427,5 @@ class ASRTransducerTask(AbsTask):
                 "Currently not supported.",
                 "Initialization part will be reworked in a short future.",
             )
-
-        assert check_return_type(model)
 
         return model

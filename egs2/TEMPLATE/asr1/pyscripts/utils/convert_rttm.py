@@ -11,11 +11,12 @@ from typing import Union
 import humanfriendly
 import numpy as np
 import soundfile
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.utils.types import str_or_int
 
 
+@typechecked
 def convert_rttm_text(
     path: Union[Path, str],
     wavscp_path: Union[Path, str],
@@ -31,7 +32,6 @@ def convert_rttm_text(
         "w", encoding="utf-8"
     )
 
-    assert check_argument_types()
     utt_ids = set()
     with Path(path).open("r", encoding="utf-8") as f:
         for linenum, line in enumerate(f, 1):
@@ -58,7 +58,7 @@ def convert_rttm_text(
         for linenum, line in enumerate(f, 1):
             sps = re.split("[ \t]+", line.rstrip())
             utt_id, wav_path = sps
-            assert utt_id in utt_ids, "{} is not in corresponding rttm {}".foramt(
+            assert utt_id in utt_ids, "{} is not in corresponding rttm {}".format(
                 utt_id, path
             )
 

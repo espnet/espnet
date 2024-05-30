@@ -7,7 +7,7 @@ import editdistance
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -31,7 +31,7 @@ else:
 
 try:
     import kenlm  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     kenlm = None
 
 
@@ -42,6 +42,7 @@ class ESPnetUASRModel(AbsESPnetModel):
     https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
     """
 
+    @typechecked
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
@@ -66,7 +67,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         decay_temperature: float = 0.99995,
         use_collected_training_feats: str2bool = False,
     ):
-        assert check_argument_types()
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -119,8 +119,9 @@ class ESPnetUASRModel(AbsESPnetModel):
         return self._number_updates
 
     @number_updates.setter
+    @typechecked
     def number_updates(self, iiter: int):
-        assert check_argument_types() and iiter >= 0
+        assert iiter >= 0
         self._number_updates = iiter
 
     def forward(

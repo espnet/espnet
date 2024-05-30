@@ -9,7 +9,6 @@ import humanfriendly
 import numpy as np
 import torch
 from torch.multiprocessing.spawn import ProcessContext
-from typeguard import check_argument_types, check_return_type
 
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.tasks.spk import SpeakerTask
@@ -22,7 +21,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.reporter import Reporter
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.nested_dict_action import NestedDictAction

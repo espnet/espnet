@@ -5,7 +5,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -431,21 +431,19 @@ class EnhS2TTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             if "st" in args.subtask_series:
                 retval = MutliTokenizerCommonPreprocessor(
@@ -488,7 +486,6 @@ class EnhS2TTask(AbsTask):
                 )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -513,12 +510,11 @@ class EnhS2TTask(AbsTask):
         retval += ["text_spk{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["src_text"]
         retval = tuple(retval)
-        assert check_return_type(retval)
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetEnhS2TModel:
-        assert check_argument_types()
 
         # Build submodels in the order of subtask_series
         model_conf = args.model_conf.copy()
@@ -555,5 +551,4 @@ class EnhS2TTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model

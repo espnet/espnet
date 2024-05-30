@@ -17,8 +17,9 @@ from espnet2.torch_utils.get_layer_from_string import get_layer
 
 class TFGridNetV2(AbsSeparator):
     """Offline TFGridNetV2. Compared with TFGridNet, TFGridNetV2 speeds up the code
-        by vectorizing multiple heads in self-attention, and better dealing with
-        Deconv1D in each intra- and inter-block when emb_ks == emb_hs.
+
+    by vectorizing multiple heads in self-attention, and better dealing with
+    Deconv1D in each intra- and inter-block when emb_ks == emb_hs.
 
     Reference:
     [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,

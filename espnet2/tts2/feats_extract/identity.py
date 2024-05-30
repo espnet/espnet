@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 
@@ -9,8 +9,8 @@ from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 class IdentityFeatureExtract(AbsFeatsExtractDiscrete):
     """Keep the input discrete sequence as-is"""
 
+    @typechecked
     def __init__(self):
-        assert check_argument_types()
         super().__init__()
 
     def forward(

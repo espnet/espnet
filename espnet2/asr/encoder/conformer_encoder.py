@@ -7,13 +7,17 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import (
+    get_activation,
+    make_pad_mask,
+    trim_by_ctc_posterior,
+)
 from espnet.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
@@ -80,6 +84,7 @@ class ConformerEncoder(AbsEncoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -106,11 +111,11 @@ class ConformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        ctc_trim: bool = False,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -293,6 +298,7 @@ class ConformerEncoder(AbsEncoder):
             assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
         self.interctc_use_conditioning = interctc_use_conditioning
         self.conditioning_layer = None
+        self.ctc_trim = ctc_trim
 
     def output_size(self) -> int:
         return self._output_size
@@ -374,6 +380,18 @@ class ConformerEncoder(AbsEncoder):
                             xs_pad = (x, pos_emb)
                         else:
                             xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+
+                    if self.ctc_trim and ctc is not None:
+                        ctc_out = ctc.softmax(encoder_out)
+
+                        if isinstance(xs_pad, tuple):
+                            x, pos_emb = xs_pad
+                            x, masks, pos_emb = trim_by_ctc_posterior(
+                                x, ctc_out, masks, pos_emb
+                            )
+                            xs_pad = (x, pos_emb)
+                        else:
+                            x, masks, _ = trim_by_ctc_posterior(x, ctc_out, masks)
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]

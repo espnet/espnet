@@ -184,6 +184,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
 
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * x.size(0))
+
         # set block_size == 0 for recomputing
         if self.block_size == 0:
             block_is_final = is_final
@@ -336,7 +341,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                         h, block_is_final, maxlen, maxlenratio
                     )
                 else:
-                    ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+                    ret = self.process_one_block(
+                        h, block_is_final, maxlen, minlen, maxlenratio
+                    )
                 logging.debug("Finished processing block: %d", self.processed_block)
                 self.processed_block += 1
 
@@ -381,7 +388,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.t = len(h)
         return hyps
 
-    def process_one_block(self, h, is_final, maxlen, maxlenratio):
+    def process_one_block(self, h, is_final, maxlen, minlen, maxlenratio):
         """Recognize one block."""
         # extend states for ctc
         self.extend(h, self.running_hyps)
@@ -392,7 +399,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             if self.process_idx == maxlen - 1:
                 # end decoding
                 self.running_hyps = self.post_process(
-                    self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
+                    self.process_idx, maxlen, minlen, maxlenratio, best, self.ended_hyps
                 )
             n_batch = best.yseq.shape[0]
             local_ended_hyps = []
@@ -440,7 +447,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             self.prev_hyps = self.running_hyps
             self.running_hyps = self.post_process(
-                self.process_idx, maxlen, maxlenratio, best, self.ended_hyps
+                self.process_idx, maxlen, minlen, maxlenratio, best, self.ended_hyps
             )
 
             if is_final:
@@ -477,7 +484,14 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
     def assemble_hyps(self, ended_hyps):
         """Assemble the hypotheses."""
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        if self.normalize_length:
+            # Note (Jinchuan): -1 since hyp starts with <sos> and
+            # initially has score of 0.0
+            nbest_hyps = sorted(
+                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+            )
+        else:
+            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
             logging.warning(

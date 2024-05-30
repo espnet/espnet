@@ -8,14 +8,13 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.fastspeech2.loss import FastSpeech2LossDiscrete
-from espnet2.tts2.fastspeech2.variance_predictor import VariancePredictor
-from espnet2.tts2.gst.style_encoder import StyleEncoder
+from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
@@ -31,20 +30,14 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class FastSpeech2Discrete(AbsTTS2):
-    """FastSpeech2 module.
+    """FastSpeech2 module with discrete output.
 
-    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and
-    High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and
-    energy, we use token-averaged value introduced in `FastPitch: Parallel
-    Text-to-speech with Pitch Prediction`_.
-
-    .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
-        https://arxiv.org/abs/2006.04558
-    .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:
-        https://arxiv.org/abs/2006.06873
+    This is a module of discrete-output Fastspeech2: it uses the same
+    Fastspeech2 architecture as tts1, but with discrete token as output.
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -113,22 +106,13 @@ class FastSpeech2Discrete(AbsTTS2):
         langs: Optional[int] = None,
         spk_embed_dim: Optional[int] = None,
         spk_embed_integration_type: str = "add",
-        use_gst: bool = False,
-        gst_tokens: int = 10,
-        gst_heads: int = 4,
-        gst_conv_layers: int = 6,
-        gst_conv_chans_list: Sequence[int] = (32, 32, 64, 64, 128, 128),
-        gst_conv_kernel_size: int = 3,
-        gst_conv_stride: int = 2,
-        gst_gru_layers: int = 1,
-        gst_gru_units: int = 128,
         # training related
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
-        ignore_id: int = 0,  # maybe adjust this in collate_fn. default -1 means padding int
+        ignore_id: int = 0,  # adjust this in collate_fn (default -1)
     ):
         """Initialize FastSpeech2 module.
 
@@ -204,16 +188,6 @@ class FastSpeech2Discrete(AbsTTS2):
             spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
                 assume that spembs will be provided as the input.
             spk_embed_integration_type: How to integrate speaker embedding.
-            use_gst (str): Whether to use global style token.
-            gst_tokens (int): The number of GST embeddings.
-            gst_heads (int): The number of heads in GST multihead attention.
-            gst_conv_layers (int): The number of conv layers in GST.
-            gst_conv_chans_list: (Sequence[int]):
-                List of the number of channels of conv layers in GST.
-            gst_conv_kernel_size (int): Kernel size of conv layers in GST.
-            gst_conv_stride (int): Stride size of conv layers in GST.
-            gst_gru_layers (int): The number of GRU layers in GST.
-            gst_gru_units (int): The number of GRU units in GST.
             init_type (str): How to initialize transformer parameters.
             init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
                 encoder.
@@ -225,7 +199,6 @@ class FastSpeech2Discrete(AbsTTS2):
                 calculation.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters
@@ -238,7 +211,6 @@ class FastSpeech2Discrete(AbsTTS2):
         self.stop_gradient_from_pitch_predictor = stop_gradient_from_pitch_predictor
         self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
-        self.use_gst = use_gst
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -318,21 +290,6 @@ class FastSpeech2Discrete(AbsTTS2):
             )
         else:
             raise ValueError(f"{encoder_type} is not supported.")
-
-        # define GST
-        if self.use_gst:
-            self.gst = StyleEncoder(
-                idim=odim,  # the input is mel-spectrogram
-                gst_tokens=gst_tokens,
-                gst_token_dim=adim,
-                gst_heads=gst_heads,
-                conv_layers=gst_conv_layers,
-                conv_chans_list=gst_conv_chans_list,
-                conv_kernel_size=gst_conv_kernel_size,
-                conv_stride=gst_conv_stride,
-                gru_layers=gst_gru_layers,
-                gru_units=gst_gru_units,
-            )
 
         # define spk and lang embedding
         self.spks = None
@@ -486,8 +443,6 @@ class FastSpeech2Discrete(AbsTTS2):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        feats: torch.Tensor,
-        feats_lengths: torch.Tensor,
         discrete_feats: torch.Tensor,
         discrete_feats_lengths: torch.Tensor,
         durations: torch.Tensor,
@@ -506,8 +461,8 @@ class FastSpeech2Discrete(AbsTTS2):
         Args:
             text (LongTensor): Batch of padded token ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
-            feats (Tensor): Batch of padded target features (B, T_feats, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
+            discrete_feats (Tensor): Discrete speech tensor (B, T_token).
+            discrete_feats_lengths (LongTensor): Discrete speech length tensor (B,).
             durations (LongTensor): Batch of padded durations (B, T_text + 1).
             durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
             pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).
@@ -527,7 +482,9 @@ class FastSpeech2Discrete(AbsTTS2):
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
-        discrete_feats = discrete_feats[:, : discrete_feats_lengths.max()] # for data-parallel
+        discrete_feats = discrete_feats[
+            :, : discrete_feats_lengths.max()
+        ]  # for data-parallel
         durations = durations[:, : durations_lengths.max()]  # for data-parallel
         pitch = pitch[:, : pitch_lengths.max()]  # for data-parallel
         energy = energy[:, : energy_lengths.max()]  # for data-parallel
@@ -641,11 +598,6 @@ class FastSpeech2Discrete(AbsTTS2):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, T_text, adim)
 
-        # integrate with GST
-        if self.use_gst:
-            style_embs = self.gst(ys)
-            hs = hs + style_embs.unsqueeze(1)
-
         # integrate with SID and LID embeddings
         if self.spks is not None:
             sid_embs = self.sid_emb(sids.view(-1))
@@ -723,7 +675,6 @@ class FastSpeech2Discrete(AbsTTS2):
     def inference(
         self,
         text: torch.Tensor,
-        feats: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
         spembs: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
@@ -737,7 +688,6 @@ class FastSpeech2Discrete(AbsTTS2):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            feats (Optional[Tensor): Feature sequence to extract style (N, idim).
             durations (Optional[Tensor): Groundtruth of duration (T_text + 1,).
             spembs (Optional[Tensor): Speaker embedding vector (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
@@ -756,17 +706,14 @@ class FastSpeech2Discrete(AbsTTS2):
                 * energy (Tensor): Energy sequence (T_text + 1,).
 
         """
-        x, y = text, feats
         spemb, d, p, e = spembs, durations, pitch, energy
 
         # add eos at the last of sequence
-        x = F.pad(x, [0, 1], "constant", self.eos)
+        x = F.pad(text, [0, 1], "constant", self.eos)
 
         # setup batch axis
         ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
         xs, ys = x.unsqueeze(0), None
-        if y is not None:
-            ys = y.unsqueeze(0)
         if spemb is not None:
             spembs = spemb.unsqueeze(0)
 

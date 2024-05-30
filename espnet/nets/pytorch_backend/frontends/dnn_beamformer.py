@@ -1,4 +1,5 @@
 """DNN beamformer module."""
+
 from typing import Tuple
 
 import torch

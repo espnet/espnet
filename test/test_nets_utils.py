@@ -2,7 +2,7 @@
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, trim_by_ctc_posterior
 
 test_cases = [
     # lengths, xs, length_dim, maxlen
@@ -36,6 +36,7 @@ def test_make_pad_mask(test_case):
 @pytest.mark.parametrize("test_case", test_cases)
 def test_trace_make_pad_mask(test_case):
     """Test if onnx-convertible make_pad_mask can be traced with torch.jit.trace
+
     If it's traceable then it can be exported to ONNX.
     """
     args, input_names, kwargs_trace, kwargs_non_trace = get_args(test_case.copy())
@@ -115,3 +116,61 @@ def get_args(tc):
         kwargs_non["maxlen"] = ml
 
     return tuple(args), tuple(input_names), kwargs_trace, kwargs_non
+
+
+def test_trim_by_ctc_posterior():
+    # eg1: ctc: 3 frames + 5 frame tolerance; mask: 10 frames -> 8 frames
+    # eg2: ctc: 7 frames + 5 frame tolearnce; mask: 4  frames -> 4 frames
+    h = torch.randn(2, 10, 7)
+    ctc_prob = torch.tensor(
+        [
+            [
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+            ],
+            [
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+            ],
+        ]
+    )
+    masks = (
+        torch.Tensor(
+            [
+                [True, True, True, True, True, True, True, True, True, True],
+                [True, True, True, True, False, False, False, False, False, False],
+            ]
+        )
+        .unsqueeze(1)
+        .bool()
+    )
+
+    # PositionalEncoding
+    pos_emb = torch.randn(2, 10, 7)
+    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(h, ctc_prob, masks, pos_emb)
+    assert torch.all(torch.eq(h_hat, h[:, :8]))
+    assert torch.all(torch.eq(masks_hat, masks[:, :, :8]))
+    assert torch.all(torch.eq(pos_emb_hat, pos_emb_hat[:, :8]))
+
+    # RelPositionalEncoding
+    pos_emb = torch.randn(2, 19, 7)
+    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(h, ctc_prob, masks, pos_emb)
+    assert torch.all(torch.eq(h_hat, h[:, :8]))
+    assert torch.all(torch.eq(masks_hat, masks[:, :, :8]))
+    assert torch.all(torch.eq(pos_emb_hat, pos_emb[:, 2:17]))

@@ -8,7 +8,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
@@ -164,9 +164,9 @@ class SVSTask(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -258,13 +258,11 @@ class SVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -272,10 +270,10 @@ class SVSTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -290,8 +288,7 @@ class SVSTask(AbsTask):
             )
         else:
             retval = None
-        # FIXME (jiatong): sometimes checking is not working here
-        # assert check_return_type(retval)
+
         return retval
 
     @classmethod
@@ -326,8 +323,8 @@ class SVSTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSVSModel:
-        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -441,7 +438,6 @@ class SVSTask(AbsTask):
             svs=svs,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod

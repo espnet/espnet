@@ -7,15 +7,15 @@ ECAPA-TDNN Encoder
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.ecapa_block import EcapaBlock
 
 
 class EcapaTdnnEncoder(AbsEncoder):
-    """
-    ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+    """ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+
     mel-filterbank energy or MFCC features.
     Paper: B Desplanques at el., ``ECAPA-TDNN: Emphasized Channel Attention,
         Propagation and Aggregation in TDNN Based Speaker Verification,''
@@ -29,6 +29,7 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: output embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -38,10 +39,9 @@ class EcapaTdnnEncoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
         if block == "EcapaBlock":
-            block = EcapaBlock
+            block: type = EcapaBlock
         else:
             raise ValueError(f"unsupported block, got: {block}")
         self._output_size = output_size
@@ -61,6 +61,15 @@ class EcapaTdnnEncoder(AbsEncoder):
         return self._output_size
 
     def forward(self, x: torch.Tensor):
+        """Calculate forward propagation.
+
+        Args:
+            x (torch.Tensor): Input tensor (#batch, L, input_size).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, L, output_size).
+
+        """
         x = self.conv(x.permute(0, 2, 1))
         x = self.relu(x)
         x = self.bn(x)

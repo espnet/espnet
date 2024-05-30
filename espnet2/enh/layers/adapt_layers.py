@@ -60,7 +60,7 @@ class ConcatAdaptLayer(nn.Module):
                     tuple/list may be useful when we want to apply the adaptation
                       to both normal and skip connection at once
         """
-        assert type(main) == type(enroll)
+        assert type(main) is type(enroll)
         orig_type = type(main)
         main, enroll = into_tuple(main), into_tuple(enroll)
         assert len(main) == len(enroll) == self.ninputs
@@ -101,7 +101,7 @@ class MulAddAdaptLayer(nn.Module):
                     tuple/list may be useful when we want to apply the adaptation
                       to both normal and skip connection at once
         """
-        assert type(main) == type(enroll)
+        assert type(main) is type(enroll)
         orig_type = type(main)
         main, enroll = into_tuple(main), into_tuple(enroll)
         assert len(main) == len(enroll) == self.ninputs, (

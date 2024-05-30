@@ -3,26 +3,29 @@ from typing import Optional, Tuple, Union
 import librosa
 import numpy as np
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.layers.complex_utils import to_complex
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
+
 
 class Stft(torch.nn.Module, InversibleInterface):
+    @typechecked
     def __init__(
         self,
         n_fft: int = 512,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 128,
         window: Optional[str] = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self.n_fft = n_fft
         if win_length is None:
@@ -87,7 +90,7 @@ class Stft(torch.nn.Module, InversibleInterface):
         # there is an alternative replacement implementation with librosa.
         # Note: pytorch >= 1.10.0 now has native support for FFT and STFT
         # on all cpu targets including ARM.
-        if input.is_cuda or torch.backends.mkl.is_available():
+        if input.is_cuda or torch.backends.mkl.is_available() or is_torch_1_10_plus:
             stft_kwargs = dict(
                 n_fft=self.n_fft,
                 win_length=self.win_length,

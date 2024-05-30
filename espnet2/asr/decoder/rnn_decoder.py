@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -80,6 +80,7 @@ def build_attention_list(
 
 
 class RNNDecoder(AbsDecoder):
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -95,7 +96,6 @@ class RNNDecoder(AbsDecoder):
         att_conf: dict = get_default_kwargs(build_attention_list),
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
-        assert check_argument_types()
         if rnn_type not in {"lstm", "gru"}:
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
 
@@ -121,16 +121,20 @@ class RNNDecoder(AbsDecoder):
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
         self.decoder += [
-            torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
-            if self.dtype == "lstm"
-            else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
+            (
+                torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
+                if self.dtype == "lstm"
+                else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
+            )
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
             self.decoder += [
-                torch.nn.LSTMCell(hidden_size, hidden_size)
-                if self.dtype == "lstm"
-                else torch.nn.GRUCell(hidden_size, hidden_size)
+                (
+                    torch.nn.LSTMCell(hidden_size, hidden_size)
+                    if self.dtype == "lstm"
+                    else torch.nn.GRUCell(hidden_size, hidden_size)
+                )
             ]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections

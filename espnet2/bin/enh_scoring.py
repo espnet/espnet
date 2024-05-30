@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from mir_eval.separation import bss_eval_sources
 from pystoi import stoi
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -47,6 +47,7 @@ def read_audio(reader, key, audio_format="sound"):
         raise ValueError(f"Unknown audio format: {audio_format}")
 
 
+@typechecked
 def scoring(
     output_dir: str,
     dtype: str,
@@ -61,7 +62,6 @@ def scoring(
     dnsmos_args: Dict,
     use_pesq: bool,
 ):
-    assert check_argument_types()
 
     logging.basicConfig(
         level=log_level,
@@ -85,7 +85,10 @@ def scoring(
                     "DNS-Challenge/tree/master/DNSMOS/DNSMOS/model_v8.onnx"
                 )
             dnsmos = DNSMOS_local(
-                dnsmos_args["primary_model"], dnsmos_args["p808_model"]
+                dnsmos_args["primary_model"],
+                dnsmos_args["p808_model"],
+                use_gpu=dnsmos_args["use_gpu"],
+                convert_to_torch=dnsmos_args["convert_to_torch"],
             )
             logging.warning("Using local DNSMOS models for evaluation")
 
@@ -209,11 +212,14 @@ def scoring(
                     )
                 )
                 if dnsmos:
-                    dnsmos_score = dnsmos(inf[int(perm[i])], sample_rate)
-                    writer[f"OVRL_spk{i + 1}"][key] = str(dnsmos_score["OVRL"])
-                    writer[f"SIG_spk{i + 1}"][key] = str(dnsmos_score["SIG"])
-                    writer[f"BAK_spk{i + 1}"][key] = str(dnsmos_score["BAK"])
-                    writer[f"P808_MOS_spk{i + 1}"][key] = str(dnsmos_score["P808_MOS"])
+                    with torch.no_grad():
+                        dnsmos_score = dnsmos(inf[int(perm[i])], sample_rate)
+                    writer[f"OVRL_spk{i + 1}"][key] = str(float(dnsmos_score["OVRL"]))
+                    writer[f"SIG_spk{i + 1}"][key] = str(float(dnsmos_score["SIG"]))
+                    writer[f"BAK_spk{i + 1}"][key] = str(float(dnsmos_score["BAK"]))
+                    writer[f"P808_MOS_spk{i + 1}"][key] = str(
+                        float(dnsmos_score["P808_MOS"])
+                    )
                 if pesq:
                     if sample_rate == 8000:
                         mode = "nb"
@@ -314,6 +320,18 @@ def get_parser():
         "--dnsmos_auth_key", type=str, default="", help="Required if dnsmsos_mode='web'"
     )
     group.add_argument(
+        "--dnsmos_use_gpu",
+        type=str2bool,
+        default=False,
+        help="used when dnsmsos_mode='local'",
+    )
+    group.add_argument(
+        "--dnsmos_convert_to_torch",
+        type=str2bool,
+        default=False,
+        help="used when dnsmsos_mode='local'",
+    )
+    group.add_argument(
         "--dnsmos_primary_model",
         type=str,
         default="./DNSMOS/sig_bak_ovr.onnx",
@@ -350,6 +368,8 @@ def main(cmd=None):
         "auth_key": kwargs.pop("dnsmos_auth_key"),
         "primary_model": kwargs.pop("dnsmos_primary_model"),
         "p808_model": kwargs.pop("dnsmos_p808_model"),
+        "use_gpu": kwargs.pop("dnsmos_use_gpu"),
+        "convert_to_torch": kwargs.pop("dnsmos_convert_to_torch"),
     }
     kwargs["dnsmos_args"] = dnsmos_args
     scoring(**kwargs)

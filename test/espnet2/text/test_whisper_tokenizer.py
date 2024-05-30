@@ -90,6 +90,6 @@ def test_tokenization_add_tokens(tmp_path):
     tknlist_path.touch()
     with open(tknlist_path, "w") as f:
         f.write("command:yes\n")
-    tokenizer = OpenAIWhisperTokenizer(
+    _ = OpenAIWhisperTokenizer(
         "whisper_multilingual", added_tokens_txt=str(tknlist_path)
     )

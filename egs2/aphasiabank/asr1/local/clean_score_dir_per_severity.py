@@ -2,6 +2,7 @@
 Filter out *.trn files in score_cer and score_wer based on language and
 aph types
 """
+
 import argparse
 import os
 from typing import Iterable

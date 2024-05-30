@@ -35,5 +35,18 @@ tts_conf:
 
 num_iters_per_epoch: 1
 max_epoch: 1
-batch_type: folded
+batch_type: sorted
 batch_size: 2
+
+feats_extract: fbank
+feats_extract_conf:
+    n_fft: 2048
+    win_length: 1024
+    hop_length: 256
+    fs: 16000
+    fmin: 80
+    fmax: 7600
+    n_mels: 80
+
+normalize_conf:
+    stats_file: exp/stats/train/feats_stats.npz

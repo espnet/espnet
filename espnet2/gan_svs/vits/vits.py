@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from torch.nn import functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.avocodo.avocodo import (
@@ -77,6 +77,7 @@ class VITS(AbsGANSVS):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # generator related
@@ -131,6 +132,7 @@ class VITS(AbsGANSVS):
             "use_only_mean_in_flow": True,
             "expand_f0_method": "repeat",
             "use_phoneme_predictor": False,
+            "hubert_channels": 0,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -314,7 +316,6 @@ class VITS(AbsGANSVS):
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # define modules
@@ -408,6 +409,10 @@ class VITS(AbsGANSVS):
         self.langs = self.generator.langs
         self.spk_embed_dim = self.generator.spk_embed_dim
 
+        # hubert alignment
+        self.adaptive_pool = torch.nn.AdaptiveAvgPool1d(1)
+        self.n_mels = mel_loss_params["n_mels"]
+
     @property
     def require_raw_singing(self):
         """Return whether or not singing is required."""
@@ -426,6 +431,8 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        ssl_feats: torch.Tensor = None,
+        ssl_feats_lengths: torch.Tensor = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
@@ -443,10 +450,12 @@ class VITS(AbsGANSVS):
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, Lmax, odim).
+            feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
+            ssl_feats (Tensor): SSL feature tensor (B, T_feats, hubert_channels).
+            ssl_feats_lengths (Tensor): SSL feature length tensor (B,).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, T_text).
             label_lengths (Optional[Dict]): key is "lab" or "score";
@@ -454,6 +463,7 @@ class VITS(AbsGANSVS):
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
+            ying (Optional[Tensor]): Batch of padded ying (B, T_feats).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, T_text).
             slur (FloatTensor): Batch of padded slur (B, T_text).
@@ -470,6 +480,18 @@ class VITS(AbsGANSVS):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
+
+        if ssl_feats is not None:
+            if ssl_feats.shape[1] > feats.shape[1]:
+                ssl_feats = ssl_feats[:, : feats.shape[1], :]
+            elif ssl_feats.shape[1] < feats.shape[1]:
+                padding = (0, 0, 0, feats.shape[1] - ssl_feats.shape[1], 0, 0)
+                ssl_feats = torch.nn.functional.pad(ssl_feats, padding)
+
+            concatenated_feats = torch.cat([feats, ssl_feats], dim=2)
+        else:
+            concatenated_feats = feats
+
         score_dur = duration["score_syb"]
         gt_dur = duration["lab"]
         label = label["lab"]
@@ -480,7 +502,7 @@ class VITS(AbsGANSVS):
             return self._forward_generator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
+                feats=concatenated_feats,
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
@@ -500,7 +522,7 @@ class VITS(AbsGANSVS):
             return self._forward_discrminator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
+                feats=concatenated_feats,
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
@@ -726,6 +748,7 @@ class VITS(AbsGANSVS):
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
                 loss = loss + ddsp_mel_loss
             if self.generator_type == "visinger2":
+                feats = feats[:, : self.n_mels, :]
                 loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
                 loss = loss + loss_mel_am
 
@@ -915,6 +938,7 @@ class VITS(AbsGANSVS):
         self,
         text: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
+        ssl_feats: Optional[torch.Tensor] = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -934,6 +958,7 @@ class VITS(AbsGANSVS):
         Args:
             text (Tensor): Input text index tensor (T_text,).
             feats (Tensor): Feature tensor (T_feats, aux_channels).
+            ssl_feats (Tensor): SSL Feature tensor (T_feats, hubert_channels).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, T_text).
             melody (Optional[Dict]): key is "lab" or "score";
@@ -982,6 +1007,16 @@ class VITS(AbsGANSVS):
         if use_teacher_forcing:
             assert feats is not None
             assert pitch is not None
+
+            if ssl_feats is not None:
+                if ssl_feats.shape[0] > feats.shape[0]:
+                    ssl_feats = ssl_feats[: feats.shape[0], :]
+                elif ssl_feats.shape[0] < feats.shape[0]:
+                    padding = (0, 0, feats.shape[0] - ssl_feats.shape[0], 0, 0)
+                    ssl_feats = torch.nn.functional.pad(ssl_feats, padding)
+
+                feats = torch.cat([feats, ssl_feats], dim=1)
+
             feats = feats[None].transpose(1, 2)
             feats_lengths = torch.tensor(
                 [feats.size(2)],

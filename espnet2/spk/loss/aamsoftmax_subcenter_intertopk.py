@@ -1,5 +1,3 @@
-#! /usr/bin/python
-# -*- encoding: utf-8 -*-
 # code from WeSpeaker: https://github.com/wenet-e2e/wespeaker/blob/
 # c9ec537b53fe1e04525be74b2550ee95bed3a891/wespeaker/models/projections.py#L243
 
@@ -14,6 +12,7 @@ from espnet2.spk.loss.abs_loss import AbsLoss
 
 class ArcMarginProduct_intertopk_subcenter(AbsLoss):
     r"""Implement of large margin arc distance with intertopk and subcenter:
+
     Reference:
         MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
         FOR SPEAKER VERIFICATION.
