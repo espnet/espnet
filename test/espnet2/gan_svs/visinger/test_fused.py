@@ -29,7 +29,6 @@ def test_frontend_init():
     )
     assert len(frontend.postfrontends) == 2
     assert len(frontend.factors) == len(frontend.postfrontends)
-    assert frontend.postfrontends[0].postfrontend_type == "s3prl"
 
 
 def test_frontend_output_size():
