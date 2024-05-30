@@ -37,4 +37,3 @@ teacher_dumpdir=teacher_dumpdir
     --vocoder_file ${vocoder_file} \
     --feats_type ${feats_type} \
     --srctexts "data/tr_no_dev/text" "$@"
-

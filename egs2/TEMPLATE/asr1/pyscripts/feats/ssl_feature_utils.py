@@ -148,7 +148,9 @@ class MfccFeatureReader(BaseFeatureReader):
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
         self.frame_length = 25 * sample_rate / 1000
@@ -202,7 +204,9 @@ class HubertFeatureReader(BaseFeatureReader):
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
@@ -264,7 +268,9 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
@@ -327,7 +333,9 @@ class S3PRLFeatureReader(BaseFeatureReader):
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
