@@ -10,7 +10,6 @@ import sys
 import time
 
 import kaldiio
-import numpy as np
 import torch
 
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
@@ -85,17 +84,23 @@ def dump_codec(
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    tokenizer = CodecTokenizer(
-        codec_choice,
-        codec_fs,
-        device,
-        dump_audio,
-        checkpoint_path,
-        config_path,
-    )
+    for _ in range(1000):
+        try:
+            tokenizer = CodecTokenizer(
+                codec_choice,
+                codec_fs,
+                device,
+                dump_audio,
+                checkpoint_path,
+                config_path,
+            )
+            break
+        except:
+            logging.info("waiting GPUs ..")
+            time.sleep(2)
 
     # (3) Tokenizer loop
-    codec_writer = kaldiio.WriteHelper(wspecifier)
+    codec_writer = kaldiio.WriteHelper(wspecifier, compression_method=2)
     wav_reader = kaldiio.ReadHelper(rspecifier)
     if wav_wspecifier is not None and dump_audio:
         wav_ark_file, wav_scp_file = wav_wspecifier.split(":")[1].split(",")
@@ -124,8 +129,9 @@ def dump_codec(
 
             codes = codes.detach().cpu().numpy()
             for code, length, key in zip(codes, length_buffer, key_buffer):
-                code = code[: length // tokenizer.subsample * tokenizer.n_codebook]
+                code = code[: length // tokenizer.subsample]
                 codec_writer[key] = code
+                print("code: ", code, code.shape, wavs.size(), length_buffer)
 
             if dump_audio:
                 resyn_wavs = resyn_wavs.detach().cpu().numpy()

@@ -192,6 +192,6 @@ class CodecTokenizer(AbsTokenizer):
         # (3) shift by codebook
         shift = torch.arange(self.n_codebook).to(self.device)
         codes += shift.view(1, 1, -1) * self.size_codebook
-        codes = codes.int().flatten(start_dim=1)
+        codes = codes.int()
 
         return codes, resyn_audio

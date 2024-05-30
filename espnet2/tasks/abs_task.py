@@ -1328,7 +1328,7 @@ class AbsTask(ABC):
                 create_adapter(model, args.adapter, args.adapter_conf)
 
             # Note(Jinchuan): have to warp FSDP before building optimizers
-            if args.use_fsdp:
+            if args.use_fsdp and not args.collect_stats and torch.cuda.is_available():
                 model = warp_fsdp(
                     model, 
                     use_amp=args.use_amp, 
@@ -1407,7 +1407,7 @@ class AbsTask(ABC):
                     key_file=train_key_file,
                     batch_size=args.batch_size,
                     dtype=args.train_dtype,
-                    num_workers=args.num_workers,
+                    num_workers=0,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -1420,7 +1420,7 @@ class AbsTask(ABC):
                     key_file=valid_key_file,
                     batch_size=args.valid_batch_size,
                     dtype=args.train_dtype,
-                    num_workers=args.num_workers,
+                    num_workers=0,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),

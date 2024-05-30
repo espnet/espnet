@@ -43,17 +43,17 @@ dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
 
-# Data preparation related
+# Data preparation related (stage 1-5)
 local_data_opts=""  # Options to be passed to local/data.sh.
-data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition
-use_current_dataset=true # If true, use data that is prepared with current dataset.
+data_name=""        # The name of current dataset to prepare
+task=               # when task is multi_task, skip data preparation and use train/valid jsons
+
+# Data combination related (stage 6+)
+data_combo_name=""  # The name of data combination for training, This usually means a combination of several
+                    # datasets. Will only be used after data preparation stage.
 train_jsons=""      # train/valid/test data json files that are prepared in advance and save locally
 valid_jsons=""
 test_jsons=""
-hf_datacards=""     # Datasets hosts in huggingface hub. We provide several datasets that have been
-                    # tokenized already so users can directly pass this argument to train over these
-                    # datasets.
-hf_cache_dir=downloads # cache directory to download the huggingface datasets
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
@@ -89,8 +89,6 @@ download_model=""  # Download a model from Model Zoo and use it for decoding.
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-task=            # when task is multi_task, skip data preparation and use train/valid yamls
-
 
 # Tokenization related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -109,8 +107,6 @@ token_list_dir=
 
 # TODO(Jinchuan): Upload model related
 hf_repo=
-hf_data_repo=
-
 help_message=""
 
 log "$0 $*"
@@ -127,21 +123,57 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-if [ ! "$skip_data_prep" = true ] && [ -z ${task} ]; then
-    echo "Task is not specified but you want to prepare data" && exit 1;
+echo ${task}
+
+# Check for stage 1-5: data prep
+if ! "${skip_data_prep}"; then
+    if [ -z "${task}" ]; then
+        log "Task is not specified but you want to prepare data" && exit 1;
+    fi
+
+    if [ -z ${data_name} ]; then
+        log "Data_name is not specified but you want to prepare data" && exit 1;
+    fi
+
+        # Check feature type
+    if [ "${feats_type}" = raw ]; then
+        data_feats="${dumpdir}/raw_${task}_${data_name}"
+        data_audio="${dumpdir}/audio_raw_${task}_${data_name}"
+    else
+        log "${help_message}"
+        log "Error: only supported: --feats_type raw"
+        exit 1;
+    fi
+fi
+if ! ${skip_upload_hf_data} && ${skip_data_prep}; then
+    echo "Should not skip data prep if you intend to upload data to HF." && exit 1;
 fi
 
-# Check feature type
-if [ "${feats_type}" = raw ]; then
-    data_feats="${dumpdir}/raw_${task}"
-    data_audio="${dumpdir}/audio_raw"
+# Check for stage 6-7: data combination
+echo ${train_jsons} ${valid_jsons}
+if [ -n "${train_jsons}" ] && [ -n "${valid_jsons}" ]; then
+    if [ -z "${data_combo_name}" ]; then
+        log "External data resources are used. Please specify data_combo_name" && exit 1;
+    fi
 else
-    log "${help_message}"
-    log "Error: only supported: --feats_type raw"
-    exit 2
+    if ! "${skip_data_prep}"; then
+        if [ -z "${data_combo_name}" ]; then
+            data_combo_name=${task}_${data_name}
+        fi
+    else
+        log "No data from external resources or prepared locally. Cannot proceed..." && exit 1; 
+    fi
 fi
 
-# Set tag for naming of model directory
+if [ -z "${speechlm_stats_dir}" ]; then
+    speechlm_stats_dir="${expdir}/speechlm_stats_${data_combo_name}"
+fi
+
+if [ -z ${token_list_dir} ]; then
+    token_list_dir=data/token_list/${data_combo_name}
+fi
+
+# check for stage 8-9: training and inference
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
         tag="$(basename "${train_config}" .yaml)"
@@ -167,33 +199,8 @@ if [ -z "${inference_tag}" ]; then
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
-if [ -z ${data_tag} ]; then
-    if [ ! -z ${train_set} ]; then
-        data_tag=${train_set}_${task}
-    else
-        echo "Please provide a data tag if you don't provide train_set" && exit 1;
-    fi
-fi
-
-if [ ! "$skip_data_prep" = true ] && [ -z "$train_set" ]; then
-    echo "You want to prepare data but train_set is not specified" && exit 1;
-fi
-
-if [ "$use_current_dataset" = true ] && [ -z "$train_set" ]; then
-    echo "You want to use current data but train_set is not specified" && exit 1;
-fi
-
-# The directory used for collect-stats mode
-if [ -z "${speechlm_stats_dir}" ]; then
-    speechlm_stats_dir="${expdir}/speechlm_stats_${data_tag}"
-fi
-# The directory used for training commands
 if [ -z "${speechlm_exp}" ]; then
     speechlm_exp="${expdir}/speechlm_${tag}"
-fi
-
-if [ -z ${token_list_dir} ]; then
-    token_list_dir=data/token_list/${data_tag}
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -348,98 +355,96 @@ if ! "${skip_data_prep}"; then
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
-                --root ${PWD} \
                 ${opts}
         done
-
+        
     fi
 
 else
     log "Skip the stages for data preparation"
 fi
-
 # ========================== Data preparation is done here. ==========================
 
 
-if [ "${skip_train}" = false ] || [ "${skip_eval}" = false ]; then
-    log "collecting all data jsons for train / valid / test ..."
+# if [ "${skip_train}" = false ] || [ "${skip_eval}" = false ]; then
+#     log "collecting all data jsons for train / valid / test ..."
 
-    # (1) data that is prepared in advance
-    for data_json in ${train_jsons}; do
-        log "using existing train data json: ${data_json}"
-    done
-    for data_json in ${valid_jsons}; do
-        log "using existing valid data json: ${data_json}"
-    done
-    for data_json in ${test_jsons}; do
-        log "using existing test data json: ${data_json}"
-    done
+#     # (1) data that is prepared in advance
+#     for data_json in ${train_jsons}; do
+#         log "using existing train data json: ${data_json}"
+#     done
+#     for data_json in ${valid_jsons}; do
+#         log "using existing valid data json: ${data_json}"
+#     done
+#     for data_json in ${test_jsons}; do
+#         log "using existing test data json: ${data_json}"
+#     done
 
-    # (2) data that is prepared from current dataset
-    if ${use_current_dataset}; then
+#     # (2) data that is prepared from current dataset
+#     if ${use_current_dataset}; then
 
-        train_jsons+="${data_feats}/${train_set}/data.json "
-        log "using current train data json: ${data_feats}/${train_set}/data.json"
+#         train_jsons+="${data_feats}/${train_set}/data.json "
+#         log "using current train data json: ${data_feats}/${train_set}/data.json"
 
-        valid_jsons+="${data_feats}/${valid_set}/data.json "
-        log "using current train data json: ${data_feats}/${valid_set}/data.json"
+#         valid_jsons+="${data_feats}/${valid_set}/data.json "
+#         log "using current train data json: ${data_feats}/${valid_set}/data.json"
 
-        for test_set in ${test_sets}; do
-            test_jsons+="${data_feats}/${test_set}/data.json "
-            log "using current train data json: ${data_feats}/${test_set}/data.json"
-        done
-    fi
+#         for test_set in ${test_sets}; do
+#             test_jsons+="${data_feats}/${test_set}/data.json "
+#             log "using current train data json: ${data_feats}/${test_set}/data.json"
+#         done
+#     fi
 
-    # (3) data that is downloaded from huggingface
-    # NOTE(Jinchuan): Besides the data jsons that are prepared locally, we also
-    # support to use the datasets that are hosted in huggingface.
-    # However, we currently only consider huggingface as a place to host data only,
-    # so that our huggingface dataset is not like a standard huggingface dataset
-    # object. We directly parse the downloaded files.
-    if [ ! -z "${hf_datacards}" ]; then
-        for card in ${hf_datacards}; do
-            IFS='/' read -r _org _repo _train _valid <<< "${card}"
+#     # (3) data that is downloaded from huggingface
+#     # NOTE(Jinchuan): Besides the data jsons that are prepared locally, we also
+#     # support to use the datasets that are hosted in huggingface.
+#     # However, we currently only consider huggingface as a place to host data only,
+#     # so that our huggingface dataset is not like a standard huggingface dataset
+#     # object. We directly parse the downloaded files.
+#     if [ ! -z "${hf_datacards}" ]; then
+#         for card in ${hf_datacards}; do
+#             IFS='/' read -r _org _repo _train _valid <<< "${card}"
 
-            # will be a dummy operation if the dataset is already downloaded.
-            huggingface-cli download ${_org}/${_repo} --repo-type dataset --cache-dir ${hf_cache_dir}
+#             # will be a dummy operation if the dataset is already downloaded.
+#             huggingface-cli download ${_org}/${_repo} --repo-type dataset --cache-dir ${hf_cache_dir}
 
-            # find all data.json files and revise the root
-            all_data_jsons=$(find ${hf_cache_dir}/datasets--${_org}--${_repo}/snapshots -name data.json)
+#             # find all data.json files and revise the root
+#             all_data_jsons=$(find ${hf_cache_dir}/datasets--${_org}--${_repo}/snapshots -name data.json)
 
-            for data_json in ${all_data_jsons}; do
-                # revise the root
-                if [ ! -f ${data_json}.done ]; then
-                    root=$(echo ${data_json} | sed 's#/dump/.*##')
-                    jq --arg root "$root" '.root = $root' ${data_json} > ${data_json}.tmp
-                    mv ${data_json}.tmp ${data_json}
-                    touch ${data_json}.done
-                fi
+#             for data_json in ${all_data_jsons}; do
+#                 # revise the root
+#                 if [ ! -f ${data_json}.done ]; then
+#                     root=$(echo ${data_json} | sed 's#/dump/.*##')
+#                     jq --arg root "$root" '.root = $root' ${data_json} > ${data_json}.tmp
+#                     mv ${data_json}.tmp ${data_json}
+#                     touch ${data_json}.done
+#                 fi
 
-                # identify train / valid / test split
-                if [[ ${data_json} == *"/${_train}"/data.json ]]; then
-                    train_jsons+="${data_json} "
-                    log "using huggingface train data json: ${data_json}"
-                elif [[ ${data_json} == *"/${_valid}"/data.json ]]; then
-                    valid_jsons+="${data_json} "
-                    log "using huggingface valid data json: ${data_json}"
-                else
-                    test_jsons+="${data_json} "
-                    log "using huggingface test data json: ${data_json}"
-                fi
-            done
-        done
-    fi
+#                 # identify train / valid / test split
+#                 if [[ ${data_json} == *"/${_train}"/data.json ]]; then
+#                     train_jsons+="${data_json} "
+#                     log "using huggingface train data json: ${data_json}"
+#                 elif [[ ${data_json} == *"/${_valid}"/data.json ]]; then
+#                     valid_jsons+="${data_json} "
+#                     log "using huggingface valid data json: ${data_json}"
+#                 else
+#                     test_jsons+="${data_json} "
+#                     log "using huggingface test data json: ${data_json}"
+#                 fi
+#             done
+#         done
+#     fi
 
-    # for collect_stats and training
-    _data_opts=""
-    for train_json in $train_jsons; do
-        _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
-    done
+#     # for collect_stats and training
+#     _data_opts=""
+#     for train_json in $train_jsons; do
+#         _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
+#     done
 
-    for valid_json in $valid_jsons; do
-        _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
-    done
-fi
+#     for valid_json in $valid_jsons; do
+#         _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
+#     done
+# fi
 
 if ! ${skip_train}; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -663,19 +668,16 @@ fi
 if ! "${skip_upload_hf_data}"; then
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "upload the prepared ${task} dataset prepared in ${data_feats}"
-        if [ -z ${hf_data_repo} ]; then
-            echo "ERROR: You need to setup the variable hf_data_repo" && exit 1;
-        fi
 
         if [ "$(huggingface-cli whoami)" == "Not logged in" ]; then
             echo "You should login huggingface-cli before uploading the dataset" && exit 1;
         fi
 
-        huggingface-cli repo create -y ${hf_data_repo} --type dataset
-        huggingface-cli upload --repo-type dataset ${hf_data_repo} \
-            ${data_feats} ${data_feats}
+        huggingface-cli repo create -y ${data_combo_name} --type dataset
+        huggingface-cli upload --repo-type dataset ${data_combo_name} \
+            ${data_feats} ${data_feats} \
+            --exclude "*.log"
     fi
 fi
-
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

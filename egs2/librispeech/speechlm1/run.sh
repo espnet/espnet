@@ -9,7 +9,7 @@ train_set=train_960
 valid_set=dev_clean
 test_sets="dev_clean test_clean"
 
-train_config=conf/train_multiscale.yaml
+train_config=conf/train_multiscale_1.1b.yaml
 inference_config=conf/decode_encodec.yaml
 
 cleaner=tacotron
@@ -21,9 +21,10 @@ g2p=g2p_en_no_space # or g2p_en
 #                     some corner cases in memeory
 ./speechlm.sh \
     --task "tts" \
+    --data_name librispeech \
     --fs 16000 \
     --ngpu 8 \
-    --nj 64 \
+    --nj 16 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
     --inference_nj 1 \

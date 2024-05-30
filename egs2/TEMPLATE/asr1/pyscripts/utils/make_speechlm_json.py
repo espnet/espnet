@@ -39,12 +39,6 @@ def get_parser():
         action="append",
         help="Append token_list e.g. --token_list <token_list>",
     )
-    parser.add_argument(
-        "--root",
-        type=str,
-        help="the root of this dataset. Usually the current working directory"
-             "When moving this data directory, the root should be changed"
-    )
     return parser
 
 
@@ -58,7 +52,6 @@ def main():
     ### (1) collect metadata.
     # (1.1) task and root
     metadata["task"] = args.task
-    metadata["root"] = args.root
 
     # (1.2) vocabularies, if any
     if getattr(args, "token_list", None) is not None:

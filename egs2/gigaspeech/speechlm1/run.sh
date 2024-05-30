@@ -21,9 +21,10 @@ g2p=g2p_en_no_space # or g2p_en
 #                     some corner cases in memeory
 ./speechlm.sh \
     --task "tts" \
+    --data_name gigaspeech \
     --fs 16000 \
     --ngpu 8 \
-    --nj 64 \
+    --nj 88 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
     --inference_nj 1 \
