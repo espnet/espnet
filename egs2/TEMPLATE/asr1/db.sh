@@ -28,6 +28,7 @@ DNS3=
 DNS4=downloads
 DSING=downloads
 ESC50=
+EXPRESSO=downloads
 WSJ0=
 WSJ1=
 WSJ0_2MIX= # Path to wsj0_mix directory

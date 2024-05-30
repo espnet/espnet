@@ -69,7 +69,7 @@ discrete_stop_stage=3           # discretization stop stage
 clustering_nj=20                # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
-use_gpu_feat_extract=false      # Whether to use gpu for feature extraction
+use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
 feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
@@ -581,13 +581,6 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
 
-        # NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
-        #   We may include more control token here to imporve it.
-        mkdir -p "${km_dir}"
-        mkdir -p "${km_dir}"
-        (for n in `seq 1 ${feature_num_clusters}`; do
-            echo "<auido_token_${n}>"
-        done) > ${tgt_token_list}
     fi
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -620,6 +613,12 @@ if ! "${skip_data_prep}"; then
             --cpu_cmd "${train_cmd}" \
             --cuda_cmd "${cuda_cmd}"
 
+        # NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
+        # We may include more control token here to imporve it.
+        (for n in `seq 1 ${feature_num_clusters}`; do
+            echo "<auido_token_${n}>"
+        done) > ${tgt_token_list}
+
             # Copy generated pseudo labels to original dump dir
             for dset in ${train_set} ${valid_set} ${test_sets}; do
                 _out_dir=${feature_dir}/${kmeans_feature_type}/layer${feature_layer}/${dset}
@@ -630,6 +629,8 @@ if ! "${skip_data_prep}"; then
             # NOTE(jiatong): use the pseudo label without unique to train the vocoder
             log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
             log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}"
+
+
 
     fi
 else

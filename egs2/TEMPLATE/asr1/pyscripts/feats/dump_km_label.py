@@ -76,7 +76,7 @@ def get_parser():
         '"mat" is the matrix format in kaldi',
     )
     parser.add_argument(
-        "--audio_sampling_rate",
+        "--audio_sample_rate",
         type=int,
         default=16000,
         help="input audio sampling rate (could be different from fs used in SSL)",

@@ -318,8 +318,12 @@ def main():
         log_f0_rmse_dict = dict(log_f0_rmse_dict)
 
         # calculate statistics
-        mean_log_f0_rmse = np.mean(np.array([v for v in log_f0_rmse_dict.values()]))
-        std_log_f0_rmse = np.std(np.array([v for v in log_f0_rmse_dict.values()]))
+        values = []
+        for v in log_f0_rmse_dict.values():
+            if v > 0 and v < 1:
+                values.append(v)
+        mean_log_f0_rmse = np.mean(np.array([values]))
+        std_log_f0_rmse = np.std(np.array([values]))
         logging.info(f"Average: {mean_log_f0_rmse:.4f} ± {std_log_f0_rmse:.4f}")
 
     # write results
