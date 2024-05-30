@@ -256,45 +256,8 @@
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">postfrontend</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">postfrontends</span><span class="p">):</span>
             <span class="n">postfrontend_type</span> <span class="o">=</span> <span class="n">postfrontend</span><span class="p">[</span><span class="s2">&quot;postfrontend_type&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">postfrontend_type</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
-                <span class="n">n_mels</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">win_length</span><span class="p">,</span> <span class="n">hop_length</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_mels&quot;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
-                    <span class="n">fs</span><span class="p">,</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_fft&quot;</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;win_length&quot;</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hop_length&quot;</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
-                <span class="p">)</span>
-                <span class="n">window</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">normalized</span><span class="p">,</span> <span class="n">onesided</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;window&quot;</span><span class="p">,</span> <span class="s2">&quot;hann&quot;</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;normalized&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;onesided&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
-                <span class="p">)</span>
-                <span class="n">fmin</span><span class="p">,</span> <span class="n">fmax</span><span class="p">,</span> <span class="n">htk</span><span class="p">,</span> <span class="n">apply_stft</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fmin&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fmax&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;htk&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
-                    <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;apply_stft&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
-                <span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="n">DefaultFrontend</span><span class="p">(</span>
-                        <span class="n">n_mels</span><span class="o">=</span><span class="n">n_mels</span><span class="p">,</span>
-                        <span class="n">n_fft</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span>
-                        <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
-                        <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span>
-                        <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span>
-                        <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
-                        <span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="p">,</span>
-                        <span class="n">normalized</span><span class="o">=</span><span class="n">normalized</span><span class="p">,</span>
-                        <span class="n">onesided</span><span class="o">=</span><span class="n">onesided</span><span class="p">,</span>
-                        <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span>
-                        <span class="n">fmax</span><span class="o">=</span><span class="n">fmax</span><span class="p">,</span>
-                        <span class="n">htk</span><span class="o">=</span><span class="n">htk</span><span class="p">,</span>
-                        <span class="n">apply_stft</span><span class="o">=</span><span class="n">apply_stft</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="n">postfrontend_type</span> <span class="o">==</span> <span class="s2">&quot;s3prl&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">postfrontend_type</span> <span class="o">==</span> <span class="s2">&quot;s3prl&quot;</span><span class="p">:</span>
                 <span class="n">postfrontend_conf</span><span class="p">,</span> <span class="n">download_dir</span><span class="p">,</span> <span class="n">multilayer_feature</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;postfrontend_conf&quot;</span><span class="p">),</span>
                     <span class="n">postfrontend</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;download_dir&quot;</span><span class="p">),</span>
@@ -309,9 +272,8 @@
                         <span class="n">multilayer_feature</span><span class="o">=</span><span class="n">multilayer_feature</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span>  <span class="c1"># frontends are only default or s3prl</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>  <span class="c1"># frontends are only s3prl</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span><span class="p">)</span>
 
@@ -321,10 +283,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">postfrontend</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">gcd</span> <span class="k">for</span> <span class="n">postfrontend</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span>
         <span class="p">]</span>
-        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
-            <span class="n">dev</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">dev</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">align_method</span> <span class="o">==</span> <span class="s2">&quot;linear_projection&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">projection_layers</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
@@ -334,7 +293,6 @@
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">postfrontend</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span><span class="p">)</span>
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">projection_layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_layers</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">projection_layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_layers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">dev</span><span class="p">))</span>
 
 <div class="viewcode-block" id="FusedPostFrontends.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.post_frontend.fused.FusedPostFrontends.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">postfrontends</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_dim</span></div>

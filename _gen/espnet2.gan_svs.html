@@ -332,6 +332,38 @@
 </dl>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">slur: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caclualte features and return them as a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
+<li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (T_wav).</p></li>
+<li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (T_label).</p></li>
+<li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (T_syb)</p></li>
+<li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (T_l abel).</p></li>
+<li><p><strong>duration_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_label).</p></li>
+<li><p><strong>duration_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
+<li><p><strong>duration_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
+<li><p><strong>slur</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – slur tensor (T_phone).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (D,).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (1,).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (1,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor (T_wav).</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict of outputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -391,7 +423,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="espnet2-gan-svs-post-frontend-s3prl"></span><h2>espnet2.gan_svs.post_frontend.s3prl<a class="headerlink" href="#espnet2-gan-svs-post-frontend-s3prl-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.post_frontend.s3prl"></span><dl class="class">
 <dt id="espnet2.gan_svs.post_frontend.s3prl.S3prlPostFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.post_frontend.s3prl.</code><code class="sig-name descname">S3prlPostFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">input_fs: Union[int</em>, <em class="sig-param">str] = 24000</em>, <em class="sig-param">postfrontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">download_dir: str = None</em>, <em class="sig-param">multilayer_feature: bool = False</em>, <em class="sig-param">layer: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/post_frontend/s3prl.html#S3prlPostFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.post_frontend.s3prl.S3prlPostFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.post_frontend.s3prl.</code><code class="sig-name descname">S3prlPostFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">input_fs: Union[int</em>, <em class="sig-param">str] = 24000</em>, <em class="sig-param">postfrontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">download_dir: Optional[str] = None</em>, <em class="sig-param">multilayer_feature: bool = False</em>, <em class="sig-param">layer: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/post_frontend/s3prl.html#S3prlPostFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.post_frontend.s3prl.S3prlPostFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Pretrained SSL model for VISinger2 Plus. Based on S3prlFrontend,
 S3prlPostFrontend added a resampler to resample the input audio to
@@ -2258,13 +2290,14 @@ value (LongTensor): Batch of padded duration (B, T_text).</p></li>
 
 <dl class="method">
 <dt id="espnet2.gan_svs.vits.vits.VITS.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">slur: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/vits.html#VITS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.vits.VITS.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">ssl_feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">slur: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/vits.html#VITS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.vits.VITS.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run inference.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (T_feats, aux_channels).</p></li>
+<li><p><strong>ssl_feats</strong> (<em>Tensor</em>) – SSL Feature tensor (T_feats, hubert_channels).</p></li>
 <li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
 value (LongTensor): Batch of padded label ids (B, T_text).</p></li>
 <li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
