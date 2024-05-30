@@ -79,7 +79,7 @@ def get_parser():
         "--audio_sampling_rate",
         type=int,
         default=16000,
-        help="input audio sampling rate (could be different from fs used in SSL)"
+        help="input audio sampling rate (could be different from fs used in SSL)",
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"

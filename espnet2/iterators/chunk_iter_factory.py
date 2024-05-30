@@ -1,11 +1,12 @@
 import logging
 import re
 from collections import defaultdict
+from copy import deepcopy
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -34,6 +35,7 @@ class ChunkIterFactory(AbsIterFactory):
 
     """
 
+    @typechecked
     def __init__(
         self,
         dataset,
@@ -51,7 +53,6 @@ class ChunkIterFactory(AbsIterFactory):
         excluded_key_prefixes: Optional[List[str]] = None,
         default_fs: Optional[int] = None,
     ):
-        assert check_argument_types()
         assert all(len(x) == 1 for x in batches), "batch-size must be 1"
 
         self.per_sample_iter_factory = SequenceIterFactory(
@@ -102,13 +103,14 @@ class ChunkIterFactory(AbsIterFactory):
         #  - exactly match one of the prefixes in `excluded_key_prefixes`
         #  - have one of the prefixes in `excluded_key_prefixes` and end with numbers
         if excluded_key_prefixes is None:
-            excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
+            _excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
         else:
+            _excluded_key_prefixes = deepcopy(excluded_key_prefixes)
             for k in DEFAULT_EXCLUDED_KEY_PREFIXES:
-                if k not in excluded_key_prefixes:
-                    excluded_key_prefixes.append(k)
+                if k not in _excluded_key_prefixes:
+                    _excluded_key_prefixes.append(k)
         self.excluded_key_pattern = (
-            "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
+            "(" + "[0-9]*)|(".join(_excluded_key_prefixes) + "[0-9]*)"
         )
         if self.excluded_key_pattern:
             logging.info(

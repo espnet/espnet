@@ -5,12 +5,17 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_no_dev_10min
-train_dev=dev_small
+train_set=tr_no_dev
+train_dev=dev
 eval_set=eval1
 
 # put your vocoder file and vocoder config file here
+# vocoder can be trained from
+# https://github.com/kan-bayashi/ParallelWaveGAN
 vocoder_file=vocoder/vocoder.pkl
+
+# duration information
+teacher_dumpdir=teacher_dumpdir
 
 ./tts2.sh \
     --nj 16 \
@@ -20,7 +25,7 @@ vocoder_file=vocoder/vocoder.pkl
     --feature_layer 6 \
     --feature_num_clusters 500 \
     --lang en \
-    --teacher_dumpdir teacher_dumpdir \
+    --teacher_dumpdir ${teacher_dumpdir} \
     --train_config conf/train_fastspeech2.yaml \
     --train_set ${train_set} \
     --valid_set ${train_dev} \

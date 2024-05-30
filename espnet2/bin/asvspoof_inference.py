@@ -2,14 +2,13 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asvspoof import ASVSpoofTask
@@ -23,6 +22,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 class SpeechAntiSpoof:
     """SpeechAntiSpoof class
+
     Examples:
         >>> import soundfile
         >>> speech_anti_spoof = SpeechAntiSpoof("asvspoof_config.yml", "asvspoof.pth")
@@ -31,15 +31,15 @@ class SpeechAntiSpoof:
         prediction_result (int)
     """
 
+    @typechecked
     def __init__(
         self,
-        asvspoof_train_config: Union[Path, str] = None,
-        asvspoof_model_file: Union[Path, str] = None,
+        asvspoof_train_config: Union[Path, str, None] = None,
+        asvspoof_model_file: Union[Path, str, None] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
     ):
-        assert check_argument_types()
 
         asvspoof_model, asvspoof_train_args = ASVSpoofTask.build_model_from_file(
             asvspoof_train_config, asvspoof_model_file, device
@@ -52,14 +52,15 @@ class SpeechAntiSpoof:
         self.dtype = dtype
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> float:
         """Inference
+
         Args:
             data: Input speech data
         Returns:
             [prediction, scores]
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -75,17 +76,18 @@ class SpeechAntiSpoof:
         # To device
         batch = to_device(batch, device=self.device)
 
-        # TODO1 (checkpoint 4): Forward feature extraction and encoder etc.
+        # TODO(checkpoint 4): Forward feature extraction and encoder etc.
 
         if "oc_softmax_loss" in self.asvspoof_model.losses:
-            pass  # TODO1 (exercise2): use loss score function to estimate score
+            pass  # TODO(exercise2): use loss score function to estimate score
         else:
-            pass  # TODO2 (checkpoint 4): Pass the encoder result to decoder
+            pass  # TODO(checkpoint 4): Pass the encoder result to decoder
 
-        # TODO3 (checkpoint 4): return the prediction score
+        # TODO(checkpoint 4): return the prediction score
         return None
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -100,7 +102,6 @@ def inference(
     asvspoof_model_file: Optional[str],
     allow_variable_data_keys: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -168,7 +169,7 @@ def inference(
             key = keys[0]
 
             # Create a directory: outdir/{n}best_recog
-            result_writer = writer[f"prediction"]
+            result_writer = writer["prediction"]
 
             # Write the result to each file
             result_writer["score"][key] = str(score)

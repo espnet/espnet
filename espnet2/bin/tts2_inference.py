@@ -14,20 +14,13 @@ import numpy as np
 import soundfile as sf
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
-
-# from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-
-# from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
-
-# from espnet2.tts.tacotron2 import Tacotron2
-# from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -38,23 +31,14 @@ class Text2Speech:
     """Text2Speech class.
 
     Examples:
-        >>> from espnet2.bin.tts_inference import Text2Speech
-        >>> # Case 1: Load the local model and use Griffin-Lim vocoder
-        >>> text2speech = Text2Speech(
-        >>>     train_config="/path/to/config.yml",
-        >>>     model_file="/path/to/model.pth",
-        >>> )
-        >>> # Case 2: Load the local model and the pretrained vocoder
+        >>> from espnet2.bin.tts2_inference import Text2Speech
+        >>> # Case 1: Load the local model and the pretrained vocoder
         >>> text2speech = Text2Speech.from_pretrained(
         >>>     train_config="/path/to/config.yml",
         >>>     model_file="/path/to/model.pth",
         >>>     vocoder_tag="kan-bayashi/ljspeech_tacotron2",
         >>> )
-        >>> # Case 3: Load the pretrained model and use Griffin-Lim vocoder
-        >>> text2speech = Text2Speech.from_pretrained(
-        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
-        >>> )
-        >>> # Case 4: Load the pretrained model and the pretrained vocoder
+        >>> # Case 2: Load the pretrained model and the pretrained vocoder
         >>> text2speech = Text2Speech.from_pretrained(
         >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
         >>>     vocoder_tag="parallel_wavegan/ljspeech_parallel_wavegan.v1",
@@ -66,10 +50,11 @@ class Text2Speech:
 
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -80,16 +65,14 @@ class Text2Speech:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_file: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_file: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
-        prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = TTS2Task.build_model_from_file(
@@ -101,27 +84,25 @@ class Text2Speech:
         self.train_args = train_args
         self.model = model
         self.tts = model.tts
-        self.normalize = model.normalize
-        self.feats_extract = model.feats_extract
         self.duration_calculator = DurationCalculator()
         self.preprocess_fn = TTS2Task.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.vocoder = None
-        self.prefer_normalized_feats = prefer_normalized_feats
-        if self.tts.require_vocoder:
+
+        if vocoder_file is None:
+            logging.warning("TTS2 must have a vocoder, but None is provided.")
+            self.vocoder = None
+        else:
             vocoder = TTS2Task.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
                 vocoder.to(dtype=getattr(torch, dtype)).eval()
             self.vocoder = vocoder
-        logging.info(f"Extractor:\n{self.feats_extract}")
-        logging.info(f"Normalizer:\n{self.normalize}")
+
         logging.info(f"TTS:\n{self.tts}")
-        if self.vocoder is not None:
-            logging.info(f"Vocoder:\n{self.vocoder}")
+        logging.info(f"Vocoder:\n{self.vocoder}")
 
         # setup decoding config
         decode_conf = {}
@@ -131,18 +112,18 @@ class Text2Speech:
         self.decode_conf = decode_conf
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         text: Union[str, torch.Tensor, np.ndarray],
-        speech: Union[torch.Tensor, np.ndarray] = None,
-        durations: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        speech: Union[torch.Tensor, np.ndarray, None] = None,
+        durations: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run text-to-speech."""
-        assert check_argument_types()
 
         # check inputs
         if self.use_speech and speech is None:
@@ -186,9 +167,10 @@ class Text2Speech:
             duration, focus_rate = self.duration_calculator(output_dict["att_w"])
             output_dict.update(duration=duration, focus_rate=focus_rate)
 
-        # apply vocoder (mel-to-wav)
+        # apply vocoder (discrete-to-wav)
+        input_feat = output_dict["feat_gen"].unsqueeze(1)
+
         if self.vocoder is not None:
-            input_feat = output_dict["feat_gen"].unsqueeze(1)
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
@@ -286,6 +268,7 @@ class Text2Speech:
         return Text2Speech(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -316,7 +299,6 @@ def inference(
     vocoder_tag: Optional[str],
 ):
     """Run text-to-speech inference."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -380,8 +362,7 @@ def inference(
 
     # 6. Start for-loop
     output_dir = Path(output_dir)
-    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
+    (output_dir / "feats").mkdir(parents=True, exist_ok=True)
     (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)
     (output_dir / "wav").mkdir(parents=True, exist_ok=True)
     (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
@@ -397,11 +378,9 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
-    ) as norm_writer, NpyScpWriter(
-        output_dir / "denorm", output_dir / "denorm/feats.scp"
-    ) as denorm_writer, open(
+        output_dir / "feats",
+        output_dir / "feats/feats.scp",
+    ) as feats_writer, open(
         output_dir / "speech_shape/speech_shape", "w"
     ) as shape_writer, open(
         output_dir / "durations/durations", "w"
@@ -435,12 +414,10 @@ def inference(
                 if feat_gen.size(0) == insize * maxlenratio:
                     logging.warning(f"output length reaches maximum length ({key}).")
 
-                norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
+                feats_writer[key] = output_dict["feat_gen"].cpu().numpy()
                 shape_writer.write(
                     f"{key} " + ",".join(map(str, output_dict["feat_gen"].shape)) + "\n"
                 )
-                if output_dict.get("feat_gen_denorm") is not None:
-                    denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
             else:
                 # end-to-end text2wav model case
                 wav = output_dict["wav"]
@@ -524,9 +501,7 @@ def inference(
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
-        shutil.rmtree(output_dir / "norm")
-    if output_dict.get("feat_gen_denorm") is None:
-        shutil.rmtree(output_dir / "denorm")
+        shutil.rmtree(output_dir / "feats")
     if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
     if output_dict.get("duration") is None:

@@ -438,9 +438,9 @@ def write_f(pth, filename, data_dict):
                                             flist.write(f"{uttidx}\n")
                                             tlist.write(f"{uttidx} {text}\n")
                                             _, recordid, start, end = uttidx.split("-")
-                                            wav_cmds[
-                                                recordid
-                                            ] = f"flac -c -d -s {audio_pth} |"
+                                            wav_cmds[recordid] = (
+                                                f"flac -c -d -s {audio_pth} |"
+                                            )
                                             # map to sec, original ms,
                                             # idx here has /10.
                                             start, end = (

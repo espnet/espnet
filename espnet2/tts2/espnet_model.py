@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -29,25 +29,21 @@ else:
 class ESPnetTTS2Model(AbsESPnetModel):
     """ESPnet model for text-to-speech task."""
 
+    @typechecked
     def __init__(
         self,
         discrete_feats_extract: AbsFeatsExtractDiscrete,
-        feats_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
-        normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
         tts: AbsTTS2,
     ):
         """Initialize ESPnetTTSModel module."""
-        assert check_argument_types()
         super().__init__()
         self.discrete_feats_extract = discrete_feats_extract
-        self.feats_extract = feats_extract
         self.pitch_extract = pitch_extract
         self.energy_extract = energy_extract
-        self.normalize = normalize
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.tts = tts
@@ -78,6 +74,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            discrete_speech (Tensor): Discrete speech tensor (B, T_token).
+            discrete_speech_lengths (Tensor): Discrete speech length tensor (B,).
             duration (Optional[Tensor]): Duration tensor.
             duration_lengths (Optional[Tensor]): Duration length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor.
@@ -100,11 +98,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
             discrete_feats, discrete_feats_lengths = self.discrete_feats_extract(
                 discrete_speech, discrete_speech_lengths
             )
-            if self.feats_extract is not None:
-                feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-            else:
-                # Use precalculated feats (feats_type != raw case)
-                feats, feats_lengths = speech, speech_lengths
+            feats, feats_lengths = speech, speech_lengths
 
             # Extract auxiliary features
             if self.pitch_extract is not None and pitch is None:
@@ -115,7 +109,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute pitch onthefly", flush=True)
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
                     speech,
@@ -124,11 +117,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
-                print("compute energy onthefly", flush=True)
 
             # Normalize
-            if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)
             if self.pitch_normalize is not None:
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
@@ -138,8 +128,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
         batch = dict(
             text=text,
             text_lengths=text_lengths,
-            feats=feats,
-            feats_lengths=feats_lengths,
             discrete_feats=discrete_feats,
             discrete_feats_lengths=discrete_feats_lengths,
         )
@@ -188,6 +176,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            discrete_speech (Tensor): Discrete speech tensor (B, T_token).
+            discrete_speech_lengths (Tensor): Discrete speech length tensor (B,).
             durations (Optional[Tensor): Duration tensor.
             durations_lengths (Optional[Tensor): Duration length tensor (B,).
             pitch (Optional[Tensor): Pitch tensor.
@@ -203,16 +193,12 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         """
         # feature extraction
-        if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-        else:
-            # Use precalculated feats (feats_type != raw case)
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = speech, speech_lengths
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=feats_lengths,
+                feats_lengths=discrete_feats_lengths,
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
@@ -220,15 +206,15 @@ class ESPnetTTS2Model(AbsESPnetModel):
             energy, energy_lengths = self.energy_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=feats_lengths,
+                feats_lengths=discrete_feats_lengths,
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
 
         # store in dict
         feats_dict = dict(
-            feats=feats,
-            feats_lengths=feats_lengths,
+            discrete_feats=discrete_feats,
+            discrete_feats_lengths=discrete_feats_lengths,
         )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
@@ -237,7 +223,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         return feats_dict
 
-    # (Jinchuan): have not handle this yet
     def inference(
         self,
         text: torch.Tensor,
@@ -270,13 +255,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
                 raise RuntimeError("missing required argument: 'speech'")
-            if self.feats_extract is not None:
-                feats = self.feats_extract(speech[None])[0][0]
-            else:
-                # Use precalculated feats (feats_type != raw case)
-                feats = speech
-            if self.normalize is not None:
-                feats = self.normalize(feats[None])[0][0]
+            feats = speech
             input_dict.update(feats=feats)
             if self.tts.require_raw_speech:
                 input_dict.update(speech=speech)

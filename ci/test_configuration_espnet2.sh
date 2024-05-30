@@ -20,9 +20,38 @@ python3 -m pip uninstall -y chainer
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.8.0")' &> /dev/null;  then
+
+    s3prl_confs='[ "egs2/fsc/asr1/conf/train_asr.yaml",
+        "egs2/americasnlp22/asr1/conf/train_asr_transformer.yaml",
+        "egs2/aphasiabank/asr1/conf/train_asr.yaml".
+        "egs2/bur_openslr80/asr1/conf/train_asr_hubert_transformer_adam_specaug.yaml",
+        "egs2/catslu/asr1/conf/train_asr.yaml",
+        "egs2/dcase22_task1/asr1/conf/train_asr.yaml",
+        "egs2/fleurs/asr1/conf/train_asr.yaml",
+        "egs2/fsc_challenge/asr1/conf/train_asr.yaml",
+        "egs2/fsc_unseen/asr1/conf/train_asr.yaml",
+        "egs2/meld/asr1/conf/train_asr.yaml",
+        "egs2/microsoft_speech/asr1/conf/train_asr.yaml",
+        "egs2/mini_an4/asr1/conf/train_asr_transducer_debug.yaml",
+        "egs2/slue-voxceleb/asr1/conf/train_asr.yaml",
+        "egs2/slue-voxpopuli/asr1/conf/train_asr.yaml",
+        "egs2/stop/asr1/conf/train_asr2_hubert_lr0.002.yaml",
+        "egs2/stop/asr1/conf/train_asr2_wav2vec2_lr0.002.yaml",
+        "egs2/stop/asr1/conf/train_asr2_wavlm_branchformer.yaml",
+        "egs2/stop/asr1/conf/train_asr2_wavlm_lr0.002.yaml",
+        "egs2/swbd_da/asr1/conf/train_asr.yaml",
+        "egs2/totonac/asr1/conf/train_asr.yaml" ]'
+
+    warprnnt_confs='[ "egs2/librispeech/asr1/conf/train_asr_rnnt.yaml" ]'
+
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        if [ "$f" == "egs2/fsc/asr1/conf/train_asr.yaml" ]; then
-            if ! python3 -c "import s3prl" > /dev/null; then
+        if [[ ${s3prl_confs} =~ \"${f}\" ]]; then
+            if ! python3 -c "import s3prl" &> /dev/null; then
+                continue
+            fi
+        fi
+        if [[ ${warprnnt_confs} =~ \"${f}\" ]]; then
+            if ! python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
                 continue
             fi
         fi

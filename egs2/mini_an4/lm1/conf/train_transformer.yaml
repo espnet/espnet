@@ -1,0 +1,46 @@
+num_workers: 1
+use_amp: false
+sharded_ddp: false
+num_att_plot: 0
+
+lm: transformer
+lm_conf:
+    pos_enc: null
+    embed_unit: 256
+    att_unit: 256
+    head: 8
+    unit: 1024
+    layer: 4
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+
+model: lm_multitask
+
+model_conf:
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sos_syms:   # multiple sos symbols are used
+    - "<generatetext>"
+    eos_sym: "<sos/eos>"
+
+# optimization related
+grad_clip: 5.0
+batch_type: length
+batch_bins: 20000
+accum_grad: 1
+max_epoch: 10
+
+optim: adam
+optim_conf:
+   lr: 0.001
+   weight_decay: 1.0e-06
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 10000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10

@@ -1,7 +1,6 @@
 import torch
 
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
-from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
@@ -18,6 +17,7 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
 
     def forward(self, pred: torch.Tensor, label: torch.Tensor, **kwargs):
         """Forward.
+
         Args:
             pred  (torch.Tensor): prediction probability [Batch, 2]
             label (torch.Tensor): ground truth label [Batch, 2]

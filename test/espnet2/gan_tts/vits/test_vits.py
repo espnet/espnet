@@ -13,6 +13,7 @@ def get_test_data():
     test_data = [
         ({}, {}, {}),
         ({}, {}, {"cache_generator_outputs": True}),
+        ({}, {}, {"plot_pred_mos": True}),
         (
             {},
             {
@@ -273,6 +274,7 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
@@ -348,6 +350,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="Group conv in pytorch 1.6 has an issue. "

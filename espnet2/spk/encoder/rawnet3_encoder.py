@@ -5,15 +5,15 @@
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.rawnet_block import Bottle2neck
 
 
 class RawNet3Encoder(AbsEncoder):
-    """
-    RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
+    """RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
+
     paper: J. Jung et al., "Pushing the limits of raw waveform speaker
         recognition", in Proc. INTERSPEECH, 2022.
 
@@ -25,6 +25,7 @@ class RawNet3Encoder(AbsEncoder):
         output_size: ouptut embedding dimension.
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -34,10 +35,9 @@ class RawNet3Encoder(AbsEncoder):
         output_size: int = 1536,
         **kwargs,
     ):
-        assert check_argument_types()
         super().__init__()
         if block == "Bottle2neck":
-            block = Bottle2neck
+            block: type = Bottle2neck
         else:
             raise ValueError(f"unsupported block, got: {block}")
 

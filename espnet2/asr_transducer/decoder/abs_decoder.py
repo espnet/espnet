@@ -87,9 +87,7 @@ class AbsDecoder(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def init_state(
-        self, batch_size: int
-    ) -> Union[
+    def init_state(self, batch_size: int) -> Union[
         List[Dict[str, torch.Tensor]],
         List[torch.Tensor],
         Tuple[torch.Tensor, Optional[torch.tensor]],

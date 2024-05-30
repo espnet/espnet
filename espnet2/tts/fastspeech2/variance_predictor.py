@@ -6,7 +6,7 @@
 """Variance predictor related modules."""
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
@@ -22,6 +22,7 @@ class VariancePredictor(torch.nn.Module):
 
     """
 
+    @typechecked
     def __init__(
         self,
         idim: int,
@@ -41,7 +42,6 @@ class VariancePredictor(torch.nn.Module):
             dropout_rate (float): Dropout rate.
 
         """
-        assert check_argument_types()
         super().__init__()
         self.conv = torch.nn.ModuleList()
         for idx in range(n_layers):

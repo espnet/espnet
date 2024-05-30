@@ -10,11 +10,14 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
 from espnet2.gan_svs.joint import JointScore2Wav
+from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
+from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -40,6 +43,15 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
+postfrontend_choices = ClassChoices(
+    name="postfrontend",
+    classes=dict(
+        s3prl=S3prlPostFrontend,
+        fused=FusedPostFrontends,
+    ),
+    type_check=AbsFrontend,
+    default=None,
+)
 feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(
@@ -130,6 +142,8 @@ class GANSVSTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
+        # --postfrontend and --postfrontend_conf
+        postfrontend_choices,
         # --score_extractor and --score_extractor_conf
         score_feats_extractor_choices,
         # --feats_extractor and --feats_extractor_conf
@@ -154,15 +168,22 @@ class GANSVSTask(AbsTask):
     trainer = GANTrainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
+
+        group.add_argument(
+            "--input_size",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
+        )
 
         group.add_argument(
             "--token_list",
@@ -236,13 +257,11 @@ class GANSVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -250,10 +269,10 @@ class GANSVSTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -268,8 +287,6 @@ class GANSVSTask(AbsTask):
             )
         else:
             retval = None
-        # FIXME (jiatong): sometimes checking is not working here
-        # assert check_return_type(retval)
         return retval
 
     # TODO(Yuning): check new names
@@ -305,8 +322,8 @@ class GANSVSTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
-        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -335,6 +352,21 @@ class GANSVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
+        # 1. ssl postfrontend
+        if args.input_size is None and args.postfrontend is not None:
+            # Extract features in the model
+            postfrontend_class = postfrontend_choices.get_class(args.postfrontend)
+            postfrontend = postfrontend_class(
+                **args.postfrontend_conf, input_fs=args.svs_conf["sampling_rate"]
+            )
+            input_size = postfrontend.output_size()
+        else:
+            # Give features from data-loader
+            args.postfrontend = None
+            args.postfrontend_conf = {}
+            postfrontend = None
+            input_size = args.input_size
+
         # 2. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
@@ -344,6 +376,7 @@ class GANSVSTask(AbsTask):
 
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
+        args.svs_conf["generator_params"].update({"hubert_channels": input_size})
         svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
         # 4. Extra components
@@ -401,6 +434,7 @@ class GANSVSTask(AbsTask):
 
         # 5. Build model
         model = ESPnetGANSVSModel(
+            postfrontend=postfrontend,
             text_extract=score_feats_extract,
             feats_extract=feats_extract,
             score_feats_extract=score_feats_extract,
@@ -415,7 +449,6 @@ class GANSVSTask(AbsTask):
             svs=svs,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod

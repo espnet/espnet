@@ -4,26 +4,26 @@
 """Fastspeech2 related modules for ESPnet2."""
 
 import logging
+import math
 from typing import Dict, Optional, Sequence, Tuple
 
 import torch
-import math
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
+from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
+from espnet2.gan_tts.vits.loss import KLDivergenceLoss
+from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
+from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.fastspeech2.loss import FastSpeech2LossDiscrete
 from espnet2.tts2.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts2.gst.style_encoder import StyleEncoder
-from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
-from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
-from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
@@ -412,7 +412,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         )
 
         # define criterions
-        self.ce_criterion = torch.nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_id)
+        self.ce_criterion = torch.nn.CrossEntropyLoss(
+            reduction="mean", ignore_index=ignore_id
+        )
         self.mse_criterion = torch.nn.MSELoss(reduction="mean")
         self.kl_loss = KLDivergenceLoss()
         self.ce_scale = ce_scale
@@ -457,7 +459,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
-        discrete_feats = discrete_feats[:, : discrete_feats_lengths.max()] # for data-parallel
+        discrete_feats = discrete_feats[
+            :, : discrete_feats_lengths.max()
+        ]  # for data-parallel
 
         batch_size = text.size(0)
 
@@ -495,7 +499,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             ys = ys[:, :max_olen]
 
         # apply mask before loss calculation
-        discrete_outs = discrete_outs.masked_select((y_mask > 0).unsqueeze(-1)).view(-1, self.odim)
+        discrete_outs = discrete_outs.masked_select((y_mask > 0).unsqueeze(-1)).view(
+            -1, self.odim
+        )
         ys = ys.masked_select(y_mask > 0)
 
         # calculate loss
@@ -503,7 +509,11 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         duration_loss = torch.sum(dur_nll.float())
         kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, y_mask)
         accuracy = (discrete_outs.argmax(-1) == ys).sum() / (ys == ys).sum()
-        loss = self.ce_scale * ce_loss + self.dur_scale * duration_loss + self.kl_scale * kl_loss
+        loss = (
+            self.ce_scale * ce_loss
+            + self.dur_scale * duration_loss
+            + self.kl_scale * kl_loss
+        )
 
         stats = dict(
             ce_loss=ce_loss.item(),
@@ -530,7 +540,6 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             return loss, stats, weight
         else:
             return loss, stats, discrete_outs
-
 
     def _encode(
         self,
@@ -568,9 +577,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
                 g = g_
             else:
                 g = g + g_
-        
+
         return x, m_p, logs_p, x_mask, g
-    
+
     def _forward(
         self,
         xs: torch.Tensor,
@@ -582,7 +591,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         lids: Optional[torch.Tensor] = None,
     ) -> Sequence[torch.Tensor]:
         # forward text encoder and gather global information
-        x, m_p, logs_p, x_mask, g = self._encode(xs, ilens, spembs, sids, lids, inference=False)
+        x, m_p, logs_p, x_mask, g = self._encode(
+            xs, ilens, spembs, sids, lids, inference=False
+        )
 
         # forward posterior encoder
         ys = self.ys_embedding(ys)
@@ -654,7 +665,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
         )
-    
+
     def inference(
         self,
         text: torch.Tensor,
@@ -702,7 +713,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             sids = sids.view(1)
         if lids is not None:
             lids = lids.view(1)
-        
+
         # inference
         if use_teacher_forcing:
             assert feats is not None
@@ -783,7 +794,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
         """
 
         # forward text encoder and gather global information
-        x, m_p, logs_p, x_mask, g  = self._encode(text, text_lengths, spembs, sids, lids, inference=True)
+        x, m_p, logs_p, x_mask, g = self._encode(
+            text, text_lengths, spembs, sids, lids, inference=True
+        )
 
         if use_teacher_forcing:
             # forward posterior encoder
@@ -861,12 +874,9 @@ class FastSpeech2DiscreteMA(AbsTTS2):
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
             z = self.flow(z_p, y_mask, g=g, inverse=True)
             discrete_outs, _ = self.decoder(z.transpose(1, 2), y_mask)
-        
-         
+
         discrete_outs = self.feat_out(discrete_outs)
         return discrete_outs, dur
-        
-
 
     def _generate_path(self, dur: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Generate path a.k.a. monotonic attention.

@@ -53,17 +53,17 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 250    # number of iterations per epoch
+num_iters_per_epoch: 500    # number of iterations per epoch
 max_epoch: 200              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 # batch_bins: 1600000       # batch bins (for feats_type=fbank)
-batch_bins: 15360000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
+batch_bins: 5120000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
 batch_type: numel           # how to make batch
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
-num_workers: 4              # number of workers of data loader
+num_workers: 1              # number of workers of data loader
 train_dtype: float32        # dtype in training
 log_interval: null          # log interval in iterations
 keep_nbest_models: 5        # number of models to keep

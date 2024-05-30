@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10"]
-        pytorch-version: [2.0.1]
+        pytorch-version: [2.1.0]
         use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
@@ -26,7 +26,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: 'x64'
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -43,4 +42,4 @@ jobs:
           # CC: /usr/local/bin/gcc-11
           # CXX: /usr/local/bin/g++-11
         run: |
-          ./ci/install.sh
+          ./ci/install_macos.sh

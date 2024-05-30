@@ -1,4 +1,5 @@
 """Beamformer module."""
+
 from typing import Sequence, Tuple, Union
 
 import torch

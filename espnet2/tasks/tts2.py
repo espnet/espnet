@@ -8,11 +8,17 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
+
+# TTS continuous feature extraction operators
+from espnet2.tasks.tts import (
+    energy_extractor_choices,
+    energy_normalize_choices,
+    pitch_extractor_choices,
+    pitch_normalize_choices,
+)
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -24,15 +30,6 @@ from espnet2.tts2.fastspeech2.fastspeech2_discrete import FastSpeech2Discrete
 from espnet2.tts2.fastspeech2_ma.fastspeech2_discrete_ma import FastSpeech2DiscreteMA
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
-
-# TTS continuous feature extraction operators
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.tts.feats_extract.dio import Dio
-from espnet2.tts.feats_extract.energy import Energy
-from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
-from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
-from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -46,51 +43,6 @@ discrete_feats_extractor_choices = ClassChoices(
     ),
     type_check=AbsFeatsExtractDiscrete,
     default="identity",
-)
-feats_extractor_choices = ClassChoices(
-    "feats_extract",
-    classes=dict(
-        fbank=LogMelFbank,
-        spectrogram=LogSpectrogram,
-        linear_spectrogram=LinearSpectrogram,
-    ),
-    type_check=AbsFeatsExtract,
-    default="fbank",
-)
-pitch_extractor_choices = ClassChoices(
-    "pitch_extract",
-    classes=dict(dio=Dio),
-    type_check=AbsFeatsExtract,
-    default=None,
-    optional=True,
-)
-energy_extractor_choices = ClassChoices(
-    "energy_extract",
-    classes=dict(energy=Energy),
-    type_check=AbsFeatsExtract,
-    default=None,
-    optional=True,
-)
-normalize_choices = ClassChoices(
-    "normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default="global_mvn",
-    optional=True,
-)
-pitch_normalize_choices = ClassChoices(
-    "pitch_normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default=None,
-    optional=True,
-)
-energy_normalize_choices = ClassChoices(
-    "energy_normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default=None,
-    optional=True,
 )
 tts_choices = ClassChoices(
     "tts",
@@ -111,10 +63,6 @@ class TTS2Task(AbsTask):
     class_choices_list = [
         # --discrete_feats_extractor and --discrete_feats_extractor_conf
         discrete_feats_extractor_choices,
-        # --feats_extractor and --feats_extractor_conf
-        feats_extractor_choices,
-        # --normalize and --normalize_conf
-        normalize_choices,
         # --tts and --tts_conf
         tts_choices,
         # --pitch_extract and --pitch_extract_conf
@@ -131,9 +79,9 @@ class TTS2Task(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -152,12 +100,6 @@ class TTS2Task(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to target speech token",
-        )
-        group.add_argument(
-            "--odim",
-            type=int_or_none,
-            default=None,
-            help="The number of dimension of output feature",
         )
         group.add_argument(
             "--model_conf",
@@ -189,6 +131,7 @@ class TTS2Task(AbsTask):
         parser.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
+            default=None,
             help="non_linguistic_symbols file path",
         )
         parser.add_argument(
@@ -212,13 +155,11 @@ class TTS2Task(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -226,10 +167,10 @@ class TTS2Task(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -242,7 +183,6 @@ class TTS2Task(AbsTask):
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -288,8 +228,8 @@ class TTS2Task(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetTTS2Model:
-        assert check_argument_types()
         if isinstance(args.src_token_list, str):
             with open(args.src_token_list, encoding="utf-8") as f:
                 src_token_list = [line[0] + line[1:].rstrip() for line in f]
@@ -319,33 +259,13 @@ class TTS2Task(AbsTask):
         tgt_vocab_size = len(tgt_token_list)
         logging.info(f"Target Vocabulary size: {tgt_vocab_size}")
 
-        # 0. discrete feature extraction
+        # 1. discrete feature extraction
         discrete_feats_extract_class = discrete_feats_extractor_choices.get_class(
             args.discrete_feats_extract
         )
         discrete_feats_extract = discrete_feats_extract_class(
             **args.discrete_feats_extract_conf
         )
-
-        # 1. feats_extract
-        if args.odim is None:
-            # Extract features in the model
-            feats_extract_class = feats_extractor_choices.get_class(args.feats_extract)
-            feats_extract = feats_extract_class(**args.feats_extract_conf)
-            odim = feats_extract.output_size()
-        else:
-            # Give features from data-loader
-            args.feats_extract = None
-            args.feats_extract_conf = None
-            feats_extract = None
-            odim = args.odim
-
-        # 2. Normalization layer
-        if args.normalize is not None:
-            normalize_class = normalize_choices.get_class(args.normalize)
-            normalize = normalize_class(**args.normalize_conf)
-        else:
-            normalize = None
 
         # 3. TTS
         tts_class = tts_choices.get_class(args.tts)
@@ -394,16 +314,13 @@ class TTS2Task(AbsTask):
         # 5. Build model
         model = ESPnetTTS2Model(
             discrete_feats_extract=discrete_feats_extract,
-            feats_extract=feats_extract,
             pitch_extract=pitch_extract,
             energy_extract=energy_extract,
-            normalize=normalize,
             pitch_normalize=pitch_normalize,
             energy_normalize=energy_normalize,
             tts=tts,
             **args.model_conf,
         )
-        assert check_return_type(model)
         return model
 
     @classmethod
@@ -415,26 +332,9 @@ class TTS2Task(AbsTask):
         device: str = "cpu",
     ):
         # Build vocoder
-        if vocoder_file is None:
-            # If vocoder file is not provided, use griffin-lim as a vocoder
-            vocoder_conf = {}
-            if vocoder_config_file is not None:
-                vocoder_config_file = Path(vocoder_config_file)
-                with vocoder_config_file.open("r", encoding="utf-8") as f:
-                    vocoder_conf = yaml.safe_load(f)
-            if model.feats_extract is not None:
-                vocoder_conf.update(model.feats_extract.get_parameters())
-            if (
-                "n_fft" in vocoder_conf
-                and "n_shift" in vocoder_conf
-                and "fs" in vocoder_conf
-            ):
-                return Spectrogram2Waveform(**vocoder_conf)
-            else:
-                logging.warning("Vocoder is not available. Skipped its building.")
-                return None
+        assert vocoder_file is not None, "TTS2 model must have a vocoder."
 
-        elif str(vocoder_file).endswith(".pkl"):
+        if str(vocoder_file).endswith(".pkl"):
             # If the extension is ".pkl", the model is trained with parallel_wavegan
             vocoder = ParallelWaveGANPretrainedVocoder(
                 vocoder_file, vocoder_config_file

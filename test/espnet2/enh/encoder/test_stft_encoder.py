@@ -15,6 +15,7 @@ is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 @pytest.mark.parametrize("normalized", [True, False])
 @pytest.mark.parametrize("onesided", [True, False])
 @pytest.mark.parametrize("use_builtin_complex", [True, False])
+@pytest.mark.parametrize("spec_transform_type", ["none", "exponent", "log"])
 def test_STFTEncoder_backward(
     n_fft,
     win_length,
@@ -24,6 +25,7 @@ def test_STFTEncoder_backward(
     normalized,
     onesided,
     use_builtin_complex,
+    spec_transform_type,
 ):
     encoder = STFTEncoder(
         n_fft=n_fft,
@@ -34,6 +36,7 @@ def test_STFTEncoder_backward(
         normalized=normalized,
         onesided=onesided,
         use_builtin_complex=use_builtin_complex,
+        spec_transform_type=spec_transform_type,
     )
 
     x = torch.rand(2, 32000, requires_grad=True)

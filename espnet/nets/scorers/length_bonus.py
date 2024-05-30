@@ -1,4 +1,5 @@
 """Length bonus module."""
+
 from typing import Any, List, Tuple
 
 import torch
