@@ -131,7 +131,6 @@ def dump_codec(
             for code, length, key in zip(codes, length_buffer, key_buffer):
                 code = code[: length // tokenizer.subsample]
                 codec_writer[key] = code
-                print("code: ", code, code.shape, wavs.size(), length_buffer)
 
             if dump_audio:
                 resyn_wavs = resyn_wavs.detach().cpu().numpy()
