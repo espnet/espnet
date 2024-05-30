@@ -20,6 +20,7 @@ from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.svs import SVSTask
+from espnet2.tasks.gan_svs import GANSVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.utils import DurationCalculator
@@ -61,11 +62,19 @@ class SingingGenerate:
         seed: int = 777,
         always_fix_seed: bool = False,
         prefer_normalized_feats: bool = False,
+        svs_task: str = "svs",
     ):
         """Initialize SingingGenerate module."""
 
         # setup model
-        model, train_args = SVSTask.build_model_from_file(
+        if svs_task == "svs":
+            SVSTaskClass = SVSTask
+        elif svs_task == "gan_svs":
+            SVSTaskClass = GANSVSTask
+        else:
+            raise ValueError(f"Unsupported task: {svs_task}")
+
+        model, train_args = SVSTaskClass.build_model_from_file(
             train_config, model_file, device
         )
         model.to(dtype=getattr(torch, dtype)).eval()
@@ -77,14 +86,14 @@ class SingingGenerate:
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
         self.duration_calculator = DurationCalculator()
-        self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
+        self.preprocess_fn = SVSTaskClass.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
         if vocoder_checkpoint is not None:
-            vocoder = SVSTask.build_vocoder_from_file(
+            vocoder = SVSTaskClass.build_vocoder_from_file(
                 vocoder_config, vocoder_checkpoint, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
@@ -310,7 +319,7 @@ class SingingGenerate:
 
 @typechecked
 def inference(
-    output_dir: str,
+    output_dir: Union[Path, str],
     batch_size: int,
     dtype: str,
     ngpu: int,
@@ -328,6 +337,7 @@ def inference(
     vocoder_config: Optional[str] = None,
     vocoder_checkpoint: Optional[str] = None,
     vocoder_tag: Optional[str] = None,
+    svs_task: Optional[str] = "svs",
 ):
     """Perform SVS model decoding."""
     if batch_size > 1:
@@ -358,6 +368,7 @@ def inference(
         vocoder_checkpoint=vocoder_checkpoint,
         dtype=dtype,
         device=device,
+        svs_task=svs_task,
     )
 
     # 3. Build data-iterator
@@ -651,6 +662,12 @@ def get_parser():
         type=str_or_none,
         help="yaml format configuration file. if not explicitly provided, "
         "it will be searched in the checkpoint directory. (default=None)",
+    )
+    group.add_argument(
+        "--svs_task",
+        default="svs",
+        type=str_or_none,
+        help="SVS task name. svs or gan_svs",
     )
 
     return parser
