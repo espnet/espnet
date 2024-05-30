@@ -9,7 +9,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
@@ -49,6 +49,7 @@ class FastSpeech2DiscreteMA(AbsTTS2):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -205,7 +206,6 @@ class FastSpeech2DiscreteMA(AbsTTS2):
                 calculation.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters
