@@ -46,6 +46,10 @@ python=python3       # Specify python to execute espnet commands.
 # Data preparation related
 local_data_opts=""  # Options to be passed to local/data.sh.
 data_tag=""         # You may combine the data in multiple ways. This is the tag for data composition
+use_current_dataset=true # If true, use data that is prepared with current dataset.
+train_jsons=""      # train/valid/test data json files that are prepared in advance and save locally
+valid_jsons=""
+test_jsons=""
 hf_datacards=""     # Datasets hosts in huggingface hub. We provide several datasets that have been
                     # tokenized already so users can directly pass this argument to train over these
                     # datasets.
@@ -86,9 +90,7 @@ train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 task=            # when task is multi_task, skip data preparation and use train/valid yamls
-train_jsons=""
-valid_jsons=""
-test_jsons=""
+
 
 # Tokenization related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -125,8 +127,8 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-if [ -z ${task} ]; then
-    echo "Task is not specified" && exit 1;
+if [ ! "$skip_data_prep" = true ] && [ -z ${task} ]; then
+    echo "Task is not specified but you want to prepare data" && exit 1;
 fi
 
 # Check feature type
@@ -166,7 +168,19 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 if [ -z ${data_tag} ]; then
-    data_tag=${train_set}_${task}
+    if [ ! -z ${train_set} ]; then
+        data_tag=${train_set}_${task}
+    else
+        echo "Please provide a data tag if you don't provide train_set" && exit 1;
+    fi
+fi
+
+if [ ! "$skip_data_prep" = true ] && [ -z "$train_set" ]; then
+    echo "You want to prepare data but train_set is not specified" && exit 1;
+fi
+
+if [ "$use_current_dataset" = true ] && [ -z "$train_set" ]; then
+    echo "You want to use current data but train_set is not specified" && exit 1;
 fi
 
 # The directory used for collect-stats mode
@@ -180,16 +194,6 @@ fi
 
 if [ -z ${token_list_dir} ]; then
     token_list_dir=data/token_list/${data_tag}
-fi
-
-if [ ${task} == "multi_task" ]; then
-    if [ -z ${train_yamls} ] || [ -z ${valid_yamls} ] || !${skip_data_prep}; then
-        echo "When training with multi-task, we skip data preparation stages"
-        echo "and directly use the prepared train/valid yaml files"
-        echo "You can prepare the yaml files for each task one by one"
-        echo "and merge them as: "
-        echo "speechlm.sh --train_yamls 'a.yaml,b.yaml' --valid_yamls 'a.yaml,b.yaml'" || exit 1;
-    fi
 fi
 
 # ========================== Main stages start from here. ==========================
@@ -348,7 +352,6 @@ if ! "${skip_data_prep}"; then
                 ${opts}
         done
 
-        # TODO(Jinchuan): upload the dataset to huggingface for sharing.
     fi
 
 else
@@ -358,28 +361,76 @@ fi
 # ========================== Data preparation is done here. ==========================
 
 
-if ! "${skip_train}"; then
-    # NOTE(Jinchuan): training is based on either:
-    #  (1) datasets prepared from stage 1-4; or
-    #  (2) pre-prepared data.json files.
-    # However, in both cases, all huggingface datasets will be considered.
-    if [ -z ${train_jsons} ]; then
-        train_jsons=${data_feats}/${train_set}/data.json
-        log "No train_jsons provided. Use the prepared one: ${train_jsons}"
-    fi
+if [ "${skip_train}" = false ] || [ "${skip_eval}" = false ]; then
+    log "collecting all data jsons for train / valid / test ..."
 
-    if [ -z ${valid_jsons} ]; then
-        valid_jsons=${data_feats}/${valid_set}/data.json
-        log "No valid_jsons provided. Use the prepared one: ${valid_jsons}"
-    fi
+    # (1) data that is prepared in advance
+    for data_json in ${train_jsons}; do
+        log "using existing train data json: ${data_json}"
+    done
+    for data_json in ${valid_jsons}; do
+        log "using existing valid data json: ${data_json}"
+    done
+    for data_json in ${test_jsons}; do
+        log "using existing test data json: ${data_json}"
+    done
 
-    if [ -z ${test_jsons} ]; then
-        for _dset in ${test_sets}; do
+    # (2) data that is prepared from current dataset
+    if ${use_current_dataset}; then
+
+        train_jsons+="${data_feats}/${train_set}/data.json "
+        log "using current train data json: ${data_feats}/${train_set}/data.json"
+
+        valid_jsons+="${data_feats}/${valid_set}/data.json "
+        log "using current train data json: ${data_feats}/${valid_set}/data.json"
+
+        for test_set in ${test_sets}; do
             test_jsons+="${data_feats}/${test_set}/data.json "
+            log "using current train data json: ${data_feats}/${test_set}/data.json"
         done
-        log "No test_jsons provided. Use the prepared one: ${test_jsons}"
     fi
 
+    # (3) data that is downloaded from huggingface
+    # NOTE(Jinchuan): Besides the data jsons that are prepared locally, we also
+    # support to use the datasets that are hosted in huggingface.
+    # However, we currently only consider huggingface as a place to host data only,
+    # so that our huggingface dataset is not like a standard huggingface dataset
+    # object. We directly parse the downloaded files.
+    if [ ! -z "${hf_datacards}" ]; then
+        for card in ${hf_datacards}; do
+            IFS='/' read -r _org _repo _train _valid <<< "${card}"
+
+            # will be a dummy operation if the dataset is already downloaded.
+            huggingface-cli download ${_org}/${_repo} --repo-type dataset --cache-dir ${hf_cache_dir}
+
+            # find all data.json files and revise the root
+            all_data_jsons=$(find ${hf_cache_dir}/datasets--${_org}--${_repo}/snapshots -name data.json)
+
+            for data_json in ${all_data_jsons}; do
+                # revise the root
+                if [ ! -f ${data_json}.done ]; then
+                    root=$(echo ${data_json} | sed 's#/dump/.*##')
+                    jq --arg root "$root" '.root = $root' ${data_json} > ${data_json}.tmp
+                    mv ${data_json}.tmp ${data_json}
+                    touch ${data_json}.done
+                fi
+
+                # identify train / valid / test split
+                if [[ ${data_json} == *"/${_train}"/data.json ]]; then
+                    train_jsons+="${data_json} "
+                    log "using huggingface train data json: ${data_json}"
+                elif [[ ${data_json} == *"/${_valid}"/data.json ]]; then
+                    valid_jsons+="${data_json} "
+                    log "using huggingface valid data json: ${data_json}"
+                else
+                    test_jsons+="${data_json} "
+                    log "using huggingface test data json: ${data_json}"
+                fi
+            done
+        done
+    fi
+
+    # for collect_stats and training
     _data_opts=""
     for train_json in $train_jsons; do
         _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
@@ -388,7 +439,9 @@ if ! "${skip_train}"; then
     for valid_json in $valid_jsons; do
         _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
     done
+fi
 
+if ! ${skip_train}; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         log "Generate vocabulary from the given train_jsons"
         mkdir -p ${token_list_dir}
@@ -423,7 +476,7 @@ if ! "${skip_train}"; then
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(wc -l ${speechlm_stats_dir}/train/example_list)" "$(wc -l ${speechlm_stats_dir}/valid/example_list)")
+        _nj=$(min "${nj}" "$(wc -l < ${speechlm_stats_dir}/train/example_list)" "$(wc -l < ${speechlm_stats_dir}/valid/example_list)")
 
         key_file="${speechlm_stats_dir}/train/example_list"
         split_scps=""
@@ -486,8 +539,6 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        _train_dir="${data_feats}/${train_set}"
-        _valid_dir="${data_feats}/${valid_set}"
         log "Stage 8: SpeechlLM training: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
 
         _opts=

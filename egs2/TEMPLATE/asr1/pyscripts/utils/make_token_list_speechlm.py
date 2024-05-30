@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 
+from espnet.utils.cli_utils import get_commandline_args
 from espnet2.speechlm.definitions import modalities, special_tokens
 
 
@@ -20,7 +21,7 @@ def get_parser():
         "--data_json",
         type=str,
         default=[],
-        action="append",
+        nargs="+",
         help="Append json files e.g. --data_json <data_json>",
     )
     parser.add_argument(
@@ -34,6 +35,10 @@ def get_parser():
 
 
 def main():
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.INFO, format=logfmt)
+    logging.info(get_commandline_args())
+    
     parser = get_parser()
     args = parser.parse_args()
 
@@ -41,7 +46,10 @@ def main():
     all_vocab = []
     for json_file in args.data_json:
         read_handle = open(json_file)
-        all_vocab = all_vocab + json.load(read_handle)["vocabularies"]
+        data_json = json.load(read_handle)
+        print('json_file', json_file, data_json["root"])
+        vocabs = [data_json["root"] + "/" + vocab for vocab in data_json["vocabularies"]]
+        all_vocab = all_vocab + vocabs
     logging.info(f"Find all token_list files: {all_vocab}")
 
     # (2) Assign each token_list file to the modality
@@ -75,7 +83,7 @@ def main():
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
-            f"Modality has {len(modality_vocab)} starting from {len(token_list)}"
+            f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list)}"
         )
         token_bias[modality] = len(token_list)
         token_list = token_list + modality_vocab
