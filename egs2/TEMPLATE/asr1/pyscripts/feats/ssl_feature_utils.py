@@ -5,11 +5,11 @@ import re
 import sys
 from typing import List, Optional, Tuple, Union
 
+import librosa
 import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
-import librosa
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -99,7 +99,11 @@ class BaseFeatureReader(object):
     def load_audio(self, path: str, ref_len: Optional[int] = None):
         wav, sr = sf.read(path)
         if sr != self.sample_rate:
-            logging.warning("sampling rate mismatch between the requirements of feature extractor {} and source wav {}, conduct resampling".format(self.sample_rate, sr))
+            logging.warning(
+                "sampling rate mismatch between the requirements of feature extractor {} and source wav {}, conduct resampling".format(
+                    self.sample_rate, sr
+                )
+            )
             wav = librosa.resample(wav, sr, self.sample_rate, scale=True)
         if wav.ndim == 2:
             wav = wav.mean(-1)
@@ -143,7 +147,9 @@ class MfccFeatureReader(BaseFeatureReader):
         self.sample_rate = sample_rate
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
         self.frame_length = 25 * sample_rate / 1000
@@ -196,7 +202,9 @@ class HubertFeatureReader(BaseFeatureReader):
         self.sample_rate = sample_rate
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
@@ -257,7 +265,9 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
         self.sample_rate = sample_rate
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
@@ -319,7 +329,9 @@ class S3PRLFeatureReader(BaseFeatureReader):
         self.sample_rate = fs
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
-            self.resample = torchaudio.transforms.Resample(orig_freq=audio_sample_rate, new_freq=fs)
+            self.resample = torchaudio.transforms.Resample(
+                orig_freq=audio_sample_rate, new_freq=fs
+            )
         else:
             self.resample = None
 
