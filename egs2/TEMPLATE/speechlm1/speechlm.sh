@@ -324,8 +324,8 @@ if ! "${skip_data_prep}"; then
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
                     # # Use a small portion (up to 100k examples) for efficiency
-                    nutt=$(min "10000" "$(wc -l < ${data_audio}/${dset}/${_name})")
-                    cat ${data_audio}/${dset}/${_name} | head -n 10000 \
+                    nutt=$(min "100000" "$(wc -l < ${data_audio}/${dset}/${_name})")
+                    cat ${data_audio}/${dset}/${_name} | shuf | head -n ${nutt} \
                       > ${data_audio}/${dset}/${_name}.g2p_train && echo ""
                     ${python} -m espnet2.bin.tokenize_text \
                         --token_type "phn" -f 2- \
@@ -365,86 +365,13 @@ else
 fi
 # ========================== Data preparation is done here. ==========================
 
-
-# if [ "${skip_train}" = false ] || [ "${skip_eval}" = false ]; then
-#     log "collecting all data jsons for train / valid / test ..."
-
-#     # (1) data that is prepared in advance
-#     for data_json in ${train_jsons}; do
-#         log "using existing train data json: ${data_json}"
-#     done
-#     for data_json in ${valid_jsons}; do
-#         log "using existing valid data json: ${data_json}"
-#     done
-#     for data_json in ${test_jsons}; do
-#         log "using existing test data json: ${data_json}"
-#     done
-
-#     # (2) data that is prepared from current dataset
-#     if ${use_current_dataset}; then
-
-#         train_jsons+="${data_feats}/${train_set}/data.json "
-#         log "using current train data json: ${data_feats}/${train_set}/data.json"
-
-#         valid_jsons+="${data_feats}/${valid_set}/data.json "
-#         log "using current train data json: ${data_feats}/${valid_set}/data.json"
-
-#         for test_set in ${test_sets}; do
-#             test_jsons+="${data_feats}/${test_set}/data.json "
-#             log "using current train data json: ${data_feats}/${test_set}/data.json"
-#         done
-#     fi
-
-#     # (3) data that is downloaded from huggingface
-#     # NOTE(Jinchuan): Besides the data jsons that are prepared locally, we also
-#     # support to use the datasets that are hosted in huggingface.
-#     # However, we currently only consider huggingface as a place to host data only,
-#     # so that our huggingface dataset is not like a standard huggingface dataset
-#     # object. We directly parse the downloaded files.
-#     if [ ! -z "${hf_datacards}" ]; then
-#         for card in ${hf_datacards}; do
-#             IFS='/' read -r _org _repo _train _valid <<< "${card}"
-
-#             # will be a dummy operation if the dataset is already downloaded.
-#             huggingface-cli download ${_org}/${_repo} --repo-type dataset --cache-dir ${hf_cache_dir}
-
-#             # find all data.json files and revise the root
-#             all_data_jsons=$(find ${hf_cache_dir}/datasets--${_org}--${_repo}/snapshots -name data.json)
-
-#             for data_json in ${all_data_jsons}; do
-#                 # revise the root
-#                 if [ ! -f ${data_json}.done ]; then
-#                     root=$(echo ${data_json} | sed 's#/dump/.*##')
-#                     jq --arg root "$root" '.root = $root' ${data_json} > ${data_json}.tmp
-#                     mv ${data_json}.tmp ${data_json}
-#                     touch ${data_json}.done
-#                 fi
-
-#                 # identify train / valid / test split
-#                 if [[ ${data_json} == *"/${_train}"/data.json ]]; then
-#                     train_jsons+="${data_json} "
-#                     log "using huggingface train data json: ${data_json}"
-#                 elif [[ ${data_json} == *"/${_valid}"/data.json ]]; then
-#                     valid_jsons+="${data_json} "
-#                     log "using huggingface valid data json: ${data_json}"
-#                 else
-#                     test_jsons+="${data_json} "
-#                     log "using huggingface test data json: ${data_json}"
-#                 fi
-#             done
-#         done
-#     fi
-
-#     # for collect_stats and training
-#     _data_opts=""
-#     for train_json in $train_jsons; do
-#         _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
-#     done
-
-#     for valid_json in $valid_jsons; do
-#         _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
-#     done
-# fi
+if ! ${skip_data_prep}; then
+    train_jsons+="${data_feats}/${train_set}/data.json "
+    valid_jsons+="${data_feats}/${valid_set}/data.json "
+    for test_set in ${test_sets}; do
+        test_jsons+="${data_feats}/${test_set}/data.json "
+    done
+fi
 
 if ! ${skip_train}; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -464,40 +391,27 @@ if ! ${skip_train}; then
             _opts+="--config ${train_config} "
         fi
 
-        # Since the training is based on multiple distinctive json files, we need to find a combined
-        # example_list
-        mkdir -p ${speechlm_stats_dir}/train
-        ${python} pyscripts/utils/make_example_list_speechlm.py \
-            --json_files ${train_jsons} \
-            --output_file ${speechlm_stats_dir}/train/example_list
-
-        mkdir -p ${speechlm_stats_dir}/valid
-        ${python} pyscripts/utils/make_example_list_speechlm.py \
-            --json_files ${valid_jsons} \
-            --output_file ${speechlm_stats_dir}/valid/example_list
-
-        # 1. Split the key file
+        # Split json files for each data nj so each data is small and easy to handle.
         _logdir="${speechlm_stats_dir}/logdir"
         mkdir -p "${_logdir}"
-
-        # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(wc -l < ${speechlm_stats_dir}/train/example_list)" "$(wc -l < ${speechlm_stats_dir}/valid/example_list)")
-
-        key_file="${speechlm_stats_dir}/train/example_list"
-        split_scps=""
-        for n in $(seq "${_nj}"); do
-            split_scps+=" ${_logdir}/train_sample_list.${n}.scp"
+        ${python} pyscripts/utils/split_data_jsons.py \
+            --json_files ${train_jsons} \
+            --nj ${nj} \
+            --output_dir ${_logdir}/train
+        ${python} pyscripts/utils/split_data_jsons.py \
+            --json_files ${valid_jsons} \
+            --nj ${nj} \
+            --output_dir ${_logdir}/valid
+        
+        _data_opts=""
+        for dset in `ls ${_logdir}/train | grep -v example_list`; do
+            _data_opts+="--train_data_path_and_name_and_type ${_logdir}/train/${dset}/split${nj}/JOB/data.JOB.json,_,dataset_json "
         done
-        # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
-
-        key_file="${speechlm_stats_dir}/valid/example_list"
-        split_scps=""
-        for n in $(seq "${_nj}"); do
-            split_scps+=" ${_logdir}/valid_sample_list.${n}.scp"
+        for dset in `ls ${_logdir}/valid | grep -v example_list`; do
+            _data_opts+="--valid_data_path_and_name_and_type ${_logdir}/valid/${dset}/split${nj}/JOB/data.JOB.json,_,dataset_json "
         done
-        # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
+        _data_opts+="--train_shape_file ${_logdir}/train/example_list.JOB "
+        _data_opts+="--valid_shape_file ${_logdir}/valid/example_list.JOB "
 
         # 2. Generate run.sh
         log "Generate '${speechlm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
@@ -506,7 +420,7 @@ if ! ${skip_train}; then
         # 3. Submit jobs
         log "SpeechLM collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
-        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+        ${train_cmd} JOB=1:1 "${_logdir}"/stats.JOB.log \
             ${python} -m "espnet2.bin.speechlm_train" \
                 --collect_stats true \
                 --use_preprocessor true \
@@ -516,8 +430,7 @@ if ! ${skip_train}; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --multi_task_dataset true \
-                --train_shape_file "${_logdir}/train_sample_list.JOB.scp" \
-                --valid_shape_file "${_logdir}/valid_sample_list.JOB.scp" \
+                --valid_shape_file "${_logdir}/valid/example_list.JOB" \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
                 || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
@@ -530,7 +443,7 @@ if ! ${skip_train}; then
         _opts+="--skip_sum_stats"
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${speechlm_stats_dir}"
 
-        # (Jinchuan) we only care about the #frames / #patches.
+        # (Jinchuan) we only care about the #frames
         for module in enc dec; do
             for dset in train valid; do
                 if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_shape ]; then
@@ -552,6 +465,15 @@ if ! ${skip_train}; then
             #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
+
+        _data_opts=""
+        for train_json in $train_jsons; do
+            _data_opts+="--train_data_path_and_name_and_type ${train_json},_,dataset_json "
+        done
+
+        for valid_json in $valid_jsons; do
+            _data_opts+="--valid_data_path_and_name_and_type ${valid_json},_,dataset_json "
+        done
 
         _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/dec_seq_lengths "
         _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/dec_seq_lengths "

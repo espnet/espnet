@@ -47,8 +47,7 @@ def main():
     for json_file in args.data_json:
         read_handle = open(json_file)
         data_json = json.load(read_handle)
-        print('json_file', json_file, data_json["root"])
-        vocabs = [data_json["root"] + "/" + vocab for vocab in data_json["vocabularies"]]
+        vocabs = [vocab for vocab in data_json["vocabularies"]]
         all_vocab = all_vocab + vocabs
     logging.info(f"Find all token_list files: {all_vocab}")
 

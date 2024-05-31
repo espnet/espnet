@@ -48,7 +48,7 @@ class CodecTokenizer(AbsTokenizer):
             self.codec = model
 
             meta_info = self.codec.model.meta_info()
-            self.n_codebook = min(meta_info["num_streams"], 8)
+            self.n_codebook = min(meta_info["num_streams"], max_token_per_frame)
             self.size_codebook = meta_info["code_size_per_stream"][0]
             self.sample_rate = meta_info["fs"]
             self.subsample = meta_info["frame_shift"]
@@ -192,6 +192,6 @@ class CodecTokenizer(AbsTokenizer):
         # (3) shift by codebook
         shift = torch.arange(self.n_codebook).to(self.device)
         codes += shift.view(1, 1, -1) * self.size_codebook
-        codes = codes.int()
+        codes = codes.int().flatten(start_dim=1)
 
         return codes, resyn_audio

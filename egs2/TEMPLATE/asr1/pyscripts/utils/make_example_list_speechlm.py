@@ -15,7 +15,6 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
-logger = logging.getLogger("find all example list based on train_jsons")
 
 
 def get_parser():

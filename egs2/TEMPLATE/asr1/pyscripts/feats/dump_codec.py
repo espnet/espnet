@@ -100,7 +100,7 @@ def dump_codec(
             time.sleep(2)
 
     # (3) Tokenizer loop
-    codec_writer = kaldiio.WriteHelper(wspecifier, compression_method=2)
+    codec_writer = kaldiio.WriteHelper(wspecifier)
     wav_reader = kaldiio.ReadHelper(rspecifier)
     if wav_wspecifier is not None and dump_audio:
         wav_ark_file, wav_scp_file = wav_wspecifier.split(":")[1].split(",")
@@ -129,7 +129,7 @@ def dump_codec(
 
             codes = codes.detach().cpu().numpy()
             for code, length, key in zip(codes, length_buffer, key_buffer):
-                code = code[: length // tokenizer.subsample]
+                code = code[: length // tokenizer.subsample * tokenizer.n_codebook]
                 codec_writer[key] = code
 
             if dump_audio:
