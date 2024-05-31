@@ -9,7 +9,7 @@ train_set=train_960
 valid_set=dev_clean
 test_sets="dev_clean test_clean"
 
-train_config=conf/train_multiscale_1.1b.yaml
+train_config=conf/train_multiscale.yaml
 inference_config=conf/decode_encodec.yaml
 
 cleaner=tacotron

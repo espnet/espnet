@@ -128,11 +128,11 @@ echo ${task}
 # Check for stage 1-5: data prep
 if ! "${skip_data_prep}"; then
     if [ -z "${task}" ]; then
-        log "Task is not specified but you want to prepare data" && exit 1;
+        log "Task is not specified but you want to prepare data." && exit 1;
     fi
 
     if [ -z ${data_name} ]; then
-        log "Data_name is not specified but you want to prepare data" && exit 1;
+        log "Data_name is not specified but you want to prepare data." && exit 1;
     fi
 
         # Check feature type
@@ -153,7 +153,7 @@ fi
 echo ${train_jsons} ${valid_jsons}
 if [ -n "${train_jsons}" ] && [ -n "${valid_jsons}" ]; then
     if [ -z "${data_combo_name}" ]; then
-        log "External data resources are used. Please specify data_combo_name" && exit 1;
+        log "External data resources are used. Please specify data_combo_name." && exit 1;
     fi
 else
     if ! "${skip_data_prep}"; then
@@ -176,11 +176,11 @@ fi
 # check for stage 8-9: training and inference
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag="$(basename "${train_config}" .yaml)"
+        tag="${data_combo_name}_$(basename "${train_config}" .yaml)"
     else
         echo "No training configuration found ..." && exit 1;
     fi
-
+    
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
@@ -420,7 +420,7 @@ if ! ${skip_train}; then
         # 3. Submit jobs
         log "SpeechLM collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
-        ${train_cmd} JOB=1:1 "${_logdir}"/stats.JOB.log \
+        ${train_cmd} JOB=1:"${nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m "espnet2.bin.speechlm_train" \
                 --collect_stats true \
                 --use_preprocessor true \
@@ -430,14 +430,13 @@ if ! ${skip_train}; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --multi_task_dataset true \
-                --valid_shape_file "${_logdir}/valid/example_list.JOB" \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
                 || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
-        for i in $(seq "${_nj}"); do
+        for i in $(seq "${nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         _opts+="--skip_sum_stats"
