@@ -46,6 +46,7 @@ from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.torch_utils.synchronize_batches import synchronize_sharded_batches
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import (
@@ -913,6 +914,15 @@ class AbsTask(ABC):
             "e.g., --train_data_path_and_name_and_type foo.json,foo_task,json",
         )
         group.add_argument(
+            "--sharded_dataset",
+            type=str2bool,
+            default=False,
+            help="If true, the dataset only contain the data shard of current process "
+                 "So that the dataset object doesn't take much CPU memory. This is "
+                 "useful when the overall dataset if large. This is an alternative "
+                 "method of data_split & multiple_iterator method "
+        )
+        group.add_argument(
             "--allow_variable_data_keys",
             type=str2bool,
             default=False,
@@ -1451,6 +1461,30 @@ class AbsTask(ABC):
                 )
 
             # 7. Build iterator factories
+            if args.sharded_dataset: # recursively replace "JOB" to global rank.
+                if distributed_option.distributed:
+                    rank = distributed_option.dist_rank
+                else:
+                    rank = 0
+                
+                def recursive_replace(attr):
+                    if isinstance(attr, str):
+                        return attr.replace("JOB", f"{rank + 1}")
+                    elif isinstance(attr, list):
+                        return list(recursive_replace(a) for a in attr)
+                    elif isinstance(attr, tuple):
+                        return tuple(recursive_replace(a) for a in attr)
+                    else:
+                        raise ValueError(attr)
+                
+                for attr_name in [
+                    "train_data_path_and_name_and_type",
+                    "valid_data_path_and_name_and_type",
+                    "train_shape_file",
+                    "valid_shape_file",
+                ]:
+                    setattr(args, attr_name, recursive_replace(getattr(args, attr_name)))
+
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
                     args=args,
@@ -1774,7 +1808,10 @@ class AbsTask(ABC):
                         f"The batch-size must be equal or more than world_size: "
                         f"{len(batch)} < {world_size}"
                     )
-            batches = [batch[rank::world_size] for batch in batches]
+            if args.sharded_dataset:
+                batches = synchronize_sharded_batches(batches)
+            else:
+                batches = [batch[rank::world_size] for batch in batches]
 
         return SequenceIterFactory(
             dataset=dataset,

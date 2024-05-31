@@ -139,9 +139,12 @@ def split_by_utt2spk(data_dict, nj):
             spk2utt[spk] = []
         spk2utt[spk].append(utt)
     
+    # always find the job with minimum number of examples
     retval = [[] for _ in range(nj)]
-    for idx, utt_list in enumerate(spk2utt.values()):
-        retval[idx % nj].extend(utt_list)
+    for utt_list in spk2utt.values():
+        lengths = [len(lst) for lst in retval]
+        argmin = lengths.index(min(lengths))
+        retval[argmin].extend(utt_list)
     return retval
         
 def main():
