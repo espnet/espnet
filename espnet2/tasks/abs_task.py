@@ -1771,6 +1771,10 @@ class AbsTask(ABC):
         else:
             utt2category_file = None
 
+        if iter_options.distributed and not args.sharded_dataset:
+            min_batch_size = torch.distributed.get_world_size()
+        else:
+            min_batch_size = 1
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
@@ -1780,9 +1784,7 @@ class AbsTask(ABC):
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
             drop_last=args.drop_last_iter,
-            min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
-            ),
+            min_batch_size=min_batch_size,
             utt2category_file=utt2category_file,
         )
 
@@ -1800,17 +1802,17 @@ class AbsTask(ABC):
         )
 
         if iter_options.distributed:
-            world_size = torch.distributed.get_world_size()
-            rank = torch.distributed.get_rank()
-            for batch in batches:
-                if len(batch) < world_size:
-                    raise RuntimeError(
-                        f"The batch-size must be equal or more than world_size: "
-                        f"{len(batch)} < {world_size}"
-                    )
             if args.sharded_dataset:
                 batches = synchronize_sharded_batches(batches)
             else:
+                world_size = torch.distributed.get_world_size()
+                rank = torch.distributed.get_rank()
+                for batch in batches:
+                    if len(batch) < world_size:
+                        raise RuntimeError(
+                            f"The batch-size must be equal or more than world_size: "
+                            f"{len(batch)} < {world_size}"
+                        )
                 batches = [batch[rank::world_size] for batch in batches]
 
         return SequenceIterFactory(

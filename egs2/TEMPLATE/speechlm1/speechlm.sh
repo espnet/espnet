@@ -468,9 +468,9 @@ if ! ${skip_train}; then
         for n in `seq $ngpu`; do
             for module in enc dec; do
                 for dset in train valid; do
-                    if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_shape ]; then
+                    if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_lengths ]; then
                         utils/filter_scp.pl ${_sharded_dir}/${dset}/example_list.${n} \
-                            ${speechlm_stats_dir}/${dset}/${module}_seq_shape \
+                            ${speechlm_stats_dir}/${dset}/${module}_seq_lengths \
                             > ${_sharded_dir}/${dset}/${module}_seq_lengths.${n} &
                     fi
                 done
