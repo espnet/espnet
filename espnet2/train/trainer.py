@@ -418,22 +418,21 @@ class Trainer:
                             if not p.requires_grad:
                                 model_state_dict.pop(n)
 
-                torch.save(
-                    {
-                        "model": model_state_dict,
-                        "reporter": reporter.state_dict(),
-                        "optimizers": optim_state_dict,
-                        "schedulers": [
-                            s.state_dict() if s is not None else None
-                            for s in schedulers
-                        ],
-                        "scaler": scaler.state_dict() if scaler is not None else None,
-                    },
-                    output_dir / "checkpoint.pth",
-                )
+                all_state_dict = {
+                    "model": model_state_dict,
+                    "reporter": reporter.state_dict(),
+                    "optimizers": optim_state_dict,
+                    "schedulers": [
+                        s.state_dict() if s is not None else None
+                        for s in schedulers
+                    ],
+                    "scaler": scaler.state_dict() if scaler is not None else None,
+                }
+
+                torch.save(all_state_dict, output_dir / "checkpoint.pth")
 
                 # 5. Save and log the model and update the link to the best model
-                torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
+                torch.save(all_state_dict, output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
                 p = output_dir / "latest.pth"
