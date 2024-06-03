@@ -227,8 +227,6 @@ def common_collate_fn(
         # tensor_list: Batch x (Length, ...)
         tensor_list = [torch.from_numpy(a) for a in array_list]
         # tensor: (Batch, Length, ...)
-        import logging
-        logging.info("tensor info: {}".format([t.shape for t in tensor_list]))
         tensor = pad_list(tensor_list, pad_value)
         output[key] = tensor
 
