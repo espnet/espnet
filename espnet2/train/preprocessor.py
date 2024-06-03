@@ -148,6 +148,7 @@ class CommonPreprocessor(AbsPreprocessor):
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: Optional[str] = None,
+        force_single_channel: bool = False,
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
         noise_scp: Optional[str] = None,
@@ -175,6 +176,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.speech_name = speech_name
         self.text_name = text_name
         self.speech_volume_normalize = speech_volume_normalize
+        self.force_single_channel = force_single_channel
         self.rir_apply_prob = rir_apply_prob
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
@@ -412,8 +414,12 @@ class CommonPreprocessor(AbsPreprocessor):
                 # speech: (Nmic, Time)
                 if speech.ndim == 1:
                     speech = speech[None, :]
+                elif self.force_single_channel:
+                    # NOTE(jiatong): default average across channels
+                    speech = np.mean(speech, axis=1, keepdims=True).T
                 else:
                     speech = speech.T
+                    
                 # Calc power on non silence region
                 power = (speech[detect_non_silence(speech)] ** 2).mean()
 
