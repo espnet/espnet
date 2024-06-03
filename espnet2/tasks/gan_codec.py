@@ -111,6 +111,7 @@ class GANCodecTask(AbsTask):
                 speech_name="audio",
                 min_sample_size=min_sample_size,
                 audio_pad_value=0.0,
+                force_single_channel=True, # NOTE(jiatong): single channel only now
             )
         else:
             retval = None
