@@ -13,6 +13,11 @@ class AbsGANCodec(ABC, torch.nn.Module):
     """GAN-based Neural Codec model abstract class."""
 
     @abstractmethod
+    def meta_info(self) -> Dict[str, Any]:
+        """Return meta information of the codec."""
+        raise NotImplementedError
+
+    @abstractmethod
     def forward(
         self,
         forward_generator,

@@ -22,6 +22,7 @@ from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
 )
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
+from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
@@ -136,6 +137,8 @@ class SoundStream(AbsGANCodec):
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
         cache_generator_outputs: bool = False,
+        use_loss_balancer: bool = False,
+        balance_ema_decay: float = 0.99,
     ):
         """Intialize SoundStream model.
 
@@ -187,6 +190,28 @@ class SoundStream(AbsGANCodec):
         # store sampling rate for saving wav file
         # (not used for the training)
         self.fs = sampling_rate
+        self.num_streams = generator_params["quantizer_n_q"]
+        self.frame_shift = reduce(lambda x, y: x * y, generator_params["encdec_ratios"])
+        self.code_size_per_stream = [
+            generator_params["quantizer_bins"]
+        ] * self.num_streams
+
+        # loss balancer
+        if use_loss_balancer:
+            self.loss_balancer = Balancer(
+                ema_decay=balance_ema_decay,
+                per_batch_item=True,
+            )
+        else:
+            self.loss_balancer = None
+
+    def meta_info(self) -> Dict[str, Any]:
+        return {
+            "fs": self.fs,
+            "num_streams": self.num_streams,
+            "frame_shift": self.frame_shift,
+            "code_size_per_stream": self.code_size_per_stream,
+        }
 
     def forward(
         self,
@@ -304,6 +329,24 @@ class SoundStream(AbsGANCodec):
                 stats.update(mel_loss_real=mel_loss_real.item())
 
         stats.update(loss=loss.item())
+
+        if self.loss_balancer is not None and self.training:
+            # any loss built on audio_hat is processed by balancer
+            balanced_losses = {
+                "reconstruct": reconstruct_loss,
+                "adv": adv_loss,
+            }
+            if self.use_feat_match_loss:
+                balanced_losses.update(feat_match=feat_match_loss)
+            if self.use_mel_loss:
+                balanced_losses.update(mel=mel_loss)
+
+            balanced_loss, norm_stats = self.loss_balancer(balanced_losses, audio_hat)
+            stats.update(norm_stats)
+
+            loss = sum(balanced_loss.values()) + codec_loss
+            if self.use_mel_loss and self.use_dual_decoder:
+                loss = loss + mel_loss_real
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 

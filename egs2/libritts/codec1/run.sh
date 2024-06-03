@@ -25,6 +25,7 @@ inference_config=conf/decode.yaml
 
 ./codec.sh \
     --local_data_opts "--trim_all_silence false" \
+    --fs ${fs} \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --gpu_inference true \
