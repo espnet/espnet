@@ -49,8 +49,11 @@ class MultiScaleLM(AbsCoreLM):
 
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
         self.lm_head = torch.nn.Linear(l_att_unit, vocab_size, bias=False)
-        if share_emb and g_att_unit == l_att_unit:
-            self.lm_head.weight = self.emb.weight
+        if share_emb:
+            if g_att_unit == l_att_unit:
+                self.lm_head.weight = self.emb.weight
+            else:
+                raise ValueError("Set g_att_unit == l_att_unit to share embeddings")
         
         if g_att_unit != l_att_unit:
             self.g2l = torch.nn.Linear(g_att_unit, l_att_unit)
@@ -106,7 +109,7 @@ class MultiScaleLM(AbsCoreLM):
         x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
         x = self.g_decoders(x)
         x = self.g2l(x)
-
+        
         # global-to-local
         B, T, _ = x.size()
         placeholder = self.placeholder.tile(B, T, 1, 1)

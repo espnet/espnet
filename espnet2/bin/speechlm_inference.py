@@ -18,7 +18,7 @@ from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
-from espnet2.tasks.speechlm import SpeechLMTask, post_processor_choices
+from espnet2.tasks.speechlm import SpeechLMTask, tokenizer_choices
 
 # utilities
 from espnet2.torch_utils.device_funcs import to_device
@@ -49,7 +49,7 @@ class SpeechLM:
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         modality: str = "codec",
-        post_processor_conf: dict = {},
+        tokenizer_conf: dict = {},
     ):
         """Initialize SpeechLM module."""
 
@@ -60,6 +60,7 @@ class SpeechLM:
         self.model = model.to(dtype=getattr(torch, dtype)).eval()
         self.device = device
         self.dtype = dtype
+        self.modality = modality
         self.train_args = train_args
 
         # token_mask
@@ -100,9 +101,9 @@ class SpeechLM:
             nq=inference_nq if inference_nq is not None else model.corelm.nq,
         )
 
-        # post_processor: transform tokens to the target modality. E.g., speech, text.
-        post_processor_class = post_processor_choices.get_class(modality)
-        self.post_processor = post_processor_class(**post_processor_conf).to(device)
+        # tokenizer: detokenize speechlm tokens to the exact output, e.g. audio or text
+        tokenizer_class = tokenizer_choices.get_class(modality)
+        self.tokenizer = tokenizer_class(**tokenizer_conf).to(device)
         if modality in ["codec"]:
             self.bias = token_bias[modality]
         else:
@@ -122,6 +123,11 @@ class SpeechLM:
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
         if enc_seq is not None or enc_seq_lengths is not None:
             raise NotImplementedError("encoder-decoder is not supported yet.")
+        
+        # debug:
+        with torch.no_grad():
+            torch.set_printoptions(sci_mode=False)
+            _ = self.model(dec_seq, dec_seq_lengths, prefix_len=prefix_len)
 
         # language model inference
         # Note(Jinchuan): the token dec_seq[prefix_len] is exactly
@@ -135,14 +141,11 @@ class SpeechLM:
             suffix=dec_seq[:, prefix_len + 1 :],
         )
 
-        if gen_tokens is None and gen_scores is None:
-            return None, None, None
-
-        # post-processing
+        # detokenization
         generated = []
         for gen_token in gen_tokens:
             gen_token = gen_token - self.bias
-            generated.append(self.post_processor(gen_token))
+            generated.append(self.tokenizer.detokenize(gen_token))
 
         return generated, gen_tokens, gen_scores
 
@@ -166,6 +169,7 @@ def inference(
     num_workers: int,
     dtype: str,
     log_level: Union[int, str],
+    rank: int,
     # data related
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
@@ -181,9 +185,9 @@ def inference(
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
     inference_nj: Optional[int] = 1,
-    # post_processor related
-    postprocessor: str = None,
-    postprocessor_conf: dict = {},
+    # tokenizer related
+    tokenizer: str = "",
+    tokenizer_conf: dict = {},
 ):
     """Run SpeechLM inference."""
     if batch_size > 1:
@@ -199,6 +203,15 @@ def inference(
         device = "cuda"
     else:
         device = "cpu"
+    
+    if torch.cuda.is_available() and ngpu >= 1:
+        if torch.cuda.device_count() > 1:
+            device_id = rank % torch.cuda.device_count()
+        else:
+            device_id = 0
+        device = f"cuda:{device_id}"
+    else:
+        device = "cpu"
 
     # 1. Set random-seed
     set_all_random_seed(seed)
@@ -209,8 +222,8 @@ def inference(
     task = speechlm_tasks[task_name]
     output_name, output_modality = task.decoder_entries[-1][:2]
     assert (
-        output_modality == postprocessor
-    ), f"Postprocessor should be {output_modality}"
+        output_modality == tokenizer
+    ), f"Tokenizer should be {output_modality} for task: {task_name}"
 
     # 3. Build model
     speechlm_kwargs = dict(
@@ -226,7 +239,7 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         modality=output_modality,
-        post_processor_conf=postprocessor_conf,
+        tokenizer_conf=tokenizer_conf,
     )
 
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
@@ -279,7 +292,7 @@ def inference(
                 torchaudio.save(
                     wave_path,
                     content.cpu(),
-                    sample_rate=speechlm.post_processor.sample_rate,
+                    sample_rate=speechlm.tokenizer.sample_rate,
                 )
                 logging.info(f"save audio {example_name}: {wave_path}")
 
@@ -313,7 +326,6 @@ def get_parser():
         choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
-
     parser.add_argument(
         "--output_dir",
         type=Path,
@@ -349,6 +361,12 @@ def get_parser():
         type=int,
         default=1,
         help="The batch size for inference",
+    )
+    parser.add_argument(
+        "--rank",
+        type=int,
+        default=1,
+        help="the job rank in decoding process"
     )
 
     group = parser.add_argument_group("Input data related")
@@ -416,7 +434,7 @@ def get_parser():
     group.add_argument(
         "--top_k",
         type=int,
-        default=20,
+        default=30,
         help="if positive, restrict the sampling to top-k tokens with highest probs.",
     )
     group.add_argument(
@@ -426,8 +444,8 @@ def get_parser():
         help="nj used in inference, should be the same or smaller than the nq in training",
     )
 
-    group = parser.add_argument_group("Postprocessor related")
-    post_processor_choices.add_arguments(group)
+    group = parser.add_argument_group("tokenizer related")
+    tokenizer_choices.add_arguments(group)
 
     return parser
 

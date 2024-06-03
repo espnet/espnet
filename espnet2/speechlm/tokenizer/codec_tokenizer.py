@@ -14,7 +14,7 @@ class CodecTokenizer(AbsTokenizer):
         self,
         codec_choice: str,
         codec_fs: int,
-        device: str,
+        device: str = "cpu",
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
@@ -112,6 +112,21 @@ class CodecTokenizer(AbsTokenizer):
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
+    def detokenize(self, codes):
+        """ a warpper to decode the flatten discrete output """
+        has_batch = True
+        if codes.dim() == 2:
+            codes = codes.unsqueeze(0)
+            has_batch = False
+        
+        for l_idx in range(codes.size(2)):
+            codes[:, :, l_idx] -= l_idx * self.size_codebook
+        
+        waveform = self.decode(codes)
+        if not has_batch:
+            waveform = waveform.squeeze(0)
+
+        return waveform.unsqueeze(0) # channel dimension
 
     @torch.no_grad()
     def decode(self, codes):

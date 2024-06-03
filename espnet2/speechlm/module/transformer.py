@@ -6,9 +6,8 @@
 # Derived from OpenAI Whisper model file:
 # https://github.com/openai/whisper/blob/main/whisper/model.py
 
-from typing import Iterable, Optional
+from typing import Optional
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -71,12 +70,17 @@ class MultiHeadAttention(nn.Module):
         if self.causal and mask is not None:
             raise ValueError("mask is not allowed when the attention is causal")
         
+        if self.causal and q.size(1) == k.size(1):
+            causal = True
+        else:
+            causal = False
+        
         q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
         wv = F.scaled_dot_product_attention(
-            q, k, v, mask, is_causal=self.causal
+            q, k, v, mask, is_causal=causal
         ).permute(0, 2, 1, 3).flatten(start_dim=2)
         
         return wv
