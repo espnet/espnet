@@ -18,6 +18,7 @@ from espnet2.gan_codec.shared.encoder.seanet import (
     apply_parametrization_norm,
     get_norm_module,
 )
+from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
 
 def unpad1d(x: torch.Tensor, paddings: Tuple[int, int]):
@@ -174,7 +175,10 @@ class SEANetDecoder(nn.Module):
         self.n_residual_layers = n_residual_layers
         self.hop_length = np.prod(self.ratios)
 
-        act = getattr(nn, activation)
+        if activation == "Snake":
+            act = Snake1d
+        else:
+            act = getattr(nn, activation)
         mult = int(2 ** len(self.ratios))
         model: List[nn.Module] = [
             SConv1d(

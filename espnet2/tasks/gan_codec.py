@@ -12,6 +12,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.dac.dac import DAC
 from espnet2.gan_codec.encodec.encodec import Encodec
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.gan_codec.soundstream.soundstream import SoundStream
@@ -29,6 +30,7 @@ codec_choices = ClassChoices(
     classes=dict(
         soundstream=SoundStream,
         encodec=Encodec,
+        dac=DAC,
     ),
     default="soundstream",
 )
