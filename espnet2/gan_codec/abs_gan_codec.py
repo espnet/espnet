@@ -4,7 +4,7 @@
 """GAN-based Neural Codec abstrast class."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Union, Any
+from typing import Any, Dict, Union
 
 import torch
 
