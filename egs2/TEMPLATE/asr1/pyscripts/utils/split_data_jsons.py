@@ -77,7 +77,6 @@ def split_one_data_json(json_file, nj, output_dir):
             break
 
     if splits is None:
-        logging.info("")
         splits = split_by_default(
             all_file_dict[(path, name, _type)],
             nj,

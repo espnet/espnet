@@ -84,6 +84,12 @@ tasks["plain_tts"] = SpeechLMTask(
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+tasks["apc"] = SpeechLMTask(
+    encoder_entries=[],
+    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
+    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+)
+
 ############### END OF TASK DEFINITION ###############
 
 # (3) Special token definition
