@@ -312,8 +312,8 @@ class MfaConformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
-            x, _ = encoder_layer(xs_pad, masks)
-            intermediate_outs.append(x[0])
+            xs_pad, _ = encoder_layer(xs_pad, masks)
+            intermediate_outs.append(xs_pad[0])
 
         x = torch.cat(intermediate_outs, dim=-1)
         x = self.ln(x).transpose(1, 2)  # (#batch, L, output_size)
