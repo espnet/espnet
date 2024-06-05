@@ -23,7 +23,7 @@ class S3prlPostFrontend(AbsFrontend):
         fs: Union[int, str] = 16000,
         input_fs: Union[int, str] = 24000,
         postfrontend_conf: Optional[dict] = get_default_kwargs(Frontend),
-        download_dir: str = None,
+        download_dir: Optional[str] = None,
         multilayer_feature: bool = False,
         layer: int = -1,
     ):
@@ -43,6 +43,9 @@ class S3prlPostFrontend(AbsFrontend):
             logging.warning(
                 "All the upstream models in S3PRL now only support 16 kHz audio."
             )
+
+        if isinstance(input_fs, str):
+            input_fs = humanfriendly.parse_size(input_fs)
 
         if download_dir is not None:
             s3prl.util.download.set_dir(download_dir)

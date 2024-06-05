@@ -218,6 +218,7 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 WAV2GLOSS=downloads
+HIFITTS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
