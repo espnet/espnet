@@ -22,4 +22,3 @@
 # -- ci-sdr: scale-invariant signal to distortion ratio
 # -- si-snri: scale-invariant signal to noise ratio improvement
 - name: signal_metric
-

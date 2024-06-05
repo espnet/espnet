@@ -420,7 +420,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     speech = np.mean(speech, axis=1, keepdims=True).T
                 else:
                     speech = speech.T
-                    
+
                 # Calc power on non silence region
                 power = (speech[detect_non_silence(speech)] ** 2).mean()
 
