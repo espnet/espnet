@@ -8,11 +8,12 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.tcn import TemporalConvNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.tcn_separator import TCNSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
-class TCNSeparator(AbsSeparator):
+class TCNSeparator2(TCNSeparator):
     def __init__(
         self,
         input_dim: int,
@@ -25,9 +26,12 @@ class TCNSeparator(AbsSeparator):
         kernel: int = 3,
         causal: bool = False,
         norm_type: str = "gLN",
-        nonlinear: str = "relu",
+        nonlinear: str = "linear",
+        pre_mask_nonlinear: str = "prelu",
+        masking: bool = False,
     ):
         """Temporal Convolution Separator
+        TCNSeparator2 has both masking and mapping options.
 
         Args:
             input_dim: input feature dimension
@@ -43,26 +47,41 @@ class TCNSeparator(AbsSeparator):
             nonlinear: the nonlinear function for mask estimation,
                        select from 'relu', 'tanh', 'sigmoid'
         """
-        super().__init__()
-
-        self._num_spk = num_spk
-        self.predict_noise = predict_noise
-
-        if nonlinear not in ("sigmoid", "relu", "tanh", "linear"):
-            raise ValueError("Not supporting nonlinear={}".format(nonlinear))
-
-        self.tcn = TemporalConvNet(
-            N=input_dim,
-            B=bottleneck_dim,
-            H=hidden_dim,
-            P=kernel,
-            X=layer,
-            R=stack,
-            C=num_spk + 1 if predict_noise else num_spk,
-            norm_type=norm_type,
+        super().__init__(
+            input_dim,
+            num_spk=num_spk,
+            predict_noise=predict_noise,
+            layer=layer,
+            stack=stack,
+            bottleneck_dim=bottleneck_dim,
+            hidden_dim=hidden_dim,
+            kernel=kernel,
             causal=causal,
-            mask_nonlinear=nonlinear,
+            norm_type=norm_type,
+            nonlinear=nonlinear,
         )
+
+        self.masking = masking
+
+        # self._num_spk = num_spk
+        # self.predict_noise = predict_noise
+
+        # if nonlinear not in ("sigmoid", "relu", "tanh", "linear"):
+        #     raise ValueError("Not supporting nonlinear={}".format(nonlinear))
+
+        # self.tcn = TemporalConvNet(
+        #     N=input_dim,
+        #     B=bottleneck_dim,
+        #     H=hidden_dim,
+        #     P=kernel,
+        #     X=layer,
+        #     R=stack,
+        #     C=num_spk + 1 if predict_noise else num_spk,
+        #     norm_type=norm_type,
+        #     causal=causal,
+        #     pre_mask_nonlinear=pre_mask_nonlinear,
+        #     mask_nonlinear=nonlinear,
+        # )
 
     def forward(
         self,
@@ -104,7 +123,12 @@ class TCNSeparator(AbsSeparator):
         else:
             masks = masks.unbind(dim=1)  # List[B, L, N]
 
-        masked = [input * m for m in masks]
+        if self.masking:
+            # embedding masking
+            masked = [input * m for m in masks]
+        else:
+            # mapping
+            masked = [m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)

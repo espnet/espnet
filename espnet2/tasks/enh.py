@@ -46,6 +46,7 @@ from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
+from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
@@ -61,8 +62,10 @@ from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.tcn_separator2 import TCNSeparator2
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
+from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -92,6 +95,7 @@ separator_choices = ClassChoices(
     name="separator",
     classes=dict(
         asteroid=AsteroidModel_Converter,
+        bsrnn=BSRNNSeparator,
         conformer=ConformerSeparator,
         dan=DANSeparator,
         dc_crn=DC_CRNSeparator,
@@ -105,12 +109,14 @@ separator_choices = ClassChoices(
         skim=SkiMSeparator,
         svoice=SVoiceSeparator,
         tcn=TCNSeparator,
+        tcn_mapping=TCNSeparator2,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         tcn_nomask=TCNSeparatorNomask,
         ineube=iNeuBe,
         tfgridnet=TFGridNet,
         tfgridnetv2=TFGridNetV2,
+        tfgridnetv3=TFGridNetV3,
         uses=USESSeparator,
     ),
     type_check=AbsSeparator,
@@ -489,7 +495,7 @@ class EnhancementTask(AbsTask):
         retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
-        retval += ["category"]
+        retval += ["category", "fs"]
         retval = tuple(retval)
         return retval
 
