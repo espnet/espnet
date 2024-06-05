@@ -9,26 +9,25 @@ import math
 import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-
 import numpy as np
 import torch
-import torchaudio
 import torch.nn as nn
 import torch.nn.functional as F
+import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
+from espnet2.gan_codec.shared.decoder.seanet_2d import SEANetDecoder2d
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
 from espnet2.gan_codec.shared.encoder.seanet_2d import SEANetEncoder2d
-from espnet2.gan_codec.shared.decoder.seanet_2d import SEANetDecoder2d
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.hifigan import (
-    HiFiGANMultiScaleDiscriminator,
     HiFiGANMultiPeriodDiscriminator,
+    HiFiGANMultiScaleDiscriminator,
 )
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -168,7 +167,9 @@ class FunCodec(AbsGANCodec):
         super().__init__()
 
         # define modules
-        generator_params["encdec_ratios"] = [tuple(ratio) for ratio in generator_params["encdec_ratios"]]
+        generator_params["encdec_ratios"] = [
+            tuple(ratio) for ratio in generator_params["encdec_ratios"]
+        ]
         generator_params.update(sample_rate=sampling_rate)
         self.generator = FunCodecGenerator(**generator_params)
         self.discriminator = FunCodecDiscriminator(**discriminator_params)
@@ -531,7 +532,7 @@ class FunCodecGenerator(nn.Module):
             TODO(jiatong)
         """
         super().__init__()
-        
+
         # define domain transformation module
         self.codec_domain = codec_domain
         self.domain_conf = domain_conf
@@ -640,7 +641,7 @@ class FunCodecGenerator(nn.Module):
             scale = scale.view(-1, 1)
         else:
             scale = None
-            
+
         if self.codec_domain[0] == "stft":
             x_complex = self.enc_trans_func(x.squeeze(1))
             if self.encoder.channels == 2:
@@ -683,11 +684,11 @@ class FunCodecGenerator(nn.Module):
             x_phase = torch.angle(x_complex)
             scale = (scale, x_phase)
         return x, scale
-    
+
     def freq_to_time_transfer(self, x: torch.Tensor, scale: torch.Tensor = None):
         if self.codec_domain[1] == "stft":
             if len(x.shape) == 3:
-                out_list = torch.split(x, x.shape[1]//2, dim=1)
+                out_list = torch.split(x, x.shape[1] // 2, dim=1)
             else:
                 out_list = torch.split(x, 1, dim=1)
             x = torch.complex(out_list[0], out_list[1])
@@ -708,23 +709,30 @@ class FunCodecGenerator(nn.Module):
                 out_list = [x.squeeze(1) for x in torch.split(x, 1, dim=1)]
             x_mag = F.softplus(out_list[0])
             x_angle = torch.sin(out_list[1]) * torch.pi
-            x_spec = torch.complex(torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag)
+            x_spec = torch.complex(
+                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
+            )
             x = self.dec_trans_func(x_spec).unsqueeze(1)
         elif self.codec_domain[1] == "mag_oracle_phase":
             if len(x.shape) == 4:
                 x = x.squeeze(1)
             (scale, x_angle), x_mag = scale, x
-            x_spec = torch.complex(torch.cos(x_angle)*x_mag, torch.sin(x_angle)*x_mag)
+            x_spec = torch.complex(
+                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
+            )
             x = self.dec_trans_func(x_spec).unsqueeze(1)
-        elif (self.codec_domain[0] in ["stft", "mag", "mag_phase", "mag_angle", "mag_oracle_phase"] and
-              self.codec_domain[1] == "time"):
+        elif (
+            self.codec_domain[0]
+            in ["stft", "mag", "mag_phase", "mag_angle", "mag_oracle_phase"]
+            and self.codec_domain[1] == "time"
+        ):
             hop_length = self.domain_conf.get("hop_length", 160)
-            x = x[:, :, hop_length//2: -hop_length//2]
+            x = x[:, :, hop_length // 2 : -hop_length // 2]
 
         if scale is not None:
             x = x * scale.view(-1, 1, 1)
         return x
-    
+
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
         """FunCodec forward propagation.
 
@@ -752,7 +760,7 @@ class FunCodecGenerator(nn.Module):
         #     encoder_out, quantized.detach()
         # ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
-        resyn_audio = self.decoder(quantized)[:,:,:, :x.shape[3]]
+        resyn_audio = self.decoder(quantized)[:, :, :, : x.shape[3]]
         resyn_audio = self.freq_to_time_transfer(resyn_audio)
         if use_dual_decoder:
             resyn_audio_real = self.decoder(encoder_out)
@@ -827,7 +835,7 @@ class FunCodecDiscriminator(nn.Module):
         },
         scale_follow_official_norm: bool = False,
         # Multi period discriminator related
-        periods:  List[int] = [2, 3, 5, 7, 11],
+        periods: List[int] = [2, 3, 5, 7, 11],
         period_discriminator_params: Dict[str, Any] = {
             "in_channels": 1,
             "out_channels": 1,
@@ -843,14 +851,14 @@ class FunCodecDiscriminator(nn.Module):
         },
         # ComplexSTFT discriminator related
         complexstft_discriminator_params: Dict[str, Any] = {
-                "in_channels": 1,
-                "channels": 32,
-                "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
-                "chan_mults": [1, 2, 4, 4, 8, 8],
-                "n_fft": 1024,
-                "hop_length": 256,
-                "win_length": 1024,
-                "stft_normalized": False,
+            "in_channels": 1,
+            "channels": 32,
+            "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
+            "chan_mults": [1, 2, 4, 4, 8, 8],
+            "n_fft": 1024,
+            "hop_length": 256,
+            "win_length": 1024,
+            "stft_normalized": False,
         },
     ):
         """Initialize FunCodec Discriminator module.

@@ -2,41 +2,52 @@
 # Adapted by Yihan Wu for 2D SEANet
 
 from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
-import torch.nn as nn
 import torch
+import torch.nn as nn
+
 from espnet2.gan_codec.shared.encoder.seanet import (
-    apply_parametrization_norm, 
-    get_norm_module, 
-    SLSTM, 
-    SConv1d, 
-    get_extra_padding_for_conv1d
+    SLSTM,
+    SConv1d,
+    apply_parametrization_norm,
+    get_extra_padding_for_conv1d,
+    get_norm_module,
 )
-from espnet2.gan_codec.shared.encoder.seanet_2d import (
-    get_activation,
-    SConv2d,
-)
+from espnet2.gan_codec.shared.encoder.seanet_2d import SConv2d, get_activation
+
 
 def unpad2d(x: torch.Tensor, paddings: Tuple[Tuple[int, int], Tuple[int, int]]):
     """Remove padding from x, handling properly zero padding. Only for 1d!"""
     padding_time_left, padding_time_right = paddings[0]
     padding_freq_left, padding_freq_right = paddings[1]
     assert min(paddings[0]) >= 0 and min(paddings[1]) >= 0, paddings
-    assert (padding_time_left + padding_time_right) <= x.shape[-1] and (padding_freq_left + padding_freq_right) <= x.shape[-2]
+    assert (padding_time_left + padding_time_right) <= x.shape[-1] and (
+        padding_freq_left + padding_freq_right
+    ) <= x.shape[-2]
 
     freq_end = x.shape[-2] - padding_freq_right
     time_end = x.shape[-1] - padding_time_right
-    return x[..., padding_freq_left: freq_end, padding_time_left: time_end]
+    return x[..., padding_freq_left:freq_end, padding_time_left:time_end]
 
 
 class NormConvTranspose2d(nn.Module):
     """Wrapper around ConvTranspose2d and normalization applied to this conv
     to provide a uniform interface across normalization approaches.
     """
-    def __init__(self, *args, causal: bool = False, norm: str = 'none',
-                 norm_kwargs: Dict[str, Any] = {}, **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        causal: bool = False,
+        norm: str = "none",
+        norm_kwargs: Dict[str, Any] = {},
+        **kwargs
+    ):
         super().__init__()
-        self.convtr = apply_parametrization_norm(nn.ConvTranspose2d(*args, **kwargs), norm)
+        self.convtr = apply_parametrization_norm(
+            nn.ConvTranspose2d(*args, **kwargs), norm
+        )
         self.norm = get_norm_module(self.convtr, causal, norm, **norm_kwargs)
 
     def forward(self, x):
@@ -44,31 +55,47 @@ class NormConvTranspose2d(nn.Module):
         x = self.norm(x)
         return x
 
+
 class SConvTranspose2d(nn.Module):
     """ConvTranspose2d with some builtin handling of asymmetric or causal padding
     and normalization. Note: causal padding only make sense on time (the last) axis.
     Frequency (the second last) axis are always non-causally padded.
     """
-    def __init__(self, in_channels: int, out_channels: int,
-                 kernel_size: Union[int, Tuple[int, int]],
-                 stride: Union[int, Tuple[int, int]] = 1, causal: bool = False,
-                 norm: str = 'none', trim_right_ratio: float = 1.,
-                 norm_kwargs: Dict[str, Any] = {},
-                 out_padding: Union[int, List[Tuple[int, int]]] = 0,
-                 groups: int = 1):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Union[int, Tuple[int, int]],
+        stride: Union[int, Tuple[int, int]] = 1,
+        causal: bool = False,
+        norm: str = "none",
+        trim_right_ratio: float = 1.0,
+        norm_kwargs: Dict[str, Any] = {},
+        out_padding: Union[int, List[Tuple[int, int]]] = 0,
+        groups: int = 1,
+    ):
         super().__init__()
-        self.convtr = NormConvTranspose2d(in_channels, out_channels, kernel_size, stride,
-                                          causal=causal, norm=norm, norm_kwargs=norm_kwargs,
-                                          groups=groups)
+        self.convtr = NormConvTranspose2d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            causal=causal,
+            norm=norm,
+            norm_kwargs=norm_kwargs,
+            groups=groups,
+        )
         if isinstance(out_padding, int):
             self.out_padding = [(out_padding, out_padding), (out_padding, out_padding)]
         else:
             self.out_padding = out_padding
         self.causal = causal
         self.trim_right_ratio = trim_right_ratio
-        assert self.causal or self.trim_right_ratio == 1., \
-            "`trim_right_ratio` != 1.0 only makes sense for causal convolutions"
-        assert self.trim_right_ratio >= 0. and self.trim_right_ratio <= 1.
+        assert (
+            self.causal or self.trim_right_ratio == 1.0
+        ), "`trim_right_ratio` != 1.0 only makes sense for causal convolutions"
+        assert self.trim_right_ratio >= 0.0 and self.trim_right_ratio <= 1.0
 
     def forward(self, x):
         kernel_size = self.convtr.convtr.kernel_size[0]
@@ -93,21 +120,40 @@ class SConvTranspose2d(nn.Module):
             padding_freq_left = padding_freq_total - padding_freq_right
             padding_time_right = math.ceil(padding_time_total * self.trim_right_ratio)
             padding_time_left = padding_time_total - padding_time_right
-            y = unpad2d(y, (
-                (max(padding_time_left - time_out_pad_left, 0), max(padding_time_right - time_out_pad_right, 0)),
-                (max(padding_freq_left - freq_out_pad_left, 0), max(padding_freq_right - freq_out_pad_right, 0))
-            ))
+            y = unpad2d(
+                y,
+                (
+                    (
+                        max(padding_time_left - time_out_pad_left, 0),
+                        max(padding_time_right - time_out_pad_right, 0),
+                    ),
+                    (
+                        max(padding_freq_left - freq_out_pad_left, 0),
+                        max(padding_freq_right - freq_out_pad_right, 0),
+                    ),
+                ),
+            )
         else:
             # Asymmetric padding required for odd strides
             padding_freq_right = padding_freq_total // 2
             padding_freq_left = padding_freq_total - padding_freq_right
             padding_time_right = padding_time_total // 2
             padding_time_left = padding_time_total - padding_time_right
-            y = unpad2d(y, (
-                (max(padding_time_left - time_out_pad_left, 0), max(padding_time_right - time_out_pad_right, 0)),
-                (max(padding_freq_left - freq_out_pad_left, 0), max(padding_freq_right - freq_out_pad_right, 0))
-            ))
+            y = unpad2d(
+                y,
+                (
+                    (
+                        max(padding_time_left - time_out_pad_left, 0),
+                        max(padding_time_right - time_out_pad_right, 0),
+                    ),
+                    (
+                        max(padding_freq_left - freq_out_pad_left, 0),
+                        max(padding_freq_right - freq_out_pad_right, 0),
+                    ),
+                ),
+            )
         return y
+
 
 class SEANetResnetBlock2d(nn.Module):
     """Residual block from SEANet model.
@@ -124,35 +170,52 @@ class SEANetResnetBlock2d(nn.Module):
         compress (int): Reduced dimensionality in residual branches (from Demucs v3)
         true_skip (bool): Whether to use true skip connection or a simple convolution as the skip connection.
     """
+
     def __init__(
-        self, dim: int, 
+        self,
+        dim: int,
         kernel_sizes: List[Tuple[int, int]] = [(3, 3), (1, 1)],
         dilations: List[Tuple[int, int]] = [(1, 1), (1, 1)],
-        activation: str = 'ELU', 
-        activation_params: dict = {'alpha': 1.0},
-        norm: str = 'weight_norm', 
-        norm_params: Dict[str, Any] = {}, 
+        activation: str = "ELU",
+        activation_params: dict = {"alpha": 1.0},
+        norm: str = "weight_norm",
+        norm_params: Dict[str, Any] = {},
         causal: bool = False,
-        pad_mode: str = 'reflect', 
-        compress: int = 2, 
+        pad_mode: str = "reflect",
+        compress: int = 2,
         true_skip: bool = True,
-        conv_group_ratio: int = -1
-        ):
+        conv_group_ratio: int = -1,
+    ):
         super().__init__()
-        assert len(kernel_sizes) == len(dilations), 'Number of kernel sizes should match number of dilations'
+        assert len(kernel_sizes) == len(
+            dilations
+        ), "Number of kernel sizes should match number of dilations"
         # act = getattr(nn, activation)
         hidden = dim // compress
         block = []
-        for i, (kernel_size, dilation) in enumerate(zip(kernel_sizes, dilations)): # this is always length 2
+        for i, (kernel_size, dilation) in enumerate(
+            zip(kernel_sizes, dilations)
+        ):  # this is always length 2
             in_chs = dim if i == 0 else hidden
             out_chs = dim if i == len(kernel_sizes) - 1 else hidden
             block += [
                 # act(**activation_params),
                 get_activation(activation, **{**activation_params, "channels": in_chs}),
-                SConv2d(in_chs, out_chs, kernel_size=kernel_size, dilation=dilation,
-                        norm=norm, norm_kwargs=norm_params,
-                        causal=causal, pad_mode=pad_mode,
-                        groups=min(in_chs, out_chs) // 2 // conv_group_ratio if conv_group_ratio > 0 else 1),
+                SConv2d(
+                    in_chs,
+                    out_chs,
+                    kernel_size=kernel_size,
+                    dilation=dilation,
+                    norm=norm,
+                    norm_kwargs=norm_params,
+                    causal=causal,
+                    pad_mode=pad_mode,
+                    groups=(
+                        min(in_chs, out_chs) // 2 // conv_group_ratio
+                        if conv_group_ratio > 0
+                        else 1
+                    ),
+                ),
             ]
         self.block = nn.Sequential(*block)
         self.shortcut: nn.Module
@@ -160,12 +223,21 @@ class SEANetResnetBlock2d(nn.Module):
         if true_skip:
             self.shortcut = nn.Identity()
         else:
-            self.shortcut = SConv2d(dim, dim, kernel_size=(1, 1), norm=norm, norm_kwargs=norm_params,
-                                    causal=causal, pad_mode=pad_mode,
-                                    groups=dim // 2 // conv_group_ratio if conv_group_ratio > 0 else 1)
+            self.shortcut = SConv2d(
+                dim,
+                dim,
+                kernel_size=(1, 1),
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=causal,
+                pad_mode=pad_mode,
+                groups=dim // 2 // conv_group_ratio if conv_group_ratio > 0 else 1,
+            )
 
     def forward(self, x):
-        return self.shortcut(x) + self.block(x) # This is simply the sum of two tensors of the same size
+        return self.shortcut(x) + self.block(
+            x
+        )  # This is simply the sum of two tensors of the same size
 
 
 class ReshapeModule(nn.Module):
@@ -204,34 +276,35 @@ class SEANetDecoder2d(nn.Module):
         trim_right_ratio (float): Ratio for trimming at the right of the transposed convolution under the causal setup.
             If equal to 1.0, it means that all the trimming is done at the right.
     """
+
     def __init__(
-        self,  
-        channels: int = 1, 
+        self,
+        channels: int = 1,
         dimension: int = 128,
-        n_filters: int = 32, 
+        n_filters: int = 32,
         n_residual_layers: int = 1,
         ratios: List[Tuple[int, int]] = [(4, 1), (4, 1), (4, 2), (4, 1)],
-        activation: str = 'ELU', 
-        activation_params: dict = {'alpha': 1.0},
-        final_activation: Optional[str] = None, 
+        activation: str = "ELU",
+        activation_params: dict = {"alpha": 1.0},
+        final_activation: Optional[str] = None,
         final_activation_params: Optional[dict] = None,
-        norm: str = 'weight_norm', 
-        norm_params: Dict[str, Any] = {}, 
+        norm: str = "weight_norm",
+        norm_params: Dict[str, Any] = {},
         kernel_size: int = 7,
-        last_kernel_size: int = 7, 
-        residual_kernel_size: int = 3, 
-        dilation_base: int = 2, 
+        last_kernel_size: int = 7,
+        residual_kernel_size: int = 3,
+        dilation_base: int = 2,
         causal: bool = False,
-        pad_mode: str = 'reflect', 
-        true_skip: bool = False, 
+        pad_mode: str = "reflect",
+        true_skip: bool = False,
         compress: int = 2,
-        lstm: int = 2, 
-        trim_right_ratio: float = 1.0, 
+        lstm: int = 2,
+        trim_right_ratio: float = 1.0,
         res_seq=True,
         last_out_padding: List[Union[int, int]] = [(0, 1), (0, 0)],
-        tr_conv_group_ratio: int = -1, 
-        conv_group_ratio: int = -1
-        ):
+        tr_conv_group_ratio: int = -1,
+        conv_group_ratio: int = -1,
+    ):
         super().__init__()
         self.dimension = dimension
         self.channels = channels
@@ -244,10 +317,16 @@ class SEANetDecoder2d(nn.Module):
         # act = getattr(nn, activation)
         mult = int(2 ** len(self.ratios))
         model: List[nn.Module] = [
-            SConv1d(dimension, mult * n_filters, kernel_size, norm=norm, norm_kwargs=norm_params,
-                    causal=causal, pad_mode=pad_mode)
+            SConv1d(
+                dimension,
+                mult * n_filters,
+                kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=causal,
+                pad_mode=pad_mode,
+            )
         ]
-
 
         model += [SLSTM(mult * n_filters, num_layers=lstm)]
 
@@ -258,47 +337,74 @@ class SEANetDecoder2d(nn.Module):
             # Add upsampling layers
             model += [
                 # act(**activation_params),
-                get_activation(activation, **{**activation_params, "channels": mult * n_filters}),
-                SConvTranspose2d(mult * n_filters, mult * n_filters // 2,
-                                 kernel_size=(freq_ratio * 2, time_ratio * 2),
-                                 stride=(freq_ratio, time_ratio),
-                                 norm=norm, norm_kwargs=norm_params,
-                                 causal=causal, trim_right_ratio=trim_right_ratio,
-                                 out_padding=last_out_padding if i == len(self.ratios) - 1 else 0,
-                                 groups=mult * n_filters // 2 // tr_conv_group_ratio if tr_conv_group_ratio > 0 else 1),
+                get_activation(
+                    activation, **{**activation_params, "channels": mult * n_filters}
+                ),
+                SConvTranspose2d(
+                    mult * n_filters,
+                    mult * n_filters // 2,
+                    kernel_size=(freq_ratio * 2, time_ratio * 2),
+                    stride=(freq_ratio, time_ratio),
+                    norm=norm,
+                    norm_kwargs=norm_params,
+                    causal=causal,
+                    trim_right_ratio=trim_right_ratio,
+                    out_padding=last_out_padding if i == len(self.ratios) - 1 else 0,
+                    groups=(
+                        mult * n_filters // 2 // tr_conv_group_ratio
+                        if tr_conv_group_ratio > 0
+                        else 1
+                    ),
+                ),
             ]
             # Add residual layers
             for j in range(n_residual_layers):
                 model += [
-                    SEANetResnetBlock2d(mult * n_filters // 2,
-                                        kernel_sizes=[(residual_kernel_size, residual_kernel_size), (1, 1)],
-                                        dilations=[(1, dilation_base ** j), (1, 1)],
-                                        activation=activation, activation_params=activation_params,
-                                        norm=norm, norm_params=norm_params, causal=causal,
-                                        pad_mode=pad_mode, compress=compress, true_skip=true_skip,
-                                        conv_group_ratio=conv_group_ratio)]
+                    SEANetResnetBlock2d(
+                        mult * n_filters // 2,
+                        kernel_sizes=[
+                            (residual_kernel_size, residual_kernel_size),
+                            (1, 1),
+                        ],
+                        dilations=[(1, dilation_base**j), (1, 1)],
+                        activation=activation,
+                        activation_params=activation_params,
+                        norm=norm,
+                        norm_params=norm_params,
+                        causal=causal,
+                        pad_mode=pad_mode,
+                        compress=compress,
+                        true_skip=true_skip,
+                        conv_group_ratio=conv_group_ratio,
+                    )
+                ]
             mult //= 2
 
         # Add final layers
         model += [
             # act(**activation_params),
             get_activation(activation, **{**activation_params, "channels": n_filters}),
-            SConv2d(n_filters, channels, last_kernel_size, norm=norm, norm_kwargs=norm_params,
-                    causal=causal, pad_mode=pad_mode)
+            SConv2d(
+                n_filters,
+                channels,
+                last_kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=causal,
+                pad_mode=pad_mode,
+            ),
         ]
         # Add optional final activation to decoder (eg. tanh)
-        if final_activation is not None: # This is always None
+        if final_activation is not None:  # This is always None
             final_act = getattr(nn, final_activation)
             final_activation_params = final_activation_params or {}
-            model += [
-                final_act(**final_activation_params)
-            ]
+            model += [final_act(**final_activation_params)]
         self.model = nn.Sequential(*model)
 
     def output_size(self):
         return self.channels
 
     def forward(self, z):
-        # [Yihan] changed z in (B, C, T) 
+        # [Yihan] changed z in (B, C, T)
         y = self.model(z)
         return y

@@ -78,7 +78,7 @@ def get_norm_module(
         if causal:
             raise ValueError("GroupNorm doesn't support causal evaluation.")
         assert isinstance(module, nn.modules.conv._ConvNd)
-        norm_kwargs.pop('num_groups', None)
+        norm_kwargs.pop("num_groups", None)
         return nn.GroupNorm(1, module.out_channels, **norm_kwargs)
     else:
         return nn.Identity()

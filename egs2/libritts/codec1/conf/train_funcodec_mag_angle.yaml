@@ -78,7 +78,7 @@ codec_conf:
             max_downsample_channels: 1024
             bias: true
             nonlinear_activation: LeakyReLU
-            nonlinear_activation_params: 
+            nonlinear_activation_params:
                 negative_slope: 0.1
             use_weight_norm: true
             use_spectral_norm: false
