@@ -81,7 +81,7 @@ class AudioCoding:
 
         batch = dict(audio=audio)
         batch = to_device(batch, self.device)
-
+        print(audio, flush=True)
         # overwrite the decode configs if provided
         cfg = self.decode_conf
         if decode_conf is not None:

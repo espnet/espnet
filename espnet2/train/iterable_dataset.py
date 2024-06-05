@@ -77,7 +77,7 @@ class IterableESPnetDataset(IterableDataset):
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
-    @typechecked
+    # @typechecked
     def __init__(
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
