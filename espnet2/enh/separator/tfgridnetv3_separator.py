@@ -15,7 +15,7 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
 
 
-class TFGridNetV2(AbsSeparator):
+class TFGridNetV3(AbsSeparator):
     """Offline TFGridNetV3.
 
     On top of TFGridNetV2, TFGridNetV3 slightly modifies the internal architecture

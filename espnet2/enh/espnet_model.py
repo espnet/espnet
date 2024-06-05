@@ -100,8 +100,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 NOTE: this can be useful to train a model capable of handling various
                 sampling rates while unifying bandwidth extension + speech enhancement.
         """
-        assert check_argument_types()
-
         super().__init__()
 
         self.encoder = encoder
@@ -259,9 +257,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 speech_lengths = speech_lengths.new_tensor(
                     [
                         torchaudio.functional.resample(
-                            torch.randn(l, device="meta"), fs, tgt_fs
+                            torch.randn(length, device="meta"), fs, tgt_fs
                         ).size(0)
-                        for l in speech_lengths
+                        for length in speech_lengths
                     ]
                 )
                 if speech_mix.ndim > 2:

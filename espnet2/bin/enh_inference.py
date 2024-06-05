@@ -235,9 +235,9 @@ class SeparateSpeech:
                 lengths = lengths.new_tensor(
                     [
                         torchaudio.functional.resample(
-                            torch.randn(l, device="meta"), fs, 48000
+                            torch.randn(L, device="meta"), fs, 48000
                         ).size(0)
-                        for l in lengths
+                        for L in lengths
                     ]
                 )
                 speech_mix = torchaudio.functional.resample(speech_mix, fs, 48000)

@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 from torch_complex import ComplexTensor
 
-from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.tcn_separator2 import TCNSeparator2
 
 
 @pytest.mark.parametrize("input_dim", [5])
@@ -14,9 +14,10 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 @pytest.mark.parametrize("stack", [1, 3])
 @pytest.mark.parametrize("causal", [True, False])
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh", "linear"])
+@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
-def test_tcn_separator_forward_backward_complex(
+@pytest.mark.parametrize("masking", [True, False])
+def test_tcn2_separator_forward_backward_complex(
     input_dim,
     layer,
     num_spk,
@@ -27,8 +28,9 @@ def test_tcn_separator_forward_backward_complex(
     kernel,
     causal,
     norm_type,
+    masking,
 ):
-    model = TCNSeparator(
+    model = TCNSeparator2(
         input_dim=input_dim,
         num_spk=num_spk,
         layer=layer,
@@ -39,6 +41,7 @@ def test_tcn_separator_forward_backward_complex(
         causal=causal,
         norm_type=norm_type,
         nonlinear=nonlinear,
+        masking=masking,
     )
     model.train()
 
@@ -49,7 +52,8 @@ def test_tcn_separator_forward_backward_complex(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    if masking:
+        assert isinstance(masked[0], ComplexTensor)
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()
@@ -65,7 +69,7 @@ def test_tcn_separator_forward_backward_complex(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
-def test_tcn_separator_forward_backward_real(
+def test_tcn2_separator_forward_backward_real(
     input_dim,
     layer,
     num_spk,
@@ -77,7 +81,7 @@ def test_tcn_separator_forward_backward_real(
     causal,
     norm_type,
 ):
-    model = TCNSeparator(
+    model = TCNSeparator2(
         input_dim=input_dim,
         num_spk=num_spk,
         layer=layer,
@@ -101,25 +105,25 @@ def test_tcn_separator_forward_backward_real(
     masked[0].abs().mean().backward()
 
 
-def test_tcn_separator_invalid_type():
+def test_tcn2_separator_invalid_type():
     with pytest.raises(ValueError):
-        TCNSeparator(
+        TCNSeparator2(
             input_dim=10,
             nonlinear="fff",
         )
     with pytest.raises(ValueError):
-        TCNSeparator(
+        TCNSeparator2(
             input_dim=10,
             norm_type="xxx",
         )
 
 
-def test_tcn_separator_output():
+def test_tcn2_separator_output():
     x = torch.rand(2, 10, 10)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
-        model = TCNSeparator(
+        model = TCNSeparator2(
             input_dim=10,
             layer=num_spk,
             stack=2,
@@ -137,11 +141,11 @@ def test_tcn_separator_output():
             assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape
 
 
-def test_tcn_streaming():
+def test_tcn2_streaming():
     SEQ_LEN = 100
     num_spk = 2
     BS = 2
-    separator = TCNSeparator(
+    separator = TCNSeparator2(
         input_dim=128,
         num_spk=2,
         layer=2,

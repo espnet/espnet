@@ -63,26 +63,6 @@ class TCNSeparator2(TCNSeparator):
 
         self.masking = masking
 
-        # self._num_spk = num_spk
-        # self.predict_noise = predict_noise
-
-        # if nonlinear not in ("sigmoid", "relu", "tanh", "linear"):
-        #     raise ValueError("Not supporting nonlinear={}".format(nonlinear))
-
-        # self.tcn = TemporalConvNet(
-        #     N=input_dim,
-        #     B=bottleneck_dim,
-        #     H=hidden_dim,
-        #     P=kernel,
-        #     X=layer,
-        #     R=stack,
-        #     C=num_spk + 1 if predict_noise else num_spk,
-        #     norm_type=norm_type,
-        #     causal=causal,
-        #     pre_mask_nonlinear=pre_mask_nonlinear,
-        #     mask_nonlinear=nonlinear,
-        # )
-
     def forward(
         self,
         input: Union[torch.Tensor, ComplexTensor],

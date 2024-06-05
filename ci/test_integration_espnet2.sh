@@ -189,6 +189,8 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     for t in ${feats_types}; do
         echo "==== feats_type=${t} without preprocessor ==="
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-packing false --feats-type "${t}" --ref-num 1 --python "${python}" --enh-args "--num_workers 0"
+        ./run.sh --ngpu 0 --stage 5 --stop-stage 10 --skip-packing false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --enh_config conf/train_with_chunk_iterator_debug.yaml --enh-args "--num_workers 0"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
