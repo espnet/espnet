@@ -248,7 +248,7 @@ class MultiScaleLM(AbsCoreLM):
                     f"Consider increasing the maxlenratio"
                 )
 
-        logging.info(f"Finish with lengths: {finish_idx}")
+        logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
         for hook in g_hooks:
