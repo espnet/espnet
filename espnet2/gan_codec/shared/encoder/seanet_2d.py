@@ -45,10 +45,8 @@ class NormConv2d(nn.Module):
         self.norm_type = norm
 
     def forward(self, x):
-        #print("inputNormConv2d:", x.shape, torch.sum(x), torch.sum(torch.abs(x)))
         x = self.conv(x)
         x = self.norm(x)
-        #print("outputNormConv2d:", x.shape, torch.sum(x), torch.sum(torch.abs(x)))
         return x
 
 def tuple_it(x, num=2):
@@ -305,7 +303,6 @@ class SEANetEncoder2d(nn.Module):
 
             # Add downsampling layers
             model += [
-                # act(**activation_params),
                 get_activation(activation, **{**activation_params, "channels": mult * n_filters}),
                 SConv2d(mult * n_filters, mult * n_filters * 2,
                         kernel_size=(freq_ratio*2, time_ratio*2),
@@ -334,10 +331,7 @@ class SEANetEncoder2d(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
-        # print("x shape", x.shape) # x shape torch.Size([8, 2, 257, 151])
         if x.dim() == 3:
-            x = x.unsqueeze(1)
-        # x in B,C,T, return B,T,C
-        # print("self.model(x) shape", self.model(x).shape) # self.model(x) shape torch.Size([8, 512, 76])
+            x = x.unsqueeze(1) # x in B,C,T, return B,T,C
         return self.model(x)
         

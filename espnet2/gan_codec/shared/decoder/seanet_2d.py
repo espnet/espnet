@@ -40,10 +40,8 @@ class NormConvTranspose2d(nn.Module):
         self.norm = get_norm_module(self.convtr, causal, norm, **norm_kwargs)
 
     def forward(self, x):
-        #print("inputNormConvTranspose2d:", x.shape, torch.sum(x), torch.sum(torch.abs(x)))
         x = self.convtr(x)
         x = self.norm(x)
-        #print("outputNormConvTranspose2d:", x.shape, torch.sum(x), torch.sum(torch.abs(x)))
         return x
 
 class SConvTranspose2d(nn.Module):
@@ -73,7 +71,6 @@ class SConvTranspose2d(nn.Module):
         assert self.trim_right_ratio >= 0. and self.trim_right_ratio <= 1.
 
     def forward(self, x):
-        #print("inputSConvTranspose1d:", x.shape, torch.sum(x), torch.sum(torch.abs(x)))
         kernel_size = self.convtr.convtr.kernel_size[0]
         stride = self.convtr.convtr.stride[0]
         padding_freq_total = kernel_size - stride
@@ -106,12 +103,10 @@ class SConvTranspose2d(nn.Module):
             padding_freq_left = padding_freq_total - padding_freq_right
             padding_time_right = padding_time_total // 2
             padding_time_left = padding_time_total - padding_time_right
-            # y = unpad2d(y, ((padding_time_left, padding_time_right), (padding_freq_left, padding_freq_right)))
             y = unpad2d(y, (
                 (max(padding_time_left - time_out_pad_left, 0), max(padding_time_right - time_out_pad_right, 0)),
                 (max(padding_freq_left - freq_out_pad_left, 0), max(padding_freq_right - freq_out_pad_right, 0))
             ))
-        #print("outputSConvTranspose1d:", y.shape, torch.sum(y), torch.sum(torch.abs(y)))
         return y
 
 class SEANetResnetBlock2d(nn.Module):
@@ -151,7 +146,6 @@ class SEANetResnetBlock2d(nn.Module):
         for i, (kernel_size, dilation) in enumerate(zip(kernel_sizes, dilations)): # this is always length 2
             in_chs = dim if i == 0 else hidden
             out_chs = dim if i == len(kernel_sizes) - 1 else hidden
-            # print(in_chs, "_", out_chs) # 32 _ 16; 16 _ 32; 64 _ 32; 32 _ 64; etc until 256 _ 128; 128_ 256 for encode
             block += [
                 # act(**activation_params),
                 get_activation(activation, **{**activation_params, "channels": in_chs}),
