@@ -2,8 +2,8 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from torch_complex.tensor import ComplexTensor
 from packaging.version import parse as V
+from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.dptnet import DPTNet
