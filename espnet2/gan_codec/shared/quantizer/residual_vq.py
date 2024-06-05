@@ -43,7 +43,7 @@ class ResidualVectorQuantizer(nn.Module):
     def __init__(
         self,
         dimension: int = 256,
-        codebook_dim: int = 256,
+        codebook_dim: int = 512,
         n_q: int = 8,
         bins: int = 1024,
         decay: float = 0.99,
