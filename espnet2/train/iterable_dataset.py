@@ -87,7 +87,7 @@ class IterableESPnetDataset(IterableDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         key_file: Optional[Union[str, List]] = None,
-        preprocess_prefix: str = None,
+        preprocess_prefix: Optional[str] = None,
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(
