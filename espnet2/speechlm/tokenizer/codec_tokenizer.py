@@ -86,7 +86,7 @@ class CodecTokenizer(AbsTokenizer):
             self.size_codebook = self.codec.quantizer.bins
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder.ratios)
-        
+
         elif self.codec_choice == "inhouse":
             try:
                 from models.soundstream import SoundStream
@@ -113,20 +113,20 @@ class CodecTokenizer(AbsTokenizer):
             raise ValueError(f"Codec {codec_choice} is not supported")
 
     def detokenize(self, codes):
-        """ a warpper to decode the flatten discrete output """
+        """a warpper to decode the flatten discrete output"""
         has_batch = True
         if codes.dim() == 2:
             codes = codes.unsqueeze(0)
             has_batch = False
-        
+
         for l_idx in range(codes.size(2)):
             codes[:, :, l_idx] -= l_idx * self.size_codebook
-        
+
         waveform = self.decode(codes)
         if not has_batch:
             waveform = waveform.squeeze(0)
 
-        return waveform.unsqueeze(0) # channel dimension
+        return waveform.unsqueeze(0)  # channel dimension
 
     @torch.no_grad()
     def decode(self, codes):
@@ -190,7 +190,7 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "EnCodec":
             encoded_frames = self.codec.encode(wavs)
             codes = encoded_frames[0][0].transpose(1, 2)
-        
+
         elif self.codec_choice == "inhouse":
             codes = self.codec.encode(wavs).permute(1, 2, 0)
 

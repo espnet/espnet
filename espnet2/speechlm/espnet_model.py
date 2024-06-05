@@ -58,7 +58,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
     @property
     def layer_cls(self):
-        """ All layer class that can be warpped by FSDP """
+        """All layer class that can be warpped by FSDP"""
         return [
-            ResidualAttentionBlock, # Espnet built-in transformer layer.
+            ResidualAttentionBlock,  # Espnet built-in transformer layer.
         ]

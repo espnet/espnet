@@ -63,33 +63,36 @@ class MultiHeadAttention(nn.Module):
         wv = self.qkv_attention(q, k, v, mask)
 
         return self.out(wv)
-    
+
     def qkv_attention(
         self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None
     ):
         if self.causal and mask is not None:
             raise ValueError("mask is not allowed when the attention is causal")
-        
+
         if self.causal and q.size(1) == k.size(1):
             causal = True
         else:
             causal = False
-        
+
         q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
-        wv = F.scaled_dot_product_attention(
-            q, k, v, mask, is_causal=causal
-        ).permute(0, 2, 1, 3).flatten(start_dim=2)
-        
+        wv = (
+            F.scaled_dot_product_attention(q, k, v, mask, is_causal=causal)
+            .permute(0, 2, 1, 3)
+            .flatten(start_dim=2)
+        )
+
         return wv
 
 
 class ResidualAttentionBlock(nn.Module):
-    def __init__(self,
-        n_state: int, 
-        n_head: int, 
+    def __init__(
+        self,
+        n_state: int,
+        n_head: int,
         cross_attention: bool = False,
         causal: bool = False,
     ):
@@ -138,16 +141,15 @@ class TransformerDecoder(nn.Module):
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
         self.blocks = nn.ModuleList(
-            [
-                layer_class(n_state, n_head, False, causal)
-                for _ in range(n_layer)
-            ]
+            [layer_class(n_state, n_head, False, causal) for _ in range(n_layer)]
         )
         self.ln = LayerNorm(n_state)
 
         self.causal = causal
 
-    def forward(self, x: Tensor, mask: torch.Tensor = None, kv_cache: Optional[dict] = None):
+    def forward(
+        self, x: Tensor, mask: torch.Tensor = None, kv_cache: Optional[dict] = None
+    ):
         if self.causal and mask is not None:
             raise ValueError("Causal Transformer dones't allow mask")
 

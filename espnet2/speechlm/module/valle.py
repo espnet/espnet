@@ -29,12 +29,12 @@ class AdaLN(nn.Module):
 
 class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
     def __init__(
-            self, 
-            n_state: int, 
-            n_head: int, 
-            cross_attention: bool = False,
-            causal: bool = False,
-        ):
+        self,
+        n_state: int,
+        n_head: int,
+        cross_attention: bool = False,
+        causal: bool = False,
+    ):
         super(ResidualAttentionBlockAdaLM, self).__init__(
             n_state=n_state,
             n_head=n_head,
@@ -84,7 +84,13 @@ class ValleNARDecoder(TransformerDecoder):
         self.level_emb = nn.Embedding(n_level, n_state)
         self.ln = AdaLN(n_state)
 
-    def forward(self, x: Tensor, level: Tensor, mask: Tensor = None, kv_cache: Optional[dict] = None):
+    def forward(
+        self,
+        x: Tensor,
+        level: Tensor,
+        mask: Tensor = None,
+        kv_cache: Optional[dict] = None,
+    ):
         if self.causal and mask is not None:
             raise ValueError("mask is not allowed when causal")
 

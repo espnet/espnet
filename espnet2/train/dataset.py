@@ -480,7 +480,7 @@ class ESPnetDataset(AbsDataset):
                 logging.warning(f"{path} has no samples")
 
             # TODO(kamo): Should check consistency of each utt-keys?
-        
+
         if isinstance(max_cache_size, str):
             max_cache_size = humanfriendly.parse_size(max_cache_size)
         self.max_cache_size = max_cache_size
@@ -643,7 +643,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
         # (2) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
-        example_dict = {k: None for k in example_list} # hash for faster query 
+        example_dict = {k: None for k in example_list}  # hash for faster query
         for key in self.loader_dict.keys():
             loader = self.loader_dict[key]
             if isinstance(loader, Dict):

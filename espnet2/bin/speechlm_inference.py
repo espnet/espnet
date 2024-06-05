@@ -110,7 +110,7 @@ class SpeechLM:
             self.bias = token_bias[modality]
         else:
             self.bias = 0
-            
+
     @typechecked
     def __call__(
         self,
@@ -143,24 +143,29 @@ class SpeechLM:
         for gen_token in gen_tokens:
             gen_token = gen_token - self.bias
             generated.append(self.tokenizer.detokenize(gen_token))
-        
+
         # (3) prefix tokens detokenization
         conditions = []
         if self.verbose:
             # [32, 64) is reserved for modality start. See:
             # espnet2.speechlm.definitions.py
-            starts = torch.logical_and(
-                dec_seq[0, :prefix_len, 0] >= 32,
-                dec_seq[0, :prefix_len, 0] < 64,
-            ).nonzero(as_tuple=True)[0].cpu().tolist()
+            starts = (
+                torch.logical_and(
+                    dec_seq[0, :prefix_len, 0] >= 32,
+                    dec_seq[0, :prefix_len, 0] < 64,
+                )
+                .nonzero(as_tuple=True)[0]
+                .cpu()
+                .tolist()
+            )
             starts = starts + [prefix_len.cpu().item()]
-            
+
             for idx in range(len(starts) - 1):
                 start, end = starts[idx], starts[idx + 1]
                 this_modality = self.train_args.token_list[dec_seq[0, start, 0].item()]
                 this_modality = this_modality.lstrip("<").rstrip("_start/end>")
-                content = dec_seq[0, start + 1: end]
-                
+                content = dec_seq[0, start + 1 : end]
+
                 # TODO(Jinchuan): support more detokenization options latre for other tasks
                 if self.modality == "codec" and this_modality in ["codec", "spk"]:
                     content = content - self.train_args.token_bias["codec"]
@@ -189,6 +194,7 @@ class SpeechLM:
             raise ValueError("Model tag is not supported yet")
 
         return SpeechLM(**kwargs)
+
 
 @typechecked
 def inference(
@@ -230,7 +236,7 @@ def inference(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
-    
+
     if torch.cuda.is_available() and ngpu >= 1:
         if torch.cuda.device_count() > 1:
             device_id = rank % torch.cuda.device_count()
@@ -290,7 +296,11 @@ def inference(
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
     (output_dir / "token").mkdir(parents=True, exist_ok=True)
     (output_dir / "score").mkdir(parents=True, exist_ok=True)
-    prefix_triplets = [triplet for triplet in task.encoder_entries + task.decoder_entries if triplet not in task.target_entries]
+    prefix_triplets = [
+        triplet
+        for triplet in task.encoder_entries + task.decoder_entries
+        if triplet not in task.target_entries
+    ]
     prefix_writers = [None for _ in prefix_triplets]
 
     writer = open(output_dir / output_name / "example_list", "w")
@@ -340,7 +350,7 @@ def inference(
 
             token_writer[example_name] = token
             score_writer[example_name] = score
-        
+
         # (3) parse and save conditon content
         if verbose:
             assert len(conditions) == len(prefix_triplets)
@@ -355,7 +365,7 @@ def inference(
                     (output_dir / name).mkdir(parents=True, exist_ok=True)
                     writer = open(output_dir / name / "example_list", "w")
                     prefix_writers[c_idx] = writer
-                
+
                 if modality in ["codec", "spk"]:
                     content_path = output_dir / name / f"{key}.wav"
                     torchaudio.save(
@@ -365,13 +375,15 @@ def inference(
                     )
                     writer.write(f"{key} {content_path}\n")
                     logging.info(f"save prefix {name} audio {key}: {content_path}")
-                
+
                 elif modality in ["g2p"]:
                     writer.write(f"{key} {content}\n")
                     logging.info(f"prefix part {modality}: {content}")
 
                 else:
-                    raise ValueError(f"save prefix in modality {modality} is not supported yet")
+                    raise ValueError(
+                        f"save prefix in modality {modality} is not supported yet"
+                    )
 
 
 def get_parser():
@@ -427,10 +439,7 @@ def get_parser():
         help="The batch size for inference",
     )
     parser.add_argument(
-        "--rank",
-        type=int,
-        default=1,
-        help="the job rank in decoding process"
+        "--rank", type=int, default=1, help="the job rank in decoding process"
     )
     parser.add_argument(
         "--verbose",
