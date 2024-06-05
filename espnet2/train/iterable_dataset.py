@@ -103,6 +103,7 @@ class IterableESPnetDataset(IterableDataset):
         self.preprocess_prefix = (
             preprocess_prefix if preprocess_prefix is not None else ""
         )
+        
         self.debug_info = {}
         non_iterable_list = []
         self.path_name_type_list = []
