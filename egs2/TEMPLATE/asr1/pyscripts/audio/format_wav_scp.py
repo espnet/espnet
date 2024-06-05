@@ -127,7 +127,11 @@ class SegmentsExtractor:
                             concat_axis=1,
                         )
                     else:
-                        array, rate = soundfile.read(wavpath)
+                        try:
+                            array, rate = soundfile.read(wavpath)
+                        except:
+                            array = np.zeros(1000)
+                            rate = 48000
                 cached[recodeid] = array, rate
 
             array, rate = cached[recodeid]
@@ -265,10 +269,15 @@ def main():
                                 " pipe"
                             )
                         # Streaming input e.g. cat a.wav |
-                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
-                            with BytesIO(f.read()) as g:
-                                wave, rate = soundfile.read(g)
-                        subtypes = None
+                        try:
+                            with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                                with BytesIO(f.read()) as g:
+                                    wave, rate = soundfile.read(g)
+                            subtypes = None
+                        except Exception as e:
+                            logging.info("issue in {} with {}".format(wavpath, e))
+                            rate = 48000
+                            wave = np.zeros(1000,)
 
                     # B.b Without segments and not using pipe
                     else:
@@ -281,10 +290,16 @@ def main():
                                 return_subtype=True,
                             )
                         else:
-                            with soundfile.SoundFile(wavpath) as sf:
-                                rate = sf.samplerate
-                                subtypes = [sf.subtype]
-                                wave = sf.read()
+                            try:
+                                with soundfile.SoundFile(wavpath) as sf:
+                                    rate = sf.samplerate
+                                    subtypes = [sf.subtype]
+                                    wave = sf.read()
+                            except Exception as e:
+                                logging.info("issue in {} with {}".format(wavpath, e))
+                                wave = np.zeros(1000,)
+                                rate = 48000
+                                subtypes = 'FLOAT'
                     yield uttid, (wave, rate), wavpath, subtypes
 
     with out_num_samples.open("w") as fnum_samples:
@@ -292,7 +307,8 @@ def main():
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?
-                wave = resampy.resample(wave, rate, args.fs, axis=0)
+                if len(wave) > 100:
+                    wave = resampy.resample(wave, rate, args.fs, axis=0)
                 rate = args.fs
                 save_asis = False
 
