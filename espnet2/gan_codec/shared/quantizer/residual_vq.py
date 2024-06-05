@@ -24,6 +24,9 @@ class QuantizedResult:
     codes: torch.Tensor
     bandwidth: torch.Tensor  # bandwidth in kb/s used, per batch item.
     penalty: Optional[torch.Tensor] = None
+    metrics: dict = field(default_factory=dict)
+
+
 
 
 class ResidualVectorQuantizer(nn.Module):
@@ -69,13 +72,14 @@ class ResidualVectorQuantizer(nn.Module):
         )
 
     def forward(
-        self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None
+        self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None, layers: Optional[list] = None, quantized_list_flag:Optional[bool] = False,
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
         Args:
             x (torch.Tensor): Input tensor.
             sample_rate (int): Sample rate of the input tensor.
             bandwidth (float): Target bandwidth.
+            layers (list): Layer that need to return quantized. Defalt: None.
         Returns:
             QuantizedResult:
                 The quantized (or approximately quantized) representation with
@@ -83,7 +87,9 @@ class ResidualVectorQuantizer(nn.Module):
         """
         bw_per_q = self.get_bandwidth_per_quantizer(sample_rate)
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
-        quantized, codes, commit_loss = self.vq(x, n_q=n_q)
+        if layers and max(layers) >= n_q:
+            raise ValueError(f'Last layer index in layers: A {max(layers)}. Number of quantizers in RVQ: B {self.n_q}. A must less than B.')
+        quantized, codes, commit_loss = self.vq(x, n_q=n_q, layers=layers, quantized_list_flag=quantized_list_flag)
         bw = torch.tensor(n_q * bw_per_q).to(x)
         return quantized, codes, bw, torch.mean(commit_loss)
 

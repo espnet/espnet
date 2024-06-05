@@ -353,28 +353,34 @@ class ResidualVectorQuantization(nn.Module):
             [VectorQuantization(**kwargs) for _ in range(num_quantizers)]
         )
 
-    def forward(self, x, n_q: Optional[int] = None):
+    def forward(self, x, n_q: Optional[int] = None, layers: Optional[list] = None, quantized_list_flag:Optional[bool] = False): # add a new arg for the quantized list
         quantized_out = 0.0
         residual = x
 
         all_losses = []
         all_indices = []
+        out_quantized = [] # quantized list
 
         n_q = n_q or len(self.layers)
 
-        for layer in self.layers[:n_q]:
+        for i, layer in enumerate(self.layers[:n_q]):
             quantized, indices, loss = layer(residual)
             residual = residual - quantized
             quantized_out = quantized_out + quantized
 
             all_indices.append(indices)
             all_losses.append(loss)
-
+            if layers and i in layers:
+                out_quantized.append(quantized)
         if self.training:
             # Solving subtle bug with STE and RVQ
             # For more, https://github.com/facebookresearch/encodec/issues/25
             quantized_out = x + (quantized_out - x).detach()
-
+        list_quantized_out = []
+        if quantized_list_flag == True:
+            list_quantized_out.append([quantized_out,out_quantized])
+            quantized_out = list_quantized_out
+            
         out_losses, out_indices = map(torch.stack, (all_losses, all_indices))
         return quantized_out, out_indices, out_losses
 

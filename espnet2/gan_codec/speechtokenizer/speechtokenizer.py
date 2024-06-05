@@ -22,17 +22,18 @@ from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
-from espnet2.gan_codec.shared.encoder.seanet_st import SEANetEncoder
+from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
-from espnet2.gan_codec.shared.quantizer.residual_vq_st import ResidualVectorQuantizer # for the quantized list
-from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
+from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer 
+from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator, HiFiGANMultiPeriodDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
+from s3prl.nn import S3PRLUpstream
 
 
 class SpeechTokenizer(AbsGANCodec):
@@ -105,6 +106,21 @@ class SpeechTokenizer(AbsGANCodec):
                 "stft_normalized": False,
                 "logits_abs": True,
             },
+        periods: List[int] = [2, 3, 5, 7, 11],
+        period_discriminator_params: Dict[str, Any] = {
+            "in_channels": 1,
+            "out_channels": 1,
+            "kernel_sizes": [5, 3],
+            "channels": 32,
+            "max_downsample_channels": 1024,
+            "max_groups": 16,
+            "bias": True,
+            "downsample_scales": [3, 3, 3, 3, 1],
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "use_weight_norm": True,
+            "use_spectral_norm": False,
+        },
         },
         # loss related
         generator_adv_loss_params: Dict[str, Any] = {
@@ -277,11 +293,11 @@ class SpeechTokenizer(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
+            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real, distillation_loss = (
                 self.generator(audio, use_dual_decoder=self.use_dual_decoder)
             )
         else:
-            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
+            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real, distillation_loss = (
                 self._cache
             )
 
@@ -291,7 +307,8 @@ class SpeechTokenizer(AbsGANCodec):
                 audio_hat,
                 codec_commit_loss,
                 quantization_loss,
-                audio_hat_real, # add semantic feature
+                audio_hat_real, 
+                distillation_loss,
             )
 
         # calculate discriminator outputs
@@ -309,13 +326,14 @@ class SpeechTokenizer(AbsGANCodec):
             self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
         )
         codec_loss = codec_commit_loss + codec_quantization_loss
-        loss = adv_loss + codec_loss + reconstruct_loss
+        loss = adv_loss + codec_loss + reconstruct_loss + distillation_loss
         stats = dict(
             adv_loss=adv_loss.item(),
             codec_loss=codec_loss.item(),
             codec_commit_loss=codec_commit_loss.item(),
             codec_quantization_loss=codec_quantization_loss.item(),
             reconstruct_loss=reconstruct_loss.item(),
+            distillation_loss = distillation_loss.item(),
         )
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p)
@@ -335,11 +353,12 @@ class SpeechTokenizer(AbsGANCodec):
 
         stats.update(loss=loss.item())
 
-        if self.loss_balancer is not None and self.training:
+        if self.loss_balancer is not None and self.training: 
             # any loss built on audio_hat is processed by balancer
             balanced_losses = {
                 "reconstruct": reconstruct_loss,
                 "adv": adv_loss,
+                "distillation_loss": distillation_loss,  
             }
             if self.use_feat_match_loss:
                 balanced_losses.update(feat_match=feat_match_loss)
@@ -349,7 +368,7 @@ class SpeechTokenizer(AbsGANCodec):
             balanced_loss, norm_stats = self.loss_balancer(balanced_losses, audio_hat)
             stats.update(norm_stats)
 
-            loss = sum(balanced_loss.values()) + codec_loss
+            loss = sum(balanced_loss.values()) + codec_loss 
             if self.use_mel_loss and self.use_dual_decoder:
                 loss = loss + mel_loss_real
 
@@ -393,14 +412,14 @@ class SpeechTokenizer(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real, distillation_loss = (
                 self.generator(
                     audio,
                     use_dual_decoder=self.use_dual_decoder,
                 )
             )
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real = (
+            audio_hat, codec_commit_loss, codec_quantization_loss, audio_hat_real, distillation_loss = (
                 self._cache
             )
 
@@ -411,6 +430,7 @@ class SpeechTokenizer(AbsGANCodec):
                 codec_commit_loss,
                 codec_quantization_loss,
                 audio_hat_real,
+                distillation_loss,
             )
 
         # calculate discriminator outputs
@@ -538,7 +558,7 @@ class SpeechTokenizerGenerator(nn.Module):
         super().__init__()
 
         # Initialize encoder
-        self.encoder = SEANetEncoder( # BiLSTM 
+        self.encoder = SEANetEncoder( 
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -578,7 +598,7 @@ class SpeechTokenizerGenerator(nn.Module):
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
 
         # Initialize decoder
-        self.decoder = SEANetDecoder( # done 
+        self.decoder = SEANetDecoder( 
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -601,24 +621,33 @@ class SpeechTokenizerGenerator(nn.Module):
             final_activation=decoder_final_activation,
             final_activation_params=decoder_final_activation_params,
         )
+        # Initialize Hubert
+        self.hubert = S3PRLUpstream("hubert")
+
+        # Initialize cosine similarity metric
+        cosine_sim = torch.nn.CosineSimilarity(dim=-1)
 
         # quantization loss
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
 
-    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False, layers: list=[0]):
+    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False, layers: list=[0],quantized_list_flag: bool = True ):
         """SpeechTokenizer forward propagation.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
             use_dual_decoder (bool): Whether to use dual decoder for encoder out
             layers : list[int], optional
+            quantized_list_flag (bool): Whether to return the quantized list 
             Layers of RVQ should return quantized result. The default is the first layer.
+           
+
         Returns:
             torch.Tensor: resynthesized audio.
             torch.Tensor: commitment loss.
             torch.Tensor: quantization loss
             torch.Tensor: resynthesized audio from encoder.
+            torch.Tensor: distillation loss
         """
         encoder_out = self.encoder(x)
         max_idx = len(self.target_bandwidths) - 1
@@ -627,11 +656,17 @@ class SpeechTokenizerGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
         
         # Forward quantizer
-        quantized, _, _, commit_loss, quantized_list = self.quantizer(encoder_out, self.frame_rate, bw, layers=layers)
-        
+        list_quantized, _, _, commit_loss = self.quantizer(encoder_out, self.frame_rate, bw, layers=layers, quantized_list_flag = quantized_list_flag)
+        quantized_list = list_quantized[0][1]
+        quantized = list_quantized[0][0]
         feature = rearrange(quantized_list[0], 'b d t -> b t d')
         feature = self.transform(feature)    
-        
+        # Hubert extraction 
+        representation, hs_len = self.hubert(x,self.sample_rate)
+
+        # cosine similarity loss (feature, Hubert Representation) 
+        distillation_loss = self.cosine_sim(representation,feature)
+        # quantization_loss
         quantization_loss = self.l1_quantization_loss(
             encoder_out, quantized.detach()
         ) + self.l2_quantization_loss(encoder_out, quantized.detach())
@@ -642,11 +677,11 @@ class SpeechTokenizerGenerator(nn.Module):
             resyn_audio_real = self.decoder(encoder_out)
         else:
             resyn_audio_real = None
-        return resyn_audio, commit_loss, quantization_loss, resyn_audio_real, feature # return the feature
+        return resyn_audio, commit_loss, quantization_loss, resyn_audio_real, distillation_loss 
 
     def forward_feature(self, 
                             x: torch.Tensor, 
-                            layers: list=None):
+                            layers: list=None, ,quantized_list_flag: bool = True):
             '''
 
             Parameters
@@ -655,7 +690,7 @@ class SpeechTokenizerGenerator(nn.Module):
                 Input wavs. Shape should be (batch, channels, timesteps).
             layers : list[int], optional
                 Layers of RVQ should return quantized result. The default is all layers.
-
+            quantized_list_flag (bool): Whether to return the quantized list 
             Returns
             -------
             quantized_list : list[torch.tensor]
@@ -668,7 +703,9 @@ class SpeechTokenizerGenerator(nn.Module):
             # randomly pick up one bandwidth
             bw = self.target_bandwidths[random.randint(0, max_idx)]
             # Forward quantizer
-            quantized, _, _, commit_loss, quantized_list = self.quantizer(e, self.frame_rate, bw, layers=layers)
+            list_quantized, _, _, commit_loss = self.quantizer(encoder_out, self.frame_rate, bw, layers=layers, quantized_list_flag = quantized_list_flag)
+            quantized_list = list_quantized[0][1]
+            quantized = list_quantized[0][0]
             return quantized_list
     
     def encode(
@@ -708,7 +745,6 @@ class SpeechTokenizerGenerator(nn.Module):
         resyn_audio = self.decoder(quantized)
         return resyn_audio
 
-
 class SpeechTokenizerDiscriminator(nn.Module):
     """SpeechTokenizer discriminator module."""
 
@@ -747,6 +783,22 @@ class SpeechTokenizerDiscriminator(nn.Module):
             "win_length": 1024,
             "stft_normalized": False,
         },
+        periods: List[int] = [2, 3, 5, 7, 11],
+        period_discriminator_params: Dict[str, Any] = {
+            "in_channels": 1,
+            "out_channels": 1,
+            "kernel_sizes": [5, 3],
+            "channels": 32,
+            "max_downsample_channels": 1024,
+            "max_groups": 16,
+            "bias": True,
+            "downsample_scales": [3, 3, 3, 3, 1],
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "use_weight_norm": True,
+            "use_spectral_norm": False,
+        },
+
     ):
         """Initialize SpeechTokenizer Discriminator module.
 
@@ -776,6 +828,10 @@ class SpeechTokenizerDiscriminator(nn.Module):
         self.complex_stft_d = ComplexSTFTDiscriminator(
             **complexstft_discriminator_params
         )
+        self.mpd = HiFiGANMultiPeriodDiscriminator( 
+            periods=periods,  
+            discriminator_params=period_discriminator_params,
+        )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
         """Calculate forward propagation.
@@ -791,11 +847,5 @@ class SpeechTokenizerDiscriminator(nn.Module):
         """
         msd_outs = self.msd(x)
         complex_stft_outs = self.complex_stft_d(x)
-        return msd_outs + complex_stft_outs
-
-
-
-# I went through the discriminator/rvq/encoder/decoder the generator 
-# Next I need to check the SEANET bilstm substitute lstm
-# Next training this considering the semantic extra feature. 
-# added bidirectional
+        mpd_outs = self.mpd(x)
+        return msd_outs + complex_stft_outs + mpd_outs
