@@ -415,12 +415,9 @@ class CommonPreprocessor(AbsPreprocessor):
                 # speech: (Nmic, Time)
                 if speech.ndim == 1:
                     speech = speech[None, :]
-                elif self.force_single_channel:
-                    # NOTE(jiatong): default average across channels
-                    speech = np.mean(speech, axis=1, keepdims=True).T
                 else:
                     speech = speech.T
-                    
+
                 # Calc power on non silence region
                 power = (speech[detect_non_silence(speech)] ** 2).mean()
 
@@ -462,6 +459,14 @@ class CommonPreprocessor(AbsPreprocessor):
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
+            
+            if self.force_single_channel:
+                speech = data[self.speech_name]
+                if speech.ndim == 2:
+                    # NOTE(jiatong): default average across channels
+                    speech = np.mean(speech, axis=1, keepdims=False)
+                data[self.speech_name] = speech
+
         return data
 
     def _text_process(
