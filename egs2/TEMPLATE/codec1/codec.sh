@@ -570,12 +570,93 @@ if ! "${skip_eval}"; then
                     ${scoring_args} || { cat $(grep -l -i error "${_logdir}"/codec_evaluate.*.log) ; exit 1; }
 
             # 4. Aggregate the results
-            ${python} -m speech_evaluation.bin.aggregate_results \
+            ${python} pyscripts/utils/aggregate_codec_eval.py \
                 --logdir "${_logdir}" \
                 --scoredir "${_scoredir}" \
                 --nj "${_nj}"
+
         done
+
+        # 5. Show results
+        # TODO(jiatong)
+        
     fi
 else
     log "Skip the evaluation stages"
 fi
+
+
+packed_model="${codec_exp}/${codec_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload_hf}"; then
+    log "Stage 8: Packing model: ${packed_model}"
+    # Pack model
+    if [ -e "${codec_exp}/${inference_model}" ]; then
+        # Pack model
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack codec \
+            --codec_model_file "${codec_exp}/${inference_model}" \
+            --codec_train_config "${codec_exp}/config.yaml" \
+            --option "${codec_exp}/RESULTS.md" \
+            --option "${codec_exp}/images" \
+            --out_file "${packed_model}"
+    else
+        log "Skip packing model since ${codec_exp}/${inference_model} does not exist."
+    fi
+fi
+
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload_hf}"; then
+    log "Stage 9: Uploading to hugging face: ${hf_repo}"
+    [ -z "${hf_repo}" ] && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+
+    # Upload model to hugging face
+    if [ -e "${packed_model}" ]; then
+
+    gitlfs=$(git lfs --version 2> /dev/null || true)
+    [ -z "${gitlfs}" ] && \
+        log "ERROR: You need to install git-lfs first" && \
+        exit 1
+
+    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+    if command -v git &> /dev/null; then
+        _creator_name="$(git config user.name)"
+        _checkout="git checkout $(git show -s --format=%H)"
+    else
+        _creator_name="$(whoami)"
+        _checkout=""
+    fi
+    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/asr1 -> foo
+    _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+    # copy files in ${dir_repo}
+    unzip -o ${packed_model} -d ${dir_repo}
+    # Generate description file
+    # shellcheck disable=SC2034
+    hf_task=codec
+    # shellcheck disable=SC2034
+    espnet_task=Codec
+    # shellcheck disable=SC2034
+    task_exp=${asr_exp}
+    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+    this_folder=${PWD}
+    cd ${dir_repo}
+    if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "Update model"
+    fi
+    git push
+    cd ${this_folder}
+    else
+        log "Skip uploading to hugging face since ${packed_model} does not exist. Please run Stage 8 first."
+    fi
+fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
