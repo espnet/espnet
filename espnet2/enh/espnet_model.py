@@ -16,10 +16,10 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet2.enh.separator.dan_separator import DANSeparator
-from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
+from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -273,7 +273,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             # Adaptively adjust the STFT/iSTFT window/hop sizes for
             # BSRNNSeparator and USESSeparator
-            if not isinstance(self.separator, (BSRNNSeparator, USESSeparator, TFGridNetV3)):
+            if not isinstance(
+                self.separator, (BSRNNSeparator, USESSeparator, TFGridNetV3)
+            ):
                 fs = None
 
         # category information (integer) about the batch

@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torchaudio
 
-
 # Avaiable sampling rates for bandwidth limitation
 SAMPLE_RATES = (8000, 16000, 22050, 24000, 32000, 44100, 48000)
 
@@ -559,7 +558,7 @@ def bandwidth_limitation(waveform, sample_rate: int, res_type="random"):
     ret = librosa.resample(waveform.cpu().numpy(), orig_sr=fs, target_sr=fs_new, **opts)
     # resample back to the original sampling rate
     ret = librosa.resample(ret, orig_sr=fs_new, target_sr=fs, **opts)
-    return torch.from_numpy(ret[: length]).to(device=waveform.device)
+    return torch.from_numpy(ret[:length]).to(device=waveform.device)
 
 
 effects_dict = {

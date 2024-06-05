@@ -17,7 +17,7 @@ from espnet2.torch_utils.get_layer_from_string import get_layer
 
 class TFGridNetV2(AbsSeparator):
     """Offline TFGridNetV3.
-    
+
     On top of TFGridNetV2, TFGridNetV3 slightly modifies the internal architecture
     to make the model sampling-frequency-independent (SFI). This is achieved by
     making all network layers independent of the input time and frequency dimensions.
