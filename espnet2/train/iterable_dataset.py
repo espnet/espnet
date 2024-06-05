@@ -87,7 +87,7 @@ class IterableESPnetDataset(IterableDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         key_file: Optional[Union[str, List]] = None,
-        preprocess_prefix: str = None,
+        preprocess_prefix: str = "",
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(
@@ -103,7 +103,7 @@ class IterableESPnetDataset(IterableDataset):
         self.preprocess_prefix = (
             preprocess_prefix if preprocess_prefix is not None else ""
         )
-
+        print("self.preprocess_prefix", self.preprocess_prefix)
         self.debug_info = {}
         non_iterable_list = []
         self.path_name_type_list = []

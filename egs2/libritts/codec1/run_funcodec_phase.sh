@@ -20,7 +20,7 @@ train_set=train-clean-460
 valid_set=dev-clean
 test_sets="dev-clean test-clean"
 
-train_config=conf/train_funcodec.yaml
+train_config=conf/train_funcodec_mag_phase.yaml
 inference_config=conf/decode.yaml
 
 ./codec.sh \

@@ -20,12 +20,12 @@ train_set=train-clean-460
 valid_set=dev-clean
 test_sets="dev-clean test-clean"
 
-train_config=conf/train_funcodec.yaml
+train_config=conf/train_dac.yaml
 inference_config=conf/decode.yaml
 
 ./codec.sh \
-    --stage 5 \
-    --stop_stage 5 \
+    --stage 6 \
+    --stop_stage 6 \
     --local_data_opts "--trim_all_silence false" \
     --fs ${fs} \
     --train_config "${train_config}" \
