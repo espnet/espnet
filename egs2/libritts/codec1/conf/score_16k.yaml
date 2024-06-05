@@ -61,4 +61,3 @@
 # -- spk_similarity: speaker cosine similarity
 - name: speaker
   model_tag: default
-

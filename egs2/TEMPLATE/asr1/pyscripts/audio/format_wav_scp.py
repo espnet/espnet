@@ -277,7 +277,9 @@ def main():
                         except Exception as e:
                             logging.info("issue in {} with {}".format(wavpath, e))
                             rate = 48000
-                            wave = np.zeros(1000,)
+                            wave = np.zeros(
+                                1000,
+                            )
 
                     # B.b Without segments and not using pipe
                     else:
@@ -297,9 +299,11 @@ def main():
                                     wave = sf.read()
                             except Exception as e:
                                 logging.info("issue in {} with {}".format(wavpath, e))
-                                wave = np.zeros(1000,)
+                                wave = np.zeros(
+                                    1000,
+                                )
                                 rate = 48000
-                                subtypes = 'FLOAT'
+                                subtypes = "FLOAT"
                     yield uttid, (wave, rate), wavpath, subtypes
 
     with out_num_samples.open("w") as fnum_samples:
