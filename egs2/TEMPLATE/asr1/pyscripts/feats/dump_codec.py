@@ -35,6 +35,12 @@ def get_parser():
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
+        "--bias",
+        type=int,
+        default=0,
+        help="bias that reserve slots for other special tokens",
+    )
+    parser.add_argument(
         "--checkpoint_path",
         type=str,
         default=None,
@@ -64,6 +70,7 @@ def dump_codec(
     codec_choice: str,
     codec_fs: int,
     batch_size: int,
+    bias: int,
     dump_audio: bool,
     rank: int,
     checkpoint_path: str = None,
@@ -120,6 +127,7 @@ def dump_codec(
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
             wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
             codes, resyn_wavs = tokenizer(wavs)
+            codes += bias
 
             codes = codes.detach().cpu().numpy()
             for code, length, key in zip(codes, length_buffer, key_buffer):

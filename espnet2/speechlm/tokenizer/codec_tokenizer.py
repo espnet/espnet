@@ -10,17 +10,17 @@ from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
 
 class CodecTokenizer(AbsTokenizer):
-    """ Codec Tokenizer implementation 
+    """ Codec Tokenizer implementation
 
     Use cases:
         - use encode and decode for discrete (de)tokenization
         - use encode_continuous and decode_continuous for continuous
           (de)tokenization
         - use forward and detokenization for discrete (de)tokenization
-          with flatten sequence style, which is more friendly for 
+          with flatten sequence style, which is more friendly for
           speechlm task
     """
-    
+
     def __init__(
         self,
         codec_choice: str,
@@ -149,7 +149,7 @@ class CodecTokenizer(AbsTokenizer):
             raise NotImplementedError
 
         return codes
-    
+
     def encode_continuous(self, wavs):
         """
         Convert audio waveforms into continuous codec encoding results
@@ -162,14 +162,14 @@ class CodecTokenizer(AbsTokenizer):
         if self.codec_choice == "ESPnet":
             z = self.codec.encode_continuous(wavs)
             z = z.transpose(1, 2)
-        
+
         elif self.codec_choice == "DAC":
             z = self.codec.encode(wavs)[0]
             z = z.transpose(1, 2)
-            
+
         else:
             raise NotImplementedError
-        
+
         return z
 
     def decode(self, codes):
@@ -201,7 +201,7 @@ class CodecTokenizer(AbsTokenizer):
             raise NotImplementedError
 
         return waveform
-    
+
     def decode_continuous(self, z):
         """
         Recover the waveform from the continuous representations of codec
@@ -223,7 +223,7 @@ class CodecTokenizer(AbsTokenizer):
             raise NotImplementedError
 
         return waveform
-    
+
     def forward(self, wavs):
         """
         Convert audio waveforms into flatten codec codes and resynthesis the audio
@@ -245,7 +245,7 @@ class CodecTokenizer(AbsTokenizer):
         codes = codes.int().flatten(start_dim=1)
 
         return codes, resyn_audio
-        
+
     def detokenize(self, codes, n_codebook=None):
         """
         Convert flatten codec codes into resynthesis the audio
@@ -260,7 +260,7 @@ class CodecTokenizer(AbsTokenizer):
         has_batch = codes.dim() == 2
         if not has_batch:
             codes = codes.unsqueeze(0)
-        
+
         B, Tnq = codes.size()
         n_codebook = self.n_codebook if n_codebook is None else n_codebook
         assert Tnq % n_codebook == 0, (n_codebook, codes.size())

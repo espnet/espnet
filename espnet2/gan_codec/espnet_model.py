@@ -77,7 +77,7 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """Codec Encoding Process.
 
         Args:
-            audio (Tensor): Audio waveform tensor 
+            audio (Tensor): Audio waveform tensor
                 (B, 1, T_wav) or (B, T_wav) or (T_wav)
 
         Returns:
@@ -93,12 +93,12 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         batch = dict(x=audio)
         batch.update(kwargs)
         return self.codec.encode(**batch)
-    
+
     def encode_continuous(self, audio):
         """Codec Encoding Process without quantization.
 
         Args:
-            audio (Tensor): Audio waveform tensor: 
+            audio (Tensor): Audio waveform tensor:
                 (B, 1, T_wav) or (B, T_wav) or (T_wav)
 
         Returns:
@@ -126,7 +126,7 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
             Tensor: Generated waveform (B, 1, n_sample)
         """
         return self.codec.decode(codes)
-    
+
     def decode_continuous(
         self,
         z: torch.Tensor,
