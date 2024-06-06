@@ -158,7 +158,7 @@ class CodecTokenizer(AbsTokenizer):
             raise NotImplementedError
 
         return waveform
-    
+
     @torch.no_grad()
     def decode_continuous(self, z):
         """
