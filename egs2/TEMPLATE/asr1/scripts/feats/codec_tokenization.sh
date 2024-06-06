@@ -23,6 +23,7 @@ python=python3      # Specify python to execute espnet commands.
 codec_choice=ESPnet # Options: Encodec, DAC, ESPnet (our in-house model)
 codec_fs=16000
 batch_size=3
+bias=0
 dump_audio=false
 file_name=
 src_dir=
@@ -53,6 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p "${output_dir}"
     _logdir=${tgt_dir}/logdir
     mkdir -p "${_logdir}"
+    mkdir -p ${tgt_dir}/token_lists/
 
     nutt=$(<"${src_dir}"/${file_name}.scp wc -l)
     _nj=$((nj<nutt?nj:nutt))
@@ -76,6 +78,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --codec_choice ${codec_choice} \
             --codec_fs ${codec_fs} \
             --batch_size ${batch_size} \
+            --bias ${bias} \
             --dump_audio ${dump_audio} \
             --rank JOB \
             --vocab_file ${tgt_dir}/token_lists/codec_token_list \
