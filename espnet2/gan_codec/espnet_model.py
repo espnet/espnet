@@ -77,15 +77,41 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """Codec Encoding Process.
 
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-            target_bw (float): Target bandwidth.
+            audio (Tensor): Audio waveform tensor
+                (B, 1, T_wav) or (B, T_wav) or (T_wav)
 
         Returns:
-            Tensor: Generated codecs.
+            Tensor: Generated codecs (N_stream, B, T)
         """
+
+        # convert to [B, n_channle=1, n_sample] anyway
+        if audio.dim() == 1:
+            audio = audio.view(1, 1, -1)
+        elif audio.dim() == 2:
+            audio = audio.unsqueeze(1)
+
         batch = dict(x=audio)
         batch.update(kwargs)
         return self.codec.encode(**batch)
+
+    def encode_continuous(self, audio):
+        """Codec Encoding Process without quantization.
+
+        Args:
+            audio (Tensor): Audio waveform tensor:
+                (B, 1, T_wav) or (B, T_wav) or (T_wav)
+
+        Returns:
+            Tensor: Generated codes (B, D, T)
+        """
+
+        # convert to [B, n_channle=1, n_sample] anyway
+        if audio.dim() == 1:
+            audio = audio.view(1, 1, -1)
+        elif audio.dim() == 2:
+            audio = audio.unsqueeze(1)
+
+        return self.codec.generator.encoder(audio)
 
     def decode(
         self,
@@ -94,12 +120,26 @@ class ESPnetGANCodecModel(AbsGANESPnetModel):
         """Codec Decoding Process.
 
         Args:
-            codes (Tensor): Audio waveform tensor (B, T_wav).
+            codes (Tensor): codec tokens [N_stream, B, T]
 
         Returns:
-            Tensor: Generated waveform.
+            Tensor: Generated waveform (B, 1, n_sample)
         """
         return self.codec.decode(codes)
+
+    def decode_continuous(
+        self,
+        z: torch.Tensor,
+    ):
+        """Codec Decoding Process without dequntization.
+
+        Args:
+            z (Tensor): continuous codec representation (B, D, T)
+
+        Returns:
+            Tensor: Generated waveform (B, 1, n_sample)
+        """
+        return self.codec.generator.decoder(z)
 
     def collect_feats(
         self,

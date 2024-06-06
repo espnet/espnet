@@ -780,10 +780,7 @@ class FunCodecGenerator(nn.Module):
         Returns:
             torch.Tensor: neural codecs in shape ().
         """
-        if x.dim() == 1:
-            x = x.view(1, 1, -1)
-        elif x.dim() == 2:
-            x = x.unsqueeze(1)
+
         x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         if target_bw is None:
