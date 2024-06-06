@@ -12,6 +12,10 @@ unzip shrutilipi_fairseq.zip
 rm urdu.zip
 rm shrutilipi_fairseq.zip
 
-mkdir -p data
+mkdir -p ${URDU_SHRUTILIPI}
+if [ -z "${URDU_SHRUTILIPI}" ]; then
+    log "Fill the value of 'URDU_SHRUTILIPI' of db.sh"
+    exit 1
+fi
 
 python3 data_prep.py
