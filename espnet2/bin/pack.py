@@ -101,7 +101,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("s2st", S2STPackedContents),
         ("s2t", S2TPackedContents),
         ("spk", SpkPackedContents),
-        ("codec", PackedContents),
+        ("codec", CodecPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,
