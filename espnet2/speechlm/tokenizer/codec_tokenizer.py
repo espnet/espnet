@@ -201,12 +201,7 @@ class CodecTokenizer(AbsTokenizer):
             raise NotImplementedError
 
         return waveform
-<<<<<<< HEAD
     
-=======
-
-    @torch.no_grad()
->>>>>>> 2d7cc449fa31de26cf1e6798e574795f98f7c8e4
     def decode_continuous(self, z):
         """
         Recover the waveform from the continuous representations of codec
