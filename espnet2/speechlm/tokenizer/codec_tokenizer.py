@@ -10,7 +10,7 @@ from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
 
 class CodecTokenizer(AbsTokenizer):
-    """ Codec Tokenizer implementation
+    """Codec Tokenizer implementation
 
     Use cases:
         - use encode and decode for discrete (de)tokenization
@@ -132,7 +132,7 @@ class CodecTokenizer(AbsTokenizer):
 
         if self.codec_choice == "ESPnet":
             codes = self.codec.encode(wavs)
-            codes = codes.permute(1, 2, 0)[:, :, :self.n_codebook]
+            codes = codes.permute(1, 2, 0)[:, :, : self.n_codebook]
 
         elif self.codec_choice == "DAC":
             codes = self.codec.encode(wavs)[1]
@@ -275,6 +275,7 @@ class CodecTokenizer(AbsTokenizer):
 
         return waveform
 
+
 if __name__ == "__main__":
     # a simple use case for batch processing
     device = "cuda:0"
@@ -288,8 +289,11 @@ if __name__ == "__main__":
     )
 
     import soundfile as sf
+
     waveform, sr = sf.read("1272-128104-0004.wav")
-    waveform = torch.from_numpy(waveform).view(1, 1, -1).to(device).float() # [B, C, n_sample]
+    waveform = (
+        torch.from_numpy(waveform).view(1, 1, -1).to(device).float()
+    )  # [B, C, n_sample]
     waveform = waveform.repeat(2, 1, 1)
 
     with torch.no_grad():
