@@ -12,6 +12,6 @@ unzip shrutilipi_fairseq.zip
 rm urdu.zip
 rm shrutilipi_fairseq.zip
 
-mkdir data
+mkdir -p data
 
 python3 data_prep.py
