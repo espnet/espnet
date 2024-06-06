@@ -23,6 +23,7 @@ python=python3      # Specify python to execute espnet commands.
 codec_choice=ESPnet # Options: Encodec, DAC, ESPnet (our in-house model)
 codec_fs=16000
 batch_size=3
+bias=0
 dump_audio=false
 file_name=
 src_dir=
@@ -53,6 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p "${output_dir}"
     _logdir=${tgt_dir}/logdir
     mkdir -p "${_logdir}"
+    mkdir -p ${tgt_dir}/token_lists/
 
     nutt=$(<"${src_dir}"/${file_name}.scp wc -l)
     _nj=$((nj<nutt?nj:nutt))
@@ -64,11 +66,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl ${src_dir}/${file_name}.scp ${split_scps} || exit 1;
 
-    if [ ${codec_choice} == "ESPnet" ]; then
-        log "change batch size to 1 as current ESPnet codec doesn't support batch inference"
-        batch_size=1
-    fi
-
     wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
     ${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
@@ -76,6 +73,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --codec_choice ${codec_choice} \
             --codec_fs ${codec_fs} \
             --batch_size ${batch_size} \
+            --bias ${bias} \
             --dump_audio ${dump_audio} \
             --rank JOB \
             --vocab_file ${tgt_dir}/token_lists/codec_token_list \
