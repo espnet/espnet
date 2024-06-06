@@ -101,8 +101,7 @@ class GANCodecTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             # additional check for chunk iterator, to use short utterance in training
-            iterator_type = args.iterator_type
-            if iterator_type == "chunk":
+            if args.iterator_type == "chunk":
                 min_sample_size = args.chunk_length
             else:
                 min_sample_size = -1

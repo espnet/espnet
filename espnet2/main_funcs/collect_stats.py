@@ -64,6 +64,7 @@ def collect_stats(
                         )
 
                 if model is not None:
+                    logging.info("collect stats with model feature extractor")
                     # 2. Extract feats
                     if ngpu <= 1:
                         data = model.collect_feats(**batch)
