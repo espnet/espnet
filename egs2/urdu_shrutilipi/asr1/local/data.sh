@@ -1,5 +1,9 @@
 #!/bin/bash
 
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+. ./db.sh || exit 1;
+
 # Download audio and transcript files
 wget https://indic-asr-public.objectstore.e2enetworks.net/urdu.zip
 wget https://indic-asr-public.objectstore.e2enetworks.net/shrutilipi/shrutilipi_fairseq.zip
