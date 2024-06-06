@@ -10,7 +10,7 @@ log() {
 }
 SECONDS=0
 
-stage=-1
+stage=1
 stop_stage=2
 
 log "$0 $*"
@@ -40,13 +40,13 @@ data_dir=$1
 data_dir="${data_dir}/tts"
 mkdir -p ${data_dir}
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    log "stage -1: Data Download"
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 1: Data Download"
     ${vctk_dir}/data_download.sh "${db_root}"
 fi
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: local/data_prep.sh"
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: local/data_prep.sh"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
     ${vctk_dir}/data_prep.sh \
