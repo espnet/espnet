@@ -126,7 +126,8 @@ def dump_codec(
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
             wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
-            codes, resyn_wavs = tokenizer(wavs)
+            with torch.no_grad():
+                codes, resyn_wavs = tokenizer(wavs)
             codes += bias
 
             codes = codes.detach().cpu().numpy()
