@@ -32,7 +32,6 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
-skip_upload_hf=true # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -587,25 +586,24 @@ fi
 
 
 packed_model="${codec_exp}/${codec_exp##*/}_${inference_model%.*}.zip"
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload_hf}"; then
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload}"; then
     log "Stage 8: Packing model: ${packed_model}"
     # Pack model
     if [ -e "${codec_exp}/${inference_model}" ]; then
         # Pack model
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack codec \
-            --codec_model_file "${codec_exp}/${inference_model}" \
-            --codec_train_config "${codec_exp}/config.yaml" \
-            --option "${codec_exp}/RESULTS.md" \
+            --model_file "${codec_exp}/${inference_model}" \
+            --train_config "${codec_exp}/config.yaml" \
             --option "${codec_exp}/images" \
-            --out_file "${packed_model}"
+            --outpath "${packed_model}"
     else
         log "Skip packing model since ${codec_exp}/${inference_model} does not exist."
     fi
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload_hf}"; then
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
     log "Stage 9: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
@@ -629,7 +627,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload_hf}"; then
         _creator_name="$(whoami)"
         _checkout=""
     fi
-    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+    # /some/where/espnet/egs2/foo/codec1/ -> foo/codec1
     _task="$(pwd | rev | cut -d/ -f2 | rev)"
     # foo/asr1 -> foo
     _corpus="${_task%/*}"
@@ -643,7 +641,9 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload_hf}"; then
     # shellcheck disable=SC2034
     espnet_task=Codec
     # shellcheck disable=SC2034
-    task_exp=${asr_exp}
+    lang=multilingual
+    # shellcheck disable=SC2034
+    task_exp=${codec_exp}
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
