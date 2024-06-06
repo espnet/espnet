@@ -81,7 +81,7 @@ elif [ "${cmd_backend}" = slurm ]; then
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
     export train_cmd="slurm.pl --mem 2000M --num_threads 4"
-    export cuda_cmd="slurm.pl"
+    export cuda_cmd="slurm.pl --mem 4000M --num_threads 8"
     export decode_cmd="slurm.pl"
 
 elif [ "${cmd_backend}" = ssh ]; then
