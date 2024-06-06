@@ -12,7 +12,7 @@ import kaldiio
 import numpy as np
 import torch
 
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizerImpl
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -35,12 +35,16 @@ def get_parser():
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
-        "--checkpoint_path", type=str, default=None,
-        help="checkpoint path for Espnet (and potentially other) codec model"
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="checkpoint path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
-        "--config_path", type=str, default=None,
-        help="config path for Espnet (and potentially other) codec model"
+        "--config_path",
+        type=str,
+        default=None,
+        help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
@@ -72,14 +76,14 @@ def dump_codec(
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
         logger.warning("Change batch_size=1 for CPU tokenization")
-        args.batch_size = 1
+        batch_size = 1
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    tokenizer = CodecTokenizerImpl(
-        codec_choice, 
-        codec_fs, 
-        device, 
+    tokenizer = CodecTokenizer(
+        codec_choice,
+        codec_fs,
+        device,
         dump_audio,
         checkpoint_path,
         config_path,

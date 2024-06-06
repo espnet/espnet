@@ -20,14 +20,15 @@ stage=1
 stop_stage=100
 nj=4                # number of parallel jobs
 python=python3      # Specify python to execute espnet commands.
-codec_choice=Espnet # Options: Encodec, DAC, Espnet (our in-house model)
+codec_choice=ESPnet # Options: Encodec, DAC, ESPnet (our in-house model)
 codec_fs=16000
 batch_size=3
 dump_audio=false
 file_name=
 src_dir=
 tgt_dir=
-tokenization_opts=""
+checkpoint_path=null
+config_path=null
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -63,6 +64,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # shellcheck disable=SC2086
     utils/split_scp.pl ${src_dir}/${file_name}.scp ${split_scps} || exit 1;
 
+    if [ ${codec_choice} == "ESPnet" ]; then
+        log "change batch size to 1 as current ESPnet codec doesn't support batch inference"
+        batch_size=1
+    fi
+
     wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
     ${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
@@ -74,7 +80,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --rank JOB \
             --vocab_file ${tgt_dir}/token_lists/codec_token_list \
             --wav_wspecifier ${wav_wspecifier} \
-            ${tokenization_opts} \
+            --checkpoint_path ${checkpoint_path} \
+            --config_path ${config_path} \
             "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
     for n in $(seq ${_nj}); do

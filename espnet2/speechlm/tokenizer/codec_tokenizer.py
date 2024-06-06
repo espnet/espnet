@@ -3,53 +3,53 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Tuple
-
 import numpy as np
 import torch
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
 
-class CodecTokenizerImpl(torch.nn.Module):
+class CodecTokenizer(AbsTokenizer):
     def __init__(
-        self, 
-        codec_choice: str, 
-        codec_fs: int, 
+        self,
+        codec_choice: str,
+        codec_fs: int,
         device: str,
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
+        max_token_per_frame: int = 8,
     ):
-        """ Codec Tokenizer implementation that is used in:
-            (1) waveform tokenization during data prep stage;
-            (2) audio token detokenization after SpeechLM inference stage.
+        """Codec Tokenizer implementation that is used in:
+        (1) waveform tokenization during data prep stage;
+        (2) audio token detokenization after SpeechLM inference stage.
 
-            It contains multiple audio codec implementations, controlled by
-            the "codec_choice" argument. For any codec model, this implementation
-            object contains the following attributes:
-                self.n_codebook (int): the number of codec codebooks.
-                self.size_codebook (int): the dimension of codebooks.
-                self.sample_rate (int): the sample rate the model trained on.
-                self.subsample (int): the subsample rate, a.k.a., frame shift.
+        It contains multiple audio codec implementations, controlled by
+        the "codec_choice" argument. For any codec model, this implementation
+        object contains the following attributes:
+            self.n_codebook (int): the number of codec codebooks.
+            self.size_codebook (int): the dimension of codebooks.
+            self.sample_rate (int): the sample rate the model trained on.
+            self.subsample (int): the subsample rate, a.k.a., frame shift.
         """
-        super(CodecTokenizerImpl, self).__init__()
+        super(CodecTokenizer, self).__init__()
         self.codec_choice = codec_choice
         self.device = device
         self.dump_audio = dump_audio
 
-        if self.codec_choice == "Espnet":
+        if self.codec_choice == "ESPnet":
             from espnet2.bin.gan_codec_inference import AudioCoding
-            model, _ = AudioCoding(
+
+            model = AudioCoding(
                 train_config=config_path,
                 model_file=checkpoint_path,
-                device=device,
+                device=str(device),
             )
             self.codec = model
 
-            meta_info = self.codec.meta_info()
-            self.n_codebook = meta_info["num_streams"]
-            self.size_codebook = meta_info["code_size_per_stream"]
+            meta_info = self.codec.model.meta_info()
+            self.n_codebook = min(meta_info["num_streams"], 8)
+            self.size_codebook = meta_info["code_size_per_stream"][0]
             self.sample_rate = meta_info["fs"]
             self.subsample = meta_info["frame_shift"]
 
@@ -57,9 +57,7 @@ class CodecTokenizerImpl(torch.nn.Module):
             try:
                 import dac
             except:
-                raise ImportError(
-                    "Install DAC with: pip install descript-audio-codec"
-                )
+                raise ImportError("Install DAC with: pip install descript-audio-codec")
 
             model_path = dac.utils.download(
                 model_type=str(codec_fs).replace("000", "khz")
@@ -91,18 +89,20 @@ class CodecTokenizerImpl(torch.nn.Module):
 
     @torch.no_grad()
     def decode(self, codes):
-        """ 
+        """
         Recover the waveform from the codes.
         Input:
             codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
         Output:
             waveform (torch.Tensor): float tensor in shape [B, n_sample]
         """
-        if self.codec_choice == "DAC":
+        if self.codec_choice == "ESPnet":
+            codes = codes.permute(2, 0, 1)
+            waveform = self.codec.decode(codes)["resyn_audio"].squeeze(1)
+
+        elif self.codec_choice == "DAC":
             z = self.codec.quantizer.from_codes(codes.transpose(1, 2))[0]
-            print('z: ', z.size())
             waveform = self.codec.decode(z).squeeze(1)
-            print('waveform: ', waveform.size())
 
         elif self.codec_choice == "EnCodec":
             encoded_frames = [(codes.transpose(1, 2), None)]
@@ -114,8 +114,8 @@ class CodecTokenizerImpl(torch.nn.Module):
         return waveform
 
     @torch.no_grad()
-    def __call__(self, wavs):
-        """ 
+    def forward(self, wavs):
+        """
         Convert audio waveforms into codec codes
         Input:
             wavs (torch.Tensor): float tensor in shape [B, n_channel, n_sample],
@@ -130,60 +130,34 @@ class CodecTokenizerImpl(torch.nn.Module):
 
         # (1) Tokenization
         # All codes in shape of [batch_size, T, n_codebook]
-        if self.codec_choice == "DAC":
+        if self.codec_choice == "ESPnet":
+
+            # TODO(Jinchuan): pin jiatong to support batch inference
+            assert wavs.size(0) == 1, "ESPnet codec doesn't support batch inference"
+            codes = self.codec(wavs.view(-1), encode_only=False)["codes"]
+            codes = codes.permute(1, 2, 0)[:, :, : self.n_codebook]
+
+        elif self.codec_choice == "DAC":
             z, codes = self.codec.encode(wavs)[:2]
             codes = codes.transpose(1, 2)
-        
+
         elif self.codec_choice == "EnCodec":
             encoded_frames = self.codec.encode(wavs)
             codes = encoded_frames[0][0].transpose(1, 2)
 
         else:
             raise NotImplementedError
-        
+
         # (2) Detokenization
         # All resyn_audio in shape of [batch_size, n_sample]
         if self.dump_audio:
             resyn_audio = self.decode(codes)
         else:
             resyn_audio = None
-        
+
         # (3) shift by codebook
         shift = torch.arange(self.n_codebook).to(self.device)
         codes += shift.view(1, 1, -1) * self.size_codebook
         codes = codes.int().flatten(start_dim=1)
 
         return codes, resyn_audio
-
-
-class CodecTokenizer(AbsTokenizer):
-    def __init__(
-        self,
-        codec_choice: str = "Espnet",
-        codec_fs: int = 24000,
-        device: str = "cpu",
-        dump_audio: bool = True,
-        **kwargs,
-    ):
-        super(CodecTokenizer, self).__init__()
-
-        self.tokenizer = CodecTokenizerImpl(
-            codec_choice=codec_choice,
-            codec_fs=codec_fs,
-            device=device,
-            dump_audio=dump_audio,
-            **kwargs,
-        )
-        self.sample_rate = self.tokenizer.sample_rate
-
-    @torch.no_grad()
-    def forward(
-        self,
-        tokens: torch.Tensor,
-    ) -> Tuple[torch.Tensor, Dict]:
-
-        for t in range(tokens.size(1)):
-            tokens[:, t] -= t * self.tokenizer.size_codebook
-
-        waveform = self.tokenizer.decode(tokens.unsqueeze(0)).squeeze(0)
-        return waveform
