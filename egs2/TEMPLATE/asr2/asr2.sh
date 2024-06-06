@@ -885,7 +885,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                 --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
                 "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set}_sp" ${_dirs}
         fi
-    
+
     elif [ "${tokenization_choice}" == "codec" ]; then
         for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
             # NOTE (Jinchuan) bias=2, reserve two slots for <blk> and <unk>
@@ -917,7 +917,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                 --extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
                 "${data_feats}/${train_set}_sp" ${_dirs}
         fi
-        
+
     else
         echo "unrecognized tokenization choice ${tokenization_choice}. Exit" && exit 1;
     fi
@@ -928,7 +928,7 @@ if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
-    
+
 
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
@@ -944,7 +944,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
         fi
     fi
     if [ "${feats_type}" = raw ]; then
-        # NOTE(Jinchuan): data prep with codec tokenization has been done. Skip this part 
+        # NOTE(Jinchuan): data prep with codec tokenization has been done. Skip this part
         if [ "${tokenization_choice}" == "codec"]; then
             continue
         fi
@@ -1118,7 +1118,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
-        
+
         elif [ "${src_token_type}" = "null" ]; then
             log "Stage 7b: Generate token_list from existing src vocabulary and special tokens"
             mkdir -p "$(dirname ${src_token_list})"

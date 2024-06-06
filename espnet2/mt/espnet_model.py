@@ -238,11 +238,7 @@ class ESPnetMTModel(AbsESPnetModel):
         # for data-parallel
         src_text = src_text[:, : src_text_lengths.max()]
         src_text, _ = add_sos_eos(
-            src_text, 
-            self.src_sos, 
-            self.src_eos, 
-            self.ignore_id, 
-            repeat=self.patch_size
+            src_text, self.src_sos, self.src_eos, self.ignore_id, repeat=self.patch_size
         )
         src_text_lengths = src_text_lengths + self.patch_size
 
