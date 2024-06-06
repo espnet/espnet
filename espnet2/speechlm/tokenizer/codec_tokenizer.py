@@ -14,7 +14,7 @@ class CodecTokenizer(AbsTokenizer):
         self,
         codec_choice: str,
         codec_fs: int,
-        device: str,
+        device: str = "cpu",
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
@@ -48,7 +48,7 @@ class CodecTokenizer(AbsTokenizer):
             self.codec = model
 
             meta_info = self.codec.model.meta_info()
-            self.n_codebook = min(meta_info["num_streams"], 8)
+            self.n_codebook = min(meta_info["num_streams"], max_token_per_frame)
             self.size_codebook = meta_info["code_size_per_stream"][0]
             self.sample_rate = meta_info["fs"]
             self.subsample = meta_info["frame_shift"]
@@ -87,6 +87,47 @@ class CodecTokenizer(AbsTokenizer):
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder.ratios)
 
+        elif self.codec_choice == "inhouse":
+            try:
+                from models.soundstream import SoundStream
+                from omegaconf import OmegaConf
+            except:
+                raise ImportError("fail to use inhouse codec")
+
+            model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"
+            model_config = "encodec_16k_6kbps_multiDisc/config.yaml"
+            config = OmegaConf.load(model_config)
+            model = SoundStream(**config.generator.config)
+
+            state_dict = torch.load(model_path, map_location="cpu")
+            model.load_state_dict(state_dict["codec_model"])
+            model = model.to(device)
+            self.codec = model
+
+            self.n_codebook = 8
+            self.sample_rate = 16000
+            self.size_codebook = 1024
+            self.subsample = 320
+
+        else:
+            raise ValueError(f"Codec {codec_choice} is not supported")
+
+    def detokenize(self, codes):
+        """a warpper to decode the flatten discrete output"""
+        has_batch = True
+        if codes.dim() == 2:
+            codes = codes.unsqueeze(0)
+            has_batch = False
+
+        for l_idx in range(codes.size(2)):
+            codes[:, :, l_idx] -= l_idx * self.size_codebook
+
+        waveform = self.decode(codes)
+        if not has_batch:
+            waveform = waveform.squeeze(0)
+
+        return waveform.unsqueeze(0)  # channel dimension
+
     @torch.no_grad()
     def decode(self, codes):
         """
@@ -108,6 +149,40 @@ class CodecTokenizer(AbsTokenizer):
             encoded_frames = [(codes.transpose(1, 2), None)]
             waveform = self.codec.decode(encoded_frames).squeeze(1)
 
+        elif self.codec_choice == "inhouse":
+            codes = codes.permute(2, 0, 1)
+            wav = self.codec.decode(codes).squeeze(1)
+            return wav
+
+        else:
+            raise NotImplementedError
+
+        return waveform
+    
+    @torch.no_grad()
+    def decode_continuous(self, z):
+        """
+        Recover the waveform from the continuous representations of codec
+        Input:
+            z (torch.Tensor): Float tensor in shape [B, T, D], codec
+              continuous representations
+        Output:
+            waveform (torch.Tensor): float tensor in shape [B, n_sample]
+        """
+        if self.codec_choice == "ESPnet":
+            codes = codes.permute(2, 0, 1)
+            waveform = self.codec.decode(codes)["resyn_audio"].squeeze(1)
+
+        elif self.codec_choice == "DAC":
+            z = z.transpose(1, 2)
+            waveform = self.codec.decode(z).squeeze(1)
+
+        elif self.codec_choice == "EnCodec":
+            raise NotImplementedError
+
+        elif self.codec_choice == "inhouse":
+            raise NotImplementedError
+
         else:
             raise NotImplementedError
 
@@ -125,11 +200,15 @@ class CodecTokenizer(AbsTokenizer):
             resyn_audio (torch.Tensor): float tensor in shape [B, n_sample],
                 if self.dump_audio else None, the resynthesized audio based on the
                 codec codes.
+            z (None or torch.Tensor): the continuous representation of codec encoding
+                output, in shape [B, T, D]. Not all codec will support this feature.
+                If not supported, None is returned.
         """
         assert wavs.dim() == 3 and wavs.size(1) == 1
 
         # (1) Tokenization
         # All codes in shape of [batch_size, T, n_codebook]
+        z = None
         if self.codec_choice == "ESPnet":
 
             # TODO(Jinchuan): pin jiatong to support batch inference
@@ -139,11 +218,15 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "DAC":
             z, codes = self.codec.encode(wavs)[:2]
+            z = z.transpose(1, 2)
             codes = codes.transpose(1, 2)
 
         elif self.codec_choice == "EnCodec":
             encoded_frames = self.codec.encode(wavs)
             codes = encoded_frames[0][0].transpose(1, 2)
+
+        elif self.codec_choice == "inhouse":
+            codes = self.codec.encode(wavs).permute(1, 2, 0)
 
         else:
             raise NotImplementedError
@@ -160,4 +243,4 @@ class CodecTokenizer(AbsTokenizer):
         codes += shift.view(1, 1, -1) * self.size_codebook
         codes = codes.int().flatten(start_dim=1)
 
-        return codes, resyn_audio
+        return codes, resyn_audio, z

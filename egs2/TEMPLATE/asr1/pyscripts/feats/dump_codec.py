@@ -71,7 +71,11 @@ def dump_codec(
 ):
     # (1) Device
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        if torch.cuda.device_count() > 1:
+            device_id = rank % torch.cuda.device_count()
+        else:
+            device_id = 0
+        device = torch.device(f"cuda:{device_id}")
     else:
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
@@ -115,7 +119,7 @@ def dump_codec(
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
             wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
-            codes, resyn_wavs = tokenizer(wavs)
+            codes, resyn_wavs, _ = tokenizer(wavs)
 
             codes = codes.detach().cpu().numpy()
             for code, length, key in zip(codes, length_buffer, key_buffer):
