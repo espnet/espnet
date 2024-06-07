@@ -269,7 +269,7 @@ class SeparateSpeech:
             raise ValueError(f"Category '{category}' is not listed in self.categories")
 
         additional = {}
-        if category is not None:
+        if category is not None and self.enh_model.categories:
             cat = self.enh_model.categories[category[0].item()]
             print(f"category: {cat}", flush=True)
             if cat.endswith("_reverb"):
