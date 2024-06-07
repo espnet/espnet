@@ -60,75 +60,39 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Protocol modification for conformity with ESPnet"
+    log "stage 2: Data Preparation for dev"
+    # concatenate the utterances for dev set enrollment
+    if [ ! -d "${data_dir_prefix}/asvspoof5_data/cat_flac_D" ]; then
+        log "Making concatenated utterances for dev set enrollment"
+        mkdir -p "${data_dir_prefix}/asvspoof5_data/cat_flac_D"
+        python local/cat_utt.py --in_dir "${data_dir_prefix}/asvspoof5_data/flac_D" --enrollment_file "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.enroll.txt" --out_dir "${data_dir_prefix}/asvspoof5_data/cat_flac_D"
+    else
+        log "${data_dir_prefix}/asvspoof5_data/cat_flac_D exists. Skip making concatenated utterances for dev"
+    fi
 
-    # make new data dirs, LA_asv_eval and LA_asv_dev with concatenated enrollments
-    for x in eval dev; do
-        if [ ! -d "${data_dir_prefix}/LA_asv_${x}" ]; then
-            mkdir "${data_dir_prefix}/LA_asv_${x}"
-            # Combine male and female eval/dev speaker enrollment utterances to one new file
-            cp "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.${x}.female.trn.txt" "${data_dir_prefix}/LA_asv_${x}/trn.txt"
-            cat "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.${x}.male.trn.txt" >> "${data_dir_prefix}/LA_asv_${x}/trn.txt"
+    if [ ! -d "${trg_dir}/dev" ]; then
+        log "Making Kaldi style files for dev"
+        mkdir -p "${trg_dir}/dev"
+        python3 local/dev_data_prep.py --asvspoof5_root "${data_dir_prefix}/asvspoof5_data" --target_dir "${trg_dir}/dev"
+        for f in wav.scp utt2spk utt2spf; do
+            sort ${trg_dir}/dev/${f} -o ${trg_dir}/dev/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/dev/utt2spk > "${trg_dir}/dev/spk2utt"
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/dev/utt2spf > "${trg_dir}/dev/spf2utt"
+        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/dev" || exit 1
 
-            # Make concatenated speaker enrollment utterances for (approximate) averaging of embeddings
-            python local/cat_spk_utt.py --in_dir "${data_dir_prefix}/LA/ASVspoof2019_LA_${x}/flac" --in_file "${data_dir_prefix}/LA_asv_${x}/trn.txt" --out_dir "${data_dir_prefix}/LA_asv_${x}/flac"
-            # Copy eval/dev files to same dir with new concat files
-            log "Making single dir for ${x}..."
-            find "${data_dir_prefix}/LA/ASVspoof2019_LA_${x}/flac/" -name "*.flac" -print0 | xargs -0 cp -t "${data_dir_prefix}/LA_asv_${x}/flac/"
-            # Make new protocol file
-            python local/convert_protocol.py --in_file "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.${x}.gi.trl.txt" --out_file "${data_dir_prefix}/LA_asv_${x}/protocol.txt"
-
-        else
-            log "LA_asv_${x} exists. Skipping protocol modification"
-        fi
-
-    done
+        # make trials for dev set
+        log "Making the trial compatible with ESPnet"
+        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev
+    else
+        log "${trg_dir}/dev exists. Skip making Kaldi style files for dev"
+    fi
 
     log "Stage 2, DONE."
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: Making Kaldi style files and trials"
-
-    if [ ! -d "${trg_dir}" ]; then
-        log "Making Kaldi style files and making trials"
-
-        mkdir -p data/test
-        mkdir -p data/dev
-        # make kaldi-style files for ASV test/dev
-        python3 local/asv_data_prep.py --src "${data_dir_prefix}/LA_asv_eval/flac/" --dst "${trg_dir}/test" --partition "eval"
-        python3 local/asv_data_prep.py --src "${data_dir_prefix}/LA_asv_dev/flac/" --dst "${trg_dir}/dev" --partition "dev"
-        for f in wav.scp utt2spk spk2utt; do
-            sort ${trg_dir}/test/${f} -o ${trg_dir}/test/${f}
-            sort ${trg_dir}/dev/${f} -o ${trg_dir}/dev/${f}
-        done
-        utils/validate_data_dir.sh --no-feats --no-text "data/test" || exit 1
-        utils/validate_data_dir.sh --no-feats --no-text "data/dev" || exit 1
-
-        # make test trial compatible with ESPnet
-        log "Making the trial compatible with ESPnet"
-        python local/convert_trial.py --trial "${data_dir_prefix}/LA_asv_eval/protocol.txt" --scp ${trg_dir}/test/wav.scp --out ${trg_dir}/test
-        python local/convert_trial.py --trial "${data_dir_prefix}/LA_asv_dev/protocol.txt" --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev
-
-    else
-        log "${trg_dir} exists. Skip making Kaldi style files and trials"
-    fi
-    log "Stage 3, DONE."
-fi
-
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 4: Data Preparation for train"
-    mkdir -p data/train
-    python3 local/cm_data_prep.py ${data_dir_prefix}
-    for f in wav.scp utt2spk; do
-        sort data/train/${f} -o data/train/${f}
-    done
-    utils/utt2spk_to_spk2utt.pl data/train/utt2spk > "data/train/spk2utt"
-    utils/validate_data_dir.sh --no-feats --no-text data/train || exit 1
-fi
-
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "Stage 5: Download Musan and RIR_NOISES for augmentation."
+    log "Stage 3: Download Musan and RIR_NOISES for augmentation."
 
     if [ ! -f ${data_dir_prefix}/rirs_noises.zip ]; then
         wget -P ${data_dir_prefix} -c http://www.openslr.org/resources/28/rirs_noises.zip
@@ -167,58 +131,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Making scp files for RIRS_NOISES"
     find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/mediumroom -iname "*.wav" > ${trg_dir}/rirs.scp
     find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/smallroom -iname "*.wav" >> ${trg_dir}/rirs.scp
-    log "Stage 5, DONE."
+    log "Stage 3, DONE."
 fi
 
 # types of trials:                            # num of examples
-# SV: bonafide target * bonafide nontarget    5370 | 33327
-# A07: bonafide target * A07 spoof            5370 | 4914
-# A08: bonafide target * A08 spoof            5370 | 4914
-# A09: bonafide target * A09 spoof            5370 | 4914
-# A10: bonafide target * A10 spoof            5370 | 4914
-# A11: bonafide target * A11 spoof            5370 | 4914
-# A12: bonafide target * A12 spoof            5370 | 4914
-# A13: bonafide target * A13 spoof            5370 | 4914
-# A14: bonafide target * A14 spoof            5370 | 4914
-# A15: bonafide target * A15 spoof            5370 | 4914
-# A16: bonafide target * A16 spoof            5370 | 4914
-# A17: bonafide target * A17 spoof            5370 | 4914
-# A18: bonafide target * A18 spoof            5370 | 4914
-# A19: bonafide target * A19 spoof            5370 | 4914
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    log "stage 6: Making sub-protocols and Kaldi-style files for each subset of trials"
 
-    log "Making sub-protocols..."
-    if [ ! -f "${data_dir_prefix}/SV.txt" ]; then
-        for x in SV A07 A08 A09 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19; do
-            # Make new protocol file
-            python local/make_subprotocols.py --in_file "${data_dir_prefix}/LA/ASVspoof2019_LA_asv_protocols/ASVspoof2019.LA.asv.eval.gi.trl.txt" --out_file "${data_dir_prefix}/LA_asv_eval/${x}.txt" --trial_type ${x}
-        done
-    else
-       log "Sub protocol files exist. Skip making sub-protocols"
-    fi
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Making sub-protocols and Kaldi-style files for each subset of trials"
 
-    log "Making Kaldi-style files for each subprotocol"
-    if [ ! -d "${trg_dir}/test_SV" ]; then
-        log "Making Kaldi style files and making trials"
-        for x in SV A07 A08 A09 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19; do
-            mkdir -p data/test_${x}
-            # make kaldi-style files for ASV dev and test
-            python3 local/asv_data_prep.py --src "${data_dir_prefix}/LA_asv_eval/flac/" --dst "${trg_dir}/test_${x}"
-            for f in wav.scp utt2spk spk2utt; do
-                sort ${trg_dir}/test_${x}/${f} -o ${trg_dir}/test_${x}/${f}
-            done
-            utils/validate_data_dir.sh --no-feats --no-text "data/test_${x}" || exit 1
-
-            # make test trial compatible with ESPnet
-            log "Making the trial compatible with ESPnet"
-            python local/convert_trial.py --trial "${data_dir_prefix}/LA_asv_eval/${x}.txt" --scp ${trg_dir}/test_${x}/wav.scp --out ${trg_dir}/test_${x}
-        done
-    else
-        log "${trg_dir}/test_SV exists. Skip making Kaldi style files and trials"
-    fi
-
-    log "Stage 6, DONE."
+    log "Stage 4, DONE."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
