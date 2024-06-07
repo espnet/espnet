@@ -35,7 +35,7 @@ num_iters_per_epoch: 1
 batch_type: folded
 batch_size: 2
 iterator_type: chunk
-chunk_length: 200 # 4s
+chunk_length: 50 # 1s
 chunk_default_fs: 50 # GCD among all possible sampling frequencies
 chunk_max_abs_length: 100000 # max number of samples per chunk for all sampling frequencies (reduce this value if OOM occurs)
 chunk_discard_short_samples: false
