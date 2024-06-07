@@ -1274,6 +1274,12 @@ class AbsTask(ABC):
                 dtype=getattr(torch, args.train_dtype),
                 device="cuda" if args.ngpu > 0 else "cpu",
             )
+            # For speaker task, move the weights of the loss functions to the device
+            if isinstance(model.loss, list):
+                for loss in model.loss:
+                    if hasattr(loss, "weight"):
+                        device = "cuda" if args.ngpu > 0 else "cpu"
+                        loss.weight = torch.nn.Parameter(loss.weight.to(device))
             for t in args.freeze_param:
                 for k, p in model.named_parameters():
                     if k.startswith(t + ".") or k == t:
@@ -2093,6 +2099,13 @@ class AbsTask(ABC):
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
         model.to(device)
+
+        # For speaker task, move the weights of the loss functions to the device
+        if isinstance(model.loss, list):
+            for loss in model.loss:
+                if hasattr(loss, "weight"):
+                    device = "cuda" if args.ngpu > 0 else "cpu"
+                    loss.weight = torch.nn.Parameter(loss.weight.to(device))        
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
