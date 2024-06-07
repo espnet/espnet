@@ -1,11 +1,20 @@
 # convert_trial.py
 
 # Makes ESPnet trial files from ASVspoof5 protocol
+# label mapping used:
+# bonafide: 0
+# nontarget: 1
+# spoof: 2
 
 import argparse
 import os
 import sys
 
+# label mapping dictionary
+label_dict = {}
+label_dict["target"] = 0
+label_dict["nontarget"] = 1
+label_dict["spoof"] = 2
 
 def main(args):
     with open(args.trial, "r") as f:
@@ -29,7 +38,8 @@ def main(args):
             joint_key = "*".join([enrolment, test_utt])
             f_trial.write(f"{joint_key} {scp_dict[enrolment]}\n")
             f_trial2.write(f"{joint_key} {scp_dict[test_utt]}\n")
-            f_label.write(f"{joint_key} {label}\n")
+            # label mapping 
+            f_label.write(f"{joint_key} {label_dict[label]}\n")
 
 
 if __name__ == "__main__":

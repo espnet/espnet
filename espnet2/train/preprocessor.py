@@ -2132,8 +2132,6 @@ class SpkPreprocessor(CommonPreprocessor):
                 data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
-            if self.spf2label is not None:
-                data["spf_labels"] = np.asarray([int(data["spf_labels"])])
 
         if "task_tokens" in data:
             data["task_tokens"] = np.asarray([int(data["task_tokens"])])
