@@ -135,7 +135,7 @@ class MultiScaleLM(AbsCoreLM):
             first_layer_weight=self.first_layer_weight,
         )
 
-        return loss, stats, weight
+        return loss, logits, stats, weight
 
     @torch.no_grad()
     def inference(

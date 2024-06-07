@@ -12,6 +12,7 @@ from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.valle import ValleLM
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
+from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.tasks.abs_task import AbsTask
@@ -51,6 +52,7 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetSpeechLMModel,
+        rl=ESPnetSpeechLMRLModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",

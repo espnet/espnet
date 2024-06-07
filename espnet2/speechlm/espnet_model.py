@@ -50,7 +50,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             prefix_len,
         )
 
-        loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
+        loss, _, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
     def collect_feats(self, **kwargs):

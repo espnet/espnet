@@ -130,7 +130,7 @@ class ValleLM(AbsCoreLM):
         stats.pop("acc_layer0")
         stats.pop("acc_layer1")
 
-        return loss, stats, weight
+        return loss, logits, stats, weight
 
     def prepare_input(self, dec_seq_emb, prefix_len, level):
         # (1) level mask, [B, 1, nq, 1], True is to include
