@@ -125,10 +125,6 @@ class SeparateSpeech:
             enh_model, enh_train_args = task.build_model_from_file(
                 train_config, model_file, device
             )
-            if isinstance(
-                enh_model.separator, ((BSRNNSeparator, USESSeparator, TFGridNetV3))
-            ):
-                self.sfi_processing = True
         else:
             # Overwrite model attributes
             train_config = get_train_config(train_config, model_file=model_file)
@@ -159,6 +155,10 @@ class SeparateSpeech:
         if enh_s2t_task:
             enh_model = enh_model.enh_model
         enh_model.to(dtype=getattr(torch, dtype)).eval()
+        if isinstance(
+            enh_model.separator, ((BSRNNSeparator, USESSeparator, TFGridNetV3))
+        ):
+            self.sfi_processing = True
 
         self.device = device
         self.dtype = dtype
