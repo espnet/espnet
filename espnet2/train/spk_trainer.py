@@ -21,6 +21,9 @@ from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer, TrainerOptions
 from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore
 
+from a_dcf import a_dcf
+import re
+
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
@@ -55,6 +58,12 @@ class SpkTrainer(Trainer):
         labels = []
         spk_embd_dic = {}
         bs = 0
+
+        sasv = False
+        for utt_id, batch in iterator:
+            pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
+            if re.match(pattern, utt_id[0]):
+                sasv = True
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
@@ -172,47 +181,105 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
-        # calculate statistics in target and nontarget classes.
-        n_trials = len(scores)
-        scores_trg = []
-        scores_nontrg = []
-        for _s, _l in zip(scores, labels):
-            if _l == 1:
-                scores_trg.append(_s)
-            elif _l == 0:
-                scores_nontrg.append(_s)
-            else:
-                raise ValueError(f"{_l}, {type(_l)}")
-        trg_mean = float(np.mean(scores_trg))
-        trg_std = float(np.std(scores_trg))
-        nontrg_mean = float(np.std(scores_nontrg))
-        nontrg_std = float(np.std(scores_nontrg))
+        if sasv == False:
+            # calculate statistics in target and nontarget classes.
+            n_trials = len(scores)
+            scores_trg = []
+            scores_nontrg = []
+            for _s, _l in zip(scores, labels):
+                if _l == 1:
+                    scores_trg.append(_s)
+                elif _l == 0:
+                    scores_nontrg.append(_s)
+                else:
+                    raise ValueError(f"{_l}, {type(_l)}")
+            trg_mean = float(np.mean(scores_trg))
+            trg_std = float(np.std(scores_trg))
+            nontrg_mean = float(np.std(scores_nontrg))
+            nontrg_std = float(np.std(scores_nontrg))
 
-        # exception for collect_stats.
-        if len(scores) == 1:
-            reporter.register(stats=dict(eer=1.0, mindcf=1.0))
-            return
+            # exception for collect_stats.
+            if len(scores) == 1:
+                reporter.register(stats=dict(eer=1.0, mindcf=1.0))
+                return
 
-        # predictions, ground truth, and the false acceptance rates to calculate
-        results = tuneThresholdfromScore(scores, labels, [1, 0.1])
-        eer = results[1]
-        fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
+            # predictions, ground truth, and the false acceptance rates to calculate
+            results = tuneThresholdfromScore(scores, labels, [1, 0.1])
+            eer = results[1]
+            fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
 
-        # p_target, c_miss, and c_falsealarm in NIST minDCF calculation
-        p_trg, c_miss, c_fa = 0.05, 1, 1
-        mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
+            # p_target, c_miss, and c_falsealarm in NIST minDCF calculation
+            p_trg, c_miss, c_fa = 0.05, 1, 1
+            mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
 
-        reporter.register(
-            stats=dict(
-                eer=eer,
-                mindcf=mindcf,
-                n_trials=n_trials,
-                trg_mean=trg_mean,
-                trg_std=trg_std,
-                nontrg_mean=nontrg_mean,
-                nontrg_std=nontrg_std,
+            reporter.register(
+                stats=dict(
+                    eer=eer,
+                    mindcf=mindcf,
+                    n_trials=n_trials,
+                    trg_mean=trg_mean,
+                    trg_std=trg_std,
+                    nontrg_mean=nontrg_mean,
+                    nontrg_std=nontrg_std,
+                )
             )
-        )
+        
+        else:
+            idx2class = {}
+            idx2class[0] = "target"
+            idx2class[1] = "nontarget"
+            idx2class[2] = "spoof"
+            # calculate statistics in target, nontarget, and spoof classes.
+            n_trials = len(scores)
+            scores_trg = []
+            scores_nontrg = []
+            scores_spoof = []
+            for _s, _l in zip(scores, labels):
+                if _l == 0:
+                    scores_trg.append(_s)
+                elif _l == 1:
+                    scores_nontrg.append(_s)
+                elif _l == 2:
+                    scores_spoof.append(_s)
+                else:
+                    raise ValueError(f"{_l}, {type(_l)}")
+            trg_mean = float(np.mean(scores_trg))
+            trg_std = float(np.std(scores_trg))
+            nontrg_mean = float(np.std(scores_nontrg))
+            nontrg_std = float(np.std(scores_nontrg))
+            spoof_mean = float(np.mean(scores_spoof))
+            spoof_std = float(np.std(scores_spoof))
+
+            # exception for collect_stats.
+            if len(scores) == 1:
+                reporter.register(stats=dict(eer=1.0, mindcf=1.0))
+                return
+            
+            # write scores to file for a-dcf calculation
+            # format should be:
+            # # <speaker_id> <utterance_id> <score> <trial type> 
+            # where speaker_id and utterance_id are obtained from the utt_id in format <speaker_id>*<utterance_id>
+            # and trial type is 0 for target, 1 for nontarget, and 2 for spoof but should be mapped to string using idx2class
+            with open("scores.txt", "w") as f:
+                for i in range(len(scores)):
+                    f.write(f"{utt_id[i].split('*')[0]} {utt_id[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n")
+        
+            # calculate a-dcf
+            adcf_results = a_dcf.calculate_a_dcf("scores.txt")
+            adcf = adcf_results["min_a_dcf"]
+
+            reporter.register(
+                stats=dict(
+                    a_dcf=adcf,
+                    n_trials=n_trials,
+                    trg_mean=trg_mean,
+                    trg_std=trg_std,
+                    nontrg_mean=nontrg_mean,
+                    nontrg_std=nontrg_std,
+                    spoof_mean=spoof_mean,
+                    spoof_std=spoof_std,
+                )
+            )
 
         # added to reduce GRAM usage. May have minor speed boost when
         # this line is commented in case GRAM is not fully used.
