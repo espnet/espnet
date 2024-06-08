@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 import logging
 import time
+import shutil
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
@@ -418,21 +419,24 @@ class Trainer:
                             if not p.requires_grad:
                                 model_state_dict.pop(n)
 
-                all_state_dict = {
-                    "model": model_state_dict,
-                    "reporter": reporter.state_dict(),
-                    "optimizers": optim_state_dict,
-                    "schedulers": [
-                        s.state_dict() if s is not None else None
-                        for s in schedulers
-                    ],
-                    "scaler": scaler.state_dict() if scaler is not None else None,
-                }
-
-                torch.save(all_state_dict, output_dir / "checkpoint.pth")
+                torch.save(
+                    {
+                        "model": model_state_dict,
+                        "reporter": reporter.state_dict(),
+                        "optimizers": optim_state_dict,
+                        "schedulers": [
+                            s.state_dict() if s is not None else None
+                            for s in schedulers
+                        ],
+                        "scaler": scaler.state_dict() if scaler is not None else None,
+                    },
+                    output_dir / "checkpoint.pth",
+                )
+                # for large model, we can use this to resume the training.
+                shutil.copy(output_dir / "checkpoint.pth", output_dir / f"checkpoint_{iepoch}.pth",)
 
                 # 5. Save and log the model and update the link to the best model
-                torch.save(all_state_dict, output_dir / f"{iepoch}epoch.pth")
+                torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
                 p = output_dir / "latest.pth"
