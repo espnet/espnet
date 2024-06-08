@@ -918,9 +918,9 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="If true, the dataset only contain the data shard of current process "
-                 "So that the dataset object doesn't take much CPU memory. This is "
-                 "useful when the overall dataset if large. This is an alternative "
-                 "method of data_split & multiple_iterator method "
+            "So that the dataset object doesn't take much CPU memory. This is "
+            "useful when the overall dataset if large. This is an alternative "
+            "method of data_split & multiple_iterator method ",
         )
         group.add_argument(
             "--allow_variable_data_keys",
@@ -1340,8 +1340,8 @@ class AbsTask(ABC):
             # Note(Jinchuan): have to warp FSDP before building optimizers
             if args.use_fsdp and not args.collect_stats and torch.cuda.is_available():
                 model = warp_fsdp(
-                    model, 
-                    use_amp=args.use_amp, 
+                    model,
+                    use_amp=args.use_amp,
                     min_num_params=args.min_num_params_fsdp,
                 )
 
@@ -1461,12 +1461,12 @@ class AbsTask(ABC):
                 )
 
             # 7. Build iterator factories
-            if args.sharded_dataset: # recursively replace "JOB" to global rank.
+            if args.sharded_dataset:  # recursively replace "JOB" to global rank.
                 if distributed_option.distributed:
                     rank = distributed_option.dist_rank
                 else:
                     rank = 0
-                
+
                 def recursive_replace(attr):
                     if isinstance(attr, str):
                         return attr.replace("JOB", f"{rank + 1}")
@@ -1476,14 +1476,16 @@ class AbsTask(ABC):
                         return tuple(recursive_replace(a) for a in attr)
                     else:
                         raise ValueError(attr)
-                
+
                 for attr_name in [
                     "train_data_path_and_name_and_type",
                     "valid_data_path_and_name_and_type",
                     "train_shape_file",
                     "valid_shape_file",
                 ]:
-                    setattr(args, attr_name, recursive_replace(getattr(args, attr_name)))
+                    setattr(
+                        args, attr_name, recursive_replace(getattr(args, attr_name))
+                    )
 
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(

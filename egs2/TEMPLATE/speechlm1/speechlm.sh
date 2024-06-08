@@ -368,9 +368,6 @@ fi
 if ! ${skip_data_prep}; then
     train_jsons+="${data_feats}/${train_set}/data.json "
     valid_jsons+="${data_feats}/${valid_set}/data.json "
-    for test_set in ${test_sets}; do
-        test_jsons+="${data_feats}/${test_set}/data.json "
-    done
 fi
 
 if ! ${skip_train}; then
@@ -420,19 +417,19 @@ if ! ${skip_train}; then
         # 3. Submit jobs
         log "SpeechLM collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
-        # ${train_cmd} JOB=1:"${nj}" "${_logdir}"/stats.JOB.log \
-        #     ${python} -m "espnet2.bin.speechlm_train" \
-        #         --collect_stats true \
-        #         --use_preprocessor true \
-        #         --token_list ${token_list_dir}/token_list \
-        #         --token_bias ${token_list_dir}/token_bias.json \
-        #         --non_linguistic_symbols "${nlsyms_txt}" \
-        #         --cleaner "${cleaner}" \
-        #         --g2p "${g2p}" \
-        #         --multi_task_dataset true \
-        #         --output_dir "${_logdir}/stats.JOB" \
-        #         ${_opts} ${_data_opts} ${train_args} \
-        #         || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+        ${train_cmd} JOB=1:"${nj}" "${_logdir}"/stats.JOB.log \
+            ${python} -m "espnet2.bin.speechlm_train" \
+                --collect_stats true \
+                --use_preprocessor true \
+                --token_list ${token_list_dir}/token_list \
+                --token_bias ${token_list_dir}/token_bias.json \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --multi_task_dataset true \
+                --output_dir "${_logdir}/stats.JOB" \
+                ${_opts} ${_data_opts} ${train_args} \
+                || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -553,6 +550,12 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Inference: training_dir=${speechlm_exp}"
 
+        if ! ${skip_data_prep}; then
+            for test_set in ${test_sets}; do
+                test_jsons+="${data_feats}/${test_set}/data.json "
+            done
+        fi
+
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
             _ngpu=1
@@ -566,43 +569,40 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        for dset in ${test_sets}; do
-            test_json="${data_feats}/${dset}/data.json"
+        for test_json in ${test_jsons}; do
+            dset=$(basename $(dirname "${test_json}"))
             _dir="${speechlm_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
             mkdir -p ${_logdir}
 
-            ${python} pyscripts/utils/make_example_list_speechlm.py \
+            ${python} pyscripts/utils/split_data_jsons.py \
                 --json_files ${test_json} \
-                --output_file ${_logdir}/example_list
+                --nj ${inference_nj} \
+                --output_dir ${_logdir}
 
-            # 1. Split the key file
-            key_file=${_logdir}/example_list
-            split_scps=""
-            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            for n in $(seq "${_nj}"); do
-                split_scps+=" ${_logdir}/example_list.${n}"
-            done
-            # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
+            _data_opts="--data_path_and_name_and_type ${_logdir}/${dset}/split${inference_nj}/JOB/data.JOB.json,_,dataset_json"
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/speechlm_inference.JOB.log \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${inference_nj}" "${_logdir}"/speechlm_inference.JOB.log \
                 ${python} -m espnet2.bin.speechlm_inference \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type ${test_json},_,dataset_json \
-                    --key_file "${_logdir}"/example_list.JOB \
+                    --rank JOB \
+                    --verbose true \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
                     --train_config "${speechlm_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args} \
+                    ${_opts} ${_data_opts} ${inference_args} \
                     || { cat $(grep -l -i error "${_logdir}"/speechlm_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            # TODO
+            
         done
+    fi
+
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Model evaluation stage"
     fi
 else
     log "Skip the evaluation stages"

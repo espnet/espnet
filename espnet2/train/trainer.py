@@ -44,10 +44,7 @@ autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
 
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-    ):
+    if V(torch.__version__) >= V("1.10.0") and torch.cuda.is_available():
         if torch.cuda.is_bf16_supported():
             autocast_args = dict(dtype=torch.bfloat16)
         else:
@@ -85,6 +82,7 @@ if V(torch.__version__) >= V("2.0.1"):
 else:
     FSDP = None
     ShardedGradScaler = None
+
 
 @dataclasses.dataclass
 class TrainerOptions:
@@ -271,7 +269,7 @@ class Trainer:
                     sharded_optimizer=optimizers,
                 )
 
-            elif isinstance(model, FSDP): # already warpped in FSDP
+            elif isinstance(model, FSDP):  # already warpped in FSDP
                 dp_model = model
 
             else:
@@ -291,7 +289,7 @@ class Trainer:
                     ),
                     find_unused_parameters=trainer_options.unused_parameters,
                 )
-            
+
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
@@ -396,7 +394,9 @@ class Trainer:
 
                 # 4. Save/Update the checkpoint
                 if isinstance(model, FSDP):
-                    model_state_dict, optim_state_dict = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
+                    model_state_dict, optim_state_dict = (
+                        get_model_and_optimizer_state_dict_fsdp(model, optimizers)
+                    )
                 else:
                     model_state_dict = model.state_dict()
                     optim_state_dict = [o.state_dict() for o in optimizers]
@@ -419,6 +419,7 @@ class Trainer:
                             if not p.requires_grad:
                                 model_state_dict.pop(n)
 
+<<<<<<< HEAD
                 torch.save(
                     {
                         "model": model_state_dict,
@@ -434,6 +435,19 @@ class Trainer:
                 )
                 # for large model, we can use this to resume the training.
                 shutil.copy(output_dir / "checkpoint.pth", output_dir / f"checkpoint_{iepoch}.pth",)
+=======
+                all_state_dict = {
+                    "model": model_state_dict,
+                    "reporter": reporter.state_dict(),
+                    "optimizers": optim_state_dict,
+                    "schedulers": [
+                        s.state_dict() if s is not None else None for s in schedulers
+                    ],
+                    "scaler": scaler.state_dict() if scaler is not None else None,
+                }
+
+                torch.save(all_state_dict, output_dir / "checkpoint.pth")
+>>>>>>> 08b563f2ba249d04af2999ee492cd256a3aad3a0
 
                 # 5. Save and log the model and update the link to the best model
                 torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
@@ -730,8 +744,7 @@ class Trainer:
                 # compute the gradient norm to check if it is normal or not
                 if isinstance(model, FSDP):
                     grad_norm = model.clip_grad_norm_(
-                        max_norm=grad_clip, 
-                        norm_type=grad_clip_type
+                        max_norm=grad_clip, norm_type=grad_clip_type
                     )
                 else:
                     grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -860,13 +873,10 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            # NOTE (Jinchuan): autocast should also be enabled in validation stage 
+            # NOTE (Jinchuan): autocast should also be enabled in validation stage
             # if both amp and FSDP are enabled, as the warpped model is only compatible
             # with the specified dtype.
-            with autocast(
-                options.use_amp and isinstance(model, FSDP),
-                **autocast_args
-            ):
+            with autocast(options.use_amp and isinstance(model, FSDP), **autocast_args):
                 retval = model(**batch)
             if isinstance(retval, dict):
                 stats = retval["stats"]

@@ -5,7 +5,7 @@
 
 # NOTE (Jinchuan): Pytorch built-in FullyShardedDataParallel, a beta feature
 # FSDP will have higher training throughput given a large number of GPUs
-# and sufficient communication bandwidth. However, it will have extra 
+# and sufficient communication bandwidth. However, it will have extra
 # requirements for model architecture.
 # Before using this feature, make sure you read the following toturials about FSDP:
 # https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html
@@ -29,13 +29,16 @@ from torch.distributed.fsdp import (
     StateDictType,
     FullStateDictConfig,
 )
+
 try:
     from torch.distributed.fsdp import FullOptimStateDictConfig
-except: # torch 2.0.1
+except:  # torch 2.0.1
     from torch.distributed.fsdp.api import FullOptimStateDictConfig
+
 
 def sum_parameter(module: torch.nn.Module):
     return sum([p.numel() for p in module.parameters()])
+
 
 def transformer_auto_wrap_policy(
     module_cls_list,
@@ -44,15 +47,21 @@ def transformer_auto_wrap_policy(
     nonwrapped_numel: int = -1,
     min_num_params: int = 30 * 1e6,
 ):
-    if recurse: # always be recursive to the children
+    if recurse:  # always be recursive to the children
         return True
     else:
         for module_cls in module_cls_list:
-            if isinstance(module, module_cls) and sum_parameter(module) > min_num_params:
+            if (
+                isinstance(module, module_cls)
+                and sum_parameter(module) > min_num_params
+            ):
                 return True
         return False
 
-def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int = 30 * 1e6):
+
+def warp_fsdp(
+    model: torch.nn.Module, use_amp: bool = False, min_num_params: int = 30 * 1e6
+):
     # auto_warp_policy
     # NOTE (Jinchuan): the model should have this layer_cls attribute to indicate
     # which modules should be warpped by FSDP. We strongly recommend users to only
@@ -68,12 +77,8 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
     )
 
     # precison
-    # NOTE (Jinchuan): this is 
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-        and use_amp
-    ):
+    # NOTE (Jinchuan): this is
+    if V(torch.__version__) >= V("1.10.0") and torch.cuda.is_available() and use_amp:
         if torch.cuda.is_bf16_supported():
             dtype = torch.bfloat16
         else:
@@ -86,7 +91,7 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
         buffer_dtype=dtype,
     )
 
-    # NOTE(Jinchuan) Since our models are usually not very large, we currently 
+    # NOTE(Jinchuan) Since our models are usually not very large, we currently
     # don't consider more advanced choices such as cpu_offload etc.
     # sync_module_states=True: in case a pre-trained model is loaded.
     return FSDP(
@@ -98,7 +103,7 @@ def warp_fsdp(model: torch.nn.Module, use_amp: bool = False, min_num_params: int
 
 
 def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
-    """ get model and optimizer state dict when the model is warpped by FSDP """
+    """get model and optimizer state dict when the model is warpped by FSDP"""
     FSDP.set_state_dict_type(
         model,
         StateDictType.FULL_STATE_DICT,
@@ -113,15 +118,16 @@ def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
 
     return state_dict, optim_state_dict
 
+
 def prepare_for_resume_fsdp(states, model, optimizers):
-    """ modify the optimizer states so it can be loaded into a optimizer 
-        over the sharded parameters.
+    """modify the optimizer states so it can be loaded into a optimizer
+    over the sharded parameters.
     """
     if len(optimizers) > 1:
         raise ValueError(f"currently FSDP can only support one optimizer")
 
-    states['optimizers'][0] = FSDP.optim_state_dict_to_load(
-        states['optimizers'][0],
+    states["optimizers"][0] = FSDP.optim_state_dict_to_load(
+        states["optimizers"][0],
         model,
         optimizers[0],
     )

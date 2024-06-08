@@ -110,7 +110,7 @@ class ValleLM(AbsCoreLM):
         batch_idx = torch.arange(batch_size, device=dec_seq.device)
         target_nar = dec_seq[batch_idx, 1:, level_idx_th]
         mask = length_mask(dec_seq_lengths - 1).bool()
-        mask = mask.unsqueeze(1).unsqueeze(1) # [B, 1, 1, T]
+        mask = mask.unsqueeze(1).unsqueeze(1)  # [B, 1, 1, T]
         h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1, mask=mask)
         logits_nar = self.lm_head(h_nar)  # [B, T, V]
 
@@ -130,7 +130,7 @@ class ValleLM(AbsCoreLM):
         stats.pop("acc_layer0")
         stats.pop("acc_layer1")
 
-        return loss, stats, weight
+        return loss, logits, stats, weight
 
     def prepare_input(self, dec_seq_emb, prefix_len, level):
         # (1) level mask, [B, 1, nq, 1], True is to include
@@ -262,7 +262,7 @@ class ValleLM(AbsCoreLM):
             h_nar = self.nar_decoder(prev_emb, ones * step - 1, mask=mask)  # [B, T, D]
             # Note(Jinchuan): NAR uses greedy decoding. We still use the sampling but
             # with an extremely small temperature.
-            logits = self.lm_head(h_nar) / 0.00001 # [B, T, V]
+            logits = self.lm_head(h_nar) / 0.00001  # [B, T, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
@@ -278,13 +278,13 @@ class ValleLM(AbsCoreLM):
                 prev_tok = suffix[:, :, step]
             else:
                 prev_tok = generated["token"][-1]
-            prev_emb[:, prefix.size(1):] += self.emb(prev_tok)  # [B, T, D]
+            prev_emb[:, prefix.size(1) :] += self.emb(prev_tok)  # [B, T, D]
             prev_emb[:, prefix.size(1) - 1 : prefix.size(1)] += start_emb
 
         # (5) combine AR and NAR results
         gen_tokens_nar = torch.stack(generated["token"], dim=2)  # [B, T, nq]
         gen_scores_nar = torch.stack(generated["score"], dim=2)
-        
+
         gen_tokens = torch.cat([gen_tokens_ar, gen_tokens_nar], dim=2)  # [B, T, nq]
         gen_scores = torch.cat([gen_scores_ar, gen_scores_nar], dim=2)
 
@@ -292,5 +292,5 @@ class ValleLM(AbsCoreLM):
         for b in range(len(valid_idx)):
             gen_tokens_list.append(gen_tokens[b][: finish_idx[b]])
             gen_scores_list.append(gen_scores[b][: finish_idx[b]])
-        
+
         return gen_tokens_list, gen_scores_list

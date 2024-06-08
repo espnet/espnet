@@ -24,6 +24,29 @@ def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
 def causal_mask(qlen: int, device: torch.device) -> torch.Tensor:
     return torch.ones((qlen, qlen), device=device).tril_(0).unsqueeze(0)
 
+def pad_and_concat(tensor_list, pad_id=0):
+    """ pad a list of torch.Tensor with shape [B_n, T_n, ...] 
+        in T dimension and then concat in B dimension
+    """
+
+    size_list = [t.size() for t in tensor_list]
+    concat_size = sum([size[0] for size in size_list])
+    pad_size = max([size[1] for size in size_list])
+    assert all([size[2:] == size_list[0][2:] for size in size_list])
+
+    retval = torch.ones(
+        tuple([concat_size, pad_size] + list(tensor_list[0].size()[2:])),
+        dtype=tensor_list[0].dtype,
+        device=tensor_list[0].device,
+    ) * pad_id
+
+    count = 0
+    for t in tensor_list:
+        B, T = t.size()[:2]
+        retval[count: count + B, :T] = t
+        count += B
+    
+    return retval
 
 def ce_loss(
     logits: torch.Tensor,

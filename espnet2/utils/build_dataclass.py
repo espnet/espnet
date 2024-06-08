@@ -3,6 +3,7 @@ import dataclasses
 
 from typeguard import typechecked
 
+
 @typechecked
 def build_dataclass(dataclass, args: argparse.Namespace):
     """Helper function to build dataclass from 'args'."""

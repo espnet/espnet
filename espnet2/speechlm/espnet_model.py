@@ -50,7 +50,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             prefix_len,
         )
 
-        loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
+        loss, _, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
     def collect_feats(self, **kwargs):
@@ -58,7 +58,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
     @property
     def layer_cls(self):
-        """ All layer class that can be warpped by FSDP """
+        """All layer class that can be warpped by FSDP"""
         return [
-            ResidualAttentionBlock, # Espnet built-in transformer layer.
+            ResidualAttentionBlock,  # Espnet built-in transformer layer.
         ]
