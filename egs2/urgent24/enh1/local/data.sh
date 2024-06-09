@@ -11,17 +11,15 @@ log() {
 SECONDS=0
 
 help_message=$(cat << EOF
-Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--nj <nj>]
+Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>]
 
   optional argument:
     [--stage]: 1 (default) or 2
     [--stop_stage]: 1 or 2 (default)
-    [--nj]: number of parallel pool workers in MATLAB
 EOF
 )
 
 
-nj=10
 stage=1
 stop_stage=2
 
