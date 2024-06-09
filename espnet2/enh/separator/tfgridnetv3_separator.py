@@ -8,12 +8,14 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn.parameter import Parameter
 
-from espnet2.enh.decoder.stft_decoder import STFTDecoder
-from espnet2.enh.encoder.stft_encoder import STFTEncoder
-from espnet2.enh.layers.complex_utils import new_complex_like
+from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
 
+if hasattr(torch, "bfloat16"):
+    HALF_PRECISION_DTYPES = (torch.float16, torch.bfloat16)
+else:
+    HALF_PRECISION_DTYPES = (torch.float16,)
 
 class TFGridNetV3(AbsSeparator):
     """Offline TFGridNetV3.
@@ -48,14 +50,14 @@ class TFGridNetV3(AbsSeparator):
         stride: stft stride.
         window: stft window type choose between 'hamming', 'hanning' or None.
         n_imics: number of microphones channels (only fixed-array geometry supported).
-        n_layers: number of TFGridNetV2 blocks.
+        n_layers: number of TFGridNetV3 blocks.
         lstm_hidden_units: number of hidden units in LSTM.
         attn_n_head: number of heads in self-attention
-        attn_approx_qk_dim: approximate dimention of frame-level key and value tensors
+        attn_attn_qk_output_channel: output channels of point-wise conv2d for getting key and query
         emb_dim: embedding dimension
         emb_ks: kernel size for unfolding and deconv1D
         emb_hs: hop size for unfolding and deconv1D
-        activation: activation function to use in the whole TFGridNetV2 model,
+        activation: activation function to use in the whole TFGridNetV3 model,
             you can use any torch supported activation e.g. 'relu' or 'elu'.
         eps: small epsilon for normalization layers.
         use_builtin_complex: whether to use builtin complex type or not.
@@ -65,33 +67,23 @@ class TFGridNetV3(AbsSeparator):
         self,
         input_dim,
         n_srcs=2,
-        n_fft=128,
-        stride=64,
-        window="hann",
         n_imics=1,
         n_layers=6,
         lstm_hidden_units=192,
         attn_n_head=4,
-        attn_approx_qk_dim=512,
+        attn_qk_output_channel=4,
         emb_dim=48,
         emb_ks=4,
         emb_hs=1,
         activation="prelu",
         eps=1.0e-5,
-        use_builtin_complex=False,
     ):
         super().__init__()
         self.n_srcs = n_srcs
         self.n_layers = n_layers
         self.n_imics = n_imics
-        assert n_fft % 2 == 0
-        n_freqs = n_fft // 2 + 1
-
-        self.enc = STFTEncoder(
-            n_fft, n_fft, stride, window=window, use_builtin_complex=use_builtin_complex
-        )
-        self.dec = STFTDecoder(n_fft, n_fft, stride, window=window)
-
+        assert self.n_imics == 1, self.n_imics
+        
         t_ksize = 3
         ks, padding = (t_ksize, 3), (t_ksize // 2, 1)
         self.conv = nn.Sequential(
@@ -102,14 +94,13 @@ class TFGridNetV3(AbsSeparator):
         self.blocks = nn.ModuleList([])
         for _ in range(n_layers):
             self.blocks.append(
-                GridNetV2Block(
+                GridNetV3Block(
                     emb_dim,
                     emb_ks,
                     emb_hs,
-                    n_freqs,
                     lstm_hidden_units,
                     n_head=attn_n_head,
-                    approx_qk_dim=attn_approx_qk_dim,
+                    qk_output_channel=attn_qk_output_channel,
                     activation=activation,
                     eps=eps,
                 )
@@ -127,7 +118,7 @@ class TFGridNetV3(AbsSeparator):
 
         Args:
             input (torch.Tensor): batched multi-channel audio tensor with
-                    M audio channels and N samples [B, N, M]
+                    M audio channels and N samples [B, T, F]
             ilens (torch.Tensor): input lengths [B]
             additional (Dict or None): other data, currently unused in this model.
 
@@ -139,20 +130,19 @@ class TFGridNetV3(AbsSeparator):
             additional (Dict or None): other data, currently unused in this model,
                     we return it also in output.
         """
-        n_samples = input.shape[1]
-        if self.n_imics == 1:
-            assert len(input.shape) == 2
-            input = input[..., None]  # [B, N, M]
+        
+        # B, 2, T, (C,) F
+        if is_complex(input):
+            feature = torch.stack([input.real, input.imag], dim=1)
+        else:
+            assert input.size(-1) == 2, input.shape
+            feature = input.moveaxis(-1, 1)
+        
+        assert feature.ndim == 4, "Only single-channel mixture is supported now"
 
-        mix_std_ = torch.std(input, dim=(1, 2), keepdim=True)  # [B, 1, 1]
-        input = input / mix_std_  # RMS normalization
+        n_batch, _, n_frames, n_freqs = feature.shape
 
-        batch = self.enc(input, ilens)[0]  # [B, T, M, F]
-        batch0 = batch.transpose(1, 2)  # [B, M, T, F]
-        batch = torch.cat((batch0.real, batch0.imag), dim=1)  # [B, 2*M, T, F]
-        n_batch, _, n_frames, n_freqs = batch.shape
-
-        batch = self.conv(batch)  # [B, -1, T, F]
+        batch = self.conv(feature)  # [B, -1, T, F]
 
         for ii in range(self.n_layers):
             batch = self.blocks[ii](batch)  # [B, -1, T, F]
@@ -160,13 +150,7 @@ class TFGridNetV3(AbsSeparator):
         batch = self.deconv(batch)  # [B, n_srcs*2, T, F]
 
         batch = batch.view([n_batch, self.n_srcs, 2, n_frames, n_freqs])
-        batch = new_complex_like(batch0, (batch[:, :, 0], batch[:, :, 1]))
-
-        batch = self.dec(batch.view(-1, n_frames, n_freqs), ilens)[0]  # [B, n_srcs, -1]
-
-        batch = self.pad2(batch.view([n_batch, self.num_spk, -1]), n_samples)
-
-        batch = batch * mix_std_  # reverse the RMS normalization
+        batch = new_complex_like(input, (batch[:, :, 0], batch[:, :, 1]))
 
         batch = [batch[:, src] for src in range(self.num_spk)]
 
@@ -176,15 +160,8 @@ class TFGridNetV3(AbsSeparator):
     def num_spk(self):
         return self.n_srcs
 
-    @staticmethod
-    def pad2(input_tensor, target_len):
-        input_tensor = torch.nn.functional.pad(
-            input_tensor, (0, target_len - input_tensor.shape[-1])
-        )
-        return input_tensor
 
-
-class GridNetV2Block(nn.Module):
+class GridNetV3Block(nn.Module):
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -193,10 +170,9 @@ class GridNetV2Block(nn.Module):
         emb_dim,
         emb_ks,
         emb_hs,
-        n_freqs,
         hidden_channels,
         n_head=4,
-        approx_qk_dim=512,
+        qk_output_channel=4,
         activation="prelu",
         eps=1e-5,
     ):
@@ -227,21 +203,20 @@ class GridNetV2Block(nn.Module):
                 hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs
             )
 
-        E = math.ceil(
-            approx_qk_dim * 1.0 / n_freqs
-        )  # approx_qk_dim is only approximate
+        # use constant E not to be dependent on the number of frequency bins
+        E = qk_output_channel
         assert emb_dim % n_head == 0
 
         self.add_module("attn_conv_Q", nn.Conv2d(emb_dim, n_head * E, 1))
         self.add_module(
             "attn_norm_Q",
-            AllHeadPReLULayerNormalization4DCF((n_head, E, n_freqs), eps=eps),
+            AllHeadPReLULayerNormalization4DC((n_head, E), eps=eps),
         )
 
         self.add_module("attn_conv_K", nn.Conv2d(emb_dim, n_head * E, 1))
         self.add_module(
             "attn_norm_K",
-            AllHeadPReLULayerNormalization4DCF((n_head, E, n_freqs), eps=eps),
+            AllHeadPReLULayerNormalization4DC((n_head, E), eps=eps),
         )
 
         self.add_module(
@@ -249,8 +224,8 @@ class GridNetV2Block(nn.Module):
         )
         self.add_module(
             "attn_norm_V",
-            AllHeadPReLULayerNormalization4DCF(
-                (n_head, emb_dim // n_head, n_freqs), eps=eps
+            AllHeadPReLULayerNormalization4DC(
+                (n_head, emb_dim // n_head), eps=eps
             ),
         )
 
@@ -259,7 +234,7 @@ class GridNetV2Block(nn.Module):
             nn.Sequential(
                 nn.Conv2d(emb_dim, emb_dim, 1),
                 get_layer(activation)(),
-                LayerNormalization4DCF((emb_dim, n_freqs), eps=eps),
+                LayerNormalization(emb_dim, dim=-3, total_dim=4, eps=eps),
             ),
         )
 
@@ -380,36 +355,40 @@ class GridNetV2Block(nn.Module):
         return out
 
 
-class LayerNormalization4DCF(nn.Module):
-    def __init__(self, input_dimension, eps=1e-5):
+class LayerNormalization(nn.Module):
+    def __init__(self, input_dim, dim=1, total_dim=4, eps=1e-5):
         super().__init__()
-        assert len(input_dimension) == 2
-        param_size = [1, input_dimension[0], 1, input_dimension[1]]
-        self.gamma = Parameter(torch.Tensor(*param_size).to(torch.float32))
-        self.beta = Parameter(torch.Tensor(*param_size).to(torch.float32))
-        init.ones_(self.gamma)
-        init.zeros_(self.beta)
+        self.dim = dim if dim >= 0 else total_dim + dim
+        param_size = [1 if ii != self.dim else input_dim for ii in range(total_dim)]
+        self.gamma = nn.Parameter(torch.Tensor(*param_size).to(torch.float32))
+        self.beta = nn.Parameter(torch.Tensor(*param_size).to(torch.float32))
+        nn.init.ones_(self.gamma)
+        nn.init.zeros_(self.beta)
         self.eps = eps
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, x):
-        if x.ndim == 4:
-            stat_dim = (1, 3)
+        if x.ndim - 1 < self.dim:
+            raise ValueError(
+                f"Expect x to have {self.dim + 1} dimensions, but got {x.ndim}"
+            )
+        if x.dtype in HALF_PRECISION_DTYPES:
+            dtype = x.dtype
+            x = x.float()
         else:
-            raise ValueError("Expect x to have 4 dimensions, but got {}".format(x.ndim))
-        mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,1,T,1]
-        std_ = torch.sqrt(
-            x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
-        )  # [B,1,T,F]
+            dtype = None
+        mu_ = x.mean(dim=self.dim, keepdim=True)
+        std_ = torch.sqrt(x.var(dim=self.dim, unbiased=False, keepdim=True) + self.eps)
         x_hat = ((x - mu_) / std_) * self.gamma + self.beta
-        return x_hat
+        return x_hat.to(dtype=dtype) if dtype else x_hat
 
 
-class AllHeadPReLULayerNormalization4DCF(nn.Module):
+class AllHeadPReLULayerNormalization4DC(nn.Module):
     def __init__(self, input_dimension, eps=1e-5):
         super().__init__()
-        assert len(input_dimension) == 3
-        H, E, n_freqs = input_dimension
-        param_size = [1, H, E, 1, n_freqs]
+        assert len(input_dimension) == 2, input_dimension
+        H, E = input_dimension
+        param_size = [1, H, E, 1, 1]
         self.gamma = Parameter(torch.Tensor(*param_size).to(torch.float32))
         self.beta = Parameter(torch.Tensor(*param_size).to(torch.float32))
         init.ones_(self.gamma)
@@ -418,14 +397,13 @@ class AllHeadPReLULayerNormalization4DCF(nn.Module):
         self.eps = eps
         self.H = H
         self.E = E
-        self.n_freqs = n_freqs
 
     def forward(self, x):
         assert x.ndim == 4
-        B, _, T, _ = x.shape
-        x = x.view([B, self.H, self.E, T, self.n_freqs])
+        B, _, T, F = x.shape
+        x = x.view([B, self.H, self.E, T, F])
         x = self.act(x)  # [B,H,E,T,F]
-        stat_dim = (2, 4)
+        stat_dim = (2, )
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,H,1,T,1]
         std_ = torch.sqrt(
             x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps

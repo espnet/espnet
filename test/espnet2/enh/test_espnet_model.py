@@ -488,22 +488,18 @@ def test_tfgridnetv2(n_mics, training, loss_wrappers):
 
 
 @pytest.mark.parametrize("training", [True, False])
-@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("n_mics", [1])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 def test_tfgridnetv3(n_mics, training, loss_wrappers):
     if not is_torch_1_9_plus:
         return
     if n_mics == 1:
-        inputs = torch.randn(1, 300)
+        inputs = torch.randn(1, 320)
     else:
-        inputs = torch.randn(1, 300, n_mics)
-    ilens = torch.LongTensor([300])
-    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
-    from espnet2.enh.decoder.null_decoder import NullDecoder
-    from espnet2.enh.encoder.null_encoder import NullEncoder
+        inputs = torch.randn(1, 320, n_mics)
+    ilens = torch.LongTensor([320])
+    speech_refs = [torch.randn(1, 320).float(), torch.randn(1, 320).float()]
 
-    encoder = NullEncoder()
-    decoder = NullDecoder()
     separator = TFGridNetV3(
         None,
         n_srcs=2,
@@ -511,13 +507,12 @@ def test_tfgridnetv3(n_mics, training, loss_wrappers):
         n_layers=1,
         lstm_hidden_units=64,
         emb_dim=16,
-        attn_approx_qk_dim=256,
     )
 
     enh_model = ESPnetEnhancementModel(
-        encoder=encoder,
+        encoder=stft_encoder_bultin_complex,
         separator=separator,
-        decoder=decoder,
+        decoder=stft_decoder,
         mask_module=None,
         loss_wrappers=loss_wrappers,
     )
