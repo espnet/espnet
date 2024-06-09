@@ -54,7 +54,8 @@ class TFGridNetV3(AbsSeparator):
         n_layers: number of TFGridNetV3 blocks.
         lstm_hidden_units: number of hidden units in LSTM.
         attn_n_head: number of heads in self-attention
-        attn_attn_qk_output_channel: output channels of point-wise conv2d for getting key and query
+        attn_attn_qk_output_channel: output channels of point-wise conv2d for getting
+            key and query
         emb_dim: embedding dimension
         emb_ks: kernel size for unfolding and deconv1D
         emb_hs: hop size for unfolding and deconv1D
