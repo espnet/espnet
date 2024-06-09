@@ -17,6 +17,7 @@ if hasattr(torch, "bfloat16"):
 else:
     HALF_PRECISION_DTYPES = (torch.float16,)
 
+
 class TFGridNetV3(AbsSeparator):
     """Offline TFGridNetV3.
 
@@ -83,7 +84,7 @@ class TFGridNetV3(AbsSeparator):
         self.n_layers = n_layers
         self.n_imics = n_imics
         assert self.n_imics == 1, self.n_imics
-        
+
         t_ksize = 3
         ks, padding = (t_ksize, 3), (t_ksize // 2, 1)
         self.conv = nn.Sequential(
@@ -130,14 +131,14 @@ class TFGridNetV3(AbsSeparator):
             additional (Dict or None): other data, currently unused in this model,
                     we return it also in output.
         """
-        
+
         # B, 2, T, (C,) F
         if is_complex(input):
             feature = torch.stack([input.real, input.imag], dim=1)
         else:
             assert input.size(-1) == 2, input.shape
             feature = input.moveaxis(-1, 1)
-        
+
         assert feature.ndim == 4, "Only single-channel mixture is supported now"
 
         n_batch, _, n_frames, n_freqs = feature.shape
@@ -224,9 +225,7 @@ class GridNetV3Block(nn.Module):
         )
         self.add_module(
             "attn_norm_V",
-            AllHeadPReLULayerNormalization4DC(
-                (n_head, emb_dim // n_head), eps=eps
-            ),
+            AllHeadPReLULayerNormalization4DC((n_head, emb_dim // n_head), eps=eps),
         )
 
         self.add_module(
@@ -403,7 +402,7 @@ class AllHeadPReLULayerNormalization4DC(nn.Module):
         B, _, T, F = x.shape
         x = x.view([B, self.H, self.E, T, F])
         x = self.act(x)  # [B,H,E,T,F]
-        stat_dim = (2, )
+        stat_dim = (2,)
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,H,1,T,1]
         std_ = torch.sqrt(
             x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
