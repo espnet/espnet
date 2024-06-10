@@ -1,4 +1,4 @@
-# SPRING-INX Recipe 
+# SPRING-INX Recipe
 ESPnet Recipes to get started with SPRING-INX data.
 
 # Data Statistics
