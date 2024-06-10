@@ -35,6 +35,12 @@ def get_parser():
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
+        "--bias",
+        type=int,
+        default=0,
+        help="bias that reserve slots for other special tokens",
+    )
+    parser.add_argument(
         "--checkpoint_path",
         type=str,
         default=None,
@@ -64,6 +70,7 @@ def dump_codec(
     codec_choice: str,
     codec_fs: int,
     batch_size: int,
+    bias: int,
     dump_audio: bool,
     rank: int,
     checkpoint_path: str = None,
@@ -71,7 +78,11 @@ def dump_codec(
 ):
     # (1) Device
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        if torch.cuda.device_count() > 1:
+            device_id = rank % torch.cuda.device_count()
+        else:
+            device_id = 0
+        device = torch.device(f"cuda:{device_id}")
     else:
         device = torch.device("cpu")
         logger.warning("Codec tokenization with CPU can be very slow.")
@@ -115,7 +126,9 @@ def dump_codec(
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
             wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
-            codes, resyn_wavs = tokenizer(wavs)
+            with torch.no_grad():
+                codes, resyn_wavs = tokenizer(wavs)
+            codes += bias
 
             codes = codes.detach().cpu().numpy()
             for code, length, key in zip(codes, length_buffer, key_buffer):

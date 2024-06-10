@@ -56,7 +56,7 @@ You can change the kmeans cluster numbers via `--nclusters`.
 Format data for different training tasks for train, valid, and test sets.
 Preprare bpe training data.
 
-### 5. BPE training datge
+### 5. BPE training stage
 
 Train BPE using BPE training set obtained from last stage.
 
