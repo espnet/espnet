@@ -14,6 +14,7 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.decoder.codec_decoder import CodecDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
@@ -21,6 +22,7 @@ from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.encoder.codec_encoder import CodecEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import (
@@ -65,6 +67,7 @@ from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.uses_separator import USESSeparator
+from espnet2.enh.separator.codec_separator import CodecSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
@@ -83,7 +86,12 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
-    classes=dict(stft=STFTEncoder, conv=ConvEncoder, same=NullEncoder),
+    classes=dict(
+        stft=STFTEncoder, 
+        conv=ConvEncoder, 
+        same=NullEncoder,
+        codec=CodecEncoder,
+        ),
     type_check=AbsEncoder,
     default="stft",
 )
@@ -112,6 +120,7 @@ separator_choices = ClassChoices(
         tfgridnet=TFGridNet,
         tfgridnetv2=TFGridNetV2,
         uses=USESSeparator,
+        codec=CodecSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -126,7 +135,12 @@ mask_module_choices = ClassChoices(
 
 decoder_choices = ClassChoices(
     name="decoder",
-    classes=dict(stft=STFTDecoder, conv=ConvDecoder, same=NullDecoder),
+    classes=dict(
+        stft=STFTDecoder, 
+        conv=ConvDecoder, 
+        same=NullDecoder,
+        codec=CodecDecoder,
+        ),
     type_check=AbsDecoder,
     default="stft",
 )
