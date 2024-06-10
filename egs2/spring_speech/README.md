@@ -35,8 +35,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 2.0.1`
 - Git hash: `a10a6ae84f75a0c81ffa2c5435746b109fa5bf7f`
   - Commit date: `Mon Jun 10 11:36:30 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 200
 
 ### WER
 
@@ -65,8 +66,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `13f42bc21d298923ac41cac677382f228697da24`
   - Commit date: `Mon Jun 10 11:56:01 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 1300
 
 ### WER
 
@@ -95,8 +97,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `04084cf8eb396fde57a3a886433cdeef92796115`
   - Commit date: `Mon Jun 10 12:02:01 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 600
 
 ### WER
 
@@ -125,8 +128,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `877cf85df76424805950c6290206c1e6ac926ca5`
   - Commit date: `Mon Jun 10 12:19:05 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 1100
 
 ### WER
 
@@ -155,8 +159,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `b4ceaeeb7ff82f9175c7515c20a03269f4ca9065`
   - Commit date: `Mon Jun 10 13:40:20 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 300
 
 ### WER
 
@@ -185,8 +190,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `acc616892db822275d8f5e98a4891daa48bdbbde`
   - Commit date: `Mon Jun 10 12:21:44 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 750
 
 ### WER
 
@@ -215,8 +221,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `0f7c092c11b88999f3c637dd36f6f30b704d3370`
   - Commit date: `Mon Jun 10 12:30:43 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 450
 
 ### WER
 
@@ -245,8 +252,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `f0ff227f29328a690aaafe70a90b861505e465b9`
   - Commit date: `Mon Jun 10 13:43:10 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 300
 
 ### WER
 
@@ -275,8 +283,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `7632431665607ab644d98004921f7d8acbbe78d6`
   - Commit date: `Mon Jun 10 13:45:47 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 500
 
 ### WER
 
@@ -305,8 +314,9 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `f206a031225568000404105f119878818af9ce19`
   - Commit date: `Mon Jun 10 13:47:55 2024 +0530`
-- ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
+- ASR config: [conf/tuning/train_asr_transformer.yaml](conf/tuning/train_asr_transformer.yaml)
 - Decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- nbpe: 700
 
 ### WER
 
