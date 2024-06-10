@@ -84,6 +84,8 @@ inference_model=valid.acc.ave.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file.
 download_model=""  # Download a model from Model Zoo and use it for decoding.
+nbest=1            # number of best hypotheses to generate during inference.
+rank_and_score=false # scoring each rank after doing batch inference.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -570,8 +572,9 @@ if ! "${skip_eval}"; then
         fi
 
         for test_json in ${test_jsons}; do
+            task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
             dset=$(basename $(dirname "${test_json}"))
-            _dir="${speechlm_exp}/${inference_tag}/${dset}"
+            _dir="${speechlm_exp}/${inference_tag}/${task}_${dset}"
             _logdir="${_dir}/log"
             mkdir -p ${_logdir}
 
@@ -590,6 +593,7 @@ if ! "${skip_eval}"; then
                     --ngpu "${_ngpu}" \
                     --rank JOB \
                     --verbose true \
+                    --nbest ${nbest} \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
                     --train_config "${speechlm_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
@@ -597,12 +601,78 @@ if ! "${skip_eval}"; then
                     || { cat $(grep -l -i error "${_logdir}"/speechlm_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            
+            for entry in `ls ${_logdir}/output.1`; do
+                if [ "${entry}" == "token" ] || [ "${entry}" == "score" ]; then
+                    continue
+                fi
+                for n in `seq ${inference_nj}`; do
+                    cat ${_logdir}/output.${n}/${entry}/example_list
+                done | sort > ${_dir}/${entry}
+            done
         done
     fi
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        log "Model evaluation stage"
+        log "Evaluating the model ..."
+
+        for test_json in ${test_jsons}; do
+            # (1) find task, dataset name and folder names
+            task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
+            _src_dir="$(dirname "${test_json}")"
+            _dset="$(basename ${_src_dir})"
+            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"
+
+            # (2) files that can be used
+            if [ ${task} == "tts" ]; then
+                eval_metrics="wer sim"
+
+                audio_file=${_dir}/wav.scp
+                audio_ref_file=${_src_dir}/wav.scp
+                text_file=
+                text_ref_file=${_src_dir}/text
+                spk_ref_file=${_dir}/utt2spk
+
+                generated_file=${audio_file}
+            else
+                echo Task ${task} is not supported for evaluation ... && exit 1;
+            fi
+
+            mkdir -p ${_dir}/eval_cache
+            # for _file in ${audio_file} ${audio_ref_file} ${text_file} ${text_ref_file} ${spk_ref_file}; do
+            for _file_name in audio_file audio_ref_file text_file text_ref_file spk_ref_file; do
+                if [ "${!_file_name}" == "${generated_file}" ] || [ -z ${!_file_name} ]; then
+                    continue
+                fi
+
+                # The example name of the generated file will have prefix "${task}_" and suffix "sampleN"
+                # due to batch inference. Thus, any reference file should also align with the generated file.
+                awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
+                    ${!_file_name} > ${_dir}/eval_cache/${_file_name}
+                eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
+            done
+
+            # (3) evaluation based on task
+            for eval_metric in ${eval_metrics}; do
+                mkdir -p ${_dir}/${eval_metric}_results
+
+                if [ ${eval_metric} == "wer" ]; then
+                    ./scripts/utils/evaluate_asr.sh \
+                        --whisper_tag large \
+                        --cleaner whisper_en \
+                        --hyp_cleaner whisper_en \
+                        --nj ${inference_nj} \
+                        --gt_text ${text_ref_file} \
+                        --gpu_inference ${gpu_inference} \
+                        ${audio_file} ${_dir}/${eval_metric}_results
+
+                    if ${rank_and_score}; then
+                        ./pyscripts/utils/rank_and_score.py \
+                            --metric wer \
+                            --score_dir ${_dir}/${eval_metric}_results/score_wer
+                    fi
+                fi
+            done
+        done
     fi
 else
     log "Skip the evaluation stages"

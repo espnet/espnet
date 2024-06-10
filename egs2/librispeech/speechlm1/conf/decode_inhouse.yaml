@@ -1,0 +1,8 @@
+nbest: 5
+tokenizer: codec
+search_algo: sampling
+sampling_temperature: 1.5
+top_k: 30
+tokenizer_conf:
+    codec_choice: inhouse
+    codec_fs: 16000

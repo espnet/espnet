@@ -326,7 +326,7 @@ def inference(
         # (2) parse and save generated content
         for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
             example_name = f"{key}_sample{h_idx}"
-
+            
             if output_modality == "codec":
                 wave_path = output_dir / output_name / f"{example_name}.wav"
                 writer.write(f"{example_name} {str(wave_path)}\n")
@@ -363,8 +363,9 @@ def inference(
 
                 if prefix_writers[c_idx] == None:
                     (output_dir / name).mkdir(parents=True, exist_ok=True)
-                    writer = open(output_dir / name / "example_list", "w")
-                    prefix_writers[c_idx] = writer
+                    prefix_writer = open(output_dir / name / "example_list", "w")
+                    prefix_writers[c_idx] = prefix_writer
+                prefix_writer = prefix_writers[c_idx]
 
                 if modality in ["codec", "spk"]:
                     content_path = output_dir / name / f"{key}.wav"
@@ -374,7 +375,7 @@ def inference(
                         sample_rate=speechlm.tokenizer.sample_rate,
                     )
                     writer.write(f"{key} {content_path}\n")
-                    logging.info(f"save prefix {name} audio {key}: {content_path}")
+                    logging.info(f"save prefix audio {name} audio {key}: {content_path}")
 
                 elif modality in ["g2p"]:
                     writer.write(f"{key} {content}\n")
@@ -384,8 +385,7 @@ def inference(
                     raise ValueError(
                         f"save prefix in modality {modality} is not supported yet"
                     )
-
-
+        
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(

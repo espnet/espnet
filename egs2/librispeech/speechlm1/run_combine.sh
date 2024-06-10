@@ -6,7 +6,8 @@ set -u
 set -o pipefail
 
 train_config=conf/train_multiscale.yaml
-inference_config=conf/decode_encodec.yaml
+inference_config=conf/decode_inhouse.yaml
+inference_model=valid.total_count.ave_5best.till100epoch.pth
 
 train_jsons=""
 valid_jsons=""
@@ -16,7 +17,10 @@ data_combo_name=""
 use_ls=true
 use_giga=true
 use_mls_en=true
-use_ls_heavy=true
+
+test_use_ls=true
+test_use_giga=false
+test_use_mls_en=false
 
 # download any data repository with: 
 #  huggingface-cli download <repo-id> --repo-type dataset --local-dir .
@@ -24,14 +28,12 @@ use_ls_heavy=true
 if ${use_ls}; then # <repo-id>: JinchuanTian/tts_librispeech
     train_jsons+="dump/raw_tts_librispeech/train_960/data.json "
     valid_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
-    test_jsons+="dump/raw_tts_librispeech/test_clean/data.json "
     data_combo_name+="ls_"
 fi
 
 if ${use_giga}; then # <repo-id>: JinchuanTian/tts_gigaspeech
     train_jsons+="dump/raw_tts_gigaspeech/gigaspeech_train_xl_spkid/data.json "
     valid_jsons+="dump/raw_tts_gigaspeech/gigaspeech_dev/data.json "
-    test_jsons+="dump/raw_tts_gigaspeech/gigaspeech_test/data.json "
     data_combo_name+="giga_"
 fi
 
@@ -41,6 +43,17 @@ if ${use_mls_en}; then # <repo-id>: JinchuanTian/tts_mls_en
     data_combo_name+="mlsen_"
 fi
 
+if ${test_use_ls}; then
+    test_jsons+="dump/raw_tts_librispeech/test_clean/data.json "
+fi
+
+if ${test_use_giga}; then
+    test_jsons+="dump/raw_tts_gigaspeech/gigaspeech_test/data.json "
+fi
+
+if ${test_use_mls_en}; then
+    pass
+fi
 
 ./speechlm.sh \
     --skip_data_prep true \
@@ -50,11 +63,14 @@ fi
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
-    --inference_nj 1 \
+    --inference_nj 8 \
+    --nbest 10 \
+    --rank_and_score true \
     --gpu_inference true \
     --audio_format "flac.ark" \
     --train_config ${train_config} \
     --inference_config ${inference_config} \
+    --inference_model ${inference_model} \
     --train_jsons "${train_jsons}" \
     --valid_jsons "${valid_jsons}" \
     --test_jsons "${test_jsons}" \
