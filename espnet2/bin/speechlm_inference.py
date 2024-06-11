@@ -112,6 +112,7 @@ class SpeechLM:
             self.bias = 0
 
     @typechecked
+    @torch.no_grad()
     def __call__(
         self,
         dec_seq: torch.Tensor,
@@ -246,10 +247,7 @@ def inference(
     else:
         device = "cpu"
 
-    # 1. Set random-seed
-    set_all_random_seed(seed)
-
-    # 2. parse task
+    # 1. parse task
     assert len(data_path_and_name_and_type) == 1, "Can only do inference for one json"
     task_name = json.load(open(data_path_and_name_and_type[0][0]))["task"]
     task = speechlm_tasks[task_name]
@@ -258,7 +256,7 @@ def inference(
         output_modality == tokenizer
     ), f"Tokenizer should be {output_modality} for task: {task_name}"
 
-    # 3. Build model
+    # 2. Build model
     speechlm_kwargs = dict(
         train_config=train_config,
         model_file=model_file,
@@ -278,7 +276,7 @@ def inference(
 
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
-    # 4. Build data-iterator
+    # 3. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -292,7 +290,7 @@ def inference(
         multi_task_dataset=True,
     )
 
-    # 5 Start for-loop
+    # 4 Start for-loop
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
     (output_dir / "token").mkdir(parents=True, exist_ok=True)
     (output_dir / "score").mkdir(parents=True, exist_ok=True)
@@ -316,6 +314,10 @@ def inference(
         batch = to_device(batch, device=device)
         key = keys[0]
         logging.info(f"Inference on example: {key}")
+
+        # NOTE (Jinchuan): set random seed for each example so each result can be
+        # reproduced independently.
+        set_all_random_seed(seed)
 
         # (1) model infernece
         contents, conditions, tokens, scores = speechlm(**batch)
