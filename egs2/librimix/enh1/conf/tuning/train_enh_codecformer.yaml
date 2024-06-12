@@ -1,13 +1,13 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 20
+max_epoch: 1
 batch_type: folded
-batch_size: 1 # batch_size 16 can be trained on 4 RTX 2080ti
+batch_size: 6 # batch_size 16 can be trained on 4 RTX 2080ti
 iterator_type: chunk
 chunk_length: 24000
 num_workers: 4
 optim_conf:
-    lr: 1.0e-03
+    lr: 0.00015
     weight_decay: 0
 patience: 5
 val_scheduler_criterion:
@@ -32,7 +32,8 @@ encoder: codec
 encoder_conf:
     channel: 512
     codec_choice: "ESPnet"
-    codec_fs: 8000
+    codec_fs: 16000 #must match the codec
+    sample_fs: 8000
     device: "cuda:0"
     dump_audio: True
     checkpoint_path: "/home/jiaqi006/code/new_espnet/soundstream_model/16khz_soundstream/train.total_count.best.pth"
@@ -41,14 +42,15 @@ decoder: codec
 decoder_conf:
     channel: 512
     codec_choice: "ESPnet"
-    codec_fs: 8000
+    codec_fs: 16000 #must match the codec
+    sample_fs: 8000
     device: "cuda:0"
     dump_audio: True
     checkpoint_path: "/home/jiaqi006/code/new_espnet/soundstream_model/16khz_soundstream/train.total_count.best.pth"
     config_path: "/home/jiaqi006/code/new_espnet/soundstream_model/16khz_soundstream/config.yaml"
 separator: codec
 separator_conf:
-    input_dim: 512
+    # input_dim: 512 #not needed because enh.py infers this.
     internal_dim: 512
     num_spk: 2
     predict_noise: True

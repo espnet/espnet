@@ -1,5 +1,5 @@
 import torch
-
+import torchaudio.transforms as T
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 
@@ -11,6 +11,7 @@ class CodecDecoder(AbsDecoder):
         channel: int, #this is the expected output size of the continuous codec output
         codec_choice: str,
         codec_fs: int,
+        sample_fs: int,
         device: str = "cpu",
         dump_audio: bool = False,
         checkpoint_path: str = None,
@@ -26,6 +27,13 @@ class CodecDecoder(AbsDecoder):
             checkpoint_path=checkpoint_path,
             config_path=config_path,
         )
+        self.codec_fs = codec_fs
+        self.sample_fs = sample_fs
+        if self.codec_fs != self.sample_fs:
+            self.dac_sampler = T.Resample(codec_fs, sample_fs).to(device)
+
+        for param in self.codec.parameters():
+            param.requires_grad = False
         self._output_dim = channel
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
@@ -36,12 +44,33 @@ class CodecDecoder(AbsDecoder):
             ilens (torch.Tensor): input lengths [Batch] (not used)
             fs (int): sampling rate in Hz (Not used)
         """
-        # input = input.transpose(1, 2)
-        # batch_size = input.shape[0]
-        # wav = self.convtrans1d(input, output_size=(batch_size, 1, ilens.max()))
-        print(ilens.max())
         wav = self.codec.decode_continuous(input)
-        wav = wav[:,:ilens.max()]
+        wav = wav.unsqueeze(1)
+        if self.codec_fs != self.sample_fs:
+            wav = self.resample_audio(wav)
         wav = wav.squeeze(1)
+        wav = wav[:,:ilens.max()]
 
         return wav, ilens
+
+    def resample_audio(self, x):
+        '''
+        torchaudio resample function used here only requires last dimension to be time.
+        it sucks that i have to go to cpu for this. need to think how i can make this stay in gpu
+        '''
+        # get device
+        device = x.device
+
+        # Implement some checks on the input
+        assert len(x.shape) == 3
+        B, C, T = x.shape
+        assert C == 1 #model should only be handling single channel
+
+        # Resamples the audio from the input rate to the dac model's rate
+        
+        x_resamp = self.dac_sampler(x)
+        
+        # normalize the resampled audio, otherwise we will run into clipping issues
+        x_resamp = x_resamp / torch.max(x_resamp.abs(),dim=2,keepdim=True)[0]
+
+        return x_resamp.to(device)
