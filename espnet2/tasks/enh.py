@@ -62,7 +62,6 @@ from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
-from espnet2.enh.separator.tcn_separator2 import TCNSeparator2
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
@@ -109,7 +108,6 @@ separator_choices = ClassChoices(
         skim=SkiMSeparator,
         svoice=SVoiceSeparator,
         tcn=TCNSeparator,
-        tcn_mapping=TCNSeparator2,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         tcn_nomask=TCNSeparatorNomask,

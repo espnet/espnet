@@ -26,6 +26,8 @@ class TCNSeparator(AbsSeparator):
         causal: bool = False,
         norm_type: str = "gLN",
         nonlinear: str = "relu",
+        pre_mask_nonlinear: str = "prelu",
+        masking: bool = False,
     ):
         """Temporal Convolution Separator
 
@@ -41,7 +43,9 @@ class TCNSeparator(AbsSeparator):
             causal: bool, defalut False.
             norm_type: str, choose from 'BN', 'gLN', 'cLN'
             nonlinear: the nonlinear function for mask estimation,
-                       select from 'relu', 'tanh', 'sigmoid'
+                       select from 'relu', 'tanh', 'sigmoid', 'linear'
+            pre_mask_nonlinear: the non-linear function before masknet
+            masking: whether to use the masking or mapping based method
         """
         super().__init__()
 
@@ -61,8 +65,11 @@ class TCNSeparator(AbsSeparator):
             C=num_spk + 1 if predict_noise else num_spk,
             norm_type=norm_type,
             causal=causal,
+            pre_mask_nonlinear=pre_mask_nonlinear,
             mask_nonlinear=nonlinear,
         )
+
+        self.masking = masking
 
     def forward(
         self,
@@ -104,7 +111,12 @@ class TCNSeparator(AbsSeparator):
         else:
             masks = masks.unbind(dim=1)  # List[B, L, N]
 
-        masked = [input * m for m in masks]
+        if self.masking:
+            # masking-based SE
+            masked = [input * m for m in masks]
+        else:
+            # mapping-based SE
+            masked = [m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
