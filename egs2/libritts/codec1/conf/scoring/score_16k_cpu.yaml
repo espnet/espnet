@@ -36,4 +36,3 @@
 # -- visqol: visual quality of speech
 - name: visqol
   model: speech
-
