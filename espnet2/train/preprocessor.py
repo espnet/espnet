@@ -392,7 +392,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 mode="constant",
                 constant_values=(0, self.audio_pad_value),
             )
-        elif speech.ndim == 2 and speech.shape[1] < self.min_sample_size:
+        elif speech.ndim == 2 and speech.shape[0] < self.min_sample_size:
             # multi channel cases
             speech = speech.T
             speech = np.pad(
@@ -401,6 +401,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 mode="constant",
                 constant_values=((0, 0), (0, self.audio_pad_value)),
             )
+            speech = speech.T
 
         return speech
 
