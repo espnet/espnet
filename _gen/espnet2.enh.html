@@ -180,6 +180,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-skim-1">espnet2.enh.layers.skim</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-conv-utils-1">espnet2.enh.layers.conv_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dcunet-1">espnet2.enh.layers.dcunet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-bsrnn-1">espnet2.enh.layers.bsrnn</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-ncsnpp-utils-normalization-1">espnet2.enh.layers.ncsnpp_utils.normalization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-ncsnpp-utils-init-1">espnet2.enh.layers.ncsnpp_utils.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-ncsnpp-utils-up-or-down-sampling-1">espnet2.enh.layers.ncsnpp_utils.up_or_down_sampling</a></li>
@@ -196,6 +197,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-conformer-separator-1">espnet2.enh.separator.conformer_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-asteroid-models-1">espnet2.enh.separator.asteroid_models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tfgridnetv2-separator-1">espnet2.enh.separator.tfgridnetv2_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tfgridnetv3-separator-1">espnet2.enh.separator.tfgridnetv3_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dpcl-separator-1">espnet2.enh.separator.dpcl_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tfgridnet-separator-1">espnet2.enh.separator.tfgridnet_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-abs-separator-1">espnet2.enh.separator.abs_separator</a></li>
@@ -206,6 +208,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dc-crn-separator-1">espnet2.enh.separator.dc_crn_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-neural-beamformer-1">espnet2.enh.separator.neural_beamformer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-uses-separator-1">espnet2.enh.separator.uses_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-bsrnn-separator-1">espnet2.enh.separator.bsrnn_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dprnn-separator-1">espnet2.enh.separator.dprnn_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-skim-separator-1">espnet2.enh.separator.skim_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-init-1">espnet2.enh.loss.__init__</a></li>
@@ -301,7 +304,7 @@
 <span class="target" id="module-espnet2.enh.espnet_model"></span><p>Enhancement model module.</p>
 <dl class="class">
 <dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, separator: Optional[espnet2.enh.separator.abs_separator.AbsSeparator], decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, mask_module: Optional[espnet2.diar.layers.abs_mask.AbsMask], loss_wrappers: Optional[List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper]], stft_consistency: bool = False, loss_type: str = 'mask_mse', mask_type: Optional[str] = None, flexible_numspk: bool = False, extract_feats_in_collect_stats: bool = False, normalize_variance: bool = False, normalize_variance_per_ch: bool = False, categories: list = [], category_weights: list = []</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, separator: Optional[espnet2.enh.separator.abs_separator.AbsSeparator], decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, mask_module: Optional[espnet2.diar.layers.abs_mask.AbsMask], loss_wrappers: Optional[List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper]], stft_consistency: bool = False, loss_type: str = 'mask_mse', mask_type: Optional[str] = None, flexible_numspk: bool = False, extract_feats_in_collect_stats: bool = False, normalize_variance: bool = False, normalize_variance_per_ch: bool = False, categories: list = [], category_weights: list = [], always_forward_in_48k: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>Speech enhancement or separation Frontend model</p>
 <p>Main entry of speech enhancement/separation model training.</p>
@@ -348,6 +351,12 @@ name for logging in forward_loss.
 Different categories will have different loss name suffixes.</p></li>
 <li><p><strong>category_weights</strong> – list of weights for each category.
 Used to set loss weights for batches of different categories.</p></li>
+<li><p><strong>------------------------------------------------------------------</strong> – </p></li>
+<li><p><strong>always_forward_in_48k</strong> – whether to always upsample the input speech to 48kHz
+for forward, and then downsample to the original sample rate for loss
+calculation.
+NOTE: this can be useful to train a model capable of handling various
+sampling rates while unifying bandwidth extension + speech enhancement.</p></li>
 </ul>
 </dd>
 </dl>
@@ -4732,6 +4741,118 @@ Arguments to be used to construct decoders</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-enh-layers-bsrnn-1">
+<span id="espnet2-enh-layers-bsrnn"></span><h2>espnet2.enh.layers.bsrnn<a class="headerlink" href="#espnet2-enh-layers-bsrnn-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.bsrnn"></span><dl class="class">
+<dt id="espnet2.enh.layers.bsrnn.BSRNN">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BSRNN</code><span class="sig-paren">(</span><em class="sig-param">input_dim=481</em>, <em class="sig-param">num_channel=16</em>, <em class="sig-param">num_layer=6</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">causal=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BSRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BSRNN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Band-Split RNN (BSRNN).</p>
+<p class="rubric">References</p>
+<p>[1] J. Yu, H. Chen, Y. Luo, R. Gu, and C. Weng, “High fidelity speech
+enhancement with band-split RNN,” in Proc. ISCA Interspeech, 2023.
+<a class="reference external" href="https://isca-speech.org/archive/interspeech_2023/yu23b_interspeech.html">https://isca-speech.org/archive/interspeech_2023/yu23b_interspeech.html</a>
+[2] J. Yu, and Y. Luo, “Efficient monaural speech enhancement with
+universal sample rate band-split RNN,” in Proc. ICASSP, 2023.
+<a class="reference external" href="https://ieeexplore.ieee.org/document/10096020">https://ieeexplore.ieee.org/document/10096020</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<em>int</em>) – maximum number of frequency bins corresponding to
+<cite>target_fs</cite></p></li>
+<li><p><strong>num_channel</strong> (<em>int</em>) – embedding dimension of each time-frequency bin</p></li>
+<li><p><strong>num_layer</strong> (<em>int</em>) – number of time and frequency RNN layers</p></li>
+<li><p><strong>target_fs</strong> (<em>int</em>) – maximum sampling frequency supported by the model</p></li>
+<li><p><strong>causal</strong> (<em>bool</em>) – Whether or not to adopt causal processing
+if True, LSTM will be used instead of BLSTM for time modeling</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.BSRNN.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">fs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BSRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BSRNN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>BSRNN forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – input tensor of shape (B, T, F, 2)</p></li>
+<li><p><strong>fs</strong> (<em>int</em><em>, </em><em>optional</em>) – sampling rate of the input signal.
+if not None, the input signal will be truncated to only process the
+effective frequency subbands.
+if None, the input signal is assumed to be already truncated to only
+contain effective frequency subbands.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>output tensor of shape (B, T, F, 2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>out (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.bsrnn.BandSplit">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BandSplit</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">channels=128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BandSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BandSplit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.BandSplit.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">fs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BandSplit.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BandSplit.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>BandSplit forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – input tensor of shape (B, T, F, 2)</p></li>
+<li><p><strong>fs</strong> (<em>int</em><em>, </em><em>optional</em>) – sampling rate of the input signal.
+if not None, the input signal will be truncated to only process the
+effective frequency subbands.
+if None, the input signal is assumed to be already truncated to only
+contain effective frequency subbands.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>output tensor of shape (B, N, T, K’)</dt><dd><p>K’ might be smaller than len(self.subbands) if fs &lt; self.target_fs.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>z (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.bsrnn.MaskDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">MaskDecoder</code><span class="sig-paren">(</span><em class="sig-param">freq_dim</em>, <em class="sig-param">subbands</em>, <em class="sig-param">channels=128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#MaskDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.MaskDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.MaskDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#MaskDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.MaskDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>MaskDecoder forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – input tensor of shape (B, N, T, K)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>output mask of shape (B, T, F, 2)
+r (torch.Tensor): output residual of shape (B, T, F, 2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>m (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-enh-layers-ncsnpp-utils-normalization-1">
 <span id="espnet2-enh-layers-ncsnpp-utils-normalization"></span><h2>espnet2.enh.layers.ncsnpp_utils.normalization<a class="headerlink" href="#espnet2-enh-layers-ncsnpp-utils-normalization-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.ncsnpp_utils.normalization"></span><p>Normalization layers.</p>
@@ -6498,6 +6619,158 @@ additional (Dict or None): other data, currently unused in this model,</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-enh-separator-tfgridnetv3-separator-1">
+<span id="espnet2-enh-separator-tfgridnetv3-separator"></span><h2>espnet2.enh.separator.tfgridnetv3_separator<a class="headerlink" href="#espnet2-enh-separator-tfgridnetv3-separator-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.tfgridnetv3_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.AllHeadPReLULayerNormalization4DC">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnetv3_separator.</code><code class="sig-name descname">AllHeadPReLULayerNormalization4DC</code><span class="sig-paren">(</span><em class="sig-param">input_dimension</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#AllHeadPReLULayerNormalization4DC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.AllHeadPReLULayerNormalization4DC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.AllHeadPReLULayerNormalization4DC.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#AllHeadPReLULayerNormalization4DC.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.AllHeadPReLULayerNormalization4DC.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.GridNetV3Block">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnetv3_separator.</code><code class="sig-name descname">GridNetV3Block</code><span class="sig-paren">(</span><em class="sig-param">emb_dim</em>, <em class="sig-param">emb_ks</em>, <em class="sig-param">emb_hs</em>, <em class="sig-param">hidden_channels</em>, <em class="sig-param">n_head=4</em>, <em class="sig-param">qk_output_channel=4</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#GridNetV3Block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.GridNetV3Block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.GridNetV3Block.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#GridNetV3Block.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.GridNetV3Block.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>GridNetV2Block Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – [B, C, T, Q]</p></li>
+<li><p><strong>out</strong> – [B, C, T, Q]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.LayerNormalization">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnetv3_separator.</code><code class="sig-name descname">LayerNormalization</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">dim=1</em>, <em class="sig-param">total_dim=4</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#LayerNormalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.LayerNormalization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.LayerNormalization.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#LayerNormalization.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.LayerNormalization.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnetv3_separator.</code><code class="sig-name descname">TFGridNetV3</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">n_srcs=2</em>, <em class="sig-param">n_imics=1</em>, <em class="sig-param">n_layers=6</em>, <em class="sig-param">lstm_hidden_units=192</em>, <em class="sig-param">attn_n_head=4</em>, <em class="sig-param">attn_qk_output_channel=4</em>, <em class="sig-param">emb_dim=48</em>, <em class="sig-param">emb_ks=4</em>, <em class="sig-param">emb_hs=1</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#TFGridNetV3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Offline TFGridNetV3.</p>
+<p>On top of TFGridNetV2, TFGridNetV3 slightly modifies the internal architecture
+to make the model sampling-frequency-independent (SFI). This is achieved by
+making all network layers independent of the input time and frequency dimensions.</p>
+<p>Reference:
+[1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+“TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation”,
+in TASLP, 2023.
+[2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+“TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
+Speaker Separation”, in ICASSP, 2023.</p>
+<p>NOTES:
+As outlined in the Reference, this model works best when trained with variance
+normalized mixture input and target, e.g., with mixture of shape [batch, samples,
+microphones], you normalize it by dividing with torch.std(mixture, (1, 2)). You
+must do the same for the target signals. It is encouraged to do so when not using
+scale-invariant loss functions such as SI-SDR.
+Specifically, use:</p>
+<blockquote>
+<div><p><a href="#system-message-9"><span class="problematic" id="problematic-9">std_</span></a> = std(mix)
+mix = mix / <a href="#system-message-10"><span class="problematic" id="problematic-10">std_</span></a>
+tgt = tgt / <a href="#system-message-11"><span class="problematic" id="problematic-11">std_</span></a></p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – placeholder, not used</p></li>
+<li><p><strong>n_srcs</strong> – number of output sources/speakers.</p></li>
+<li><p><strong>n_fft</strong> – stft window size.</p></li>
+<li><p><strong>stride</strong> – stft stride.</p></li>
+<li><p><strong>window</strong> – stft window type choose between ‘hamming’, ‘hanning’ or None.</p></li>
+<li><p><strong>n_imics</strong> – number of microphones channels (only fixed-array geometry supported).</p></li>
+<li><p><strong>n_layers</strong> – number of TFGridNetV3 blocks.</p></li>
+<li><p><strong>lstm_hidden_units</strong> – number of hidden units in LSTM.</p></li>
+<li><p><strong>attn_n_head</strong> – number of heads in self-attention</p></li>
+<li><p><strong>attn_attn_qk_output_channel</strong> – output channels of point-wise conv2d for getting
+key and query</p></li>
+<li><p><strong>emb_dim</strong> – embedding dimension</p></li>
+<li><p><strong>emb_ks</strong> – kernel size for unfolding and deconv1D</p></li>
+<li><p><strong>emb_hs</strong> – hop size for unfolding and deconv1D</p></li>
+<li><p><strong>activation</strong> – activation function to use in the whole TFGridNetV3 model,
+you can use any torch supported activation e.g. ‘relu’ or ‘elu’.</p></li>
+<li><p><strong>eps</strong> – small epsilon for normalization layers.</p></li>
+<li><p><strong>use_builtin_complex</strong> – whether to use builtin complex type or not.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">additional: Optional[Dict] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[List[torch.Tensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnetv3_separator.html#TFGridNetV3.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – batched multi-channel audio tensor with
+M audio channels and N samples [B, T, F]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [B]</p></li>
+<li><p><strong>additional</strong> (<em>Dict</em><em> or </em><em>None</em>) – other data, currently unused in this model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>[(B, T), …] list of len n_srcs</dt><dd><p>of mono audio tensors with T samples.</p>
+</dd>
+</dl>
+<p>ilens (torch.Tensor): (B,)
+additional (Dict or None): other data, currently unused in this model,</p>
+<blockquote>
+<div><p>we return it also in output.</p>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enhanced (List[Union(torch.Tensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.tfgridnetv3_separator.TFGridNetV3.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-enh-separator-dpcl-separator-1">
 <span id="espnet2-enh-separator-dpcl-separator"></span><h2>espnet2.enh.separator.dpcl_separator<a class="headerlink" href="#espnet2-enh-separator-dpcl-separator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.separator.dpcl_separator"></span><dl class="class">
@@ -7041,7 +7314,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <span id="espnet2-enh-separator-tcn-separator"></span><h2>espnet2.enh.separator.tcn_separator<a class="headerlink" href="#espnet2-enh-separator-tcn-separator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.separator.tcn_separator"></span><dl class="class">
 <dt id="espnet2.enh.separator.tcn_separator.TCNSeparator">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tcn_separator.</code><code class="sig-name descname">TCNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">predict_noise: bool = False</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em>, <em class="sig-param">nonlinear: str = 'relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tcn_separator.html#TCNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tcn_separator.</code><code class="sig-name descname">TCNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 2</em>, <em class="sig-param">predict_noise: bool = False</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em>, <em class="sig-param">nonlinear: str = 'relu'</em>, <em class="sig-param">pre_mask_nonlinear: str = 'prelu'</em>, <em class="sig-param">masking: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tcn_separator.html#TCNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
 <p>Temporal Convolution Separator</p>
 <dl class="field-list simple">
@@ -7058,7 +7331,9 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <li><p><strong>causal</strong> – bool, defalut False.</p></li>
 <li><p><strong>norm_type</strong> – str, choose from ‘BN’, ‘gLN’, ‘cLN’</p></li>
 <li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
-select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+select from ‘relu’, ‘tanh’, ‘sigmoid’, ‘linear’</p></li>
+<li><p><strong>pre_mask_nonlinear</strong> – the non-linear function before masknet</p></li>
+<li><p><strong>masking</strong> – whether to use the masking or mapping based method</p></li>
 </ul>
 </dd>
 </dl>
@@ -7368,6 +7643,77 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-enh-separator-bsrnn-separator-1">
+<span id="espnet2-enh-separator-bsrnn-separator"></span><h2>espnet2.enh.separator.bsrnn_separator<a class="headerlink" href="#espnet2-enh-separator-bsrnn-separator-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.bsrnn_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.bsrnn_separator.BSRNNSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.bsrnn_separator.</code><code class="sig-name descname">BSRNNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">num_channels: int = 16</em>, <em class="sig-param">num_layers: int = 6</em>, <em class="sig-param">target_fs: int = 48000</em>, <em class="sig-param">causal: bool = True</em>, <em class="sig-param">ref_channel: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/bsrnn_separator.html#BSRNNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Band-split RNN (BSRNN) separator.</p>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>[1] J. Yu, H. Chen, Y. Luo, R. Gu, and C. Weng, “High fidelity speech
+enhancement with band-split RNN,” in Proc. ISCA Interspeech, 2023.
+<a class="reference external" href="https://isca-speech.org/archive/interspeech_2023/yu23b_interspeech.html">https://isca-speech.org/archive/interspeech_2023/yu23b_interspeech.html</a>
+[2] J. Yu, and Y. Luo, “Efficient monaural speech enhancement with
+universal sample rate band-split RNN,” in Proc. ICASSP, 2023.
+<a class="reference external" href="https://ieeexplore.ieee.org/document/10096020">https://ieeexplore.ieee.org/document/10096020</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – (int) maximum number of frequency bins corresponding to
+<cite>target_fs</cite></p></li>
+<li><p><strong>num_spk</strong> – (int) number of speakers.</p></li>
+<li><p><strong>num_channels</strong> – (int) feature dimension in the BandSplit block.</p></li>
+<li><p><strong>num_layers</strong> – (int) number of processing layers.</p></li>
+<li><p><strong>target_fs</strong> – (int) max sampling frequency that the model can handle.</p></li>
+<li><p><strong>causal</strong> (<em>bool</em>) – whether or not to apply causal modeling.
+if True, LSTM will be used instead of BLSTM for time modeling</p></li>
+<li><p><strong>ref_channel</strong> – (int) reference channel. not used for now.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.bsrnn_separator.BSRNNSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor, additional: Optional[Dict] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/bsrnn_separator.html#BSRNNSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>BSRNN Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – STFT spectrum [B, T, (C,) F (,2)]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+<li><p><strong>additional</strong> (<em>Dict</em><em> or </em><em>None</em>) – other data included in model.
+unused in this model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>[(B, T, F), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.bsrnn_separator.BSRNNSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-enh-separator-dprnn-separator-1">
 <span id="espnet2-enh-separator-dprnn-separator"></span><h2>espnet2.enh.separator.dprnn_separator<a class="headerlink" href="#espnet2-enh-separator-dprnn-separator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.separator.dprnn_separator"></span><dl class="class">
@@ -7640,7 +7986,7 @@ weight for time domain loss.</p>
 
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss.get_magnitude">
-<code class="sig-name descname">get_magnitude</code><span class="sig-paren">(</span><em class="sig-param">stft</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#MultiResL1SpecLoss.get_magnitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss.get_magnitude" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_magnitude</code><span class="sig-paren">(</span><em class="sig-param">stft</em>, <em class="sig-param">eps=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#MultiResL1SpecLoss.get_magnitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss.get_magnitude" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

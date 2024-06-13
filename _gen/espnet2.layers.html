@@ -400,6 +400,28 @@ If False, uses a constant 0dB peak gain.</p></li>
 </dd></dl>
 
 <dl class="function">
+<dt id="espnet2.layers.augmentation.bandwidth_limitation">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">bandwidth_limitation</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">res_type='random'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#bandwidth_limitation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.bandwidth_limitation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the bandwidth limitation distortion to the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>np.ndarray</em>) – a single speech sample (…, Time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – input sampling rate in Hz</p></li>
+<li><p><strong>fs_new</strong> (<em>int</em>) – effective sampling rate in Hz</p></li>
+<li><p><strong>res_type</strong> (<em>str</em>) – resampling method</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>bandwidth-limited speech sample (…, Time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (np.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet2.layers.augmentation.clipping">
 <code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">clipping</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">min_quantile: float = 0.0</em>, <em class="sig-param">max_quantile: float = 0.9</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#clipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.clipping" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply the clipping distortion to the input signal.</p>

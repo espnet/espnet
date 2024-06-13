@@ -254,6 +254,8 @@
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
         <span class="n">nonlinear</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+        <span class="n">pre_mask_nonlinear</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;prelu&quot;</span><span class="p">,</span>
+        <span class="n">masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Temporal Convolution Separator</span>
 
@@ -269,14 +271,16 @@
 <span class="sd">            causal: bool, defalut False.</span>
 <span class="sd">            norm_type: str, choose from &#39;BN&#39;, &#39;gLN&#39;, &#39;cLN&#39;</span>
 <span class="sd">            nonlinear: the nonlinear function for mask estimation,</span>
-<span class="sd">                       select from &#39;relu&#39;, &#39;tanh&#39;, &#39;sigmoid&#39;</span>
+<span class="sd">                       select from &#39;relu&#39;, &#39;tanh&#39;, &#39;sigmoid&#39;, &#39;linear&#39;</span>
+<span class="sd">            pre_mask_nonlinear: the non-linear function before masknet</span>
+<span class="sd">            masking: whether to use the masking or mapping based method</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span> <span class="o">=</span> <span class="n">predict_noise</span>
 
-        <span class="k">if</span> <span class="n">nonlinear</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;sigmoid&quot;</span><span class="p">,</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span> <span class="s2">&quot;tanh&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">nonlinear</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;sigmoid&quot;</span><span class="p">,</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span> <span class="s2">&quot;tanh&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not supporting nonlinear=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nonlinear</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tcn</span> <span class="o">=</span> <span class="n">TemporalConvNet</span><span class="p">(</span>
@@ -289,8 +293,11 @@
             <span class="n">C</span><span class="o">=</span><span class="n">num_spk</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">predict_noise</span> <span class="k">else</span> <span class="n">num_spk</span><span class="p">,</span>
             <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
             <span class="n">causal</span><span class="o">=</span><span class="n">causal</span><span class="p">,</span>
+            <span class="n">pre_mask_nonlinear</span><span class="o">=</span><span class="n">pre_mask_nonlinear</span><span class="p">,</span>
             <span class="n">mask_nonlinear</span><span class="o">=</span><span class="n">nonlinear</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">masking</span> <span class="o">=</span> <span class="n">masking</span>
 
 <div class="viewcode-block" id="TCNSeparator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.tcn_separator.TCNSeparator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -332,7 +339,12 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># List[B, L, N]</span>
 
-        <span class="n">masked</span> <span class="o">=</span> <span class="p">[</span><span class="nb">input</span> <span class="o">*</span> <span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">masking</span><span class="p">:</span>
+            <span class="c1"># masking-based SE</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">[</span><span class="nb">input</span> <span class="o">*</span> <span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># mapping-based SE</span>
+            <span class="n">masked</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
 
         <span class="n">others</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
             <span class="nb">zip</span><span class="p">([</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">))],</span> <span class="n">masks</span><span class="p">)</span>

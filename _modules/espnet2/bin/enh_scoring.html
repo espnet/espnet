@@ -234,6 +234,7 @@
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">librosa</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">mir_eval.separation</span> <span class="kn">import</span> <span class="n">bss_eval_sources</span>
@@ -451,8 +452,26 @@
                 <span class="k">if</span> <span class="n">pesq</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">sample_rate</span> <span class="o">==</span> <span class="mi">8000</span><span class="p">:</span>
                         <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;nb&quot;</span>
+                        <span class="n">ref_</span> <span class="o">=</span> <span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="n">inf_</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
                     <span class="k">elif</span> <span class="n">sample_rate</span> <span class="o">==</span> <span class="mi">16000</span><span class="p">:</span>
                         <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;wb&quot;</span>
+                        <span class="n">ref_</span> <span class="o">=</span> <span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="n">inf_</span> <span class="o">=</span> <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
+                    <span class="k">elif</span> <span class="n">sample_rate</span> <span class="o">&gt;</span> <span class="mi">16000</span><span class="p">:</span>
+                        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;wb&quot;</span>
+                        <span class="n">ref_</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span>
+                            <span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">orig_sr</span><span class="o">=</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">target_sr</span><span class="o">=</span><span class="mi">16000</span>
+                        <span class="p">)</span>
+                        <span class="n">inf_</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span>
+                            <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span> <span class="n">orig_sr</span><span class="o">=</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">target_sr</span><span class="o">=</span><span class="mi">16000</span>
+                        <span class="p">)</span>
+                        <span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">16000</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;The sample rate is higher than 16000 Hz. &quot;</span>
+                            <span class="s2">&quot;PESQ is calculated in the wideband mode and &quot;</span>
+                            <span class="s2">&quot;the signal is resampled to 16 kHz.&quot;</span>
+                        <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                             <span class="s2">&quot;sample rate must be 8000 or 16000 for PESQ evaluation, &quot;</span>
@@ -460,8 +479,8 @@
                         <span class="p">)</span>
                     <span class="n">pesq_score</span> <span class="o">=</span> <span class="n">pesq</span><span class="p">(</span>
                         <span class="n">sample_rate</span><span class="p">,</span>
-                        <span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                        <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span>
+                        <span class="n">ref_</span><span class="p">,</span>
+                        <span class="n">inf_</span><span class="p">,</span>
                         <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
                         <span class="n">on_error</span><span class="o">=</span><span class="n">PesqError</span><span class="o">.</span><span class="n">RETURN_VALUES</span><span class="p">,</span>
                     <span class="p">)</span>

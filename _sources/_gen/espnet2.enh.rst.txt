@@ -422,6 +422,17 @@ espnet2.enh.layers.dcunet
     :show-inheritance:
 
 
+.. _espnet2.enh.layers.bsrnn:
+
+espnet2.enh.layers.bsrnn
+------------------------
+
+.. automodule:: espnet2.enh.layers.bsrnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.ncsnpp_utils.normalization:
 
 espnet2.enh.layers.ncsnpp_utils.normalization
@@ -598,6 +609,17 @@ espnet2.enh.separator.tfgridnetv2_separator
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.tfgridnetv3_separator:
+
+espnet2.enh.separator.tfgridnetv3_separator
+-------------------------------------------
+
+.. automodule:: espnet2.enh.separator.tfgridnetv3_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.separator.dpcl_separator:
 
 espnet2.enh.separator.dpcl_separator
@@ -703,6 +725,17 @@ espnet2.enh.separator.uses_separator
 ------------------------------------
 
 .. automodule:: espnet2.enh.separator.uses_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.separator.bsrnn_separator:
+
+espnet2.enh.separator.bsrnn_separator
+-------------------------------------
+
+.. automodule:: espnet2.enh.separator.bsrnn_separator
     :members:
     :undoc-members:
     :show-inheritance:

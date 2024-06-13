@@ -1079,6 +1079,18 @@
             <span class="s2">&quot;adaptively adjust the chunk length for data of different sampling rates. &quot;</span>
             <span class="s2">&quot;(If None, the chunk length will be fixed.)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--chunk_max_abs_length&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of samples per chunk for all sampling rates&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--chunk_discard_short_samples&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Discard samples shorter than the minimum chunk length&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Dataset related&quot;</span><span class="p">)</span>
         <span class="n">_data_path_and_name_and_type_help</span> <span class="o">=</span> <span class="p">(</span>
@@ -2114,6 +2126,8 @@
             <span class="n">num_cache_chunks</span><span class="o">=</span><span class="n">num_cache_chunks</span><span class="p">,</span>
             <span class="n">excluded_key_prefixes</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_excluded_key_prefixes</span><span class="p">,</span>
             <span class="n">default_fs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_default_fs</span><span class="p">,</span>
+            <span class="n">chunk_max_abs_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_max_abs_length</span><span class="p">,</span>
+            <span class="n">discard_short_samples</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_discard_short_samples</span><span class="p">,</span>
         <span class="p">)</span></div>
 
     <span class="c1"># NOTE(kamo): Not abstract class</span>

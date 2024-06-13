@@ -237,6 +237,7 @@
 <span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torchaudio</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">trange</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">typechecked</span>
@@ -245,6 +246,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.pit_solver</span> <span class="kn">import</span> <span class="n">PITSolver</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.bsrnn_separator</span> <span class="kn">import</span> <span class="n">BSRNNSeparator</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.tfgridnetv3_separator</span> <span class="kn">import</span> <span class="n">TFGridNetV3</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.uses_separator</span> <span class="kn">import</span> <span class="n">USESSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
@@ -344,6 +348,7 @@
 
         <span class="c1"># 1. Build Enh model</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">sfi_processing</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># sampling-frequency-independent (SFI)</span>
         <span class="k">if</span> <span class="n">inference_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
                 <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
@@ -378,6 +383,10 @@
         <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
             <span class="n">enh_model</span> <span class="o">=</span> <span class="n">enh_model</span><span class="o">.</span><span class="n">enh_model</span>
         <span class="n">enh_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="p">((</span><span class="n">BSRNNSeparator</span><span class="p">,</span> <span class="n">USESSeparator</span><span class="p">,</span> <span class="n">TFGridNetV3</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sfi_processing</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
@@ -445,6 +454,22 @@
             <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">speech_mix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
 
+        <span class="n">lengths0</span> <span class="o">=</span> <span class="n">lengths</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sfi_processing</span><span class="p">:</span>
+            <span class="n">fs_</span> <span class="o">=</span> <span class="n">fs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fs_</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">always_forward_in_48k</span><span class="p">:</span>
+                <span class="n">lengths</span> <span class="o">=</span> <span class="n">lengths</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;meta&quot;</span><span class="p">),</span> <span class="n">fs</span><span class="p">,</span> <span class="mi">48000</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">lengths</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="mi">48000</span><span class="p">)</span>
+
         <span class="c1"># a. To device</span>
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">lengths</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -472,7 +497,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Category &#39;</span><span class="si">{</span><span class="n">category</span><span class="si">}</span><span class="s2">&#39; is not listed in self.categories&quot;</span><span class="p">)</span>
 
         <span class="n">additional</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">categories</span><span class="p">:</span>
             <span class="n">cat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">categories</span><span class="p">[</span><span class="n">category</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()]</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;category: </span><span class="si">{</span><span class="n">cat</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cat</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_reverb&quot;</span><span class="p">):</span>
@@ -507,13 +532,13 @@
                     <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">T</span>
                 <span class="p">)</span>
                 <span class="c1"># b. Enhancement/Separation Forward</span>
-                <span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_seg</span><span class="p">,</span> <span class="n">lengths_seg</span><span class="p">)</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_seg</span><span class="p">,</span> <span class="n">lengths_seg</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs_</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="p">,</span> <span class="n">ESPnetDiffusionModel</span><span class="p">):</span>
                     <span class="n">feats</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">enhance</span><span class="p">(</span><span class="n">feats</span><span class="p">)]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">feats</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span><span class="p">,</span> <span class="n">additional</span><span class="p">)</span>
                 <span class="n">processed_wav</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">lengths_seg</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">lengths_seg</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs_</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span>
                 <span class="p">]</span>
                 <span class="k">if</span> <span class="n">speech_seg</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
                     <span class="c1"># multi-channel speech</span>
@@ -567,12 +592,12 @@
             <span class="n">waves</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">waves</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># b. Enhancement/Separation Forward</span>
-            <span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs_</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="p">,</span> <span class="n">ESPnetDiffusionModel</span><span class="p">):</span>
                 <span class="n">feats</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">enhance</span><span class="p">(</span><span class="n">feats</span><span class="p">)]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">feats</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">f_lens</span><span class="p">,</span> <span class="n">additional</span><span class="p">)</span>
-            <span class="n">waves</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span><span class="p">]</span>
+            <span class="n">waves</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs_</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span><span class="p">]</span>
 
         <span class="c1">###################################</span>
         <span class="c1"># De-normalize the signal variance</span>
@@ -584,6 +609,12 @@
             <span class="k">if</span> <span class="n">mix_std_</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="n">mix_std_</span> <span class="o">=</span> <span class="n">mix_std_</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">waves</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="o">*</span> <span class="n">mix_std_</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">waves</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sfi_processing</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">always_forward_in_48k</span><span class="p">:</span>
+            <span class="n">waves</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="mi">48000</span><span class="p">,</span> <span class="n">fs</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="n">lengths0</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">waves</span>
+            <span class="p">]</span>
 
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">waves</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">waves</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">waves</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">batch_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">waves</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">batch_size</span><span class="p">)</span>
@@ -752,10 +783,18 @@
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="n">_bs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">_bs</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_lengths&quot;</span><span class="p">)}</span>
 
-        <span class="n">waves</span> <span class="o">=</span> <span class="n">separate_speech</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;utt2fs&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="c1"># All samples must have the same sampling rate</span>
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">fs_</span> <span class="o">==</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;utt2fs&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">fs_</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;utt2fs&quot;</span><span class="p">]])</span>
+            <span class="n">fs_</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;utt2fs&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Swichting to fs=</span><span class="si">{</span><span class="n">fs_</span><span class="si">}</span><span class="s2">Hz&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fs_</span> <span class="o">=</span> <span class="n">fs</span>
+
+        <span class="n">waves</span> <span class="o">=</span> <span class="n">separate_speech</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs_</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">spk</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">waves</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
-                <span class="n">writers</span><span class="p">[</span><span class="n">spk</span><span class="p">][</span><span class="n">keys</span><span class="p">[</span><span class="n">b</span><span class="p">]]</span> <span class="o">=</span> <span class="n">fs</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+                <span class="n">writers</span><span class="p">[</span><span class="n">spk</span><span class="p">][</span><span class="n">keys</span><span class="p">[</span><span class="n">b</span><span class="p">]]</span> <span class="o">=</span> <span class="n">fs_</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
 
     <span class="k">for</span> <span class="n">writer</span> <span class="ow">in</span> <span class="n">writers</span><span class="p">:</span>
         <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>

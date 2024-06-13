@@ -498,6 +498,8 @@ Text converter related:
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--chunk_default_fs CHUNK_DEFAULT_FS]
+                    [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                    [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -782,6 +784,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1208,6 +1214,8 @@ Text converter related:
                                [--num_cache_chunks NUM_CACHE_CHUNKS]
                                [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                                [--chunk_default_fs CHUNK_DEFAULT_FS]
+                               [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                               [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                                [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                                [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                                [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -1479,6 +1487,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1844,6 +1856,8 @@ Enh + Diar related:
                      [--num_cache_chunks NUM_CACHE_CHUNKS]
                      [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                      [--chunk_default_fs CHUNK_DEFAULT_FS]
+                     [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                     [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                      [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                      [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -2105,6 +2119,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -2532,6 +2550,8 @@ SeparateSpeech related:
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--chunk_default_fs CHUNK_DEFAULT_FS]
+                        [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                        [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -2569,7 +2589,7 @@ SeparateSpeech related:
                         [--text_name TEXT_NAME [TEXT_NAME ...]]
                         [--enh_encoder {stft,conv,same}]
                         [--enh_encoder_conf ENH_ENCODER_CONF]
-                        [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}]
+                        [--enh_separator {asteroid,bsrnn,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,tfgridnetv3,uses}]
                         [--enh_separator_conf ENH_SEPARATOR_CONF]
                         [--enh_decoder {stft,conv,same}]
                         [--enh_decoder_conf ENH_DECODER_CONF]
@@ -2848,6 +2868,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -3019,11 +3043,11 @@ Optimizer related:
   --diar_input_size DIAR_INPUT_SIZE
                         The number of input dimension of the feature (default: None)
   --enh_model_conf ENH_MODEL_CONF
-                        The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: []})
+                        The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: [], &#39;always_forward_in_48k&#39;: False})
   --asr_model_conf ASR_MODEL_CONF
                         The keyword arguments for asr submodel class. (default: {&#39;aux_ctc&#39;: None, &#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;transducer_multi_blank_durations&#39;: [], &#39;transducer_multi_blank_sigma&#39;: 0.05, &#39;sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;lang_token_id&#39;: -1})
   --st_model_conf ST_MODEL_CONF
-                        The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: []})
+                        The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: [], &#39;always_forward_in_48k&#39;: False})
   --diar_model_conf DIAR_MODEL_CONF
                         The keyword arguments for diar submodel class. (default: {&#39;diar_weight&#39;: 1.0, &#39;attractor_weight&#39;: 1.0})
   --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
@@ -3054,7 +3078,7 @@ Optimizer related:
                         The enh_encoder type (default: stft)
   --enh_encoder_conf ENH_ENCODER_CONF
                         The keyword arguments for enh_encoder (default: {})
-  --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}
+  --enh_separator {asteroid,bsrnn,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,tfgridnetv3,uses}
                         The enh_separator type (default: rnn)
   --enh_separator_conf ENH_SEPARATOR_CONF
                         The keyword arguments for enh_separator (default: {})
@@ -3282,6 +3306,8 @@ PESQ related:
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--chunk_default_fs CHUNK_DEFAULT_FS]
+                    [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                    [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -3315,7 +3341,7 @@ PESQ related:
                     [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
                     [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                     [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                    [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}]
+                    [--separator {asteroid,bsrnn,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,tfgridnetv3,uses}]
                     [--separator_conf SEPARATOR_CONF]
                     [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
                     [--mask_module {multi_mask}]
@@ -3557,6 +3583,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -3715,7 +3745,7 @@ Optimizer related:
   --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                         The initialization method (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: []})
+                        The keyword arguments for model class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;flexible_numspk&#39;: False, &#39;extract_feats_in_collect_stats&#39;: False, &#39;normalize_variance&#39;: False, &#39;normalize_variance_per_ch&#39;: False, &#39;categories&#39;: [], &#39;category_weights&#39;: [], &#39;always_forward_in_48k&#39;: False})
   --criterions CRITERIONS
                         The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
 
@@ -3763,7 +3793,7 @@ Optimizer related:
                         The encoder type (default: stft)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
-  --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}
+  --separator {asteroid,bsrnn,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,tfgridnetv3,uses}
                         The separator type (default: rnn)
   --separator_conf SEPARATOR_CONF
                         The keyword arguments for separator (default: {})
@@ -3945,6 +3975,8 @@ SeparateSpeech related:
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--chunk_default_fs CHUNK_DEFAULT_FS]
+                        [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                        [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -4219,6 +4251,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -4517,6 +4553,8 @@ Optimizer related:
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--chunk_default_fs CHUNK_DEFAULT_FS]
+                        [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                        [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -4804,6 +4842,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -5098,6 +5140,8 @@ Optimizer related:
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--chunk_default_fs CHUNK_DEFAULT_FS]
+                        [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                        [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5378,6 +5422,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -5657,6 +5705,8 @@ Optimizer related:
                        [--num_cache_chunks NUM_CACHE_CHUNKS]
                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                        [--chunk_default_fs CHUNK_DEFAULT_FS]
+                       [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                       [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5939,6 +5989,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6346,6 +6400,8 @@ The model configuration related:
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--chunk_default_fs CHUNK_DEFAULT_FS]
+                   [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                   [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -6607,6 +6663,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6952,6 +7012,8 @@ Text converter related:
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--chunk_default_fs CHUNK_DEFAULT_FS]
+                   [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                   [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -7231,6 +7293,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -7644,6 +7710,8 @@ Text converter related:
                      [--num_cache_chunks NUM_CACHE_CHUNKS]
                      [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                      [--chunk_default_fs CHUNK_DEFAULT_FS]
+                     [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                     [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                      [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                      [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -7942,6 +8010,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -8285,6 +8357,8 @@ Optimizer related:
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--chunk_default_fs CHUNK_DEFAULT_FS]
+                    [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                    [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -8563,6 +8637,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -9200,6 +9278,8 @@ The model configuration related:
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--chunk_default_fs CHUNK_DEFAULT_FS]
+                    [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                    [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -9468,6 +9548,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -9932,6 +10016,8 @@ Text converter related:
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--chunk_default_fs CHUNK_DEFAULT_FS]
+                   [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                   [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -10223,6 +10309,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -10653,6 +10743,8 @@ Vocoder related:
                      [--num_cache_chunks NUM_CACHE_CHUNKS]
                      [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                      [--chunk_default_fs CHUNK_DEFAULT_FS]
+                     [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                     [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                      [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                      [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -10925,6 +11017,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -11291,6 +11387,8 @@ Vocoder related:
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--chunk_default_fs CHUNK_DEFAULT_FS]
+                    [--chunk_max_abs_length CHUNK_MAX_ABS_LENGTH]
+                    [--chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -11563,6 +11661,10 @@ Chunk iterator related:
                           - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
   --chunk_default_fs CHUNK_DEFAULT_FS
                         Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
+  --chunk_max_abs_length CHUNK_MAX_ABS_LENGTH
+                        Maximum number of samples per chunk for all sampling rates (default: None)
+  --chunk_discard_short_samples CHUNK_DISCARD_SHORT_SAMPLES
+                        Discard samples shorter than the minimum chunk length (default: True)
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE

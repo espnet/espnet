@@ -230,12 +230,25 @@
 <span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">librosa</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torchaudio</span>
 
+<span class="c1"># Avaiable sampling rates for bandwidth limitation</span>
+<span class="n">SAMPLE_RATES</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8000</span><span class="p">,</span> <span class="mi">16000</span><span class="p">,</span> <span class="mi">22050</span><span class="p">,</span> <span class="mi">24000</span><span class="p">,</span> <span class="mi">32000</span><span class="p">,</span> <span class="mi">44100</span><span class="p">,</span> <span class="mi">48000</span><span class="p">)</span>
+
+<span class="n">RESAMPLE_METHODS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;kaiser_best&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kaiser_fast&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;scipy&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;polyphase&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
 
 <div class="viewcode-block" id="weighted_sample_without_replacement"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.weighted_sample_without_replacement">[docs]</a><span class="k">def</span> <span class="nf">weighted_sample_without_replacement</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">random</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">&quot;Cannot take a larger sample than population when without replacement&quot;</span>
@@ -745,11 +758,43 @@
     <span class="k">return</span> <span class="n">ret</span></div>
 
 
+<div class="viewcode-block" id="bandwidth_limitation"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.bandwidth_limitation">[docs]</a><span class="k">def</span> <span class="nf">bandwidth_limitation</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">res_type</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the bandwidth limitation distortion to the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (np.ndarray): a single speech sample (..., Time)</span>
+<span class="sd">        sample_rate (int): input sampling rate in Hz</span>
+<span class="sd">        fs_new (int): effective sampling rate in Hz</span>
+<span class="sd">        res_type (str): resampling method</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (np.ndarray): bandwidth-limited speech sample (..., Time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">sample_rate</span>
+    <span class="n">fs_opts</span> <span class="o">=</span> <span class="p">[</span><span class="n">fs_new</span> <span class="k">for</span> <span class="n">fs_new</span> <span class="ow">in</span> <span class="n">SAMPLE_RATES</span> <span class="k">if</span> <span class="n">fs_new</span> <span class="o">&lt;</span> <span class="n">fs</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">fs_opts</span><span class="p">:</span>
+        <span class="n">fs_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">fs_opts</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">waveform</span>
+    <span class="k">if</span> <span class="n">res_type</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+        <span class="n">res_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">RESAMPLE_METHODS</span><span class="p">)</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;res_type&quot;</span><span class="p">:</span> <span class="n">res_type</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">waveform</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">waveform</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">orig_sr</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">target_sr</span><span class="o">=</span><span class="n">fs_new</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span>
+    <span class="c1"># resample back to the original sampling rate</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">orig_sr</span><span class="o">=</span><span class="n">fs_new</span><span class="p">,</span> <span class="n">target_sr</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ret</span><span class="p">[:</span><span class="n">length</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
 <span class="n">effects_dict</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;lowpass&quot;</span><span class="p">:</span> <span class="n">lowpass_filtering</span><span class="p">,</span>
     <span class="s2">&quot;highpass&quot;</span><span class="p">:</span> <span class="n">highpass_filtering</span><span class="p">,</span>
     <span class="s2">&quot;bandpass&quot;</span><span class="p">:</span> <span class="n">bandpass_filtering</span><span class="p">,</span>
     <span class="s2">&quot;bandreject&quot;</span><span class="p">:</span> <span class="n">bandreject_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;bandwidth_limitation&quot;</span><span class="p">:</span> <span class="n">bandwidth_limitation</span><span class="p">,</span>
     <span class="s2">&quot;contrast&quot;</span><span class="p">:</span> <span class="n">contrast</span><span class="p">,</span>
     <span class="s2">&quot;equalization&quot;</span><span class="p">:</span> <span class="n">equalization_filtering</span><span class="p">,</span>
     <span class="s2">&quot;pitch_shift&quot;</span><span class="p">:</span> <span class="n">pitch_shift</span><span class="p">,</span>

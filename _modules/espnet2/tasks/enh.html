@@ -274,6 +274,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.pit_solver</span> <span class="kn">import</span> <span class="n">PITSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.abs_separator</span> <span class="kn">import</span> <span class="n">AbsSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.asteroid_models</span> <span class="kn">import</span> <span class="n">AsteroidModel_Converter</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.bsrnn_separator</span> <span class="kn">import</span> <span class="n">BSRNNSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.conformer_separator</span> <span class="kn">import</span> <span class="n">ConformerSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.dan_separator</span> <span class="kn">import</span> <span class="n">DANSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.dc_crn_separator</span> <span class="kn">import</span> <span class="n">DC_CRNSeparator</span>
@@ -291,6 +292,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.tcn_separator</span> <span class="kn">import</span> <span class="n">TCNSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.tfgridnet_separator</span> <span class="kn">import</span> <span class="n">TFGridNet</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.tfgridnetv2_separator</span> <span class="kn">import</span> <span class="n">TFGridNetV2</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.tfgridnetv3_separator</span> <span class="kn">import</span> <span class="n">TFGridNetV3</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.transformer_separator</span> <span class="kn">import</span> <span class="n">TransformerSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.uses_separator</span> <span class="kn">import</span> <span class="n">USESSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
@@ -320,6 +322,7 @@
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;separator&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">asteroid</span><span class="o">=</span><span class="n">AsteroidModel_Converter</span><span class="p">,</span>
+        <span class="n">bsrnn</span><span class="o">=</span><span class="n">BSRNNSeparator</span><span class="p">,</span>
         <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerSeparator</span><span class="p">,</span>
         <span class="n">dan</span><span class="o">=</span><span class="n">DANSeparator</span><span class="p">,</span>
         <span class="n">dc_crn</span><span class="o">=</span><span class="n">DC_CRNSeparator</span><span class="p">,</span>
@@ -339,6 +342,7 @@
         <span class="n">ineube</span><span class="o">=</span><span class="n">iNeuBe</span><span class="p">,</span>
         <span class="n">tfgridnet</span><span class="o">=</span><span class="n">TFGridNet</span><span class="p">,</span>
         <span class="n">tfgridnetv2</span><span class="o">=</span><span class="n">TFGridNetV2</span><span class="p">,</span>
+        <span class="n">tfgridnetv3</span><span class="o">=</span><span class="n">TFGridNetV3</span><span class="p">,</span>
         <span class="n">uses</span><span class="o">=</span><span class="n">USESSeparator</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSeparator</span><span class="p">,</span>
@@ -717,7 +721,7 @@
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;speech_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;noise_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
-        <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span>
+        <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">,</span> <span class="s2">&quot;fs&quot;</span><span class="p">]</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
