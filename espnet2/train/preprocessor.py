@@ -2475,11 +2475,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value + self.token_bias["codec"]
 
             if modality == "spk":
-                if len(value) > self.speaker_prompt_length:
+                if len(value) >= self.speaker_prompt_length:
                     start = random.randint(
                         0, len(value) - self.speaker_prompt_length - 1
                     )
                     value = value[start : start + self.speaker_prompt_length]
+                
+                else:
+                    pad_len = self.speaker_prompt_length - len(value)
+                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                    value = np.concatenate([value, pad])
+
 
             value = value.flatten()
             conti_feat = None
