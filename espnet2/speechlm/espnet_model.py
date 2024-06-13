@@ -42,7 +42,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         if prefix_len is not None:
             prefix_len = prefix_len.squeeze(1)
 
-        loss, stats, weight = self.corelm(
+        loss, _, stats, weight = self.corelm(
             dec_seq,
             dec_seq_lengths,
             enc_seq,
@@ -50,7 +50,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             prefix_len,
         )
 
-        loss, _, stats, weight = force_gatherable((loss, stats, weight), loss.device)
+        loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
     def collect_feats(self, **kwargs):
