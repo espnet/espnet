@@ -712,9 +712,6 @@ if ! "${skip_eval}"; then
                         --gt_text ${text_ref_file} \
                         --gpu_inference ${gpu_inference} \
                         ${audio_file} ${_eval_dir}
-                    ./pyscripts/utils/rank_and_score.py \
-                         --metric wer \
-                         --score_dir ${_eval_dir}/score_wer
 
                 # (5.2) All other metrics from Jiatong's evaluation tool.
                 else
@@ -737,8 +734,6 @@ if ! "${skip_eval}"; then
                         --logdir "${_eval_dir}" \
                         --scoredir "${_eval_dir}" \
                         --nj "${_nj}"
-                    
-
                 fi
             done
         done

@@ -2,7 +2,7 @@ tokenizer: codec
 search_algo: topk_sampling
 sampling_temperature: 1.5
 minlenratio: 0.05
-top_k: 50
+top_k: 20
 seed: 1
 tokenizer_conf:
     codec_choice: inhouse
