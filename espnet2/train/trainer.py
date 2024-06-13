@@ -91,6 +91,7 @@ class TrainerOptions:
     train_dtype: str
     grad_noise: bool
     accum_grad: int
+    max_loss_scale: float
     grad_clip: float
     grad_clip_type: float
     log_interval: Optional[int]
@@ -753,7 +754,10 @@ class Trainer:
                             if optim_idx is not None and iopt != optim_idx:
                                 continue
                             scaler.step(optimizer)
-                            scaler.update()
+                            if scaler.get_scale() > TrainerOptions.max_loss_scale:
+                                scaler.update(TrainerOptions.max_loss_scale)
+                            else:
+                                scaler.update()
 
                 else:
                     reporter.register(
@@ -779,7 +783,10 @@ class Trainer:
                                 # the optimizer's assigned params.
                                 scaler.step(optimizer)
                                 # Updates the scale for next iteration.
-                                scaler.update()
+                                if scaler.get_scale() > TrainerOptions.max_loss_scale:
+                                    scaler.update(TrainerOptions.max_loss_scale)
+                                else:
+                                    scaler.update()
                             else:
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
