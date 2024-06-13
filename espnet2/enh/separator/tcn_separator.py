@@ -27,7 +27,7 @@ class TCNSeparator(AbsSeparator):
         norm_type: str = "gLN",
         nonlinear: str = "relu",
         pre_mask_nonlinear: str = "prelu",
-        masking: bool = False,
+        masking: bool = True,
     ):
         """Temporal Convolution Separator
 
