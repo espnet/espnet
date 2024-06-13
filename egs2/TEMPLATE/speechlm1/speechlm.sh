@@ -87,6 +87,9 @@ download_model=""  # Download a model from Model Zoo and use it for decoding.
 nbest=1            # number of best hypotheses to generate during inference.
 rank_and_score=false # scoring each rank after doing batch inference.
 
+# Scoring related
+scoring_args=
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
@@ -215,41 +218,49 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        # TODO(kamo): Change kaldi-ark to npy or HDF5?
-        # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
-        # shouldn't be used in training process.
-        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
-        # If nothing is need, then format_wav_scp.sh does nothing:
-        # i.e. the input file format and rate is same as the output.
 
-        # TODO(jinchuan): only consider the wav.scp. In fact we could consider multiple
-        # audio scp files. Same as in stage 3
+        if ${skip_train}; then
+            _dsets=${test_sets}
+        else
+            _dsets="${train_set} ${valid_set} ${test_sets}"
+        fi
+
+        prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
+        wav_files=""
+        for prepare_opt in ${prepare_opts}; do
+            IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
+            if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
+                wav_files+="${_name} "
+            fi
+        done
 
         log "Stage 2: Format wav.scp: data/ -> ${data_audio}/"
-        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+        for dset in ${_dsets}; do
             if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else
                 _suf=""
             fi
+
             utils/copy_data_dir.sh data/"${dset}" "${data_audio}${_suf}/${dset}"
-            rm -f ${data_audio}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
+            rm -f ${data_audio}${_suf}/${dset}/{segments,reco2file_and_channel}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
             fi
 
             # shellcheck disable=SC2086
-            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                "data/${dset}/wav.scp" "${data_audio}${_suf}/${dset}"
+            for wav_file in ${wav_files}; do
+                rm -f ${data_audio}${_suf}/${dset}/${wav_file}
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                    "data/${dset}/${wav_file}" "${data_audio}${_suf}/${dset}"
+            done
             echo "${feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
         done
     fi
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_train}; then
         log "Stage 3: Remove long/short data: ${data_audio}/org -> ${data_audio}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
@@ -606,7 +617,9 @@ if ! "${skip_eval}"; then
                     continue
                 fi
                 for n in `seq ${inference_nj}`; do
-                    cat ${_logdir}/output.${n}/${entry}/example_list
+                    if [ -f ${_logdir}/output.${n}/${entry}/example_list ]; then
+                        cat ${_logdir}/output.${n}/${entry}/example_list
+                    fi
                 done | sort > ${_dir}/${entry}
             done
         done
@@ -615,6 +628,14 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         log "Evaluating the model ..."
 
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
+
         for test_json in ${test_jsons}; do
             # (1) find task, dataset name and folder names
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
@@ -622,54 +643,102 @@ if ! "${skip_eval}"; then
             _dset="$(basename ${_src_dir})"
             _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"
 
-            # (2) files that can be used
+            # (2) evaluation template for each task. Try to make less duplication in task definition
             if [ ${task} == "tts" ]; then
-                eval_metrics="wer sim"
-
+                eval_items="spk signal"
+                
                 audio_file=${_dir}/wav.scp
                 audio_ref_file=${_src_dir}/wav.scp
                 text_file=
                 text_ref_file=${_src_dir}/text
                 spk_ref_file=${_dir}/utt2spk
-
                 generated_file=${audio_file}
             else
-                echo Task ${task} is not supported for evaluation ... && exit 1;
+                log "unrecognized task: ${task}. Exit !" && exit 1;
             fi
 
+            # (3) revise prefix
+            # The example name of the generated file will have prefix "${task}_" and suffix "sampleN"
+            # due to batch inference. Thus, any reference file should also align with the generated file.
             mkdir -p ${_dir}/eval_cache
-            # for _file in ${audio_file} ${audio_ref_file} ${text_file} ${text_ref_file} ${spk_ref_file}; do
+            _nj=$(min "${inference_nj}" "$(<${generated_file} wc -l)" )
             for _file_name in audio_file audio_ref_file text_file text_ref_file spk_ref_file; do
-                if [ "${!_file_name}" == "${generated_file}" ] || [ -z ${!_file_name} ]; then
+                if [ -z ${!_file_name} ]; then
+                    continue
+                fi
+                
+                if [ "${!_file_name}" != "${generated_file}" ]; then
+                    awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
+                        ${!_file_name} > ${_dir}/eval_cache/${_file_name}
+                    eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
+                else
+                    cp ${!_file_name} ${_dir}/eval_cache/${_file_name}
+                    eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
+                    generated_file=${!_file_name}
+                fi
+                
+            done
+
+            # (4) shard by inference_nj
+            _nj=$(min "${inference_nj}" "$(<${generated_file} wc -l)" )
+            for _file_name in audio_file audio_ref_file text_file text_ref_file spk_ref_file; do
+                if [ -z ${!_file_name} ] || [ ! -f ${!_file_name} ]; then
                     continue
                 fi
 
-                # The example name of the generated file will have prefix "${task}_" and suffix "sampleN"
-                # due to batch inference. Thus, any reference file should also align with the generated file.
-                awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
-                    ${!_file_name} > ${_dir}/eval_cache/${_file_name}
-                eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
+                split_files=""
+                for n in `seq ${_nj}`; do
+                    split_files+="${!_file_name}.${n} "
+                done
+                utils/split_scp.pl ${!_file_name} ${split_files}
             done
 
-            # (3) evaluation based on task
-            for eval_metric in ${eval_metrics}; do
-                mkdir -p ${_dir}/${eval_metric}_results
+            # (5) evaluate each items
+            for eval_item in ${eval_items}; do
+                _eval_dir=${_dir}/eval_${eval_item}
+                mkdir -p ${_eval_dir}
 
-                if [ ${eval_metric} == "wer" ]; then
+                # (5.1) WER with whisper-large
+                # TODO (Jinchuan & Jiatong): current evaluation tool doesn't support
+                # WER computation. We should deprecate this branch in the future and
+                # rely on Jiatong's evaluation toolkit only.
+                if [ ${eval_item} == "wer" ]; then
                     ./scripts/utils/evaluate_asr.sh \
                         --whisper_tag large \
+                        --whisper_dir local/whisper \
                         --cleaner whisper_en \
                         --hyp_cleaner whisper_en \
                         --nj ${inference_nj} \
                         --gt_text ${text_ref_file} \
                         --gpu_inference ${gpu_inference} \
-                        ${audio_file} ${_dir}/${eval_metric}_results
+                        ${audio_file} ${_eval_dir}
+                    ./pyscripts/utils/rank_and_score.py \
+                         --metric wer \
+                         --score_dir ${_eval_dir}/score_wer
 
-                    if ${rank_and_score}; then
-                        ./pyscripts/utils/rank_and_score.py \
-                            --metric wer \
-                            --score_dir ${_dir}/${eval_metric}_results/score_wer
+                # (5.2) All other metrics from Jiatong's evaluation tool.
+                else
+                    if [ "${eval_item}" == "spk" ]; then
+                        gt_file=${spk_ref_file}
+                    elif [ "${eval_item}" == "signal" ]; then
+                        gt_file=${audio_ref_file}
                     fi
+
+                    ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/eval_${eval_item}.JOB.log \
+                        ${python} -m speech_evaluation.bin.espnet_scorer \
+                            --pred ${generated_file}.JOB \
+                            --gt ${gt_file}.JOB \
+                            --output_file ${_eval_dir}/result.JOB.txt \
+                            --score_config "conf/score_${eval_item}.yaml" \
+                            --use_gpu ${gpu_inference} \
+                            ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
+                    
+                    ${python} pyscripts/utils/aggregate_eval.py \
+                        --logdir "${_eval_dir}" \
+                        --scoredir "${_eval_dir}" \
+                        --nj "${_nj}"
+                    
+
                 fi
             done
         done

@@ -126,35 +126,40 @@ def install_kv_cache_hook(model, cache):
 def logits_to_tokens(
     logits: torch.Tensor,
     opts: SpeechLMInferenceOptions,
+    search_algo: str = None,
     allow_eos: bool = True,
     nq_level: int = None,
 ):
     assert logits.dim() == 4
+    search_algo = search_algo if search_algo is not None else opts.search_algo
 
     # (1) Apply mask
-    mask = opts.masks
+    mask = opts.masks.clone()
     if allow_eos:  # only predict eos in the first code
-        mask[..., 0, opts.eos] = False
+        mask[0, opts.eos] = False
     if nq_level is not None:
         mask = mask[nq_level : nq_level + 1]
-    mask = mask.unsqueeze(0).unsqueeze(0)
-    logits = logits.masked_fill_(mask, -1e20)
+    mask = mask.unsqueeze(0).unsqueeze(0) # [nq, V] -> [B=1, T=1, nq, V]
+    logits.masked_fill_(mask, -1e20)
 
     # (2) token selection
-    topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
-
-    if opts.search_algo in ["sampling"]:
+    if search_algo in ["topk_sampling"]:
+        topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
         logp = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
         inner_indices = torch.multinomial(logp.flatten(end_dim=-2), num_samples=1).view(
             logp[..., :1].size()
         )
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
+    
+    elif search_algo in ["topp_sampling"]:
+        raise NotImplementedError
 
-    elif opts.search_algo in ["greedy_search", "teacher_force"]:
+    elif search_algo in ["greedy_search", "teacher_force"]:
+        topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0]
-
+    
     else:
         raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
 

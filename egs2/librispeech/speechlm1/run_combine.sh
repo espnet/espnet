@@ -18,7 +18,8 @@ use_ls=true
 use_giga=true
 use_mls_en=true
 
-test_use_ls=true
+test_use_ls_7spk=true
+test_use_ls=false
 test_use_giga=false
 test_use_mls_en=false
 
@@ -45,6 +46,10 @@ fi
 
 if ${test_use_ls}; then
     test_jsons+="dump/raw_tts_librispeech/test_clean/data.json "
+fi
+
+if ${test_use_ls_7spk}; then
+    test_jsons+="dump/raw_tts_librispeech/test_clean_7spk/data.json "
 fi
 
 if ${test_use_giga}; then

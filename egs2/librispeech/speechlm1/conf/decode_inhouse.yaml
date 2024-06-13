@@ -1,8 +1,9 @@
-nbest: 5
 tokenizer: codec
-search_algo: sampling
+search_algo: topk_sampling
 sampling_temperature: 1.5
-top_k: 30
+minlenratio: 0.05
+top_k: 50
+seed: 1
 tokenizer_conf:
     codec_choice: inhouse
     codec_fs: 16000

@@ -42,7 +42,7 @@ class SpeechLM:
         dtype: str = "float32",
         device: str = "cpu",
         verbose: bool = False,
-        search_algo: str = "sampling",
+        search_algo: str = "topk_sampling",
         inference_nq: Optional[int] = None,
         nbest: int = 1,
         sampling_temperature: float = 1.0,
@@ -217,7 +217,7 @@ def inference(
     model_file: Optional[str],
     model_tag: Optional[str],
     # inference related
-    search_algo: str = "sampling",
+    search_algo: str = "topk_sampling",
     nbest: int = 1,
     sampling_temperature: float = 1.0,
     top_k: int = 20,
@@ -313,6 +313,7 @@ def inference(
 
         batch = to_device(batch, device=device)
         key = keys[0]
+        
         logging.info(f"Inference on example: {key}")
 
         # NOTE (Jinchuan): set random seed for each example so each result can be
@@ -355,6 +356,10 @@ def inference(
 
         # (3) parse and save conditon content
         if verbose:
+            # NOTE(Jinchuan): remove task prefix so that the recorded prefix will have the same
+            # format like other reference file. E.g., text in original dataset
+            key = key.lstrip(f"{task_name}_")
+            
             assert len(conditions) == len(prefix_triplets)
             for c_idx, (content, modality, detokenized) in enumerate(conditions):
                 if not detokenized:
@@ -376,11 +381,11 @@ def inference(
                         content.cpu(),
                         sample_rate=speechlm.tokenizer.sample_rate,
                     )
-                    writer.write(f"{key} {content_path}\n")
+                    prefix_writer.write(f"{key} {content_path}\n")
                     logging.info(f"save prefix audio {name} audio {key}: {content_path}")
 
                 elif modality in ["g2p"]:
-                    writer.write(f"{key} {content}\n")
+                    prefix_writer.write(f"{key} {content}\n")
                     logging.info(f"prefix part {modality}: {content}")
 
                 else:
@@ -496,8 +501,8 @@ def get_parser():
     group.add_argument(
         "--search_algo",
         type=str,
-        default="sampling",
-        choices=["sampling", "teacher_force", "beam_search", "greedy_search"],
+        default="topk_sampling",
+        choices=["topk_sampling", "topp_sampling", "teacher_force", "beam_search", "greedy_search"],
         help="the search algorithm of SpeechLM",
     )
     group.add_argument(
