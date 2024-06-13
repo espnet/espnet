@@ -32,9 +32,7 @@ with open(metadata_file, "r") as f_meta, open(
     lines = f_meta.readlines()
     for line in lines:
         parts = line.strip().split()
-        speaker_class = parts[0]
-        spoofing_type = parts[4]
-        speakerID = f"{speaker_class}_{spoofing_type}"
+        speakerID = parts[0]
         spoofingID = parts[5] # bonafide or spoof
         path = ASVSpoof_root / 'flac_T' / parts[1]
         path = path.with_suffix(".flac")
