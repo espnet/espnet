@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import torchaudio.transforms as T
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
@@ -45,12 +46,22 @@ class CodecDecoder(AbsDecoder):
             fs (int): sampling rate in Hz (Not used)
         """
         wav = self.codec.decode_continuous(input)
+        
+        #Resampling back to original sampling rate if needed
         wav = wav.unsqueeze(1)
         if self.codec_fs != self.sample_fs:
             wav = self.resample_audio(wav)
         wav = wav.squeeze(1)
-        wav = wav[:,:ilens.max()]
+        
+        # T might have changed due to model. If so, fix it here
+        T_origin = ilens.max()
+        if wav.shape[-1] != T_origin:
 
+            T_est = wav.shape[-1]
+            if T_origin > T_est:
+                wav = F.pad(wav, (0, T_origin - T_est))
+            else:
+                wav = wav[:, :T_origin]
         return wav, ilens
 
     def resample_audio(self, x):

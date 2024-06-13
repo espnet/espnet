@@ -42,13 +42,13 @@ class CodecSeparator(AbsSeparator):
         self.num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
 
         self.block = SBTransformerBlock(
-            num_layers = 16,
-            d_model = input_dim,
-            nhead = 8,
-            d_ffn = 1024,
-            dropout = 0.1,  
-            use_positional_encoding = True,
-            norm_before = True,
+            num_layers = trf_num_layers,
+            d_model = internal_dim,
+            nhead = trf_num_heads,
+            d_ffn = trf_feedforward,
+            dropout = trf_dropout,  
+            use_positional_encoding = trf_use_positional_encoding,
+            norm_before = trf_norm_before,
         )
 
         self.input_dim = input_dim #this is dependent on the dac model
@@ -93,46 +93,60 @@ class CodecSeparator(AbsSeparator):
             ]
         """
         B, T, N = input.shape
-        
         x = input
         #[B,T,N]
         x = x.permute(0,2,1)
         #[B,N,T]
         x = self.ch_down(x)
-        #[B,N,T]
+        #[B,Nb,T]
         x = x.permute(0,2,1)
-        #[B,T,N]
-        x_b = self.block(x)
-        #[B,T,N]
-        x_b = x_b.permute(0,2,1)
-        #[B,N,T]        
-        x = self.ch_up(x_b)
+        #[B,T,Nb]
+        x = self.block(x)
+        #[B,T,Nb]
+        x = x.permute(0,2,1)
+        #[B,Nb,T]        
+        x = self.ch_up(x)
         #[B,N,T]
-
         assert x.permute(0,2,1).shape == input.shape
         #[B, N, T]
         
-        masks = self.masker(x) 
-        #[B,N*num_spk,T]
+        ##OLD VERSION
+        # masks = self.masker(x) 
+        # #[B,N*num_outputs,T]
+        # masks = masks.view(B, N, self.num_outputs,T).permute(0,1,3,2)
+        # masks = [
+        #     self.activation(self.output(masks[...,i]) * self.output_gate(masks[...,i])).permute(0,2,1)
+        #     for i in range(self.num_outputs)
+        # ]
+        
+        B, N, T = x.shape
+        masks = self.masker(x)
+        
+        #[B,N*num_outputs,T]
+        masks = masks.view(B*self.num_outputs,-1,T)
 
-        masks = masks.view(B, N, self.num_outputs,T).permute(0,1,3,2)
-
+        #[B*num_outputs, N, T]
+        masks = self.output(masks) * self.output_gate(masks)
+        masks = self.activation(masks)
+        
+        #[B*num_outputs, N, T]
+        masks = masks.view(B, self.num_outputs, N, T)
+        
         masks = [
-            self.activation(self.output(masks[...,i]) * self.output_gate(masks[...,i]))
+            masks[:,i,:,:].permute(0,2,1)
             for i in range(self.num_outputs)
         ]
         
         if self.predict_noise:
             *masks, mask_noise = masks
 
-        masked = [input * m.permute(0,2,1) for m in masks]
-
+        masked = [input * m for m in masks]
+            
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
-
         if self.predict_noise:
-            others["noise1"] = input * mask_noise.permute(0,2,1)
+            others["noise1"] = input * mask_noise
 
         return masked, ilens, others
 
