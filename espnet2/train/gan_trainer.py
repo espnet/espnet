@@ -157,7 +157,8 @@ class GANTrainer(Trainer):
                 # being over-powered. Synchronized globally.
                 if skip_discriminator_prob > 0.0 and turn == "discriminator":
                     if torch.distributed.is_initialized():
-                        skip_disc = torch.distributed.broadcast(torch.rand(1), src=0)
+                        skip_disc = torch.rand(1)
+                        torch.distributed.broadcast(torch.rand(1).cuda(), src=0)
                     else:
                         skip_disc = torch.rand(1)
                     if skip_disc.item() < skip_discriminator_prob:
