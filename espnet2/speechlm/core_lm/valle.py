@@ -239,7 +239,7 @@ class ValleLM(AbsCoreLM):
             2
         )  # [B, T, 1]
         gen_scores_ar = torch.cat(generated["score"], dim=1)[valid_idx].unsqueeze(2)
-        gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1]  # to include <sos>
+        gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1] # idx -> count
         gen_scores_ar = gen_scores_ar[:, : finish_idx.max() + 1]
 
         for hook in hooks:
@@ -258,7 +258,7 @@ class ValleLM(AbsCoreLM):
         )  # [B, T, D]
 
         ones = torch.ones_like(valid_idx)
-        mask = length_mask(prefix.size(1) + finish_idx).bool()
+        mask = length_mask(prefix.size(1) + finish_idx + 1).bool()
         mask = mask.unsqueeze(1).unsqueeze(1)
         generated = {"token": [], "score": []}
         # (4.2) NAR loop
