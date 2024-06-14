@@ -47,22 +47,19 @@ class CodecTokenizer(AbsTokenizer):
         self.dump_audio = dump_audio
 
         if self.codec_choice == "ESPnet":
+            if hf_model_card is not None:
+                raise ValueError("Huggingface model is not supported yet")
+            
             from espnet2.tasks.gan_codec import GANCodecTask
 
-            if hf_model_card is not None:
-                model = AudioCoding(
-                    train_config=hf_model_card,
-                    device=str(device),
-                )
-            else:
-                model = AudioCoding(
-                    train_config=config_path,
-                    model_file=checkpoint_path,
-                    device=str(device),
-                )
+            model, _ = GANCodecTask.build_model_from_file(
+                config_path,
+                checkpoint_path,
+                device=str(device),
+            )
             self.codec = model
 
-            meta_info = self.codec.model.meta_info()
+            meta_info = self.codec.meta_info()
             self.n_codebook = min(meta_info["num_streams"], max_token_per_frame)
             self.size_codebook = meta_info["code_size_per_stream"][0]
             self.sample_rate = meta_info["fs"]
@@ -225,9 +222,6 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "DAC":
             z = z.transpose(1, 2)
             waveform = self.codec.decode(z).squeeze(1)
-
-        elif self.codec_choice == "inhouse":
-            codes = self.codec.encode(wavs).permute(1, 2, 0)
 
         else:
             raise NotImplementedError

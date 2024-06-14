@@ -337,7 +337,7 @@ if ! "${skip_data_prep}"; then
                         --codec_choice ${codec_choice} \
                         --checkpoint_path ${codec_checkpoint_path} \
                         --config_path ${codec_config_path} \
-                        --codec_hf_model_card ${codec_hf_model_card}
+                        --hf_model_card ${codec_hf_model_card}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"

@@ -133,15 +133,19 @@ class ValleLM(AbsCoreLM):
         return loss, logits, stats, weight
 
     def prepare_input(self, dec_seq_emb, prefix_len, level):
+        # NOTE(Jinchuan): have to use "expand" here but maybe lead to extra memory usage.
+        # This is because both prefix_mask and level_mask are broadcastable and will 
+        # trigger user warning.
+
         # (1) level mask, [B, 1, nq, 1], True is to include
         if isinstance(level, int):
             level = torch.ones_like(dec_seq_emb[:, 0, 0, 0]) * level
         level_mask = length_mask(level, maxlen=self.nq).bool()
-        level_mask = level_mask.unsqueeze(1).unsqueeze(3)
+        level_mask = level_mask.unsqueeze(1).unsqueeze(3).expand(dec_seq_emb.size())
 
         # (2) prefix mask, [B, T, 1, 1], True is the prefix
         prefix_mask = length_mask(prefix_len, maxlen=dec_seq_emb.size(1)).bool()
-        prefix_mask = prefix_mask.unsqueeze(2).unsqueeze(3)
+        prefix_mask = prefix_mask.unsqueeze(2).unsqueeze(3).expand(dec_seq_emb.size())
 
         # (3) mask and then sum in nq-axis.
         mask = torch.logical_or(level_mask, prefix_mask)
