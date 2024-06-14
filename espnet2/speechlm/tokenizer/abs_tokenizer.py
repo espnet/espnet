@@ -20,5 +20,8 @@ class AbsTokenizer(torch.nn.Module, ABC):
 
     @torch.no_grad()
     def detokenize(self, tokens: torch.Tensor) -> Any:
-        """Detokenization function"""
+        """
+        Detokenization function
+        Accept tokens in shape [B, N_token]
+        """
         raise NotImplementedError

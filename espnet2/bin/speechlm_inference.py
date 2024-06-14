@@ -142,7 +142,7 @@ class SpeechLM:
         # (2) predicted tokens detokenization
         generated = []
         for gen_token in gen_tokens:
-            gen_token = gen_token - self.bias
+            gen_token = (gen_token - self.bias).view(1, -1)
             generated.append(self.tokenizer.detokenize(gen_token))
 
         # (3) prefix tokens detokenization
@@ -169,7 +169,7 @@ class SpeechLM:
 
                 # TODO(Jinchuan): support more detokenization options latre for other tasks
                 if self.modality == "codec" and this_modality in ["codec", "spk"]:
-                    content = content - self.train_args.token_bias["codec"]
+                    content = (content - self.train_args.token_bias["codec"]).view(1, -1)
                     content = self.tokenizer.detokenize(content)
                     detokenized = True
 
