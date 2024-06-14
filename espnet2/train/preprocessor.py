@@ -2475,7 +2475,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value + self.token_bias["codec"]
 
             if modality == "spk":
-                if len(value) >= self.speaker_prompt_length:
+                if len(value) > self.speaker_prompt_length:
                     start = random.randint(
                         0, len(value) - self.speaker_prompt_length - 1
                     )
