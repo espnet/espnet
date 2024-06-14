@@ -43,29 +43,35 @@ class ResidualVectorQuantizer(nn.Module):
     def __init__(
         self,
         dimension: int = 256,
+        codebook_dim: int = 512,
         n_q: int = 8,
         bins: int = 1024,
         decay: float = 0.99,
         kmeans_init: bool = True,
         kmeans_iters: int = 50,
         threshold_ema_dead_code: int = 2,
+        quantizer_dropout: bool = False,
     ):
         super().__init__()
         self.n_q = n_q
         self.dimension = dimension
+        self.codebook_dim = codebook_dim
         self.bins = bins
         self.decay = decay
         self.kmeans_init = kmeans_init
         self.kmeans_iters = kmeans_iters
         self.threshold_ema_dead_code = threshold_ema_dead_code
+        self.quantizer_dropout = quantizer_dropout
         self.vq = ResidualVectorQuantization(
             dim=self.dimension,
+            codebook_dim=self.codebook_dim,
             codebook_size=self.bins,
             num_quantizers=self.n_q,
             decay=self.decay,
             kmeans_init=self.kmeans_init,
             kmeans_iters=self.kmeans_iters,
             threshold_ema_dead_code=self.threshold_ema_dead_code,
+            quantizer_dropout=self.quantizer_dropout,
         )
 
     def forward(
@@ -83,9 +89,21 @@ class ResidualVectorQuantizer(nn.Module):
         """
         bw_per_q = self.get_bandwidth_per_quantizer(sample_rate)
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
-        quantized, codes, commit_loss = self.vq(x, n_q=n_q)
-        bw = torch.tensor(n_q * bw_per_q).to(x)
-        return quantized, codes, bw, torch.mean(commit_loss)
+
+        if not self.quantizer_dropout:
+            quantized, codes, commit_loss = self.vq(x, n_q=n_q)
+            bw = torch.tensor(n_q * bw_per_q).to(x)
+            return quantized, codes, bw, torch.mean(commit_loss)
+        else:
+            quantized, codes, commit_loss, quantization_loss = self.vq(x, n_q=n_q)
+            bw = torch.tensor(n_q * bw_per_q).to(x)
+            return (
+                quantized,
+                codes,
+                bw,
+                torch.mean(commit_loss),
+                torch.mean(quantization_loss),
+            )
 
     def get_num_quantizers_for_bandwidth(
         self, sample_rate: int, bandwidth: Optional[float] = None

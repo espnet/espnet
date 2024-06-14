@@ -1,30 +1,34 @@
-# Copyright 2024 Jiatong Shi
+# Copyright 2024 Yihan Wu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""SoundStream Modules."""
+"""FunCodec Modules."""
 import copy
 import functools
 import logging
 import math
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
+from espnet2.gan_codec.shared.decoder.seanet_2d import SEANetDecoder2d
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
 )
-from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
+from espnet2.gan_codec.shared.encoder.seanet_2d import SEANetEncoder2d
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
-from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
-from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
+from espnet2.gan_tts.hifigan.hifigan import (
+    HiFiGANMultiPeriodDiscriminator,
+    HiFiGANMultiScaleDiscriminator,
+)
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -33,8 +37,8 @@ from espnet2.gan_tts.hifigan.loss import (
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
-class SoundStream(AbsGANCodec):
-    """ "SoundStream model."""
+class FunCodec(AbsGANCodec):
+    """ "FunCodec model."""
 
     @typechecked
     def __init__(
@@ -45,7 +49,7 @@ class SoundStream(AbsGANCodec):
             "encdec_channels": 1,
             "encdec_n_filters": 32,
             "encdec_n_residual_layers": 1,
-            "encdec_ratios": [8, 5, 4, 2],
+            "encdec_ratios": [(8, 1), (5, 1), (4, 1), (2, 1)],
             "encdec_activation": "ELU",
             "encdec_activation_params": {"alpha": 1.0},
             "encdec_norm": "weight_norm",
@@ -69,6 +73,9 @@ class SoundStream(AbsGANCodec):
             "quantizer_kmeans_iters": 50,
             "quantizer_threshold_ema_dead_code": 2,
             "quantizer_target_bandwidth": [7.5, 15],
+            "quantizer_dropout": True,
+            "codec_domain": ["time", "time"],
+            "domain_conf": {},
         },
         discriminator_params: Dict[str, Any] = {
             "scales": 3,
@@ -91,6 +98,20 @@ class SoundStream(AbsGANCodec):
                 "nonlinear_activation_params": {"negative_slope": 0.1},
             },
             "scale_follow_official_norm": False,
+            "periods": [2, 3, 5, 7, 11],
+            "period_discriminator_params": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "kernel_sizes": [5, 3],
+                "channels": 32,
+                "downsample_scales": [3, 3, 3, 3, 1],
+                "max_downsample_channels": 1024,
+                "bias": True,
+                "nonlinear_activation": "LeakyReLU",
+                "nonlinear_activation_params": {"negative_slope": 0.1},
+                "use_weight_norm": True,
+                "use_spectral_norm": False,
+            },
             "complexstft_discriminator_params": {
                 "in_channels": 1,
                 "channels": 32,
@@ -129,7 +150,7 @@ class SoundStream(AbsGANCodec):
             "fmax": None,
             "log_base": None,
         },
-        use_dual_decoder: bool = True,
+        use_dual_decoder: bool = False,
         lambda_quantization: float = 1.0,
         lambda_reconstruct: float = 1.0,
         lambda_commit: float = 1.0,
@@ -137,10 +158,8 @@ class SoundStream(AbsGANCodec):
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
         cache_generator_outputs: bool = False,
-        use_loss_balancer: bool = False,
-        balance_ema_decay: float = 0.99,
     ):
-        """Intialize SoundStream model.
+        """Intialize FunCodec model.
 
         Args:
              TODO(jiatong)
@@ -148,9 +167,12 @@ class SoundStream(AbsGANCodec):
         super().__init__()
 
         # define modules
+        generator_params["encdec_ratios"] = [
+            tuple(ratio) for ratio in generator_params["encdec_ratios"]
+        ]
         generator_params.update(sample_rate=sampling_rate)
-        self.generator = SoundStreamGenerator(**generator_params)
-        self.discriminator = SoundStreamDiscriminator(**discriminator_params)
+        self.generator = FunCodecGenerator(**generator_params)
+        self.discriminator = FunCodecDiscriminator(**discriminator_params)
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
         )
@@ -192,20 +214,11 @@ class SoundStream(AbsGANCodec):
         self.fs = sampling_rate
         self.num_streams = generator_params["quantizer_n_q"]
         self.frame_shift = functools.reduce(
-            lambda x, y: x * y, generator_params["encdec_ratios"]
+            lambda x, y: x * y[0], generator_params["encdec_ratios"]
         )
         self.code_size_per_stream = [
             generator_params["quantizer_bins"]
         ] * self.num_streams
-
-        # loss balancer
-        if use_loss_balancer:
-            self.loss_balancer = Balancer(
-                ema_decay=balance_ema_decay,
-                per_batch_item=True,
-            )
-        else:
-            self.loss_balancer = None
 
     def meta_info(self) -> Dict[str, Any]:
         return {
@@ -331,24 +344,6 @@ class SoundStream(AbsGANCodec):
                 stats.update(mel_loss_real=mel_loss_real.item())
 
         stats.update(loss=loss.item())
-
-        if self.loss_balancer is not None and self.training:
-            # any loss built on audio_hat is processed by balancer
-            balanced_losses = {
-                "reconstruct": reconstruct_loss,
-                "adv": adv_loss,
-            }
-            if self.use_feat_match_loss:
-                balanced_losses.update(feat_match=feat_match_loss)
-            if self.use_mel_loss:
-                balanced_losses.update(mel=mel_loss)
-
-            balanced_loss, norm_stats = self.loss_balancer(balanced_losses, audio_hat)
-            stats.update(norm_stats)
-
-            loss = sum(balanced_loss.values()) + codec_loss
-            if self.use_mel_loss and self.use_dual_decoder:
-                loss = loss + mel_loss_real
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -490,18 +485,19 @@ class SoundStream(AbsGANCodec):
         return self.generator.decode(x)
 
 
-class SoundStreamGenerator(nn.Module):
-    """SoundStream generator module."""
+class FunCodecGenerator(nn.Module):
+    """FunCodec generator module."""
 
     @typechecked
     def __init__(
         self,
         sample_rate: int = 24000,
         hidden_dim: int = 128,
+        codebook_dim: int = 8,
         encdec_channels: int = 1,
         encdec_n_filters: int = 32,
         encdec_n_residual_layers: int = 1,
-        encdec_ratios: List[int] = [8, 5, 4, 2],
+        encdec_ratios: List[Tuple[int, int]] = [(4, 1), (4, 1), (4, 2), (4, 1)],
         encdec_activation: str = "ELU",
         encdec_activation_params: Dict[str, Any] = {"alpha": 1.0},
         encdec_norm: str = "weight_norm",
@@ -525,16 +521,49 @@ class SoundStreamGenerator(nn.Module):
         quantizer_kmeans_iters: int = 50,
         quantizer_threshold_ema_dead_code: int = 2,
         quantizer_target_bandwidth: List[float] = [7.5, 15],
+        quantizer_dropout: bool = True,
+        codec_domain: List = ("time", "time"),
+        domain_conf: Optional[Dict] = {},
+        audio_normalize: bool = False,
     ):
-        """Initialize SoundStream Generator.
+        """Initialize FunCodec Generator.
 
         Args:
             TODO(jiatong)
         """
         super().__init__()
 
+        # define domain transformation module
+        self.codec_domain = codec_domain
+        self.domain_conf = domain_conf
+        if codec_domain[0] in ["stft", "mag_phase", "mag_angle", "mag_oracle_phase"]:
+            self.enc_trans_func = torchaudio.transforms.Spectrogram(
+                n_fft=domain_conf.get("n_fft", 512),
+                hop_length=domain_conf.get("hop_length", 160),
+                power=None,
+            )
+        elif codec_domain[0] in ["mag"]:
+            self.enc_trans_func = torchaudio.transforms.Spectrogram(
+                n_fft=domain_conf.get("n_fft", 512),
+                hop_length=domain_conf.get("hop_length", 160),
+                power=1,
+            )
+        elif codec_domain[0] == "mel":
+            self.enc_trans_func = torchaudio.transforms.MelSpectrogram(
+                sample_rate=target_sample_hz,
+                n_fft=domain_conf.get("n_fft", 512),
+                hop_length=domain_conf.get("hop_length", 160),
+                n_mels=80,
+                power=2,
+            )
+        if codec_domain[1] in ["stft", "mag_phase", "mag_angle", "mag_oracle_phase"]:
+            self.dec_trans_func = torchaudio.transforms.InverseSpectrogram(
+                n_fft=domain_conf.get("n_fft", 512),
+                hop_length=domain_conf.get("hop_length", 160),
+            )
+
         # Initialize encoder
-        self.encoder = SEANetEncoder(
+        self.encoder = SEANetEncoder2d(
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -558,19 +587,21 @@ class SoundStreamGenerator(nn.Module):
         # Initialize quantizer
         self.quantizer = ResidualVectorQuantizer(
             dimension=hidden_dim,
+            codebook_dim=codebook_dim,
             n_q=quantizer_n_q,
             bins=quantizer_bins,
             decay=quantizer_decay,
             kmeans_init=quantizer_kmeans_init,
             kmeans_iters=quantizer_kmeans_iters,
             threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
+            quantizer_dropout=quantizer_dropout,
         )
         self.target_bandwidths = quantizer_target_bandwidth
         self.sample_rate = sample_rate
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
 
         # Initialize decoder
-        self.decoder = SEANetDecoder(
+        self.decoder = SEANetDecoder2d(
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -597,9 +628,113 @@ class SoundStreamGenerator(nn.Module):
         # quantization loss
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
+        self.codec_domain = codec_domain
+        self.domain_conf = domain_conf
+        self.audio_normalize = audio_normalize
+
+    def time_to_freq_transfer(self, x: torch.Tensor):
+        if self.audio_normalize:
+            mono = x.mean(dim=1, keepdim=True)
+            volume = mono.pow(2).mean(dim=2, keepdim=True).sqrt()
+            scale = 1e-8 + volume
+            x = x / scale
+            scale = scale.view(-1, 1)
+        else:
+            scale = None
+
+        if self.codec_domain[0] == "stft":
+            x_complex = self.enc_trans_func(x.squeeze(1))
+            if self.encoder.channels == 2:
+                x = torch.stack([x_complex.real, x_complex.imag], dim=1)
+            else:
+                x = torch.cat([x_complex.real, x_complex.imag], dim=1)
+        elif self.codec_domain[0] == "mag":
+            x_mag = self.enc_trans_func(x.squeeze(1))
+            if self.encoder.channels == 1:
+                x = x_mag.unsqueeze(1)
+            else:
+                x = x_mag
+        elif self.codec_domain[0] == "mag_angle":
+            x_complex = self.enc_trans_func(x.squeeze(1))
+            x_mag = torch.abs(x_complex)
+            x_log_mag = torch.log(torch.clamp(x_mag, min=1e-6))
+            x_angle = torch.angle(x_complex)
+            if self.encoder.channels == 2:
+                x = torch.stack([x_log_mag, x_angle], dim=1)
+            else:
+                x = torch.cat([x_log_mag, x_angle], dim=1)
+        elif self.codec_domain[0] == "mag_phase":
+            x_complex = self.enc_trans_func(x.squeeze(1))
+            x_mag = torch.abs(x_complex)
+            x_log_mag = torch.log(torch.clamp(x_mag, min=1e-6))
+            x_phase = x_complex / torch.clamp(x_mag, min=1e-6)
+            if self.encoder.channels == 3:
+                x = torch.stack([x_log_mag, x_phase.real, x_phase.imag], dim=1)
+            else:
+                x = torch.cat([x_log_mag, x_phase.real, x_phase.imag], dim=1)
+        elif self.codec_domain[0] == "mel":
+            x = self.enc_trans_func(x.squeeze(1))
+            if self.encoder.channels == 1:
+                x = x.unsqueeze(1)
+        elif self.codec_domain[0] == "mag_oracle_phase":
+            x_complex = self.enc_trans_func(x.squeeze(1))
+            x = torch.abs(x_complex)
+            if self.encoder.channels == 1:
+                x = x.unsqueeze(1)
+            x_phase = torch.angle(x_complex)
+            scale = (scale, x_phase)
+        return x, scale
+
+    def freq_to_time_transfer(self, x: torch.Tensor, scale: torch.Tensor = None):
+        if self.codec_domain[1] == "stft":
+            if len(x.shape) == 3:
+                out_list = torch.split(x, x.shape[1] // 2, dim=1)
+            else:
+                out_list = torch.split(x, 1, dim=1)
+            x = torch.complex(out_list[0], out_list[1])
+            x = self.dec_trans_func(x).unsqueeze(1)
+        elif self.codec_domain[1] == "mag_phase":
+            if len(x.shape) == 3:
+                out_list = torch.split(x, x.shape[1] // 3, dim=1)
+            else:
+                out_list = [x.squeeze(1) for x in torch.split(x, 1, dim=1)]
+            x_mag = F.softplus(out_list[0])
+            x_phase = torch.complex(out_list[1], out_list[2])
+            x = x_mag * x_phase
+            x = self.dec_trans_func(x).unsqueeze(1)
+        elif self.codec_domain[1] == "mag_angle":
+            if len(x.shape) == 3:
+                out_list = torch.split(x, x.shape[1] // 2, dim=1)
+            else:
+                out_list = [x.squeeze(1) for x in torch.split(x, 1, dim=1)]
+            x_mag = F.softplus(out_list[0])
+            x_angle = torch.sin(out_list[1]) * torch.pi
+            x_spec = torch.complex(
+                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
+            )
+            x = self.dec_trans_func(x_spec).unsqueeze(1)
+        elif self.codec_domain[1] == "mag_oracle_phase":
+            if len(x.shape) == 4:
+                x = x.squeeze(1)
+            (scale, x_angle), x_mag = scale, x
+            x_spec = torch.complex(
+                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
+            )
+            x = self.dec_trans_func(x_spec).unsqueeze(1)
+        elif (
+            self.codec_domain[0]
+            in ["stft", "mag", "mag_phase", "mag_angle", "mag_oracle_phase"]
+            and self.codec_domain[1] == "time"
+        ):
+            hop_length = self.domain_conf.get("hop_length", 160)
+            x = x[:, :, hop_length // 2 : -hop_length // 2]
+
+        if scale is not None:
+            x = x * scale.view(-1, 1, 1)
+        return x
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """Soundstream forward propagation.
+        """FunCodec forward propagation.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
@@ -610,6 +745,7 @@ class SoundStreamGenerator(nn.Module):
             torch.Tensor: quantization loss
             torch.Tensor: resynthesized audio from encoder.
         """
+        x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         max_idx = len(self.target_bandwidths) - 1
 
@@ -617,14 +753,15 @@ class SoundStreamGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
 
         # Forward quantizer
-        quantized, _, _, commit_loss = self.quantizer(encoder_out, self.frame_rate, bw)
+        quantized, _, _, commit_loss, quantization_loss = self.quantizer(
+            encoder_out, self.frame_rate, bw
+        )
+        # quantization_loss = self.l1_quantization_loss(
+        #     encoder_out, quantized.detach()
+        # ) + self.l2_quantization_loss(encoder_out, quantized.detach())
 
-        quantization_loss = self.l1_quantization_loss(
-            encoder_out, quantized.detach()
-        ) + self.l2_quantization_loss(encoder_out, quantized.detach())
-
-        resyn_audio = self.decoder(quantized)
-
+        resyn_audio = self.decoder(quantized)[:, :, :, : x.shape[3]]
+        resyn_audio = self.freq_to_time_transfer(resyn_audio)
         if use_dual_decoder:
             resyn_audio_real = self.decoder(encoder_out)
         else:
@@ -636,7 +773,7 @@ class SoundStreamGenerator(nn.Module):
         x: torch.Tensor,
         target_bw: Optional[float] = None,
     ):
-        """Soundstream codec encoding.
+        """FunCodec codec encoding.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
@@ -644,6 +781,7 @@ class SoundStreamGenerator(nn.Module):
             torch.Tensor: neural codecs in shape ().
         """
 
+        x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         if target_bw is None:
             bw = self.target_bandwidths[-1]
@@ -653,7 +791,7 @@ class SoundStreamGenerator(nn.Module):
         return codes
 
     def decode(self, codes: torch.Tensor):
-        """Soundstream codec decoding.
+        """FunCodec codec decoding.
 
         Args:
             codecs (torch.Tensor): neural codecs in shape ().
@@ -662,11 +800,12 @@ class SoundStreamGenerator(nn.Module):
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
+        resyn_audio = self.freq_to_time_transfer(resyn_audio)
         return resyn_audio
 
 
-class SoundStreamDiscriminator(nn.Module):
-    """SoundStream discriminator module."""
+class FunCodecDiscriminator(nn.Module):
+    """FunCodec discriminator module."""
 
     def __init__(
         self,
@@ -692,6 +831,21 @@ class SoundStreamDiscriminator(nn.Module):
             "nonlinear_activation_params": {"negative_slope": 0.1},
         },
         scale_follow_official_norm: bool = False,
+        # Multi period discriminator related
+        periods: List[int] = [2, 3, 5, 7, 11],
+        period_discriminator_params: Dict[str, Any] = {
+            "in_channels": 1,
+            "out_channels": 1,
+            "kernel_sizes": [5, 3],
+            "channels": 32,
+            "downsample_scales": [3, 3, 3, 3, 1],
+            "max_downsample_channels": 1024,
+            "bias": True,
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "use_weight_norm": True,
+            "use_spectral_norm": False,
+        },
         # ComplexSTFT discriminator related
         complexstft_discriminator_params: Dict[str, Any] = {
             "in_channels": 1,
@@ -704,7 +858,7 @@ class SoundStreamDiscriminator(nn.Module):
             "stft_normalized": False,
         },
     ):
-        """Initialize SoundStream Discriminator module.
+        """Initialize FunCodec Discriminator module.
 
         Args:
             scales (int): Number of multi-scales.
@@ -729,6 +883,10 @@ class SoundStreamDiscriminator(nn.Module):
             discriminator_params=scale_discriminator_params,
             follow_official_norm=scale_follow_official_norm,
         )
+        self.mpd = HiFiGANMultiPeriodDiscriminator(
+            periods=periods,
+            discriminator_params=period_discriminator_params,
+        )
         self.complex_stft_d = ComplexSTFTDiscriminator(
             **complexstft_discriminator_params
         )
@@ -746,5 +904,6 @@ class SoundStreamDiscriminator(nn.Module):
 
         """
         msd_outs = self.msd(x)
+        mpd_outs = self.mpd(x)
         complex_stft_outs = self.complex_stft_d(x)
-        return msd_outs + complex_stft_outs
+        return msd_outs + mpd_outs + complex_stft_outs
