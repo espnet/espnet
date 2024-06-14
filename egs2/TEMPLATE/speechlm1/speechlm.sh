@@ -85,7 +85,6 @@ inference_model=valid.acc.ave.pth # Model path for decoding.
 vocoder_file=none  # Vocoder parameter file.
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 nbest=1            # number of best hypotheses to generate during inference.
-rank_and_score=false # scoring each rank after doing batch inference.
 
 # Scoring related
 scoring_args=
@@ -103,6 +102,7 @@ tokenization_choices=""
 codec_choice="EnCodec"
 codec_checkpoint_path=null
 codec_config_path=null
+codec_hf_model_card=null
 semantic_choice="WavLM"
 semantic_opts=""
 g2p="g2p_en"
@@ -328,15 +328,20 @@ if ! "${skip_data_prep}"; then
                 elif [ ${_modality} == "codec" ]; then
                     echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/codec_tokenization.sh \
-                        --src_dir ${data_audio}/${dset} --tgt_dir ${data_feats}/${dset} \
-                        --codec_fs ${fs} --dump_audio false \
-                        --file_name ${_name} --nj ${nj} --codec_choice ${codec_choice} \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --codec_fs ${fs} \
+                        --dump_audio false \
+                        --file_name ${_name} \
+                        --nj ${nj} \
+                        --codec_choice ${codec_choice} \
                         --checkpoint_path ${codec_checkpoint_path} \
-                        --config_path ${codec_config_path}
+                        --config_path ${codec_config_path} \
+                        --codec_hf_model_card ${codec_hf_model_card}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"
-                    # # Use a small portion (up to 100k examples) for efficiency
+                    # Use a small portion (up to 100k examples) for efficiency
                     nutt=$(min "100000" "$(wc -l < ${data_audio}/${dset}/${_name})")
                     cat ${data_audio}/${dset}/${_name} | shuf | head -n ${nutt} \
                       > ${data_audio}/${dset}/${_name}.g2p_train && echo ""

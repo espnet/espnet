@@ -29,6 +29,7 @@ src_dir=
 tgt_dir=
 checkpoint_path=null
 config_path=null
+hf_model_card=null
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -82,6 +83,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --wav_wspecifier ${wav_wspecifier} \
             --checkpoint_path ${checkpoint_path} \
             --config_path ${config_path} \
+            --hf_model_card ${hf_model_card} \
             "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
     for n in $(seq ${_nj}); do

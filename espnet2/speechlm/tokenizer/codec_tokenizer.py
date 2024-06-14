@@ -18,6 +18,7 @@ class CodecTokenizer(AbsTokenizer):
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
+        hf_model_card: str = None,
         max_token_per_frame: int = 8,
     ):
         """Codec Tokenizer implementation that is used in:
@@ -40,11 +41,17 @@ class CodecTokenizer(AbsTokenizer):
         if self.codec_choice == "ESPnet":
             from espnet2.bin.gan_codec_inference import AudioCoding
 
-            model = AudioCoding(
-                train_config=config_path,
-                model_file=checkpoint_path,
-                device=str(device),
-            )
+            if hf_model_card is not None:
+                model = AudioCoding(
+                    train_config=hf_model_card,
+                    device=str(device),
+                )
+            else:
+                model = AudioCoding(
+                    train_config=config_path,
+                    model_file=checkpoint_path,
+                    device=str(device),
+                )
             self.codec = model
 
             meta_info = self.codec.model.meta_info()
