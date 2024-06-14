@@ -42,7 +42,7 @@ class SpeechLM:
         dtype: str = "float32",
         device: str = "cpu",
         verbose: bool = False,
-        search_algo: str = "sampling",
+        search_algo: str = "topk_sampling",
         inference_nq: Optional[int] = None,
         nbest: int = 1,
         sampling_temperature: float = 1.0,
@@ -112,6 +112,7 @@ class SpeechLM:
             self.bias = 0
 
     @typechecked
+    @torch.no_grad()
     def __call__(
         self,
         dec_seq: torch.Tensor,
@@ -216,7 +217,7 @@ def inference(
     model_file: Optional[str],
     model_tag: Optional[str],
     # inference related
-    search_algo: str = "sampling",
+    search_algo: str = "topk_sampling",
     nbest: int = 1,
     sampling_temperature: float = 1.0,
     top_k: int = 20,
@@ -246,10 +247,7 @@ def inference(
     else:
         device = "cpu"
 
-    # 1. Set random-seed
-    set_all_random_seed(seed)
-
-    # 2. parse task
+    # 1. parse task
     assert len(data_path_and_name_and_type) == 1, "Can only do inference for one json"
     task_name = json.load(open(data_path_and_name_and_type[0][0]))["task"]
     task = speechlm_tasks[task_name]
@@ -258,7 +256,7 @@ def inference(
         output_modality == tokenizer
     ), f"Tokenizer should be {output_modality} for task: {task_name}"
 
-    # 3. Build model
+    # 2. Build model
     speechlm_kwargs = dict(
         train_config=train_config,
         model_file=model_file,
@@ -278,7 +276,7 @@ def inference(
 
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
-    # 4. Build data-iterator
+    # 3. Build data-iterator
     loader = SpeechLMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -292,7 +290,7 @@ def inference(
         multi_task_dataset=True,
     )
 
-    # 5 Start for-loop
+    # 4 Start for-loop
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
     (output_dir / "token").mkdir(parents=True, exist_ok=True)
     (output_dir / "score").mkdir(parents=True, exist_ok=True)
@@ -315,7 +313,12 @@ def inference(
 
         batch = to_device(batch, device=device)
         key = keys[0]
+        
         logging.info(f"Inference on example: {key}")
+
+        # NOTE (Jinchuan): set random seed for each example so each result can be
+        # reproduced independently.
+        set_all_random_seed(seed)
 
         # (1) model infernece
         contents, conditions, tokens, scores = speechlm(**batch)
@@ -326,7 +329,7 @@ def inference(
         # (2) parse and save generated content
         for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
             example_name = f"{key}_sample{h_idx}"
-
+            
             if output_modality == "codec":
                 wave_path = output_dir / output_name / f"{example_name}.wav"
                 writer.write(f"{example_name} {str(wave_path)}\n")
@@ -353,6 +356,10 @@ def inference(
 
         # (3) parse and save conditon content
         if verbose:
+            # NOTE(Jinchuan): remove task prefix so that the recorded prefix will have the same
+            # format like other reference file. E.g., text in original dataset
+            key = key.lstrip(f"{task_name}_")
+            
             assert len(conditions) == len(prefix_triplets)
             for c_idx, (content, modality, detokenized) in enumerate(conditions):
                 if not detokenized:
@@ -363,8 +370,9 @@ def inference(
 
                 if prefix_writers[c_idx] == None:
                     (output_dir / name).mkdir(parents=True, exist_ok=True)
-                    writer = open(output_dir / name / "example_list", "w")
-                    prefix_writers[c_idx] = writer
+                    prefix_writer = open(output_dir / name / "example_list", "w")
+                    prefix_writers[c_idx] = prefix_writer
+                prefix_writer = prefix_writers[c_idx]
 
                 if modality in ["codec", "spk"]:
                     content_path = output_dir / name / f"{key}.wav"
@@ -373,19 +381,18 @@ def inference(
                         content.cpu(),
                         sample_rate=speechlm.tokenizer.sample_rate,
                     )
-                    writer.write(f"{key} {content_path}\n")
-                    logging.info(f"save prefix {name} audio {key}: {content_path}")
+                    prefix_writer.write(f"{key} {content_path}\n")
+                    logging.info(f"save prefix audio {name} audio {key}: {content_path}")
 
                 elif modality in ["g2p"]:
-                    writer.write(f"{key} {content}\n")
+                    prefix_writer.write(f"{key} {content}\n")
                     logging.info(f"prefix part {modality}: {content}")
 
                 else:
                     raise ValueError(
                         f"save prefix in modality {modality} is not supported yet"
                     )
-
-
+        
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
@@ -494,8 +501,8 @@ def get_parser():
     group.add_argument(
         "--search_algo",
         type=str,
-        default="sampling",
-        choices=["sampling", "teacher_force", "beam_search", "greedy_search"],
+        default="topk_sampling",
+        choices=["topk_sampling", "topp_sampling", "teacher_force", "beam_search", "greedy_search"],
         help="the search algorithm of SpeechLM",
     )
     group.add_argument(

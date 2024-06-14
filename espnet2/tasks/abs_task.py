@@ -613,6 +613,12 @@ class AbsTask(ABC):
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
         )
         group.add_argument(
+            "--max_loss_scale",
+            type=float,
+            default=1e30,
+            help="The maximum loss scale when using amp",
+        )
+        group.add_argument(
             "--log_interval",
             type=int_or_none,
             default=None,

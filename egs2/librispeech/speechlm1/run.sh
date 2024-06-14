@@ -8,6 +8,7 @@ set -o pipefail
 train_set=train_960
 valid_set=dev_clean
 test_sets="dev_clean test_clean"
+test_sets="test_clean_7spk"
 
 train_config=conf/train_multiscale.yaml
 inference_config=conf/decode_encodec.yaml

@@ -27,7 +27,7 @@ SECONDS=0
 
 # General configuration
 stage=1
-stop_stage=2
+stop_stage=3
 nj=8
 inference_nj=8
 gpu_inference=false
@@ -136,7 +136,6 @@ if ${gpu_inference}; then
     # shellcheck disable=SC2154
     _cmd="${cuda_cmd}"
     _ngpu=1
-    inference_nj=1
 else
     # shellcheck disable=SC2154
     _cmd="${decode_cmd}"
@@ -201,6 +200,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
             python3 pyscripts/utils/evaluate_whisper_inference.py \
                 --ngpu "${_ngpu}" \
+                --rank JOB \
                 --data_path_and_name_and_type "${wavscp}" \
                 --key_file "${logdir}"/keys.JOB.scp \
                 --model_tag ${whisper_tag} \

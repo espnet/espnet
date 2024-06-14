@@ -56,6 +56,7 @@ class Speech2Text:
 def inference(
     output_dir: str,
     ngpu: int,
+    rank: int,
     seed: int,
     num_workers: int,
     log_level: Union[int, str],
@@ -74,8 +75,12 @@ def inference(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if ngpu >= 1:
-        device = "cuda"
+    if torch.cuda.is_available() and ngpu >= 1:
+        if torch.cuda.device_count() > 1:
+            device_id = rank % torch.cuda.device_count()
+        else:
+            device_id = 0
+        device = f"cuda:{device_id}"
     else:
         device = "cpu"
 
@@ -131,6 +136,12 @@ def get_parser():
         type=int,
         default=0,
         help="The number of gpus. 0 indicates CPU mode",
+    )
+    parser.add_argument(
+        "--rank",
+        type=int,
+        default=0,
+        help="global work rank",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
