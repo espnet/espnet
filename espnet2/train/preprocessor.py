@@ -1864,6 +1864,7 @@ class SpkPreprocessor(CommonPreprocessor):
     Args:
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
+        spf2utt (str): Path to the `spf2utt` file.
         target_duration (float): Target duration in seconds.
         sample_rate (int): Sampling rate.
         num_eval (int): Number of utterances to be used for evaluation.
@@ -1886,6 +1887,7 @@ class SpkPreprocessor(CommonPreprocessor):
         train: bool,
         target_duration: float,  # in seconds
         spk2utt: Optional[str] = None,
+        spf2utt: Optional[str] = None,
         sample_rate: int = 16000,
         num_eval: int = 10,
         rir_scp: Optional[str] = None,
@@ -1899,6 +1901,7 @@ class SpkPreprocessor(CommonPreprocessor):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.spk2label = None  # a dictionary that maps string speaker label to int
+        self.spf2label = None  # a dictionary that maps string spoof label to int
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
         self.num_eval = num_eval
@@ -1906,6 +1909,11 @@ class SpkPreprocessor(CommonPreprocessor):
         if train:
             with open(spk2utt, "r") as f_s2u:
                 self.spk2utt = f_s2u.readlines()
+            if spf2utt is not None and spf2utt != "":
+                with open(spf2utt, "r") as f_spf2u:
+                    self.spf2utt = f_spf2u.readlines()
+            else:
+                self.spf2utt = None
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
 
@@ -1942,6 +1950,8 @@ class SpkPreprocessor(CommonPreprocessor):
         msg = f"{name}(train={self.train}"
         if self.spk2label:
             msg += f", len(spk2label)={len(self.spk2label)}"
+        if self.spf2label is not None:
+            msg += f", len(spf2label)={len(self.spf2label)}"
         for key in ("target_duration", "sample_rate", "num_eval"):
             if getattr(self, key):
                 msg += f", {key}={getattr(self, key)}"
@@ -1962,6 +1972,16 @@ class SpkPreprocessor(CommonPreprocessor):
             spk = spk.strip().split(" ")[0]
             self.spk2label[spk] = label_idx
             label_idx += 1
+
+        label_idx = 0
+        self.spf2label = {}
+        if self.spf2utt is not None:
+            for spf in self.spf2utt:
+                spf = spf.strip().split(" ")[0]
+                self.spf2label[spf] = label_idx
+                label_idx += 1
+        else:
+            self.spf2label = None
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         if self.train:
@@ -2110,12 +2130,17 @@ class SpkPreprocessor(CommonPreprocessor):
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        """Make speaker labels into integers."""
+        """Make speaker and optionally spoof labels into integers."""
         if self.train:
             int_label = self.spk2label[data["spk_labels"]]
             data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+            if self.spf2label is not None:
+                int_label = self.spf2label[data["spf_labels"]]
+                data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
+            if self.spf2label is not None:
+                data["spf_labels"] = np.asarray([int(data["spf_labels"])])
 
         if "task_tokens" in data:
             data["task_tokens"] = np.asarray([int(data["task_tokens"])])
@@ -2126,7 +2151,6 @@ class SpkPreprocessor(CommonPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-
         data = self._text_process(data)
         data = self._speech_process(data)
 

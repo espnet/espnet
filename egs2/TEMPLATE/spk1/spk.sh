@@ -37,7 +37,7 @@ skip_upload_hf=true   # Skip uploading to huggingface stage.
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
-nj=32                 # The number of parallel jobs.
+nj=4                 # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
@@ -48,7 +48,7 @@ fold_length=120000    # fold_length for speech data during enhancement training.
 local_data_opts= # The options given to local/data.sh
 
 # Speed perturbation related
-speed_perturb_factors="0.9 1.0 1.1" # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+speed_perturb_factors= # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
 feats_type=raw      # Feature type (raw, raw_copy, fbank_pitch, or extracted).
@@ -72,6 +72,11 @@ inference_config=conf/decode.yaml   # Inference configuration
 inference_model=valid.eer.best.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
+
+# Speaker Task related
+multi_task=false      # Apply multi-task learning in speaker recognition
+sasv_task=false       # Apply speaker anti-spoofing task in speaker recognition
+spf_args=             # Parameters for spoofing
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
@@ -260,10 +265,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${feats_type}" = raw ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
-
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
             for x in music noise speech; do
                 cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             done
@@ -292,6 +301,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
             cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt"
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086
@@ -318,6 +332,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
             # category2utt will be used bydata sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # if spf2utt exists, copy it and utt2spf
+            if [ -f data/"${train_set}/spf2utt" ]; then
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+            fi
             for x in music noise speech; do
                 cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             done
@@ -435,6 +454,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _opts+="--config ${spk_config} "
     fi
 
+    # Check if multi_task and sasv_task are both true
+    if [ "$multi_task" = true ] && [ "$sasv_task" = true ]; then
+        spf_args="--train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
+                    --spf2utt ${_spk_train_dir}/spf2utt \
+                    --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d' ')"
+    fi
+
     log "Spk training started... log: '${spk_exp}/train.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
@@ -467,6 +493,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
+            ${spf_args} \
             ${_opts} ${spk_args}
 fi
 
