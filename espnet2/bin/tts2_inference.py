@@ -117,6 +117,7 @@ class Text2Speech:
         self,
         text: Union[str, torch.Tensor, np.ndarray],
         speech: Union[torch.Tensor, np.ndarray, None] = None,
+        discrete_speech: Union[torch.Tensor, np.ndarray, None] = None,
         durations: Union[torch.Tensor, np.ndarray, None] = None,
         spembs: Union[torch.Tensor, np.ndarray, None] = None,
         sids: Union[torch.Tensor, np.ndarray, None] = None,
@@ -141,6 +142,8 @@ class Text2Speech:
         batch = dict(text=text)
         if speech is not None:
             batch.update(speech=speech)
+        if discrete_speech is not None:
+            batch.update(discrete_speech=discrete_speech)
         if durations is not None:
             batch.update(durations=durations)
         if spembs is not None:
