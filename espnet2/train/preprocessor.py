@@ -1422,7 +1422,9 @@ class EnhPreprocessor(CommonPreprocessor):
                 volume_scale = self.volume_low
             ma = np.max(np.abs(data[self.speech_name]))
             if ma != 0:
-                self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+                self._apply_to_all_signals(
+                    data, lambda x: x * volume_scale / ma, num_spk
+                )
 
         if self.categories and "category" in data:
             category = data.pop("category")
@@ -1534,7 +1536,9 @@ class SVSPreprocessor(AbsPreprocessor):
                 singing = data[self.singing_name]
                 ma = np.max(np.abs(singing))
                 if ma != 0:
-                    data[self.singing_name] = singing * self.singing_volume_normalize / ma
+                    data[self.singing_name] = (
+                        singing * self.singing_volume_normalize / ma
+                    )
 
         if self.midi_name in data and self.label_name in data:
             # Load label info
