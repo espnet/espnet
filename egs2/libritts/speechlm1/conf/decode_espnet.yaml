@@ -1,0 +1,11 @@
+tokenizer: codec
+search_algo: topk_sampling
+sampling_temperature: 1.5
+minlenratio: 0.05
+top_k: 20
+seed: 1
+tokenizer_conf:
+    codec_choice: ESPnet
+    codec_fs: 24000
+    checkpoint_path: espnet_codec/24khz_soundstream/train.total_count.best.pth
+    config_path: espnet_codec/24khz_soundstream/config.yaml

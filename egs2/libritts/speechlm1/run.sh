@@ -10,8 +10,8 @@ valid_set=dev-clean
 test_sets="test-clean"
 
 train_config=conf/train_valle.yaml
-train_config=conf/train_multiscale.yaml
-inference_config=conf/decode_encodec.yaml
+# train_config=conf/train_multiscale.yaml
+inference_config=conf/decode_espnet.yaml
 
 cleaner=tacotron
 g2p=g2p_en_no_space # or g2p_en
