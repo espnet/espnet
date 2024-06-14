@@ -13,7 +13,7 @@
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 0.1
   power_threshold: -20
-  dtw: True
+  dtw: false
 
 # signal related metrics
 # -- sir: signal to interference ratio
@@ -30,3 +30,9 @@
 # stoi related metrics
 # -- stoi: short-time objective intelligibility
 - name: stoi
+
+
+# visqol metric
+# -- visqol: visual quality of speech
+- name: visqol
+  model: speech
