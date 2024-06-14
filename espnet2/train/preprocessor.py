@@ -468,7 +468,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     # NOTE(jiatong): default average across channels
                     speech = np.mean(speech, axis=1, keepdims=False)
                 data[self.speech_name] = speech
-                
+
         return data
 
     def _text_process(
