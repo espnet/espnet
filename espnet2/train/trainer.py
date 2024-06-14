@@ -420,7 +420,6 @@ class Trainer:
                             if not p.requires_grad:
                                 model_state_dict.pop(n)
 
-<<<<<<< HEAD
                 torch.save(
                     {
                         "model": model_state_dict,
@@ -436,19 +435,6 @@ class Trainer:
                 )
                 # for large model, we can use this to resume the training.
                 shutil.copy(output_dir / "checkpoint.pth", output_dir / f"checkpoint_{iepoch}.pth",)
-=======
-                all_state_dict = {
-                    "model": model_state_dict,
-                    "reporter": reporter.state_dict(),
-                    "optimizers": optim_state_dict,
-                    "schedulers": [
-                        s.state_dict() if s is not None else None for s in schedulers
-                    ],
-                    "scaler": scaler.state_dict() if scaler is not None else None,
-                }
-
-                torch.save(all_state_dict, output_dir / "checkpoint.pth")
->>>>>>> 08b563f2ba249d04af2999ee492cd256a3aad3a0
 
                 # 5. Save and log the model and update the link to the best model
                 torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
@@ -773,8 +759,8 @@ class Trainer:
                             if optim_idx is not None and iopt != optim_idx:
                                 continue
                             scaler.step(optimizer)
-                            if scaler.get_scale() > TrainerOptions.max_loss_scale:
-                                scaler.update(TrainerOptions.max_loss_scale)
+                            if scaler.get_scale() > options.max_loss_scale:
+                                scaler.update(options.max_loss_scale)
                             else:
                                 scaler.update()
 
@@ -802,8 +788,8 @@ class Trainer:
                                 # the optimizer's assigned params.
                                 scaler.step(optimizer)
                                 # Updates the scale for next iteration.
-                                if scaler.get_scale() > TrainerOptions.max_loss_scale:
-                                    scaler.update(TrainerOptions.max_loss_scale)
+                                if scaler.get_scale() > options.max_loss_scale:
+                                    scaler.update(options.max_loss_scale)
                                 else:
                                     scaler.update()
                             else:
