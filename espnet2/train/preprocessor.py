@@ -417,7 +417,8 @@ class CommonPreprocessor(AbsPreprocessor):
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
-                data[self.speech_name] = speech * self.speech_volume_normalize / ma
+                if ma != 0:
+                    data[self.speech_name] = speech * self.speech_volume_normalize / ma
         return data
 
     def _text_process(
@@ -1420,7 +1421,8 @@ class EnhPreprocessor(CommonPreprocessor):
                 # use a fixed scale to make it deterministic
                 volume_scale = self.volume_low
             ma = np.max(np.abs(data[self.speech_name]))
-            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+            if ma != 0:
+                self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
 
         if self.categories and "category" in data:
             category = data.pop("category")
@@ -1531,7 +1533,8 @@ class SVSPreprocessor(AbsPreprocessor):
             if self.singing_volume_normalize is not None:
                 singing = data[self.singing_name]
                 ma = np.max(np.abs(singing))
-                data[self.singing_name] = singing * self.singing_volume_normalize / ma
+                if ma != 0:
+                    data[self.singing_name] = singing * self.singing_volume_normalize / ma
 
         if self.midi_name in data and self.label_name in data:
             # Load label info
