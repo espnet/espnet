@@ -5,11 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-train_set=test_clean
-valid_set=dev_clean
-test_sets="test_other"
+train_set=train-clean-460
+valid_set=dev-clean
+test_sets="test-clean"
 
 train_config=conf/train_valle.yaml
+train_config=conf/train_multiscale.yaml
 inference_config=conf/decode_encodec.yaml
 
 cleaner=tacotron
@@ -22,9 +23,10 @@ local_data_opts="--trim_all_silence true" # trim all silence in the audio
 #                     some corner cases in memeory
 ./speechlm.sh \
     --task "tts" \
+    --data_name libritts \
     --fs 24000 \
     --ngpu 4 \
-    --nj 32 \
+    --nj 64 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
     --inference_nj 1 \
@@ -36,7 +38,9 @@ local_data_opts="--trim_all_silence true" # trim all silence in the audio
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --codec_choice EnCodec \
+    --codec_choice ESPnet \
+    --codec_checkpoint_path espnet_codec/24khz_soundstream/train.total_count.best.pth \
+    --codec_config_path espnet_codec/24khz_soundstream/config.yaml \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
     "$@"
