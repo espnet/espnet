@@ -645,7 +645,8 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_volume_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">speech</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span>
                 <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">speech</span><span class="p">))</span>
-                <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_volume_normalize</span> <span class="o">/</span> <span class="n">ma</span>
+                <span class="k">if</span> <span class="n">ma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_volume_normalize</span> <span class="o">/</span> <span class="n">ma</span>
         <span class="k">return</span> <span class="n">data</span>
 
     <span class="k">def</span> <span class="nf">_text_process</span><span class="p">(</span>
@@ -1648,7 +1649,10 @@
                 <span class="c1"># use a fixed scale to make it deterministic</span>
                 <span class="n">volume_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_low</span>
             <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">volume_scale</span> <span class="o">/</span> <span class="n">ma</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">volume_scale</span> <span class="o">/</span> <span class="n">ma</span><span class="p">,</span> <span class="n">num_spk</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="ow">and</span> <span class="s2">&quot;category&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
             <span class="n">category</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
@@ -1759,7 +1763,10 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">singing</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">singing_name</span><span class="p">]</span>
                 <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">singing</span><span class="p">))</span>
-                <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">singing_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">singing</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="o">/</span> <span class="n">ma</span>
+                <span class="k">if</span> <span class="n">ma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">singing_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">singing</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="o">/</span> <span class="n">ma</span>
+                    <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
             <span class="c1"># Load label info</span>
