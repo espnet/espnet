@@ -70,7 +70,6 @@ fi
     --g2p "g2p_en_no_space" \
     --inference_nj 8 \
     --nbest 10 \
-    --rank_and_score true \
     --gpu_inference true \
     --audio_format "flac.ark" \
     --train_config ${train_config} \

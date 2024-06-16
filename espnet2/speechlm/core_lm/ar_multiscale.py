@@ -81,6 +81,7 @@ class MultiScaleLM(AbsCoreLM):
         )
 
         self.nq = nq
+        self.n_ctx = n_ctx
         self.first_layer_weight = first_layer_weight
 
     def forward(
@@ -169,8 +170,11 @@ class MultiScaleLM(AbsCoreLM):
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = int(prefix.size(1) * opts.maxlenratio)
         if opts.search_algo == "teacher_force":
+            assert suffix is not None
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
+        if maxlen + prefix.size(1) > self.n_ctx:
+            maxlen = self.n_ctx - prefix.size(1)
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)

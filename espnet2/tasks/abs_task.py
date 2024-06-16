@@ -615,7 +615,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--max_loss_scale",
             type=float,
-            default=1e30,
+            default=1e10,
             help="The maximum loss scale when using amp",
         )
         group.add_argument(

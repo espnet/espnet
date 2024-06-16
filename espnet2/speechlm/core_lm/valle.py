@@ -66,6 +66,7 @@ class ValleLM(AbsCoreLM):
         )
 
         self.nq = nq
+        self.n_ctx = n_ctx
 
     def forward(
         self,
@@ -186,6 +187,8 @@ class ValleLM(AbsCoreLM):
             assert suffix is not None
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
+        if maxlen + prefix.size(1) > self.n_ctx:
+            maxlen = self.n_ctx - prefix.size(1)
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         generated = {"token": [], "score": []}
