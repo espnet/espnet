@@ -64,7 +64,7 @@ codec_conf:
         include_final_outputs: true      # whether to include final outputs for loss calculation
     use_mel_loss: true     # whether to use mel-spectrogram loss
     mel_loss_params:
-        range_start: 5
+        range_start: 6
         range_end: 11
         window: hann        # window type
         n_mels: 80          # number of Mel basis
@@ -79,7 +79,7 @@ codec_conf:
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
-    cache_generator_outputs: false # whether to cache generator outputs in the training
+    cache_generator_outputs: true # whether to cache generator outputs in the training
     use_loss_balancer: false
 
 ##########################################################
@@ -113,24 +113,23 @@ skip_discriminator_prob: 0.3
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 5000 # number of iterations per epoch
-max_epoch: 120            # number of epochs
+max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 96            # CHANGED
+batch_size: 128             # CHANGED
 batch_type: unsorted      # how to make batch
 
 iterator_type: chunk
-chunk_length: 44544       # CHANGED
+chunk_length: 44544 # CHANGED
 num_cache_chunks: 128
-
 
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
-num_workers: 4            # number of workers of data loader
+num_workers: 1            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
-use_tf32: true            # whether to use pytorch tf32
-log_interval: 1000        # log interval in iterations
+use_tf32: true 
+log_interval: 500         # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
@@ -138,6 +137,9 @@ patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case
 best_model_criterion:     # criterion to save the best models
 -   - valid
+    - mel_loss
+    - min
+-   - train
     - mel_loss
     - min
 -   - train

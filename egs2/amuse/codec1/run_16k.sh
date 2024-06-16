@@ -7,11 +7,11 @@ set -o pipefail
 
 fs=16000
 
-train_set=speech_train
+train_set=train
 valid_set=dev-small
 test_sets="speech_test"
 
-train_config=conf/train_soundstream4.yaml
+train_config=conf/train_encodec_fs16000.yaml
 inference_config=conf/decode.yaml
 
 ./codec.sh \
@@ -19,6 +19,7 @@ inference_config=conf/decode.yaml
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --nj 60 \
+    --ngpu 4 \
     --gpu_inference true \
     --audio_format flack.ark \
     --inference_nj 2 \

@@ -3,7 +3,7 @@
 ##########################################################
 codec: soundstream
 codec_conf:
-    sampling_rate: 44100
+    sampling_rate: 16000
 
     # generator related
     generator_params:
@@ -11,7 +11,7 @@ codec_conf:
         encdec_channels: 1
         encdec_n_filters: 32
         encdec_n_residual_layers: 3
-        encdec_ratios: [2, 4, 8, 8]
+        encdec_ratios: [8, 5, 4, 2]
         encdec_activation: ELU
         encdec_activation_params:
             alpha: 1.0
@@ -84,7 +84,7 @@ codec_conf:
         include_final_outputs: true      # whether to include final outputs for loss calculation
     use_mel_loss: true     # whether to use mel-spectrogram loss
     mel_loss_params:
-        range_start: 5
+        range_start: 6
         range_end: 11
         window: hann        # window type
         n_mels: 80          # number of Mel basis
@@ -107,7 +107,7 @@ codec_conf:
 # optimizer setting for generator
 optim: adam # [CHANGED]
 optim_conf:
-    lr: 1.0e-4
+    lr: 2.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -117,7 +117,7 @@ scheduler_conf:
 # optimizer setting for discriminator
 optim2: adam
 optim2_conf:
-    lr: 1.0e-4
+    lr: 2.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -131,23 +131,23 @@ generator_first: true # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 5000 # number of iterations per epoch
-max_epoch: 120            # number of epochs
+max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 128            # CHANGED
+batch_size: 64             # CHANGED
 batch_type: unsorted      # how to make batch
 
 iterator_type: chunk
-chunk_length: 44100 # CHANGED
+chunk_length: 32000 # CHANGED
 num_cache_chunks: 128
-
 
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
-num_workers: 0            # number of workers of data loader
-use_amp: true             # whether to use pytorch amp
-log_interval: 200         # log interval in iterations
+num_workers: 1            # number of workers of data loader
+use_amp: false            # whether to use pytorch amp
+use_tf32: true 
+log_interval: 50          # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
@@ -155,6 +155,9 @@ patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case
 best_model_criterion:     # criterion to save the best models
 -   - valid
+    - mel_loss
+    - min
+-   - train
     - mel_loss
     - min
 -   - train
