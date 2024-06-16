@@ -37,7 +37,7 @@ skip_upload_hf=true   # Skip uploading to huggingface stage.
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
-nj=8                 # The number of parallel jobs.
+nj=2                # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
@@ -64,12 +64,12 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
-pretrained_model=     # Pretrained model to load
-ignore_init_mismatch=false      # Ignore initial mismatch
+pretrained_model=9epoch.pth     # Pretrained model to load
+ignore_init_mismatch=true      # Ignore initial mismatch
 
 # Inference related
 inference_config=conf/decode.yaml   # Inference configuration
-inference_model=valid.eer.best.pth  # Inference model weight file
+inference_model=valid.a_dcf.best.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 

@@ -23,6 +23,7 @@ from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfro
 
 from a_dcf import a_dcf
 import re
+from tqdm import tqdm
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -69,11 +70,13 @@ class SpkTrainer(Trainer):
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
-        # fill dictionary with speech samples
-        utt_id_list = []
-        speech_list = []
+        # trials list
+        trials_list = []
+
         task_token = None
-        for utt_id, batch in iterator:
+        for utt_id, batch in tqdm(iterator):
+            utt_id_list = []
+            speech_list = []
             bs = max(bs, len(utt_id))
             if "task_tokens" in batch:
                 task_token = batch["task_tokens"][0]
@@ -94,36 +97,36 @@ class SpkTrainer(Trainer):
                         to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
                     )
 
-        # extract speaker embeddings.
-        n_utt = len(utt_id_list)
-        for ii in range(0, n_utt, bs):
-            _utt_ids = utt_id_list[ii : ii + bs]
-            _speechs = speech_list[ii : ii + bs]
-            _speechs = torch.stack(_speechs, dim=0)
-            org_shape = (_speechs.size(0), _speechs.size(1))
-            _speechs = _speechs.flatten(0, 1)
-            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+            # extract speaker embeddings.
+            n_utt = len(utt_id_list)
+            for ii in range(0, n_utt, bs):
+                _utt_ids = utt_id_list[ii : ii + bs]
+                _speechs = speech_list[ii : ii + bs]
+                _speechs = torch.stack(_speechs, dim=0)
+                org_shape = (_speechs.size(0), _speechs.size(1))
+                _speechs = _speechs.flatten(0, 1)
+                _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
 
-            if task_token is None:
-                task_tokens = None
-            else:
-                task_tokens = to_device(
-                    task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
-                ).unsqueeze(1)
-            spk_embds = model(
-                speech=_speechs,
-                spk_labels=None,
-                extract_embd=True,
-                task_tokens=task_tokens,
-            )
-            spk_embds = F.normalize(spk_embds, p=2, dim=1)
-            spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+                if task_token is None:
+                    task_tokens = None
+                else:
+                    task_tokens = to_device(
+                        task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                    ).unsqueeze(1)
+                spk_embds = model(
+                    speech=_speechs,
+                    spk_labels=None,
+                    extract_embd=True,
+                    task_tokens=task_tokens,
+                )
+                spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
-            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
-                spk_embd_dic[_utt_id] = _spk_embd
+                for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+                    spk_embd_dic[_utt_id] = _spk_embd
 
-        del utt_id_list
-        del speech_list
+            del utt_id_list
+            del speech_list
 
         # calculate similarity scores
         for utt_id, batch in iterator:
@@ -137,6 +140,7 @@ class SpkTrainer(Trainer):
                     break
 
             for _utt_id in utt_id:
+                trials_list.append(_utt_id)
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
                 score = -1.0 * torch.mean(score)
@@ -260,9 +264,11 @@ class SpkTrainer(Trainer):
             # # <speaker_id> <utterance_id> <score> <trial type> 
             # where speaker_id and utterance_id are obtained from the utt_id in format <speaker_id>*<utterance_id>
             # and trial type is 0 for target, 1 for nontarget, and 2 for spoof but should be mapped to string using idx2class
+            assert len(trials_list) == len(scores)
+            assert len(trials_list) == len(labels)
             with open("scores.txt", "w") as f:
-                for i in range(len(scores)):
-                    f.write(f"{utt_id[i].split('*')[0]} {utt_id[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n")
+                for i in range(len(trials_list)):
+                    f.write(f"{trials_list[i].split('*')[0]} {trials_list[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n")
         
             # calculate a-dcf
             adcf_results = a_dcf.calculate_a_dcf("scores.txt")

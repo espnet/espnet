@@ -42,7 +42,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Preparation for train"
     
-    if [ ! -d "${trg_dir}" ]; then
+    if [ ! -d "${trg_dir}/train" ]; then
         log "Making Kaldi style files for train"
         mkdir -p "${trg_dir}/train"
         python3 local/train_data_prep.py "${data_dir_prefix}/asvspoof5_data" "${trg_dir}/train"
@@ -53,7 +53,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/utt2spk_to_spk2utt.pl ${trg_dir}/train/utt2spf > "${trg_dir}/train/spf2utt"
         utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/train" || exit 1
     else
-        log "${trg_dir} exists. Skip making Kaldi style files for train"
+        log "${trg_dir}/train exists. Skip making Kaldi style files for train"
     fi
 
     log "Stage 1, DONE."

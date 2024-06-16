@@ -63,7 +63,7 @@ loss:
 # Training related
 max_epoch: 40
 num_att_plot: 0
-num_workers: 1
+num_workers: 4
 cudnn_deterministic: False
 cudnn_benchmark: True
 drop_last_iter: True
@@ -71,8 +71,8 @@ iterator_type: category
 valid_iterator_type: sequence
 shuffle_within_batch: False
 log_interval: 100
-batch_size: 16
-valid_batch_size: 1
+batch_size: 128
+valid_batch_size: 64
 use_amp: True
 keep_nbest_models: 3
 grad_clip: 9999
@@ -80,7 +80,7 @@ best_model_criterion:
 - - valid
   - eer
   - min
-num_iters_per_epoch: 500
+num_iters_per_epoch: 1172
 
 # Optimizer
 optim: adam
@@ -92,9 +92,9 @@ optim_conf:
 # Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-  first_cycle_steps: 113740 # equal to 10 epochs
+  first_cycle_steps: 11720 # equal to 10 epochs
   cycle_mult: 1.0
   max_lr: 1.0e-3
   min_lr: 5.0e-6
-  warmup_steps: 2000
+  warmup_steps: 300
   gamma: 0.75

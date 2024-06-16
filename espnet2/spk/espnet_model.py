@@ -123,7 +123,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             assert spf_labels is not None, "spf_labels is None, cannot compute spf_loss"
             spk_loss = self.loss[0](spk_embd, spk_labels.squeeze())
             spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
-            loss = spk_loss + spf_loss
+            loss = 0.1 * spk_loss + 0.9 * spf_loss
             stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())
             stats["loss"] = loss.detach()
             loss, stats, weight = force_gatherable(
