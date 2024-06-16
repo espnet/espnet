@@ -851,6 +851,18 @@ class AbsTask(ABC):
             "adaptively adjust the chunk length for data of different sampling rates. "
             "(If None, the chunk length will be fixed.)",
         )
+        group.add_argument(
+            "--chunk_max_abs_length",
+            type=int_or_none,
+            default=None,
+            help="Maximum number of samples per chunk for all sampling rates",
+        )
+        group.add_argument(
+            "--chunk_discard_short_samples",
+            type=str2bool,
+            default=True,
+            help="Discard samples shorter than the minimum chunk length",
+        )
 
         group = parser.add_argument_group("Dataset related")
         _data_path_and_name_and_type_help = (
@@ -1892,6 +1904,8 @@ class AbsTask(ABC):
             num_cache_chunks=num_cache_chunks,
             excluded_key_prefixes=args.chunk_excluded_key_prefixes,
             default_fs=args.chunk_default_fs,
+            chunk_max_abs_length=args.chunk_max_abs_length,
+            discard_short_samples=args.chunk_discard_short_samples,
         )
 
     # NOTE(kamo): Not abstract class

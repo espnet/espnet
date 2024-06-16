@@ -18,6 +18,7 @@ inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --lang "${lang}" \
+    --nbpe 200 \
     --local_data_opts "--lang ${lang}" \
     --use_lm false \
     --asr_config "${asr_config}" \
