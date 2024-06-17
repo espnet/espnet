@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
+from torch.nn.parallel import DistributedDataParallel as DDP
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -163,7 +164,10 @@ class GANTrainer(Trainer):
                         skip_disc = torch.rand(1)
                     if skip_disc.item() < skip_discriminator_prob:
                         try:
-                            model.codec._cache = None
+                            if isinstance(model, DDP):
+                                model.module.codec._cache = None
+                            elif isinstance(model, torch.nn.Module):
+                                model.codec._cache = None
                         except:
                             pass
                         continue
