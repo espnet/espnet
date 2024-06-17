@@ -752,7 +752,7 @@ if ! "${skip_train}"; then
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "
         fi
 
-        # Add the fs information at the end of the data path list
+        # Add the sampling frequency information at the end of the data path list
         if [ -e "${_enh_train_dir}/utt2fs" ] && [ -e "${_enh_valid_dir}/utt2fs" ]; then
             log "[INFO] Adding the sampling frequency information (fs) for training"
 
@@ -837,6 +837,19 @@ if ! "${skip_eval}"; then
                     _data_param+="--data_path_and_name_and_type ${_data}/enroll_spk${spk}.scp,enroll_ref${spk},text "
                 done
             fi
+            # Add the category information at the end of the data path list
+            if [ -e "${_data}/utt2category" ]; then
+                log "[INFO] Adding the category information for inference"
+                log "[WARNING] Please make sure the category information is explicitly processed by the preprocessor defined in '${enh_config}' so that it is converted to an integer"
+
+                _data_param+="--data_path_and_name_and_type ${_data}/utt2category,category,text "
+            fi
+            # Add the sampling frequency information at the end of the data path list
+            if [ -e "${_data}/utt2fs" ]; then
+                log "[INFO] Adding the sampling frequency information for inference"
+
+                _data_param+="--data_path_and_name_and_type ${_data}/utt2fs,fs,text_int "
+            fi
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
@@ -887,6 +900,14 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Scoring"
         _cmd=${decode_cmd}
+
+        if ${gpu_inference}; then
+            _cmd=${cuda_cmd}
+            _ngpu=1
+        else
+            _cmd=${decode_cmd}
+            _ngpu=0
+        fi
 
         # score_obs=true: Scoring for observation signal
         # score_obs=false: Scoring for enhanced signal
@@ -944,7 +965,7 @@ if ! "${skip_eval}"; then
                 # 2. Submit scoring jobs
                 log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
                 # shellcheck disable=SC2086
-                ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
                     ${python} -m espnet2.bin.enh_scoring \
                         --key_file "${_logdir}"/keys.JOB.scp \
                         --output_dir "${_logdir}"/output.JOB \
