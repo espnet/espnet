@@ -90,6 +90,7 @@ class PatchEmbedding(AbsFrontend):
 
         self.emb = torch.nn.Embedding(input_size, embed_dim)
         self.pos = pos_enc_class(embed_dim, positional_dropout_rate)
+        self.ln = torch.nn.LayerNorm(embed_dim)
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
@@ -112,7 +113,7 @@ class PatchEmbedding(AbsFrontend):
         B, T = input.size()
         x = input.view(B, T // self.patch_size, self.patch_size)
         x = self.emb(x).mean(dim=2)
-        x = self.pos(x)
+        x = self.ln(self.pos(x))
 
         input_lengths = input_lengths // self.patch_size
 

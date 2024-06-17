@@ -13,7 +13,7 @@ train_set="train_960"
 train_dev="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_discrete_asr_e_branchformer1_codec8.yaml
+asr_config=conf/tuning/train_asr_transformer_codec.yaml
 inference_config=conf/decode_ctc0.3.yaml
 
 tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
