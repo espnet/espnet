@@ -3,11 +3,44 @@
 # Originally Written by Ze Liu, Modified by Jingyun Liang.
 # ported from https://github.com/JingyunLiang/SwinIR/blob/main/models/network_swinir.py
 # -----------------------------------------------------------------------------------
+import collections.abc
+from itertools import repeat
 
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+
+
+def to_2tuple(x):
+    if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
+        return tuple(x)
+    return tuple(repeat(x, 2))
+
+
+class DropPath(nn.Module):
+    """Drop paths (Stochastic Depth) per sample.
+
+    (when applied in main path of residual blocks)
+    ported from https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/layers/__init__.py
+    """  # noqa: E501
+
+    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.scale_by_keep = scale_by_keep
+
+    def forward(self, x):
+        if self.drop_prob == 0.0 or not self.training:
+            return x
+        keep_prob = 1 - self.drop_prob
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+        random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
+        if keep_prob > 0.0 and self.scale_by_keep:
+            random_tensor.div_(keep_prob)
+        return x * random_tensor
+
+    def extra_repr(self):
+        return f"drop_prob={round(self.drop_prob,3):0.3f}"
 
 
 class Mlp(nn.Module):
@@ -126,7 +159,7 @@ class WindowAttention(nn.Module):
 
         self.proj_drop = nn.Dropout(proj_drop)
 
-        trunc_normal_(self.relative_position_bias_table, std=0.02)
+        nn.init.trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
     def get_relative_position_index(self, H, W):

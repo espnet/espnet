@@ -88,7 +88,8 @@ class USES2Separator(AbsSeparator):
                 Only used for efficient training.
                 Should be close to the actual spectrum size (F, T) of training samples.
             window_size (tuple): size of the Time-Frequency window in Swin-Transformer.
-            mlp_ratio (int): ratio of the MLP hidden size to embedding size in BasicLayer.
+            mlp_ratio (int): ratio of the MLP hidden size to embedding size
+                in BasicLayer.
             qkv_bias (bool): If True, add a learnable bias to query, key, value in
                 BasicLayer.
             qk_scale (float): Override default qk scale of head_dim ** -0.5 in

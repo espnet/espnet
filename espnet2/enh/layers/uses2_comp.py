@@ -255,8 +255,8 @@ class ATFBlock(nn.Module):
                 BasicLayer.
             qkv_bias (bool): If True, add a learnable bias to query, key, value in
                 BasicLayer.
-            qk_scale (float): Override default qk scale of head_dim ** -0.5 in BasicLayer
-                if set.
+            qk_scale (float): Override default qk scale of head_dim ** -0.5 in
+                BasicLayer if set.
             dropout (float): dropout ratio. Default is 0.
             att_dropout (float): attention dropout ratio in BasicLayer. Default is 0.
             drop_path (float): drop-path ratio in BasicLayer. Default is 0.
