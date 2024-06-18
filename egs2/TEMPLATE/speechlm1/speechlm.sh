@@ -186,7 +186,9 @@ if  [ ! -z "${bpemodel}" ]; then
         log "bpemodel is specified but not exist ... " && exit 1;
     fi
 else
-    bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+    if ! "${skip_data_prep}"; then
+        bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+    fi
 fi
 
 if [ -z ${token_list_dir} ]; then
@@ -697,6 +699,12 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
+        if ! ${skip_data_prep}; then
+            for test_set in ${test_sets}; do
+                test_jsons+="${data_feats}/${test_set}/data.json "
+            done
+        fi
+
         for test_json in ${test_jsons}; do
             # (1) find task, dataset name and folder names
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
@@ -706,7 +714,8 @@ if ! "${skip_eval}"; then
 
             # (2) evaluation template for each task. Try to make less duplication in task definition
             if [ ${task} == "tts" ]; then
-                eval_items="wer spk signal"
+                eval_items="speech_wer spk signal"
+                eval_metrics="utmos spk_similarity word_count edit_distance"
                 
                 audio_file=${_dir}/wav.scp
                 audio_ref_file=${_src_dir}/wav.scp
@@ -714,6 +723,18 @@ if ! "${skip_eval}"; then
                 text_ref_file=${_src_dir}/text
                 spk_ref_file=${_dir}/utt2spk
                 generated_file=${audio_file}
+            
+            elif [ ${task} == "asr" ]; then
+                eval_items="wer"
+                eval_metrics="word_count edit_distance"
+                
+                audio_file=
+                audio_ref_file=
+                text_file=${_dir}/text
+                text_ref_file=${_src_dir}/text
+                spk_ref_file=
+                generated_file=${text_file}
+
             else
                 log "unrecognized task: ${task}. Exit !" && exit 1;
             fi
@@ -768,12 +789,11 @@ if ! "${skip_eval}"; then
                 _eval_dir=${_dir}/eval_${eval_item}
                 mkdir -p ${_eval_dir}
                 
-
                 # (5.1) WER with whisper-large
                 # TODO (Jinchuan & Jiatong): current evaluation tool doesn't support
                 # WER computation. We should deprecate this branch in the future and
                 # rely on Jiatong's evaluation toolkit only.
-                if [ ${eval_item} == "wer" ]; then
+                if [ "${eval_item}" == "speech_wer" ]; then
                     ./scripts/utils/evaluate_asr.sh \
                         --whisper_tag large \
                         --whisper_dir local/whisper \
@@ -781,14 +801,24 @@ if ! "${skip_eval}"; then
                         --hyp_cleaner whisper_en \
                         --nj ${inference_nj} \
                         --gt_text ${text_ref_file} \
-                        --stage 3 \
                         --gpu_inference ${gpu_inference} \
                         ${audio_file} ${_eval_dir}
                     
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
-                        --score_dir ${_eval_dir}/score_wer
+                        --ref_file ${_eval_dir}/score_wer/ref.trn \
+                        --hyp_file ${_eval_dir}/score_wer/hyp.trn \
+                        --out_file ${_eval_dir}/score_wer/utt_result.txt \
+                        --file_type trn
                     
                     all_eval_results+="${_eval_dir}/score_wer/utt_result.txt "
+                
+                elif [ "${eval_item}" == "wer" ]; then
+                    echo start from here
+                    ./pyscripts/utils/speechlm_convert_asr_result.py \
+                        --ref_file ${text_ref_file} \
+                        --hyp_file ${_dir}/text \
+                        --out_file ${_eval_dir}/utt_result.txt
+                    all_eval_results+="${_eval_dir}/utt_result.txt "
 
                 # (5.2) All other metrics from Jiatong's evaluation tool.
                 else
@@ -819,9 +849,9 @@ if ! "${skip_eval}"; then
             python3 pyscripts/utils/rerank.py \
                 --all_eval_results ${all_eval_results} \
                 --output_dir ${_dir} \
-                --metrics utmos spk_similarity word_count edit_distance \
+                --metrics ${eval_metrics} \
                 --nbest ${nbest} \
-                --cross_rerank true 
+                --cross_rerank true
         done
     fi
 else

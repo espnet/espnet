@@ -10,7 +10,7 @@ valid_set=dev_clean
 test_sets="dev_clean test_clean"
 
 train_config=conf/train_multiscale_asr.yaml
-inference_config=conf/decode_inhouse.yaml
+inference_config=conf/decode_asr.yaml
 
 cleaner=tacotron
 g2p=g2p_en_no_space # or g2p_en

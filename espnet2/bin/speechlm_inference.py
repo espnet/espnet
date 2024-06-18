@@ -54,7 +54,7 @@ class SpeechLM:
     ):
         """Initialize SpeechLM module."""
 
-        # setup model
+        # (1) setup model
         model, train_args = SpeechLMTask.build_model_from_file(
             train_config, model_file, device
         )
@@ -65,7 +65,7 @@ class SpeechLM:
         self.modality = modality
         self.train_args = train_args
 
-        # token_mask
+        # (2) token_mask
         token_bias = train_args.token_bias
         token_list = train_args.token_list
         inference_nq = model.corelm.nq if inference_nq is None else inference_nq
@@ -88,7 +88,7 @@ class SpeechLM:
         else:
             masks[:, valid_start:valid_end] = False
 
-        # inference options
+        # (3) inference options
         self.inference_opts = SpeechLMInferenceOptions(
             device=device,
             search_algo=search_algo,
@@ -103,9 +103,20 @@ class SpeechLM:
             nq=inference_nq if inference_nq is not None else model.corelm.nq,
         )
 
-        # tokenizer: detokenize speechlm tokens to the exact output, e.g. audio or text
+        # (4) tokenizer: detokenize speechlm tokens to the exact output, e.g. audio or text
         tokenizer_class = tokenizer_choices.get_class(modality)
-        self.tokenizer = tokenizer_class(**tokenizer_conf).to(device)
+
+        if modality == "text_bpe":
+            tokenizer_conf.update(dict(
+                token_list=train_args.token_list.copy(),
+                model=train_args.bpemodel,
+            ))
+        self.tokenizer = tokenizer_class(**tokenizer_conf)
+        try:
+            self.tokenizer = self.tokenizer.to(device)
+        except:
+            logging.warning(f"cannot move tokenizer to device: {device}")
+        
         if modality in ["codec"]:
             self.bias = token_bias[modality]
         else:
@@ -142,7 +153,10 @@ class SpeechLM:
         # (2) predicted tokens detokenization
         generated = []
         for gen_token in gen_tokens:
-            gen_token = (gen_token - self.bias).view(1, -1)
+            if self.modality == "codec":
+                gen_token = (gen_token - self.bias).view(1, -1)
+            else:
+                gen_token = (gen_token[:, 0] - self.bias).view(1, -1)
             generated.append(self.tokenizer.detokenize(gen_token))
 
         # (3) prefix tokens detokenization
@@ -340,6 +354,9 @@ def inference(
                     sample_rate=speechlm.tokenizer.sample_rate,
                 )
                 logging.info(f"save generated audio {example_name}: {wave_path}")
+            
+            elif output_modality == "text_bpe":
+                writer.write(f"{example_name} {content[0]}\n")
 
             else:
                 raise NotImplementedError(
