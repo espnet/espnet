@@ -6,8 +6,10 @@ set -u
 set -o pipefail
 
 train_config=conf/train_multiscale.yaml
+# train_config=conf/train_multiscale_1b.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till100epoch.pth
+# inference_model=valid.total_count.ave_5best.till65epoch.pth
 
 train_jsons=""
 valid_jsons=""
@@ -18,8 +20,8 @@ use_ls=true
 use_giga=true
 use_mls_en=true
 
-test_use_ls_7spk=false
-test_use_ls=true
+test_use_ls_7spk=true
+test_use_ls=false
 test_use_giga=false
 test_use_mls_en=false
 
