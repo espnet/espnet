@@ -1,9 +1,5 @@
 - name: pseudo_mos
-  predictor_types: ["utmos", "dnsmos", "plcmos"]
+  predictor_types: ["utmos"]
   predictor_args:
     utmos:
-      fs: 16000
-    dnsmos:
-      fs: 16000
-    plcmos:
       fs: 16000

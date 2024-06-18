@@ -18,8 +18,8 @@ use_ls=true
 use_giga=true
 use_mls_en=true
 
-test_use_ls_7spk=true
-test_use_ls=false
+test_use_ls_7spk=false
+test_use_ls=true
 test_use_giga=false
 test_use_mls_en=false
 
@@ -68,7 +68,7 @@ fi
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
-    --inference_nj 8 \
+    --inference_nj 16 \
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \
