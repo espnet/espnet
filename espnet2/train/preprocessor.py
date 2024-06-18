@@ -2378,7 +2378,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # Text BPE (text_bpe):
         if bpemodel is not None:
             if bpe_encode_kwargs is None:
-                bpe_encode_kwargs = Dict()
+                bpe_encode_kwargs = dict()
             self.bpe = build_tokenizer(
                 token_type="bpe",
                 bpemodel=bpemodel,

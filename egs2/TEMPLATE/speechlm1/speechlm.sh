@@ -95,19 +95,27 @@ valid_set=""     # Name of validation set used for monitoring/tuning network tra
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 
 # Tokenization related
-oov="<unk>"         # Out of vocabrary symbol.
-blank="<blank>"     # CTC blank symbol.
-sos_eos="<sos/eos>" # sos and eos symbols.
-tokenization_choices=""
-codec_choice="EnCodec"
+# (1) codec
+codec_choice="EnCodec" # codec
 codec_checkpoint_path=null
 codec_config_path=null
 codec_hf_model_card=null
-semantic_choice="WavLM"
+# (2) semantic
+semantic_choice="WavLM" # semantic
 semantic_opts=""
-g2p="g2p_en"
-nlsyms_txt=none
+# (3) g2p
+g2p="g2p_en" # g2p
 cleaner=tacotron
+# (4) text bpe
+bpemodel=        # external BPE model, use it if given
+bpe_train_text=        # text used to train BPE, if given
+nbpe=5000
+bpemode=unigram
+bpe_nlsyms=
+bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
+bpe_char_cover=1.0  # character coverage when modeling BPE
+# (100) other general
+nlsyms_txt=none
 token_list_dir=
 
 # TODO(Jinchuan): Upload model related
@@ -155,7 +163,6 @@ if ! ${skip_upload_hf_data} && ${skip_data_prep}; then
 fi
 
 # Check for stage 6-7: data combination
-echo ${train_jsons} ${valid_jsons}
 if [ -n "${train_jsons}" ] && [ -n "${valid_jsons}" ]; then
     if [ -z "${data_combo_name}" ]; then
         log "External data resources are used. Please specify data_combo_name." && exit 1;
@@ -172,6 +179,14 @@ fi
 
 if [ -z "${speechlm_stats_dir}" ]; then
     speechlm_stats_dir="${expdir}/speechlm_stats_${data_combo_name}"
+fi
+
+if  [ ! -z "${bpemodel}" ]; then
+    if [ ! -f "${bpemodel}".model ]; then
+        log "bpemodel is specified but not exist ... " && exit 1;
+    fi
+else
+    bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
 fi
 
 if [ -z ${token_list_dir} ]; then
@@ -354,6 +369,45 @@ if ! "${skip_data_prep}"; then
                         --g2p "${g2p}" \
                         --write_vocabulary true
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
+                
+                elif [ ${_modality} == "text_bpe" ]; then
+                    if [ -f ${bpemodel}.model ] && [ -f ${bpemodel}.vocab ]; then
+                        log "Skip training BPE model as it already exists"
+
+                    else
+                        if [ -z ${bpe_train_text} ]; then
+                            bpe_train_text=${data_audio}/${dset}/${_name}
+                        fi
+                        log "Training BPE model with ${bpe_train_text}"
+                        nutt=$(min "100000" "$(wc -l < ${bpe_train_text})")
+                        cat ${bpe_train_text} | shuf | head -n ${nutt} \
+                        | cut -d ' ' -f 2- \
+                        > ${bpe_train_text}.text_bpe_train && echo ""
+                        
+                        if [ -n "${bpe_nlsyms}" ]; then
+                            if test -f "${bpe_nlsyms}"; then
+                                bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                                _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                            else
+                                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                            fi
+                        else
+                            _opts_spm=""
+                        fi
+
+                        spm_train \
+                            --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
+                            --vocab_size="${nbpe}" \
+                            --model_type="${bpemode}" \
+                            --model_prefix="${bpemodel}" \
+                            --character_coverage=${bpe_char_cover} \
+                            --input_sentence_size="${bpe_input_sentence_size}" \
+                            ${_opts_spm}
+                    fi
+
+                    < "${bpemodel}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                    > ${data_feats}/${dset}/token_lists/text_bpe_token_list
+                    cp ${data_audio}/${dset}/${_name} ${data_feats}/${dset}/${_name}
 
                 elif [ ${_modality} == "spk" ]; then
                     echo "copy utt2spk file"
@@ -444,6 +498,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --bpemodel "${bpemodel}".model \
                 --multi_task_dataset true \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
@@ -548,6 +603,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --bpemodel "${bpemodel}".model \
                 --multi_task_dataset true \
                 --sharded_dataset true \
                 --resume true \

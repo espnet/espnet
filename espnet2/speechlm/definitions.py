@@ -84,10 +84,17 @@ tasks["plain_tts"] = SpeechLMTask(
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+# Auto-regressive frame prediction based on codec tokens
 tasks["apc"] = SpeechLMTask(
     encoder_entries=[],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+tasks["asr"] = SpeechLMTask(
+    encoder_entries=[("wav.scp", "codec", "kaldi_ark")],
+    decoder_entries=[("text", "text_bpe", "text")],
+    target_entries=[("text", "text_bpe", "text")],
 )
 
 ############### END OF TASK DEFINITION ###############
