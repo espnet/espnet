@@ -15,6 +15,7 @@ from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.decoder.codec_decoder import CodecDecoder
+from espnet2.enh.decoder.seanet_decoder import SEANetEnhDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
@@ -23,6 +24,7 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.encoder.codec_encoder import CodecEncoder
+from espnet2.enh.encoder.seanet_encoder import SEANetEnhEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import (
@@ -91,6 +93,7 @@ encoder_choices = ClassChoices(
         conv=ConvEncoder, 
         same=NullEncoder,
         codec=CodecEncoder,
+        seanet=SEANetEnhEncoder,
         ),
     type_check=AbsEncoder,
     default="stft",
@@ -140,6 +143,7 @@ decoder_choices = ClassChoices(
         conv=ConvDecoder, 
         same=NullDecoder,
         codec=CodecDecoder,
+        seanet=SEANetEnhDecoder,
         ),
     type_check=AbsDecoder,
     default="stft",

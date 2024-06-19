@@ -164,7 +164,7 @@ class CodecTokenizer(AbsTokenizer):
             z = z.transpose(1, 2)
 
         elif self.codec_choice == "DAC":
-            z = self.codec.encode(wavs)[0]
+            z = self.codec.encoder(wavs)
             z = z.transpose(1, 2)
 
         else:

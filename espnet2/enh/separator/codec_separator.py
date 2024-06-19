@@ -20,6 +20,8 @@ class CodecSeparator(AbsSeparator):
         internal_dim: int,
         num_spk: int,
         predict_noise: bool,
+        activation: str = "ELU",
+        activation_params: dict = {"alpha": 1.0},
         trf_num_layers: int = 16,
         trf_num_heads: int = 8,
         trf_feedforward: int = 2048,
@@ -33,6 +35,8 @@ class CodecSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
+            activation (str): Activation function.
+            activation_params (dict): Parameters to provide to the activation function
             
         """
         super().__init__()
@@ -40,6 +44,8 @@ class CodecSeparator(AbsSeparator):
         self._num_spk = num_spk
         self.predict_noise = predict_noise
         self.num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
+
+
 
         self.block = SBTransformerBlock(
             num_layers = trf_num_layers,
@@ -59,7 +65,11 @@ class CodecSeparator(AbsSeparator):
         
         self.masker = weight_norm(nn.Conv1d(input_dim, input_dim*self.num_outputs, 1, bias=False)) #computes masks of the original input
 
-        self.activation = Snake1d(input_dim) #nn.Tanh() #nn.ReLU() #Snake1d(channels)
+        if activation == "Snake":
+            self.activation = Snake1d(input_dim)
+        else:
+            act = getattr(nn, activation)
+            self.activation = act(**activation_params)
         
         # gated output layer
         self.output = nn.Sequential(
