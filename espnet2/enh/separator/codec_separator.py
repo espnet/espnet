@@ -20,6 +20,7 @@ class CodecSeparator(AbsSeparator):
         internal_dim: int,
         num_spk: int,
         predict_noise: bool,
+        mask_input: bool = True,
         activation: str = "ELU",
         activation_params: dict = {"alpha": 1.0},
         trf_num_layers: int = 16,
@@ -44,7 +45,7 @@ class CodecSeparator(AbsSeparator):
         self._num_spk = num_spk
         self.predict_noise = predict_noise
         self.num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
-
+        self.mask_input = mask_input
 
 
         self.block = SBTransformerBlock(
@@ -73,7 +74,7 @@ class CodecSeparator(AbsSeparator):
         
         # gated output layer
         self.output = nn.Sequential(
-            nn.Conv1d(input_dim, input_dim, 1), Snake1d(input_dim) #nn.Tanh() #, Snake1d(channels)#
+            nn.Conv1d(input_dim, input_dim, 1), #nn.ReLU() #Snake1d(input_dim) #nn.Tanh() #, Snake1d(channels)#
         )
         self.output_gate = nn.Sequential(
             nn.Conv1d(input_dim, input_dim, 1), nn.Sigmoid()
@@ -150,13 +151,19 @@ class CodecSeparator(AbsSeparator):
         if self.predict_noise:
             *masks, mask_noise = masks
 
-        masked = [input * m for m in masks]
-            
+        if self.mask_input:
+            masked = [input * m for m in masks]
+        else:
+            masked = [m for m in masks]
+
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
         if self.predict_noise:
-            others["noise1"] = input * mask_noise
+            if self.mask_input:
+                others["noise1"] = input * mask_noise
+            else:
+                others["noise1"] = mask_noise
 
         return masked, ilens, others
 
