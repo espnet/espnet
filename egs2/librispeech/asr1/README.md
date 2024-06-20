@@ -841,3 +841,54 @@ Test with a single Tesla V100 gpu and batch_size==2
 |decode_dev_other_decode_asr_beam_size20_lm_train_lm_bpe_valid.loss.best_asr_model_valid.acc.best|2864|50948|93.2|6.0|0.8|0.8|7.6|54.7|
 |decode_test_clean_decode_asr_beam_size20_lm_train_lm_bpe_valid.loss.best_asr_model_valid.acc.best|2620|52576|97.0|2.6|0.4|0.4|3.4|37.4|
 |decode_test_other_decode_asr_beam_size20_lm_train_lm_bpe_valid.loss.best_asr_model_valid.acc.best|2939|52343|92.9|6.1|1.0|0.9|8.0|58.3|
+
+# Align-Refine
+
+# RESULTS
+## Environments
+- date: `Sat Jul 29 23:57:50 EDT 2023`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.8.1`
+- Git hash: `7a8bb5a27ebe759a143a3907c7d315cb991eb20d`
+  - Commit date: `Wed Jul 26 19:37:00 2023 +0000`
+
+## exp/asr_train_conformer_align_refine_raw_en_bpe400_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave/dev_clean|2703|54402|96.98|2.72|0.29|0.27|3.29|38.18|
+|decode_asr_model_valid.loss.ave/dev_other|2864|50948|91.76|7.42|0.82|0.77|9.01|61.24|
+|decode_asr_model_valid.loss.ave/test_clean|2620|52576|96.84|2.86|0.30|0.36|3.52|38.55|
+|decode_asr_model_valid.loss.ave/test_other|2939|52343|91.99|7.25|0.76|0.82|8.83|62.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_clean|2703|54402|96.84|2.88|0.28|0.30|3.46|39.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_other|2864|50948|91.49|7.70|0.81|0.86|9.38|62.47|
+|decode_ctc_only_asr_model_valid.loss.ave/test_clean|2620|52576|96.72|2.99|0.29|0.37|3.64|40.46|
+|decode_ctc_only_asr_model_valid.loss.ave/test_other|2939|52343|91.70|7.57|0.72|0.90|9.20|63.93|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave/dev_clean|2703|288456|99.24|0.39|0.37|0.33|1.08|38.18|
+|decode_asr_model_valid.loss.ave/dev_other|2864|265951|97.21|1.59|1.20|0.99|3.79|61.24|
+|decode_asr_model_valid.loss.ave/test_clean|2620|281530|99.23|0.40|0.37|0.33|1.10|38.55|
+|decode_asr_model_valid.loss.ave/test_other|2939|272758|97.45|1.42|1.13|0.97|3.52|62.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_clean|2703|288456|99.22|0.40|0.38|0.37|1.15|39.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_other|2864|265951|97.22|1.59|1.19|1.14|3.92|62.47|
+|decode_ctc_only_asr_model_valid.loss.ave/test_clean|2620|281530|99.23|0.40|0.36|0.38|1.14|40.46|
+|decode_ctc_only_asr_model_valid.loss.ave/test_other|2939|272758|97.44|1.44|1.12|1.14|3.70|63.93|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave/dev_clean|2703|112791|97.92|1.56|0.52|0.34|2.42|38.18|
+|decode_asr_model_valid.loss.ave/dev_other|2864|103273|93.73|4.82|1.45|1.13|7.41|61.24|
+|decode_asr_model_valid.loss.ave/test_clean|2620|110525|97.91|1.55|0.53|0.38|2.46|38.55|
+|decode_asr_model_valid.loss.ave/test_other|2939|105931|94.07|4.46|1.47|0.99|6.92|62.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_clean|2703|112791|97.89|1.60|0.51|0.39|2.50|39.40|
+|decode_ctc_only_asr_model_valid.loss.ave/dev_other|2864|103273|93.73|4.85|1.41|1.29|7.56|62.47|
+|decode_ctc_only_asr_model_valid.loss.ave/test_clean|2620|110525|97.93|1.56|0.51|0.44|2.51|40.46|
+|decode_ctc_only_asr_model_valid.loss.ave/test_other|2939|105931|94.03|4.51|1.45|1.15|7.12|63.93|
