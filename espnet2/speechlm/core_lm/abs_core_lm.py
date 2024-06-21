@@ -17,6 +17,7 @@ class SpeechLMInferenceOptions:
     nbest: int = 1
     sampling_temperature: float = 1.0
     top_k: int = 20
+    top_p: float = 0.8
     maxlenratio: float = 0.0
     minlenratio: float = 0.0
     eos: int = 5
