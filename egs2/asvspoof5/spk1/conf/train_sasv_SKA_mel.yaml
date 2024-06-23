@@ -32,7 +32,7 @@ preprocessor: spk
 preprocessor_conf:
   target_duration: 3.0  # seconds
   sample_rate: 16000
-  num_eval: 5
+  num_eval: 1
   noise_apply_prob: 0.0
   # noise_info:
   # - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
@@ -78,7 +78,7 @@ keep_nbest_models: 3
 grad_clip: 9999
 best_model_criterion:
 - - valid
-  - eer
+  - a_dcf
   - min
 num_iters_per_epoch: 1172
 

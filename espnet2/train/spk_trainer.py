@@ -58,6 +58,7 @@ class SpkTrainer(Trainer):
         scores = []
         labels = []
         spk_embd_dic = {}
+        spk_embd_count = {} # to keep track of the counts, for averaging
         bs = 0
 
         sasv = False
@@ -65,6 +66,8 @@ class SpkTrainer(Trainer):
             pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
             if re.match(pattern, utt_id[0]):
                 sasv = True
+
+        embed_avg = False # use speech, speech2, and speech3 as enrollment and speech4 as test
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
@@ -81,21 +84,57 @@ class SpkTrainer(Trainer):
             if "task_tokens" in batch:
                 task_token = batch["task_tokens"][0]
 
+            # check if batch has speech3 and speech4
+            if "speech3" in batch:
+                assert "speech4" in batch
+                embed_avg = True
+
             assert isinstance(batch, dict), type(batch)
-            for _utt_id, _speech, _speech2 in zip(
-                utt_id, batch["speech"], batch["speech2"]
-            ):
-                _utt_id_1, _utt_id_2 = _utt_id.split("*")
-                if _utt_id_1 not in utt_id_list:
-                    utt_id_list.append(_utt_id_1)
-                    speech_list.append(
-                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
-                    )
-                if _utt_id_2 not in utt_id_list:
-                    utt_id_list.append(_utt_id_2)
-                    speech_list.append(
-                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
-                    )
+
+            if embed_avg:
+                for _utt_id, _speech, _speech2, _speech3, _speech4 in zip(
+                    utt_id, batch["speech"], batch["speech2"], batch["speech3"], batch["speech4"]
+                ):
+                    _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                    # speech, speech2 and speech3 are enrollment utterances for the speaker whose
+                    # speakerid is _utt_id_1 and speech4 is the test utterance
+                    # for the purpose of enrollment, the uttid for each enrollment utterance will be
+                    # recorded as _utt_id_1-first, _utt_id_1-second, and _utt_id_1-third
+                    if (_utt_id_1 + "-first") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-first")
+                        speech_list.append(
+                            to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if (_utt_id_1 + "-second") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-second")
+                        speech_list.append(
+                            to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if (_utt_id_1 + "-third") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-third")
+                        speech_list.append(
+                            to_device(_speech3, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if _utt_id_2 not in utt_id_list:
+                        utt_id_list.append(_utt_id_2)
+                        speech_list.append(
+                            to_device(_speech4, "cuda" if ngpu > 0 else "cpu")
+                        )
+            else:
+                for _utt_id, _speech, _speech2 in zip(
+                    utt_id, batch["speech"], batch["speech2"]
+                ):
+                    _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                    if _utt_id_1 not in utt_id_list:
+                        utt_id_list.append(_utt_id_1)
+                        speech_list.append(
+                            to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if _utt_id_2 not in utt_id_list:
+                        utt_id_list.append(_utt_id_2)
+                        speech_list.append(
+                            to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                        )
 
             # extract speaker embeddings.
             n_utt = len(utt_id_list)
@@ -123,7 +162,27 @@ class SpkTrainer(Trainer):
                 spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
                 for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
-                    spk_embd_dic[_utt_id] = _spk_embd
+                    if embed_avg:
+                        if _utt_id.endswith("-first") or _utt_id.endswith("-second") or _utt_id.endswith("-third"):
+                            spkID = _utt_id.split("-")[0]
+                            if spkID in spk_embd_dic:
+                                # Add the current embedding to the sum
+                                spk_embd_dic[spkID] += _spk_embd
+                                # Increment the count for this speaker
+                                spk_embd_count[spkID] = spk_embd_count.get(spkID, 0) + 1
+                            else: # First time we see this speaker
+                                spk_embd_dic[spkID] = _spk_embd
+                                spk_embd_count[spkID] = 1
+                        else:
+                            spk_embd_dic[_utt_id] = _spk_embd
+                            spk_embd_count[_utt_id] = 1
+                    else:
+                        spk_embd_dic[_utt_id] = _spk_embd
+                        spk_embd_count[_utt_id] = 1
+
+                # Compute the average embedding for each speaker
+                for spkID in spk_embd_dic:
+                    spk_embd_dic[spkID] /= spk_embd_count[spkID]
 
             del utt_id_list
             del speech_list

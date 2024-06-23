@@ -1,5 +1,5 @@
 # dev_data_prep.py
-# Prepares ASVspoof5 development or eval data
+# Prepares ASVspoof5 development or evaluation data
 
 import os
 import sys
@@ -30,6 +30,12 @@ if not metadata_file.exists():
     print("ASVspoof5 metadata file does not exist")
     sys.exit(1)
 
+# enrollment file
+enrollment_file = ASVSpoof_root / "ASVspoof5.dev.enroll.txt"
+if not enrollment_file.exists():
+    print("ASVspoof5 enrollment file does not exist")
+    sys.exit(1)
+
 # open all the files
 with open(metadata_file, "r") as f_meta, open(
     target_root / "wav.scp", "w") as f_wav, open(
@@ -52,15 +58,21 @@ with open(metadata_file, "r") as f_meta, open(
         # write utt2spf
         f_utt2spf.write(f"{uttID} {spoofingID}\n")
 
-    # Add enrollment utterances
-    enrollment_path = ASVSpoof_root / 'cat_flac_D'
-    for enrollment_file in enrollment_path.glob('*.flac'):
-        speakerID = enrollment_file.stem
-        file_name = enrollment_file
-        uttID = speakerID
-
-        f_wav.write(f"{uttID} {enrollment_file}\n")
-
-        f_utt2spk.write(f"{uttID} {speakerID}\n")
-
-        f_utt2spf.write(f"{uttID} bonafide\n")
+    with open(enrollment_file, "r") as f_enroll:
+        lines = f_enroll.readlines()
+        for line in lines:
+            parts = line.strip().split()
+            speakerID = parts[0]
+            # enrollment utterances follow and are comma-separated
+            enroll_utt = parts[1].split(',')
+            for utt in enroll_utt:
+                path = ASVSpoof_root / 'flac_D' / utt
+                path = path.with_suffix(".flac")
+                file_name = path.stem
+                uttID = f"{speakerID}-{file_name}"
+                # write wav.scp
+                f_wav.write(f"{uttID} {path}\n")
+                # write utt2spk
+                f_utt2spk.write(f"{uttID} {speakerID}\n")
+                # write utt2spf
+                f_utt2spf.write(f"{uttID} bonafide\n")

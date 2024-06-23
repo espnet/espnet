@@ -1,6 +1,11 @@
 # convert_trial.py
 
 # Makes ESPnet trial files from ASVspoof5 protocol
+# output files: trial.scp, trial2.scp, trial3.scp, trial4.scp, trial_label
+# enrollment utterance paths are in trial.scp, trial2.scp, trial3.scp
+# if less than 3 enrollment utterances, the last path is repeated
+# test utterance paths are in trial4.scp
+
 # label mapping used:
 # bonafide: 0
 # nontarget: 1
@@ -21,6 +26,8 @@ def main(args):
         lines_trial_org = f.readlines()
     with open(args.scp, "r") as f:
         lines_scp = f.readlines()
+    with open(args.enroll, "r") as f:
+        lines_enroll = f.readlines()
 
     scp_dict = dict()
     for scp in lines_scp:
@@ -29,18 +36,35 @@ def main(args):
         if "-" in utt_id:
             utt_id = utt_id.split("-")[1]
         scp_dict[utt_id] = path
+    
+    enroll_dict = dict()
+    for enroll in lines_enroll:
+        # enrollment file is of the form: speakerID utt1,utt2,utt3
+        # in some cases there are less than 3 enrollment utterances
+        # if less than 3, the last given enrollment utterance is repeated
+        speakerID, enroll_utt = enroll.strip().split()
+        enroll_utt = enroll_utt.split(",")
+        if len(enroll_utt) < 3:
+            enroll_utt.extend([enroll_utt[-1]]*(3-len(enroll_utt)))
+        enroll_dict[speakerID] = enroll_utt
 
     with open(os.path.join(args.out, "trial.scp"), "w") as f_trial, open(
-        os.path.join(args.out, "trial2.scp"), "w"
-    ) as f_trial2, open(os.path.join(args.out, "trial_label"), "w") as f_label:
+        os.path.join(args.out, "trial2.scp"), "w") as f_trial2, open(
+            os.path.join(args.out, "trial3.scp"), "w") as f_trial3, open(
+                os.path.join(args.out, "trial4.scp"), "w") as f_trial4, open(
+                    os.path.join(args.out, "trial_label"), "w") as f_label:
         for tr in lines_trial_org:
-            enrolment, test_utt, label = tr.strip().split(" ")
-            joint_key = "*".join([enrolment, test_utt])
-            f_trial.write(f"{joint_key} {scp_dict[enrolment]}\n")
-            f_trial2.write(f"{joint_key} {scp_dict[test_utt]}\n")
-            # label mapping 
-            f_label.write(f"{joint_key} {label_dict[label]}\n")
-
+            enrolled_speaker, test_utt, label = tr.strip().split()
+            # each trial is identified by a joint key of form: speakerID*test_utt
+            key = f"{enrolled_speaker}*{test_utt}"
+            # write trial.scp, trial2.scp, trial3.scp
+            f_trial.write(f"{key} {scp_dict[enroll_dict[enrolled_speaker][0]]}\n")
+            f_trial2.write(f"{key} {scp_dict[enroll_dict[enrolled_speaker][1]]}\n")
+            f_trial3.write(f"{key} {scp_dict[enroll_dict[enrolled_speaker][2]]}\n")
+            # write trial4.scp
+            f_trial4.write(f"{key} {scp_dict[test_utt]}\n")
+            # write trial_label
+            f_label.write(f"{key} {label_dict[label]}\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trial mapper")
@@ -48,7 +72,13 @@ if __name__ == "__main__":
         "--trial",
         type=str,
         required=True,
-        help="directory of the original trial file",
+        help="path to the trial file",
+    )
+    parser.add_argument(
+        "--enroll",
+        type=str,
+        required=True,
+        help="path to the enrollment file",
     )
     parser.add_argument(
         "--scp",

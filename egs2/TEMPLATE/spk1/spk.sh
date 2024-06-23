@@ -37,7 +37,7 @@ skip_upload_hf=true   # Skip uploading to huggingface stage.
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
-nj=2                # The number of parallel jobs.
+nj=8                # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
@@ -64,7 +64,7 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
-pretrained_model=9epoch.pth     # Pretrained model to load
+pretrained_model=     # Pretrained model to load
 ignore_init_mismatch=true      # Ignore initial mismatch
 
 # Inference related
@@ -77,6 +77,10 @@ qmf_func=false        # Apply quality measurement based calibration in inference
 multi_task=true      # Apply multi-task learning in speaker recognition
 sasv_task=true       # Apply speaker anti-spoofing task in speaker recognition
 spf_args=             # Parameters for spoofing
+
+# Embedding averaging related
+embed_avg=true   # Apply embedding averaging in inference
+embed_avg_args=   # Arguments for embedding averaging
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
@@ -326,6 +330,24 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
                 --out_filename trial2.scp \
                 "data/${dset}/trial2.scp" "${data_feats}/${dset}"
+            
+            # if embed_avg is enabled, then also trial3.scp and trial4.scp are required
+            if "${embed_avg}"; then
+                # shellcheck disable=SC2086
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    --multi-columns-input "${multi_columns_input_wav_scp}" \
+                    --multi-columns-output "${multi_columns_output_wav_scp}" \
+                    --out_filename trial3.scp \
+                    "data/${dset}/trial3.scp" "${data_feats}/${dset}"
+                # shellcheck disable=SC2086
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    --multi-columns-input "${multi_columns_input_wav_scp}" \
+                    --multi-columns-output "${multi_columns_output_wav_scp}" \
+                    --out_filename trial4.scp \
+                    "data/${dset}/trial4.scp" "${data_feats}/${dset}"
+            fi
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
@@ -356,6 +378,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             cp data/${dset}/trial_label "${data_feats}/${dset}"
             cp data/${dset}/trial.scp "${data_feats}/${dset}"
             cp data/${dset}/trial2.scp "${data_feats}/${dset}"
+            if "${embed_avg}"; then
+                cp data/${dset}/trial3.scp "${data_feats}/${dset}"
+                cp data/${dset}/trial4.scp "${data_feats}/${dset}"
+            fi
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
@@ -439,6 +465,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${spk_stats_dir}"
 
     cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape2
+
+    # if embed_avg is enabled, then also copy trial3 and trial4 shape files
+    if "${embed_avg}"; then
+        cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape3
+        cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape4
+    fi
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -458,6 +490,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         spf_args="--train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
                     --spf2utt ${_spk_train_dir}/spf2utt \
                     --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d' ')"
+    fi
+
+    # if embed_avg is enabled, then also add trial3 and trial4 arguments for valid
+    if "${embed_avg}"; then
+        embed_avg_args="--valid_data_path_and_name_and_type ${_spk_valid_dir}/trial3.scp,speech3,sound \
+                        --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial4.scp,speech4,sound"
     fi
 
     log "Spk training started... log: '${spk_exp}/train.log'"
@@ -492,7 +530,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
+            --embed_avg ${embed_avg} \
             ${spf_args} \
+            ${embed_avg_args} \
             ${_opts} ${spk_args}
 fi
 

@@ -61,14 +61,6 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation for dev"
-    # concatenate the utterances for dev set enrollment
-    if [ ! -d "${data_dir_prefix}/asvspoof5_data/cat_flac_D" ]; then
-        log "Making concatenated utterances for dev set enrollment"
-        mkdir -p "${data_dir_prefix}/asvspoof5_data/cat_flac_D"
-        python local/cat_utt.py --in_dir "${data_dir_prefix}/asvspoof5_data/flac_D" --enrollment_file "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.enroll.txt" --out_dir "${data_dir_prefix}/asvspoof5_data/cat_flac_D"
-    else
-        log "${data_dir_prefix}/asvspoof5_data/cat_flac_D exists. Skip making concatenated utterances for dev"
-    fi
 
     if [ ! -d "${trg_dir}/dev" ]; then
         log "Making Kaldi style files for dev"
@@ -81,9 +73,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/utt2spk_to_spk2utt.pl ${trg_dir}/dev/utt2spf > "${trg_dir}/dev/spf2utt"
         utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/dev" || exit 1
 
+        # copy enrollment file
+        cp "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.enroll.txt" "${trg_dir}/dev/enroll.txt"
+
         # make trials for dev set
         log "Making the trial compatible with ESPnet"
-        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev
+        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --enroll ${trg_dir}/dev/enroll.txt  --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev
     else
         log "${trg_dir}/dev exists. Skip making Kaldi style files for dev"
     fi

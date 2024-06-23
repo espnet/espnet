@@ -1886,6 +1886,7 @@ class SpkPreprocessor(CommonPreprocessor):
         self,
         train: bool,
         target_duration: float,  # in seconds
+        embed_avg: bool = False,
         spk2utt: Optional[str] = None,
         spf2utt: Optional[str] = None,
         sample_rate: int = 16000,
@@ -1900,6 +1901,7 @@ class SpkPreprocessor(CommonPreprocessor):
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
+        self.embed_avg = embed_avg
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.spf2label = None  # a dictionary that maps string spoof label to int
         self.sample_rate = sample_rate
@@ -2007,6 +2009,11 @@ class SpkPreprocessor(CommonPreprocessor):
             audio = data["speech"]
             audio2 = data["speech2"]
 
+            # if embed_avg is true speech3 and speech4 also need to be loaded
+            if self.embed_avg:
+                audio3 = data["speech3"]
+                audio4 = data["speech4"]
+
             # duplicate if utt is shorter than minimum required duration
             if len(audio) < self.target_duration:
                 shortage = self.target_duration - len(audio) + 1
@@ -2014,6 +2021,14 @@ class SpkPreprocessor(CommonPreprocessor):
             if len(audio2) < self.target_duration:
                 shortage = self.target_duration - len(audio2) + 1
                 audio2 = np.pad(audio2, (0, shortage), "wrap")
+            
+            if self.embed_avg:
+                if len(audio3) < self.target_duration:
+                    shortage = self.target_duration - len(audio3) + 1
+                    audio3 = np.pad(audio3, (0, shortage), "wrap")
+                if len(audio4) < self.target_duration:
+                    shortage = self.target_duration - len(audio4) + 1
+                    audio4 = np.pad(audio4, (0, shortage), "wrap")
 
             startframe = np.linspace(
                 0, len(audio) - self.target_duration, num=self.num_eval
@@ -2031,8 +2046,28 @@ class SpkPreprocessor(CommonPreprocessor):
                 audios2.append(audio2[int(frame) : int(frame) + self.target_duration])
             audios2 = np.stack(audios2, axis=0)
 
+            if self.embed_avg:
+                startframe3 = np.linspace(
+                    0, len(audio3) - self.target_duration, num=self.num_eval
+                )
+                audios3 = []
+                for frame in startframe3:
+                    audios3.append(audio3[int(frame) : int(frame) + self.target_duration])
+                audios3 = np.stack(audios3, axis=0)
+
+                startframe4 = np.linspace(
+                    0, len(audio4) - self.target_duration, num=self.num_eval
+                )
+                audios4 = []
+                for frame in startframe4:
+                    audios4.append(audio4[int(frame) : int(frame) + self.target_duration])
+                audios4 = np.stack(audios4, axis=0)
+
             data["speech"] = audios
             data["speech2"] = audios2
+            if self.embed_avg:
+                data["speech3"] = audios3
+                data["speech4"] = audios4
 
         return data
 
