@@ -147,8 +147,11 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         if [[ $c_part = @(train|train_call|train_intv) ]]; then
           txt_norm="chime8" # in training use the chime8, whisper-style normalization
           mics="ihm,mdm"
+        elif [[ $run_on == "train" ]]; then
+          txt_norm="chime8" # in train apply normalization
+          mics="mdm" # ihm not available for dev
         else
-          txt_norm="none" # normalization none as it hurts GSS in inference
+          txt_norm="none" # text norm hurts GSS with oracle diarization, in inference we do not use.
           mics="mdm" # ihm not available for dev
         fi
 

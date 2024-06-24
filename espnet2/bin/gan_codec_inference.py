@@ -82,7 +82,6 @@ class AudioCoding:
 
         batch = dict(audio=audio)
         batch = to_device(batch, self.device)
-
         # overwrite the decode configs if provided
         cfg = self.decode_conf
         if decode_conf is not None:
@@ -100,7 +99,7 @@ class AudioCoding:
             return output_dict
         else:
             # TODO(jiatong): to consider multichannel cases
-            if audio.dim() == 1:
+            if len(audio.shape) == 1:
                 resyn_audio = self.model.decode(codes).view(-1)
             else:
                 resyn_audio = self.model.decode(codes)

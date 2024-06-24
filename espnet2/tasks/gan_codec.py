@@ -15,6 +15,7 @@ from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.dac.dac import DAC
 from espnet2.gan_codec.encodec.encodec import Encodec
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
+from espnet2.gan_codec.funcodec.funcodec import FunCodec
 from espnet2.gan_codec.soundstream.soundstream import SoundStream
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.train.class_choices import ClassChoices
@@ -31,6 +32,7 @@ codec_choices = ClassChoices(
         soundstream=SoundStream,
         encodec=Encodec,
         dac=DAC,
+        funcodec=FunCodec,
     ),
     default="soundstream",
 )
@@ -99,8 +101,7 @@ class GANCodecTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             # additional check for chunk iterator, to use short utterance in training
-            iterator_type = args.iterator_type
-            if iterator_type == "chunk":
+            if args.iterator_type == "chunk":
                 min_sample_size = args.chunk_length
             else:
                 min_sample_size = -1
@@ -111,6 +112,7 @@ class GANCodecTask(AbsTask):
                 speech_name="audio",
                 min_sample_size=min_sample_size,
                 audio_pad_value=0.0,
+                force_single_channel=True,  # NOTE(jiatong): single channel only now
             )
         else:
             retval = None

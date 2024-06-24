@@ -18,18 +18,20 @@ fi
 
 train_set=train-clean-460
 valid_set=dev-clean
-test_sets="dev-clean test-clean"
+test_sets="test-clean"
 
-train_config=conf/train_dac.yaml
+train_config=conf/train_soundstream4.yaml
 inference_config=conf/decode.yaml
+score_config=conf/score_24k.yaml
 
 ./codec.sh \
     --local_data_opts "--trim_all_silence false" \
     --fs ${fs} \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
-    --gpu_inference true \
-    --inference_nj 2 \
+    --scoring_config "${score_config}" \
+    --gpu_inference false \
+    --inference_nj 60 \
     --fs 24000 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
