@@ -64,7 +64,7 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
-pretrained_model=     # Pretrained model to load
+pretrained_model=9epoch.pth     # Pretrained model to load
 ignore_init_mismatch=true      # Ignore initial mismatch
 
 # Inference related

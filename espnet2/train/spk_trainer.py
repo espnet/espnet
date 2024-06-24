@@ -58,7 +58,6 @@ class SpkTrainer(Trainer):
         scores = []
         labels = []
         spk_embd_dic = {}
-        spk_embd_count = {} # to keep track of the counts, for averaging
         bs = 0
 
         sasv = False
@@ -136,6 +135,8 @@ class SpkTrainer(Trainer):
                             to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
                         )
 
+            assert len(utt_id_list) == len(speech_list)
+
             # extract speaker embeddings.
             n_utt = len(utt_id_list)
             for ii in range(0, n_utt, bs):
@@ -158,6 +159,7 @@ class SpkTrainer(Trainer):
                     extract_embd=True,
                     task_tokens=task_tokens,
                 )
+
                 spk_embds = F.normalize(spk_embds, p=2, dim=1)
                 spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
@@ -166,26 +168,21 @@ class SpkTrainer(Trainer):
                         if _utt_id.endswith("-first") or _utt_id.endswith("-second") or _utt_id.endswith("-third"):
                             spkID = _utt_id.split("-")[0]
                             if spkID in spk_embd_dic:
-                                # Add the current embedding to the sum
-                                spk_embd_dic[spkID] += _spk_embd
-                                # Increment the count for this speaker
-                                spk_embd_count[spkID] = spk_embd_count.get(spkID, 0) + 1
-                            else: # First time we see this speaker
+                                spk_embd_dic[spkID] = torch.cat((spk_embd_dic[spkID], _spk_embd), dim=0)
+                            else: # first time we see this speaker
                                 spk_embd_dic[spkID] = _spk_embd
-                                spk_embd_count[spkID] = 1
-                        else:
+                        else: # test utterance
                             spk_embd_dic[_utt_id] = _spk_embd
-                            spk_embd_count[_utt_id] = 1
-                    else:
+                    else: # not embed_avg
                         spk_embd_dic[_utt_id] = _spk_embd
-                        spk_embd_count[_utt_id] = 1
-
-                # Compute the average embedding for each speaker
-                for spkID in spk_embd_dic:
-                    spk_embd_dic[spkID] /= spk_embd_count[spkID]
 
             del utt_id_list
             del speech_list
+
+        # Compute the average embedding for each speaker
+        if embed_avg:
+            for spkID in spk_embd_dic:
+                spk_embd_dic[spkID] = torch.mean(spk_embd_dic[spkID], dim=0, keepdim=True)
 
         # calculate similarity scores
         for utt_id, batch in iterator:
@@ -201,8 +198,11 @@ class SpkTrainer(Trainer):
             for _utt_id in utt_id:
                 trials_list.append(_utt_id)
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
-                score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
-                score = -1.0 * torch.mean(score)
+                if not sasv:
+                    score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
+                    score = -1.0 * torch.mean(score)
+                else:
+                    score = F.cosine_similarity(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2], dim=1)
                 scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
 
