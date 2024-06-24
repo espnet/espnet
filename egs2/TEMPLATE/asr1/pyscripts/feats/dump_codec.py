@@ -53,6 +53,12 @@ def get_parser():
         help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
+        "--hf_model_tag",
+        type=str,
+        default=None,
+        help="model tag for Espnet codec models hosted in HuggingFace",
+    )
+    parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
     )
     parser.add_argument(
@@ -75,6 +81,7 @@ def dump_codec(
     rank: int,
     checkpoint_path: str = None,
     config_path: str = None,
+    hf_model_tag: str = None,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -98,6 +105,7 @@ def dump_codec(
         dump_audio,
         checkpoint_path,
         config_path,
+        hf_model_tag=hf_model_tag,
     )
 
     # (3) Tokenizer loop

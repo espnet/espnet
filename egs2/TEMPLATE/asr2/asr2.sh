@@ -66,6 +66,7 @@ storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 gpu_kmeans=true             # Whether to use gpu for kmeans.
 codec_choice=ESPnet
+codec_hf_model_tag=         # model_tag of Espnet huggingface codec models
 codec_checkpoint_path=      # path to codec checkpoint file
 codec_config_path=          # path to codec config file
 
@@ -899,7 +900,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                 --bias 2 \
                 --codec_choice ${codec_choice} \
                 --checkpoint_path ${codec_checkpoint_path} \
-                --config_path ${codec_config_path}
+                --config_path ${codec_config_path} \
+                --hf_model_tag ${codec_hf_model_tag}
 
                 cp ${data_feats}/${dset}/wav.scp ${data_feats}/${dset}/text.${src_case}.${src_lang}
                 cp ${data_audio}/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
