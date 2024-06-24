@@ -48,6 +48,7 @@ model_conf:
 # Loss
 loss:
   - name: aamsoftmax_sc_topk  # spk loss
+    loss_weight: 1
     loss_conf:
       margin: 0.3
       scale: 30
@@ -55,6 +56,7 @@ loss:
       mp: 0.06
       k_top: 5
   - name: aamsoftmax  # spf loss
+    loss_weight: 1
     loss_conf:
       margin: 0.5
       scale: 30
@@ -80,7 +82,7 @@ best_model_criterion:
 - - valid
   - a_dcf
   - min
-num_iters_per_epoch: 1172
+num_iters_per_epoch: 100
 
 # Optimizer
 optim: adam

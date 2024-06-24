@@ -367,6 +367,7 @@ class SpeakerTask(AbsTask):
 
         # for SASV task, two losses are present: spk_loss and spf_loss
         losses = []
+        loss_weights = []
         if args.spf_num is not None:
             for i in range(2):
                 loss_conf = args.loss[i].get("loss_conf", {})
@@ -378,6 +379,7 @@ class SpeakerTask(AbsTask):
                         **loss_conf,
                     )
                 )
+                loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
         else:  # for spk task, loss is a single loss
             loss_class = loss_choices.get_class(args.loss)
             loss = loss_class(
@@ -395,6 +397,7 @@ class SpeakerTask(AbsTask):
             pooling=pooling,
             projector=projector,
             loss=losses,
+            loss_weights=loss_weights,
             # **args.model_conf, # uncomment when model_conf exists
         )
 

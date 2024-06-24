@@ -48,6 +48,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
         loss: Optional[List[AbsLoss]],
+        loss_weights: Optional[List[float]] = None,
     ):
 
         super().__init__()
@@ -59,6 +60,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.pooling = pooling
         self.projector = projector
         self.loss = loss
+        self.loss_weights = loss_weights
 
     @typechecked
     def forward(
@@ -123,7 +125,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             assert spf_labels is not None, "spf_labels is None, cannot compute spf_loss"
             spk_loss = self.loss[0](spk_embd, spk_labels.squeeze())
             spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
-            loss = 0.1 * spk_loss + 0.9 * spf_loss
+            if self.loss_weights is not None:
+                weight_sum = sum(self.loss_weights)
+                loss = (self.loss_weights[0] * spk_loss + self.loss_weights[1] * spf_loss) / weight_sum
+            else:
+                loss = spk_loss + spf_loss
             stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())
             stats["loss"] = loss.detach()
             loss, stats, weight = force_gatherable(
