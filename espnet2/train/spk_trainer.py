@@ -65,6 +65,7 @@ class SpkTrainer(Trainer):
             pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
             if re.match(pattern, utt_id[0]):
                 sasv = True
+            break
 
         embed_avg = False # use speech, speech2, and speech3 as enrollment and speech4 as test
 
