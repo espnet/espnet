@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
-from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2bool, str_or_none
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig(
@@ -43,18 +43,18 @@ def get_parser():
     parser.add_argument(
         "--checkpoint_path",
         type=str,
-        default=None,
+        default=str_or_none,
         help="checkpoint path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
         "--config_path",
-        type=str,
+        type=str_or_none,
         default=None,
         help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
         "--hf_model_tag",
-        type=str,
+        type=str_or_none,
         default=None,
         help="model tag for Espnet codec models hosted in HuggingFace",
     )
@@ -105,7 +105,7 @@ def dump_codec(
         dump_audio,
         checkpoint_path,
         config_path,
-        hf_model_tag=hf_model_tag,
+        hf_model_tag,
     )
 
     # (3) Tokenizer loop

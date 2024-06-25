@@ -21,17 +21,28 @@ specaug_conf:
     - 40
     num_time_mask: 2
 
-encoder: transformer
+encoder: e_branchformer
 encoder_conf:
     output_size: 256
-    attention_heads: 8
-    linear_units: 2048
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
-    input_layer: conv2d
-    normalize_before: true
+    attention_dropout_rate: 0.1
+    input_layer: conv1d2
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
 
 decoder: transformer
 decoder_conf:

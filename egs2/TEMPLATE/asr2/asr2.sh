@@ -66,9 +66,9 @@ storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 gpu_kmeans=true             # Whether to use gpu for kmeans.
 codec_choice=ESPnet
-codec_hf_model_tag=         # model_tag of Espnet huggingface codec models
-codec_checkpoint_path=      # path to codec checkpoint file
-codec_config_path=          # path to codec config file
+codec_hf_model_tag=null         # model_tag of Espnet huggingface codec models
+codec_checkpoint_path=null      # path to codec checkpoint file
+codec_config_path=null          # path to codec config file
 
 # Tokenization related
 tokenization_choice=ssl # ssl or codec

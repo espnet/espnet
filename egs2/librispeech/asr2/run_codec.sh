@@ -13,7 +13,7 @@ train_set="train_960"
 train_dev="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_asr_transformer_codec.yaml
+asr_config=conf/tuning/train_asr_ebranchformer_codec.yaml
 inference_config=conf/decode_ctc0.3.yaml
 
 tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
@@ -23,14 +23,10 @@ tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
 src_case="ts"
 tgt_case="ts"
 
-codec_checkpoint_path=espnet_codec/16khz_soundstream/train.total_count.best.pth
-codec_config_path=espnet_codec/16khz_soundstream/config.yaml
 
 ./asr2.sh \
     --tokenization_choice "codec" \
-    --codec_checkpoint_path ${codec_checkpoint_path} \
-    --codec_config_path ${codec_config_path} \
-    --nj 16 \
+    --nj 32 \
     --ngpu 8 \
     --audio_format flac.ark \
     --fs 16000 \
