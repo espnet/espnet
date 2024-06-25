@@ -99,7 +99,7 @@ test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval s
 codec_choice="EnCodec" # codec
 codec_checkpoint_path=null
 codec_config_path=null
-codec_hf_model_card=null
+codec_hf_model_tag=null
 # (2) semantic
 semantic_choice="WavLM" # semantic
 semantic_opts=""
@@ -354,7 +354,7 @@ if ! "${skip_data_prep}"; then
                         --codec_choice ${codec_choice} \
                         --checkpoint_path ${codec_checkpoint_path} \
                         --config_path ${codec_config_path} \
-                        --hf_model_card ${codec_hf_model_card}
+                        --hf_model_tag ${codec_hf_model_tag}
 
                 elif [ ${_modality} == "g2p" ]; then
                     echo "Find G2P vocabulary and copy text"

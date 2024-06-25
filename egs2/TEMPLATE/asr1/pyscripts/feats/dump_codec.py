@@ -53,7 +53,7 @@ def get_parser():
         help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
-        "--hf_model_card",
+        "--hf_model_tag",
         type=str_or_none,
         default=None,
         help="huggingface model card for Espnet codec model",
