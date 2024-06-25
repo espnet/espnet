@@ -55,10 +55,6 @@ For ESPnet2, we do not recommend preparing the recipe's stages for each corpus b
 
 The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Hugging Face and Zenodo (Deprecated).
 You can also refer to the document at https://github.com/espnet/espnet_model_zoo
-To upload your model, you need first (This is currently deprecated, uploading to Huggingface Hub is preferred) :
-1. Sign up to Zenodo: https://zenodo.org/
-2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
 To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/

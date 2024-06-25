@@ -29,7 +29,7 @@ class CodecTokenizer(AbsTokenizer):
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
-        hf_model_card: str = None,
+        hf_model_tag: str = None,
         max_token_per_frame: int = 8,
     ):
         """Codec Tokenizer initialization
@@ -47,16 +47,20 @@ class CodecTokenizer(AbsTokenizer):
         self.dump_audio = dump_audio
 
         if self.codec_choice == "ESPnet":
-            if hf_model_card is not None:
-                raise ValueError("Huggingface model is not supported yet")
-            
-            from espnet2.tasks.gan_codec import GANCodecTask
 
-            model, _ = GANCodecTask.build_model_from_file(
-                config_path,
-                checkpoint_path,
-                device=str(device),
-            )
+            if hf_model_tag is not None:
+                from espnet2.bin.gan_codec_inference import AudioCoding
+                model = AudioCoding.from_pretrained(
+                    hf_model_tag,
+                    device=str(device)
+                ).model
+            else:
+                from espnet2.tasks.gan_codec import GANCodecTask
+                model, _ = GANCodecTask.build_model_from_file(
+                    config_path,
+                    checkpoint_path,
+                    device=str(device),
+                )
             self.codec = model
 
             meta_info = self.codec.meta_info()

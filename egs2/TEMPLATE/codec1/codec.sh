@@ -32,7 +32,6 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
-skip_upload_hf=true # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -49,7 +48,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 feats_type=raw             # Input feature type.
 audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
-max_wav_duration=20        # Maximum duration in second.
+max_wav_duration=200000000 # Maximum duration in second.
 fs=16000                   # Sampling rate.
 
 # Training related
@@ -73,6 +72,12 @@ inference_model=train.total_count.best.pth # Model path for decoding.
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
 download_model=""  # Download a model from Model Zoo and use it for decoding.
+
+# Scoring related
+scoring_config="" # Config for scoring.
+scoring_args=""   # Arguments for scoring.
+                  # Note that it will overwrite args in scoring config.
+scoring_tag=""    # Suffix for scoring directory.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -188,6 +193,17 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+fi
+if [ -z "${scoring_tag}" ]; then
+    if [ -n "${scoring_config}" ]; then
+        scoring_tag="$(basename "${scoring_config}" .yaml)"
+    else
+        scoring_tag=scoring
+    fi
+    # Add overwritten arg's info
+    if [ -n "${scoring_args}" ]; then
+        scoring_tag+="$(echo "${scoring_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+    fi
 fi
 
 # The directory used for collect-stats mode
@@ -319,7 +335,7 @@ if ! "${skip_train}"; then
 
         # 2. Generate run.sh
         log "Generate '${codec_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
-        mkdir -p "${codec_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${codec_stats_dir}/run.sh"; chmod +x "${codec_stats_dir}/run.sh"
+        mkdir -p "${codec_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${codec_stats_dir}/run.sh"; chmod +x "${codec_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Codec collect_stats started... log: '${_logdir}/stats.*.log'"
@@ -504,31 +520,143 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Scoring"
 
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
+
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _gt_wavscp="${_data}/wav.scp"
             _dir="${codec_exp}/${inference_tag}/${dset}"
-            _gen_wavdir="${_dir}/wav"
+            _gen_wavscp="${_dir}/wav/wav.scp"
 
-            # Objective Evaluation - MCD
-            log "Begin Scoring for MCD metrics on ${dset}, results are written under ${_dir}/MCD_res"
+            log "Begin evaluation on ${dset}, results are written under ${_dir}"
 
-            mkdir -p "${_dir}/MCD_res"
-            ${python} pyscripts/utils/evaluate_mcd.py \
-                ${_gen_wavdir}/wav.scp \
-                ${_gt_wavscp} \
-                --outdir "${_dir}/MCD_res"
+            # 1. Split the key file
+            _scoredir="${_dir}/${scoring_tag}"
+            _logdir="${_scoredir}/log"
+            mkdir -p ${_scoredir}
+            mkdir -p ${_logdir}
 
-            # Objective Evaluation - log-F0 RMSE
-            log "Begin Scoring for F0 related metrics on ${dset}, results are written under ${_dir}/F0_res"
+            # Get the minimum number among ${nj} and the number lines of input files
+            _nj=$(min "${inference_nj}" "$(<${_gen_wavscp} wc -l)" )
 
-            mkdir -p "${_dir}/F0_res"
-            ${python} pyscripts/utils/evaluate_f0.py \
-                ${_gen_wavdir}/wav.scp \
-                ${_gt_wavscp} \
-                --outdir "${_dir}/F0_res"
+            key_file=${_gen_wavscp}
+            split_scps=""
+            for n in $(seq "${_nj}"); do
+                split_scps+=" ${_logdir}/test.${n}.scp"
+            done
+            # shellcheck disable=SC2086
+            utils/split_scp.pl "${key_file}" ${split_scps}
+
+            # 2. Generate run.sh
+            log "Generate '${_scoredir}/run.sh'. You can resume the process from stage 7 using this script"
+            echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${_scoredir}/run.sh"; chmod +x "${_scoredir}/run.sh"
+
+            # 3. Submit jobs
+            log "Evaluation started... log: '${_logdir}/codec_evaluate.*.log'"
+            # shellcheck disable=SC2046,SC2086
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/codec_evaluate.JOB.log \
+                ${python} -m speech_evaluation.bin.espnet_scorer \
+                    --pred "${_logdir}"/test.JOB.scp \
+                    --gt "${_gt_wavscp}" \
+                    --output_file "${_logdir}/result.JOB.txt" \
+                    --score_config "${scoring_config}" \
+                    ${scoring_args} || { cat $(grep -l -i error "${_logdir}"/codec_evaluate.*.log) ; exit 1; }
+
+            # 4. Aggregate the results
+            ${python} pyscripts/utils/aggregate_codec_eval.py \
+                --logdir "${_logdir}" \
+                --scoredir "${_scoredir}" \
+                --nj "${_nj}"
+
         done
+
+        # 5. Show results
+        # TODO(jiatong)
+
     fi
 else
     log "Skip the evaluation stages"
 fi
+
+
+packed_model="${codec_exp}/${codec_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload}"; then
+    log "Stage 8: Packing model: ${packed_model}"
+    # Pack model
+    if [ -e "${codec_exp}/${inference_model}" ]; then
+        # Pack model
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack codec \
+            --model_file "${codec_exp}/${inference_model}" \
+            --train_config "${codec_exp}/config.yaml" \
+            --option "${codec_exp}/images" \
+            --outpath "${packed_model}"
+    else
+        log "Skip packing model since ${codec_exp}/${inference_model} does not exist."
+    fi
+fi
+
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
+    log "Stage 9: Uploading to hugging face: ${hf_repo}"
+    [ -z "${hf_repo}" ] && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+
+    # Upload model to hugging face
+    if [ -e "${packed_model}" ]; then
+
+    gitlfs=$(git lfs --version 2> /dev/null || true)
+    [ -z "${gitlfs}" ] && \
+        log "ERROR: You need to install git-lfs first" && \
+        exit 1
+
+    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+    if command -v git &> /dev/null; then
+        _creator_name="$(git config user.name)"
+        _checkout="git checkout $(git show -s --format=%H)"
+    else
+        _creator_name="$(whoami)"
+        _checkout=""
+    fi
+    # /some/where/espnet/egs2/foo/codec1/ -> foo/codec1
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/asr1 -> foo
+    _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+    # copy files in ${dir_repo}
+    unzip -o ${packed_model} -d ${dir_repo}
+    # Generate description file
+    # shellcheck disable=SC2034
+    hf_task=codec
+    # shellcheck disable=SC2034
+    espnet_task=Codec
+    # shellcheck disable=SC2034
+    lang=multilingual
+    # shellcheck disable=SC2034
+    task_exp=${codec_exp}
+    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+    this_folder=${PWD}
+    cd ${dir_repo}
+    if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "Update model"
+    fi
+    git push
+    cd ${this_folder}
+    else
+        log "Skip uploading to hugging face since ${packed_model} does not exist. Please run Stage 8 first."
+    fi
+fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
