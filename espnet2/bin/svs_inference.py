@@ -57,6 +57,8 @@ class SingingGenerate:
         noise_scale_dur: float = 0.8,
         vocoder_config: Union[Path, str, None] = None,
         vocoder_checkpoint: Union[Path, str, None] = None,
+        discrete_token_layers: int = 1,
+        mix_type: str = "frame",
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -92,6 +94,8 @@ class SingingGenerate:
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
+        self.discrete_token_layers = discrete_token_layers
+        self.mix_type = mix_type
         if vocoder_checkpoint is not None:
             vocoder = SVSTaskClass.build_vocoder_from_file(
                 vocoder_config, vocoder_checkpoint, model, device
@@ -144,6 +148,7 @@ class SingingGenerate:
         spembs: Union[torch.Tensor, np.ndarray, None] = None,
         sids: Union[torch.Tensor, np.ndarray, None] = None,
         lids: Union[torch.Tensor, np.ndarray, None] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
 
@@ -197,6 +202,8 @@ class SingingGenerate:
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
+        if discrete_token is not None:
+            batch.update(discrete_token=discrete_token)
         batch = to_device(batch, self.device)
 
         cfg = self.decode_conf
@@ -220,7 +227,22 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen"]
             else:
                 input_feat = output_dict["feat_gen_denorm"]
-            wav = self.vocoder(input_feat)
+            if self.model.codec_codebook > 0:
+                wav = self.vocoder.detokenize(input_feat, self.model.codec_codebook)
+            if self.discrete_token_layers > 1:
+                if self.mix_type == "frame":
+                    input_feat = input_feat.view(
+                        -1, self.discrete_token_layers
+                    )
+                elif self.mix_type == "sequence":
+                    input_feat = input_feat.view(
+                        self.discrete_token_layers, -1
+                    ).transpose(0, 1)
+            if "pitch" in output_dict:
+                assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
+                wav = self.vocoder(input_feat, output_dict["pitch"])
+            else:
+                wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
         return output_dict
@@ -338,6 +360,8 @@ def inference(
     vocoder_checkpoint: Optional[str] = None,
     vocoder_tag: Optional[str] = None,
     svs_task: Optional[str] = "svs",
+    discrete_token_layers: int = 1,
+    mix_type: str = "frame",
 ):
     """Perform SVS model decoding."""
     if batch_size > 1:
@@ -366,6 +390,8 @@ def inference(
         noise_scale_dur=noise_scale_dur,
         vocoder_config=vocoder_config,
         vocoder_checkpoint=vocoder_checkpoint,
+        discrete_token_layers=discrete_token_layers,
+        mix_type=mix_type,
         dtype=dtype,
         device=device,
         svs_task=svs_task,
@@ -663,11 +689,17 @@ def get_parser():
         help="yaml format configuration file. if not explicitly provided, "
         "it will be searched in the checkpoint directory. (default=None)",
     )
-    group.add_argument(
-        "--svs_task",
-        default="svs",
-        type=str_or_none,
-        help="SVS task name. svs or gan_svs",
+    parser.add_argument(
+        "--discrete_token_layers",
+        type=int,
+        default=1,
+        help="layers of discrete tokens",
+    )
+    parser.add_argument(
+        "--mix_type",
+        type=str,
+        default="frame",
+        help="multi token mix type, 'sequence' or 'frame'.",
     )
 
     return parser

@@ -15,6 +15,7 @@ from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
@@ -26,11 +27,13 @@ from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 # TODO(Yuning): Models to be added
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
+from espnet2.svs.discrete.discrete_acoustic import Discrete_Acoustic
 
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
 # from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
 # from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import SVSPreprocessor
@@ -42,6 +45,7 @@ from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.feats_extract.ying import Ying
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
 # from espnet2.svs.bytesing.bytesing import ByteSing
@@ -124,6 +128,7 @@ svs_choices = ClassChoices(
         naive_rnn=NaiveRNN,
         naive_rnn_dp=NaiveRNNDP,
         xiaoice=XiaoiceSing,
+        discrete_acoustic=Discrete_Acoustic,
         # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
         joint_score2wav=JointScore2Wav,
@@ -132,6 +137,15 @@ svs_choices = ClassChoices(
     ),
     type_check=AbsSVS,
     default="naive_rnn",
+)
+model_type_choices = ClassChoices(
+    "model_type",
+    classes=dict(
+        svs=ESPnetSVSModel,
+        discrete_svs=ESPnetDiscreteSVSModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="svs",
 )
 
 
@@ -158,6 +172,8 @@ class SVSTask(AbsTask):
         energy_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
         energy_normalize_choices,
+        # --model_type and --model_type_conf
+        model_type_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -251,6 +267,18 @@ class SVSTask(AbsTask):
             default=24000,  # BUG: another fs in feats_extract_conf
             help="sample rate",
         )
+        parser.add_argument(
+            "--discrete_token_layers",
+            type=int,
+            default=1,
+            help="layers of discrete tokens",
+        )
+        parser.add_argument(
+            "--nclusters",
+            type=int,
+            default=1024,
+            help="number of cluster centers",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -258,8 +286,9 @@ class SVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    @typechecked
-    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
+    def build_collate_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -273,7 +302,7 @@ class SVSTask(AbsTask):
     @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -316,10 +345,19 @@ class SVSTask(AbsTask):
                 "lids",
                 "feats",
                 "ying",
+                "discrete_token",
             )
         else:
             # Inference mode
-            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
+            retval = (
+                "spembs",
+                "singing",
+                "pitch",
+                "durations",
+                "sids",
+                "lids",
+                "discrete_token",
+            )
         return retval
 
     @classmethod
@@ -353,6 +391,10 @@ class SVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
+        if args.model_type == "discrete_svs":
+            odim = args.nclusters + 1
+            discrete_token_layers = args.discrete_token_layers
+
         # 2. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
@@ -362,7 +404,10 @@ class SVSTask(AbsTask):
 
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
-        svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
+        if args.model_type == "discrete_svs":
+            svs = svs_class(idim=vocab_size, odim=odim, discrete_token_layers=discrete_token_layers, **args.svs_conf)
+        else:
+            svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
         # 4. Extra components
         score_feats_extract = None
@@ -371,6 +416,7 @@ class SVSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        discrete_token_layers = 1
         logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
@@ -421,23 +467,43 @@ class SVSTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+        if getattr(args, "discrete_token_layers", None) is not None:
+            discrete_token_layers = args.discrete_token_layers
 
         # 5. Build model
-        model = ESPnetSVSModel(
-            text_extract=score_feats_extract,
-            feats_extract=feats_extract,
-            score_feats_extract=score_feats_extract,
-            label_extract=score_feats_extract,
-            pitch_extract=pitch_extract,
-            ying_extract=ying_extract,
-            duration_extract=score_feats_extract,
-            energy_extract=energy_extract,
-            normalize=normalize,
-            pitch_normalize=pitch_normalize,
-            energy_normalize=energy_normalize,
-            svs=svs,
-            **args.model_conf,
-        )
+        if args.model_type == "svs":
+            model = ESPnetSVSModel(
+                text_extract=score_feats_extract,
+                feats_extract=feats_extract,
+                score_feats_extract=score_feats_extract,
+                label_extract=score_feats_extract,
+                pitch_extract=pitch_extract,
+                ying_extract=ying_extract,
+                duration_extract=score_feats_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                svs=svs,
+                **args.model_conf,
+            )
+        elif args.model_type == "discrete_svs":
+            model = ESPnetDiscreteSVSModel(
+                text_extract=score_feats_extract,
+                feats_extract=feats_extract,
+                score_feats_extract=score_feats_extract,
+                label_extract=score_feats_extract,
+                pitch_extract=pitch_extract,
+                ying_extract=ying_extract,
+                duration_extract=score_feats_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                discrete_token_layers=discrete_token_layers,
+                svs=svs,
+                **args.model_conf,
+            )
         return model
 
     @classmethod
@@ -477,6 +543,19 @@ class SVSTask(AbsTask):
                 vocoder_file, vocoder_config_file
             )
             return vocoder.to(device)
+        elif str(vocoder_file).endswith(".pth"):
+            vocoder_conf = {}
+            if vocoder_config_file is not None:
+                vocoder_config_file = Path(vocoder_config_file)
+                with vocoder_config_file.open("r", encoding="utf-8") as f:
+                    vocoder_conf = yaml.safe_load(f)
+            vocoder = CodecTokenizer(
+                codec_choice = "ESPnet",
+                codec_fs = int(vocoder_conf["fs"]),
+                checkpoint_path = vocoder_checkpoint,
+                config_path = vocoder_config_file,
+            )
+
 
         else:
             raise ValueError(f"{vocoder_file} is not supported format.")

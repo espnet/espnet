@@ -15,6 +15,7 @@ from typeguard import typechecked
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
@@ -32,10 +33,9 @@ else:
         yield
 
 
-class ESPnetSVSModel(AbsESPnetModel):
+class ESPnetDiscreteSVSModel(ESPnetSVSModel):
     """ESPnet model for singing voice synthesis task."""
 
-    @typechecked
     def __init__(
         self,
         text_extract: Optional[AbsFeatsExtract],
@@ -50,21 +50,24 @@ class ESPnetSVSModel(AbsESPnetModel):
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
         svs: AbsSVS,
+        discrete_token_layers: int = 1,
     ):
         """Initialize ESPnetSVSModel module."""
-        super().__init__()
-        self.text_extract = text_extract
-        self.feats_extract = feats_extract
-        self.score_feats_extract = score_feats_extract
-        self.label_extract = label_extract
-        self.pitch_extract = pitch_extract
-        self.ying_extract = ying_extract
-        self.duration_extract = duration_extract
-        self.energy_extract = energy_extract
-        self.normalize = normalize
-        self.pitch_normalize = pitch_normalize
-        self.energy_normalize = energy_normalize
-        self.svs = svs
+        super().__init__(
+            text_extract=text_extract,
+            feats_extract=feats_extract,
+            score_feats_extract=score_feats_extract,
+            label_extract=label_extract,
+            pitch_extract=pitch_extract,
+            ying_extract=ying_extract,
+            duration_extract=duration_extract,
+            energy_extract=energy_extract,
+            normalize=normalize,
+            pitch_normalize=pitch_normalize,
+            energy_normalize=energy_normalize,
+            svs=svs,
+        )
+        self.discrete_token_layers = discrete_token_layers
 
     def forward(
         self,
@@ -96,6 +99,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
+        discrete_token_lengths: Optional[torch.Tensor] = None,
         flag_IsValid=False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -126,6 +131,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete token tensor (B, T_frame).
+            discrete_token_lengths (Optional[Tensor]): Discrete token length tensor (B,).
             kwargs: "utt_id" is among the input.
 
         Returns:
@@ -147,6 +154,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             #   output -> frame level(take mode from window) or syllable level
 
             # cut length
+            """
             for i in range(feats.size(0)):
                 dur_len = sum(duration_phn[i])
                 if feats_lengths[i] > dur_len:
@@ -164,6 +172,32 @@ class ESPnetSVSModel(AbsESPnetModel):
                             delta -= duration_phn[i][end] - new
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
+            """
+            #print(self.discrete_token_layers, discrete_token_lengths, feats_lengths, flush=True)
+            #print(discrete_token.shape, flush=True)
+            #print(discrete_token, flush=True)
+            origin_discrete_token_lengths = (
+                discrete_token_lengths // self.discrete_token_layers
+            )
+            for i in range(label.size(0)):
+                dur_len = sum(duration_phn[i])
+                if origin_discrete_token_lengths[i] > dur_len:
+                    delta = origin_discrete_token_lengths[i] - dur_len
+                    end = duration_phn_lengths[i] - 1
+                    duration_phn[i][end] += delta
+                else:  # decrease duration at the end of sequence
+                    delta = dur_len - origin_discrete_token_lengths[i]
+                    end = duration_phn_lengths[i] - 1
+                    while delta > 0 and end >= 0:
+                        new = duration_phn[i][end] - delta
+                        if new < 0:  # keep on decreasing the previous one
+                            delta -= duration_phn[i][end]
+                            duration_phn[i][end] = 0
+                            end -= 1
+                        else:  # stop
+                            delta -= duration_phn[i][end] - new
+                            duration_phn[i][end] = new
+            #            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -231,7 +265,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                 pitch, pitch_lengths = self.pitch_extract(
                     input=singing,
                     input_lengths=singing_lengths,
-                    feats_lengths=feats_lengths,
+                    feats_lengths=origin_discrete_token_lengths,
                 )
 
             if self.energy_extract is not None and energy is None:
@@ -327,6 +361,13 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
+        if discrete_token is not None:
+            batch.update(
+                discrete_token=discrete_token,
+                discrete_token_lengths=discrete_token_lengths,
+                discrete_token_lengths_frame=origin_discrete_token_lengths,
+            )
+
         return self.svs(**batch)
 
     def collect_feats(
@@ -357,6 +398,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
+        discrete_token_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
@@ -387,17 +430,21 @@ class ESPnetSVSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete tokens tensor (B, T_frame)
+            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths tensor (B,)
 
         Returns:
             Dict[str, Tensor]: Dict of features.
         """
         feats = None
+
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(singing, singing_lengths)
         else:
             # Use precalculated feats (feats_type != raw case)
             feats, feats_lengths = singing, singing_lengths
         # cut length
+        """
         for i in range(feats.size(0)):
             dur_len = sum(duration_phn[i])
             if feats_lengths[i] > dur_len:
@@ -415,12 +462,35 @@ class ESPnetSVSModel(AbsESPnetModel):
                         delta -= duration_phn[i][end] - new
                         duration_phn[i][end] = new
         feats = feats[:, : feats_lengths.max()]
+        """
+        origin_discrete_token_lengths = (
+            discrete_token_lengths // self.discrete_token_layers
+        )
+        for i in range(label.size(0)):
+            dur_len = sum(duration_phn[i])
+            if origin_discrete_token_lengths[i] > dur_len:
+                delta = origin_discrete_token_lengths[i] - dur_len
+                end = duration_phn_lengths[i] - 1
+                duration_phn[i][end] += delta
+            else:  # decrease duration at the end of sequence
+                delta = dur_len - origin_discrete_token_lengths[i]
+                end = duration_phn_lengths[i] - 1
+                while delta > 0 and end >= 0:
+                    new = duration_phn[i][end] - delta
+                    if new < 0:  # keep on decreasing the previous one
+                        delta -= duration_phn[i][end]
+                        duration_phn[i][end] = 0
+                        end -= 1
+                    else:  # stop
+                        delta -= duration_phn[i][end] - new
+                        duration_phn[i][end] = new
+        #        discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 input=singing,
                 input_lengths=singing_lengths,
-                feats_lengths=feats_lengths,
+                feats_lengths=origin_discrete_token_lengths,
             )
         if self.energy_extract is not None:
             energy, energy_lengths = self.energy_extract(
@@ -484,6 +554,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             lids (Optional[Tensor]): Language ID tensor (1,).
             pitch (Optional[Tensor): Pitch tensor (T_frame).
             energy (Optional[Tensor): Energy tensor.
+            discrete_token (Optional[Tensor]): Discrete tokens (T_frame)
 
         Returns:
             Dict[str, Tensor]: Dict of outputs.
@@ -579,11 +650,14 @@ class ESPnetSVSModel(AbsESPnetModel):
             # if self.svs.require_raw_singing:
             #     input_dict.update(singing=singing)
 
+        origin_discrete_token_lengths = (
+            len(discrete_token) // self.discrete_token_layers
+        )
         if decode_config["use_teacher_forcing"]:
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.LongTensor([origin_discrete_token_lengths]),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -641,14 +715,16 @@ class ESPnetSVSModel(AbsESPnetModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
+        if discrete_token is not None:
+            input_dict.update(discrete_token=discrete_token)
 
         output_dict = self.svs.inference(**input_dict, **decode_config)
-
+        """
         if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
             feat_gen_denorm = self.normalize.inverse(
                 output_dict["feat_gen"].clone()[None]
             )[0][0]
             output_dict.update(feat_gen_denorm=feat_gen_denorm)
-
+        """
         return output_dict
