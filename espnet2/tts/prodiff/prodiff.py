@@ -672,12 +672,10 @@ class ProDiff(AbsTTS):
             h_masks = None
 
         if self.decoder_type == "diffusion":
-            if not is_inference:
-                before_outs = self.decoder(
-                    hs, ys, h_masks, is_inference
-                )  # (B, T_feats, odim)
-            else:   # calls only the inference script for the decodes
-                before_outs = self.decoder.inference(hs)
+            before_outs = self.decoder(
+                hs, ys, h_masks, is_inference
+            )  # (B, T_feats, odim)
+
 
         else:
             zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
