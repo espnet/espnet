@@ -231,9 +231,7 @@ class SingingGenerate:
                 wav = self.vocoder.detokenize(input_feat, self.model.codec_codebook)
             if self.discrete_token_layers > 1:
                 if self.mix_type == "frame":
-                    input_feat = input_feat.view(
-                        -1, self.discrete_token_layers
-                    )
+                    input_feat = input_feat.view(-1, self.discrete_token_layers)
                 elif self.mix_type == "sequence":
                     input_feat = input_feat.view(
                         self.discrete_token_layers, -1

@@ -144,7 +144,7 @@ def process_utterance(
     for i in range(len(phns)):
         start = running_dur
         end = running_dur + phn_dur[i]
-        frame = int(phn_dur[i] / (320/16000) + 0.5)
+        frame = int(phn_dur[i] / (320 / 16000) + 0.5)
         for _ in range(frame):
             phn_frame.append(phns[i])
         label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[i]))
@@ -171,7 +171,11 @@ def process_subset(args, set_name, tempos):
     writer = SingingScoreWriter(
         args.score_dump, os.path.join(args.tgt_dir, set_name, "score.scp")
     )
-    kmeans_measurement = open(os.path.join(args.tgt_dir, set_name, "phoneme_pseudo_label_quality.txt"), "w", encoding="utf-8")
+    kmeans_measurement = open(
+        os.path.join(args.tgt_dir, set_name, "phoneme_pseudo_label_quality.txt"),
+        "w",
+        encoding="utf-8",
+    )
     midi_mapping = load_midi_note_scp(args.midi_note_scp)
 
     with open(

@@ -563,7 +563,7 @@ if ! "${skip_data_prep}"; then
                     cp ${data_feats}/${dset}/_wav.scp ${data_feats}/${dset}/${token_file}
                     # cp ${data_audio}/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
                     # cp ${data_audio}/${dset}/utt2spk    ${data_feats}/${dset}/utt2spk
-                    
+
                     # concatenate scp files
                 # for n in $(seq ${_nj}); do
                 #     cat "${_dump_dir}"/logdir/codec_token.${n}.txt || exit 1;

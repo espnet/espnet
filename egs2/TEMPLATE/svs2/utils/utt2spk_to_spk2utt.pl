@@ -22,7 +22,7 @@ if ( @ARGV > 1 ) {
     die "Usage: utt2spk_to_spk2utt.pl [ utt2spk ] > spk2utt";
 }
 
-while(<>){ 
+while(<>){
     @A = split(" ", $_);
     @A == 2 || die "Invalid line in utt2spk file: $_";
     ($u,$s) = @A;

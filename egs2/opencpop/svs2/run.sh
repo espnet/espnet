@@ -15,7 +15,7 @@ win_length=1200
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
 kmeans_feature="codec/1"
-multi_token="" 
+multi_token=""
 mix_type="frame"
 # frame | sequencee
 nclusters=1024

@@ -53,7 +53,7 @@ class MERTFrontend(AbsFrontend):
         self.tile_factor = 1
         self.stride = 320
         self.max_chunk = max_chunk
-        #self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        # self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -110,8 +110,8 @@ class MERTFrontend(AbsFrontend):
                 feats = self.model(
                     input_values=input_chunk,
                     attention_mask=mask[:, start : start + self.max_chunk],
-                    output_hidden_states=True
-                )#.hidden_states
+                    output_hidden_states=True,
+                )  # .hidden_states
                 print(feats, flush=True)
 
                 feat_chunk, feat_mask = self.model.extract_features(
@@ -127,7 +127,6 @@ class MERTFrontend(AbsFrontend):
         feats_padding_mask = torch.cat(feats_padding_mask, 1).cpu()
         feats_lens = (1 - feats_padding_mask).sum(dim=1)
         return feats, feats_lens
-
 
     def reload_pretrained_parameters(self):
         self.model.load_state_dict(self.pretrained_params)

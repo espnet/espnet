@@ -14,7 +14,9 @@ from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.discrete.discrete_acoustic import Discrete_Acoustic
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
@@ -27,7 +29,6 @@ from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 # TODO(Yuning): Models to be added
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
-from espnet2.svs.discrete.discrete_acoustic import Discrete_Acoustic
 
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
 # from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
@@ -45,7 +46,6 @@ from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.feats_extract.ying import Ying
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
 # from espnet2.svs.bytesing.bytesing import ByteSing
@@ -286,9 +286,7 @@ class SVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -405,7 +403,12 @@ class SVSTask(AbsTask):
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
         if args.model_type == "discrete_svs":
-            svs = svs_class(idim=vocab_size, odim=odim, discrete_token_layers=discrete_token_layers, **args.svs_conf)
+            svs = svs_class(
+                idim=vocab_size,
+                odim=odim,
+                discrete_token_layers=discrete_token_layers,
+                **args.svs_conf,
+            )
         else:
             svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
@@ -550,12 +553,11 @@ class SVSTask(AbsTask):
                 with vocoder_config_file.open("r", encoding="utf-8") as f:
                     vocoder_conf = yaml.safe_load(f)
             vocoder = CodecTokenizer(
-                codec_choice = "ESPnet",
-                codec_fs = int(vocoder_conf["fs"]),
-                checkpoint_path = vocoder_checkpoint,
-                config_path = vocoder_config_file,
+                codec_choice="ESPnet",
+                codec_fs=int(vocoder_conf["fs"]),
+                checkpoint_path=vocoder_checkpoint,
+                config_path=vocoder_config_file,
             )
-
 
         else:
             raise ValueError(f"{vocoder_file} is not supported format.")

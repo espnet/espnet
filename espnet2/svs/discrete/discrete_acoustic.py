@@ -34,12 +34,14 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
 from espnet.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
     Encoder as TransformerEncoder,
 )
-#from espnet2.gan_svs.vits.pitch_predictor import Decoder
+
+# from espnet2.gan_svs.vits.pitch_predictor import Decoder
 
 # class Discrete_Postnet(torch.nn.Module):
 #     def __init__(
 #         self,
 #     )
+
 
 class Decoder(torch.nn.Module):
     """Pitch or Mel decoder module in VISinger 2."""
@@ -153,6 +155,7 @@ class Decoder(torch.nn.Module):
         x = self.proj(x) * x_mask
 
         return x, x_mask
+
 
 class Discrete_Acoustic(AbsSVS):
     """XiaoiceSing module for Singing Voice Synthesis.
@@ -502,24 +505,27 @@ class Discrete_Acoustic(AbsSVS):
         self.sep = sep
         if decoder_type == "transformer":
             if self.discrete_token_layers > 1 and self.sep:
-                self.decoder = torch.nn.ModuleList([
-                    TransformerEncoder(
-                        idim=0,
-                        attention_dim=adim,
-                        attention_heads=aheads,
-                        linear_units=dunits,
-                        num_blocks=dlayers,
-                        input_layer=None,
-                        dropout_rate=transformer_dec_dropout_rate,
-                        positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                        attention_dropout_rate=transformer_dec_attn_dropout_rate,
-                        pos_enc_class=pos_enc_class,
-                        normalize_before=decoder_normalize_before,
-                        concat_after=decoder_concat_after,
-                        positionwise_layer_type=positionwise_layer_type,
-                        positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-                    ) for i in range(self.discrete_token_layers)
-                ])
+                self.decoder = torch.nn.ModuleList(
+                    [
+                        TransformerEncoder(
+                            idim=0,
+                            attention_dim=adim,
+                            attention_heads=aheads,
+                            linear_units=dunits,
+                            num_blocks=dlayers,
+                            input_layer=None,
+                            dropout_rate=transformer_dec_dropout_rate,
+                            positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                            attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                            pos_enc_class=pos_enc_class,
+                            normalize_before=decoder_normalize_before,
+                            concat_after=decoder_concat_after,
+                            positionwise_layer_type=positionwise_layer_type,
+                            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                        )
+                        for i in range(self.discrete_token_layers)
+                    ]
+                )
             else:
                 self.decoder = TransformerEncoder(
                     idim=0,
@@ -564,14 +570,21 @@ class Discrete_Acoustic(AbsSVS):
 
         # define final projection
         if self.discrete_token_layers > 1 and self.sep:
-            self.linear_projection = torch.nn.ModuleList([
-                torch.nn.Linear(adim, self.odim * reduction_factor) for i in range(self.discrete_token_layers)
-            ])
+            self.linear_projection = torch.nn.ModuleList(
+                [
+                    torch.nn.Linear(adim, self.odim * reduction_factor)
+                    for i in range(self.discrete_token_layers)
+                ]
+            )
         else:
-            self.linear_projection = torch.nn.Linear(adim, self.proj_out_dim * reduction_factor)
+            self.linear_projection = torch.nn.Linear(
+                adim, self.proj_out_dim * reduction_factor
+            )
         if self.loss_function == "XiaoiceSing2" or self.predict_pitch:
-            #self.pitch_predictor = torch.nn.Linear(adim, 1 * reduction_factor)
-            self.lf0_mapping = torch.nn.Linear(1 * reduction_factor, adim * reduction_factor)
+            # self.pitch_predictor = torch.nn.Linear(adim, 1 * reduction_factor)
+            self.lf0_mapping = torch.nn.Linear(
+                1 * reduction_factor, adim * reduction_factor
+            )
         if self.loss_function == "XiaoiceSing2":
             self.vuv_predictor = torch.nn.Linear(adim, 1 * reduction_factor)
 
@@ -599,7 +612,9 @@ class Discrete_Acoustic(AbsSVS):
             transformer_dpos_positional_dropout_rate = 0.1
             transformer_dpos_attn_dropout_rate = 0.1
             pos_dpos_class = (
-                ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
+                ScaledPositionalEncoding
+                if self.use_scaled_pos_enc
+                else PositionalEncoding
             )
             dpostnet_normalize_before = True
             dpostnet_concat_after = False
@@ -617,7 +632,8 @@ class Discrete_Acoustic(AbsSVS):
                         num_embeddings=token_dim,
                         embedding_dim=adim,
                         padding_idx=self.padding_idx,
-                    ) for i in range(self.discrete_token_layers)
+                    )
+                    for i in range(self.discrete_token_layers)
                 ]
 
             self.discrete_postnet = TransformerEncoder(
@@ -636,9 +652,9 @@ class Discrete_Acoustic(AbsSVS):
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
             )
-            self.dpos_linear_projection = torch.nn.Linear(adim, self.odim * reduction_factor)
-
-
+            self.dpos_linear_projection = torch.nn.Linear(
+                adim, self.odim * reduction_factor
+            )
 
         # initialize parameters
         self._reset_parameters(
@@ -782,10 +798,14 @@ class Discrete_Acoustic(AbsSVS):
         if self.predict_pitch:
             hs_pitch_in = self.proj_pitch(midi_emb)
             hs_pitch = self.length_regulator(hs_pitch_in, ds)
-            log_f0_outs, _ = self.f0_predictor((hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame)
-            #log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), discrete_token_lengths_frame)
+            log_f0_outs, _ = self.f0_predictor(
+                (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
+            )
+            # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), discrete_token_lengths_frame)
             log_f0_outs = log_f0_outs.transpose(1, 2)
-            log_f0_outs = torch.max(log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs))
+            log_f0_outs = torch.max(
+                log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
+            )
             hs = hs + self.lf0_mapping(log_f0)
 
         # forward decoder
@@ -807,20 +827,24 @@ class Discrete_Acoustic(AbsSVS):
         if self.discrete_token_layers > 1 and self.sep:
             before_outs = []
             for i in range(self.discrete_token_layers):
-                #print(hs.device, h_masks.device, self.decoder[i].device, flush=True)
+                # print(hs.device, h_masks.device, self.decoder[i].device, flush=True)
                 zs, _ = self.decoder[i](hs, h_masks)
                 before_outs_ = self.linear_projection[i](zs).view(
                     zs.size(0), -1, self.odim
                 )
                 before_outs.append(before_outs_)
-            before_outs = torch.cat(before_outs, dim = 2).view(zs.size(0), -1, self.odim).to(ds.device)
+            before_outs = (
+                torch.cat(before_outs, dim=2)
+                .view(zs.size(0), -1, self.odim)
+                .to(ds.device)
+            )
         else:
             zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
             # (B. T_feats, odim), (B. T_feats, 1), (B. T_feats, 1)
             before_outs = self.linear_projection(zs).view(
                 zs.size(0), -1, self.odim
             )  # (B, T_feats * layers, nclusters)
-        #if self.loss_function == "XiaoiceSing2" or self.use_discrete_token:
+        # if self.loss_function == "XiaoiceSing2" or self.use_discrete_token:
         #    log_f0_outs = self.pitch_predictor(zs).view(
         #        zs.size(0), -1, 1
         #    )  # (B, T_feats, odim)
@@ -838,20 +862,22 @@ class Discrete_Acoustic(AbsSVS):
             ).transpose(1, 2)
 
         if self.discrete_postnet_layers != 0:
-            #print(after_outs.shape, flush=True)
+            # print(after_outs.shape, flush=True)
             pred_token = torch.argmax(after_outs, dim=2)
-            #print(pred_token.shape, flush=True)
+            # print(pred_token.shape, flush=True)
             if self.discrete_token_layers == 1:
                 token_emb = self.token_emb(pred_token)
             else:
                 token_emb = 0
                 for i in range(self.discrete_token_layers):
-                    token_emb = token_emb + self.token_emb[i](pred_token[:,i::self.discrete_token_layers,:])
-            #print(token_emb.shape, flush=True)
+                    token_emb = token_emb + self.token_emb[i](
+                        pred_token[:, i :: self.discrete_token_layers, :]
+                    )
+            # print(token_emb.shape, flush=True)
             dpos_masks = self._source_mask(olens_in)
             after_outs, _ = self.discrete_postnet(token_emb, dpos_masks)
             after_outs = self.dpos_linear_projection(after_outs)
-            #print(after_outs.shape, flush=True)
+            # print(after_outs.shape, flush=True)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
@@ -871,7 +897,9 @@ class Discrete_Acoustic(AbsSVS):
                 ys = discrete_token
                 if self.codec_codebook > 0:
                     shift = torch.arange(self.codec_codebook).to(ds.device)
-                    ys = discrete_token.view(batch_size, -1, self.codec_codebook) - shift
+                    ys = (
+                        discrete_token.view(batch_size, -1, self.codec_codebook) - shift
+                    )
                     ys = ys.flatten(start_dim=1)
                 olens = discrete_token_lengths
             else:
@@ -1041,26 +1069,35 @@ class Discrete_Acoustic(AbsSVS):
         if self.predict_pitch:
             hs_pitch_in = self.proj_pitch(midi_emb)
             hs_pitch = self.length_regulator(hs_pitch_in, d_outs_int)
-            #print(hs.shape, hs_pitch.shape)
-            #print(torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
-            log_f0_outs, _ = self.f0_predictor((hs + hs_pitch).transpose(1, 2), torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
-            #log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
+            # print(hs.shape, hs_pitch.shape)
+            # print(torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
+            log_f0_outs, _ = self.f0_predictor(
+                (hs + hs_pitch).transpose(1, 2),
+                torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long),
+            )
+            # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
             log_f0_outs = log_f0_outs.transpose(1, 2)
-            log_f0_outs = torch.max(log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs))
+            log_f0_outs = torch.max(
+                log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
+            )
             hs = hs + self.lf0_mapping(log_f0_outs)
-            
+
         h_masks = None  # self._source_mask(feats_lengths)
         # forward decoder
         if self.discrete_token_layers > 1 and self.sep:
             before_outs = []
             for i in range(self.discrete_token_layers):
-                #print(hs.device, h_masks.device, self.decoder[i].device, flush=True)
+                # print(hs.device, h_masks.device, self.decoder[i].device, flush=True)
                 zs, _ = self.decoder[i](hs, h_masks)
                 before_outs_ = self.linear_projection[i](zs).view(
                     zs.size(0), -1, self.odim
                 )
                 before_outs.append(before_outs_)
-            before_outs = torch.cat(before_outs, dim = 2).view(zs.size(0), -1, self.odim).to(ds.device)
+            before_outs = (
+                torch.cat(before_outs, dim=2)
+                .view(zs.size(0), -1, self.odim)
+                .to(ds.device)
+            )
 
         else:
             zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
@@ -1068,7 +1105,7 @@ class Discrete_Acoustic(AbsSVS):
             before_outs = self.linear_projection(zs).view(
                 zs.size(0), -1, self.odim
             )  # (B, T_feats * layers, nclusters)
-        
+
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -1078,15 +1115,15 @@ class Discrete_Acoustic(AbsSVS):
             ).transpose(1, 2)
 
         if self.discrete_postnet_layers != 0:
-            #print(after_outs.shape, flush=True)
+            # print(after_outs.shape, flush=True)
             pred_token = torch.argmax(after_outs, dim=2)
-            #print(pred_token.shape, flush=True)
+            # print(pred_token.shape, flush=True)
             token_emb = self.token_emb(pred_token)
-            #print(token_emb.shape, flush=True)
+            # print(token_emb.shape, flush=True)
             dpos_masks = None
             after_outs, _ = self.discrete_postnet(token_emb, dpos_masks)
             after_outs = self.dpos_linear_projection(after_outs)
-            #print(after_outs.shape, flush=True)
+            # print(after_outs.shape, flush=True)
 
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)

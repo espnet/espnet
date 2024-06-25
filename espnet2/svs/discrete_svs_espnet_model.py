@@ -173,9 +173,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
             """
-            #print(self.discrete_token_layers, discrete_token_lengths, feats_lengths, flush=True)
-            #print(discrete_token.shape, flush=True)
-            #print(discrete_token, flush=True)
+            # print(self.discrete_token_layers, discrete_token_lengths, feats_lengths, flush=True)
+            # print(discrete_token.shape, flush=True)
+            # print(discrete_token, flush=True)
             origin_discrete_token_lengths = (
                 discrete_token_lengths // self.discrete_token_layers
             )
