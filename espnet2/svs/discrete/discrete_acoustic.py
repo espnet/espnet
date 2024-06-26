@@ -896,7 +896,7 @@ class Discrete_Acoustic(AbsSVS):
             if self.use_discrete_token:
                 ys = discrete_token
                 if self.codec_codebook > 0:
-                    shift = torch.arange(self.codec_codebook).to(ds.device)
+                    shift = (torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim).to(ds.device)                    
                     ys = (
                         discrete_token.view(batch_size, -1, self.codec_codebook) - shift
                     )
@@ -1128,8 +1128,8 @@ class Discrete_Acoustic(AbsSVS):
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             if self.codec_codebook > 0:
-                shift = torch.arange(self.codec_codebook)
-                after_outs = after_outs.view(1, -1, self.codec_codebook) - shift
+                shift = torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim                
+                after_outs = after_outs.view(1, -1, self.codec_codebook) + shift
                 after_outs = after_outs.flatten(start_dim=1)
             token = after_outs[0]
             f0 = log_f0_outs[0]

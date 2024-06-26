@@ -55,6 +55,7 @@ class SingingGenerate:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
+        vocoder_type: str = "pwg",
         vocoder_config: Union[Path, str, None] = None,
         vocoder_checkpoint: Union[Path, str, None] = None,
         discrete_token_layers: int = 1,
@@ -92,6 +93,7 @@ class SingingGenerate:
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
+        self.vocoder_type = vocoder_type
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
         self.discrete_token_layers = discrete_token_layers
@@ -227,20 +229,21 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen"]
             else:
                 input_feat = output_dict["feat_gen_denorm"]
-            if self.model.codec_codebook > 0:
-                wav = self.vocoder.detokenize(input_feat, self.model.codec_codebook)
-            if self.discrete_token_layers > 1:
-                if self.mix_type == "frame":
-                    input_feat = input_feat.view(-1, self.discrete_token_layers)
-                elif self.mix_type == "sequence":
-                    input_feat = input_feat.view(
-                        self.discrete_token_layers, -1
-                    ).transpose(0, 1)
-            if "pitch" in output_dict:
-                assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
-                wav = self.vocoder(input_feat, output_dict["pitch"])
+            if self.vocoder_type == "codec":
+                wav = self.vocoder.detokenize(input_feat, self.model.svs.codec_codebook)
             else:
-                wav = self.vocoder(input_feat)
+                if self.discrete_token_layers > 1:
+                    if self.mix_type == "frame":
+                        input_feat = input_feat.view(-1, self.discrete_token_layers)
+                    elif self.mix_type == "sequence":
+                        input_feat = input_feat.view(
+                            self.discrete_token_layers, -1
+                        ).transpose(0, 1)
+                if "pitch" in output_dict:
+                    assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
+                    wav = self.vocoder(input_feat, output_dict["pitch"])
+                else:
+                    wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
         return output_dict
@@ -252,6 +255,8 @@ class SingingGenerate:
             return self.vocoder.fs
         elif hasattr(self.svs, "fs"):
             return self.svs.fs
+        elif hasattr(self.vocoder, "codec_fs"):
+            return self.vocoder.codec_fs
         else:
             return None
 
@@ -354,6 +359,7 @@ def inference(
     noise_scale: float,
     noise_scale_dur: float,
     allow_variable_data_keys: bool,
+    vocoder_type: str = "pwg",
     vocoder_config: Optional[str] = None,
     vocoder_checkpoint: Optional[str] = None,
     vocoder_tag: Optional[str] = None,
@@ -386,6 +392,7 @@ def inference(
         use_teacher_forcing=use_teacher_forcing,
         noise_scale=noise_scale,
         noise_scale_dur=noise_scale_dur,
+        vocoder_type=vocoder_type,
         vocoder_config=vocoder_config,
         vocoder_checkpoint=vocoder_checkpoint,
         discrete_token_layers=discrete_token_layers,
@@ -698,6 +705,12 @@ def get_parser():
         type=str,
         default="frame",
         help="multi token mix type, 'sequence' or 'frame'.",
+    )
+    parser.add_argument(
+        "--vocoder_type",
+        type=str,
+        default="pwg",
+        help="vocoder type, 'pwg' or 'codec'.",
     )
 
     return parser

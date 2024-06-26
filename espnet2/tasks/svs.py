@@ -300,7 +300,7 @@ class SVSTask(AbsTask):
     @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -390,7 +390,7 @@ class SVSTask(AbsTask):
             odim = args.odim
 
         if args.model_type == "discrete_svs":
-            odim = args.nclusters + 1
+            odim = args.nclusters
             discrete_token_layers = args.discrete_token_layers
 
         # 2. Normalization layer
@@ -554,10 +554,10 @@ class SVSTask(AbsTask):
                     vocoder_conf = yaml.safe_load(f)
             vocoder = CodecTokenizer(
                 codec_choice="ESPnet",
-                codec_fs=int(vocoder_conf["fs"]),
-                checkpoint_path=vocoder_checkpoint,
+                codec_fs=vocoder_conf["codec_conf"]["sampling_rate"], # FIX
+                checkpoint_path=vocoder_file,
                 config_path=vocoder_config_file,
             )
-
+            return vocoder.to(device)
         else:
             raise ValueError(f"{vocoder_file} is not supported format.")

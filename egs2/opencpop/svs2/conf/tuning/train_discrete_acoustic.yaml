@@ -69,7 +69,7 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #num_iters_per_epoch: 500    # number of iterations per epoch
 # max_epoch: 500              # number of epochs
-max_epoch: 1
+max_epoch: 300
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation

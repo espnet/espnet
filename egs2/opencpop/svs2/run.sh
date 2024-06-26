@@ -14,7 +14,7 @@ n_shift=320
 win_length=1200
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
-kmeans_feature="codec/1"
+kmeans_feature="codec/dac"
 multi_token=""
 mix_type="frame"
 # frame | sequencee
@@ -26,7 +26,8 @@ test_sets="test"
 
 train_config=conf/tuning/train_discrete_acoustic.yaml
 inference_config=conf/tuning/decode_rnn.yaml
-expdir=exp/codec
+vocoder_type=codec
+expdir=exp/codec_dac
 RVQ_layers=1
 
 # text related processing arguments
@@ -63,6 +64,7 @@ pitch_extract=dio
     --kmeans_feature "${kmeans_feature}" \
     --multi_token "${multi_token}" \
     --mix_type "${mix_type}" \
+    --vocoder_type "${vocoder_type}" \
     --nclusters "${nclusters}" \
     --ngpu 1 \
     "$@"
