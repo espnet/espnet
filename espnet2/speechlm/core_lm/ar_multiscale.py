@@ -28,7 +28,6 @@ class MultiScaleLM(AbsCoreLM):
         l_head: int = 2,
         l_layer: int = 4,
         n_ctx: int = 3000,
-        first_layer_weight: int = 1.0,
     ):
         """Initialize MultiScaleLM
 
@@ -43,7 +42,6 @@ class MultiScaleLM(AbsCoreLM):
             l_head (int): Number of heads in local Transformer attention.
             l_layer (int): Number of layers in local Transformer.
             n_ctx (int): maximum context length of global Transformer.
-            first_layer_weight (int): a factor to scale the gradient for the first-layer codes.
         """
         super(MultiScaleLM, self).__init__()
 
@@ -82,7 +80,6 @@ class MultiScaleLM(AbsCoreLM):
 
         self.nq = nq
         self.n_ctx = n_ctx
-        self.first_layer_weight = first_layer_weight
 
     def forward(
         self,
@@ -133,7 +130,6 @@ class MultiScaleLM(AbsCoreLM):
             target,
             dec_seq_lengths - 1,
             prefix_len - 1,
-            first_layer_weight=self.first_layer_weight,
         )
 
         return loss, logits, stats, weight

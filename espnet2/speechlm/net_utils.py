@@ -53,18 +53,9 @@ def ce_loss(
     target: torch.Tensor,
     lengths: torch.Tensor,
     prefix_len: torch.Tensor = None,
-    first_layer_weight: int = 1.0,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert logits.dim() == 4
     assert logits.size()[:3] == target.size()
-
-    if first_layer_weight != 1.0 and logits.requires_grad:
-
-        def hook(grad):
-            grad[:, :, 0, :] *= first_layer_weight
-            return grad
-
-        logits.register_hook(hook)
 
     elem_loss = torch.nn.functional.cross_entropy(
         logits.permute(0, 3, 1, 2), target, reduction="none"

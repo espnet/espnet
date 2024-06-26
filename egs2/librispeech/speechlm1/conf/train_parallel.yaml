@@ -1,0 +1,50 @@
+# Trained with Tesla A100 (40GB) x 8 GPUs. It takes about 22 hours.
+# #Params: 303M
+corelm: ar_parallel
+corelm_conf:
+    share_emb: true
+    att_unit: 768
+    head: 12
+    layer: 12
+
+# Dataloader
+batch_type: numel
+batch_bins: 45000
+num_iters_per_epoch: 10000
+accum_grad: 1
+grad_clip: 5
+max_epoch: 100
+num_workers: 4
+drop_last_iter: true
+log_interval: 1000
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.002
+    betas:
+        - 0.9
+        - 0.95
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 7000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - total_count
+    - max
+keep_nbest_models: 5
+nbest_averaging_interval: 5
+
+
+# Global settings
+use_amp: true
+use_tf32: false
+use_fsdp: false
+encoder_decoder_format: false
+codec_token_per_frame: 8 # encodec
+codec_token_in_use: 3
+speaker_prompt_length: 150 # 75fps, a.k.a., 3s

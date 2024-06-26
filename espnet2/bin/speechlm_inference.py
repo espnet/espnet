@@ -401,6 +401,8 @@ def inference(
                         content_path,
                         content.cpu(),
                         sample_rate=speechlm.tokenizer.sample_rate,
+                        bits_per_sample=16,
+                        encoding="PCM_S",
                     )
                     prefix_writer.write(f"{key} {content_path}\n")
                     logging.info(f"save prefix audio {name} audio {key}: {content_path}")
