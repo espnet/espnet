@@ -393,7 +393,7 @@ class ResidualVectorQuantization(nn.Module):
 
             n_q = n_q or len(self.layers)
 
-            for layer in self.layers[:n_q]:
+            for i, layer in enumerate(self.layers[:n_q]):
                 quantized, indices, loss = layer(residual)
                 residual = residual - quantized
                 quantized_out = quantized_out + quantized

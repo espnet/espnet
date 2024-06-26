@@ -106,6 +106,7 @@ class SpeechTokenizer(AbsGANCodec):
                 "stft_normalized": False,
                 "logits_abs": True,
             },
+        },
         periods: List[int] = [2, 3, 5, 7, 11],
         period_discriminator_params: Dict[str, Any] = {
             "in_channels": 1,
@@ -120,7 +121,6 @@ class SpeechTokenizer(AbsGANCodec):
             "nonlinear_activation_params": {"negative_slope": 0.1},
             "use_weight_norm": True,
             "use_spectral_norm": False,
-        },
         },
         # loss related
         generator_adv_loss_params: Dict[str, Any] = {
@@ -160,9 +160,7 @@ class SpeechTokenizer(AbsGANCodec):
         balance_ema_decay: float = 0.99,
     ):
         """Intialize SpeechTokenizer model.
-
         Args:
-             TODO(jiatong)
         """
         super().__init__()
 
@@ -285,7 +283,9 @@ class SpeechTokenizer(AbsGANCodec):
         """
         # setup
         batch_size = audio.size(0)
-
+        # print("===========")
+        # print(**kwargs)
+        # print("---------------------")
         # TODO(jiatong): double check the multi-channel input
         audio = audio.unsqueeze(1)
 
@@ -539,6 +539,7 @@ class SpeechTokenizerGenerator(nn.Module):
         encdec_true_skip: bool = False,
         encdec_compress: int = 2,
         encdec_lstm: int = 2,
+        bidirectional: bool = True,
         decoder_trim_right_ratio: float = 1.0,
         decoder_final_activation: Optional[str] = None,
         decoder_final_activation_params: Optional[dict] = None,
@@ -577,6 +578,7 @@ class SpeechTokenizerGenerator(nn.Module):
             true_skip=encdec_true_skip,
             compress=encdec_compress,
             lstm=encdec_lstm,
+            bidirectional=bidirectional
         )
         # check the dimension of the semantic 
         if hidden_dim != semantic_dimension:
@@ -622,10 +624,10 @@ class SpeechTokenizerGenerator(nn.Module):
             final_activation_params=decoder_final_activation_params,
         )
         # Initialize Hubert
-        self.hubert = S3PRLUpstream("hubert")
-
-        # Initialize cosine similarity metric
-        cosine_sim = torch.nn.CosineSimilarity(dim=-1)
+        self.hubert = S3PRLUpstream("hubert").eval()
+        self.segment_size = 48000
+        # # Initialize cosine similarity metric
+        # self.cosine_sim = torch.nn.CosineSimilarity(dim=-1)
 
         # quantization loss
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
@@ -661,11 +663,24 @@ class SpeechTokenizerGenerator(nn.Module):
         quantized = list_quantized[0][0]
         feature = rearrange(quantized_list[0], 'b d t -> b t d')
         feature = self.transform(feature)    
-        # Hubert extraction 
-        representation, hs_len = self.hubert(x,self.sample_rate)
+        # print(x)
+        # print(x.shape)
+        # torch.save(x,"test.pt")
+        if self.sample_rate != 16000:
+            x = [F.resample(waveform, self.sample_rate, 16000) for waveform in x]
+        wavs_len = torch.tensor([waveform.nonzero().max() + 1 for waveform in x])
+        if x.size(-1) < self.segment_size: 
+            x = F.pad(x, (0, self.segment_size - x.size(-1)), 'constant')
+        wavs_input_hubert = x.squeeze(1)
+        wavs_input_hubert = wavs_input_hubert.unsqueeze(2)
 
+        # Hubert extraction 
+        output_hubert, hs_len = self.hubert(wavs_input_hubert,wavs_len)
+        rep = torch.mean(torch.stack(output_hubert), axis=0)
+        n = min(feature.size(1), rep.size(1))
         # cosine similarity loss (feature, Hubert Representation) 
-        distillation_loss = self.cosine_sim(representation,feature)
+        distillation_loss = - torch.log(torch.sigmoid(F.cosine_similarity(rep[:, :n],feature[:, :n], axis=1))).mean()
+
         # quantization_loss
         quantization_loss = self.l1_quantization_loss(
             encoder_out, quantized.detach()
@@ -681,7 +696,7 @@ class SpeechTokenizerGenerator(nn.Module):
 
     def forward_feature(self, 
                             x: torch.Tensor, 
-                            layers: list=None, ,quantized_list_flag: bool = True):
+                            layers: list=None,quantized_list_flag: bool = True):
             '''
 
             Parameters
@@ -697,7 +712,7 @@ class SpeechTokenizerGenerator(nn.Module):
                 Quantized of required layers.
 
             '''
-            e = self.encoder(x)
+            encoder_out = self.encoder(x)
             layers = layers if layers else list(range(self.n_q))
             max_idx = len(self.target_bandwidths) - 1
             # randomly pick up one bandwidth
@@ -783,6 +798,7 @@ class SpeechTokenizerDiscriminator(nn.Module):
             "win_length": 1024,
             "stft_normalized": False,
         },
+        # MultiPeriod discriminator related
         periods: List[int] = [2, 3, 5, 7, 11],
         period_discriminator_params: Dict[str, Any] = {
             "in_channels": 1,
@@ -790,7 +806,6 @@ class SpeechTokenizerDiscriminator(nn.Module):
             "kernel_sizes": [5, 3],
             "channels": 32,
             "max_downsample_channels": 1024,
-            "max_groups": 16,
             "bias": True,
             "downsample_scales": [3, 3, 3, 3, 1],
             "nonlinear_activation": "LeakyReLU",
