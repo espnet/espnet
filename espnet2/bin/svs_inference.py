@@ -240,7 +240,9 @@ class SingingGenerate:
                             self.discrete_token_layers, -1
                         ).transpose(0, 1)
                 if "pitch" in output_dict:
-                    assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
+                    assert (
+                        len(output_dict["pitch"].shape) == 1
+                    ), "pitch shape must be (T,)."
                     wav = self.vocoder(input_feat, output_dict["pitch"])
                 else:
                     wav = self.vocoder(input_feat)

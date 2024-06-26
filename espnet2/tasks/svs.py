@@ -554,7 +554,7 @@ class SVSTask(AbsTask):
                     vocoder_conf = yaml.safe_load(f)
             vocoder = CodecTokenizer(
                 codec_choice="ESPnet",
-                codec_fs=vocoder_conf["codec_conf"]["sampling_rate"], # FIX
+                codec_fs=vocoder_conf["codec_conf"]["sampling_rate"],  # FIX
                 checkpoint_path=vocoder_file,
                 config_path=vocoder_config_file,
             )

@@ -4,8 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import numpy as np
-import torch
 import soundfile as sf
+import torch
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
@@ -235,7 +235,7 @@ class CodecTokenizer(AbsTokenizer):
             codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
             resyn_audio (torch.Tensor): float tensor in shape [B, n_samples]
         """
-        codes = self.encode(wavs/32768)
+        codes = self.encode(wavs / 32768)
 
         if self.dump_audio:
             resyn_audio = self.decode(codes)
