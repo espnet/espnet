@@ -304,7 +304,7 @@ class MfaConformerEncoder(AbsEncoder):
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)
         ):
-            xs_pad, _ = self.embed(x, masks)
+            x, _ = self.embed(x, masks)
         else:
             raise NotImplementedError(
                 "Supposed to be one of the Conv subsampling layers"
@@ -312,7 +312,7 @@ class MfaConformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
-            x, _ = encoder_layer(xs_pad, masks)
+            x, _ = encoder_layer(x, masks)
             intermediate_outs.append(x[0])
 
         x = torch.cat(intermediate_outs, dim=-1)

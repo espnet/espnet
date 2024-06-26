@@ -53,7 +53,7 @@ def get_parser():
         help="config path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
-        "--hf_model_card",
+        "--hf_model_tag",
         type=str_or_none,
         default=None,
         help="huggingface model card for Espnet codec model",
@@ -81,7 +81,7 @@ def dump_codec(
     rank: int,
     checkpoint_path: str = None,
     config_path: str = None,
-    hf_model_card: str = None,
+    hf_model_tag: str = None,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -98,21 +98,15 @@ def dump_codec(
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    for _ in range(1000):
-        try:
-            tokenizer = CodecTokenizer(
-                codec_choice=codec_choice,
-                codec_fs=codec_fs,
-                device=device,
-                dump_audio=dump_audio,
-                checkpoint_path=checkpoint_path,
-                config_path=config_path,
-                hf_model_card=hf_model_card,
-            )
-            break
-        except:
-            logging.info("waiting GPUs ..")
-            time.sleep(2)
+    tokenizer = CodecTokenizer(
+        codec_choice,
+        codec_fs,
+        device,
+        dump_audio,
+        checkpoint_path,
+        config_path,
+        hf_model_tag,
+    )
 
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)

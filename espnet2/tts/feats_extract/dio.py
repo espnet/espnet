@@ -15,6 +15,7 @@ from scipy.interpolate import interp1d
 from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.utils.types import int_or_none
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -47,7 +48,7 @@ class Dio(AbsFeatsExtract):
         use_token_averaged_f0: bool = True,
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
-        reduction_factor: int = None,
+        reduction_factor: int_or_none = None,
     ):
         super().__init__()
         if isinstance(fs, str):

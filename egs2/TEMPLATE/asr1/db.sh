@@ -78,7 +78,7 @@ MISP2021=
 MLSUPERB=
 L3DAS22=
 LIBRIMIX=downloads
-LIBRITTS=/ocean/projects/cis210027p/shared/corpora/libritts/
+LIBRITTS=downloads
 LIBRITTS_R=downloads
 LJSPEECH=downloads
 LT_SPEECH_CMD=
@@ -169,6 +169,7 @@ CMU_INDIC=downloads
 INDIC_SPEECH=downloads
 IWSLT22_DIALECT=
 IWSLT22_LOW_RESOURCE=downloads
+IWSLT24_INDIC=
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
@@ -216,6 +217,7 @@ GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
+HIFITTS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
