@@ -64,7 +64,7 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
-pretrained_model=9epoch.pth     # Pretrained model to load
+pretrained_model=     # Pretrained model to load
 ignore_init_mismatch=true      # Ignore initial mismatch
 
 # Inference related
@@ -271,13 +271,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
 
             # copy extra files that are not covered by copy_data_dir.sh
-            # category2utt will be used bydata sampler
+            # category2utt will be used by the data sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
 
             # copy files for spoofing task if multi-task sasv is enabled
             if "${multi_task}" && "${sasv_task}"; then
                 cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
                 cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                # category2utt_2 will also be used by the data sampler
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/category2utt_2"
             fi
 
             for x in music noise speech; do
@@ -312,8 +314,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
             # copy files for spoofing task if multi-task sasv is enabled
             if "${multi_task}" && "${sasv_task}"; then
-                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
-                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                cp data/"${dset}/utt2spf" "${data_feats}/${dset}/utt2spf"
+                cp data/"${dset}/spf2utt" "${data_feats}/${dset}/spf2utt"
+                cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt_2"
             fi
 
             # shellcheck disable=SC2086
@@ -356,8 +359,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     elif [ "${feats_type}" = raw_copy ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
-            # category2utt will be used bydata sampler
+            
+            # category2utt will be used by the data sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # copy files for spoofing task if multi-task sasv is enabled
+            if "${multi_task}" && "${sasv_task}"; then
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                # category2utt_2 will also be used by the data sampler
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/category2utt_2"
+            fi
+
             for x in music noise speech; do
                 cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             done
