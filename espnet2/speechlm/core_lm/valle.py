@@ -255,7 +255,7 @@ class ValleLM(AbsCoreLM):
             prev_tok = suffix[:, :, 0]
         else:
             prev_tok = gen_tokens_ar[:, :, 0]
-        start_emb = self.emb.weight[opts.start].tile(opts.nbest, 1, 1)  # [B, 1, D]
+        start_emb = self.emb.weight[opts.start].tile(len(valid_idx), 1, 1)  # [B, 1, D]
         prev_emb = torch.cat(
             [prefix_emb[:, 1:], start_emb, self.emb(prev_tok)], dim=1
         )  # [B, T, D]

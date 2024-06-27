@@ -1,8 +1,8 @@
 corelm: valle
 corelm_conf:
     share_emb: false
-    att_unit: 512
-    head: 8
+    att_unit: 768
+    head: 12
     ar_layer: 12
     nar_layer: 12
 
@@ -14,18 +14,18 @@ grad_clip: 5
 max_epoch: 50
 num_workers: 4
 drop_last_iter: true
-log_interval: 500
+log_interval: 1000
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.0002
+    lr: 0.0005
     betas:
         - 0.9
         - 0.95
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 7000
+    warmup_steps: 30000
 
 best_model_criterion:
 -   - valid
@@ -44,4 +44,4 @@ use_fsdp: false
 encoder_decoder_format: false
 codec_token_per_frame: 8
 codec_token_in_use: 8
-speaker_prompt_length: 225 # 75fps, a.k.a., 3s
+speaker_prompt_length: 500 # 50fps, a.k.a., 10s
