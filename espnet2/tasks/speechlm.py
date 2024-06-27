@@ -9,8 +9,11 @@ from typeguard import typechecked
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.valle import ValleLM
+from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
+from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
+from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
+from espnet2.speechlm.core_lm.ar_multiscale_delay import ARMultiScaleDelayLM
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
@@ -33,8 +36,11 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
-        multiscale=MultiScaleLM,
         valle=ValleLM,
+        ar_parallel=ARParallelLM,
+        ar_delay=ARDelayLM,
+        multiscale=MultiScaleLM,
+        multiscale_delay=ARMultiScaleDelayLM,
     ),
     type_check=AbsCoreLM,
     default="valle",

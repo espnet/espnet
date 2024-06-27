@@ -47,6 +47,7 @@ class SpeechLM:
         nbest: int = 1,
         sampling_temperature: float = 1.0,
         top_k: int = 20,
+        top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         modality: str = "codec",
@@ -95,6 +96,7 @@ class SpeechLM:
             nbest=nbest,
             sampling_temperature=sampling_temperature,
             top_k=top_k,
+            top_p=top_p,
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
             eos=train_args.token_list.index("<sos/eos>"),
@@ -235,6 +237,7 @@ def inference(
     nbest: int = 1,
     sampling_temperature: float = 1.0,
     top_k: int = 20,
+    top_p: float = 0.8,
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
     inference_nj: Optional[int] = 1,
@@ -282,6 +285,7 @@ def inference(
         nbest=nbest,
         sampling_temperature=sampling_temperature,
         top_k=top_k,
+        top_p=top_p,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         modality=output_modality,
@@ -397,6 +401,8 @@ def inference(
                         content_path,
                         content.cpu(),
                         sample_rate=speechlm.tokenizer.sample_rate,
+                        bits_per_sample=16,
+                        encoding="PCM_S",
                     )
                     prefix_writer.write(f"{key} {content_path}\n")
                     logging.info(f"save prefix audio {name} audio {key}: {content_path}")
@@ -539,6 +545,12 @@ def get_parser():
         type=int,
         default=30,
         help="if positive, restrict the sampling to top-k tokens with highest probs.",
+    )
+    group.add_argument(
+        "--top_p",
+        type=float,
+        default=0.8,
+        help="if positive, restrict the sampling to tokens with top-p probs",
     )
     group.add_argument(
         "--inference_nj",

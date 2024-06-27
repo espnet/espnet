@@ -53,18 +53,9 @@ def ce_loss(
     target: torch.Tensor,
     lengths: torch.Tensor,
     prefix_len: torch.Tensor = None,
-    first_layer_weight: int = 1.0,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert logits.dim() == 4
     assert logits.size()[:3] == target.size()
-
-    if first_layer_weight != 1.0 and logits.requires_grad:
-
-        def hook(grad):
-            grad[:, :, 0, :] *= first_layer_weight
-            return grad
-
-        logits.register_hook(hook)
 
     elem_loss = torch.nn.functional.cross_entropy(
         logits.permute(0, 3, 1, 2), target, reduction="none"
@@ -133,6 +124,8 @@ def logits_to_tokens(
     assert logits.dim() == 4
     search_algo = search_algo if search_algo is not None else opts.search_algo
 
+    neg_inf = torch.finfo(logits.dtype).min
+
     # (1) Apply mask
     mask = opts.masks.clone()
     if allow_eos:  # only predict eos in the first code
@@ -140,23 +133,35 @@ def logits_to_tokens(
     if nq_level is not None:
         mask = mask[nq_level : nq_level + 1]
     mask = mask.unsqueeze(0).unsqueeze(0) # [nq, V] -> [B=1, T=1, nq, V]
-    logits.masked_fill_(mask, -1e20)
+    logits.masked_fill_(mask, neg_inf)
 
     # (2) token selection
     if search_algo in ["topk_sampling"]:
         topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
-        logp = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
-        inner_indices = torch.multinomial(logp.flatten(end_dim=-2), num_samples=1).view(
-            logp[..., :1].size()
+        probs = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
+        inner_indices = torch.multinomial(probs.flatten(end_dim=-2), num_samples=1).view(
+            probs[..., :1].size()
         )
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
     
     elif search_algo in ["topp_sampling"]:
-        raise NotImplementedError
-
+        probs = torch.softmax(logits / opts.sampling_temperature, dim=-1)
+        sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+        accum_probs = torch.cumsum(sorted_probs, dim=-1)
+        clip_probs = torch.where(accum_probs <= opts.top_p, sorted_probs, 0.0)
+        # always keep at least one candidate no matter what value it is
+        if torch.any(clip_probs[..., 0] == 0.0):
+            clip_probs[..., 0] = sorted_probs[..., 0]
+        clip_probs = clip_probs / clip_probs.sum(dim=-1, keepdim=True)
+        inner_indices = torch.multinomial(clip_probs.flatten(end_dim=-2), num_samples=1).view(
+            clip_probs[..., :1].size()
+        )
+        gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
+        gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1)
+        
     elif search_algo in ["greedy_search", "teacher_force"]:
-        topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
+        topk_values, topk_indices = torch.topk(logits, 1, dim=-1)
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0]
     
