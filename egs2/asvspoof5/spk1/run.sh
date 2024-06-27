@@ -4,9 +4,9 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_sasv_SKA_mel.yaml
+spk_config=conf/train_bin_sampler_sasv_SKA_mel.yaml
 
-train_set="train"
+train_set="voxceleb2_asvspoof5"
 valid_set="dev"
 cohort_set="dev"
 test_sets="dev"

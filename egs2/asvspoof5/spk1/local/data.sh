@@ -42,18 +42,18 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Preparation for train"
     
-    if [ ! -d "${trg_dir}/train" ]; then
+    if [ ! -d "${trg_dir}/asvspoof5_train" ]; then
         log "Making Kaldi style files for train"
-        mkdir -p "${trg_dir}/train"
-        python3 local/train_data_prep.py "${data_dir_prefix}/asvspoof5_data" "${trg_dir}/train"
+        mkdir -p "${trg_dir}/asvspoof5_train"
+        python3 local/asvspoof5_train_data_prep.py "${data_dir_prefix}/asvspoof5_data" "${trg_dir}/asvspoof5_train"
         for f in wav.scp utt2spk utt2spf; do
-            sort ${trg_dir}/train/${f} -o ${trg_dir}/train/${f}
+            sort ${trg_dir}/asvspoof5_train/${f} -o ${trg_dir}/asvspoof5_train/${f}
         done
-        utils/utt2spk_to_spk2utt.pl ${trg_dir}/train/utt2spk > "${trg_dir}/train/spk2utt"
-        utils/utt2spk_to_spk2utt.pl ${trg_dir}/train/utt2spf > "${trg_dir}/train/spf2utt"
-        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/train" || exit 1
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/asvspoof5_train/utt2spk > "${trg_dir}/asvspoof5_train/spk2utt"
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/asvspoof5_train/utt2spf > "${trg_dir}/asvspoof5_train/spf2utt"
+        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/asvspoof5_train" || exit 1
     else
-        log "${trg_dir}/train exists. Skip making Kaldi style files for train"
+        log "${trg_dir}/asvspoof5_train exists. Skip making Kaldi style files for train"
     fi
 
     log "Stage 1, DONE."
@@ -129,12 +129,44 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3, DONE."
 fi
 
-# types of trials:                            # num of examples
-
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 4: Making sub-protocols and Kaldi-style files for each subset of trials"
+    log "stage 4: VoxCeleb2 Data Preparation"
+
+    if [ ! -d "${trg_dir}/voxceleb2" ]; then
+        log "Making Kaldi style files for VoxCeleb2"
+        mkdir -p "${trg_dir}/voxceleb2"
+        python3 local/voxceleb2_data_prep.py --src "${data_dir_prefix}/dev" --dst "${trg_dir}/voxceleb2"
+        for f in wav.scp utt2spk utt2spf; do
+            sort ${trg_dir}/voxceleb2/${f} -o ${trg_dir}/voxceleb2/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/voxceleb2/utt2spk > "${trg_dir}/voxceleb2/spk2utt"
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/voxceleb2/utt2spf > "${trg_dir}/voxceleb2/spf2utt"
+        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/voxceleb2" || exit 1
+    else
+        log "${trg_dir}/voxceleb2 exists. Skip making Kaldi style files for VoxCeleb2"
+    fi
 
     log "Stage 4, DONE."
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "stage 5: Make joint training set with ASVspoof5 train and VoxCeleb2 dev"
+
+    if [ ! -d "${trg_dir}/voxceleb2_asvspoof5" ]; then
+        log "Making joint training set with ASVspoof5 train and VoxCeleb2 dev"
+        mkdir -p "${trg_dir}/voxceleb2_asvspoof5"
+        for f in wav.scp utt2spk utt2spf; do
+            cat ${trg_dir}/asvspoof5_train/${f} ${trg_dir}/voxceleb2/${f} > ${trg_dir}/voxceleb2_asvspoof5/${f}
+            sort ${trg_dir}/voxceleb2_asvspoof5/${f} -o ${trg_dir}/voxceleb2_asvspoof5/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/voxceleb2_asvspoof5/utt2spk > "${trg_dir}/voxceleb2_asvspoof5/spk2utt"
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/voxceleb2_asvspoof5/utt2spf > "${trg_dir}/voxceleb2_asvspoof5/spf2utt"
+        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/voxceleb2_asvspoof5" || exit 1
+    else
+        log "${trg_dir}/voxceleb2_asvspoof5 exists. Skip making joint training set"
+    fi
+
+    log "Stage 5, DONE."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

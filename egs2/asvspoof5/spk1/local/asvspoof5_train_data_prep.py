@@ -1,6 +1,5 @@
-# train_data_prep.py
-# Prepares ASVspoof5 training data
-# Note: This script makes a new speakerID for each speaker + spoofing type
+# asvspoof5_train_data_prep.py
+# Makes kaldi-style files for ASVspoof5 training data
 
 import os
 import sys
