@@ -78,7 +78,7 @@ extra_wav_list= # Extra list of scp files for wav formatting
 init_param=
 
 # Enhancement related
-inference_args="--normalize_output_wav true"
+inference_args="--normalize_output_wav true --output_format wav"
 inference_model=valid.loss.ave.pth
 download_model=
 
@@ -222,7 +222,7 @@ fi
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
 # Extra files for enhancement process
-utt_extra_files="utt2category"
+utt_extra_files="utt2category utt2fs"
 
 data_feats=${dumpdir}/raw
 
