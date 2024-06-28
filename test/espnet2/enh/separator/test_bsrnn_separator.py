@@ -1,13 +1,12 @@
 import pytest
 import torch
-from torch import Tensor
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 
 
 @pytest.mark.parametrize("input_dim", [481])
-@pytest.mark.parametrize("num_spk", [1])
+@pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("num_channels", [16])
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("target_fs", [48000])
@@ -44,7 +43,7 @@ def test_bsrnn_separator_forward_backward_complex(
 
 
 @pytest.mark.parametrize("input_dim", [481])
-@pytest.mark.parametrize("num_spk", [1])
+@pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("num_channels", [16])
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("target_fs", [48000])
