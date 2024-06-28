@@ -135,7 +135,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     if [ ! -d "${trg_dir}/voxceleb2" ]; then
         log "Making Kaldi style files for VoxCeleb2"
         mkdir -p "${trg_dir}/voxceleb2"
-        python3 local/voxceleb2_data_prep.py --src "${data_dir_prefix}/dev" --dst "${trg_dir}/voxceleb2"
+        python3 local/voxceleb_data_prep.py --src "${data_dir_prefix}/dev" --dst "${trg_dir}/voxceleb2"
         for f in wav.scp utt2spk utt2spf; do
             sort ${trg_dir}/voxceleb2/${f} -o ${trg_dir}/voxceleb2/${f}
         done
