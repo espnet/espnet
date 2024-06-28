@@ -101,6 +101,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ./prepare_espnet_data.sh
     cd "${cwd}"
     cp -r "${odir}"/urgent2024_challenge/data "${PWD}/data"
+    if [ ! -d "${PWD}/simulation_validation" ]; then
+        ln -s "${odir}/urgent2024_challenge/simulation_validation" "${PWD}/"
+    fi
+    if [ ! -d "${PWD}/simulation_train" ]; then
+        ln -s "${odir}/urgent2024_challenge/simulation_train" "${PWD}/"
+    fi
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -7,7 +7,13 @@ import torch.nn as nn
 class BSRNN(nn.Module):
     # ported from https://github.com/sungwon23/BSRNN
     def __init__(
-        self, input_dim=481, num_channel=16, num_layer=6, target_fs=48000, causal=True
+        self,
+        input_dim=481,
+        num_channel=16,
+        num_layer=6,
+        target_fs=48000,
+        causal=True,
+        num_spk=1,
     ):
         """Band-Split RNN (BSRNN).
 
@@ -27,6 +33,7 @@ class BSRNN(nn.Module):
             target_fs (int): maximum sampling frequency supported by the model
             causal (bool): Whether or not to adopt causal processing
                 if True, LSTM will be used instead of BLSTM for time modeling
+            num_spk (int): number of outputs to be generated
         """
         super().__init__()
         self.num_layer = num_layer
@@ -35,6 +42,7 @@ class BSRNN(nn.Module):
         )
         self.target_fs = target_fs
         self.causal = causal
+        self.num_spk = num_spk
 
         self.norm_time = nn.ModuleList()
         self.rnn_time = nn.ModuleList()
@@ -61,7 +69,7 @@ class BSRNN(nn.Module):
             self.fc_freq.append(nn.Linear(4 * num_channel, num_channel))
 
         self.mask_decoder = MaskDecoder(
-            input_dim, self.band_split.subbands, channels=num_channel
+            input_dim, self.band_split.subbands, channels=num_channel, num_spk=num_spk
         )
 
     def forward(self, x, fs=None):
@@ -75,7 +83,7 @@ class BSRNN(nn.Module):
                 if None, the input signal is assumed to be already truncated to only
                 contain effective frequency subbands.
         Returns:
-            out (torch.Tensor): output tensor of shape (B, T, F, 2)
+            out (torch.Tensor): output tensor of shape (B, num_spk, T, F, 2)
         """
         z = self.band_split(x, fs=fs)
         B, N, T, K = z.shape
@@ -101,7 +109,8 @@ class BSRNN(nn.Module):
         x = torch.view_as_complex(x)
         m = m[..., : x.size(-1)]
         r = r[..., : x.size(-1)]
-        return torch.view_as_real(m * x + r)
+        ret = torch.view_as_real(m * x.unsqueeze(1) + r)
+        return ret
 
 
 class BandSplit(nn.Module):
@@ -172,11 +181,12 @@ class BandSplit(nn.Module):
 
 
 class MaskDecoder(nn.Module):
-    def __init__(self, freq_dim, subbands, channels=128):
+    def __init__(self, freq_dim, subbands, channels=128, num_spk=1):
         super().__init__()
         assert freq_dim == sum(subbands), (freq_dim, subbands)
         self.subbands = subbands
         self.freq_dim = freq_dim
+        self.num_spk = num_spk
         self.mlp_mask = nn.ModuleList()
         self.mlp_residual = nn.ModuleList()
         for subband in self.subbands:
@@ -185,7 +195,7 @@ class MaskDecoder(nn.Module):
                     nn.GroupNorm(1, channels),
                     nn.Conv1d(channels, 4 * channels, 1),
                     nn.Tanh(),
-                    nn.Conv1d(4 * channels, int(subband * 4), 1),
+                    nn.Conv1d(4 * channels, int(subband * 4 * num_spk), 1),
                     nn.GLU(dim=1),
                 )
             )
@@ -194,7 +204,7 @@ class MaskDecoder(nn.Module):
                     nn.GroupNorm(1, channels),
                     nn.Conv1d(channels, 4 * channels, 1),
                     nn.Tanh(),
-                    nn.Conv1d(4 * channels, int(subband * 4), 1),
+                    nn.Conv1d(4 * channels, int(subband * 4 * num_spk), 1),
                     nn.GLU(dim=1),
                 )
             )
@@ -205,27 +215,29 @@ class MaskDecoder(nn.Module):
         Args:
             x (torch.Tensor): input tensor of shape (B, N, T, K)
         Returns:
-            m (torch.Tensor): output mask of shape (B, T, F, 2)
-            r (torch.Tensor): output residual of shape (B, T, F, 2)
+            m (torch.Tensor): output mask of shape (B, num_spk, T, F, 2)
+            r (torch.Tensor): output residual of shape (B, num_spk, T, F, 2)
         """
         for i in range(len(self.subbands)):
             if i >= x.size(-1):
                 break
             x_band = x[:, :, :, i]
             out = self.mlp_mask[i](x_band).transpose(1, 2).contiguous()
-            out = out.reshape(out.size(0), out.size(1), -1, 2)
+            # (B, T, num_spk, subband, 2)
+            out = out.reshape(out.size(0), out.size(1), self.num_spk, -1, 2)
             if i == 0:
                 m = out
             else:
-                m = torch.cat((m, out), dim=2)
+                m = torch.cat((m, out), dim=3)
 
             res = self.mlp_residual[i](x_band).transpose(1, 2).contiguous()
-            res = res.reshape(res.size(0), res.size(1), -1, 2)
+            # (B, T, num_spk, subband, 2)
+            res = res.reshape(res.size(0), res.size(1), self.num_spk, -1, 2)
             if i == 0:
                 r = res
             else:
-                r = torch.cat((r, res), dim=2)
-        # Pad zeros in addition to efffective subbands to cover the full frequency range
+                r = torch.cat((r, res), dim=3)
+        # Pad zeros in addition to effective subbands to cover the full frequency range
         m = nn.functional.pad(m, (0, 0, 0, int(self.freq_dim - m.size(-2))))
         r = nn.functional.pad(r, (0, 0, 0, int(self.freq_dim - r.size(-2))))
-        return m, r
+        return m.moveaxis(1, 2), r.moveaxis(1, 2)

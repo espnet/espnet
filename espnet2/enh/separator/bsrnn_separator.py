@@ -46,13 +46,13 @@ class BSRNNSeparator(AbsSeparator):
         self._num_spk = num_spk
         self.ref_channel = ref_channel
 
-        assert num_spk == 1, num_spk
         self.bsrnn = BSRNN(
             input_dim=input_dim,
             num_channel=num_channels,
             num_layer=num_layers,
             target_fs=target_fs,
             causal=causal,
+            num_spk=num_spk,
         )
 
     def forward(
@@ -86,7 +86,7 @@ class BSRNNSeparator(AbsSeparator):
             assert input.size(-1) == 2, input.shape
             feature = input
 
-        masked = self.bsrnn(feature).unsqueeze(1)
+        masked = self.bsrnn(feature)
         # B, num_spk, T, F
         if not is_complex(input):
             masked = list(ComplexTensor(masked[..., 0], masked[..., 1]).unbind(1))
