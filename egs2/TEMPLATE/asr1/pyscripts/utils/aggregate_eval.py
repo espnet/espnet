@@ -44,11 +44,9 @@ def aggregate_results(logdir: str, scoredir: str, nj: int) -> None:
     logging.info("Aggregating results...")
     score_info = []
     for i in range(nj):
-        print(f"parse with nj: ", i, flush=True)
         with open("{}/result.{}.txt".format(logdir, i + 1), "r") as f:
             for line in f:
                 line = line.strip().replace("'", '"').replace("inf", "Infinity").replace(f"nan", "0.0")
-                print(f"parse line: ", line)
                 score_info.append(json.loads(line))
     with open("{}/utt_result.txt".format(scoredir), "w") as f, open(
         "{}/avg_result.txt".format(scoredir), "w"

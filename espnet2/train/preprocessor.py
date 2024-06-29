@@ -2469,6 +2469,27 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
         )
         new_data["prefix_len"] = np.array([prefix_len])
+
+        # (3.1) add additional entries if provided
+        sample = [data[key] for key in data.keys() if key.startswith("sample")]
+        if len(sample) > 0:
+            sample = random.choice(sample)
+
+            # sample is corresponded to the last entry of decoder entries
+            # e.g., the sampled speech for HFRL
+            name, modality, _ = task.decoder_entries[-1]
+            sample, _ = self.modality_specific_processing(sample, modality)
+            sample_seq = np.concatenate([
+                new_data["dec_seq"][:prefix_len].flatten(),
+                sample,
+            ]).reshape(-1, self.codec_token_in_use)
+
+            max_sample_len = int(len(new_data["dec_seq"]) * 1.3)
+            if len(sample_seq) > max_sample_len:
+                sample_seq = sample_seq[:max_sample_len]
+            
+            new_data["sample_seq"] = sample_seq
+
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
@@ -2479,7 +2500,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return token_idx
 
     def modality_specific_processing(self, value, modality):
-
         if modality in ["codec", "spk"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
@@ -2524,9 +2544,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         """Only for debug"""
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
+        sample_seq = data.get("sample_seq", None)
 
         logging.warning(f"Diagnose in preprocessor ...")
-        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
+        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq), ("sample_seq", sample_seq)]:
             if seq is None:
                 continue
             logging.warning(f"{name} ...")

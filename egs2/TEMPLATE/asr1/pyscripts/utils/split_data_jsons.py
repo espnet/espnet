@@ -43,10 +43,9 @@ def get_parser():
 def split_one_data_json(json_file, nj, output_dir):
     # (1) load json file
     json_dict = json.load(open(json_file))
-    example_list = json_dict["examples"].copy()
-    del json_dict["examples"]
     data_files = json_dict["data_files"].copy()
-    del json_dict["data_files"]
+    extra_data_files = json_dict.get("extra_data_files", [])
+    task = json_dict['task']
 
     # (2) load all data files
     all_file_dict = {}
@@ -57,6 +56,19 @@ def split_one_data_json(json_file, nj, output_dir):
             utt, content = line.strip().split(maxsplit=1)
             file_dict[utt] = content
         all_file_dict[(path, name, _type)] = file_dict
+    
+    all_extra_file_dict = {}
+    for file_triplet in extra_data_files:
+        path, name, _type = file_triplet.split(",")
+        file_dict = {}
+        for line in open(path):
+            extended_utt, content = line.strip().split(maxsplit=1)
+            # Extra files are in format <task>_<utt>_sample<N>
+            utt = extended_utt.lstrip(f"{task}_").split("_sample", maxsplit=1)[0]
+            if utt not in file_dict:
+                file_dict[utt] = []
+            file_dict[utt].append((content, extended_utt))
+        all_extra_file_dict[(path, name, _type)] = file_dict
 
     # (3) assign the utterances to each nj.
     # By default, we split all examples evenly.
@@ -99,13 +111,28 @@ def split_one_data_json(json_file, nj, output_dir):
             writer = open(new_file_name, 'w')
             for utt in this_split:
                 writer.write(f"{utt} {data_dict[utt]}\n")
-        writer.close()
+            writer.close()
+        
+        if len(extra_data_files) > 0:
+            extra_data_files = []
+            for (path, name, _type), data_dict in all_extra_file_dict.items():
+                file_name = Path(path).name
+                new_file_name = str(sub_dir / file_name)
+                extra_data_files.append(f"{new_file_name},{name},{_type}")
+                writer = open(new_file_name, 'w')
+                for utt in this_split:
+                    for content, extended_utt, in data_dict[utt]:
+                        writer.write(f"{extended_utt} {content}\n")
+                writer.close()
 
         # write json files
         this_json = json_dict.copy()
         this_json["data_files"] = data_files
         this_json["examples"] = this_split
         this_json["num_examples"] = len(this_split)
+        if len(extra_data_files) > 0:
+            this_json["extra_data_files"] = extra_data_files
+
         writer = open(sub_dir / f"data.{j}.json", "wb")
         writer.write(
             json.dumps(

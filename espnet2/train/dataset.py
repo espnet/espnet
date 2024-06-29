@@ -590,8 +590,8 @@ class ESPnetDataset(AbsDataset):
             data[name] = value
 
         # 2. [Option] Apply preprocessing
-        if getattr(self, "install_speaker_prompt", None) is not None:
-            self.install_speaker_prompt(uid, data)
+        if getattr(self, "dataset_level_operation", None) is not None:
+            self.dataset_level_operation(uid, data)
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
             key_prefix = self.task + " " if hasattr(self, "task") else ""
@@ -629,6 +629,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         self,
         example_list: List,
         task: str,
+        extra_loader_names = ['sampled.scp'],
         **kwargs,
     ):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
@@ -640,8 +641,17 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 if v not in self.spk2utt:
                     self.spk2utt[v] = []
                 self.spk2utt[v].append(k)
+        
+        # (2) some loaders will be considered as extra_loaders, which are not 
+        # queried by the normal utterance name. Instead, they are queried by
+        # other customized rules.
+        self.extra_loader_dict = {}
+        for name in extra_loader_names:
+            if name in self.loader_dict:
+                self.extra_loader_dict[name] = self.loader_dict[name]
+                self.loader_dict.pop(name)
 
-        # (2) keep example_list and clean some non-iterable loaders
+        # (3) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
         example_dict = {k: None for k in example_list}  # hash for faster query
         for key in self.loader_dict.keys():
@@ -650,11 +660,11 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 loader = {k: v for k, v in loader.items() if k in example_dict}
                 self.loader_dict[key] = loader
 
-        # (3) keep task
+        # (4) keep task
         self.task = task
 
-    def install_speaker_prompt(self, uid: str, data: Dict):
-        """Assume the names are utt2spk and wav.scp. Hard code here."""
+    def dataset_level_operation(self, uid: str, data: Dict):
+        # (1) select speaker prompt
         if "utt2spk" in self.loader_dict:
             spk = self.loader_dict["utt2spk"][uid]
             utts = self.spk2utt[spk]
@@ -671,7 +681,13 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 raise ValueError("speaker prompt is sampled from wav.scp loader")
 
             data["utt2spk"] = self.loader_dict["wav.scp"][utt]
-
+        
+        # (2) select sampled examples
+        if "sampled.scp" in self.extra_loader_dict:
+            for n in range(100):
+                extended_name = f"{self.task}_{utt}_sample{n}"
+                if extended_name in self.extra_loader_dict["sampled.scp"]:
+                    data[f"sample{n}"] = self.extra_loader_dict["sampled.scp"][extended_name]
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet
@@ -704,7 +720,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
             json_dict = json.load(open(path))
 
             this_path_name_type_list = []
-            for triplet in json_dict["data_files"]:
+            for triplet in json_dict["data_files"] + json_dict.get("extra_data_files", []):
                 path, _, _type = triplet.strip().split(",")
                 # use the stem file name as the name
                 this_path_name_type_list.append(
@@ -716,7 +732,8 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 )
 
             # example_list is for sub_dataest -> no task prefix
-            example_list = [line.strip().split()[0] for line in open(path)]
+            example_list = json_dict["data_files"][0].strip().split(',')[0]
+            example_list = [line.strip().split()[0] for line in open(example_list)]
             if self.key_dict is not None:
                 example_list = [
                     e
