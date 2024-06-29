@@ -60,23 +60,47 @@ class SpkTrainer(Trainer):
         spk_embd_dic = {}
         bs = 0
 
-        sasv = False
-        for utt_id, batch in iterator:
-            pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
-            if re.match(pattern, utt_id[0]):
-                sasv = True
-            break
-
         embed_avg = False # use speech, speech2, and speech3 as enrollment and speech4 as test
+        sasv = False # spoofing aware speaker verification task
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
+        for utt_id, batch in iterator:
+            pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
+            if any(re.match(pattern, uid) for uid in utt_id):
+                sasv = True
+            
+            # Set iterator_stop to 1 to indicate the loop should break after this iteration
+            iterator_stop.fill_(1)
+            
+            if distributed:
+                # Synchronize iterator_stop across all processes
+                torch.distributed.all_reduce(iterator_stop, op=torch.distributed.ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
+            else:
+                # In non-distributed mode, break after setting iterator_stop
+                break
+
+        # Synchronize sasv across all processes
+        if distributed:
+            sasv_tensor = torch.tensor([1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu")
+            torch.distributed.all_reduce(sasv_tensor, op=torch.distributed.ReduceOp.MAX)
+            sasv = bool(sasv_tensor.item())
+
+        # Reset iterator_stop for subsequent use
+        if distributed:
+            iterator_stop.zero_()
+            # Ensure iterator_stop is synchronized after resetting
+            torch.distributed.all_reduce(iterator_stop, op=torch.distributed.ReduceOp.SUM)
+
         # trials list
-        trials_list = []
+        all_trials_list = []
 
         task_token = None
+
         for utt_id, batch in tqdm(iterator):
             utt_id_list = []
             speech_list = []
@@ -195,9 +219,10 @@ class SpkTrainer(Trainer):
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
-
+                    
+            all_trials_list.extend(utt_id)
+            
             for _utt_id in utt_id:
-                trials_list.append(_utt_id)
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 if not sasv:
                     score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
@@ -244,6 +269,14 @@ class SpkTrainer(Trainer):
             torch.distributed.barrier()
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
+
+        # gather all trials list
+        if distributed:
+            gathered_trials = [None for _ in range(torch.distributed.get_world_size())]
+            torch.distributed.all_gather_object(gathered_trials, all_trials_list)
+            trials_list = [item for sublist in gathered_trials for item in sublist]
+        else:
+            trials_list = all_trials_list
 
         if sasv == False:
             # calculate statistics in target and nontarget classes.
@@ -324,8 +357,9 @@ class SpkTrainer(Trainer):
             # # <speaker_id> <utterance_id> <score> <trial type> 
             # where speaker_id and utterance_id are obtained from the utt_id in format <speaker_id>*<utterance_id>
             # and trial type is 0 for target, 1 for nontarget, and 2 for spoof but should be mapped to string using idx2class
+            print(f"num trials: {len(trials_list)}")
+            print(f"num scores: {len(scores)}")
             assert len(trials_list) == len(scores)
-            assert len(trials_list) == len(labels)
             with open("scores.txt", "w") as f:
                 for i in range(len(trials_list)):
                     f.write(f"{trials_list[i].split('*')[0]} {trials_list[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n")
