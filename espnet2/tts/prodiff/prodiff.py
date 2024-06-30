@@ -644,7 +644,7 @@ class ProDiff(AbsTTS):
                 e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
                 hs = hs + e_embs + p_embs
                 hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
-            else:  # takes in ground truth durations for inference (teacher forcing)
+            else:  # takes in ground truth durations for inference
 
                 d_outs = self.duration_predictor(hs, d_masks)
                 # use groundtruth in teacher Forcing
@@ -756,7 +756,7 @@ class ProDiff(AbsTTS):
                 sids=sids,
                 lids=lids,
                 is_inference=True,
-                use_teacher_forcing=True,  # allows proper teacher forcing while inferencing
+                use_teacher_forcing=True,
             )  # (1, T_feats, odim)
         else:
             _, outs, d_outs, p_outs, e_outs = self._forward(
