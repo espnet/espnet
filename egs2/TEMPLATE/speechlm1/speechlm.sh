@@ -676,14 +676,23 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for entry in `ls ${_logdir}/output.1`; do
-                if [ "${entry}" == "token" ] || [ "${entry}" == "score" ]; then
-                    continue
-                fi
-                for n in `seq ${inference_nj}`; do
-                    if [ -f ${_logdir}/output.${n}/${entry}/example_list ]; then
-                        cat ${_logdir}/output.${n}/${entry}/example_list
+                for file in example_list token.scp score.scp; do
+                    if [ ! -f ${_logdir}/output.1/${entry}/${file} ]; then
+                        continue
                     fi
-                done | sort > ${_dir}/${entry}
+                    
+                    if [ "${file}" == "example_list" ]; then
+                        cat_file=${entry}
+                    else
+                        cat_file=${entry}_${file}
+                    fi
+
+                    for n in `seq ${inference_nj}`; do
+                        if [ -f ${_logdir}/output.${n}/${entry}/${file} ]; then
+                            cat ${_logdir}/output.${n}/${entry}/${file}
+                        fi
+                    done | sort > ${_dir}/${cat_file}
+                done
             done
         done
     fi

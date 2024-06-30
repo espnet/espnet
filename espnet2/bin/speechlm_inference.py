@@ -154,12 +154,18 @@ class SpeechLM:
 
         # (2) predicted tokens detokenization
         generated = []
-        for gen_token in gen_tokens:
+        for token, score in zip(gen_tokens, gen_scores):
             if self.modality == "codec":
-                gen_token = (gen_token - self.bias).view(1, -1)
+                token = token.view(-1) - self.bias
+                score = score.view(-1)
             else:
-                gen_token = (gen_token[:, 0] - self.bias).view(1, -1)
-            generated.append(self.tokenizer.detokenize(gen_token))
+                token = token[:, 0].view(-1) - self.bias
+                score = score[:, 0].view(-1)
+            content = self.tokenizer.detokenize(token.clone())
+            
+            generated.append(
+                (token, score, content)
+            )
 
         # (3) prefix tokens detokenization
         conditions = []
@@ -181,26 +187,28 @@ class SpeechLM:
                 start, end = starts[idx], starts[idx + 1]
                 this_modality = self.train_args.token_list[dec_seq[0, start, 0].item()]
                 this_modality = this_modality.lstrip("<").rstrip("_start/end>")
-                content = dec_seq[0, start + 1 : end]
+                token = dec_seq[0, start + 1 : end]
+                detokenized = False
 
                 # TODO(Jinchuan): support more detokenization options latre for other tasks
                 if self.modality == "codec" and this_modality in ["codec", "spk"]:
-                    content = (content - self.train_args.token_bias["codec"]).view(1, -1)
-                    content = self.tokenizer.detokenize(content)
+                    token = (token - self.train_args.token_bias["codec"]).view(-1)
+                    content = self.tokenizer.detokenize(token.clone())
                     detokenized = True
 
                 elif this_modality in ["g2p"]:
-                    content = content[:, 0].cpu().tolist()
-                    content = " ".join([self.train_args.token_list[c] for c in content])
+                    token = token[:, 0]
+                    content = " ".join([self.train_args.token_list[c] for c in token.cpu().tolist()])
                     detokenized = True
-
+                
                 else:
+                    token = token.flatten()
+                    content = None
                     detokenized = False
 
-                # TODO: add more detokenization options
-                conditions.append((content, this_modality, detokenized))
+                conditions.append((token, content, this_modality, detokenized))
 
-        return generated, conditions, gen_tokens, gen_scores
+        return generated, conditions
 
     @staticmethod
     def from_pretrained(
@@ -310,18 +318,17 @@ def inference(
 
     # 4 Start for-loop
     (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    (output_dir / "token").mkdir(parents=True, exist_ok=True)
-    (output_dir / "score").mkdir(parents=True, exist_ok=True)
     prefix_triplets = [
         triplet
         for triplet in task.encoder_entries + task.decoder_entries
         if triplet not in task.target_entries
     ]
-    prefix_writers = [None for _ in prefix_triplets]
 
     writer = open(output_dir / output_name / "example_list", "w")
-    token_writer = WriteHelper(f'ark:{str(output_dir / "token" / "token")}.ark')
-    score_writer = WriteHelper(f'ark:{str(output_dir / "score" / "score")}.ark')
+    token_writer = WriteHelper(f'ark,scp:{str(output_dir / output_name / "token")}.ark,{str(output_dir / output_name / "token")}.scp')
+    score_writer = WriteHelper(f'ark,scp:{str(output_dir / output_name / "score")}.ark,{str(output_dir / output_name / "score")}.scp')
+    prefix_writers = [None for _ in prefix_triplets]
+    prefix_token_writers = [None for _ in prefix_triplets]
 
     for _, (keys, batch) in enumerate(loader, 1):
         assert isinstance(batch, dict), type(batch)
@@ -339,13 +346,10 @@ def inference(
         set_all_random_seed(seed)
 
         # (1) model infernece
-        contents, conditions, tokens, scores = speechlm(**batch)
-        if contents is None:
-            logging.info(f"fail on example: {key}")
-            continue
+        generated, conditions = speechlm(**batch)
 
         # (2) parse and save generated content
-        for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
+        for h_idx, (token, score, content) in enumerate(generated):
             example_name = f"{key}_sample{h_idx}"
             
             if output_modality == "codec":
@@ -354,7 +358,7 @@ def inference(
 
                 torchaudio.save(
                     wave_path,
-                    content.cpu(),
+                    content.view(1, -1).cpu(),
                     sample_rate=speechlm.tokenizer.sample_rate,
                 )
                 logging.info(f"save generated audio {example_name}: {wave_path}")
@@ -368,9 +372,9 @@ def inference(
                 )
 
             if isinstance(token, torch.Tensor):
-                token = token.int().flatten().cpu().numpy()
+                token = token.int().cpu().numpy()
             if isinstance(score, torch.Tensor):
-                score = score.float().flatten().cpu().numpy()
+                score = score.float().cpu().numpy()
 
             token_writer[example_name] = token
             score_writer[example_name] = score
@@ -382,24 +386,25 @@ def inference(
             key = key.lstrip(f"{task_name}_")
             
             assert len(conditions) == len(prefix_triplets)
-            for c_idx, (content, modality, detokenized) in enumerate(conditions):
+            for c_idx, (token, content, modality, detokenized) in enumerate(conditions):
                 if not detokenized:
                     continue
 
                 name, _modality, _ = prefix_triplets[c_idx]
                 assert modality == _modality, (modality, _modality)
 
+                # (3.1) save content
                 if prefix_writers[c_idx] == None:
                     (output_dir / name).mkdir(parents=True, exist_ok=True)
                     prefix_writer = open(output_dir / name / "example_list", "w")
                     prefix_writers[c_idx] = prefix_writer
+                    
                 prefix_writer = prefix_writers[c_idx]
-
                 if modality in ["codec", "spk"]:
                     content_path = output_dir / name / f"{key}.wav"
                     torchaudio.save(
                         content_path,
-                        content.cpu(),
+                        content.view(1, -1).cpu(),
                         sample_rate=speechlm.tokenizer.sample_rate,
                         bits_per_sample=16,
                         encoding="PCM_S",
@@ -409,12 +414,21 @@ def inference(
 
                 elif modality in ["g2p"]:
                     prefix_writer.write(f"{key} {content}\n")
+                    
                     logging.info(f"prefix part {modality}: {content}")
 
                 else:
                     raise ValueError(
                         f"save prefix in modality {modality} is not supported yet"
                     )
+                
+                if prefix_token_writers[c_idx] is None:
+                    prefix_token_writer = WriteHelper(
+                        f'ark,scp:{str(output_dir / name / "token")}.ark,{str(output_dir / name / "token")}.scp'
+                    )
+                    prefix_token_writers[c_idx] = prefix_token_writer
+                prefix_token_writer = prefix_token_writers[c_idx]
+                prefix_token_writer[key] = token.int().cpu().numpy()
         
 def get_parser():
     """Get argument parser."""

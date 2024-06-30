@@ -5,11 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_multiscale.yaml
+# train_config=conf/train_multiscale.yaml
 train_config=conf/train_multiscale_1b.yaml
+# train_config=conf/train_parallel.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till100epoch.pth
-# inference_model=valid.total_count.ave_5best.till65epoch.pth
+# inference_model=valid.total_count.ave_5best.till75epoch.pth
 
 train_jsons=""
 valid_jsons=""
@@ -24,6 +25,9 @@ test_use_ls_7spk=false
 test_use_ls=false
 test_use_giga=false
 test_use_mls_en=false
+
+generate_train_clean_100=false
+generate_train_clean_360=false
 
 # download any data repository with: 
 #  huggingface-cli download <repo-id> --repo-type dataset --local-dir .
@@ -62,7 +66,19 @@ if ${test_use_mls_en}; then
     pass
 fi
 
+<<<<<<< HEAD
 test_jsons="dump/raw_tts_librispeech/train_clean_100/data.json "
+=======
+if ${generate_train_clean_100}; then
+    test_jsons+="dump/raw_tts_librispeech/train_clean_100/data.json "
+fi
+
+if ${generate_train_clean_360}; then
+    test_jsons+="dump/raw_tts_librispeech/train_clean_360/data.json "
+fi
+
+test_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
+>>>>>>> ef5492c961bd6a776c6bceca8735ffc5f2c02af4
 
 ./speechlm.sh \
     --skip_data_prep true \
@@ -72,7 +88,11 @@ test_jsons="dump/raw_tts_librispeech/train_clean_100/data.json "
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
+<<<<<<< HEAD
     --inference_nj 32 \
+=======
+    --inference_nj 8 \
+>>>>>>> ef5492c961bd6a776c6bceca8735ffc5f2c02af4
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \

@@ -143,7 +143,7 @@ def logits_to_tokens(
             probs[..., :1].size()
         )
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
-        gen_token_score = torch.gather(topk_values, -1, inner_indices).squeeze(-1)
+        gen_token_score = torch.gather(probs, -1, inner_indices).squeeze(-1).log()
     
     elif search_algo in ["topp_sampling"]:
         probs = torch.softmax(logits / opts.sampling_temperature, dim=-1)
@@ -158,12 +158,13 @@ def logits_to_tokens(
             clip_probs[..., :1].size()
         )
         gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
-        gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1)
+        gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
         
     elif search_algo in ["greedy_search", "teacher_force"]:
+        probs = logits.softmax(dim=-1)
         topk_values, topk_indices = torch.topk(logits, 1, dim=-1)
         gen_token_idx = topk_indices[:, :, :, 0]
-        gen_token_score = topk_values[:, :, :, 0]
+        gen_token_score = topk_values[:, :, :, 0].log()
     
     else:
         raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
