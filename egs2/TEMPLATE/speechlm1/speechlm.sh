@@ -860,7 +860,8 @@ if ! "${skip_eval}"; then
                 --output_dir ${_dir} \
                 --metrics ${eval_metrics} \
                 --nbest ${nbest} \
-                --cross_rerank true
+                --cross_rerank true \
+                > ${_dir}/final_result.txt
         done
     fi
 else
