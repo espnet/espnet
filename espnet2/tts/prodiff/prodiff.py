@@ -591,6 +591,7 @@ class ProDiff(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         is_inference: bool = False,
         alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
     ) -> Sequence[torch.Tensor]:
         """Calculate forward propagation without loss.
 
@@ -636,12 +637,22 @@ class ProDiff(AbsTTS):
             e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
 
         if is_inference:
-            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
-            # use prediction in inference
-            p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
-            e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
-            hs = hs + e_embs + p_embs
-            hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
+            if not use_teacher_forcing:
+                d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
+                # use prediction in inference
+                p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
+                e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
+                hs = hs + e_embs + p_embs
+                hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
+            else:  # takes in ground truth durations for inference
+
+                d_outs = self.duration_predictor(hs, d_masks)
+                # use groundtruth in teacher Forcing
+                p_embs = self.pitch_embed(ps.transpose(1, 2)).transpose(1, 2)
+                e_embs = self.energy_embed(es.transpose(1, 2)).transpose(1, 2)
+                hs = hs + e_embs + p_embs
+                hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
+
         else:
             d_outs = self.duration_predictor(hs, d_masks)
             # use groundtruth in training
@@ -745,6 +756,7 @@ class ProDiff(AbsTTS):
                 sids=sids,
                 lids=lids,
                 is_inference=True,
+                use_teacher_forcing=True,
             )  # (1, T_feats, odim)
         else:
             _, outs, d_outs, p_outs, e_outs = self._forward(
