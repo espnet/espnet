@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 train_config=conf/train_multiscale.yaml
-# train_config=conf/train_multiscale_1b.yaml
+train_config=conf/train_multiscale_1b.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till100epoch.pth
 # inference_model=valid.total_count.ave_5best.till65epoch.pth
@@ -20,7 +20,7 @@ use_ls=true
 use_giga=true
 use_mls_en=true
 
-test_use_ls_7spk=true
+test_use_ls_7spk=false
 test_use_ls=false
 test_use_giga=false
 test_use_mls_en=false
@@ -62,6 +62,8 @@ if ${test_use_mls_en}; then
     pass
 fi
 
+test_jsons="dump/raw_tts_librispeech/train_clean_100/data.json "
+
 ./speechlm.sh \
     --skip_data_prep true \
     --data_combo_name ${data_combo_name%_} \
@@ -70,7 +72,7 @@ fi
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
-    --inference_nj 16 \
+    --inference_nj 32 \
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \
