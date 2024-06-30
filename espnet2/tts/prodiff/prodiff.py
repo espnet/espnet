@@ -591,7 +591,7 @@ class ProDiff(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         is_inference: bool = False,
         alpha: float = 1.0,
-        use_teacher_forcing: bool = False,  # for teacher forcing
+        use_teacher_forcing: bool = False,
     ) -> Sequence[torch.Tensor]:
         """Calculate forward propagation without loss.
 
