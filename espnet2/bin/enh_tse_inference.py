@@ -437,6 +437,7 @@ def inference(
     normalize_segment_scale: bool,
     show_progressbar: bool,
     ref_channel: Optional[int],
+    output_format: str,
     normalize_output_wav: bool,
 ):
     if batch_size > 1:
@@ -513,7 +514,11 @@ def inference(
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(
-            SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
+            SoundScpWriter(
+                f"{output_dir}/wavs/{i + 1}",
+                f"{output_dir}/spk{i + 1}.scp",
+                format=output_format,
+            )
         )
 
     for i, (keys, batch) in enumerate(loader):
@@ -589,6 +594,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Whether to normalize the predicted wav to [-1~1]",
+    )
+    group.add_argument(
+        "--output_format",
+        type=str,
+        default="wav",
+        help="Output format for the separated speech",
     )
 
     group = parser.add_argument_group("The model configuration related")
