@@ -86,7 +86,10 @@ class BSRNNSeparator(AbsSeparator):
             assert input.size(-1) == 2, input.shape
             feature = input
 
-        masked = self.bsrnn(feature)
+        opt = {}
+        if additional is not None and "fs" in additional:
+            opt["fs"] = additional["fs"]
+        masked = self.bsrnn(feature, **opt)
         # B, num_spk, T, F
         if not is_complex(input):
             masked = list(ComplexTensor(masked[..., 0], masked[..., 1]).unbind(1))

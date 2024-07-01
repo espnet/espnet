@@ -132,6 +132,7 @@ class BandSplit(nn.Module):
                 f"Please define your own subbands for input_dim={input_dim} and "
                 f"target_fs={target_fs}"
             )
+        assert sum(self.subbands) == input_dim, (self.subbands, input_dim)
         self.subband_freqs = freqs[[idx - 1 for idx in accumulate(self.subbands)]]
 
         self.norm = nn.ModuleList()
@@ -154,14 +155,8 @@ class BandSplit(nn.Module):
             z (torch.Tensor): output tensor of shape (B, N, T, K')
                 K' might be smaller than len(self.subbands) if fs < self.target_fs.
         """
-        if fs is not None:
-            assert x.size(2) == sum(self.subbands), (x.size(2), sum(self.subbands))
         hz_band = 0
         for i, subband in enumerate(self.subbands):
-            if fs is not None and self.subband_freqs[i] > fs / 2:
-                break
-            if fs is None and hz_band >= x.size(2):
-                break
             x_band = x[:, :, hz_band : hz_band + int(subband), :]
             if int(subband) > x_band.size(2):
                 x_band = nn.functional.pad(
@@ -177,6 +172,11 @@ class BandSplit(nn.Module):
             else:
                 z = torch.cat((z, out.unsqueeze(-1)), dim=-1)
             hz_band = hz_band + int(subband)
+            print(i, subband, hz_band, self.subband_freqs[i])
+            if hz_band >= x.size(2):
+                break
+            if fs is not None and self.subband_freqs[i] >= fs / 2:
+                break
         return z
 
 
