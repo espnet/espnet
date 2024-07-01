@@ -723,7 +723,7 @@ if ! "${skip_eval}"; then
 
             # (2) evaluation template for each task. Try to make less duplication in task definition
             if [ ${task} == "tts" ]; then
-                eval_items="signal speech_wer spk"
+                eval_items="speech_wer spk signal"
                 eval_metrics="utmos spk_similarity word_count edit_distance"
                 
                 audio_file=${_dir}/wav.scp
@@ -808,9 +808,11 @@ if ! "${skip_eval}"; then
                         --whisper_dir local/whisper \
                         --cleaner whisper_en \
                         --hyp_cleaner whisper_en \
-                        --nj ${inference_nj} \
+                        --inference_nj ${inference_nj} \
+                        --nj ${nj} \
                         --gt_text ${text_ref_file} \
                         --gpu_inference ${gpu_inference} \
+                        --scoring_metrics "wer" \
                         ${audio_file} ${_eval_dir}
                     
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
