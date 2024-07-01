@@ -17,19 +17,19 @@ corelm_conf:
 # Dataloader
 # data accumulation, equivalent to 1M updates
 batch_type: numel
-batch_bins: 2000
-num_iters_per_epoch: 50000
+batch_bins: 1000
 accum_grad: 5
 grad_clip: 5
 max_epoch: 100
 num_workers: 0
 drop_last_iter: true
-log_interval: 5000
+log_interval: 500
+num_att_plot: 0
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.0002
+    lr: 0.00001
     betas:
         - 0.9
         - 0.95
@@ -46,7 +46,6 @@ best_model_criterion:
     - max
 keep_nbest_models: 5
 nbest_averaging_interval: 5
-
 
 # Global settings
 use_amp: true

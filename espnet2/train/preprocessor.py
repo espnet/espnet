@@ -2501,9 +2501,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             prefix = new_data['dec_seq'][:prefix_len.item()]
             value = random.choice(values)
             sampled_seq = np.concatenate([
-                prefix,
-                value.reshape(-1, self.codec_token_in_use),
-            ])
+                prefix.flatten(),
+                value,
+                self.special_token("<sos/eos>"),
+            ]).reshape(-1, self.codec_token_in_use)
 
             max_len = int(len(new_data['dec_seq']) * 1.3)
             new_data["sampled_seq"] = sampled_seq[:max_len]

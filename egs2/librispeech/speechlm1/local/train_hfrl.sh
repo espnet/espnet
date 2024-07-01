@@ -21,9 +21,9 @@ SECONDS=0
 train_config=conf/train_multiscale_1b_dpo.yaml
 
 # original dataset and sampled examples
-train_dir=dump/raw_tts_librispeech/test_clean
+train_dir=dump/raw_tts_librispeech/train_clean_100
 valid_dir=dump/raw_tts_librispeech/test_clean
-train_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_test_clean/
+train_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_train_clean_100/
 valid_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_test_clean/
 token_list_dir=data/token_list/ls_giga_mlsen
 
@@ -36,7 +36,7 @@ codec_config_path=null
 codec_hf_model_tag=null
 
 # HFRL options
-tag=sample10
+tag=sample10_dpo
 task="tts"
 train_args=
 resume=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
@@ -106,11 +106,11 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Training ..."
 
-    # Only take care of the training. The inference will have the same
-    # format as usual.
-    train_args+="--init_param ${resume}"
+    # the checkpoint is used to initialize both corelm and reflm
+    train_args+="--init_param ${resume}:corelm:corelm ${resume}:corelm:reflm"
     ./speechlm.sh \
-        --stage 7 --stop_stage 7 \
+        --stage 8 --stop_stage 8 \
+        --tag hfrl_${tag} \
         --skip_data_prep true \
         --data_combo_name $(basename ${train_dir})_hfrl_${tag} \
         --token_list_dir ${token_list_dir} \
