@@ -35,31 +35,17 @@ def get_parser():
         help="output json file to specify the training data entires",
     )
     parser.add_argument(
-        "--path",
+        "--path_name_types",
         type=str,
         default=[],
-        nargs="*",
-        help="path of the new entry file",
+        action='append',
+        help="path_name_file of the new entry file",
     )
     parser.add_argument(
-        "--name",
+        "--extra_path_name_types",
         type=str,
         default=[],
-        nargs="*",
-        help="name of the new entry file",
-    )
-    parser.add_argument(
-        "--type",
-        type=str,
-        default=[],
-        nargs="*",
-        help="type of the new entry file",
-    )
-    parser.add_argument(
-        "--path_name_type",
-        type=str,
-        default=[],
-        nargs="*",
+        action='append',
         help="path_name_file of the new entry file",
     )
 
@@ -72,17 +58,20 @@ def main():
     json_dict = json.load(open(args.input_json))
     logging.info(f"adding entries to {str(args.input_json)} ...")
 
-    if "extra_data_files" not in json_dict:
-        json_dict["extra_data_files"] = []
+    all_data_files = []
+    names = []
+    for path_name_type in args.path_name_types + json_dict["data_files"]:
+        path = path_name_type.strip().split(",")[0]
+        name = path.strip().split("/")[-1]
+        if name not in names:
+            all_data_files.append(path_name_type)
+            names.append(name)
+        else:
+            logging.info(f"Skipping {path_name_type} since it already exists")
+    json_dict["data_files"] = all_data_files
 
-    for path, name, _type in zip(args.path, args.name, args.type):
-        path_name_type = f"{path},{name},{_type}"
-        json_dict["extra_data_files"].append(path_name_type)
-        logging.info(f"add entry: {path_name_type}")
-    
-    for path_name_type in args.path_name_type:
-        json_dict["extra_data_files"].append(path_name_type)
-        logging.info(f"add entry: {path_name_type}")
+    if len(args.extra_path_name_types) > 0:
+        json_dict["extra_data_files"] = args.extra_path_name_types
     
     writer = open(args.output_json, 'wb')
     writer.write(
