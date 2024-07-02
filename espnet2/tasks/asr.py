@@ -34,6 +34,7 @@ from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
+from espnet2.asr.encoder.multiconvformer_encoder import MultiConvConformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
@@ -157,6 +158,7 @@ encoder_choices = ClassChoices(
         whisper=OpenAIWhisperEncoder,
         e_branchformer=EBranchformerEncoder,
         avhubert=FairseqAVHubertEncoder,
+        multiconv_conformer=MultiConvConformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
