@@ -360,6 +360,7 @@ def inference(
                     wave_path,
                     content.view(1, -1).cpu(),
                     sample_rate=speechlm.tokenizer.sample_rate,
+                    bits_per_sample=16,
                 )
                 logging.info(f"save generated audio {example_name}: {wave_path}")
             

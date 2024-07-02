@@ -723,7 +723,7 @@ if ! "${skip_eval}"; then
 
             # (2) evaluation template for each task. Try to make less duplication in task definition
             if [ ${task} == "tts" ]; then
-                eval_items="speech_wer spk signal"
+                eval_items="signal spk speech_wer"
                 eval_metrics="utmos spk_similarity word_count edit_distance"
                 
                 audio_file=${_dir}/wav.scp
@@ -844,6 +844,7 @@ if ! "${skip_eval}"; then
                             --output_file ${_eval_dir}/result.JOB.txt \
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
+                            --io soundfile \
                             ${gt_file_op} \
                             ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
                     
