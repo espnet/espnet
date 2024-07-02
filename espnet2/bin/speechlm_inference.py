@@ -132,7 +132,7 @@ class SpeechLM:
         dec_seq_lengths: torch.Tensor,
         prefix_len: torch.Tensor,
         **kwargs,
-    ) -> Tuple[List[Any], List[Tuple], List[torch.Tensor], List[torch.Tensor]]:
+    ) -> Tuple[List[Any], List[Any]]:
         """Run SpeechLM inference"""
 
         enc_seq = kwargs.get("enc_seq", None)
