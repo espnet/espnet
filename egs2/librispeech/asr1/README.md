@@ -206,7 +206,6 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
 
-
 # Multiconvformer
 - Params: 147.41 M
 - ASR config: [conf/tuning/train_asr_multiconvformer_conv_fusion.yaml](conf/tuning/train_asr_multiconvformer_conv_fusion.yaml)
@@ -261,8 +260,6 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|95.5|3.1|1.4|0.6|5.1|34.3|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.8|1.4|0.8|0.3|2.4|23.4|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|95.5|2.9|1.6|0.5|5.0|38.0|
-
-
 
 # E-Branchformer
 - Params: 148.92 M
