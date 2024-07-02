@@ -230,11 +230,12 @@ class ValleLM(AbsCoreLM):
 
         # (3.4) finalize auto-regressive
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
-        if len(valid_idx) < prefix.size(0):
-            logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
-        elif len(valid_idx) == 0:
+        
+        if len(valid_idx) == 0:
             logging.warning(f"No valid examples. Return None")
-            return None, None
+            return [], []
+        elif len(valid_idx) < prefix.size(0):
+            logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
 
         finish_idx = finish_idx[valid_idx]
         prefix_emb, suffix = prefix_emb[valid_idx], suffix[valid_idx]

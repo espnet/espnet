@@ -66,6 +66,9 @@ if ${test_use_mls_en}; then
     pass
 fi
 
+<<<<<<< HEAD
+test_jsons="dump/raw_tts_librispeech/train_clean_100/data.json "
+=======
 if ${generate_train_clean_100}; then
     test_jsons+="dump/raw_tts_librispeech/train_clean_100/data.json "
 fi
@@ -75,6 +78,7 @@ if ${generate_train_clean_360}; then
 fi
 
 test_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
+>>>>>>> ef5492c961bd6a776c6bceca8735ffc5f2c02af4
 
 ./speechlm.sh \
     --skip_data_prep true \
@@ -84,7 +88,11 @@ test_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
+<<<<<<< HEAD
+    --inference_nj 32 \
+=======
     --inference_nj 8 \
+>>>>>>> ef5492c961bd6a776c6bceca8735ffc5f2c02af4
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \

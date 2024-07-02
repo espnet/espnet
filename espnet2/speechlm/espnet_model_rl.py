@@ -4,11 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-from typing import Dict, Tuple
+from typing import Dict, Mapping, Tuple
 
 import torch
 import torch.nn.functional as F
-from copy import deepcopy
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
@@ -23,6 +22,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
     def __init__(
         self,
         corelm: AbsCoreLM,
+        reflm: AbsCoreLM,
         algo: str = "dpo",
         beta: float = 0.1,
         ce_loss_weight: float = 0.0,
@@ -34,6 +34,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         super().__init__()
 
         self.corelm = corelm
+        self.reflm = reflm
         self.algo = algo
         self.beta = beta
         self.ce_loss_weight = ce_loss_weight
@@ -41,10 +42,6 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         self.length_normalize = length_normalize
         self.label_smoothing = label_smoothing
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
-
-        # clone the model and freeze all parameters.
-        self.reflm = deepcopy(corelm)
-        self.reflm.requires_grad_(False)
 
     def forward(
         self,
@@ -55,16 +52,16 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
 
         if kwargs.get("enc_seq", None) is not None:
             raise ValueError("Encoder-Decoder speechlm is not supported yet")
-        prefix_len = kwargs.get("prefix_len")
+        prefix_len = kwargs.get("prefix_len").squeeze(1)
         
         # (1) Get and concat examples
         # NOTE(Jinchuan): by default, dec_seq are positive examples
         # while rej_seq are negative examples.
-        rej_seq = kwargs.get("rej_seq", None)
-        rej_seq_lengths = kwargs.get("rej_seq_lengths", None)
+        rej_seq = kwargs.get("sampled_seq", None)
+        rej_seq_lengths = kwargs.get("sampled_seq_lengths", None)
         if rej_seq is None or rej_seq_lengths is None:
             raise ValueError(f"The negative examples are not available")
-
+        
         n_positive, n_negative = len(dec_seq), len(rej_seq)
         assert n_negative % n_positive == 0, (n_negative, n_positive)
 
@@ -78,7 +75,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         ) # prefix lengths is shared among positive and negative examples
 
         # (2) LM forward
-        loss_ce, policy_logits, stats, weight = self.corelm(
+        _, policy_logits, stats, _ = self.corelm(
             all_seq,
             all_seq_lengths,
             None,
@@ -86,16 +83,17 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             all_prefix_lengths,
         )
 
-        _, ref_logits, _, _ = self.reflm(
-            all_seq,
-            all_seq_lengths,
-            None,
-            None,
-            all_prefix_lengths,
-        )
+        with torch.no_grad():
+            _, ref_logits, _, _ = self.reflm(
+                all_seq,
+                all_seq_lengths,
+                None,
+                None,
+                all_prefix_lengths,
+            )
 
         # (3) RL loss computing. Shift by 1 since <sos> has been removed in lm forward
-        loss_rl, stats_rl = self.loss_rl(
+        loss, stats_rl = self.loss_rl(
             all_seq[:, 1:],
             all_seq_lengths - 1,
             all_prefix_lengths - 1,
@@ -104,10 +102,11 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             n_positive,
         )
 
-        loss = loss_ce * self.ce_loss_weight + loss_rl * self.rl_loss_weight
         stats.update(stats_rl)
 
-        loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
+        loss, stats, weight = force_gatherable(
+            (loss, stats, len(dec_seq)), loss.device
+        )
         return loss, stats, weight
     
     def loss_rl(
@@ -154,8 +153,8 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         policy_logp = (policy_logp * mask).sum(dim=(1, 2))
         ref_logp = (ref_logp * mask).sum(dim=(1, 2)) # [B_pos + B_neg]
         if self.length_normalize:
-            policy_logp = policy_logp / (all_prefix_lengths - all_prefix_lengths) / nq
-            ref_logp = ref_logp / (all_prefix_lengths - all_prefix_lengths) / nq
+            policy_logp = policy_logp / (all_seq_lengths - all_prefix_lengths) / nq
+            ref_logp = ref_logp / (all_seq_lengths - all_prefix_lengths) / nq
 
         # (4) the exact loss computing
         pos_repeat = (len(policy_logp) - n_positive) // n_positive
@@ -202,10 +201,6 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
 
         return loss, pos_reward, neg_reward, acc
 
-    def state_dict(self, **kwargs):
-        """ Will only reserve the corelm states """
-        return {"corelm": self.state_dict(**kwargs)}
-
     def collect_feats(self, **kwargs):
         raise NotImplementedError
 
@@ -217,37 +212,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         ]
 
 
-# test code
-if __name__ == "__main__":
-    from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
-    model = ESPnetSpeechLMRLModel(
-        corelm=MultiScaleLM(vocab_size=10, nq=2, g_layer=1, l_layer=1)
-    ).cuda()
-
-    dec_seq = torch.Tensor([
-        [1, 1, 2, 4, 5],
-        [7, 7, 7, 8, 9],
-    ]).unsqueeze(2).repeat(1, 1, 2).long().cuda()
-    dec_seq_lengths = torch.Tensor([4, 5]).long().cuda()
-    print(f"dec_seq: ", dec_seq, dec_seq_lengths)
-
-    rej_seq = torch.Tensor([
-        [1, 1, 5, 6, 7, 8],
-        [7, 7, 7, 3, 4, 9],
-    ]).unsqueeze(2).repeat(1, 1, 2).long().cuda()
-    rej_seq_lengths = torch.Tensor([5, 6]).long().cuda()
-    print(f"rej_seq: ", rej_seq, rej_seq_lengths)
-    
-    prefix_lengths = torch.Tensor([2, 3]).long().cuda()
-    print(f"prefix length: ", prefix_lengths)
-
-    _ = model(
-        dec_seq=dec_seq,
-        dec_seq_lengths=dec_seq_lengths,
-        rej_seq_lengths=rej_seq_lengths,
-        rej_seq=rej_seq,
-        prefix_len=prefix_lengths,
-    )
-    print("done")
-    
+def printf(*string):
+    if torch.distributed.get_rank() == 0:
+        print(*string, flush=True)
 

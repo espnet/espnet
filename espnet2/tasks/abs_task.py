@@ -1342,9 +1342,26 @@ class AbsTask(ABC):
             # Use adapter to finetune the large pre-trained foundation models
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
+            
+            # 2. Loads pre-trained model
+            # NOTE(Jinchuan): should load --init_param before FSDP warpper
+            for p in args.init_param:
+                logging.info(f"Loading pretrained params from {p}")
+                load_pretrained_model(
+                    model=model,
+                    init_param=p,
+                    ignore_init_mismatch=args.ignore_init_mismatch,
+                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                    #   in PyTorch<=1.4
+                    map_location=(
+                        f"cuda:{torch.cuda.current_device()}"
+                        if args.ngpu > 0
+                        else "cpu"
+                    ),
+                )
 
             # Note(Jinchuan): have to warp FSDP before building optimizers
-            if args.use_fsdp and not args.collect_stats and torch.cuda.is_available():
+            if args.use_fsdp and not args.collect_stats and torch.distributed.is_initialized():
                 model = warp_fsdp(
                     model,
                     use_amp=args.use_amp,
@@ -1450,23 +1467,8 @@ class AbsTask(ABC):
                 write_collected_feats=args.write_collected_feats,
             )
         else:
-            # 6. Loads pre-trained model
-            for p in args.init_param:
-                logging.info(f"Loading pretrained params from {p}")
-                load_pretrained_model(
-                    model=model,
-                    init_param=p,
-                    ignore_init_mismatch=args.ignore_init_mismatch,
-                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                    #   in PyTorch<=1.4
-                    map_location=(
-                        f"cuda:{torch.cuda.current_device()}"
-                        if args.ngpu > 0
-                        else "cpu"
-                    ),
-                )
 
-            # 7. Build iterator factories
+            # 6. Build iterator factories
             if args.sharded_dataset:  # recursively replace "JOB" to global rank.
                 if distributed_option.distributed:
                     rank = distributed_option.dist_rank
@@ -1523,7 +1525,7 @@ class AbsTask(ABC):
             else:
                 plot_attention_iter_factory = None
 
-            # 8. Start training
+            # 7. Start training
             if args.use_wandb:
                 if wandb is None:
                     raise RuntimeError("Please install wandb")

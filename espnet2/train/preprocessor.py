@@ -2372,6 +2372,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         text_cleaner: Optional[str] = None,
         # speaker prompt
         speaker_prompt_length: int = 1800,
+        # others
+        extra_names_and_modalities = [
+            "sampled.scp,codec",
+        ],
     ):
         self.token_list = token_list
         self.token_bias = token_bias
@@ -2420,6 +2424,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+        # extra entries
+        self.extra_names_and_modalities = [
+            tup.split(",") for tup in extra_names_and_modalities
+        ]
+
     @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
@@ -2429,7 +2438,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        # (Jinchuan): Temp code
+        # (Jinchuan): Temp code. should remove when implement the continuous features
         for e in task.encoder_entries + task.decoder_entries:
             if not self.modalities[e[1]].discrete:
                 raise ValueError("Continuous feature is not supported yet.")
@@ -2470,28 +2479,38 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         new_data["prefix_len"] = np.array([prefix_len])
 
-        # (3.1) add additional entries if provided
-        sample = [data[key] for key in data.keys() if key.startswith("sample")]
-        if len(sample) > 0:
-            sample = random.choice(sample)
+        # (4) entries that are not included in sequences
+        for name, modality in self.extra_names_and_modalities:
+            if name not in data:
+                continue
 
-            # sample is corresponded to the last entry of decoder entries
-            # e.g., the sampled speech for HFRL
-            name, modality, _ = task.decoder_entries[-1]
-            sample, _ = self.modality_specific_processing(sample, modality)
-            sample_seq = np.concatenate([
-                new_data["dec_seq"][:prefix_len].flatten(),
-                sample,
-            ]).reshape(-1, self.codec_token_in_use)
-
-            max_sample_len = int(len(new_data["dec_seq"]) * 1.3)
-            if len(sample_seq) > max_sample_len:
-                sample_seq = sample_seq[:max_sample_len]
+            values = [
+                self.modality_specific_processing(value, modality)[0]
+                for value in data[name]
+            ]
             
-            new_data["sample_seq"] = sample_seq
+            new_data = self.process_extra_entries(new_data, values, name)
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
+        return new_data
+    
+    def process_extra_entries(self, new_data, values, name):
+        if name == "sampled.scp":
+            prefix_len = new_data['prefix_len']
+            prefix = new_data['dec_seq'][:prefix_len.item()]
+            value = random.choice(values)
+            sampled_seq = np.concatenate([
+                prefix.flatten(),
+                value,
+                self.special_token("<sos/eos>"),
+            ]).reshape(-1, self.codec_token_in_use)
+
+            max_len = int(len(new_data['dec_seq']) * 1.3)
+            new_data["sampled_seq"] = sampled_seq[:max_len]
+        else:
+            raise NotImplementedError
+        
         return new_data
 
     def special_token(self, token):
@@ -2544,10 +2563,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         """Only for debug"""
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
-        sample_seq = data.get("sample_seq", None)
+        sampled_seq = data.get("sampled_seq", None)
 
         logging.warning(f"Diagnose in preprocessor ...")
-        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq), ("sample_seq", sample_seq)]:
+        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq), ("sampled_seq", sampled_seq)]:
             if seq is None:
                 continue
             logging.warning(f"{name} ...")

@@ -42,6 +42,7 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.multicol_kaldi_ark import MultiColKaldiArkReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -238,6 +239,8 @@ def rand_int_loader(filepath, loader_type):
         raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
     return IntRandomGenerateDataset(filepath, low, high)
 
+def multicol_kaldi_ark_loader(filepath):
+    return MultiColKaldiArkReader(filepath)
 
 DATA_TYPES = {
     "sound": dict(
@@ -257,6 +260,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_a a.wav a2.wav\n"
         "   utterance_id_b b.wav b2.wav\n"
+        "   ...",
+    ),
+    "multicol_kaldi_ark": dict(
+        func=multicol_kaldi_ark_loader,
+        kwargs=[],
+        help="Enable multi columns wav.scp with kaldi ark format"
+        "The following text file can be loaded as a list"
+        "\n\n"
+        "   utterance_id_a foo1.ark:123 foo2.ark:234\n"
+        "   utterance_id_b foo3.ark:345 foo4.ark:456 foo5.ark:567\n"
         "   ...",
     ),
     "variable_columns_sound": dict(
@@ -629,29 +642,19 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         self,
         example_list: List,
         task: str,
-        extra_loader_names = ['sampled.scp'],
         **kwargs,
     ):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map
-        if "utt2spk" in self.loader_dict:
+        if "utt2spk" in self.loader_dict and isinstance(self.loader_dict["utt2spk"], Dict):
             self.spk2utt = {}
             for k, v in self.loader_dict["utt2spk"].items():
                 if v not in self.spk2utt:
                     self.spk2utt[v] = []
                 self.spk2utt[v].append(k)
-        
-        # (2) some loaders will be considered as extra_loaders, which are not 
-        # queried by the normal utterance name. Instead, they are queried by
-        # other customized rules.
-        self.extra_loader_dict = {}
-        for name in extra_loader_names:
-            if name in self.loader_dict:
-                self.extra_loader_dict[name] = self.loader_dict[name]
-                self.loader_dict.pop(name)
 
-        # (3) keep example_list and clean some non-iterable loaders
+        # (2) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
         example_dict = {k: None for k in example_list}  # hash for faster query
         for key in self.loader_dict.keys():
@@ -660,34 +663,25 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 loader = {k: v for k, v in loader.items() if k in example_dict}
                 self.loader_dict[key] = loader
 
-        # (4) keep task
+        # (3) keep task
         self.task = task
 
     def dataset_level_operation(self, uid: str, data: Dict):
-        # (1) select speaker prompt
+        # (1) select speaker prompt randomly
         if "utt2spk" in self.loader_dict:
             spk = self.loader_dict["utt2spk"][uid]
-            utts = self.spk2utt[spk]
+            if isinstance(spk, str):
+                prompt_uids = self.spk2utt[spk]
 
-            if len(utts) == 1:  # at least itself
-                utt = utts[0]
-            else:
-                while True:
-                    utt = random.sample(utts, 1)[0]
-                    if uid != utt:
-                        break
+                if len(prompt_uids) == 1:  # at least itself
+                    prompt_uid = prompt_uids[0]
+                else:
+                    while True:
+                        prompt_uid = random.sample(prompt_uids, 1)[0]
+                        if uid != prompt_uid:
+                            break
 
-            if "wav.scp" not in self.loader_dict:
-                raise ValueError("speaker prompt is sampled from wav.scp loader")
-
-            data["utt2spk"] = self.loader_dict["wav.scp"][utt]
-        
-        # (2) select sampled examples
-        if "sampled.scp" in self.extra_loader_dict:
-            for n in range(100):
-                extended_name = f"{self.task}_{utt}_sample{n}"
-                if extended_name in self.extra_loader_dict["sampled.scp"]:
-                    data[f"sample{n}"] = self.extra_loader_dict["sampled.scp"][extended_name]
+                data["utt2spk"] = self.loader_dict["wav.scp"][prompt_uid]
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet
@@ -720,7 +714,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
             json_dict = json.load(open(path))
 
             this_path_name_type_list = []
-            for triplet in json_dict["data_files"] + json_dict.get("extra_data_files", []):
+            for triplet in json_dict["data_files"]:
                 path, _, _type = triplet.strip().split(",")
                 # use the stem file name as the name
                 this_path_name_type_list.append(

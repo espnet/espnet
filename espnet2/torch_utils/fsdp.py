@@ -99,6 +99,7 @@ def warp_fsdp(
         auto_wrap_policy=auto_wrap_policy,
         mixed_precision=mixed_precision,
         sync_module_states=True,
+        use_orig_params=True
     )
 
 
@@ -114,7 +115,14 @@ def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
 
     if len(optimizers) > 1:
         raise ValueError(f"currently FSDP can only support one optimizer")
-    optim_state_dict = [FSDP.optim_state_dict(model, optimizers[0])]
+    # NOTE(Jinchuan): will cause segment fault when not all parameters
+    # require gradients. In this case, just skip saving the optimizer
+    # states. This should be roughly ok as this is usually for small-scale
+    # fine-tuning.
+    if all(p.requires_grad for p in model.parameters()):
+        optim_state_dict = [FSDP.optim_state_dict(model, optimizers[0])]
+    else:
+        optim_state_dict = {}
 
     return state_dict, optim_state_dict
 

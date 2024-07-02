@@ -45,6 +45,7 @@ whisper_dir=""
 # Inference option related configuration
 inference_config=""
 inference_args=""
+
 ## change the language id according to your dataset
 decode_options="{task: transcribe, language: en, beam_size: 1}"
 
@@ -54,6 +55,7 @@ nlsyms_txt=none
 cleaner=none
 hyp_cleaner=none
 gt_text=""
+scoring_metrics="cer wer ter"
 
 help_message=$(cat << EOF
 Usage: $0 [Options] <wav.scp> <outdir>
@@ -230,7 +232,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Scoring"
-    for _type in cer wer ter; do
+    for _type in ${scoring_metrics}; do
         [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
 
         _scoredir="${outdir}/score_${_type}"

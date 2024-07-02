@@ -808,9 +808,11 @@ if ! "${skip_eval}"; then
                         --whisper_dir local/whisper \
                         --cleaner whisper_en \
                         --hyp_cleaner whisper_en \
-                        --nj ${inference_nj} \
+                        --inference_nj ${inference_nj} \
+                        --nj ${nj} \
                         --gt_text ${text_ref_file} \
                         --gpu_inference ${gpu_inference} \
+                        --scoring_metrics "wer" \
                         ${audio_file} ${_eval_dir}
                     
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
@@ -839,7 +841,6 @@ if ! "${skip_eval}"; then
                     ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/eval_${eval_item}.JOB.log \
                         ${python} -m speech_evaluation.bin.espnet_scorer \
                             --pred ${generated_file}.JOB \
-                            --rank JOB \
                             --output_file ${_eval_dir}/result.JOB.txt \
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
@@ -860,7 +861,8 @@ if ! "${skip_eval}"; then
                 --output_dir ${_dir} \
                 --metrics ${eval_metrics} \
                 --nbest ${nbest} \
-                --cross_rerank true
+                --cross_rerank true \
+                > ${_dir}/final_result.txt
         done
     fi
 else

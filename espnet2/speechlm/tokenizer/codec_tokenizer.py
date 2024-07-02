@@ -188,6 +188,17 @@ class CodecTokenizer(AbsTokenizer):
         Output:
             waveform (torch.Tensor): float tensor in shape [B, n_sample]
         """
+
+        # NOTE(Jinchuan) The very short input may raise errors, so simply 
+        # make the output as 0.0
+        if codes.size(1) <= 10:
+            B, T, _ = codes.size()
+            return torch.zeros(
+                (B, self.subsample * T),
+                dtype=torch.float32,
+                device=codes.device,
+            )
+
         if self.codec_choice == "ESPnet":
             codes = codes.permute(2, 0, 1)
             waveform = self.codec.decode(codes).squeeze(1)
@@ -202,8 +213,7 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "inhouse":
             codes = codes.permute(2, 0, 1)
-            wav = self.codec.decode(codes).squeeze(1)
-            return wav
+            waveform = self.codec.decode(codes).squeeze(1)
 
         else:
             raise NotImplementedError
