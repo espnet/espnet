@@ -1,6 +1,6 @@
 # Trained with Tesla A100 (40GB) x 8 GPUs. It takes about 22 hours.
 # #Params: 303M
-corelm: multiscale
+corelm: multiscale_delay
 corelm_conf:
     share_emb: false
     # global transformer
