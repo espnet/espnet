@@ -23,8 +23,10 @@ from typeguard import typechecked
 
 from espnet import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.binary_task_category_iter_factory import (
+    BinaryTaskCategoryIterFactory,
+)
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
-from espnet2.iterators.binary_task_category_iter_factory import BinaryTaskCategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -32,9 +34,11 @@ from espnet2.layers.create_adapter import create_adapter
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
+from espnet2.samplers.binary_task_category_balanced_sampler import (
+    BinaryTaskCategoryBalancedSampler,
+)
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.binary_task_category_balanced_sampler import BinaryTaskCategoryBalancedSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
@@ -1874,7 +1878,8 @@ class AbsTask(ABC):
             )
 
         if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt_2"
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+            "category2utt_2",
         ).exists():
             category2utt_file2 = str(
                 Path(
@@ -2228,7 +2233,7 @@ class AbsTask(ABC):
             for loss in model.loss:
                 if hasattr(loss, "weight"):
                     device = "cuda" if args.ngpu > 0 else "cpu"
-                    loss.weight = torch.nn.Parameter(loss.weight.to(device))        
+                    loss.weight = torch.nn.Parameter(loss.weight.to(device))
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)

@@ -1985,7 +1985,6 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             self.spf2label = None
 
-
     def _speech_process(self, data: Dict[np.ndarray, str]):
         if self.train:
             audio = data["speech"]
@@ -2021,7 +2020,7 @@ class SpkPreprocessor(CommonPreprocessor):
             if len(audio2) < self.target_duration:
                 shortage = self.target_duration - len(audio2) + 1
                 audio2 = np.pad(audio2, (0, shortage), "wrap")
-            
+
             if self.embed_avg:
                 if len(audio3) < self.target_duration:
                     shortage = self.target_duration - len(audio3) + 1
@@ -2052,7 +2051,9 @@ class SpkPreprocessor(CommonPreprocessor):
                 )
                 audios3 = []
                 for frame in startframe3:
-                    audios3.append(audio3[int(frame) : int(frame) + self.target_duration])
+                    audios3.append(
+                        audio3[int(frame) : int(frame) + self.target_duration]
+                    )
                 audios3 = np.stack(audios3, axis=0)
 
                 startframe4 = np.linspace(
@@ -2060,7 +2061,9 @@ class SpkPreprocessor(CommonPreprocessor):
                 )
                 audios4 = []
                 for frame in startframe4:
-                    audios4.append(audio4[int(frame) : int(frame) + self.target_duration])
+                    audios4.append(
+                        audio4[int(frame) : int(frame) + self.target_duration]
+                    )
                 audios4 = np.stack(audios4, axis=0)
 
             data["speech"] = audios

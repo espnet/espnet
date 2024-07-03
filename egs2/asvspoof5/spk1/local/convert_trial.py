@@ -21,6 +21,7 @@ label_dict["target"] = 0
 label_dict["nontarget"] = 1
 label_dict["spoof"] = 2
 
+
 def main(args):
     with open(args.trial, "r") as f:
         lines_trial_org = f.readlines()
@@ -36,7 +37,7 @@ def main(args):
         if "-" in utt_id:
             utt_id = utt_id.split("-")[1]
         scp_dict[utt_id] = path
-    
+
     enroll_dict = dict()
     for enroll in lines_enroll:
         # enrollment file is of the form: speakerID utt1,utt2,utt3
@@ -45,14 +46,16 @@ def main(args):
         speakerID, enroll_utt = enroll.strip().split()
         enroll_utt = enroll_utt.split(",")
         if len(enroll_utt) < 3:
-            enroll_utt.extend([enroll_utt[-1]]*(3-len(enroll_utt)))
+            enroll_utt.extend([enroll_utt[-1]] * (3 - len(enroll_utt)))
         enroll_dict[speakerID] = enroll_utt
 
     with open(os.path.join(args.out, "trial.scp"), "w") as f_trial, open(
-        os.path.join(args.out, "trial2.scp"), "w") as f_trial2, open(
-            os.path.join(args.out, "trial3.scp"), "w") as f_trial3, open(
-                os.path.join(args.out, "trial4.scp"), "w") as f_trial4, open(
-                    os.path.join(args.out, "trial_label"), "w") as f_label:
+        os.path.join(args.out, "trial2.scp"), "w"
+    ) as f_trial2, open(os.path.join(args.out, "trial3.scp"), "w") as f_trial3, open(
+        os.path.join(args.out, "trial4.scp"), "w"
+    ) as f_trial4, open(
+        os.path.join(args.out, "trial_label"), "w"
+    ) as f_label:
         for tr in lines_trial_org:
             if args.task == "dev":
                 enrolled_speaker, test_utt, label = tr.strip().split()
@@ -70,9 +73,9 @@ def main(args):
             if args.task == "dev":
                 f_label.write(f"{key} {label_dict[label]}\n")
             # write dummy labels for eval task
-            if args.task == "eval": 
+            if args.task == "eval":
                 f_label.write(f"{key} 0\n")
-            
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trial mapper")

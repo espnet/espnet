@@ -14,8 +14,10 @@ from typeguard import typechecked
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
+
 def round_down(num, divisor):
     return num - (num % divisor)
+
 
 class BinaryTaskCategoryBalancedSampler(AbsSampler):
     @typechecked
@@ -49,7 +51,9 @@ class BinaryTaskCategoryBalancedSampler(AbsSampler):
 
         self.batch_list = []
         # combine half batches from both categories to form full batches
-        for cat1_batch, cat2_batch in zip(self.category1_batches, self.category2_batches):
+        for cat1_batch, cat2_batch in zip(
+            self.category1_batches, self.category2_batches
+        ):
             self.batch_list.append(cat1_batch + cat2_batch)
 
     def _create_batches(self, category_utt, half_batch_size):
@@ -70,7 +74,7 @@ class BinaryTaskCategoryBalancedSampler(AbsSampler):
         batch_list = []
         current_batch = []
         current_batch_stats = Counter()
-        
+
         # make (half) mini-batches
         for idx in rand_idx:
             # don't allow more number of samples that belong to each category

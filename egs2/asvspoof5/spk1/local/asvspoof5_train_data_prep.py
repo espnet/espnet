@@ -25,15 +25,16 @@ if not metadata_file.exists():
 
 # open all the files
 with open(metadata_file, "r") as f_meta, open(
-    target_root / "wav.scp", "w") as f_wav, open(
-        target_root / "utt2spk", "w") as f_utt2spk, open(
-                target_root / "utt2spf", "w") as f_utt2spf:
+    target_root / "wav.scp", "w"
+) as f_wav, open(target_root / "utt2spk", "w") as f_utt2spk, open(
+    target_root / "utt2spf", "w"
+) as f_utt2spf:
     lines = f_meta.readlines()
     for line in lines:
         parts = line.strip().split()
         speakerID = parts[0]
-        spoofingID = parts[5] # bonafide or spoof
-        path = ASVSpoof_root / 'flac_T' / parts[1]
+        spoofingID = parts[5]  # bonafide or spoof
+        path = ASVSpoof_root / "flac_T" / parts[1]
         path = path.with_suffix(".flac")
         file_name = path.stem
         uttID = f"{speakerID}_{file_name}"

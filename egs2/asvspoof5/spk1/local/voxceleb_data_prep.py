@@ -24,15 +24,16 @@ def main(args):
             utt2spk.append([utt_id, spk])
             wav_list.append([utt_id, utt_dir])
 
-    with open(os.path.join(dst, "utt2spk"), "w" ) as f_utt2spk, open(
-        os.path.join(dst, "utt2spf"), "w" ) as f_utt2spf, open(
-            os.path.join(dst, "wav.scp"), "w") as f_wav:
+    with open(os.path.join(dst, "utt2spk"), "w") as f_utt2spk, open(
+        os.path.join(dst, "utt2spf"), "w"
+    ) as f_utt2spf, open(os.path.join(dst, "wav.scp"), "w") as f_wav:
         for utt_id, spk in utt2spk:
             f_utt2spk.write(f"{utt_id} {spk}\n")
             # voxceleb2 data is bonafide
             f_utt2spf.write(f"{utt_id} bonafide\n")
         for utt_id, wav in wav_list:
             f_wav.write(f"{utt_id} {wav}\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VoxCeleb 2 data prep")

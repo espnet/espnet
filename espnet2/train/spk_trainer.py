@@ -7,23 +7,27 @@ Thus, we measure open set equal error rate (EER) using unknown speakers by
 overriding validate_one_epoch.
 """
 
+import re
 from typing import Dict, Iterable
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim
+from a_dcf import a_dcf
+from tqdm import tqdm
 from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer, TrainerOptions
-from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore, SASVCostModel
-
-from a_dcf import a_dcf
-import re
-from tqdm import tqdm
+from espnet2.utils.eer import (
+    ComputeErrorRates,
+    ComputeMinDcf,
+    SASVCostModel,
+    tuneThresholdfromScore,
+)
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -60,24 +64,28 @@ class SpkTrainer(Trainer):
         spk_embd_dic = {}
         bs = 0
 
-        embed_avg = False # use speech, speech2, and speech3 as enrollment and speech4 as test
-        sasv = False # spoofing aware speaker verification task
+        embed_avg = (
+            False  # use speech, speech2, and speech3 as enrollment and speech4 as test
+        )
+        sasv = False  # spoofing aware speaker verification task
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         for utt_id, batch in iterator:
-            pattern = r'[DE]_\d{4}\*[DE]_\d{10}'
+            pattern = r"[DE]_\d{4}\*[DE]_\d{10}"
             if any(re.match(pattern, uid) for uid in utt_id):
                 sasv = True
-            
+
             # Set iterator_stop to 1 to indicate the loop should break after this iteration
             iterator_stop.fill_(1)
-            
+
             if distributed:
                 # Synchronize iterator_stop across all processes
-                torch.distributed.all_reduce(iterator_stop, op=torch.distributed.ReduceOp.SUM)
+                torch.distributed.all_reduce(
+                    iterator_stop, op=torch.distributed.ReduceOp.SUM
+                )
                 if iterator_stop > 0:
                     break
             else:
@@ -86,7 +94,9 @@ class SpkTrainer(Trainer):
 
         # Synchronize sasv across all processes
         if distributed:
-            sasv_tensor = torch.tensor([1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu")
+            sasv_tensor = torch.tensor(
+                [1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu"
+            )
             torch.distributed.all_reduce(sasv_tensor, op=torch.distributed.ReduceOp.MAX)
             sasv = bool(sasv_tensor.item())
 
@@ -94,7 +104,9 @@ class SpkTrainer(Trainer):
         if distributed:
             iterator_stop.zero_()
             # Ensure iterator_stop is synchronized after resetting
-            torch.distributed.all_reduce(iterator_stop, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(
+                iterator_stop, op=torch.distributed.ReduceOp.SUM
+            )
 
         # trials list
         all_trials_list = []
@@ -117,7 +129,11 @@ class SpkTrainer(Trainer):
 
             if embed_avg:
                 for _utt_id, _speech, _speech2, _speech3, _speech4 in zip(
-                    utt_id, batch["speech"], batch["speech2"], batch["speech3"], batch["speech4"]
+                    utt_id,
+                    batch["speech"],
+                    batch["speech2"],
+                    batch["speech3"],
+                    batch["speech4"],
                 ):
                     _utt_id_1, _utt_id_2 = _utt_id.split("*")
                     # speech, speech2 and speech3 are enrollment utterances for the speaker whose
@@ -176,7 +192,8 @@ class SpkTrainer(Trainer):
                     task_tokens = None
                 else:
                     task_tokens = to_device(
-                        task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                        task_token.repeat(_speechs.size(0)),
+                        "cuda" if ngpu > 0 else "cpu",
                     ).unsqueeze(1)
                 spk_embds = model(
                     speech=_speechs,
@@ -190,15 +207,21 @@ class SpkTrainer(Trainer):
 
                 for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
                     if embed_avg:
-                        if _utt_id.endswith("-first") or _utt_id.endswith("-second") or _utt_id.endswith("-third"):
+                        if (
+                            _utt_id.endswith("-first")
+                            or _utt_id.endswith("-second")
+                            or _utt_id.endswith("-third")
+                        ):
                             spkID = _utt_id.split("-")[0]
                             if spkID in spk_embd_dic:
-                                spk_embd_dic[spkID] = torch.cat((spk_embd_dic[spkID], _spk_embd), dim=0)
-                            else: # first time we see this speaker
+                                spk_embd_dic[spkID] = torch.cat(
+                                    (spk_embd_dic[spkID], _spk_embd), dim=0
+                                )
+                            else:  # first time we see this speaker
                                 spk_embd_dic[spkID] = _spk_embd
-                        else: # test utterance
+                        else:  # test utterance
                             spk_embd_dic[_utt_id] = _spk_embd
-                    else: # not embed_avg
+                    else:  # not embed_avg
                         spk_embd_dic[_utt_id] = _spk_embd
 
             del utt_id_list
@@ -207,7 +230,9 @@ class SpkTrainer(Trainer):
         # Compute the average embedding for each speaker
         if embed_avg:
             for spkID in spk_embd_dic:
-                spk_embd_dic[spkID] = torch.mean(spk_embd_dic[spkID], dim=0, keepdim=True)
+                spk_embd_dic[spkID] = torch.mean(
+                    spk_embd_dic[spkID], dim=0, keepdim=True
+                )
 
         # calculate similarity scores
         for utt_id, batch in iterator:
@@ -219,16 +244,20 @@ class SpkTrainer(Trainer):
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
-                    
+
             all_trials_list.extend(utt_id)
-            
+
             for _utt_id in utt_id:
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 if not sasv:
-                    score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
+                    score = torch.cdist(
+                        spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2]
+                    )
                     score = -1.0 * torch.mean(score)
                 else:
-                    score = F.cosine_similarity(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2], dim=1)
+                    score = F.cosine_similarity(
+                        spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2], dim=1
+                    )
                 scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
 
@@ -320,7 +349,7 @@ class SpkTrainer(Trainer):
                     nontrg_std=nontrg_std,
                 )
             )
-        
+
         else:
             idx2class = {}
             idx2class[0] = "target"
@@ -351,10 +380,10 @@ class SpkTrainer(Trainer):
             if len(scores) == 1:
                 reporter.register(stats=dict(eer=1.0, mindcf=1.0))
                 return
-            
+
             # write scores to file for a-dcf calculation
             # format should be:
-            # # <speaker_id> <utterance_id> <score> <trial type> 
+            # # <speaker_id> <utterance_id> <score> <trial type>
             # where speaker_id and utterance_id are obtained from the utt_id in format <speaker_id>*<utterance_id>
             # and trial type is 0 for target, 1 for nontarget, and 2 for spoof but should be mapped to string using idx2class
             print(f"num trials: {len(trials_list)}")
@@ -362,10 +391,14 @@ class SpkTrainer(Trainer):
             assert len(trials_list) == len(scores)
             with open("scores.txt", "w") as f:
                 for i in range(len(trials_list)):
-                    f.write(f"{trials_list[i].split('*')[0]} {trials_list[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n")
-        
+                    f.write(
+                        f"{trials_list[i].split('*')[0]} {trials_list[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n"
+                    )
+
             # calculate a-dcf
-            adcf_results = a_dcf.calculate_a_dcf("scores.txt", cost_model=SASVCostModel())
+            adcf_results = a_dcf.calculate_a_dcf(
+                "scores.txt", cost_model=SASVCostModel()
+            )
             adcf = adcf_results["min_a_dcf"]
 
             reporter.register(
@@ -398,7 +431,7 @@ class SpkTrainer(Trainer):
         output_dir: str,
         custom_bs: int,
         average: bool = False,
-        embed_avg: bool = False, # TODO: cleanup to avoid duplication
+        embed_avg: bool = False,  # TODO: cleanup to avoid duplication
     ) -> None:
         ngpu = options.ngpu
         distributed = distributed_option.distributed
@@ -546,7 +579,7 @@ class SpkTrainer(Trainer):
                     else:
                         spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
 
-        else: # embed_avg
+        else:  # embed_avg
             for utt_id, batch in iterator:
                 utt_id_list = []
                 speech_list = []
@@ -555,8 +588,12 @@ class SpkTrainer(Trainer):
 
                 assert isinstance(batch, dict), type(batch)
                 for _utt_id, _speech, _speech2, _speech3, _speech4 in zip(
-                    utt_id, batch["speech"], batch["speech2"], batch["speech3"], batch["speech4"]
-                    ):
+                    utt_id,
+                    batch["speech"],
+                    batch["speech2"],
+                    batch["speech3"],
+                    batch["speech4"],
+                ):
                     _utt_id_1, _utt_id_2 = _utt_id.split("*")
                     # speech, speech2 and speech3 are enrollment utterances for the speaker whose
                     # speakerid is _utt_id_1 and speech4 is the test utterance
@@ -564,16 +601,24 @@ class SpkTrainer(Trainer):
                     # recorded as _utt_id_1-first, _utt_id_1-second, and _utt_id_1-third
                     if (_utt_id_1 + "-first") not in utt_id_list:
                         utt_id_list.append(_utt_id_1 + "-first")
-                        speech_list.append(to_device(_speech, "cuda" if ngpu > 0 else "cpu"))
+                        speech_list.append(
+                            to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                        )
                     if (_utt_id_1 + "-second") not in utt_id_list:
                         utt_id_list.append(_utt_id_1 + "-second")
-                        speech_list.append(to_device(_speech2, "cuda" if ngpu > 0 else "cpu"))
+                        speech_list.append(
+                            to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                        )
                     if (_utt_id_1 + "-third") not in utt_id_list:
                         utt_id_list.append(_utt_id_1 + "-third")
-                        speech_list.append(to_device(_speech3, "cuda" if ngpu > 0 else "cpu"))
+                        speech_list.append(
+                            to_device(_speech3, "cuda" if ngpu > 0 else "cpu")
+                        )
                     if _utt_id_2 not in utt_id_list:
                         utt_id_list.append(_utt_id_2)
-                        speech_list.append(to_device(_speech4, "cuda" if ngpu > 0 else "cpu"))
+                        speech_list.append(
+                            to_device(_speech4, "cuda" if ngpu > 0 else "cpu")
+                        )
 
                 assert len(utt_id_list) == len(speech_list)
 
@@ -591,7 +636,8 @@ class SpkTrainer(Trainer):
                         task_tokens = None
                     else:
                         task_tokens = to_device(
-                            task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                            task_token.repeat(_speechs.size(0)),
+                            "cuda" if ngpu > 0 else "cpu",
                         ).unsqueeze(1)
                     spk_embds = model(
                         speech=_speechs,
@@ -604,13 +650,19 @@ class SpkTrainer(Trainer):
                     spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
                     for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
-                        if _utt_id.endswith("-first") or _utt_id.endswith("-second") or _utt_id.endswith("-third"):
+                        if (
+                            _utt_id.endswith("-first")
+                            or _utt_id.endswith("-second")
+                            or _utt_id.endswith("-third")
+                        ):
                             spkID = _utt_id.split("-")[0]
                             if spkID in spk_embd_dic:
-                                spk_embd_dic[spkID] = torch.cat((spk_embd_dic[spkID], _spk_embd), dim=0)
-                            else: # first time we see this speaker
+                                spk_embd_dic[spkID] = torch.cat(
+                                    (spk_embd_dic[spkID], _spk_embd), dim=0
+                                )
+                            else:  # first time we see this speaker
                                 spk_embd_dic[spkID] = _spk_embd
-                        else: # test utterance
+                        else:  # test utterance
                             spk_embd_dic[_utt_id] = _spk_embd
 
                     del utt_id_list
@@ -618,7 +670,11 @@ class SpkTrainer(Trainer):
 
         # Compute the average embedding for each speaker and to cpu
         for spkID in spk_embd_dic:
-            spk_embd_dic[spkID] = torch.mean(spk_embd_dic[spkID], dim=0, keepdim=True).detach().cpu().numpy()
-
+            spk_embd_dic[spkID] = (
+                torch.mean(spk_embd_dic[spkID], dim=0, keepdim=True)
+                .detach()
+                .cpu()
+                .numpy()
+            )
 
         np.savez(output_dir + f"/embeddings{rank}", **spk_embd_dic)

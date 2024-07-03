@@ -127,7 +127,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
             if self.loss_weights is not None:
                 weight_sum = sum(self.loss_weights)
-                loss = (self.loss_weights[0] * spk_loss + self.loss_weights[1] * spf_loss) / weight_sum
+                loss = (
+                    self.loss_weights[0] * spk_loss + self.loss_weights[1] * spf_loss
+                ) / weight_sum
             else:
                 loss = spk_loss + spf_loss
             stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())

@@ -9,7 +9,9 @@ from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.samplers.binary_task_category_balanced_sampler import BinaryTaskCategoryBalancedSampler
+from espnet2.samplers.binary_task_category_balanced_sampler import (
+    BinaryTaskCategoryBalancedSampler,
+)
 
 
 def worker_init_fn(worker_id, base_seed=0):

@@ -41,7 +41,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Preparation for train"
-    
+
     if [ ! -d "${trg_dir}/asvspoof5_train" ]; then
         log "Making Kaldi style files for train"
         mkdir -p "${trg_dir}/asvspoof5_train"
@@ -86,7 +86,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ! -d "${trg_dir}/eval" ]; then
         log "Making Kaldi style files for eval"
         mkdir -p "${trg_dir}/eval"
-        
+
         log "Making Kaldi style files for eval"
         python3 local/eval_data_prep.py --asvspoof5_root "${data_dir_prefix}/asvspoof5_data" --target_dir "${trg_dir}/eval" --is_progress True
 

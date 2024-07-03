@@ -337,7 +337,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
                 --out_filename trial2.scp \
                 "data/${dset}/trial2.scp" "${data_feats}/${dset}"
-            
+
             # if embed_avg is enabled, then also trial3.scp and trial4.scp are required
             if "${embed_avg}"; then
                 # shellcheck disable=SC2086
@@ -363,7 +363,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     elif [ "${feats_type}" = raw_copy ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
-            
+
             # category2utt will be used by the data sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
             # copy files for spoofing task if multi-task sasv is enabled

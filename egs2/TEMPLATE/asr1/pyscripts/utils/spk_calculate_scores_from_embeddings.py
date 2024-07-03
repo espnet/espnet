@@ -1,10 +1,10 @@
+import argparse
 import os
 import sys
 from collections import OrderedDict
 
 import numpy as np
 import torch
-import argparse
 
 
 def load_embeddings(embd_dir: str) -> dict:
@@ -24,10 +24,10 @@ def main(args):
     embd = args.embd
     trial_label = args.trial_label
     out_dir = args.out_dir
-    
+
     if args.cosine == "true":
         cosine_sim = True
-    else:    
+    else:
         cosine_sim = False
 
     print(f"Calculating scores using cosine similarity: {cosine_sim}")
@@ -66,18 +66,21 @@ def main(args):
     if not os.path.exists(os.path.dirname(out_dir)):
         os.makedirs(os.path.dirname(out_dir))
     with open(out_dir, "w") as f:
-        if trial_label is None:    
+        if trial_label is None:
             for trl, sco, lbl in zip(trial_ids, scores, labels):
                 f.write(f"{trl} {sco} {lbl}\n")
         else:
             for trl, sco in zip(trial_ids, scores):
                 f.write(f"{trl} {sco}\n")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--embd", type=str, help="Path to the embeddings")
     parser.add_argument("--trial_label", type=str, help="Path to the trial file")
     parser.add_argument("--out_dir", type=str, help="Path to the output score file")
-    parser.add_argument("--cosine", type=str, help="Use cosine similarity", default="true")
+    parser.add_argument(
+        "--cosine", type=str, help="Use cosine similarity", default="true"
+    )
     args = parser.parse_args()
     main(args)

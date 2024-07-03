@@ -1,17 +1,26 @@
 # dev_data_prep.py
 # Prepares ASVspoof5 development or evaluation data
 
+import argparse
 import os
 import sys
 from pathlib import Path
-import argparse
 
 # Create the parser
-parser = argparse.ArgumentParser(description='Prepares ASVspoof5 development or eval data')
+parser = argparse.ArgumentParser(
+    description="Prepares ASVspoof5 development or eval data"
+)
 
 # Add the arguments
-parser.add_argument('--asvspoof5_root', type=str, required=True, help='The directory of the ASVspoof5 enrolment data')
-parser.add_argument('--target_dir', type=str, required=True, help='The target directory')
+parser.add_argument(
+    "--asvspoof5_root",
+    type=str,
+    required=True,
+    help="The directory of the ASVspoof5 enrolment data",
+)
+parser.add_argument(
+    "--target_dir", type=str, required=True, help="The target directory"
+)
 
 # Parse the arguments
 args = parser.parse_args()
@@ -38,15 +47,16 @@ if not enrollment_file.exists():
 
 # open all the files
 with open(metadata_file, "r") as f_meta, open(
-    target_root / "wav.scp", "w") as f_wav, open(
-        target_root / "utt2spk", "w") as f_utt2spk, open(
-                target_root / "utt2spf", "w") as f_utt2spf:
+    target_root / "wav.scp", "w"
+) as f_wav, open(target_root / "utt2spk", "w") as f_utt2spk, open(
+    target_root / "utt2spf", "w"
+) as f_utt2spf:
     lines = f_meta.readlines()
     for line in lines:
         parts = line.strip().split()
         speakerID = parts[0]
-        spoofingID = parts[5] # bonafide or spoof
-        path = ASVSpoof_root / 'flac_D' / parts[1]
+        spoofingID = parts[5]  # bonafide or spoof
+        path = ASVSpoof_root / "flac_D" / parts[1]
         path = path.with_suffix(".flac")
         file_name = path.stem
         uttID = f"{speakerID}-{file_name}"
@@ -64,9 +74,9 @@ with open(metadata_file, "r") as f_meta, open(
             parts = line.strip().split()
             speakerID = parts[0]
             # enrollment utterances follow and are comma-separated
-            enroll_utt = parts[1].split(',')
+            enroll_utt = parts[1].split(",")
             for utt in enroll_utt:
-                path = ASVSpoof_root / 'flac_D' / utt
+                path = ASVSpoof_root / "flac_D" / utt
                 path = path.with_suffix(".flac")
                 file_name = path.stem
                 uttID = f"{speakerID}-{file_name}"

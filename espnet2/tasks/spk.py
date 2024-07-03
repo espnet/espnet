@@ -315,13 +315,21 @@ class SpeakerTask(AbsTask):
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
-        
-        # For ASVspoof and other cases where 3 enrollment utterances are 
-        # often given, speech3 and speech4 are used. Here, speech4 is 
+
+        # For ASVspoof and other cases where 3 enrollment utterances are
+        # often given, speech3 and speech4 are used. Here, speech4 is
         # the test utterance. speech1 to speech3 are for enrollment.
 
         # spf_labels are required for SASV task
-        retval = ("speech2", "speech3", "speech4", "trial", "spk_labels", "task_tokens", "spf_labels")
+        retval = (
+            "speech2",
+            "speech3",
+            "speech4",
+            "trial",
+            "spk_labels",
+            "task_tokens",
+            "spf_labels",
+        )
 
         return retval
 
