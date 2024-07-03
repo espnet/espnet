@@ -69,18 +69,22 @@ ignore_init_mismatch=true      # Ignore initial mismatch
 
 # Inference related
 inference_config=conf/decode.yaml   # Inference configuration
-inference_model=valid.a_dcf.best.pth  # Inference model weight file
+inference_model=10epoch.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
+cosine_sim=true       # Use cosine similarity for scoring
 
 # Speaker Task related
 multi_task=true      # Apply multi-task learning in speaker recognition
 sasv_task=true       # Apply speaker anti-spoofing task in speaker recognition
-spf_args=             # Parameters for spoofing
+spf_args=            # Parameters for spoofing
 
 # Embedding averaging related
-embed_avg=true   # Apply embedding averaging in inference
+embed_avg=true    # Apply embedding averaging in inference
 embed_avg_args=   # Arguments for embedding averaging
+
+# Label related
+no_labels=true    # No labels for inference
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
@@ -561,6 +565,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         jobname="${infer_exp}/spk_embed_extraction.log"
     fi
 
+    # if embed_avg is enabled, then also add trial3 and trial4 arguments for inference
+    if "${embed_avg}"; then
+        embed_avg_args="--data_path_and_name_and_type ${_inference_dir}/trial3.scp,speech3,sound \
+                        --data_path_and_name_and_type ${_inference_dir}/trial4.scp,speech4,sound \
+                        --embedding_average true"
+    fi
+
     log "Extracting speaker embeddings for inference... log: '${infer_exp}/spk_embed_extraction_test.log'"
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
@@ -580,6 +591,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --config ${inference_config} \
             --spk_train_config "${spk_exp}/config.yaml" \
             --spk_model_file "${spk_exp}"/${inference_model} \
+            ${embed_avg_args} \
             ${spk_args}
 
     # extract embeddings for cohort set
@@ -650,7 +662,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     cohort_dir="${data_feats}/${cohort_set}"
 
     log "Stage 7-a: get scores for the test set."
-    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    if [ "${no_labels}" = true ]; then
+        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py --embd ${infer_exp}/${test_sets}_embeddings.npz --trial_label ${_inference_dir}/trial_label --out_dir ${infer_exp}/${test_sets}_raw_trial_scores --cosine ${cosine_sim}
+
+    else
+        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py --embd ${infer_exp}/${test_sets}_embeddings.npz --trial_label ${_inference_dir}/trial_label --out_dir ${infer_exp}/${test_sets}_raw_trial_scores
+    fi
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
     if "$score_norm"; then

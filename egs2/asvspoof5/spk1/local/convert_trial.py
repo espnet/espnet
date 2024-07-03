@@ -54,7 +54,10 @@ def main(args):
                 os.path.join(args.out, "trial4.scp"), "w") as f_trial4, open(
                     os.path.join(args.out, "trial_label"), "w") as f_label:
         for tr in lines_trial_org:
-            enrolled_speaker, test_utt, label = tr.strip().split()
+            if args.task == "dev":
+                enrolled_speaker, test_utt, label = tr.strip().split()
+            else:
+                enrolled_speaker, test_utt = tr.strip().split()
             # each trial is identified by a joint key of form: speakerID*test_utt
             key = f"{enrolled_speaker}*{test_utt}"
             # write trial.scp, trial2.scp, trial3.scp
@@ -63,8 +66,13 @@ def main(args):
             f_trial3.write(f"{key} {scp_dict[enroll_dict[enrolled_speaker][2]]}\n")
             # write trial4.scp
             f_trial4.write(f"{key} {scp_dict[test_utt]}\n")
-            # write trial_label
-            f_label.write(f"{key} {label_dict[label]}\n")
+            # write trial_label for dev task
+            if args.task == "dev":
+                f_label.write(f"{key} {label_dict[label]}\n")
+            # write dummy labels for eval task
+            if args.task == "eval": 
+                f_label.write(f"{key} 0\n")
+            
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trial mapper")
@@ -91,6 +99,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="destination directory of processed trial and label files",
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        required=True,
+        help="task: dev or eval",
     )
     args = parser.parse_args()
 

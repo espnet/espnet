@@ -60,7 +60,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data Preparation for dev"
+    log "stage 2: Data Preparation for dev and eval"
 
     if [ ! -d "${trg_dir}/dev" ]; then
         log "Making Kaldi style files for dev"
@@ -77,10 +77,35 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cp "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.enroll.txt" "${trg_dir}/dev/enroll.txt"
 
         # make trials for dev set
-        log "Making the trial compatible with ESPnet"
-        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --enroll ${trg_dir}/dev/enroll.txt  --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev
+        log "Making the dev trial compatible with ESPnet"
+        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --enroll ${trg_dir}/dev/enroll.txt  --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev --task dev
     else
         log "${trg_dir}/dev exists. Skip making Kaldi style files for dev"
+    fi
+
+    if [ ! -d "${trg_dir}/eval" ]; then
+        log "Making Kaldi style files for eval"
+        mkdir -p "${trg_dir}/eval"
+        
+        log "Making Kaldi style files for eval"
+        python3 local/eval_data_prep.py --asvspoof5_root "${data_dir_prefix}/asvspoof5_data" --target_dir "${trg_dir}/eval" --is_progress True
+
+        for f in wav.scp utt2spk utt2spf; do
+            sort ${trg_dir}/eval/${f} -o ${trg_dir}/eval/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/eval/utt2spk > "${trg_dir}/eval/spk2utt"
+        utils/utt2spk_to_spk2utt.pl ${trg_dir}/eval/utt2spf > "${trg_dir}/eval/spf2utt"
+        utils/validate_data_dir.sh --no-feats --no-text "${trg_dir}/eval" || exit 1
+
+        # copy enrollment file
+        cp "${data_dir_prefix}/asvspoof5_data/ASVspoof5.track_2.progress.enroll.txt" "${trg_dir}/eval/enroll.txt"
+
+        # make trials for eval set
+        log "Making the eval trial compatible with ESPnet"
+        python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.track_2.progress.trial.txt" --enroll ${trg_dir}/eval/enroll.txt  --scp ${trg_dir}/eval/wav.scp --out ${trg_dir}/eval --task eval
+
+    else
+        log "${trg_dir}/eval exists. Skip making Kaldi style files for eval"
     fi
 
     log "Stage 2, DONE."
