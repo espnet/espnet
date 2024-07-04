@@ -2,7 +2,7 @@
 # #Params: 1.15B
 model: rl
 model_conf:
-    algo: dpo
+    algo: simpo
 
 corelm: multiscale
 corelm_conf:

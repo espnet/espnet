@@ -27,21 +27,26 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         beta: float = 0.1,
         ce_loss_weight: float = 0.0,
         rl_loss_weight: float = 1.0,
-        length_normalize: bool = True,
         label_smoothing: float = 0.0,
+        reward_margin: float = 0.0,
         extract_feats_in_collect_stats: bool = False,
     ):
         super().__init__()
 
         self.corelm = corelm
-        self.reflm = reflm
         self.algo = algo
         self.beta = beta
         self.ce_loss_weight = ce_loss_weight
         self.rl_loss_weight = rl_loss_weight
-        self.length_normalize = length_normalize
         self.label_smoothing = label_smoothing
+        self.reward_margin = reward_margin
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
+
+        if algo in ["simpo"]:
+            del reflm
+            self.reflm = None
+        else:
+            self.reflm = reflm
 
     def forward(
         self,
@@ -83,14 +88,17 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             all_prefix_lengths,
         )
 
-        with torch.no_grad():
-            _, ref_logits, _, _ = self.reflm(
-                all_seq,
-                all_seq_lengths,
-                None,
-                None,
-                all_prefix_lengths,
-            )
+        if self.reflm is not None:
+            with torch.no_grad():
+                _, ref_logits, _, _ = self.reflm(
+                    all_seq,
+                    all_seq_lengths,
+                    None,
+                    None,
+                    all_prefix_lengths,
+                )
+        else:
+            ref_logits = None
 
         # (3) RL loss computing. Shift by 1 since <sos> has been removed in lm forward
         loss, stats_rl = self.loss_rl(
@@ -107,6 +115,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable(
             (loss, stats, len(dec_seq)), loss.device
         )
+
         return loss, stats, weight
     
     def loss_rl(
@@ -134,49 +143,43 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         n_positive (int): number of positive examples, a.k.a., B_pos
 
         """
-
-        # (1) logp, summed to utterance level
-        policy_logp = torch.gather(
-            policy_logits.log_softmax(-1), dim=3, index=all_seq.unsqueeze(3)
-        ).squeeze(3)
-        ref_logp = torch.gather(
-            ref_logits.log_softmax(-1), dim=3, index=all_seq.unsqueeze(3)
-        ).squeeze(3) # [B_pos + B_neg, T, nq]
-        nq = ref_logp.size(-1)
-
-        # (2) mask for target region
+        # (1) mask for target region
         mask = length_mask(all_seq_lengths)
         prefix_mask = length_mask(all_prefix_lengths, maxlen=all_seq_lengths.max())
         mask = (mask * torch.abs(prefix_mask - 1)).unsqueeze(2) # [B_pos + B_neg, T, 1]
 
-        # (3) apply mask and sum up
+        # (2) logp, summed to utterance level
+        policy_logp = torch.gather(
+            policy_logits.log_softmax(-1), dim=3, index=all_seq.unsqueeze(3)
+        ).squeeze(3)
         policy_logp = (policy_logp * mask).sum(dim=(1, 2))
-        ref_logp = (ref_logp * mask).sum(dim=(1, 2)) # [B_pos + B_neg]
-        if self.length_normalize:
+
+        if ref_logits is not None:
+            ref_logp = torch.gather(
+                ref_logits.log_softmax(-1), dim=3, index=all_seq.unsqueeze(3)
+            ).squeeze(3) # [B_pos + B_neg, T, nq]
+            ref_logp = (ref_logp * mask).sum(dim=(1, 2)) # [B_pos + B_neg]
+        else:
+            ref_logp = torch.zeros_like(policy_logp)
+
+        # (3) length normalize
+        if self.algo in ['simpo']:
+            nq = all_seq.size(-1)
             policy_logp = policy_logp / (all_seq_lengths - all_prefix_lengths) / nq
             ref_logp = ref_logp / (all_seq_lengths - all_prefix_lengths) / nq
 
         # (4) the exact loss computing
         pos_repeat = (len(policy_logp) - n_positive) // n_positive
-        if self.algo in ["dpo"]:
-            loss_rl, pos_reward, neg_reward, reward_acc = self.loss_dpo(
-                pos_policy_logp=policy_logp[:n_positive].tile(pos_repeat),
-                neg_policy_logp=policy_logp[n_positive:],
-                pos_ref_logp=ref_logp[:n_positive].tile(pos_repeat),
-                neg_ref_logp=ref_logp[n_positive:],
-            )
-        else:
-            raise NotImplementedError
-
-        stats = {
-            "pos_reward": pos_reward.detach().mean(),
-            "neg_reward": neg_reward.detach().mean(),
-            "reward_acc": reward_acc.detach().mean(),
-        }
+        loss_rl, stats = self.compute_loss(
+            pos_policy_logp=policy_logp[:n_positive].tile(pos_repeat),
+            neg_policy_logp=policy_logp[n_positive:],
+            pos_ref_logp=ref_logp[:n_positive].tile(pos_repeat),
+            neg_ref_logp=ref_logp[n_positive:],
+        )
         
         return loss_rl.mean(), stats
     
-    def loss_dpo(
+    def compute_loss(
         self,
         pos_policy_logp: torch.Tensor,
         neg_policy_logp: torch.Tensor,
@@ -191,15 +194,34 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
                 -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
                 -F.logsigmoid(-self.beta * logits) * self.label_smoothing
             )
+            
+        elif self.algo == "simpo":
+            logits = logits 
+            loss = (
+                -F.logsigmoid(self.beta * logits - self.reward_margin) * (1 - self.label_smoothing)
+                -F.logsigmoid(-self.beta * logits - self.reward_margin) * self.label_smoothing
+            )
         
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"{self.algo} is not supported yet")
         
         pos_reward = pos_policy_logp - pos_ref_logp
         neg_reward = neg_policy_logp - neg_ref_logp
         acc = (pos_reward > neg_reward).float()
 
-        return loss, pos_reward, neg_reward, acc
+        stats = {
+            "pos_reward": pos_reward,
+            "neg_reward": neg_reward,
+            "reward_gap": pos_reward - neg_reward,
+            "reward_acc": acc,
+            "pos_policy_logp": pos_policy_logp,
+            "neg_policy_logp": neg_policy_logp,
+            "pos_ref_logp": pos_ref_logp,
+            "neg_ref_logp": neg_ref_logp,
+        }
+        stats = {k: v.detach().mean() for k, v in stats.items()}
+
+        return loss, stats
 
     def collect_feats(self, **kwargs):
         raise NotImplementedError
@@ -210,7 +232,6 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         return [
             ResidualAttentionBlock,  # Espnet built-in transformer layer.
         ]
-
 
 def printf(*string):
     if torch.distributed.get_rank() == 0:
