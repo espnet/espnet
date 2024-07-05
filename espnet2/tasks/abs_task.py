@@ -5,6 +5,7 @@ import functools
 import logging
 import os
 import sys
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,7 +13,6 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
-import tempfile
 import torch
 import torch.multiprocessing
 import torch.nn
