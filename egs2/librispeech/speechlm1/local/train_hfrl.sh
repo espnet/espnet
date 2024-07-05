@@ -18,13 +18,13 @@ log() {
 }
 SECONDS=0
 
-train_config=conf/train_multiscale_1b_simpo.yaml
+train_config=conf/train_multiscale_1b_dpo.yaml
 
 # original dataset and sampled examples
-train_dir=dump/raw_tts_librispeech/train_clean_100
+train_dir=dump/raw_tts_librispeech/train_960
 valid_dir=dump/raw_tts_librispeech/dev_clean
-train_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_train_clean_100/
-valid_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_dev_clean/
+train_sampling_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_train_960
+valid_sampling_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_dev_clean
 token_list_dir=data/token_list/ls_giga_mlsen
 
 # Tokenization options:
@@ -36,19 +36,20 @@ codec_config_path=null
 codec_hf_model_tag=null
 
 # HFRL options
-tag=sample10_simpo
-data_combo_name=gt_vs_sample_10
+tag=
+data_combo_name=
 task="tts"
 train_args=
 resume=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
-use_reflm=false
+use_reflm=true
+select_metrics="utmos spk_similarity edit_distance"
 
 # Other options
 nj=32
 ngpu=8
 g2p="g2p_en_no_space"
 cleaner="tacotron"
-stage=2
+stage=1
 stop_stage=100
 
 log "$0 $*"
@@ -63,45 +64,56 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [ -z ${tag} ]; then
-    echo "tag is needed ... " && exit 1;
-fi
-
 if [ -z ${resume} ]; then
     echo "Resume checkpoint is needed ... " && exit 1;
 fi
 
+if [ -z ${tag} ]; then
+    tag=metric_$(echo "${select_metrics}" | tr ' ' '_')
+fi
+
+if [ -z ${data_combo_name} ]; then
+    data_combo_name=metric_$(echo "${select_metrics}" | tr ' ' '_')
+fi
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Prepare dataset for training"
-    for part in train valid; do
+    for part in valid train; do
         src_dir=${part}_dir
         src_dir=${!src_dir}
         
         tgt_dir=${src_dir}_hfrl_${data_combo_name}
         mkdir -p ${tgt_dir}
         
-        infer_dir=${part}_infer_dir
-        infer_dir=${!infer_dir}
+        sampling_dir=${part}_sampling_dir
+        sampling_dir=${!sampling_dir}
 
-        # TODO(Jinchuan): add sample selection strategy
+        metric_opts=
+        for metric in ${select_metrics}; do
+            if [ "${metric}" == "utmos" ]; then
+                metric_opts+="--metric_names utmos "
+                metric_opts+="--metric_weights 1.0 "
+                metric_opts+="--metric_files ${sampling_dir}/eval_signal/utt_result.txt "
+            elif [ "${metric}" == "spk_similarity" ]; then
+                metric_opts+="--metric_names spk_similarity "
+                metric_opts+="--metric_weights 1.0 "
+                metric_opts+="--metric_files ${sampling_dir}/eval_spk/utt_result.txt "
+            elif [ "${metric}" == "edit_distance" ]; then
+                metric_opts+="--metric_names edit_distance "
+                metric_opts+="--metric_weights 1.0 "
+                metric_opts+="--metric_files ${sampling_dir}/eval_speech_wer/utt_result.txt "
+            fi
+        done
 
-        # Generate a new data.json file based on the original data.json file, so
-        # that the new data.json file can be used for HFRL training.
-        # (1) change the speaker prompt (utt2spk) as fixed codec tokens rather
-        #     than the original utt-to-speaker mapping.
-        # (2) add sampled.scp as an extra data file to specify the sampled items
-
-        cp ${infer_dir}/utt2spk_token.scp ${tgt_dir}/utt2spk
-        ./pyscripts/utils/convert_to_multicol_kaldi_ark.py \
-          --input_scp ${infer_dir}/wav.scp_token.scp \
-          --output_scp ${tgt_dir}/sampled.scp \
-          --task ${task}
-
-        ./pyscripts/utils/speechlm_add_data_entry.py \
-          --input_json ${src_dir}/data.json \
-          --output_json ${tgt_dir}/data.json \
-          --path_name_types "${tgt_dir}/utt2spk,spk,kaldi_ark" \
-          --path_name_types "${tgt_dir}/sampled.scp,codec,multicol_kaldi_ark"
+        if [ "${task}" == "tts" ]; then
+            ./pyscripts/utils/build_hfrl_dataset.py \
+            --ref_json ${src_dir}/data.json \
+            --output_dir ${tgt_dir} \
+            --path_modality_types "${src_dir}/text,g2p,text" \
+            --path_modality_types "${sampling_dir}/utt2spk_token.scp,spk,kaldi_ark" \
+            --path_modality_types "${sampling_dir}/wav.scp_token.scp,codec,multicol_kaldi_ark" \
+            ${metric_opts}
+        fi
     done
 fi
 
@@ -109,12 +121,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Training ..."
 
     # the checkpoint is used to initialize both corelm and reflm
-    train_args+="--init_param ${resume}:corelm:corelm "
     if ${use_reflm}; then
-        train_args+="${resume}:corelm:reflm "
+        train_args+="--init_param ${resume}:corelm:corelm ${resume}:corelm:reflm"
+    else
+        train_args+="--init_param ${resume}:corelm:corelm"
     fi
     ./speechlm.sh \
-        --stage 8 --stop_stage 8 \
+        --stage 7 --stop_stage 8 \
         --tag hfrl_${tag} \
         --skip_data_prep true \
         --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \

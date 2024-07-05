@@ -2449,7 +2449,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
             for entry in entries:
                 name, modality, _ = entry
-
                 value, _ = self.modality_specific_processing(data[name], modality)
                 seqs.append(value)
 
@@ -2483,23 +2482,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         for name, modality in self.extra_names_and_modalities:
             if name not in data:
                 continue
-
-            values = [
-                self.modality_specific_processing(value, modality)[0]
-                for value in data[name]
-            ]
-            
-            new_data = self.process_extra_entries(new_data, values, name)
+            value = self.modality_specific_processing(data[name], modality)[0]      
+            new_data = self.process_extra_entries(new_data, value, name)
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
     
-    def process_extra_entries(self, new_data, values, name):
+    def process_extra_entries(self, new_data, value, name):
         if name == "sampled.scp":
             prefix_len = new_data['prefix_len']
             prefix = new_data['dec_seq'][:prefix_len.item()]
-            value = random.choice(values)
             sampled_seq = np.concatenate([
                 prefix.flatten(),
                 value,
