@@ -3,6 +3,7 @@
 model: rl
 model_conf:
     algo: dpo
+    beta: 0.05
 
 corelm: multiscale
 corelm_conf:
@@ -19,9 +20,9 @@ corelm_conf:
 # Dataloader
 # data accumulation, equivalent to 1M updates
 batch_type: numel
-batch_bins: 500
+batch_bins: 1000
 num_iters_per_epoch: 2500
-accum_grad: 5
+accum_grad: 2
 grad_clip: 50
 max_epoch: 100
 num_workers: 0
@@ -38,7 +39,7 @@ optim_conf:
         - 0.95
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 70000
+    warmup_steps: 7000
 
 best_model_criterion:
 -   - valid

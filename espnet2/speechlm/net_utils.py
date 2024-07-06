@@ -53,32 +53,37 @@ def ce_loss(
     target: torch.Tensor,
     lengths: torch.Tensor,
     prefix_len: torch.Tensor = None,
+    compute_loss: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert logits.dim() == 4
     assert logits.size()[:3] == target.size()
 
-    elem_loss = torch.nn.functional.cross_entropy(
-        logits.permute(0, 3, 1, 2), target, reduction="none"
-    )
-
-    mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
+    mask = length_mask(lengths).to(logits.dtype).unsqueeze(-1)
     if prefix_len is not None:
         target_mask = (
             length_mask(prefix_len, maxlen=lengths.max())
-            .to(elem_loss.dtype)
+            .to(logits.dtype)
             .unsqueeze(-1)
         )
         target_mask = mask * torch.abs(target_mask - 1)
     else:
         target_mask = mask
 
-    # compute loss on each token
-    elem_loss = elem_loss * mask
-    loss = elem_loss.sum() / mask.sum() / logits.size(2)
+    if compute_loss:
+        elem_loss = torch.nn.functional.cross_entropy(
+            logits.permute(0, 3, 1, 2), target, reduction="none"
+        )
+
+        # compute loss on each token (prefix included)
+        elem_loss = elem_loss * mask
+        loss = elem_loss.sum() / mask.sum() / logits.size(2)
+    else:
+        # NOTE(Jinchuan): In case CE loss is not needed - this saves a lot memory
+        loss = torch.Tensor([0.0]).to(dtype=logits.dtype, device=logits.device)
 
     # compute accuracy only on target tokens only
     pred = logits.argmax(dim=-1)
-    acc = torch.eq(pred, target).to(elem_loss.dtype) * target_mask
+    acc = torch.eq(pred, target).to(logits.dtype) * target_mask
 
     stats = {}
     for nq_idx in range(target.size(2)):

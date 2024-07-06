@@ -62,6 +62,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Model forward
 
@@ -73,6 +74,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
         raise NotImplementedError
 
