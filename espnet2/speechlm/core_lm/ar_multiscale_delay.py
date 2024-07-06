@@ -84,6 +84,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
 
@@ -95,6 +96,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
         assert dec_seq.dim() == 3
         
@@ -134,6 +136,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             target,
             dec_seq_lengths - 1,
             prefix_len - 1,
+            compute_loss=compute_loss,
         )
 
         return loss, logits, stats, weight

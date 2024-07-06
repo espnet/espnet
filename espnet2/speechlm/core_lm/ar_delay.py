@@ -22,6 +22,7 @@ class ARDelayLM(ARParallelLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
         This forward function is very similar to that of ARParallelLM only except the 
@@ -35,6 +36,7 @@ class ARDelayLM(ARParallelLM):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
         
         B, T, nq = dec_seq.size()
@@ -55,6 +57,7 @@ class ARDelayLM(ARParallelLM):
             enc_seq=enc_seq,
             enc_seq_lengths=enc_seq_lengths,
             prefix_len=prefix_len,
+            compute_loss=compute_loss,
         )
 
     @torch.no_grad()

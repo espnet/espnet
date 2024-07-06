@@ -86,6 +86,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             None,
             None,
             all_prefix_lengths,
+            compute_loss=False,
         )
 
         if self.reflm is not None:
@@ -96,6 +97,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
                     None,
                     None,
                     all_prefix_lengths,
+                    compute_loss=False,
                 )
         else:
             ref_logits = None
