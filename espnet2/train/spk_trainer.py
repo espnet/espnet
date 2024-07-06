@@ -88,7 +88,9 @@ class SpkTrainer(Trainer):
                 sasv_tensor = torch.tensor(
                     [1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu"
                 )
-                torch.distributed.all_reduce(sasv_tensor, op=torch.distributed.ReduceOp.MAX)
+                torch.distributed.all_reduce(
+                    sasv_tensor, op=torch.distributed.ReduceOp.MAX
+                )
                 sasv = bool(sasv_tensor.item())
 
             utt_id_list = []
