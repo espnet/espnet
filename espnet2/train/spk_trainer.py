@@ -73,47 +73,24 @@ class SpkTrainer(Trainer):
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
-        for utt_id, batch in iterator:
-            pattern = r"[DE]_\d{4}\*[DE]_\d{10}"
-            if any(re.match(pattern, uid) for uid in utt_id):
-                sasv = True
-
-            # Set iterator_stop to 1 to indicate the loop should break after this iteration
-            iterator_stop.fill_(1)
-
-            if distributed:
-                # Synchronize iterator_stop across all processes
-                torch.distributed.all_reduce(
-                    iterator_stop, op=torch.distributed.ReduceOp.SUM
-                )
-                if iterator_stop > 0:
-                    break
-            else:
-                # In non-distributed mode, break after setting iterator_stop
-                break
-
-        # Synchronize sasv across all processes
-        if distributed:
-            sasv_tensor = torch.tensor(
-                [1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu"
-            )
-            torch.distributed.all_reduce(sasv_tensor, op=torch.distributed.ReduceOp.MAX)
-            sasv = bool(sasv_tensor.item())
-
-        # Reset iterator_stop for subsequent use
-        if distributed:
-            iterator_stop.zero_()
-            # Ensure iterator_stop is synchronized after resetting
-            torch.distributed.all_reduce(
-                iterator_stop, op=torch.distributed.ReduceOp.SUM
-            )
-
         # trials list
         all_trials_list = []
 
         task_token = None
 
         for utt_id, batch in tqdm(iterator):
+            pattern = r"[DE]_\d{4}\*[DE]_\d{10}"
+            if any(re.match(pattern, uid) for uid in utt_id):
+                sasv = True
+
+            # Synchronize sasv across all processes
+            if distributed:
+                sasv_tensor = torch.tensor(
+                    [1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu"
+                )
+                torch.distributed.all_reduce(sasv_tensor, op=torch.distributed.ReduceOp.MAX)
+                sasv = bool(sasv_tensor.item())
+
             utt_id_list = []
             speech_list = []
             bs = max(bs, len(utt_id))
