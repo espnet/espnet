@@ -63,7 +63,7 @@ def main(args):
             example_name = line.pop("key")
             utt_name = example_name.split("_sample")[0]
             
-            # dict arch: utt_name -> example_name -> metric -> number
+            # dict arch: utt_name -> example_name -> metric -> value
             if utt_name not in stats_dict:
                 stats_dict[utt_name] = {}
             for key, value in line.items():
@@ -79,7 +79,11 @@ def main(args):
             example_name = utt_name + f"_pad{count}"
             stats_dict[utt_name][example_name] = {}
             for metric in args.metrics:
-                stats_dict[utt_name][example_name][metric] = worse_result(metric)
+                if metric in ["word_count", "edit_distance"]:
+                    word_count = stats_dict[utt_name][f"{utt_name}_sample0"]["word_count"]
+                    stats_dict[utt_name][example_name][metric] = word_count
+                else:
+                    stats_dict[utt_name][example_name][metric] = worse_result(metric)
             count += 1
             logging.info(f"add dummy example {example_name}")
         
@@ -87,7 +91,11 @@ def main(args):
         for example_name in stats_dict[utt_name].keys():
             for metric in args.metrics:
                 if metric not in stats_dict[utt_name][example_name]:
-                    stats_dict[utt_name][example_name][metric] = worse_result(metric)
+                    if metric in ["word_count", "edit_distance"]:
+                        word_count = stats_dict[utt_name][f"{utt_name}_sample0"]["word_count"]
+                        stats_dict[utt_name][example_name][metric] = word_count
+                    else:
+                        stats_dict[utt_name][example_name][metric] = worse_result(metric)
                     logging.info(f"add dummy metric {metric} to example {example_name}")
     
     # (3) rerank based on each metric
@@ -139,11 +147,13 @@ def analyze_one_metric(
     result_list = [a / c for a, c in zip(accum, count)]
     for idx, v in enumerate(result_list):
         logging.info(f"rank: {idx} | value: {v}")
+    logging.info(f"Average: {sum(accum) / sum(count)}")
     
     if draw_picture:
+        (output_dir / "images").mkdir(parents=True, exist_ok=True)
         draw(
             lists=[result_list],
-            path=output_dir / f"{report_metric}-{rerank_metric}.png",
+            path=output_dir / "images" / f"{report_metric}-{rerank_metric}.png",
             title=f"{report_metric}, reranked by {rerank_metric}",
             xlabel="rank",
             ylabel=report_metric,

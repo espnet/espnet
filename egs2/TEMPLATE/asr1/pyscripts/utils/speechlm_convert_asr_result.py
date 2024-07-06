@@ -30,7 +30,7 @@ def main(args):
         hyp_content = hyp_content.split()
 
         if ref_name != hyp_name:
-            raise ValueError(f"cannot compare {ref_line} vs. {hyp_line}")
+            raise ValueError(f"cannot compare {ref_line} vs. {hyp_line} | with utt: {ref_name} vs {hyp_name}")
         
         stat_dict = {
             "key": ref_name,

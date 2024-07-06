@@ -818,7 +818,7 @@ if ! "${skip_eval}"; then
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
                         --ref_file ${_eval_dir}/score_wer/ref.trn \
                         --hyp_file ${_eval_dir}/score_wer/hyp.trn \
-                        --out_file ${_eval_dir}/score_wer/utt_result.txt \
+                        --out_file ${_eval_dir}/utt_result.txt \
                         --file_type trn
                     
                     all_eval_results+="${_eval_dir}/score_wer/utt_result.txt "
@@ -845,6 +845,7 @@ if ! "${skip_eval}"; then
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
                             --io soundfile \
+                            --rank JOB \
                             ${gt_file_op} \
                             ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
                     
@@ -862,7 +863,7 @@ if ! "${skip_eval}"; then
                 --output_dir ${_dir} \
                 --metrics ${eval_metrics} \
                 --nbest ${nbest} \
-                --cross_rerank true \
+                --cross_rerank false \
                 > ${_dir}/final_result.txt
         done
     fi
