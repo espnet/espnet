@@ -132,6 +132,12 @@ class SpeechLMTask(AbsTask):
                 None,
             ],
         )
+        group.add_argument(
+            "--reflm",
+            type=str_or_none,
+            default=None,
+            help="the reference LM for HFRL",
+        )
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
@@ -258,15 +264,33 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
         logging.info(f"Token Bias: {token_bias}")
 
+        kwargs = dict()
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
-            vocab_size=len(token_list), nq=args.codec_token_in_use, **args.corelm_conf
+            vocab_size=len(token_list), 
+            nq=args.codec_token_in_use, 
+            **args.corelm_conf,
         )
+        kwargs.update(corelm=corelm)
+
+        # 2. Reference LM for HFRL
+        if args.model == "rl":
+            if args.reflm is not None:
+                raise ValueError("external refernece LM is not supported yet")
+            else:
+                reflm_class = corelm_choices.get_class(args.corelm)
+                reflm = reflm_class(
+                    vocab_size=len(token_list), 
+                    nq=args.codec_token_in_use, 
+                    **args.corelm_conf,
+                )
+            reflm.requires_grad_(False)
+            kwargs.update(reflm=reflm)
 
         # 3. Build model
         model_class = model_choices.get_class(args.model)
-        model = model_class(corelm=corelm, **args.model_conf)
+        model = model_class(**args.model_conf, **kwargs)
 
         # 4. Initialize
         if args.init is not None:

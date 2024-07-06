@@ -9,8 +9,12 @@ train_set=train_960
 valid_set=dev_clean
 test_sets="dev_clean test_clean"
 test_sets="test_clean_7spk"
+test_sets="train_clean_360"
 
 train_config=conf/train_multiscale.yaml
+train_config=conf/train_parallel.yaml
+# train_config=conf/train_delay.yaml
+# train_config=conf/train_multiscale_delay.yaml
 inference_config=conf/decode_encodec.yaml
 
 cleaner=tacotron
@@ -25,7 +29,7 @@ g2p=g2p_en_no_space # or g2p_en
     --data_name librispeech \
     --fs 16000 \
     --ngpu 8 \
-    --nj 16 \
+    --nj 8 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
     --inference_nj 1 \

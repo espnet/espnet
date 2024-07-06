@@ -1,16 +1,9 @@
-# Trained with Tesla A100 (40GB) x 8 GPUs. It takes about 22 hours.
-# #Params: 303M
-corelm: multiscale
+corelm: ar_parallel
 corelm_conf:
-    share_emb: false
-    # global transformer
-    g_att_unit: 1024
-    g_head: 16
-    g_layer: 22
-    # local transformer
-    l_att_unit: 384
-    l_head: 6
-    l_layer: 6
+    share_emb: true
+    att_unit: 1024
+    head: 16
+    layer: 22
 
 # Dataloader
 batch_type: numel

@@ -676,14 +676,23 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for entry in `ls ${_logdir}/output.1`; do
-                if [ "${entry}" == "token" ] || [ "${entry}" == "score" ]; then
-                    continue
-                fi
-                for n in `seq ${inference_nj}`; do
-                    if [ -f ${_logdir}/output.${n}/${entry}/example_list ]; then
-                        cat ${_logdir}/output.${n}/${entry}/example_list
+                for file in example_list token.scp score.scp; do
+                    if [ ! -f ${_logdir}/output.1/${entry}/${file} ]; then
+                        continue
                     fi
-                done | sort > ${_dir}/${entry}
+                    
+                    if [ "${file}" == "example_list" ]; then
+                        cat_file=${entry}
+                    else
+                        cat_file=${entry}_${file}
+                    fi
+
+                    for n in `seq ${inference_nj}`; do
+                        if [ -f ${_logdir}/output.${n}/${entry}/${file} ]; then
+                            cat ${_logdir}/output.${n}/${entry}/${file}
+                        fi
+                    done | sort > ${_dir}/${cat_file}
+                done
             done
         done
     fi
@@ -714,7 +723,7 @@ if ! "${skip_eval}"; then
 
             # (2) evaluation template for each task. Try to make less duplication in task definition
             if [ ${task} == "tts" ]; then
-                eval_items="speech_wer spk signal"
+                eval_items="signal spk speech_wer"
                 eval_metrics="utmos spk_similarity word_count edit_distance"
                 
                 audio_file=${_dir}/wav.scp
@@ -799,15 +808,17 @@ if ! "${skip_eval}"; then
                         --whisper_dir local/whisper \
                         --cleaner whisper_en \
                         --hyp_cleaner whisper_en \
-                        --nj ${inference_nj} \
+                        --inference_nj ${inference_nj} \
+                        --nj ${nj} \
                         --gt_text ${text_ref_file} \
                         --gpu_inference ${gpu_inference} \
+                        --scoring_metrics "wer" \
                         ${audio_file} ${_eval_dir}
                     
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
                         --ref_file ${_eval_dir}/score_wer/ref.trn \
                         --hyp_file ${_eval_dir}/score_wer/hyp.trn \
-                        --out_file ${_eval_dir}/score_wer/utt_result.txt \
+                        --out_file ${_eval_dir}/utt_result.txt \
                         --file_type trn
                     
                     all_eval_results+="${_eval_dir}/score_wer/utt_result.txt "
@@ -830,10 +841,11 @@ if ! "${skip_eval}"; then
                     ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/eval_${eval_item}.JOB.log \
                         ${python} -m speech_evaluation.bin.espnet_scorer \
                             --pred ${generated_file}.JOB \
-                            --rank JOB \
                             --output_file ${_eval_dir}/result.JOB.txt \
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
+                            --io soundfile \
+                            --rank JOB \
                             ${gt_file_op} \
                             ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
                     
@@ -851,7 +863,8 @@ if ! "${skip_eval}"; then
                 --output_dir ${_dir} \
                 --metrics ${eval_metrics} \
                 --nbest ${nbest} \
-                --cross_rerank true
+                --cross_rerank false \
+                > ${_dir}/final_result.txt
         done
     fi
 else

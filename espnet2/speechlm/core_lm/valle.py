@@ -230,11 +230,14 @@ class ValleLM(AbsCoreLM):
 
         # (3.4) finalize auto-regressive
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
-        if len(valid_idx) < prefix.size(0):
-            logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
-        elif len(valid_idx) == 0:
+        
+        if len(valid_idx) == 0:
+            for hook in hooks:
+                hook.remove()
             logging.warning(f"No valid examples. Return None")
-            return None, None
+            return [], []
+        elif len(valid_idx) < prefix.size(0):
+            logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
 
         finish_idx = finish_idx[valid_idx]
         prefix_emb, suffix = prefix_emb[valid_idx], suffix[valid_idx]
@@ -247,7 +250,6 @@ class ValleLM(AbsCoreLM):
 
         for hook in hooks:
             hook.remove()
-        cache = {}
 
         # (4) non-auto-regressive loop on the remained code layers
         # (4.1) NAR initialization
@@ -255,7 +257,7 @@ class ValleLM(AbsCoreLM):
             prev_tok = suffix[:, :, 0]
         else:
             prev_tok = gen_tokens_ar[:, :, 0]
-        start_emb = self.emb.weight[opts.start].tile(opts.nbest, 1, 1)  # [B, 1, D]
+        start_emb = self.emb.weight[opts.start].tile(len(valid_idx), 1, 1)  # [B, 1, D]
         prev_emb = torch.cat(
             [prefix_emb[:, 1:], start_emb, self.emb(prev_tok)], dim=1
         )  # [B, T, D]

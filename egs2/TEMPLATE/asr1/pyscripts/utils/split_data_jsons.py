@@ -43,10 +43,8 @@ def get_parser():
 def split_one_data_json(json_file, nj, output_dir):
     # (1) load json file
     json_dict = json.load(open(json_file))
-    example_list = json_dict["examples"].copy()
-    del json_dict["examples"]
     data_files = json_dict["data_files"].copy()
-    del json_dict["data_files"]
+    task = json_dict['task']
 
     # (2) load all data files
     all_file_dict = {}
@@ -99,13 +97,14 @@ def split_one_data_json(json_file, nj, output_dir):
             writer = open(new_file_name, 'w')
             for utt in this_split:
                 writer.write(f"{utt} {data_dict[utt]}\n")
-        writer.close()
+            writer.close()
 
         # write json files
         this_json = json_dict.copy()
         this_json["data_files"] = data_files
         this_json["examples"] = this_split
         this_json["num_examples"] = len(this_split)
+
         writer = open(sub_dir / f"data.{j}.json", "wb")
         writer.write(
             json.dumps(
