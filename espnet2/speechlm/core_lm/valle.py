@@ -232,6 +232,8 @@ class ValleLM(AbsCoreLM):
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         
         if len(valid_idx) == 0:
+            for hook in hooks:
+                hook.remove()
             logging.warning(f"No valid examples. Return None")
             return [], []
         elif len(valid_idx) < prefix.size(0):
@@ -248,7 +250,6 @@ class ValleLM(AbsCoreLM):
 
         for hook in hooks:
             hook.remove()
-        cache = {}
 
         # (4) non-auto-regressive loop on the remained code layers
         # (4.1) NAR initialization

@@ -1,6 +1,8 @@
 # Trained with Tesla 8xA100-SXM4-40GB. It takes about ? hours.
 # #Params: 1.15B
 model: rl
+model_conf:
+    algo: dpo
 
 corelm: multiscale
 corelm_conf:
@@ -18,12 +20,13 @@ corelm_conf:
 # data accumulation, equivalent to 1M updates
 batch_type: numel
 batch_bins: 1000
+num_iters_per_epoch: 500
 accum_grad: 5
 grad_clip: 5
 max_epoch: 100
 num_workers: 0
 drop_last_iter: true
-log_interval: 500
+log_interval: 100
 num_att_plot: 0
 
 # Criterion & Optimization

@@ -18,13 +18,13 @@ log() {
 }
 SECONDS=0
 
-train_config=conf/train_multiscale_1b_dpo.yaml
+train_config=conf/train_multiscale_1b_simpo.yaml
 
 # original dataset and sampled examples
 train_dir=dump/raw_tts_librispeech/train_clean_100
-valid_dir=dump/raw_tts_librispeech/test_clean
+valid_dir=dump/raw_tts_librispeech/dev_clean
 train_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_train_clean_100/
-valid_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_test_clean/
+valid_infer_dir=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/decode_inhouse_valid.total_count.ave_5best.till100epoch/tts_dev_clean/
 token_list_dir=data/token_list/ls_giga_mlsen
 
 # Tokenization options:
@@ -36,10 +36,12 @@ codec_config_path=null
 codec_hf_model_tag=null
 
 # HFRL options
-tag=sample10_dpo
+tag=sample10_simpo
+data_combo_name=gt_vs_sample_10
 task="tts"
 train_args=
 resume=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
+use_reflm=false
 
 # Other options
 nj=32
@@ -75,7 +77,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         src_dir=${part}_dir
         src_dir=${!src_dir}
         
-        tgt_dir=${src_dir}_hfrl_${tag} 
+        tgt_dir=${src_dir}_hfrl_${data_combo_name}
         mkdir -p ${tgt_dir}
         
         infer_dir=${part}_infer_dir
@@ -107,12 +109,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Training ..."
 
     # the checkpoint is used to initialize both corelm and reflm
-    train_args+="--init_param ${resume}:corelm:corelm ${resume}:corelm:reflm"
+    train_args+="--init_param ${resume}:corelm:corelm "
+    if ${use_reflm}; then
+        train_args+="${resume}:corelm:reflm "
+    fi
     ./speechlm.sh \
         --stage 8 --stop_stage 8 \
         --tag hfrl_${tag} \
         --skip_data_prep true \
-        --data_combo_name $(basename ${train_dir})_hfrl_${tag} \
+        --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
         --token_list_dir ${token_list_dir} \
         --ngpu ${ngpu} \
         --nj ${nj} \
@@ -120,8 +125,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --g2p ${g2p} \
         --audio_format ${audio_format} \
         --train_config ${train_config} \
-        --train_jsons ${train_dir}_hfrl_${tag}/data.json \
-        --valid_jsons ${valid_dir}_hfrl_${tag}/data.json \
+        --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
+        --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
         --train_args "${train_args}" \
         "$@"
 fi

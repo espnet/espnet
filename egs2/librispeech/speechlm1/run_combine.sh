@@ -22,7 +22,7 @@ use_giga=true
 use_mls_en=true
 
 test_use_ls_7spk=false
-test_use_ls=false
+test_use_ls=true
 test_use_giga=false
 test_use_mls_en=false
 
