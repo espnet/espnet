@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: showenv python conda_packages.done ffmpeg.done sctk check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
@@ -202,10 +202,6 @@ torch_optimizer.done: espnet.done
 fairscale.done: espnet.done
 	. ./activate_python.sh && ./installers/install_fairscale.sh
 	touch fairscale.done
-
-fairseq.done: espnet.done
-	. ./activate_python.sh && ./installers/install_fairseq.sh
-	touch fairseq.done
 
 s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
