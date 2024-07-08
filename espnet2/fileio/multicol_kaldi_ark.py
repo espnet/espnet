@@ -1,4 +1,5 @@
 import kaldiio
+import random
 
 class MultiColKaldiArkReader:
     def __init__(self, path):
@@ -10,12 +11,8 @@ class MultiColKaldiArkReader:
             self.utt2example[name] = contents
     
     def __getitem__(self, name):
-        contents = self.utt2example[name]
-        retval = []
-
-        for content in contents:
-            retval.append(kaldiio.load_mat(content))
-        
+        content = random.choice(self.utt2example[name])
+        retval = kaldiio.load_mat(content)
         return retval
     
     def __len__(self):

@@ -27,6 +27,7 @@ class ValleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
         att_unit: int = 256,
         head: int = 2,
         ar_layer: int = 4,
@@ -53,7 +54,12 @@ class ValleLM(AbsCoreLM):
             self.lm_head.weight = self.emb.weight
 
         self.ar_decoder = TransformerDecoder(
-            n_ctx=n_ctx, n_state=att_unit, n_head=head, n_layer=ar_layer, causal=True
+            n_ctx=n_ctx, 
+            n_state=att_unit, 
+            n_head=head, 
+            n_layer=ar_layer, 
+            causal=True,
+            qk_norm=qk_norm,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -63,6 +69,7 @@ class ValleLM(AbsCoreLM):
             n_head=head,
             n_layer=nar_layer,
             causal=False,
+            qk_norm=qk_norm,
         )
 
         self.nq = nq
@@ -75,6 +82,7 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """Vall-E forward for training
 
@@ -86,6 +94,7 @@ class ValleLM(AbsCoreLM):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
 
         assert dec_seq.dim() == 3
@@ -124,6 +133,7 @@ class ValleLM(AbsCoreLM):
             target,
             dec_seq_lengths - 1,
             prefix_len - 1,
+            compute_loss=compute_loss,
         )
 
         stats["acc_ar"] = stats["acc_layer0"]

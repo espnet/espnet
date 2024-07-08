@@ -20,25 +20,25 @@ corelm_conf:
 # data accumulation, equivalent to 1M updates
 batch_type: numel
 batch_bins: 1000
-num_iters_per_epoch: 500
-accum_grad: 5
-grad_clip: 5
+num_iters_per_epoch: 2500
+accum_grad: 2
+grad_clip: 50
 max_epoch: 100
 num_workers: 0
 drop_last_iter: true
-log_interval: 100
+log_interval: 500
 num_att_plot: 0
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.00001
+    lr: 0.00002
     betas:
         - 0.9
         - 0.95
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 70000
+    warmup_steps: 7000
 
 best_model_criterion:
 -   - valid

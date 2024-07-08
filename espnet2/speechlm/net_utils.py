@@ -53,34 +53,55 @@ def ce_loss(
     target: torch.Tensor,
     lengths: torch.Tensor,
     prefix_len: torch.Tensor = None,
+    compute_loss: bool = True,
+    z_loss_factor: float = 1e-5,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     assert logits.dim() == 4
     assert logits.size()[:3] == target.size()
 
-    elem_loss = torch.nn.functional.cross_entropy(
-        logits.permute(0, 3, 1, 2), target, reduction="none"
-    )
+    stats = {}
 
-    mask = length_mask(lengths).to(elem_loss.dtype).unsqueeze(-1)
+    # (1) mask and prefix mask
+    mask = length_mask(lengths).to(logits.dtype).unsqueeze(-1)
     if prefix_len is not None:
         target_mask = (
             length_mask(prefix_len, maxlen=lengths.max())
-            .to(elem_loss.dtype)
+            .to(logits.dtype)
             .unsqueeze(-1)
         )
         target_mask = mask * torch.abs(target_mask - 1)
     else:
         target_mask = mask
 
-    # compute loss on each token
-    elem_loss = elem_loss * mask
-    loss = elem_loss.sum() / mask.sum() / logits.size(2)
+    # (2) compute cross-entropy loss and z-loss
+    if compute_loss:
+        elem_loss = torch.nn.functional.cross_entropy(
+            logits.permute(0, 3, 1, 2), target, reduction="none"
+        )
 
-    # compute accuracy only on target tokens only
+        # compute loss on each token (prefix included)
+        elem_loss = elem_loss * mask
+        loss = elem_loss.sum() / mask.sum() / logits.size(2)
+
+        # NOTE(Jinchuan): Z-loss regularization to avoid the numerical instability
+        # caused by "logit drift problem" when using amp training.
+        # check paper: https://arxiv.org/pdf/2405.09818
+        #              https://arxiv.org/pdf/2204.02311
+        #              https://arxiv.org/pdf/2309.14322
+        if z_loss_factor > 0.0:
+            z_loss = torch.logsumexp(logits, dim=-1)
+            z_loss = (z_loss * mask).sum() / mask.sum() / logits.size(2)
+            loss = loss + z_loss * z_loss_factor
+            stats.update(z_loss=z_loss.clone().detach())
+    else:
+        # NOTE(Jinchuan): In case CE loss is not needed - this saves a lot memory
+        loss = torch.Tensor([0.0]).to(dtype=logits.dtype, device=logits.device)
+
+    # (3) statistics on token accuracy
     pred = logits.argmax(dim=-1)
-    acc = torch.eq(pred, target).to(elem_loss.dtype) * target_mask
+    acc = torch.eq(pred, target).to(logits.dtype) * target_mask
 
-    stats = {}
+    
     for nq_idx in range(target.size(2)):
         stats.update(
             {f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()}

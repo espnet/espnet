@@ -818,7 +818,7 @@ if ! "${skip_eval}"; then
                     ./pyscripts/utils/speechlm_convert_asr_result.py \
                         --ref_file ${_eval_dir}/score_wer/ref.trn \
                         --hyp_file ${_eval_dir}/score_wer/hyp.trn \
-                        --out_file ${_eval_dir}/score_wer/utt_result.txt \
+                        --out_file ${_eval_dir}/utt_result.txt \
                         --file_type trn
                     
                     all_eval_results+="${_eval_dir}/score_wer/utt_result.txt "
