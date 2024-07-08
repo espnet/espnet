@@ -27,24 +27,25 @@ class AdaLN(nn.Module):
         return x
 
 
-class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
+class ResidualAttentionBlockAdaLN(ResidualAttentionBlock):
     def __init__(
         self,
         n_state: int,
         n_head: int,
         cross_attention: bool = False,
         causal: bool = False,
+        qk_norm: bool = False,
     ):
-        super(ResidualAttentionBlockAdaLM, self).__init__(
+        super(ResidualAttentionBlockAdaLN, self).__init__(
             n_state=n_state,
             n_head=n_head,
             cross_attention=cross_attention,
             causal=causal,
+            qk_norm=qk_norm,
         )
-
-        for name, module in self.named_modules():
-            if isinstance(module, nn.LayerNorm):
-                setattr(self, name, AdaLN(n_state))
+        
+        self.attn_ln = AdaLN(n_state)
+        self.mlp_ln = AdaLN(n_state)
 
     def forward(
         self,
@@ -70,14 +71,17 @@ class ValleNARDecoder(TransformerDecoder):
         n_head: int,
         n_layer: int,
         causal: bool = True,
-        layer_class=ResidualAttentionBlockAdaLM,
+        qk_norm: bool = False,
+        layer_class=ResidualAttentionBlockAdaLN,
     ):
+
         super(ValleNARDecoder, self).__init__(
             n_ctx=n_ctx,
             n_state=n_state,
             n_head=n_head,
             n_layer=n_layer,
             causal=causal,
+            qk_norm=qk_norm,
             layer_class=layer_class,
         )
 

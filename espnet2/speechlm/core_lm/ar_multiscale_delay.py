@@ -19,6 +19,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
         g_att_unit: int = 256,
         g_head: int = 2,
         g_layer: int = 4,
@@ -60,6 +61,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_state=g_att_unit,
             n_head=g_head,
             n_layer=g_layer,
+            qk_norm=qk_norm,
         )
 
         self.l_decoders = TransformerDecoder(
@@ -67,6 +69,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
+            qk_norm=qk_norm,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(
@@ -84,6 +87,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
 
@@ -95,6 +99,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
         assert dec_seq.dim() == 3
         
@@ -134,6 +139,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             target,
             dec_seq_lengths - 1,
             prefix_len - 1,
+            compute_loss=compute_loss,
         )
 
         return loss, logits, stats, weight
