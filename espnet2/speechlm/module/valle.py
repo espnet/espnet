@@ -34,12 +34,14 @@ class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
         n_head: int,
         cross_attention: bool = False,
         causal: bool = False,
+        qk_norm: bool = False,
     ):
         super(ResidualAttentionBlockAdaLM, self).__init__(
             n_state=n_state,
             n_head=n_head,
             cross_attention=cross_attention,
             causal=causal,
+            qk_norm=qk_norm,
         )
 
         for name, module in self.named_modules():
@@ -70,6 +72,7 @@ class ValleNARDecoder(TransformerDecoder):
         n_head: int,
         n_layer: int,
         causal: bool = True,
+        qk_norm: bool = False,
         layer_class=ResidualAttentionBlockAdaLM,
     ):
         super(ValleNARDecoder, self).__init__(
@@ -78,6 +81,7 @@ class ValleNARDecoder(TransformerDecoder):
             n_head=n_head,
             n_layer=n_layer,
             causal=causal,
+            qk_norm=qk_norm,
             layer_class=layer_class,
         )
 

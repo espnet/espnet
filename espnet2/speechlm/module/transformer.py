@@ -28,7 +28,13 @@ class Linear(nn.Linear):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, n_state: int, n_head: int, causal: bool = False):
+    def __init__(
+        self, 
+        n_state: int, 
+        n_head: int, 
+        causal: bool = False, 
+        qk_norm: bool = False,
+    ):
         super().__init__()
         assert n_state % n_head == 0
         self.n_head = n_head
@@ -37,6 +43,11 @@ class MultiHeadAttention(nn.Module):
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
         self.causal = causal
+
+        self.qk_norm = qk_norm
+        if qk_norm:
+            self.q_norm = LayerNorm(n_state // n_head)
+            self.k_norm = LayerNorm(n_state // n_head)
 
         if not hasattr(F, "scaled_dot_product_attention"):
             raise ValueError("Install torch 2.0.1+ to support Flash Attention")
@@ -59,6 +70,10 @@ class MultiHeadAttention(nn.Module):
             # for cross-attention, calculate keys and values once and reuse in subsequent calls.
             k = kv_cache[self.key]
             v = kv_cache[self.value]
+        
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
 
         wv = self.qkv_attention(q, k, v, mask)
 
@@ -95,14 +110,15 @@ class ResidualAttentionBlock(nn.Module):
         n_head: int,
         cross_attention: bool = False,
         causal: bool = False,
+        qk_norm: bool = False,
     ):
         super().__init__()
 
-        self.attn = MultiHeadAttention(n_state, n_head, causal=causal)
+        self.attn = MultiHeadAttention(n_state, n_head, causal=causal, qk_norm=qk_norm)
         self.attn_ln = LayerNorm(n_state)
 
         self.cross_attn = (
-            MultiHeadAttention(n_state, n_head) if cross_attention else None
+            MultiHeadAttention(n_state, n_head, qk_norm=qk_norm) if cross_attention else None
         )
         self.cross_attn_ln = LayerNorm(n_state) if cross_attention else None
 
@@ -134,15 +150,17 @@ class TransformerDecoder(nn.Module):
         n_head: int,
         n_layer: int,
         causal: bool = True,
+        qk_norm: bool = False,
         layer_class=ResidualAttentionBlock,
     ):
         super().__init__()
 
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
-        self.blocks = nn.ModuleList(
-            [layer_class(n_state, n_head, False, causal) for _ in range(n_layer)]
-        )
+        self.blocks = nn.ModuleList([
+            layer_class(n_state, n_head, False, causal, qk_norm) 
+            for _ in range(n_layer)
+        ])
         self.ln = LayerNorm(n_state)
 
         self.causal = causal

@@ -27,6 +27,7 @@ class ValleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
         att_unit: int = 256,
         head: int = 2,
         ar_layer: int = 4,
@@ -53,7 +54,12 @@ class ValleLM(AbsCoreLM):
             self.lm_head.weight = self.emb.weight
 
         self.ar_decoder = TransformerDecoder(
-            n_ctx=n_ctx, n_state=att_unit, n_head=head, n_layer=ar_layer, causal=True
+            n_ctx=n_ctx, 
+            n_state=att_unit, 
+            n_head=head, 
+            n_layer=ar_layer, 
+            causal=True,
+            qk_norm=qk_norm,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -63,6 +69,7 @@ class ValleLM(AbsCoreLM):
             n_head=head,
             n_layer=nar_layer,
             causal=False,
+            qk_norm=qk_norm,
         )
 
         self.nq = nq

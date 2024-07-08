@@ -21,6 +21,7 @@ class ARParallelLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
         att_unit: int = 256,
         head: int = 2,
         layer: int = 4,
@@ -52,6 +53,7 @@ class ARParallelLM(AbsCoreLM):
             n_state=att_unit,
             n_head=head,
             n_layer=layer,
+            qk_norm=qk_norm,
         )
 
         self.nq = nq

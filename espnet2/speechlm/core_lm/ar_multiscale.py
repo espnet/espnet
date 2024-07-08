@@ -21,6 +21,7 @@ class MultiScaleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
         g_att_unit: int = 256,
         g_head: int = 2,
         g_layer: int = 4,
@@ -64,6 +65,7 @@ class MultiScaleLM(AbsCoreLM):
             n_state=g_att_unit,
             n_head=g_head,
             n_layer=g_layer,
+            qk_norm=qk_norm,
         )
 
         # Local part
@@ -72,6 +74,7 @@ class MultiScaleLM(AbsCoreLM):
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
+            qk_norm=qk_norm,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(
