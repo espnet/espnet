@@ -11,6 +11,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.layers.multiconv_cgmlp import MultiConvolutionalGatingMLP
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (
@@ -43,7 +44,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     check_short_utt,
 )
 
-from espnet2.asr.layers.multiconv_cgmlp import MultiConvolutionalGatingMLP
 
 class MultiConvConformerEncoder(AbsEncoder):
     """Conformer encoder module.
@@ -59,10 +59,10 @@ class MultiConvConformerEncoder(AbsEncoder):
         attention_dropout_rate (float): Dropout rate in attention.
         cgmlp_linear_units (int): The number of units used in CGMLP block.
         multicgmlp_type (str): "sum", "weighted_sum", "concat" or "concat_fusion".
-        multicgmlp_kernel_sizes (str): Comma seperated list of kernel sizes used in MultiCGMLP. 
+        multicgmlp_kernel_sizes (str): Comma seperated list of kernel sizes used in MultiCGMLP.
         multicgmlp_merge_conv_kernel (int): The number of kernels used in depthwise convolution fusion in MultiCGMLP.
         use_linear_after_conv (bool): Whether to use a linear layer after MultiCGMLP computation.
-        gate_activation (str): The activation function used in CGMLP gating. 
+        gate_activation (str): The activation function used in CGMLP gating.
         input_layer (Union[str, torch.nn.Module]): Input layer type.
         normalize_before (bool): Whether to use layer_norm before the first block.
         concat_after (bool): Whether to concat attention layer's input and output.
@@ -97,8 +97,8 @@ class MultiConvConformerEncoder(AbsEncoder):
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         cgmlp_linear_units: int = 2048,
-        multicgmlp_type: str = 'concat_fusion',
-        multicgmlp_kernel_sizes: Union[int, str] = '7,15,23,31',
+        multicgmlp_type: str = "concat_fusion",
+        multicgmlp_kernel_sizes: Union[int, str] = "7,15,23,31",
         multicgmlp_merge_conv_kernel: int = 31,
         multicgmlp_use_non_linear: int = True,
         use_linear_after_conv: bool = False,
@@ -269,7 +269,7 @@ class MultiConvConformerEncoder(AbsEncoder):
             )
         else:
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
-        
+
         if isinstance(multicgmlp_kernel_sizes, int):
             multicgmlp_kernel_sizes = str(multicgmlp_kernel_sizes)
 
