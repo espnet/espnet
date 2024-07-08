@@ -1,7 +1,7 @@
 # Copyright 2020 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Conformer encoder definition."""
+"""Multiconvformer encoder definition."""
 
 import logging
 from typing import List, Optional, Tuple, Union
@@ -46,7 +46,8 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class MultiConvConformerEncoder(AbsEncoder):
-    """Conformer encoder module.
+    """Multiconvformer encoder module.
+    Link to the paper: https://arxiv.org/abs/2407.03718
 
     Args:
         input_size (int): Input dimension.
