@@ -70,10 +70,6 @@ class MultiHeadAttention(nn.Module):
             # for cross-attention, calculate keys and values once and reuse in subsequent calls.
             k = kv_cache[self.key]
             v = kv_cache[self.value]
-        
-        if self.qk_norm:
-            q = self.q_norm(q)
-            k = self.k_norm(k)
 
         wv = self.qkv_attention(q, k, v, mask)
 
@@ -93,6 +89,10 @@ class MultiHeadAttention(nn.Module):
         q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
+
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
 
         wv = (
             F.scaled_dot_product_attention(q, k, v, mask, is_causal=causal)
@@ -158,7 +158,13 @@ class TransformerDecoder(nn.Module):
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
         self.blocks = nn.ModuleList([
-            layer_class(n_state, n_head, False, causal, qk_norm) 
+            layer_class(
+                n_state=n_state, 
+                n_head=n_head, 
+                cross_attention=False,
+                causal=causal, 
+                qk_norm=qk_norm,
+            )
             for _ in range(n_layer)
         ])
         self.ln = LayerNorm(n_state)
