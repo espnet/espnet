@@ -123,4 +123,3 @@ class ARParallelLM(AbsCoreLM):
         """
 
         raise NotImplementedError
-

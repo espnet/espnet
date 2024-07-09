@@ -45,7 +45,7 @@ class ResidualAttentionBlockAdaLN(ResidualAttentionBlock):
             qk_norm=qk_norm,
             dropout=dropout,
         )
-        
+
         self.attn_ln = AdaLN(n_state)
         self.mlp_ln = AdaLN(n_state)
 
@@ -57,9 +57,13 @@ class ResidualAttentionBlockAdaLN(ResidualAttentionBlock):
         mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
     ):
-        x = x + self.attn_dropout(self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache))
+        x = x + self.attn_dropout(
+            self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)
+        )
         if self.cross_attn:
-            x = x + self.cross_attn_dropout(self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache))
+            x = x + self.cross_attn_dropout(
+                self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)
+            )
         x = x + self.mlp_dropout(self.mlp(self.mlp_ln(x, level)))
         return x
 

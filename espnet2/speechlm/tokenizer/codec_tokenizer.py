@@ -50,12 +50,13 @@ class CodecTokenizer(AbsTokenizer):
 
             if hf_model_tag is not None:
                 from espnet2.bin.gan_codec_inference import AudioCoding
+
                 model = AudioCoding.from_pretrained(
-                    hf_model_tag,
-                    device=str(device)
+                    hf_model_tag, device=str(device)
                 ).model
             else:
                 from espnet2.tasks.gan_codec import GANCodecTask
+
                 model, _ = GANCodecTask.build_model_from_file(
                     config_path,
                     checkpoint_path,
@@ -189,7 +190,7 @@ class CodecTokenizer(AbsTokenizer):
             waveform (torch.Tensor): float tensor in shape [B, n_sample]
         """
 
-        # NOTE(Jinchuan) The very short input may raise errors, so simply 
+        # NOTE(Jinchuan) The very short input may raise errors, so simply
         # make the output as 0.0
         if codes.size(1) <= 10:
             B, T, _ = codes.size()

@@ -29,10 +29,10 @@ class Linear(nn.Linear):
 
 class MultiHeadAttention(nn.Module):
     def __init__(
-        self, 
-        n_state: int, 
-        n_head: int, 
-        causal: bool = False, 
+        self,
+        n_state: int,
+        n_head: int,
+        causal: bool = False,
         qk_norm: bool = False,
         dropout: float = 0.0,
     ):
@@ -98,10 +98,7 @@ class MultiHeadAttention(nn.Module):
 
         wv = (
             F.scaled_dot_product_attention(
-                q, k, v, 
-                mask, 
-                is_causal=causal,
-                dropout_p=self.dropout
+                q, k, v, mask, is_causal=causal, dropout_p=self.dropout
             )
             .permute(0, 2, 1, 3)
             .flatten(start_dim=2)
@@ -123,9 +120,9 @@ class ResidualAttentionBlock(nn.Module):
         super().__init__()
 
         self.attn = MultiHeadAttention(
-            n_state, 
-            n_head, 
-            causal=causal, 
+            n_state,
+            n_head,
+            causal=causal,
             qk_norm=qk_norm,
             dropout=dropout,
         )
@@ -134,13 +131,14 @@ class ResidualAttentionBlock(nn.Module):
 
         self.cross_attn = (
             MultiHeadAttention(
-                n_state, 
-                n_head, 
+                n_state,
+                n_head,
                 causal=False,
-                qk_norm=qk_norm, 
+                qk_norm=qk_norm,
                 dropout=dropout,
             )
-            if cross_attention else None
+            if cross_attention
+            else None
         )
         self.cross_attn_ln = LayerNorm(n_state) if cross_attention else None
         self.cross_attn_dropout = nn.Dropout(p=dropout) if cross_attention else None
@@ -159,9 +157,13 @@ class ResidualAttentionBlock(nn.Module):
         mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
     ):
-        x = x + self.attn_dropout(self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache))
+        x = x + self.attn_dropout(
+            self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)
+        )
         if self.cross_attn:
-            x = x + self.cross_attn_dropout(self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache))
+            x = x + self.cross_attn_dropout(
+                self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)
+            )
         x = x + self.mlp_dropout(self.mlp(self.mlp_ln(x)))
         return x
 
@@ -182,17 +184,19 @@ class TransformerDecoder(nn.Module):
 
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
-        self.blocks = nn.ModuleList([
-            layer_class(
-                n_state=n_state, 
-                n_head=n_head, 
-                cross_attention=False,
-                causal=causal, 
-                qk_norm=qk_norm,
-                dropout=dropout,
-            )
-            for _ in range(n_layer)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                layer_class(
+                    n_state=n_state,
+                    n_head=n_head,
+                    cross_attention=False,
+                    causal=causal,
+                    qk_norm=qk_norm,
+                    dropout=dropout,
+                )
+                for _ in range(n_layer)
+            ]
+        )
         self.ln = LayerNorm(n_state)
 
         self.causal = causal
