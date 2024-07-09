@@ -113,6 +113,7 @@ class FastSpeech2Discrete(AbsTTS2):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
         ignore_id: int = 0,  # adjust this in collate_fn (default -1)
+        discrete_token_layers: int = 1,
     ):
         """Initialize FastSpeech2 module.
 
@@ -211,6 +212,7 @@ class FastSpeech2Discrete(AbsTTS2):
         self.stop_gradient_from_pitch_predictor = stop_gradient_from_pitch_predictor
         self.stop_gradient_from_energy_predictor = stop_gradient_from_energy_predictor
         self.use_scaled_pos_enc = use_scaled_pos_enc
+        self.discrete_token_layers = discrete_token_layers
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -366,22 +368,54 @@ class FastSpeech2Discrete(AbsTTS2):
         # NOTE: we use encoder as decoder
         # because fastspeech's decoder is the same as encoder
         if decoder_type == "transformer":
-            self.decoder = TransformerEncoder(
-                idim=0,
-                attention_dim=adim,
-                attention_heads=aheads,
-                linear_units=dunits,
-                num_blocks=dlayers,
-                input_layer=None,
-                dropout_rate=transformer_dec_dropout_rate,
-                positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                attention_dropout_rate=transformer_dec_attn_dropout_rate,
-                pos_enc_class=pos_enc_class,
-                normalize_before=decoder_normalize_before,
-                concat_after=decoder_concat_after,
-                positionwise_layer_type=positionwise_layer_type,
-                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
-            )
+            if self.discrete_token_layers > 1:
+                self.decoder = torch.nn.ModuleList(
+                    [
+                        TransformerEncoder(
+                            idim=0,
+                            attention_dim=adim,
+                            attention_heads=aheads,
+                            linear_units=dunits,
+                            num_blocks=dlayers,
+                            input_layer=None,
+                            dropout_rate=transformer_dec_dropout_rate,
+                            positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                            attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                            pos_enc_class=pos_enc_class,
+                            normalize_before=decoder_normalize_before,
+                            concat_after=decoder_concat_after,
+                            positionwise_layer_type=positionwise_layer_type,
+                            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                        )
+                        for i in range(self.discrete_token_layers)
+                    ]
+                )
+                # define final projection
+                self.feat_out = torch.nn.ModuleList(
+                    [
+                        torch.nn.Linear(adim, odim//self.discrete_token_layers * reduction_factor)
+                        for i in range(self.discrete_token_layers)
+                    ]
+                )
+            else:
+                self.decoder = TransformerEncoder(
+                    idim=0,
+                    attention_dim=adim,
+                    attention_heads=aheads,
+                    linear_units=dunits,
+                    num_blocks=dlayers,
+                    input_layer=None,
+                    dropout_rate=transformer_dec_dropout_rate,
+                    positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                    attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                    pos_enc_class=pos_enc_class,
+                    normalize_before=decoder_normalize_before,
+                    concat_after=decoder_concat_after,
+                    positionwise_layer_type=positionwise_layer_type,
+                    positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                )
+                # define final projection
+                self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
         elif decoder_type == "conformer":
             self.decoder = ConformerEncoder(
                 idim=0,
@@ -407,9 +441,7 @@ class FastSpeech2Discrete(AbsTTS2):
         else:
             raise ValueError(f"{decoder_type} is not supported.")
 
-        # define final projection
-        self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
-
+        
         # define postnet
         self.postnet = (
             None
@@ -497,7 +529,24 @@ class FastSpeech2Discrete(AbsTTS2):
         ilens = text_lengths + 1
 
         ys, ds, ps, es = discrete_feats, durations, pitch, energy
-        olens = discrete_feats_lengths
+        olens = discrete_feats_lengths // self.discrete_token_layers
+        
+        if self.discrete_token_layers > 1:
+            ys_mask = (
+                make_non_pad_mask(olens)
+                .unsqueeze(1)
+                .to(
+                    dtype=discrete_feats.dtype,
+                    device=discrete_feats.device,
+                )
+            )
+            shift = (
+                torch.arange(self.discrete_token_layers).view(1, 1, -1) * (self.odim//self.discrete_token_layers)
+                ).to(text.device)
+            ys = (
+                discrete_feats.view(batch_size, -1, self.discrete_token_layers) - shift
+            )
+            ys = ys * ys_mask.view(batch_size, -1, 1)
 
         # forward propagation
         before_outs, after_outs, d_outs, p_outs, e_outs = self._forward(
@@ -565,9 +614,15 @@ class FastSpeech2Discrete(AbsTTS2):
                 encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
             )
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
+            if self.discrete_token_layers > 1:
+                for i, decoder_layer in enumerate(self.decoder):
+                    stats.update(
+                        {f"decoder_alpha_{i}": decoder_layer.embed[-1].alpha.data.item()}
+                    )
+            else:
+                stats.update(
+                    decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+                )
 
         if not joint_training:
             stats.update(loss=loss.item())
@@ -656,10 +711,22 @@ class FastSpeech2Discrete(AbsTTS2):
             h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
-        zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs = self.feat_out(zs).view(
-            zs.size(0), -1, self.odim
-        )  # (B, T_feats, odim)
+            
+        if self.discrete_token_layers > 1:
+            before_outs_list = []
+            for i in range(self.discrete_token_layers):
+                # print("hs.shape",hs.shape) # hs (#batch, time, idim)
+                before_outs, _ = self.decoder[i](hs, h_masks) # [B,T,hidden]
+                before_outs_ = self.feat_out[i](before_outs).view(
+                    before_outs.size(0), -1, self.odim//self.discrete_token_layers
+                )
+                before_outs_list.append(before_outs_.unsqueeze(2))
+            before_outs = torch.cat(before_outs_list, dim=2)
+        else:
+            zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
+            before_outs = self.feat_out(zs).view(
+                zs.size(0), -1, self.odim
+            )  # (B, T_feats, odim)
 
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
@@ -741,6 +808,12 @@ class FastSpeech2Discrete(AbsTTS2):
                 is_inference=True,
                 alpha=alpha,
             )  # (1, T_feats, odim)
+        if self.discrete_token_layers > 1:
+            outs = torch.argmax(outs, dim=3)
+            shift = torch.arange(self.discrete_token_layers).view(1, 1, -1) * (self.odim//self.discrete_token_layers)
+            shift = shift.to(outs.device)
+            outs = outs.view(1, -1, self.discrete_token_layers) + shift
+            outs = outs.flatten(start_dim=1)
 
         return dict(
             feat_gen=outs[0],
@@ -807,4 +880,8 @@ class FastSpeech2Discrete(AbsTTS2):
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
             self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
+            if self.discrete_token_layers > 1:
+                for i in range(self.discrete_token_layers):
+                    self.decoder[i].embed[-1].alpha.data = torch.tensor(init_dec_alpha)
+            else:
+                self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
