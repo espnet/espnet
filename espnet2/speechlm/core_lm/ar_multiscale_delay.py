@@ -20,6 +20,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         nq: int,
         share_emb: bool = True,
         qk_norm: bool = False,
+        dropout: float = 0.0,
         g_att_unit: int = 256,
         g_head: int = 2,
         g_layer: int = 4,
@@ -34,8 +35,9 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         Args:
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
-            interleave_pattern (str): parallel or delay
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             att_unit (int): Dimention of global Transformer attention.
             head (int): Number of heads in global Transformer attention.
             g_layer (int): Number of layers in global Transformer.
@@ -62,6 +64,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_head=g_head,
             n_layer=g_layer,
             qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.l_decoders = TransformerDecoder(
@@ -70,6 +73,7 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_head=l_head,
             n_layer=l_layer,
             qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(

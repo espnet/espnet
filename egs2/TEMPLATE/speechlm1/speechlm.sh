@@ -821,7 +821,7 @@ if ! "${skip_eval}"; then
                         --out_file ${_eval_dir}/utt_result.txt \
                         --file_type trn
                     
-                    all_eval_results+="${_eval_dir}/score_wer/utt_result.txt "
+                    all_eval_results+="${_eval_dir}/utt_result.txt "
                 
                 elif [ "${eval_item}" == "wer" ]; then
                     echo start from here

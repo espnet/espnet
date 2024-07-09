@@ -28,6 +28,7 @@ class ValleLM(AbsCoreLM):
         nq: int,
         share_emb: bool = True,
         qk_norm: bool = False,
+        dropout: float = 0.0,
         att_unit: int = 256,
         head: int = 2,
         ar_layer: int = 4,
@@ -40,6 +41,8 @@ class ValleLM(AbsCoreLM):
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             att_unit (int): Dimention of Transformer attention.
             head (int): Number of heads in Transformer attention.
             ar_layer (int): Number of layers in AR Transformer.
@@ -60,6 +63,7 @@ class ValleLM(AbsCoreLM):
             n_layer=ar_layer, 
             causal=True,
             qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -70,6 +74,7 @@ class ValleLM(AbsCoreLM):
             n_layer=nar_layer,
             causal=False,
             qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.nq = nq
