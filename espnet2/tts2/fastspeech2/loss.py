@@ -91,8 +91,10 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
         if self.use_masking:
             out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
             if len(before_outs.size()) > 3:
-                out_masks = out_masks.unsqueeze(-1).repeat(1,1,discrete_token_layers,1)
-            before_outs = before_outs.masked_select(out_masks).view(-1,vocab_size)
+                out_masks = out_masks.unsqueeze(-1).repeat(
+                    1, 1, discrete_token_layers, 1
+                )
+            before_outs = before_outs.masked_select(out_masks).view(-1, vocab_size)
             if after_outs is not None:
                 after_outs = after_outs.masked_select(out_masks).view(-1, vocab_size)
             ys = ys.masked_select(out_masks.squeeze(-1))

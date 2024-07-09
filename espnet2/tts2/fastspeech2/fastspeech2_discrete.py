@@ -393,7 +393,9 @@ class FastSpeech2Discrete(AbsTTS2):
                 # define final projection
                 self.feat_out = torch.nn.ModuleList(
                     [
-                        torch.nn.Linear(adim, odim//self.discrete_token_layers * reduction_factor)
+                        torch.nn.Linear(
+                            adim, odim // self.discrete_token_layers * reduction_factor
+                        )
                         for i in range(self.discrete_token_layers)
                     ]
                 )
@@ -441,7 +443,6 @@ class FastSpeech2Discrete(AbsTTS2):
         else:
             raise ValueError(f"{decoder_type} is not supported.")
 
-        
         # define postnet
         self.postnet = (
             None
@@ -530,7 +531,7 @@ class FastSpeech2Discrete(AbsTTS2):
 
         ys, ds, ps, es = discrete_feats, durations, pitch, energy
         olens = discrete_feats_lengths // self.discrete_token_layers
-        
+
         if self.discrete_token_layers > 1:
             ys_mask = (
                 make_non_pad_mask(olens)
@@ -541,11 +542,10 @@ class FastSpeech2Discrete(AbsTTS2):
                 )
             )
             shift = (
-                torch.arange(self.discrete_token_layers).view(1, 1, -1) * (self.odim//self.discrete_token_layers)
-                ).to(text.device)
-            ys = (
-                discrete_feats.view(batch_size, -1, self.discrete_token_layers) - shift
-            )
+                torch.arange(self.discrete_token_layers).view(1, 1, -1)
+                * (self.odim // self.discrete_token_layers)
+            ).to(text.device)
+            ys = discrete_feats.view(batch_size, -1, self.discrete_token_layers) - shift
             ys = ys * ys_mask.view(batch_size, -1, 1)
 
         # forward propagation
@@ -617,7 +617,11 @@ class FastSpeech2Discrete(AbsTTS2):
             if self.discrete_token_layers > 1:
                 for i, decoder_layer in enumerate(self.decoder):
                     stats.update(
-                        {f"decoder_alpha_{i}": decoder_layer.embed[-1].alpha.data.item()}
+                        {
+                            f"decoder_alpha_{i}": decoder_layer.embed[
+                                -1
+                            ].alpha.data.item()
+                        }
                     )
             else:
                 stats.update(
@@ -711,14 +715,14 @@ class FastSpeech2Discrete(AbsTTS2):
             h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
-            
+
         if self.discrete_token_layers > 1:
             before_outs_list = []
             for i in range(self.discrete_token_layers):
                 # print("hs.shape",hs.shape) # hs (#batch, time, idim)
-                before_outs, _ = self.decoder[i](hs, h_masks) # [B,T,hidden]
+                before_outs, _ = self.decoder[i](hs, h_masks)  # [B,T,hidden]
                 before_outs_ = self.feat_out[i](before_outs).view(
-                    before_outs.size(0), -1, self.odim//self.discrete_token_layers
+                    before_outs.size(0), -1, self.odim // self.discrete_token_layers
                 )
                 before_outs_list.append(before_outs_.unsqueeze(2))
             before_outs = torch.cat(before_outs_list, dim=2)
@@ -810,7 +814,9 @@ class FastSpeech2Discrete(AbsTTS2):
             )  # (1, T_feats, odim)
         if self.discrete_token_layers > 1:
             outs = torch.argmax(outs, dim=3)
-            shift = torch.arange(self.discrete_token_layers).view(1, 1, -1) * (self.odim//self.discrete_token_layers)
+            shift = torch.arange(self.discrete_token_layers).view(1, 1, -1) * (
+                self.odim // self.discrete_token_layers
+            )
             shift = shift.to(outs.device)
             outs = outs.view(1, -1, self.discrete_token_layers) + shift
             outs = outs.flatten(start_dim=1)
