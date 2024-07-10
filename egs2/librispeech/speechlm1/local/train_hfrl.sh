@@ -126,24 +126,28 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Training ..."
 
-    # the checkpoint is used to initialize both corelm and reflm
-    train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
-    ./speechlm.sh \
-        --stage 8 --stop_stage 8 \
-        --tag sft_${tag} \
-        --skip_data_prep true \
-        --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
-        --token_list_dir ${token_list_dir} \
-        --ngpu ${ngpu} \
-        --nj ${nj} \
-        --cleaner ${cleaner} \
-        --g2p ${g2p} \
-        --audio_format ${audio_format} \
-        --train_config ${sft_config} \
-        --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
-        --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
-        --train_args "${train_args}" \
-        "$@"
+    if ${use_sft}; then
+        # the checkpoint is used to initialize both corelm and reflm
+        train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
+        ./speechlm.sh \
+            --stage 8 --stop_stage 8 \
+            --tag sft_${tag} \
+            --skip_data_prep true \
+            --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
+            --token_list_dir ${token_list_dir} \
+            --ngpu ${ngpu} \
+            --nj ${nj} \
+            --cleaner ${cleaner} \
+            --g2p ${g2p} \
+            --audio_format ${audio_format} \
+            --train_config ${sft_config} \
+            --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
+            --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
+            --train_args "${train_args}" \
+            "$@"
+    else
+        echo "Skip SFT stage"
+    fi
 fi
 
 if ${use_sft}; then
