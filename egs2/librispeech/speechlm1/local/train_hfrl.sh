@@ -41,7 +41,7 @@ pretrain_checkpoint=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_c
 select_metrics="spk_similarity"
 
 # SFT options
-use_sft=true
+use_sft=false
 sft_train_args=
 sft_config=conf/train_multiscale_1b_sft.yaml
 
@@ -124,10 +124,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Training ..."
+    
 
     if ${use_sft}; then
         # the checkpoint is used to initialize both corelm and reflm
+        log "SFT Training ..."
         train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
         ./speechlm.sh \
             --stage 8 --stop_stage 8 \
