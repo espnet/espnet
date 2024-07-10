@@ -3,7 +3,8 @@
 model: rl
 model_conf:
     algo: dpo
-    beta: 0.05
+    length_norm: true
+    beta: 0.1
 
 corelm: multiscale
 corelm_conf:
@@ -18,28 +19,24 @@ corelm_conf:
     l_layer: 6
 
 # Dataloader
-# data accumulation, equivalent to 1M updates
 batch_type: numel
-batch_bins: 1000
-num_iters_per_epoch: 2500
-accum_grad: 2
+batch_bins: 500
+accum_grad: 100
+num_iters_per_epoch: 5000
 grad_clip: 50
-max_epoch: 100
-num_workers: 0
+max_epoch: 15
+num_workers: 4
 drop_last_iter: true
-log_interval: 500
+log_interval: 1000
 num_att_plot: 0
 
-# Criterion & Optimization
+# Criterion & Optimization; constant learning rate
 optim: adamw
 optim_conf:
-    lr: 0.00002
+    lr: 0.0000003
     betas:
         - 0.9
         - 0.95
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 7000
 
 best_model_criterion:
 -   - valid

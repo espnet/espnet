@@ -27,6 +27,8 @@ class ValleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
+        dropout: float = 0.0,
         att_unit: int = 256,
         head: int = 2,
         ar_layer: int = 4,
@@ -39,6 +41,8 @@ class ValleLM(AbsCoreLM):
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             att_unit (int): Dimention of Transformer attention.
             head (int): Number of heads in Transformer attention.
             ar_layer (int): Number of layers in AR Transformer.
@@ -53,7 +57,13 @@ class ValleLM(AbsCoreLM):
             self.lm_head.weight = self.emb.weight
 
         self.ar_decoder = TransformerDecoder(
-            n_ctx=n_ctx, n_state=att_unit, n_head=head, n_layer=ar_layer, causal=True
+            n_ctx=n_ctx,
+            n_state=att_unit,
+            n_head=head,
+            n_layer=ar_layer,
+            causal=True,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -63,6 +73,8 @@ class ValleLM(AbsCoreLM):
             n_head=head,
             n_layer=nar_layer,
             causal=False,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.nq = nq
@@ -138,7 +150,7 @@ class ValleLM(AbsCoreLM):
 
     def prepare_input(self, dec_seq_emb, prefix_len, level):
         # NOTE(Jinchuan): have to use "expand" here but maybe lead to extra memory usage.
-        # This is because both prefix_mask and level_mask are broadcastable and will 
+        # This is because both prefix_mask and level_mask are broadcastable and will
         # trigger user warning.
 
         # (1) level mask, [B, 1, nq, 1], True is to include
@@ -233,7 +245,7 @@ class ValleLM(AbsCoreLM):
 
         # (3.4) finalize auto-regressive
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
-        
+
         if len(valid_idx) == 0:
             for hook in hooks:
                 hook.remove()
@@ -248,7 +260,7 @@ class ValleLM(AbsCoreLM):
             2
         )  # [B, T, 1]
         gen_scores_ar = torch.cat(generated["score"], dim=1)[valid_idx].unsqueeze(2)
-        gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1] # idx -> count
+        gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1]  # idx -> count
         gen_scores_ar = gen_scores_ar[:, : finish_idx.max() + 1]
 
         for hook in hooks:

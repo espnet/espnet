@@ -434,7 +434,10 @@ class Trainer:
                     output_dir / "checkpoint.pth",
                 )
                 # for large model, we can use this to resume the training.
-                shutil.copy(output_dir / "checkpoint.pth", output_dir / f"checkpoint_{iepoch}.pth",)
+                shutil.copy(
+                    output_dir / "checkpoint.pth",
+                    output_dir / f"checkpoint_{iepoch}.pth",
+                )
 
                 # 5. Save and log the model and update the link to the best model
                 torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")

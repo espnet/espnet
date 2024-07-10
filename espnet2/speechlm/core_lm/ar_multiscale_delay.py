@@ -19,6 +19,8 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
+        dropout: float = 0.0,
         g_att_unit: int = 256,
         g_head: int = 2,
         g_layer: int = 4,
@@ -33,8 +35,9 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         Args:
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
-            interleave_pattern (str): parallel or delay
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             att_unit (int): Dimention of global Transformer attention.
             head (int): Number of heads in global Transformer attention.
             g_layer (int): Number of layers in global Transformer.
@@ -46,7 +49,9 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
         self.lm_head = torch.nn.Linear(l_att_unit, vocab_size, bias=False)
         if share_emb:
-            assert g_att_unit == l_att_unit, "Cannot share embedding as g_att_unit != l_att_unit"
+            assert (
+                g_att_unit == l_att_unit
+            ), "Cannot share embedding as g_att_unit != l_att_unit"
             self.lm_head.weight = self.emb.weight
         self.head_emb = torch.nn.Embedding(nq, l_att_unit)
 
@@ -60,6 +65,8 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_state=g_att_unit,
             n_head=g_head,
             n_layer=g_layer,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.l_decoders = TransformerDecoder(
@@ -67,6 +74,8 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(
@@ -99,11 +108,11 @@ class ARMultiScaleDelayLM(AbsCoreLM):
             compute_loss (bool): whether to compute loss or just logits.
         """
         assert dec_seq.dim() == 3
-        
+
         rank = torch.distributed.get_rank()
 
         # (1) delay interleave
-        dec_seq_delay = self.delay_interleave(dec_seq) # [B, T + nq - 1, nq]
+        dec_seq_delay = self.delay_interleave(dec_seq)  # [B, T + nq - 1, nq]
 
         # (2) global
         x = dec_seq_delay[:, :-1]
@@ -113,10 +122,10 @@ class ARMultiScaleDelayLM(AbsCoreLM):
 
         # (3) global to local; inverse delay interleave
         x = x.unsqueeze(2) + self.head_emb.weight.unsqueeze(0).unsqueeze(0)
-        x = self.inverse_delay_interleave(x) # [B, T, nq, D]
+        x = self.inverse_delay_interleave(x)  # [B, T, nq, D]
 
         B, T, _, _ = x.size()
-        placeholder = self.placeholder.tile(B, T, 1 ,1)
+        placeholder = self.placeholder.tile(B, T, 1, 1)
         target = dec_seq[:, 1:]
         target_emb = self.g2l(self.emb(target))
         target_shift = torch.cat([placeholder, target_emb], dim=2)[
@@ -140,20 +149,23 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         )
 
         return loss, logits, stats, weight
-    
+
     def delay_interleave(self, dec_seq: torch.Tensor):
         B, T, nq = dec_seq.size()
-        retval = torch.ones(
-            (B, T + nq - 1, nq),
-            dtype=dec_seq.dtype,
-            device=dec_seq.device,
-        ) * self.sos_eos
+        retval = (
+            torch.ones(
+                (B, T + nq - 1, nq),
+                dtype=dec_seq.dtype,
+                device=dec_seq.device,
+            )
+            * self.sos_eos
+        )
 
         for n in range(nq):
-            retval[:, n: n+T, n] = dec_seq[:, :, n]
-        
+            retval[:, n : n + T, n] = dec_seq[:, :, n]
+
         return retval
-    
+
     def inverse_delay_interleave(self, x: torch.Tensor):
         B, T, nq, D = x.size()
         retval = torch.zeros(
@@ -163,10 +175,10 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         )
 
         for n in range(nq):
-            retval[:, :, n] = x[:, n: n + T - nq + 1, n]
-        
+            retval[:, :, n] = x[:, n : n + T - nq + 1, n]
+
         return retval
-    
+
     @torch.no_grad()
     def inference(
         self,
@@ -186,4 +198,3 @@ class ARMultiScaleDelayLM(AbsCoreLM):
         """
 
         raise NotImplementedError
-

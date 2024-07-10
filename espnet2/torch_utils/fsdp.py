@@ -99,7 +99,7 @@ def warp_fsdp(
         auto_wrap_policy=auto_wrap_policy,
         mixed_precision=mixed_precision,
         sync_module_states=True,
-        use_orig_params=True
+        use_orig_params=True,
     )
 
 

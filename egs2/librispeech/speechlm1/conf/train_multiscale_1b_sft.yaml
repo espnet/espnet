@@ -1,38 +1,35 @@
-# Trained with Tesla A100 (40GB) x 8 GPUs. It takes about 22 hours.
-# #Params: 303M
-corelm: multiscale_delay
+# Trained with Tesla 8xA100-SXM4-40GB. It takes about ? hours.
+# #Params: 1.15B
+corelm: multiscale
 corelm_conf:
     share_emb: false
     # global transformer
-    g_att_unit: 1024
-    g_head: 16
-    g_layer: 22
+    g_att_unit: 1600
+    g_head: 25
+    g_layer: 32
     # local transformer
     l_att_unit: 384
     l_head: 6
     l_layer: 6
 
 # Dataloader
+# data accumulation, equivalent to 1M updates
 batch_type: numel
-batch_bins: 5000
-num_iters_per_epoch: 20000
-accum_grad: 2
+batch_bins: 1000
+accum_grad: 10
 grad_clip: 5
-max_epoch: 20
+max_epoch: 3
 num_workers: 4
 drop_last_iter: true
-log_interval: 2000
+log_interval: 1000
 
-# Criterion & Optimization
+# Criterion & Optimization; constant learning rate
 optim: adamw
 optim_conf:
-    lr: 0.0002
+    lr: 0.00001
     betas:
         - 0.9
         - 0.95
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 70000
 
 best_model_criterion:
 -   - valid
@@ -48,8 +45,8 @@ nbest_averaging_interval: 5
 # Global settings
 use_amp: true
 use_tf32: false
-use_fsdp: false
+use_fsdp: true
 encoder_decoder_format: false
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8
-speaker_prompt_length: 500 # 50fps, a.k.a., 10s
+speaker_prompt_length: 150 # 75fps, a.k.a., 3s

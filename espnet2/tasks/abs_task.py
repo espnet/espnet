@@ -1342,7 +1342,7 @@ class AbsTask(ABC):
             # Use adapter to finetune the large pre-trained foundation models
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
-            
+
             # 2. Loads pre-trained model
             # NOTE(Jinchuan): should load --init_param before FSDP warpper
             for p in args.init_param:
@@ -1361,7 +1361,11 @@ class AbsTask(ABC):
                 )
 
             # Note(Jinchuan): have to warp FSDP before building optimizers
-            if args.use_fsdp and not args.collect_stats and torch.distributed.is_initialized():
+            if (
+                args.use_fsdp
+                and not args.collect_stats
+                and torch.distributed.is_initialized()
+            ):
                 model = warp_fsdp(
                     model,
                     use_amp=args.use_amp,

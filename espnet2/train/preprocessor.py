@@ -2373,7 +2373,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         speaker_prompt_length: int = 1800,
         # others
-        extra_names_and_modalities = [
+        extra_names_and_modalities=[
             "sampled.scp,codec",
         ],
     ):
@@ -2482,28 +2482,30 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         for name, modality in self.extra_names_and_modalities:
             if name not in data:
                 continue
-            value = self.modality_specific_processing(data[name], modality)[0]      
+            value = self.modality_specific_processing(data[name], modality)[0]
             new_data = self.process_extra_entries(new_data, value, name)
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
-    
+
     def process_extra_entries(self, new_data, value, name):
         if name == "sampled.scp":
-            prefix_len = new_data['prefix_len']
-            prefix = new_data['dec_seq'][:prefix_len.item()]
-            sampled_seq = np.concatenate([
-                prefix.flatten(),
-                value,
-                self.special_token("<sos/eos>"),
-            ]).reshape(-1, self.codec_token_in_use)
+            prefix_len = new_data["prefix_len"]
+            prefix = new_data["dec_seq"][: prefix_len.item()]
+            sampled_seq = np.concatenate(
+                [
+                    prefix.flatten(),
+                    value,
+                    self.special_token("<sos/eos>"),
+                ]
+            ).reshape(-1, self.codec_token_in_use)
 
-            max_len = int(len(new_data['dec_seq']) * 1.3)
+            max_len = int(len(new_data["dec_seq"]) * 1.3)
             new_data["sampled_seq"] = sampled_seq[:max_len]
         else:
             raise NotImplementedError
-        
+
         return new_data
 
     def special_token(self, token):
@@ -2559,7 +2561,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         sampled_seq = data.get("sampled_seq", None)
 
         logging.warning(f"Diagnose in preprocessor ...")
-        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq), ("sampled_seq", sampled_seq)]:
+        for name, seq in [
+            ("encoder", enc_seq),
+            ("decoder", dec_seq),
+            ("sampled_seq", sampled_seq),
+        ]:
             if seq is None:
                 continue
             logging.warning(f"{name} ...")

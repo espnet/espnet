@@ -21,6 +21,8 @@ class MultiScaleLM(AbsCoreLM):
         vocab_size: int,
         nq: int,
         share_emb: bool = True,
+        qk_norm: bool = False,
+        dropout: float = 0.0,
         g_att_unit: int = 256,
         g_head: int = 2,
         g_layer: int = 4,
@@ -35,6 +37,8 @@ class MultiScaleLM(AbsCoreLM):
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             g_att_unit (int): Dimention of global Transformer attention.
             g_head (int): Number of heads in global Transformer attention.
             g_layer (int): Number of layers in global Transformer.
@@ -64,6 +68,8 @@ class MultiScaleLM(AbsCoreLM):
             n_state=g_att_unit,
             n_head=g_head,
             n_layer=g_layer,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         # Local part
@@ -72,6 +78,8 @@ class MultiScaleLM(AbsCoreLM):
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(
