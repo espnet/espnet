@@ -89,7 +89,7 @@ ref_channel=0
 inference_tag=  # Prefix to the result dir for ENH inference.
 inference_enh_config= # Config for enhancement.
 score_with_asr=false
-enh_exp=""       # asr model for scoring WER
+asr_exp=""       # asr model for scoring WER
 lm_exp=""       # lm model for scoring WER
 inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
 inference_lm=valid.loss.best.pth       # Language model path for decoding.
@@ -183,7 +183,7 @@ Options:
 
     # ASR evaluation related
     --score_with_asr       # Enable ASR evaluation (default="${score_with_asr}")
-    --enh_exp              # asr model for scoring WER  (default="${enh_exp}")
+    --asr_exp              # asr model for scoring WER  (default="${asr_exp}")
     --lm_exp               # lm model for scoring WER (default="${lm_exp}")
     --nlsyms_txt           # Non-linguistic symbol list if existing.  (default="${nlsyms_txt}")
     --inference_asr_model  # ASR model path for decoding. (default="${inference_asr_model}")
@@ -1122,8 +1122,8 @@ if "${score_with_asr}"; then
                             --ngpu "${_ngpu}" \
                             --data_path_and_name_and_type "${_ddir}/wav.scp,speech,${_type}" \
                             --key_file "${_logdir}"/keys.JOB.scp \
-                            --asr_train_config "${enh_exp}"/config.yaml \
-                            --asr_model_file "${enh_exp}"/"${inference_asr_model}" \
+                            --asr_train_config "${asr_exp}"/config.yaml \
+                            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                             --output_dir "${_logdir}"/output.JOB \
                             ${_opts} ${inference_asr_args}
 
