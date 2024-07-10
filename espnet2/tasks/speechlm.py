@@ -268,8 +268,8 @@ class SpeechLMTask(AbsTask):
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
-            vocab_size=len(token_list), 
-            nq=args.codec_token_in_use, 
+            vocab_size=len(token_list),
+            nq=args.codec_token_in_use,
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)
@@ -281,8 +281,8 @@ class SpeechLMTask(AbsTask):
             else:
                 reflm_class = corelm_choices.get_class(args.corelm)
                 reflm = reflm_class(
-                    vocab_size=len(token_list), 
-                    nq=args.codec_token_in_use, 
+                    vocab_size=len(token_list),
+                    nq=args.codec_token_in_use,
                     **args.corelm_conf,
                 )
             reflm.requires_grad_(False)

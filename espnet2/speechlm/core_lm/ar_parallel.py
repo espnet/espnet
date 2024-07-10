@@ -22,6 +22,7 @@ class ARParallelLM(AbsCoreLM):
         nq: int,
         share_emb: bool = True,
         qk_norm: bool = False,
+        dropout: float = 0.0,
         att_unit: int = 256,
         head: int = 2,
         layer: int = 4,
@@ -33,8 +34,9 @@ class ARParallelLM(AbsCoreLM):
         Args:
             vocab_size (int): Dimention of vocabulary.
             nq (int): Number of codes for each token / frame, usually for speech codec.
-            interleave_pattern (str): parallel or delay
             share_emb (bool): If true, share the embedding and lm_head weight.
+            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
+            dropout: (float): dropout rate for attention layers.
             att_unit (int): Dimention of global Transformer attention.
             head (int): Number of heads in global Transformer attention.
             layer (int): Number of layers in global Transformer.
@@ -54,6 +56,7 @@ class ARParallelLM(AbsCoreLM):
             n_head=head,
             n_layer=layer,
             qk_norm=qk_norm,
+            dropout=dropout,
         )
 
         self.nq = nq
@@ -120,4 +123,3 @@ class ARParallelLM(AbsCoreLM):
         """
 
         raise NotImplementedError
-

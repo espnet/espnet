@@ -109,16 +109,18 @@ class SpeechLM:
         tokenizer_class = tokenizer_choices.get_class(modality)
 
         if modality == "text_bpe":
-            tokenizer_conf.update(dict(
-                token_list=train_args.token_list.copy(),
-                model=train_args.bpemodel,
-            ))
+            tokenizer_conf.update(
+                dict(
+                    token_list=train_args.token_list.copy(),
+                    model=train_args.bpemodel,
+                )
+            )
         self.tokenizer = tokenizer_class(**tokenizer_conf)
         try:
             self.tokenizer = self.tokenizer.to(device)
         except:
             logging.warning(f"cannot move tokenizer to device: {device}")
-        
+
         if modality in ["codec"]:
             self.bias = token_bias[modality]
         else:
@@ -162,10 +164,8 @@ class SpeechLM:
                 token = token[:, 0].view(-1) - self.bias
                 score = score[:, 0].view(-1)
             content = self.tokenizer.detokenize(token.clone())
-            
-            generated.append(
-                (token, score, content)
-            )
+
+            generated.append((token, score, content))
 
         # (3) prefix tokens detokenization
         conditions = []
@@ -198,9 +198,11 @@ class SpeechLM:
 
                 elif this_modality in ["g2p"]:
                     token = token[:, 0]
-                    content = " ".join([self.train_args.token_list[c] for c in token.cpu().tolist()])
+                    content = " ".join(
+                        [self.train_args.token_list[c] for c in token.cpu().tolist()]
+                    )
                     detokenized = True
-                
+
                 else:
                     token = token.flatten()
                     content = None
@@ -325,8 +327,12 @@ def inference(
     ]
 
     writer = open(output_dir / output_name / "example_list", "w")
-    token_writer = WriteHelper(f'ark,scp:{str(output_dir / output_name / "token")}.ark,{str(output_dir / output_name / "token")}.scp')
-    score_writer = WriteHelper(f'ark,scp:{str(output_dir / output_name / "score")}.ark,{str(output_dir / output_name / "score")}.scp')
+    token_writer = WriteHelper(
+        f'ark,scp:{str(output_dir / output_name / "token")}.ark,{str(output_dir / output_name / "token")}.scp'
+    )
+    score_writer = WriteHelper(
+        f'ark,scp:{str(output_dir / output_name / "score")}.ark,{str(output_dir / output_name / "score")}.scp'
+    )
     prefix_writers = [None for _ in prefix_triplets]
     prefix_token_writers = [None for _ in prefix_triplets]
 
@@ -338,7 +344,7 @@ def inference(
 
         batch = to_device(batch, device=device)
         key = keys[0]
-        
+
         logging.info(f"Inference on example: {key}")
 
         # NOTE (Jinchuan): set random seed for each example so each result can be
@@ -351,7 +357,7 @@ def inference(
         # (2) parse and save generated content
         for h_idx, (token, score, content) in enumerate(generated):
             example_name = f"{key}_sample{h_idx}"
-            
+
             if output_modality == "codec":
                 wave_path = output_dir / output_name / f"{example_name}.wav"
                 writer.write(f"{example_name} {str(wave_path)}\n")
@@ -363,7 +369,7 @@ def inference(
                     bits_per_sample=16,
                 )
                 logging.info(f"save generated audio {example_name}: {wave_path}")
-            
+
             elif output_modality == "text_bpe":
                 writer.write(f"{example_name} {content[0]}\n")
 
@@ -385,7 +391,7 @@ def inference(
             # NOTE(Jinchuan): remove task prefix so that the recorded prefix will have the same
             # format like other reference file. E.g., text in original dataset
             key = key.lstrip(f"{task_name}_")
-            
+
             assert len(conditions) == len(prefix_triplets)
             for c_idx, (token, content, modality, detokenized) in enumerate(conditions):
                 if not detokenized:
@@ -399,7 +405,7 @@ def inference(
                     (output_dir / name).mkdir(parents=True, exist_ok=True)
                     prefix_writer = open(output_dir / name / "example_list", "w")
                     prefix_writers[c_idx] = prefix_writer
-                    
+
                 prefix_writer = prefix_writers[c_idx]
                 if modality in ["codec", "spk"]:
                     content_path = output_dir / name / f"{key}.wav"
@@ -411,18 +417,20 @@ def inference(
                         encoding="PCM_S",
                     )
                     prefix_writer.write(f"{key} {content_path}\n")
-                    logging.info(f"save prefix audio {name} audio {key}: {content_path}")
+                    logging.info(
+                        f"save prefix audio {name} audio {key}: {content_path}"
+                    )
 
                 elif modality in ["g2p"]:
                     prefix_writer.write(f"{key} {content}\n")
-                    
+
                     logging.info(f"prefix part {modality}: {content}")
 
                 else:
                     raise ValueError(
                         f"save prefix in modality {modality} is not supported yet"
                     )
-                
+
                 if prefix_token_writers[c_idx] is None:
                     prefix_token_writer = WriteHelper(
                         f'ark,scp:{str(output_dir / name / "token")}.ark,{str(output_dir / name / "token")}.scp'
@@ -430,7 +438,8 @@ def inference(
                     prefix_token_writers[c_idx] = prefix_token_writer
                 prefix_token_writer = prefix_token_writers[c_idx]
                 prefix_token_writer[key] = token.int().cpu().numpy()
-        
+
+
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
@@ -540,7 +549,13 @@ def get_parser():
         "--search_algo",
         type=str,
         default="topk_sampling",
-        choices=["topk_sampling", "topp_sampling", "teacher_force", "beam_search", "greedy_search"],
+        choices=[
+            "topk_sampling",
+            "topp_sampling",
+            "teacher_force",
+            "beam_search",
+            "greedy_search",
+        ],
         help="the search algorithm of SpeechLM",
     )
     group.add_argument(

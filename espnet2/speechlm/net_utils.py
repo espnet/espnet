@@ -24,9 +24,10 @@ def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
 def causal_mask(qlen: int, device: torch.device) -> torch.Tensor:
     return torch.ones((qlen, qlen), device=device).tril_(0).unsqueeze(0)
 
+
 def pad_and_concat(tensor_list, pad_id=0):
-    """ pad a list of torch.Tensor with shape [B_n, T_n, ...] 
-        in T dimension and then concat in B dimension
+    """pad a list of torch.Tensor with shape [B_n, T_n, ...]
+    in T dimension and then concat in B dimension
     """
 
     size_list = [t.size() for t in tensor_list]
@@ -34,19 +35,23 @@ def pad_and_concat(tensor_list, pad_id=0):
     pad_size = max([size[1] for size in size_list])
     assert all([size[2:] == size_list[0][2:] for size in size_list])
 
-    retval = torch.ones(
-        tuple([concat_size, pad_size] + list(tensor_list[0].size()[2:])),
-        dtype=tensor_list[0].dtype,
-        device=tensor_list[0].device,
-    ) * pad_id
+    retval = (
+        torch.ones(
+            tuple([concat_size, pad_size] + list(tensor_list[0].size()[2:])),
+            dtype=tensor_list[0].dtype,
+            device=tensor_list[0].device,
+        )
+        * pad_id
+    )
 
     count = 0
     for t in tensor_list:
         B, T = t.size()[:2]
-        retval[count: count + B, :T] = t
+        retval[count : count + B, :T] = t
         count += B
-    
+
     return retval
+
 
 def ce_loss(
     logits: torch.Tensor,
@@ -71,9 +76,7 @@ def ce_loss(
     # (1) mask and prefix mask
     mask = length_mask(lengths).to(logits.dtype).unsqueeze(-1)
     target_mask = (
-        length_mask(prefix_len, maxlen=lengths.max())
-        .to(logits.dtype)
-        .unsqueeze(-1)
+        length_mask(prefix_len, maxlen=lengths.max()).to(logits.dtype).unsqueeze(-1)
     )
     target_mask = mask * torch.abs(target_mask - 1)
 
@@ -104,7 +107,7 @@ def ce_loss(
     # (3) statistics on token accuracy
     pred = logits.argmax(dim=-1)
     acc = torch.eq(pred, target).to(logits.dtype) * target_mask
-    
+
     for nq_idx in range(target.size(2)):
         stats.update(
             {f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()}
@@ -156,19 +159,19 @@ def logits_to_tokens(
         mask[0, opts.eos] = False
     if nq_level is not None:
         mask = mask[nq_level : nq_level + 1]
-    mask = mask.unsqueeze(0).unsqueeze(0) # [nq, V] -> [B=1, T=1, nq, V]
+    mask = mask.unsqueeze(0).unsqueeze(0)  # [nq, V] -> [B=1, T=1, nq, V]
     logits.masked_fill_(mask, neg_inf)
 
     # (2) token selection
     if search_algo in ["topk_sampling"]:
         topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
         probs = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
-        inner_indices = torch.multinomial(probs.flatten(end_dim=-2), num_samples=1).view(
-            probs[..., :1].size()
-        )
+        inner_indices = torch.multinomial(
+            probs.flatten(end_dim=-2), num_samples=1
+        ).view(probs[..., :1].size())
         gen_token_idx = torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(probs, -1, inner_indices).squeeze(-1).log()
-    
+
     elif search_algo in ["topp_sampling"]:
         probs = torch.softmax(logits / opts.sampling_temperature, dim=-1)
         sorted_probs, sorted_indices = torch.sort(probs, descending=True)
@@ -178,18 +181,18 @@ def logits_to_tokens(
         if torch.any(clip_probs[..., 0] == 0.0):
             clip_probs[..., 0] = sorted_probs[..., 0]
         clip_probs = clip_probs / clip_probs.sum(dim=-1, keepdim=True)
-        inner_indices = torch.multinomial(clip_probs.flatten(end_dim=-2), num_samples=1).view(
-            clip_probs[..., :1].size()
-        )
+        inner_indices = torch.multinomial(
+            clip_probs.flatten(end_dim=-2), num_samples=1
+        ).view(clip_probs[..., :1].size())
         gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
-        
+
     elif search_algo in ["greedy_search", "teacher_force"]:
         probs = logits.softmax(dim=-1)
         topk_values, topk_indices = torch.topk(logits, 1, dim=-1)
         gen_token_idx = topk_indices[:, :, :, 0]
         gen_token_score = topk_values[:, :, :, 0].log()
-    
+
     else:
         raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
 

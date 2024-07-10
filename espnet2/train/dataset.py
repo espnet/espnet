@@ -239,8 +239,10 @@ def rand_int_loader(filepath, loader_type):
         raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
     return IntRandomGenerateDataset(filepath, low, high)
 
+
 def multicol_kaldi_ark_loader(filepath):
     return MultiColKaldiArkReader(filepath)
+
 
 DATA_TYPES = {
     "sound": dict(
@@ -647,7 +649,9 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map
-        if "utt2spk" in self.loader_dict and isinstance(self.loader_dict["utt2spk"], Dict):
+        if "utt2spk" in self.loader_dict and isinstance(
+            self.loader_dict["utt2spk"], Dict
+        ):
             self.spk2utt = {}
             for k, v in self.loader_dict["utt2spk"].items():
                 if v not in self.spk2utt:
@@ -682,6 +686,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                             break
 
                 data["utt2spk"] = self.loader_dict["wav.scp"][prompt_uid]
+
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet
@@ -726,7 +731,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 )
 
             # example_list is for sub_dataest -> no task prefix
-            example_list = json_dict["data_files"][0].strip().split(',')[0]
+            example_list = json_dict["data_files"][0].strip().split(",")[0]
             example_list = [line.strip().split()[0] for line in open(example_list)]
             if self.key_dict is not None:
                 example_list = [

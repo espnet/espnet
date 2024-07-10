@@ -175,7 +175,7 @@ class ESPnetMTModel(AbsESPnetModel):
         src_text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        
+
         if self.extract_feats_in_collect_stats:
             feats, feats_lengths = self._extract_feats(src_text, src_text_lengths)
         else:

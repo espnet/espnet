@@ -25,7 +25,7 @@ class ARDelayLM(ARParallelLM):
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
-        This forward function is very similar to that of ARParallelLM only except the 
+        This forward function is very similar to that of ARParallelLM only except the
         delay interleave pattern
 
         Args:
@@ -38,17 +38,20 @@ class ARDelayLM(ARParallelLM):
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
             compute_loss (bool): whether to compute loss or just logits.
         """
-        
+
         B, T, nq = dec_seq.size()
-        dec_seq_delay = torch.ones(
-            (B, T + nq - 1, nq),
-            dtype=dec_seq.dtype,
-            device=dec_seq.device,
-        ) * self.sos_eos
+        dec_seq_delay = (
+            torch.ones(
+                (B, T + nq - 1, nq),
+                dtype=dec_seq.dtype,
+                device=dec_seq.device,
+            )
+            * self.sos_eos
+        )
 
         for n in range(nq):
-            dec_seq_delay[:, n: n+T, n] = dec_seq[:, :, n]
-        
+            dec_seq_delay[:, n : n + T, n] = dec_seq[:, :, n]
+
         dec_seq_lengths_delay = dec_seq_lengths + nq - 1
 
         return super().forward(
@@ -79,7 +82,7 @@ class ARDelayLM(ARParallelLM):
         """
 
         raise NotImplementedError
-    
+
     def delay_interleave(
         self,
         dec_seq: torch.Tensor,
@@ -87,16 +90,16 @@ class ARDelayLM(ARParallelLM):
         pad: int = 0,
     ):
         B, T, nq = dec_seq.size()
-        retval = torch.ones(
-            (B, T + self.nq - 1, nq), 
-            dtype=dec_seq.dtype, 
-            device=dec_seq.device
-        ) * pad
+        retval = (
+            torch.ones(
+                (B, T + self.nq - 1, nq), dtype=dec_seq.dtype, device=dec_seq.device
+            )
+            * pad
+        )
 
         for n in range(self.nq):
-            retval[:, n: n + T, n] = dec_seq[:, :, n]
-        
+            retval[:, n : n + T, n] = dec_seq[:, :, n]
+
         dec_seq_lengths = dec_seq_lengths + self.nq - 1
 
         return retval, dec_seq_lengths
-
