@@ -28,7 +28,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         beta: float = 0.1,
         ce_loss_weight: float = 0.0,
         rl_loss_weight: float = 1.0,
-        label_smoothing: float = 0.0,
+        length_norm: bool = False,
         reward_margin: float = 0.0,
         extract_feats_in_collect_stats: bool = False,
     ):
@@ -39,7 +39,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         self.beta = beta
         self.ce_loss_weight = ce_loss_weight
         self.rl_loss_weight = rl_loss_weight
-        self.label_smoothing = label_smoothing
+        self.length_norm = length_norm
         self.reward_margin = reward_margin
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -48,6 +48,9 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             self.reflm = None
         else:
             self.reflm = reflm
+
+        if algo in ["simpo"]:
+            assert self.length_norm, f"Algo {algo} requires length_normalize"
 
     def forward(
         self,
@@ -164,19 +167,23 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             ref_logp = torch.zeros_like(policy_logp)
 
         # (3) length normalize
-        if self.algo in ["simpo"]:
+        if self.length_norm:
             nq = all_seq.size(-1)
             policy_logp = policy_logp / (all_seq_lengths - all_prefix_lengths) / nq
             ref_logp = ref_logp / (all_seq_lengths - all_prefix_lengths) / nq
 
         # (4) the exact loss computing
         pos_repeat = (len(policy_logp) - n_positive) // n_positive
-        loss_rl, stats = self.compute_loss(
-            pos_policy_logp=policy_logp[:n_positive].tile(pos_repeat),
-            neg_policy_logp=policy_logp[n_positive:],
-            pos_ref_logp=ref_logp[:n_positive].tile(pos_repeat),
-            neg_ref_logp=ref_logp[n_positive:],
-        )
+        if pos_repeat == 1:
+            loss_rl, stats = self.compute_loss(
+                pos_policy_logp=policy_logp[:n_positive].tile(pos_repeat),
+                neg_policy_logp=policy_logp[n_positive:],
+                pos_ref_logp=ref_logp[:n_positive].tile(pos_repeat),
+                neg_ref_logp=ref_logp[n_positive:],
+            )
+        else:
+            # TODO(Jinchuan): Update with Plackett-Luce ranking model.
+            raise NotImplementedError
 
         return loss_rl.mean(), stats
 
@@ -191,19 +198,10 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         logits = (pos_policy_logp - neg_policy_logp) - (pos_ref_logp - neg_ref_logp)
 
         if self.algo == "dpo":
-            loss = (
-                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
-            )
+            loss = -F.logsigmoid(logits * self.beta)
 
         elif self.algo == "simpo":
-            logits = logits
-            loss = (
-                -F.logsigmoid(self.beta * logits - self.reward_margin)
-                * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * logits - self.reward_margin)
-                * self.label_smoothing
-            )
+            loss = -F.logsigmoid(logits * self.beta - self.reward_margin)
 
         else:
             raise NotImplementedError(f"{self.algo} is not supported yet")

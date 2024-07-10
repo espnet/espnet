@@ -18,8 +18,6 @@ log() {
 }
 SECONDS=0
 
-train_config=conf/train_multiscale_1b_dpo.yaml
-
 # original dataset and sampled examples
 train_dir=dump/raw_tts_librispeech/train_960
 valid_dir=dump/raw_tts_librispeech/dev_clean
@@ -35,14 +33,22 @@ codec_checkpoint_path=null
 codec_config_path=null
 codec_hf_model_tag=null
 
-# HFRL options
+# Common Config for SFT and HFRL
 tag=
 data_combo_name=
 task="tts"
-train_args=
-resume=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
+pretrain_checkpoint=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
+select_metrics="spk_similarity"
+
+# SFT options
+use_sft=true
+sft_train_args=
+sft_config=conf/train_multiscale_1b_sft.yaml
+
+# HFRL options
+hfrl_train_args=
+hfrl_config=conf/train_multiscale_1b_dpo.yaml
 use_reflm=true
-select_metrics="utmos spk_similarity edit_distance"
 
 # Other options
 nj=32
@@ -64,8 +70,8 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [ -z ${resume} ]; then
-    echo "Resume checkpoint is needed ... " && exit 1;
+if [ -z ${pretrain_checkpoint} ]; then
+    echo "Pretrained checkpoint is needed ... " && exit 1;
 fi
 
 if [ -z ${tag} ]; then
@@ -121,13 +127,41 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Training ..."
 
     # the checkpoint is used to initialize both corelm and reflm
+    train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
+    ./speechlm.sh \
+        --stage 8 --stop_stage 8 \
+        --tag sft_${tag} \
+        --skip_data_prep true \
+        --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
+        --token_list_dir ${token_list_dir} \
+        --ngpu ${ngpu} \
+        --nj ${nj} \
+        --cleaner ${cleaner} \
+        --g2p ${g2p} \
+        --audio_format ${audio_format} \
+        --train_config ${sft_config} \
+        --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
+        --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
+        --train_args "${train_args}" \
+        "$@"
+fi
+
+if ${use_sft}; then
+    pretrain_checkpoint=exp/speechlm_sft_${tag}/latest.pth
+    tag=${tag}_with_sft
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Preference Alignment Training ..."
+
+    # the checkpoint is used to initialize both corelm and reflm
     if ${use_reflm}; then
-        train_args+="--init_param ${resume}:corelm:corelm ${resume}:corelm:reflm"
+        train_args+="--init_param ${pretrain_checkpoint}:corelm:corelm ${pretrain_checkpoint}:corelm:reflm"
     else
-        train_args+="--init_param ${resume}:corelm:corelm"
+        train_args+="--init_param ${pretrain_checkpoint}:corelm:corelm"
     fi
     ./speechlm.sh \
-        --stage 7 --stop_stage 8 \
+        --stage 8 --stop_stage 8 \
         --tag hfrl_${tag} \
         --skip_data_prep true \
         --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
@@ -137,7 +171,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --cleaner ${cleaner} \
         --g2p ${g2p} \
         --audio_format ${audio_format} \
-        --train_config ${train_config} \
+        --train_config ${hfrl_config} \
         --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
         --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
         --train_args "${train_args}" \
