@@ -89,7 +89,7 @@ ref_channel=0
 inference_tag=  # Prefix to the result dir for ENH inference.
 inference_enh_config= # Config for enhancement.
 score_with_asr=false
-asr_exp=""       # asr model for scoring WER
+enh_exp=""       # asr model for scoring WER
 lm_exp=""       # lm model for scoring WER
 inference_asr_model=valid.acc.best.pth # ASR model path for decoding.
 inference_lm=valid.loss.best.pth       # Language model path for decoding.
@@ -172,6 +172,7 @@ Options:
     --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
     --inference_model      # Enhancement model path for inference (default="${inference_model}").
     --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
+    --download_model      # Download a model from Model Zoo and use it for inference (default="${download_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -182,7 +183,7 @@ Options:
 
     # ASR evaluation related
     --score_with_asr       # Enable ASR evaluation (default="${score_with_asr}")
-    --asr_exp              # asr model for scoring WER  (default="${asr_exp}")
+    --enh_exp              # asr model for scoring WER  (default="${enh_exp}")
     --lm_exp               # lm model for scoring WER (default="${lm_exp}")
     --nlsyms_txt           # Non-linguistic symbol list if existing.  (default="${nlsyms_txt}")
     --inference_asr_model  # ASR model path for decoding. (default="${inference_asr_model}")
@@ -800,6 +801,26 @@ else
 fi
 
 
+
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for inference and scoring"
+    enh_exp="${expdir}/${download_model}"
+    mkdir -p "${enh_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${enh_exp}/config.txt"
+
+    # Get the path of each file
+    _enh_model_file=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_model_file': '\([^']*\)'.*$/\1/")
+    _enh_train_config=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_enh_model_file}" "${enh_exp}"
+    ln -sf "${_enh_train_config}" "${enh_exp}"
+    inference_model=$(basename "${_enh_model_file}")
+fi
+
+
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Enhance Speech: training_dir=${enh_exp}"
@@ -1101,8 +1122,8 @@ if "${score_with_asr}"; then
                             --ngpu "${_ngpu}" \
                             --data_path_and_name_and_type "${_ddir}/wav.scp,speech,${_type}" \
                             --key_file "${_logdir}"/keys.JOB.scp \
-                            --asr_train_config "${asr_exp}"/config.yaml \
-                            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+                            --asr_train_config "${enh_exp}"/config.yaml \
+                            --asr_model_file "${enh_exp}"/"${inference_asr_model}" \
                             --output_dir "${_logdir}"/output.JOB \
                             ${_opts} ${inference_asr_args}
 
