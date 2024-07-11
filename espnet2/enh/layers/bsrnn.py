@@ -3,6 +3,11 @@ from itertools import accumulate
 import torch
 import torch.nn as nn
 
+from espnet2.enh.layers.tcn import choose_norm as choose_norm1d
+
+
+EPS = torch.finfo(torch.get_default_dtype()).eps
+
 
 class BSRNN(nn.Module):
     # ported from https://github.com/sungwon23/BSRNN
@@ -14,6 +19,7 @@ class BSRNN(nn.Module):
         target_fs=48000,
         causal=True,
         num_spk=1,
+        norm_type="GN",
     ):
         """Band-Split RNN (BSRNN).
 
@@ -34,11 +40,13 @@ class BSRNN(nn.Module):
             causal (bool): Whether or not to adopt causal processing
                 if True, LSTM will be used instead of BLSTM for time modeling
             num_spk (int): number of outputs to be generated
+            norm_type (str): type of normalization layer (cfLN / cLN / BN / GN)
         """
         super().__init__()
+        norm1d_type = norm_type if norm_type != "cfLN" else "cLN"
         self.num_layer = num_layer
         self.band_split = BandSplit(
-            input_dim, target_fs=target_fs, channels=num_channel
+            input_dim, target_fs=target_fs, channels=num_channel, norm_type=norm1d_type
         )
         self.target_fs = target_fs
         self.causal = causal
@@ -52,7 +60,7 @@ class BSRNN(nn.Module):
         self.fc_freq = nn.ModuleList()
         hdim = 2 * num_channel
         for i in range(self.num_layer):
-            self.norm_time.append(nn.GroupNorm(1, num_channel))
+            self.norm_time.append(choose_norm(norm_type, num_channel))
             self.rnn_time.append(
                 nn.LSTM(
                     num_channel,
@@ -62,14 +70,18 @@ class BSRNN(nn.Module):
                 )
             )
             self.fc_time.append(nn.Linear(hdim if causal else hdim * 2, num_channel))
-            self.norm_freq.append(nn.GroupNorm(1, num_channel))
+            self.norm_freq.append(choose_norm(norm_type, num_channel))
             self.rnn_freq.append(
                 nn.LSTM(num_channel, hdim, batch_first=True, bidirectional=True)
             )
             self.fc_freq.append(nn.Linear(4 * num_channel, num_channel))
 
         self.mask_decoder = MaskDecoder(
-            input_dim, self.band_split.subbands, channels=num_channel, num_spk=num_spk
+            input_dim,
+            self.band_split.subbands,
+            channels=num_channel,
+            num_spk=num_spk,
+            norm_type=norm1d_type,
         )
 
     def forward(self, x, fs=None):
@@ -114,7 +126,7 @@ class BSRNN(nn.Module):
 
 
 class BandSplit(nn.Module):
-    def __init__(self, input_dim, target_fs=48000, channels=128):
+    def __init__(self, input_dim, target_fs=48000, channels=128, norm_type="GN"):
         super().__init__()
         assert input_dim % 2 == 1, input_dim
         n_fft = (input_dim - 1) * 2
@@ -138,7 +150,7 @@ class BandSplit(nn.Module):
         self.norm = nn.ModuleList()
         self.fc = nn.ModuleList()
         for i in range(len(self.subbands)):
-            self.norm.append(nn.GroupNorm(1, int(self.subbands[i] * 2)))
+            self.norm.append(choose_norm1d(norm_type, int(self.subbands[i] * 2)))
             self.fc.append(nn.Conv1d(int(self.subbands[i] * 2), channels, 1))
 
     def forward(self, x, fs=None):
@@ -172,7 +184,6 @@ class BandSplit(nn.Module):
             else:
                 z = torch.cat((z, out.unsqueeze(-1)), dim=-1)
             hz_band = hz_band + int(subband)
-            print(i, subband, hz_band, self.subband_freqs[i])
             if hz_band >= x.size(2):
                 break
             if fs is not None and self.subband_freqs[i] >= fs / 2:
@@ -181,7 +192,7 @@ class BandSplit(nn.Module):
 
 
 class MaskDecoder(nn.Module):
-    def __init__(self, freq_dim, subbands, channels=128, num_spk=1):
+    def __init__(self, freq_dim, subbands, channels=128, num_spk=1, norm_type="GN"):
         super().__init__()
         assert freq_dim == sum(subbands), (freq_dim, subbands)
         self.subbands = subbands
@@ -192,7 +203,7 @@ class MaskDecoder(nn.Module):
         for subband in self.subbands:
             self.mlp_mask.append(
                 nn.Sequential(
-                    nn.GroupNorm(1, channels),
+                    choose_norm1d(norm_type, channels),
                     nn.Conv1d(channels, 4 * channels, 1),
                     nn.Tanh(),
                     nn.Conv1d(4 * channels, int(subband * 4 * num_spk), 1),
@@ -201,7 +212,7 @@ class MaskDecoder(nn.Module):
             )
             self.mlp_residual.append(
                 nn.Sequential(
-                    nn.GroupNorm(1, channels),
+                    choose_norm1d(norm_type, channels),
                     nn.Conv1d(channels, 4 * channels, 1),
                     nn.Tanh(),
                     nn.Conv1d(4 * channels, int(subband * 4 * num_spk), 1),
@@ -241,3 +252,100 @@ class MaskDecoder(nn.Module):
         m = nn.functional.pad(m, (0, 0, 0, int(self.freq_dim - m.size(-2))))
         r = nn.functional.pad(r, (0, 0, 0, int(self.freq_dim - r.size(-2))))
         return m.moveaxis(1, 2), r.moveaxis(1, 2)
+
+
+def choose_norm(norm_type, channel_size, shape="BDTF"):
+    """The input of normalization will be (M, C, K), where M is batch size.
+
+    C is channel size and K is sequence length.
+    """
+    if norm_type == "cfLN":
+        return ChannelFreqwiseLayerNorm(channel_size, shape=shape)
+    elif norm_type == "cLN":
+        return ChannelwiseLayerNorm(channel_size, shape=shape)
+    elif norm_type == "BN":
+        # Given input (M, C, T, K), nn.BatchNorm2d(C) will accumulate statics
+        # along M, T, and K, so this BN usage is right.
+        return nn.BatchNorm2d(channel_size)
+    elif norm_type == "GN":
+        return nn.GroupNorm(1, channel_size)
+    else:
+        raise ValueError("Unsupported normalization type")
+
+
+class ChannelwiseLayerNorm(nn.Module):
+    """Channel-wise Layer Normalization (cLN)."""
+
+    def __init__(self, channel_size, shape="BDTF"):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1, 1))  # [1, N, 1]
+        self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1, 1))  # [1, N, 1]
+        self.reset_parameters()
+        assert shape in ["BDTF", "BTFD"], shape
+        self.shape = shape
+
+    def reset_parameters(self):
+        self.gamma.data.fill_(1)
+        self.beta.data.zero_()
+
+    @torch.cuda.amp.autocast(enabled=False)
+    def forward(self, y):
+        """Forward.
+
+        Args:
+            y: [M, N, T, K], M is batch size, N is channel size, T and K are lengths
+
+        Returns:
+            cLN_y: [M, N, T, K]
+        """
+
+        assert y.dim() == 4
+
+        if self.shape == "BTFD":
+            y = y.moveaxis(-1, 1)
+
+        mean = torch.mean(y, dim=1, keepdim=True)  # [M, 1, T, K]
+        var = torch.var(y, dim=1, keepdim=True, unbiased=False)  # [M, 1, T, K]
+        cLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
+
+        if self.shape == "BTFD":
+            cLN_y = cLN_y.moveaxis(1, -1)
+
+        return cLN_y
+
+
+class ChannelFreqwiseLayerNorm(nn.Module):
+    """Channel-and-Frequency-wise Layer Normalization (cfLN)."""
+
+    def __init__(self, channel_size, shape="BDTF"):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1, 1))  # [1, N, 1, 1]
+        self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1, 1))  # [1, N, 1, 1]
+        self.reset_parameters()
+        assert shape in ["BDTF", "BTFD"], shape
+        self.shape = shape
+
+    def reset_parameters(self):
+        self.gamma.data.fill_(1)
+        self.beta.data.zero_()
+
+    @torch.cuda.amp.autocast(enabled=False)
+    def forward(self, y):
+        """Forward.
+
+        Args:
+            y: [M, N, T, K], M is batch size, N is channel size, T and K are lengths
+
+        Returns:
+            gLN_y: [M, N, T, K]
+        """
+        if self.shape == "BTFD":
+            y = y.moveaxis(-1, 1)
+
+        mean = y.mean(dim=(1, 3), keepdim=True)  # [M, 1, T, 1]
+        var = (torch.pow(y - mean, 2)).mean(dim=(1, 3), keepdim=True)
+        gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
+
+        if self.shape == "BTFD":
+            gLN_y = gLN_y.moveaxis(1, -1)
+        return gLN_y

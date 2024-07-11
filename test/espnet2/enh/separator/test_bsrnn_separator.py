@@ -11,6 +11,7 @@ from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 @pytest.mark.parametrize("num_layers", [3])
 @pytest.mark.parametrize("target_fs", [48000])
 @pytest.mark.parametrize("causal", [True, False])
+@pytest.mark.parametrize("norm_type", ["cfLN", "cLN", "BN", "GN"])
 def test_bsrnn_separator_forward_backward_complex(
     input_dim,
     num_spk,
@@ -18,6 +19,7 @@ def test_bsrnn_separator_forward_backward_complex(
     num_layers,
     target_fs,
     causal,
+    norm_type,
 ):
     model = BSRNNSeparator(
         input_dim=input_dim,
@@ -26,6 +28,7 @@ def test_bsrnn_separator_forward_backward_complex(
         num_layers=num_layers,
         target_fs=target_fs,
         causal=causal,
+        norm_type=norm_type,
     )
     model.train()
 

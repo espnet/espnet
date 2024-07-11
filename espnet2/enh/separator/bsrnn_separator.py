@@ -18,6 +18,7 @@ class BSRNNSeparator(AbsSeparator):
         num_layers: int = 6,
         target_fs: int = 48000,
         causal: bool = True,
+        norm_type: str = "GN",
         ref_channel: Optional[int] = None,
     ):
         """Band-split RNN (BSRNN) separator.
@@ -39,6 +40,7 @@ class BSRNNSeparator(AbsSeparator):
             target_fs: (int) max sampling frequency that the model can handle.
             causal (bool): whether or not to apply causal modeling.
                 if True, LSTM will be used instead of BLSTM for time modeling
+            norm_type (str): type of the normalization layer (cfLN / cLN / BN / GN).
             ref_channel: (int) reference channel. not used for now.
         """
         super().__init__()
@@ -53,6 +55,7 @@ class BSRNNSeparator(AbsSeparator):
             target_fs=target_fs,
             causal=causal,
             num_spk=num_spk,
+            norm_type=norm_type,
         )
 
     def forward(
