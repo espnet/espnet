@@ -353,7 +353,7 @@ class EBranchformerEncoder(AbsEncoder):
                 qk_norm,
                 use_flash_attn,
                 False,
-                False
+                False,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"

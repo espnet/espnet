@@ -155,13 +155,13 @@ class TransformerEncoder(AbsEncoder):
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, 
-                    output_size, 
+                    attention_heads,
+                    output_size,
                     attention_dropout_rate,
                     qk_norm,
                     use_flash_attn,
                     False,
-                    False
+                    False,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,

@@ -18,6 +18,7 @@ try:
 except Exception:
     logging.info("Failed to import Flash Attention, using ESPnet default.")
 
+
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer.
 

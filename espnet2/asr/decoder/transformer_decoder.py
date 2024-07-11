@@ -407,10 +407,22 @@ class TransformerDecoder(BaseTransformerDecoder):
             lambda lnum: DecoderLayer(
                 attention_dim,
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, self_attention_dropout_rate, qk_norm, use_flash_attn, True, False
+                    attention_heads,
+                    attention_dim,
+                    self_attention_dropout_rate,
+                    qk_norm,
+                    use_flash_attn,
+                    True,
+                    False,
                 ),
                 MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate, qk_norm, use_flash_attn, False, True
+                    attention_heads,
+                    attention_dim,
+                    src_attention_dropout_rate,
+                    qk_norm,
+                    use_flash_attn,
+                    False,
+                    True,
                 ),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
