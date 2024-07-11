@@ -39,7 +39,7 @@ echo "[INFO] torch_version=${torch_version}"
 if "$(pt_plus 1.8.0)" && "${python_36_plus}"; then
 
     rm -rf fairseq
-
+    # NOTE(nelson): using custom fairseq for espnet 
     git clone https://github.com/espnet/fairseq.git
     python3 -m pip install --editable ./fairseq
     python3 -m pip install filelock
