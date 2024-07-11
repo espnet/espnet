@@ -322,6 +322,8 @@ class BranchformerEncoder(AbsEncoder):
         zero_triu: bool = False,
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -419,6 +421,10 @@ class BranchformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                qk_norm,
+                use_flash_attn,
+                False,
+                False
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
