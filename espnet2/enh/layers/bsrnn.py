@@ -5,7 +5,6 @@ import torch.nn as nn
 
 from espnet2.enh.layers.tcn import choose_norm as choose_norm1d
 
-
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
