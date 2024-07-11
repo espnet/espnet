@@ -11,6 +11,7 @@ import math
 
 import torch
 from torch import nn
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
