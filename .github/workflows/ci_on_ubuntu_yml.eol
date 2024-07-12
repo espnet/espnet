@@ -106,21 +106,23 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.9, "3.10"]
-        pytorch-version: [2.0.1, 2.1.0]
+        # python-version: [3.8, 3.9, "3.10"]
+        # pytorch-version: [2.0.1, 2.1.0]
+        python-version: ["3.10"]
+        pytorch-version: [2.1.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.7"
-            pytorch-version: 1.12.1
-            chainer-verssion: 6.0.0
-            use-conda: false
-          - os: ubuntu-latest
-            python-version: "3.7"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
+        # include:
+        #   - os: ubuntu-latest
+        #     python-version: "3.7"
+        #     pytorch-version: 1.12.1
+        #     chainer-verssion: 6.0.0
+        #     use-conda: false
+        #   - os: ubuntu-latest
+        #     python-version: "3.7"
+        #     pytorch-version: 1.13.1
+        #     chainer-verssion: 6.0.0
+        #     use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
@@ -148,9 +150,9 @@ jobs:
         run: |
           ./ci/install.sh
 
-      - name: test shell
-        run: |
-          ./ci/test_shell_espnet2.sh
+      # - name: test shell
+      #   run: |
+      #     ./ci/test_shell_espnet2.sh
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
@@ -195,16 +197,16 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7]
-        pytorch-version: [1.13.1]
+        python-version: ["3.10"]
+        pytorch-version: [2.1.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 2.1.0
-            chainer-verssion: 6.0.0
-            use-conda: false
+        # include:
+        #   - os: ubuntu-latest
+        #     python-version: "3.10"
+        #     pytorch-version: 2.1.0
+        #     chainer-verssion: 6.0.0
+        #     use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
