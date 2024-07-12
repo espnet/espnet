@@ -4,17 +4,6 @@ espnet2.hubert package
 
 
 
-.. _espnet2.hubert.espnet_model:
-
-espnet2.hubert.espnet_model
----------------------------
-
-.. automodule:: espnet2.hubert.espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.hubert.__init__:
 
 espnet2.hubert.__init__
@@ -32,6 +21,17 @@ espnet2.hubert.hubert_loss
 --------------------------
 
 .. automodule:: espnet2.hubert.hubert_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.hubert.espnet_model:
+
+espnet2.hubert.espnet_model
+---------------------------
+
+.. automodule:: espnet2.hubert.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:

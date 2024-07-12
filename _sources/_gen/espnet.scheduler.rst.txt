@@ -15,12 +15,12 @@ espnet.scheduler.__init__
     :show-inheritance:
 
 
-.. _espnet.scheduler.pytorch:
+.. _espnet.scheduler.chainer:
 
-espnet.scheduler.pytorch
+espnet.scheduler.chainer
 ------------------------
 
-.. automodule:: espnet.scheduler.pytorch
+.. automodule:: espnet.scheduler.chainer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,12 +37,12 @@ espnet.scheduler.scheduler
     :show-inheritance:
 
 
-.. _espnet.scheduler.chainer:
+.. _espnet.scheduler.pytorch:
 
-espnet.scheduler.chainer
+espnet.scheduler.pytorch
 ------------------------
 
-.. automodule:: espnet.scheduler.chainer
+.. automodule:: espnet.scheduler.pytorch
     :members:
     :undoc-members:
     :show-inheritance:
