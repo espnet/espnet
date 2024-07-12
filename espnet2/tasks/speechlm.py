@@ -9,6 +9,7 @@ from typeguard import typechecked
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
+from espnet2.speechlm.core_lm.ar import ARLM
 from espnet2.speechlm.core_lm.valle import ValleLM
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
@@ -37,6 +38,7 @@ corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
         valle=ValleLM,
+        ar=ARLM,
         ar_parallel=ARParallelLM,
         ar_delay=ARDelayLM,
         multiscale=MultiScaleLM,
@@ -150,7 +152,7 @@ class SpeechLMTask(AbsTask):
             "--bpemodel",
             type=str_or_none,
             default=None,
-            help="The model file fo sentencepiece",
+            help="The model file of sentencepiece or HF model tag",
         )
         parser.add_argument(
             "--non_linguistic_symbols",
@@ -212,6 +214,7 @@ class SpeechLMTask(AbsTask):
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
             bpemodel=args.bpemodel,
+            bpemodel_type="builtin" if args.corelm_conf.get("hf_model_tag", None) is None else "hugging_face",
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,
@@ -270,6 +273,7 @@ class SpeechLMTask(AbsTask):
         corelm = corelm_class(
             vocab_size=len(token_list),
             nq=args.codec_token_in_use,
+            token_bias=token_bias,
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)
@@ -283,6 +287,7 @@ class SpeechLMTask(AbsTask):
                 reflm = reflm_class(
                     vocab_size=len(token_list),
                     nq=args.codec_token_in_use,
+                    token_bias=token_bias,
                     **args.corelm_conf,
                 )
             reflm.requires_grad_(False)
