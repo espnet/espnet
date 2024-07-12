@@ -242,99 +242,10 @@ if ! "${skip_data_prep}"; then
         local/data.sh ${local_data_opts}
     fi
 
-    # if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-
-    #     if ${skip_train}; then
-    #         _dsets=${test_sets}
-    #     else
-    #         _dsets="${train_set} ${valid_set} ${test_sets}"
-    #     fi
-
-    #     prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
-    #     wav_files=""
-    #     for prepare_opt in ${prepare_opts}; do
-    #         IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
-    #         if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
-    #             wav_files+="${_name} "
-    #         fi
-    #     done
-
-    #     log "Stage 2: Format wav.scp: data/ -> ${data_audio}/"
-    #     for dset in ${_dsets}; do
-    #         if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-    #             _suf="/org"
-    #         else
-    #             _suf=""
-    #         fi
-
-    #         utils/copy_data_dir.sh data/"${dset}" "${data_audio}${_suf}/${dset}"
-    #         rm -f ${data_audio}${_suf}/${dset}/{segments,reco2file_and_channel}
-    #         _opts=
-    #         if [ -e data/"${dset}"/segments ]; then
-    #             _opts+="--segments data/${dset}/segments "
-    #         fi
-
-    #         # shellcheck disable=SC2086
-    #         for wav_file in ${wav_files}; do
-    #             rm -f ${data_audio}${_suf}/${dset}/${wav_file}
-    #             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-    #                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-    #                 "data/${dset}/${wav_file}" "${data_audio}${_suf}/${dset}"
-    #             mv ${data_audio}${_suf}/${dset}/utt2num_samples \
-    #                ${data_audio}${_suf}/${dset}/${wav_file}_utt2num_samples
-    #         done
-    #         echo "${feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
-
-            
-    #     done
-    # fi
-
-    # if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_train}; then
-    #     log "Stage 3: Remove long/short data: ${data_audio}/org -> ${data_audio}"
-
-    #     # NOTE(kamo): Not applying to test_sets to keep original data
-    #     for dset in "${train_set}" "${valid_set}"; do
-    #         # if [ ! -f ${data_audio}/org/${dset}/utt2num_samples ]; then
-    #         #     log "Skip removing long/short data as utt2num_samples doesn't exist"
-    #         #     continue
-    #         # fi
-
-    #         # Copy data dir
-    #         utils/copy_data_dir.sh "${data_audio}/org/${dset}" "${data_audio}/${dset}"
-    #         cp "${data_audio}/org/${dset}/feats_type" "${data_audio}/${dset}/feats_type"
-
-    #         # Remove short utterances
-    #         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-    #         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-    #         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-
-    #         # utt2num_samples is created by format_wav_scp.sh
-    #         if [ -f ${data_audio}/org/${dset}/utt2num_samples ]; then
-    #             <"${data_audio}/org/${dset}/utt2num_samples" \
-    #                 awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-    #                     '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
-    #                     >"${data_audio}/${dset}/utt2num_samples"
-    #             <"${data_audio}/org/${dset}/wav.scp" \
-    #                 utils/filter_scp.pl "${data_audio}/${dset}/utt2num_samples"  \
-    #                 >"${data_audio}/${dset}/wav.scp"
-    #         else
-    #             cp ${data_audio}/org/${dset}/wav.scp ${data_audio}/${dset}/wav.scp
-    #         fi
-
-    #         # Remove empty text
-    #         <"${data_audio}/org/${dset}/text" \
-    #             awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/text"
-
-    #         # fix_data_dir.sh leaves only utts which exist in all files
-    #         # shellcheck disable=SC2086
-    #         utils/fix_data_dir.sh "${data_audio}/${dset}"
-    #     done
-    # fi
-
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # NOTE(Jinchuan): We don't have to verify the data folders (like fix_data_dir.sh) here.
-        # This will be done by pyscripts/utils/make_speechlm_json.py in stage 5.
-        log "Stage 2: Format all wav files"
+        # This will be done internally by pyscripts/utils/make_speechlm_json.py in stage 5.
+        log "Stage 2: Format all audio files"
 
         prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
@@ -360,7 +271,6 @@ if ! "${skip_data_prep}"; then
                     "data/${dset}/${_name}" "${data_audio}/${dset}"
 
                     # Filter Length
-                    echo ${_min_length} ${_max_length}
                     awk -v min_len="${_min_length}" -v max_len="${_max_length}" '
                     FNR==NR { lengths[$1]=$2; next }
                     ($1 in lengths) && (lengths[$1] >= min_len) && (lengths[$1] <= max_len) { print $0 }
