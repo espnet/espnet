@@ -37,7 +37,7 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         assert (
             n_channels % no_kernels == 0
-        ), f"{n_channels} input channels cannot be divided equally between {no_kernels} kernels"
+        ), f"{n_channels} input channels cannot be divided between {no_kernels} kernels"
 
         self.arch_type = arch_type
         if arch_type in ["sum", "weighted_sum"]:
