@@ -72,7 +72,7 @@ def test_encoder_forward_backward(
         pos_enc_layer_type=pos_enc_layer_type,
         positionwise_layer_type=positionwise_layer_type,
         rel_pos_type=rel_pos_type,
-        cgmlp_linear_units=4,
+        cgmlp_linear_units=6,
         use_cnn_module=True,
         use_linear_after_conv=use_linear_after_conv,
         gate_activation="identity",
