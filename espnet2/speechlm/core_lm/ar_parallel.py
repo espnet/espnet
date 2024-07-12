@@ -20,6 +20,8 @@ class ARParallelLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        hf_model_tag: str = None,
+        token_bias: dict = None,
         share_emb: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
