@@ -1,4 +1,4 @@
-# Copyright 2020 Tomoki Hayashi
+# Copyright 2024 Darshan Prabhu (IIT Bombay)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Multiconvformer encoder definition."""
