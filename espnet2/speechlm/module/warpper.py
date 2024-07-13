@@ -79,7 +79,7 @@ class TransformerDecoder(torch.nn.Module):
         if self.model_type == "builtin":
             return self.model(x=x, mask=mask, kv_cache=kv_cache)
         else:
-            return self.model(inputs_embeds=x,).last_hidden_state
+            return self.model(inputs_embeds=x).last_hidden_state
     
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):
