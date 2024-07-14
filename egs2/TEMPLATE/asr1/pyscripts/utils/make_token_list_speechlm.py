@@ -72,12 +72,17 @@ def main():
             f"Get vocab for modality: {modality} with token_list files: {vocabs}"
         )
 
-        modality_vocab = []
+        modality_vocab = {}
         for vocab in vocabs:
             this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
+                if e in special_tokens:
+                    e = e + f"_<{modality}>"
+                    logging.warning(
+                        f"Make token {e} due to duplication to special tokens"
+                    )
                 if e not in modality_vocab:
-                    modality_vocab.append(e)
+                    modality_vocab[e] = None
                 else:
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
@@ -85,7 +90,7 @@ def main():
             f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list)}"
         )
         token_bias[modality] = len(token_list)
-        token_list = token_list + modality_vocab
+        token_list = token_list + list(modality_vocab.keys())
 
     vocab_writer = open(args.token_list_dir / "token_list", "w")
     for tok in token_list:

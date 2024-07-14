@@ -1,8 +1,7 @@
-# Trained with Tesla A100 (40GB) x 8 GPUs. It takes about 22 hours.
-# #Params: 303M
 corelm: multiscale_delay
 corelm_conf:
     share_emb: false
+    qk_norm: true
     # global transformer
     g_att_unit: 1024
     g_head: 16
@@ -10,7 +9,7 @@ corelm_conf:
     # local transformer
     l_att_unit: 384
     l_head: 6
-    l_layer: 6
+    l_layer: 4
 
 # Dataloader
 batch_type: numel
@@ -18,7 +17,7 @@ batch_bins: 5000
 num_iters_per_epoch: 20000
 accum_grad: 2
 grad_clip: 5
-max_epoch: 20
+max_epoch: 60
 num_workers: 4
 drop_last_iter: true
 log_interval: 2000
@@ -26,7 +25,7 @@ log_interval: 2000
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.0002
+    lr: 0.001
     betas:
         - 0.9
         - 0.95
