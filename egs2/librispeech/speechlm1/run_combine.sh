@@ -5,8 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-# train_config=conf/train_multiscale.yaml
 train_config=conf/train_multiscale_1b.yaml
+# train_config=conf/train_valle.yaml
 # train_config=conf/train_parallel.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till100epoch.pth
@@ -74,17 +74,17 @@ if ${generate_train_clean_360}; then
     test_jsons+="dump/raw_tts_librispeech/train_clean_360/data.json "
 fi
 
-test_jsons+="dump/raw_tts_librispeech/train_other_500/data.json "
 
 ./speechlm.sh \
     --skip_data_prep true \
     --data_combo_name ${data_combo_name%_} \
     --fs 16000 \
-    --ngpu 8 \
+    --num_nodes 2 \
+    --ngpu 4 \
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
-    --inference_nj 88 \
+    --inference_nj 8 \
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \

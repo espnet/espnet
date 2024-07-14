@@ -847,7 +847,6 @@ if ! "${skip_eval}"; then
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
                             --io soundfile \
-                            --rank JOB \
                             ${gt_file_op} \
                             ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
                     
