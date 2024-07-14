@@ -9,7 +9,7 @@ set -o pipefail
 # train_config=conf/train_multiscale_1b.yaml
 # train_config=conf/train_parallel.yaml
 # train_config=conf/train_multiscale_delay.yaml
-train_config=conf/train_valle_1b.yaml
+train_config=conf/train_valle.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till100epoch.pth
 # inference_model=valid.total_count.ave_5best.till75epoch.pth
@@ -76,11 +76,6 @@ if ${generate_train_clean_360}; then
     test_jsons+="dump/raw_tts_librispeech/train_clean_360/data.json "
 fi
 
-<<<<<<< HEAD
-test_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
-
-=======
->>>>>>> 34f4ff42e9f9b3bae90c00219246705fd5593c33
 ./speechlm.sh \
     --skip_data_prep true \
     --data_combo_name ${data_combo_name%_} \
@@ -89,11 +84,7 @@ test_jsons+="dump/raw_tts_librispeech/dev_clean/data.json "
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
-<<<<<<< HEAD
     --inference_nj 32 \
-=======
-    --inference_nj 16 \
->>>>>>> 34f4ff42e9f9b3bae90c00219246705fd5593c33
     --nbest 10 \
     --gpu_inference true \
     --audio_format "flac.ark" \
