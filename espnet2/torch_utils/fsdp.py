@@ -119,7 +119,8 @@ def get_model_and_optimizer_state_dict_fsdp(model, optimizers):
     # require gradients. In this case, just skip saving the optimizer
     # states. This should be roughly ok as this is usually for small-scale
     # fine-tuning.
-    if all(p.requires_grad for p in model.parameters()):
+    # if all(p.requires_grad for p in model.parameters()):
+    if False:
         optim_state_dict = [FSDP.optim_state_dict(model, optimizers[0])]
     else:
         optim_state_dict = {}

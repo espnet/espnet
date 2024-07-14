@@ -2532,10 +2532,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         0, len(value) - self.speaker_prompt_length - 1
                     )
                     value = value[start : start + self.speaker_prompt_length]
-                else:
-                    pad_len = self.speaker_prompt_length - len(value)
-                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                    value = np.concatenate([value, pad], axis=0)
+                # NOTE(Jinchuan): temporarily comment this, as some old models
+                # are trained without this policy
+                # else:
+                #     pad_len = self.speaker_prompt_length - len(value)
+                #     pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                #     value = np.concatenate([value, pad], axis=0)
 
             value = value.flatten()
             conti_feat = None
