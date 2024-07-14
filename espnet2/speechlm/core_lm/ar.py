@@ -5,24 +5,22 @@
 
 # Implementation of UniAudio architecture: https://arxiv.org/abs/2310.00704
 
-import logging
 from typing import Dict, Tuple
 
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss, install_kv_cache_hook, logits_to_tokens
+from espnet2.speechlm.module.warpper import TransformerDecoder
+from espnet2.speechlm.net_utils import ce_loss
 
-
-class ARParallelLM(AbsCoreLM):
+class ARLM(AbsCoreLM):
     def __init__(
         self,
         vocab_size: int,
         nq: int,
         hf_model_tag: str = None,
         token_bias: dict = None,
-        share_emb: bool = True,
+        share_emb: bool = False,
         qk_norm: bool = False,
         dropout: float = 0.0,
         att_unit: int = 256,
@@ -31,7 +29,7 @@ class ARParallelLM(AbsCoreLM):
         n_ctx: int = 3000,
         sos_eos: int = 5,
     ):
-        """Initialize Auto-regressive LM with parallel interleave codec pattern.
+        """Initialize standard Auto-regressive LM .
 
         Args:
             vocab_size (int): Dimention of vocabulary.
@@ -44,13 +42,12 @@ class ARParallelLM(AbsCoreLM):
             layer (int): Number of layers in global Transformer.
             n_ctx (int): maximum context length of global Transformer.
         """
-        super(ARParallelLM, self).__init__()
+        super(ARLM, self).__init__()
 
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
         if share_emb:
             self.lm_head.weight = self.emb.weight
-        self.head_emb = torch.nn.Embedding(nq, att_unit)
 
         self.decoders = TransformerDecoder(
             n_ctx=n_ctx,
@@ -59,11 +56,15 @@ class ARParallelLM(AbsCoreLM):
             n_layer=layer,
             qk_norm=qk_norm,
             dropout=dropout,
+            hf_model_tag=hf_model_tag,
+            token_bias=token_bias,
         )
 
         self.nq = nq
         self.n_ctx = n_ctx
         self.sos_eos = sos_eos
+
+        self.decoders.init_embeddings(self.emb, self.lm_head)
 
     def forward(
         self,
@@ -74,7 +75,7 @@ class ARParallelLM(AbsCoreLM):
         prefix_len: torch.Tensor = None,
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
-        """Auto-Regresive LM forward for training
+        """Auto-Regresive LM forward for training.
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
@@ -88,14 +89,12 @@ class ARParallelLM(AbsCoreLM):
         """
         assert dec_seq.dim() == 3
 
-        target = dec_seq[:, 1:]
+        target = dec_seq[:, 1:, :1]
         x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
+        x = self.emb(x).mean(dim=2)
         x = self.decoders(x)
+        logits = self.lm_head(x).unsqueeze(2)
 
-        # [B, T, 1, D] + [1, 1, nq, D]
-        x = x.unsqueeze(2) + self.head_emb.weight.unsqueeze(0).unsqueeze(0)
-        logits = self.lm_head(x)  # [B, T, nq, V]
         loss, stats, weight = ce_loss(
             logits,
             target,
@@ -103,8 +102,16 @@ class ARParallelLM(AbsCoreLM):
             prefix_len - 1,
             compute_loss=compute_loss,
         )
-
+        
         return loss, logits, stats, weight
+    
+    def _init_embeddings(self):
+        if "text_bpe" not in self.token_bias:
+            return
+        
+        start = self.token_bias['text_bpe']
+        values = list(self.token_bias.values())
+
 
     @torch.no_grad()
     def inference(
