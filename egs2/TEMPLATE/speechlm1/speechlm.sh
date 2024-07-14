@@ -201,8 +201,6 @@ if [ -z ${token_list_dir} ]; then
     token_list_dir=data/token_list/${data_combo_name}
 fi
 
-global_ngpu=$((ngpu * num_nodes))
-
 # check for stage 8-9: training and inference
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
@@ -511,18 +509,18 @@ if ! ${skip_train}; then
         done
 
         # Shard dataset to each GPU.
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${global_ngpu}"
+        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
         mkdir -p "${_sharded_dir}"
         ${python} pyscripts/utils/split_data_jsons.py \
             --json_files ${train_jsons} \
-            --nj ${global_ngpu} \
+            --nj ${ngpu} \
             --output_dir ${_sharded_dir}/train
         ${python} pyscripts/utils/split_data_jsons.py \
             --json_files ${valid_jsons} \
-            --nj ${global_ngpu} \
+            --nj ${ngpu} \
             --output_dir ${_sharded_dir}/valid
 
-        for n in `seq ${global_ngpu}`; do
+        for n in `seq $ngpu`; do
             for module in enc dec; do
                 for dset in train valid; do
                     if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_lengths ]; then
@@ -546,14 +544,14 @@ if ! ${skip_train}; then
         fi
 
         _data_opts=""
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${global_ngpu}"
+        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
 
         for dset in `ls -d ${_sharded_dir}/train/*/`; do
-            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${global_ngpu}/JOB/data.JOB.json,_,dataset_json "
+            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
         done
 
         for dset in `ls -d ${_sharded_dir}/valid/*/`; do
-            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${global_ngpu}/JOB/data.JOB.json,_,dataset_json "
+            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
         done
 
         _data_opts+="--train_shape_file ${_sharded_dir}/train/dec_seq_lengths.JOB "
