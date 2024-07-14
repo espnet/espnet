@@ -90,6 +90,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             all_prefix_lengths,
             compute_loss=False,
         )
+        stats['loss_ce'] = stats.pop('loss') 
 
         if self.reflm is not None:
             with torch.no_grad():
@@ -105,7 +106,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             ref_logits = None
 
         # (3) RL loss computing. Shift by 1 since <sos> has been removed in lm forward
-        loss, stats_rl = self.loss_rl(
+        loss_rl, stats_rl = self.loss_rl(
             all_seq[:, 1:],
             all_seq_lengths - 1,
             all_prefix_lengths - 1,
@@ -113,8 +114,10 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             ref_logits,
             n_positive,
         )
+        loss = loss_rl
 
         stats.update(stats_rl)
+        stats.update({"loss": loss.detach()})
 
         loss, stats, weight = force_gatherable((loss, stats, len(dec_seq)), loss.device)
 
@@ -211,6 +214,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         acc = (pos_reward > neg_reward).float()
 
         stats = {
+            "loss_rl": loss,
             "pos_reward": pos_reward,
             "neg_reward": neg_reward,
             "reward_gap": pos_reward - neg_reward,

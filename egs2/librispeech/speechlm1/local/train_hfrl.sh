@@ -129,7 +129,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if ${use_sft}; then
         # the checkpoint is used to initialize both corelm and reflm
         log "SFT Training ..."
-        train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
+        sft_train_args="--init_param ${pretrain_checkpoint}:corelm:corelm"
         ./speechlm.sh \
             --stage 8 --stop_stage 8 \
             --tag sft_${tag} \
@@ -144,7 +144,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --train_config ${sft_config} \
             --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
             --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
-            --train_args "${train_args}" \
+            --train_args "${sft_train_args}" \
             "$@"
     else
         echo "Skip SFT stage"
@@ -161,9 +161,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     # the checkpoint is used to initialize both corelm and reflm
     if ${use_reflm}; then
-        train_args+="--init_param ${pretrain_checkpoint}:corelm:corelm ${pretrain_checkpoint}:corelm:reflm"
+        hfrl_train_args+=" --init_param ${pretrain_checkpoint}:corelm:corelm ${pretrain_checkpoint}:corelm:reflm "
     else
-        train_args+="--init_param ${pretrain_checkpoint}:corelm:corelm"
+        hfrl_train_args+=" --init_param ${pretrain_checkpoint}:corelm:corelm "
     fi
     ./speechlm.sh \
         --stage 8 --stop_stage 8 \
@@ -179,6 +179,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train_config ${hfrl_config} \
         --train_jsons ${train_dir}_hfrl_${data_combo_name}/data.json \
         --valid_jsons ${valid_dir}_hfrl_${data_combo_name}/data.json \
-        --train_args "${train_args}" \
+        --train_args "${hfrl_train_args}" \
         "$@"
 fi

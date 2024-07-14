@@ -107,10 +107,10 @@ semantic_opts=""
 g2p="g2p_en" # g2p
 cleaner=tacotron
 # (4) text bpe
-bpemodel=        # external BPE model, use it if given
-bpe_train_text=        # text used to train BPE, if given
+bpemode=unigram    # unigram or huggingface
+bpemodel=          # external BPE model, use it if given; or Huggingface model tag
+bpe_train_text=    # text used to train BPE, if given
 nbpe=5000
-bpemode=unigram
 bpe_nlsyms=
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_char_cover=1.0  # character coverage when modeling BPE
@@ -181,21 +181,25 @@ if [ -z "${speechlm_stats_dir}" ]; then
     speechlm_stats_dir="${expdir}/speechlm_stats_${data_combo_name}"
 fi
 
-if  [ ! -z "${bpemodel}" ]; then
-    if [ ! -f "${bpemodel}".model ]; then
-        log "bpemodel is specified but not exist ... " && exit 1;
+if [ "${bpemode}" == "unigram" ]; then
+    if  [ ! -z "${bpemodel}" ]; then
+        if [ ! -f "${bpemodel}".model ]; then
+            log "bpemodel is specified but not exist ... " && exit 1;
+        fi
+    else
+        if ! "${skip_data_prep}"; then
+            bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+        fi
     fi
 else
-    if ! "${skip_data_prep}"; then
-        bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+    if [ -z "${bpemodel}" ]; then
+        log "To use HF tokenizer, you should specify the bpemodel by the model tag" && exit 1;
     fi
 fi
 
 if [ -z ${token_list_dir} ]; then
     token_list_dir=data/token_list/${data_combo_name}
 fi
-
-global_ngpu=$((ngpu * num_nodes))
 
 # check for stage 8-9: training and inference
 if [ -z "${tag}" ]; then
@@ -237,85 +241,52 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-
-        if ${skip_train}; then
-            _dsets=${test_sets}
-        else
-            _dsets="${train_set} ${valid_set} ${test_sets}"
-        fi
+        # NOTE(Jinchuan): We don't have to verify the data folders (like fix_data_dir.sh) here.
+        # This will be done internally by pyscripts/utils/make_speechlm_json.py in stage 5.
+        log "Stage 2: Format all audio files"
 
         prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
-        wav_files=""
-        for prepare_opt in ${prepare_opts}; do
-            IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
-            if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
-                wav_files+="${_name} "
-            fi
-        done
+        _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+        _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+        _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+        
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            mkdir -p ${data_audio}/${dset}
 
-        log "Stage 2: Format wav.scp: data/ -> ${data_audio}/"
-        for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
+            for prepare_opt in ${prepare_opts}; do
+                IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
 
-            utils/copy_data_dir.sh data/"${dset}" "${data_audio}${_suf}/${dset}"
-            rm -f ${data_audio}${_suf}/${dset}/{segments,reco2file_and_channel}
-            _opts=
-            if [ -e data/"${dset}"/segments ]; then
-                _opts+="--segments data/${dset}/segments "
-            fi
+                if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
+                    
+                    # Format audio
+                    _opts=
+                    if [ -e data/"${dset}"/segments ]; then
+                        _opts+="--segments data/${dset}/segments "
+                    fi
+                    scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    --out_filename ${_name} ${_opts} \
+                    "data/${dset}/${_name}" "${data_audio}/${dset}"
 
-            # shellcheck disable=SC2086
-            for wav_file in ${wav_files}; do
-                rm -f ${data_audio}${_suf}/${dset}/${wav_file}
-                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/${wav_file}" "${data_audio}${_suf}/${dset}"
+                    # Filter Length
+                    awk -v min_len="${_min_length}" -v max_len="${_max_length}" '
+                    FNR==NR { lengths[$1]=$2; next }
+                    ($1 in lengths) && (lengths[$1] >= min_len) && (lengths[$1] <= max_len) { print $0 }
+                    ' ${data_audio}/${dset}/utt2num_samples ${data_audio}/${dset}/${_name} \
+                    > ${data_audio}/${dset}/${_name}.tmp
+                    mv ${data_audio}/${dset}/${_name}.tmp ${data_audio}/${dset}/${_name}
+
+                else
+                    # Other non-speech items
+                    <"data/${dset}/${_name}" \
+                    awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/${_name}"
+                fi
             done
-            echo "${feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
         done
     fi
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! ${skip_train}; then
-        log "Stage 3: Remove long/short data: ${data_audio}/org -> ${data_audio}"
-
-        # NOTE(kamo): Not applying to test_sets to keep original data
-        for dset in "${train_set}" "${valid_set}"; do
-            # Copy data dir
-            utils/copy_data_dir.sh "${data_audio}/org/${dset}" "${data_audio}/${dset}"
-            cp "${data_audio}/org/${dset}/feats_type" "${data_audio}/${dset}/feats_type"
-
-            # Remove short utterances
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-
-            # utt2num_samples is created by format_wav_scp.sh
-            <"${data_audio}/org/${dset}/utt2num_samples" \
-                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
-                    >"${data_audio}/${dset}/utt2num_samples"
-            <"${data_audio}/org/${dset}/wav.scp" \
-                utils/filter_scp.pl "${data_audio}/${dset}/utt2num_samples"  \
-                >"${data_audio}/${dset}/wav.scp"
-
-            # Remove empty text
-            <"${data_audio}/org/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/text"
-
-            # fix_data_dir.sh leaves only utts which exist in all files
-            # shellcheck disable=SC2086
-            utils/fix_data_dir.sh "${data_audio}/${dset}"
-        done
-    fi
-
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        # Skip at this moment. Mainly for SSL K-Means
-        log "Stage 4: Train necessary models before tokenization"
-
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Skip stage 3-4: No operations"
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -338,14 +309,14 @@ if ! "${skip_data_prep}"; then
                 # for discrete operations, we will also generate a vocabulary.
 
                 if [ ! -f ${data_audio}/${dset}/${_name} ]; then
-                    echo "File ${data_audio}/${dset}/${_name} is missing. Exit" || exit 1;
+                    log "File ${data_audio}/${dset}/${_name} is missing. Exit" || exit 1;
                 fi
 
                 if [ ${_modality} == "ssl" ]; then
-                    echo "do ssl tokenization" && exit 1;
+                    log "ssl tokenization is not implemented" && exit 1;
 
                 elif [ ${_modality} == "codec" ]; then
-                    echo "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+                    log "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/codec_tokenization.sh \
                         --src_dir ${data_audio}/${dset} \
                         --tgt_dir ${data_feats}/${dset} \
@@ -359,7 +330,7 @@ if ! "${skip_data_prep}"; then
                         --hf_model_tag ${codec_hf_model_tag}
 
                 elif [ ${_modality} == "g2p" ]; then
-                    echo "Find G2P vocabulary and copy text"
+                    log "Find G2P vocabulary and copy text"
                     # Use a small portion (up to 100k examples) for efficiency
                     nutt=$(min "100000" "$(wc -l < ${data_audio}/${dset}/${_name})")
                     cat ${data_audio}/${dset}/${_name} | shuf | head -n ${nutt} \
@@ -375,42 +346,52 @@ if ! "${skip_data_prep}"; then
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
                 
                 elif [ ${_modality} == "text_bpe" ]; then
-                    if [ -f ${bpemodel}.model ] && [ -f ${bpemodel}.vocab ]; then
-                        log "Skip training BPE model as it already exists"
+                    if [ "${bpemode}" == "huggingface" ]; then
+                        if [ -z ${bpemodel} ]; then
+                            log "Specify hf_tokenizer to use HuggingFace pre-trained tokenizer" && exit 1;
+                        fi
 
+                        ${python} pyscripts/utils/build_hf_vocab.py --model_tag ${bpemodel} \
+                            > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     else
-                        if [ -z ${bpe_train_text} ]; then
-                            bpe_train_text=${data_audio}/${dset}/${_name}
-                        fi
-                        log "Training BPE model with ${bpe_train_text}"
-                        nutt=$(min "100000" "$(wc -l < ${bpe_train_text})")
-                        cat ${bpe_train_text} | shuf | head -n ${nutt} \
-                        | cut -d ' ' -f 2- \
-                        > ${bpe_train_text}.text_bpe_train && echo ""
-                        
-                        if [ -n "${bpe_nlsyms}" ]; then
-                            if test -f "${bpe_nlsyms}"; then
-                                bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
-                                _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
-                            else
-                                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
-                            fi
+                        if [ -f ${bpemodel}.model ] && [ -f ${bpemodel}.vocab ]; then
+                            log "Skip training BPE model as it already exists"
+
                         else
-                            _opts_spm=""
+                            if [ -z ${bpe_train_text} ]; then
+                                bpe_train_text=${data_audio}/${dset}/${_name}
+                            fi
+                            log "Training BPE model with ${bpe_train_text}"
+                            nutt=$(min "100000" "$(wc -l < ${bpe_train_text})")
+                            cat ${bpe_train_text} | shuf | head -n ${nutt} \
+                            | cut -d ' ' -f 2- \
+                            > ${bpe_train_text}.text_bpe_train && echo ""
+                            
+                            if [ -n "${bpe_nlsyms}" ]; then
+                                if test -f "${bpe_nlsyms}"; then
+                                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                                else
+                                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                                fi
+                            else
+                                _opts_spm=""
+                            fi
+
+                            spm_train \
+                                --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
+                                --vocab_size="${nbpe}" \
+                                --model_type="${bpemode}" \
+                                --model_prefix="${bpemodel}" \
+                                --character_coverage=${bpe_char_cover} \
+                                --input_sentence_size="${bpe_input_sentence_size}" \
+                                ${_opts_spm}
                         fi
 
-                        spm_train \
-                            --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
-                            --vocab_size="${nbpe}" \
-                            --model_type="${bpemode}" \
-                            --model_prefix="${bpemodel}" \
-                            --character_coverage=${bpe_char_cover} \
-                            --input_sentence_size="${bpe_input_sentence_size}" \
-                            ${_opts_spm}
+                        < "${bpemodel}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                        > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     fi
 
-                    < "${bpemodel}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
-                    > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     cp ${data_audio}/${dset}/${_name} ${data_feats}/${dset}/${_name}
 
                 elif [ ${_modality} == "spk" ]; then
@@ -502,7 +483,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemodel "${bpemodel}".model \
+                --bpemodel "${bpemodel}" \
                 --multi_task_dataset true \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
@@ -528,18 +509,18 @@ if ! ${skip_train}; then
         done
 
         # Shard dataset to each GPU.
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${global_ngpu}"
+        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
         mkdir -p "${_sharded_dir}"
         ${python} pyscripts/utils/split_data_jsons.py \
             --json_files ${train_jsons} \
-            --nj ${global_ngpu} \
+            --nj ${ngpu} \
             --output_dir ${_sharded_dir}/train
         ${python} pyscripts/utils/split_data_jsons.py \
             --json_files ${valid_jsons} \
-            --nj ${global_ngpu} \
+            --nj ${ngpu} \
             --output_dir ${_sharded_dir}/valid
 
-        for n in `seq ${global_ngpu}`; do
+        for n in `seq $ngpu`; do
             for module in enc dec; do
                 for dset in train valid; do
                     if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_lengths ]; then
@@ -563,14 +544,14 @@ if ! ${skip_train}; then
         fi
 
         _data_opts=""
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${global_ngpu}"
+        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
 
         for dset in `ls -d ${_sharded_dir}/train/*/`; do
-            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${global_ngpu}/JOB/data.JOB.json,_,dataset_json "
+            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
         done
 
         for dset in `ls -d ${_sharded_dir}/valid/*/`; do
-            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${global_ngpu}/JOB/data.JOB.json,_,dataset_json "
+            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
         done
 
         _data_opts+="--train_shape_file ${_sharded_dir}/train/dec_seq_lengths.JOB "
@@ -607,7 +588,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemodel "${bpemodel}".model \
+                --bpemodel "${bpemodel}" \
                 --multi_task_dataset true \
                 --sharded_dataset true \
                 --resume true \

@@ -2368,6 +2368,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
         g2p_type: Optional[str] = None,
         bpemodel: Optional[Union[Path, str, Iterable[str]]] = None,
+        bpemodel_type: str = "builtin",
         bpe_encode_kwargs: Optional[Dict] = None,
         text_cleaner: Optional[str] = None,
         # speaker prompt
@@ -2395,11 +2396,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if bpemodel is not None:
             if bpe_encode_kwargs is None:
                 bpe_encode_kwargs = dict()
-            self.bpe = build_tokenizer(
-                token_type="bpe",
-                bpemodel=bpemodel,
-                encode_kwargs=bpe_encode_kwargs,
-            )
+            if bpemodel_type == "builtin":
+                self.bpe = build_tokenizer(
+                    token_type="bpe",
+                    bpemodel=bpemodel + ".model",
+                    encode_kwargs=bpe_encode_kwargs,
+                )
+            else:
+                self.bpe = build_tokenizer(
+                    token_type="hugging_face",
+                    bpemodel=bpemodel,
+                )
         else:
             self.bpe = None
 
@@ -2577,3 +2584,5 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
+        
+        raise ValueError('End of Diagnose')
