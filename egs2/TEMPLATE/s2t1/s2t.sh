@@ -147,6 +147,9 @@ s2t_speech_fold_length=800 # fold_length for speech data during S2T training.
 s2t_text_fold_length=150   # fold_length for text data during S2T training.
 lm_fold_length=150         # fold_length for LM training.
 
+use_visual_feature=false 
+vis_feature='clip_feature'
+
 help_message=$(cat << EOF
 Usage: $0 --train_set "<train_set_name>" --valid_set "<valid_set_name>" --test_sets "<test_set_names>"
 
@@ -1227,10 +1230,13 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
     done
-
+    if ${use_visual_feature}; then
+        _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${vis_feature},${vis_feature},npy "
+        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${vis_feature},${vis_feature},npy "
+    fi
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.vis_s2t_train \
             --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
@@ -1277,6 +1283,16 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${s2t_stats_dir}/valid/${ref_txt}_shape.${token_type}"
     done
+    if ${use_visual_feature}; then
+        _vis_feature=${vis_feature//./_}
+        <"${s2t_stats_dir}/train/${_vis_feature}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${s2t_stats_dir}/train/${_vis_feature}_shape.${token_type}"
+
+        <"${s2t_stats_dir}/valid/${_vis_feature}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${s2t_stats_dir}/valid/${_vis_feature}_shape.${token_type}"
+    fi
 fi
 
 
@@ -1329,6 +1345,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         for extra_txt in ${utt_extra_files}; do
             _all_scps+="${_s2t_train_dir}/${extra_txt} ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
         done
+        if ${use_visual_feature}; then  
+            _all_scps+="${_s2t_train_dir}/${vis_feature} ${s2t_stats_dir}/train/${vis_feature//./_}_shape.${token_type} "
+        fi
+
         if [ ! -f "${_split_dir}/.done" ]; then
             rm -f "${_split_dir}/.done"
             ${python} -m espnet2.bin.split_scps \
@@ -1353,6 +1373,12 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
             _opts+="--train_shape_file ${_split_dir}/${ref_text_names[$i]}_shape.${token_type} "
         done
+
+        if ${use_visual_feature}; then
+            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${vis_feature},${vis_feature//./_},npy "
+            _opts+="--train_shape_file ${_split_dir}/${vis_feature//./_}_shape.${token_type} "
+        fi
         _opts+="--multiple_iterator true "
 
     else
@@ -1370,6 +1396,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
             _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
             _opts+="--train_shape_file ${s2t_stats_dir}/train/${ref_text_names[$i]}_shape.${token_type} "
         done
+        if ${use_visual_feature}; then
+            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${vis_feature},${vis_feature},npy "
+            _opts+="--train_shape_file ${s2t_stats_dir}/train/${vis_feature//./_}_shape.${token_type} "
+        fi
     fi
 
     # shellcheck disable=SC2068
@@ -1381,7 +1412,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
     done
-
+    if ${use_visual_feature}; then
+        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${vis_feature},${vis_feature},npy "
+        _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${vis_feature//./_}_shape.${token_type} "
+    fi
     log "Generate '${s2t_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${s2t_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${s2t_exp}/run.sh"; chmod +x "${s2t_exp}/run.sh"
 
@@ -1402,7 +1436,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         --num_nodes "${num_nodes}" \
         --init_file_prefix "${s2t_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.vis_s2t_train \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
@@ -1532,10 +1566,11 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         rm -f "${_logdir}/*.log"
         # shellcheck disable=SC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/s2t_inference.JOB.log \
-            ${python} -m espnet2.bin.s2t_inference${inference_bin_tag} \
+            ${python} -m espnet2.bin.vis_s2t_inference${inference_bin_tag} \
                 --batch_size ${batch_size} \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                --data_path_and_name_and_type "${_data}/${vis_feature},${vis_feature},npy" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --s2t_train_config "${s2t_exp}"/config.yaml \
                 --s2t_model_file "${s2t_exp}"/"${inference_s2t_model}" \
