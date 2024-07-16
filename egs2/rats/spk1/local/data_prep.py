@@ -1,14 +1,15 @@
 import argparse
-import os
-import sys
 import glob
+import os
 import pickle as pk
+import sys
+
 
 def main(args):
     src = args.src
     dst = args.dst
 
-    head_dir = '/'.join(args.src.split("/")[:-3])
+    head_dir = "/".join(args.src.split("/")[:-3])
     f_info = head_dir + "/docs/source_file_info.tab"
     src2spk = {}
     for line in open(f_info, "r").readlines()[1:]:
@@ -16,13 +17,12 @@ def main(args):
         src2spk[src_id] = spk
     pk.dump(src2spk, open(dst + "src2spk", "wb"))
 
-
     spk2utt = {}
     utt2spk = []
     wav_list = []
 
     fs = glob.glob(os.path.join(src, "audio/*/*/*.flac"))
-        
+
     for f in fs:
 
         utt_dir = "/".join(f.split("/")[-4:])
@@ -47,7 +47,6 @@ def main(args):
     utt2spk.sort()
     wav_list.sort()
 
-    
     with open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt, open(
         os.path.join(dst, "utt2spk"), "w"
     ) as f_utt2spk, open(os.path.join(dst, "wav.scp"), "w") as f_wav:

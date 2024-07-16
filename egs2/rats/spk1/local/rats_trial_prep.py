@@ -1,16 +1,17 @@
 import argparse
-import sys
-import os
 import glob
+import os
+import random
+import sys
 
 import numpy as np
-import random
+
 np.random.seed(1234)
 
 
 def main(args):
     data_dir = args.data_dir
-    
+
     d_src2spk = {}
     with open(data_dir + "docs/source_file_info.tab", "r") as f_meta:
         for line in f_meta.readlines()[1:]:
@@ -24,7 +25,7 @@ def main(args):
     for line in l_dev:
         f_name = line.strip().split("/")[-1]
         dir = line.strip().split("/")[-2]
-    
+
         if dir == "src":
             src, lng, ch_info = f_name.strip().split("_")
         else:
@@ -36,8 +37,8 @@ def main(args):
 
         d_spk2utt[spk_id].append(line)
 
-    print ("# of spk: {}".format(len(d_spk2utt.keys())))
-    print ("# of utt: {}".format(len(l_dev)))
+    print("# of spk: {}".format(len(d_spk2utt.keys())))
+    print("# of utt: {}".format(len(l_dev)))
 
     used_trials = set()
 
@@ -56,7 +57,9 @@ def main(args):
 
             if class_idx == 0:
                 while True:
-                    utt1, utt2 = np.random.choice(list(d_spk2utt[spk]), size=2, replace=False)
+                    utt1, utt2 = np.random.choice(
+                        list(d_spk2utt[spk]), size=2, replace=False
+                    )
                     if is_unique_trial(class_idx, utt1, utt2):
                         break
             elif class_idx == 1:

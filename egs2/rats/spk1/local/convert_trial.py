@@ -1,7 +1,7 @@
 import argparse
 import os
-import sys
 import pickle as pk
+import sys
 
 
 def main(args):
@@ -12,7 +12,6 @@ def main(args):
 
     src2spk = pk.load(open(args.src2spk, "rb"))
     d_src2spk = {key: src2spk[key] for key in src2spk}
-
 
     scp_dict = dict()
     for scp in lines_scp:
@@ -36,7 +35,7 @@ def main(args):
             f_utt2 = utt2_id.split("/")[-1]
             utt2_spk = d_src2spk[f_utt2.split("_")[0]]
             utt2 = utt2_spk + "/" + utt2_id
-            
+
             joint_key = "*".join([utt1, utt2])
             if joint_key in trial_set:
                 break
@@ -44,8 +43,6 @@ def main(args):
             f_trial.write(f"{joint_key} {scp_dict[utt1]}\n")
             f_trial2.write(f"{joint_key} {scp_dict[utt2]}\n")
             f_label.write(f"{joint_key} {label}\n")
-
-
 
 
 if __name__ == "__main__":
