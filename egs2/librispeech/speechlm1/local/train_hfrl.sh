@@ -166,7 +166,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         hfrl_train_args+=" --init_param ${pretrain_checkpoint}:corelm:corelm "
     fi
     ./speechlm.sh \
-        --stage 8 --stop_stage 8 \
+        --stage 7 --stop_stage 8 \
         --tag hfrl_${tag} \
         --skip_data_prep true \
         --data_combo_name $(basename ${train_dir})_hfrl_${data_combo_name} \
