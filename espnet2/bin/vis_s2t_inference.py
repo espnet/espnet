@@ -457,10 +457,16 @@ class Speech2Text:
         # speech: (nsamples,) -> (1, nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         clip_feature = clip_feature.unsqueeze(0).to(self.device)
-        clip_feature = self.s2t_model.visual_projection(clip_feature).to(getattr(torch, self.dtype))
+        clip_feature = self.s2t_model.visual_projection(clip_feature).to(
+            getattr(torch, self.dtype)
+        )
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths, "clip_feature": clip_feature}
+        batch = {
+            "speech": speech,
+            "speech_lengths": lengths,
+            "clip_feature": clip_feature,
+        }
         logging.info("speech length: " + str(speech.size(1)))
 
         # a. To device
