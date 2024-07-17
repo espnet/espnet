@@ -51,7 +51,7 @@ hfrl_config=conf/train_multiscale_1b_dpo.yaml
 use_reflm=true
 
 # Other options
-nj=32
+nj=16
 ngpu=8
 g2p="g2p_en_no_space"
 cleaner="tacotron"
