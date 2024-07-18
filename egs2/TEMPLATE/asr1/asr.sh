@@ -1343,7 +1343,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/valid/text_prev_shape.${token_type}"
     fi
-    for ref_txt in ${ref_text_names[@]}; do
+    for ref_txt in "${ref_text_names[@]}"; do
         <"${asr_stats_dir}/train/${ref_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
