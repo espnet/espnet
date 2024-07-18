@@ -286,7 +286,7 @@ class CTCPrefixScore(object):
         self.eos = eos
         self.input_length = len(x)
         self.x = x
-        self.primer_size = 1
+        self.primer_size = primer_size
 
     def initial_state(self):
         """Obtain an initial CTC state

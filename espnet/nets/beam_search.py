@@ -125,13 +125,13 @@ class BeamSearch(torch.nn.Module):
 
         Used for OpenAI Whisper models.
         """
-        self.hyp_primer = hyp_primer
-        self.hyp_primer_length = 1
 
         if hyp_primer is not None:
-            self.hyp_primer_length = len(hyp_primer)
+            self.hyp_primer = hyp_primer
             for d in self.part_scorers.values():
                 d.set_primer_length(self.hyp_primer_length)
+        else:
+            self.hyp_primer = [self.sos]
 
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
@@ -149,16 +149,13 @@ class BeamSearch(torch.nn.Module):
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
 
-        # NOTE (Shih-Lun): added for OpenAI Whisper ASR
-        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
-
         return [
             Hypothesis(
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
                 hs=[],
-                yseq=torch.tensor(primer, device=x.device),
+                yseq=torch.tensor(self.hyp_primer, device=x.device),
             )
         ]
 
@@ -456,10 +453,12 @@ class BeamSearch(torch.nn.Module):
                 logger.debug(f"remained hypotheses: {len(running_hyps)}")
 
         if self.normalize_length:
-            # Note (Jinchuan): -1 since hyp starts with <sos> and
-            # initially has score of 0.0
+            # Note (Jinchuan, Kwanghee): -len(self.hyp_primer) since hyp starts with
+            # self.hyp_primer (usually <sos>) and initially has score of 0.0
             nbest_hyps = sorted(
-                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+                ended_hyps,
+                key=lambda x: x.score / (len(x.yseq) - len(self.hyp_primer)),
+                reverse=True
             )
         else:
             nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
@@ -488,9 +487,7 @@ class BeamSearch(torch.nn.Module):
         if self.token_list is not None:
             logger.info(
                 "best hypo: "
-                + "".join(
-                    [self.token_list[x] for x in best.yseq[self.hyp_primer_length : -1]]
-                )
+                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
                 + "\n"
             )
         if best.yseq[1:-1].shape[0] == maxlen:
