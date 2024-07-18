@@ -238,14 +238,18 @@ def test_hyp_primer():
         hyp_primer=primer,
     )
     enc = model.encode(torch.as_tensor(x[0, : ilens[0]].numpy()))
-    assert all([
-        hyp.yseq[:len(primer)+1].tolist() == [model.sos] + primer
-        for hyp in beam(x=enc)
-    ]), [hyp.yseq for hyp in beam(x=enc)]
+    assert all(
+        [
+            hyp.yseq[: len(primer) + 1].tolist() == [model.sos] + primer
+            for hyp in beam(x=enc)
+        ]
+    ), [hyp.yseq for hyp in beam(x=enc)]
 
     new_primer = [1, 2]
     beam.set_hyp_primer(new_primer)
-    assert all([
-        hyp.yseq[:len(new_primer)+1].tolist() == [model.sos] + new_primer
-        for hyp in beam(x=enc)
-    ])
+    assert all(
+        [
+            hyp.yseq[: len(new_primer) + 1].tolist() == [model.sos] + new_primer
+            for hyp in beam(x=enc)
+        ]
+    )
