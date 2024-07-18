@@ -654,7 +654,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
+                for ref_txt in "${ref_text_files[@]}"; do
                     [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
                 done
             fi
@@ -720,7 +720,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
+                for ref_txt in "${ref_text_files[@]}"; do
                     [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
                 done
             fi
@@ -753,7 +753,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
+                for ref_txt in "${ref_text_files[@]}"; do
                     [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
                 done
             fi
@@ -808,7 +808,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             # Copy reference text files if there is more than 1 reference
             # shellcheck disable=SC2068
             if [ ${#ref_text_files[@]} -gt 1 ]; then
-                for ref_txt in ${ref_text_files[@]}; do
+                for ref_txt in "${ref_text_files[@]}"; do
                     [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
                 done
             fi
@@ -888,7 +888,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
             <"${data_feats}/org/${dset}/text_prev" \
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text_prev"
         fi
-        for ref_txt in ${ref_text_files[@]}; do
+        for ref_txt in "${ref_text_files[@]}"; do
             <"${data_feats}/org/${dset}/${ref_txt}" \
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/${ref_txt}"
         done
@@ -1666,7 +1666,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
 
         # 4. Concatenates the output files from each jobs
         # shellcheck disable=SC2068
-        for ref_txt in ${ref_text_files[@]}; do
+        for ref_txt in "${ref_text_files[@]}"; do
             suffix=$(echo ${ref_txt} | sed 's/text//')
             for f in token token_int score text; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}${suffix}" ]; then
@@ -1722,7 +1722,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             mkdir -p "${_scoredir}"
 
             # shellcheck disable=SC2068
-            for ref_txt in ${ref_text_files[@]}; do
+            for ref_txt in "${ref_text_files[@]}"; do
                 # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
                 suffix=$(echo ${ref_txt} | sed 's/text//')
 
