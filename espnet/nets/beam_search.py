@@ -129,7 +129,7 @@ class BeamSearch(torch.nn.Module):
         if hyp_primer is not None:
             self.hyp_primer = hyp_primer
             for d in self.part_scorers.values():
-                d.set_primer_length(self.hyp_primer_length)
+                d.set_primer_length(len(hyp_primer))
         else:
             self.hyp_primer = [self.sos]
 
