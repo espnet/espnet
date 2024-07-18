@@ -458,7 +458,7 @@ class BeamSearch(torch.nn.Module):
             nbest_hyps = sorted(
                 ended_hyps,
                 key=lambda x: x.score / (len(x.yseq) - len(self.hyp_primer)),
-                reverse=True
+                reverse=True,
             )
         else:
             nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
