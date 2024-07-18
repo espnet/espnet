@@ -233,6 +233,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
@@ -1424,10 +1425,23 @@
 
             <span class="c1"># The following block is copied from:</span>
             <span class="c1"># https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py</span>
-            <span class="n">error_queues</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">error_files</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">mp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s2">&quot;spawn&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span><span class="p">):</span>
+
+                <span class="c1"># Each process is assigned a file to write tracebacks to.  We</span>
+                <span class="c1"># use the file being non-empty to indicate an exception</span>
+                <span class="c1"># occurred (vs an expected shutdown).  Note: this previously</span>
+                <span class="c1"># used a multiprocessing.Queue but that can be prone to</span>
+                <span class="c1"># deadlocks, so we went with a simpler solution for a one-shot</span>
+                <span class="c1"># message between processes.</span>
+                <span class="n">tf</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span>
+                    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;pytorch-errorfile-&quot;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.pickle&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
                 <span class="c1"># Copy args</span>
                 <span class="n">local_args</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
 
@@ -1442,9 +1456,9 @@
                 <span class="p">)</span>
                 <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
                 <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
-                <span class="n">error_queues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">SimpleQueue</span><span class="p">())</span>
+                <span class="n">error_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="c1"># Loop on join until it returns True or raises an exception.</span>
-            <span class="k">while</span> <span class="ow">not</span> <span class="n">ProcessContext</span><span class="p">(</span><span class="n">processes</span><span class="p">,</span> <span class="n">error_queues</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">():</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">ProcessContext</span><span class="p">(</span><span class="n">processes</span><span class="p">,</span> <span class="n">error_files</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">():</span>
                 <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="AbsTask.main_worker"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.main_worker">[docs]</a>    <span class="nd">@classmethod</span>
