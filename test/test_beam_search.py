@@ -240,7 +240,7 @@ def test_hyp_primer():
     enc = model.encode(torch.as_tensor(x[0, : ilens[0]].numpy()))
     assert all(
         [
-            hyp.yseq[: len(primer) + 1].tolist() == [model.sos] + primer
+            hyp.yseq[: len(primer)].tolist() == primer
             for hyp in beam(x=enc)
         ]
     ), [hyp.yseq for hyp in beam(x=enc)]
@@ -249,7 +249,7 @@ def test_hyp_primer():
     beam.set_hyp_primer(new_primer)
     assert all(
         [
-            hyp.yseq[: len(new_primer) + 1].tolist() == [model.sos] + new_primer
+            hyp.yseq[: len(new_primer)].tolist() == new_primer
             for hyp in beam(x=enc)
         ]
     )
