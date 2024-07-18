@@ -65,9 +65,9 @@ transformer_lm = Namespace(
 
 @pytest.mark.parametrize(
     "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, ngram_weight, \
-        bonus, device, dtype",
+        bonus, device, dtype, hyp_primer",
     [
-        (nn, args, ctc, lm_nn, lm_args, lm, ngram, bonus, device, dtype)
+        (nn, args, ctc, lm_nn, lm_args, lm, ngram, bonus, device, dtype, hyp_primer)
         for device in ("cpu", "cuda")
         # (("rnn", rnn_args),)
         for nn, args in (("transformer", transformer_args),)
@@ -81,6 +81,7 @@ transformer_lm = Namespace(
         for ngram in (0.5,)
         for bonus in (0.1,)
         for dtype in ("float32", "float64")  # TODO(karita): float16
+        for hyp_primer in (None, [0])
     ],
 )
 def test_batch_beam_search_equal(
@@ -94,6 +95,7 @@ def test_batch_beam_search_equal(
     bonus,
     device,
     dtype,
+    hyp_primer,
 ):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
@@ -157,6 +159,7 @@ def test_batch_beam_search_equal(
         sos=model.sos,
         eos=model.eos,
         pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        hyp_primer=hyp_primer,
     )
     legacy_beam.to(device, dtype=dtype)
     legacy_beam.eval()
@@ -170,6 +173,7 @@ def test_batch_beam_search_equal(
         sos=model.sos,
         eos=model.eos,
         pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        hyp_primer=hyp_primer,
     )
     beam.to(device, dtype=dtype)
     beam.eval()

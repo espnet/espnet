@@ -220,3 +220,32 @@ def test_beam_search_equal(
         actual = actual.asdict()
         assert expected["yseq"] == actual["yseq"]
         numpy.testing.assert_allclose(expected["score"], actual["score"], rtol=1e-6)
+
+
+def test_hyp_primer():
+    model, x, ilens, y, data, train_args = prepare("rnn", rnn_args, mtlalpha=0.5)
+
+    primer = [0]
+    beam = BeamSearch(
+        beam_size=5,
+        vocab_size=len(train_args.char_list),
+        token_list=train_args.char_list,
+        weights=dict(decoder=0.5, ctc_weight=0.5, lm_weight=0.0, length_bonus=0.1),
+        scorers=model.scorers(),
+        pre_beam_score_key="decoder",
+        sos=model.sos,
+        eos=model.eos,
+        hyp_primer=primer,
+    )
+    enc = model.encode(torch.as_tensor(x[0, : ilens[0]].numpy()))
+    assert all([
+        hyp.yseq[:len(primer)+1].tolist() == [model.sos] + primer
+        for hyp in beam(x=enc)
+    ]), [hyp.yseq for hyp in beam(x=enc)]
+
+    new_primer = [1, 2]
+    beam.set_hyp_primer(new_primer)
+    assert all([
+        hyp.yseq[:len(new_primer)+1].tolist() == [model.sos] + new_primer
+        for hyp in beam(x=enc)
+    ])
