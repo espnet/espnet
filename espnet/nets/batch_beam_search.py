@@ -144,8 +144,6 @@ class BatchBeamSearch(BeamSearch):
             init_scores[k] = 0.0
 
         # NOTE (Shih-Lun): added for OpenAI Whisper ASR
-        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
-
         return self.batchfy(
             [
                 Hypothesis(
@@ -153,7 +151,7 @@ class BatchBeamSearch(BeamSearch):
                     scores=init_scores,
                     states=init_states,
                     hs=[],
-                    yseq=torch.tensor(primer, device=x.device),
+                    yseq=torch.tensor(self.hyp_primer, device=x.device),
                 )
             ]
         )

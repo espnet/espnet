@@ -18,7 +18,7 @@ class CTCPrefixScoreTH(object):
     Speech Recognition," In INTERSPEECH (pp. 3825-3829), 2019.
     """
 
-    def __init__(self, x, xlens, blank, eos, margin=0, primer_size=1):
+    def __init__(self, x, xlens, blank, eos, margin=0):
         """Construct CTC prefix scorer
 
         :param torch.Tensor x: input label posterior sequences (B, T, O)
@@ -35,7 +35,6 @@ class CTCPrefixScoreTH(object):
         self.batch = x.size(0)
         self.input_length = x.size(1)
         self.odim = x.size(2)
-        self.primer_size = primer_size
         self.dtype = x.dtype
         self.device = (
             torch.device("cuda:%d" % x.get_device())
@@ -74,7 +73,7 @@ class CTCPrefixScoreTH(object):
         :param torch.Tensor att_w: attention weights to decide CTC window
         :return new_state, ctc_local_scores (BW, O)
         """
-        output_length = len(y[0]) - self.primer_size  # ignore sos
+        output_length = len(y[0]) - 1  # ignore sos
         last_ids = [yi[-1] for yi in y]  # last output label ids
         n_bh = len(last_ids)  # batch * hyps
         n_hyps = n_bh // self.batch  # assuming each utterance has the same # of hyps
@@ -279,14 +278,13 @@ class CTCPrefixScore(object):
     simultaneously
     """
 
-    def __init__(self, x, blank, eos, xp, primer_size=1):
+    def __init__(self, x, blank, eos, xp):
         self.xp = xp
         self.logzero = -10000000000.0
         self.blank = blank
         self.eos = eos
         self.input_length = len(x)
         self.x = x
-        self.primer_size = primer_size
 
     def initial_state(self):
         """Obtain an initial CTC state
@@ -311,7 +309,7 @@ class CTCPrefixScore(object):
         :return ctc_scores, ctc_states
         """
         # initialize CTC states
-        output_length = len(y) - self.primer_size  # ignore sos
+        output_length = len(y) - 1  # ignore sos
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor
         # that corresponds to r_t^n(h) and r_t^b(h).
         r = self.xp.ndarray((self.input_length, 2, len(cs)), dtype=np.float32)

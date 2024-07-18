@@ -22,10 +22,6 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         self.ctc = ctc
         self.eos = eos
         self.impl = None
-        self.primer_size = 1
-
-    def set_primer_length(self, primer_size: int):
-        self.primer_size = primer_size
 
     def init_state(self, x: torch.Tensor):
         """Get an initial state for decoding.
@@ -38,7 +34,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         """
         logp = self.ctc.log_softmax(x.unsqueeze(0)).detach().squeeze(0).cpu().numpy()
         # TODO(karita): use CTCPrefixScoreTH
-        self.impl = CTCPrefixScore(logp, 0, self.eos, np, primer_size=self.primer_size)
+        self.impl = CTCPrefixScore(logp, 0, self.eos, np)
         return 0, self.impl.initial_state()
 
     def select_state(self, state, i, new_id=None):
@@ -99,9 +95,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         """
         logp = self.ctc.log_softmax(x.unsqueeze(0))  # assuming batch_size = 1
         xlen = torch.tensor([logp.size(1)])
-        self.impl = CTCPrefixScoreTH(
-            logp, xlen, 0, self.eos, primer_size=self.primer_size
-        )
+        self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos)
         return None
 
     def batch_score_partial(self, y, ids, state, x):
