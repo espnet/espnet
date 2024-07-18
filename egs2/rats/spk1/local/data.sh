@@ -38,7 +38,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # generate RATS trial files
     log "Generate RATS eval protocol."
-    #FIXME: make all trials uniq and sort them
     python local/rats_trial_prep.py --data_dir ${RATS} --out rats_eval_trial.txt
 
     log "Stage 1, DONE."
@@ -58,6 +57,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # make test trial compatible with ESPnet.
+    # src2spk : dictionary to map source information of file name to the speaker ID
+
     python local/convert_trial.py --trial rats_eval_trial.txt --scp ${trg_dir}/rats_test/wav.scp --src2spk ${trg_dir}/rats_test/src2spk --out ${trg_dir}/rats_test
 
     log "Stage 2, DONE."

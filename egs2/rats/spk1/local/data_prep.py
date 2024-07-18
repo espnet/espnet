@@ -10,6 +10,7 @@ def main(args):
     dst = args.dst
 
     head_dir = "/".join(args.src.split("/")[:-3])
+    # please check the db.sh file to see the filetree of RATS dataset
     f_info = head_dir + "/docs/source_file_info.tab"
     src2spk = {}
     for line in open(f_info, "r").readlines()[1:]:
