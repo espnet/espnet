@@ -600,3 +600,14 @@ def test_Speech2Text_whisper_lid_prompt(
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(5)
+def test_Speech2Text_text_prev(asr_config_file, lm_config_file):
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech, text_prev="t")
+    for text, token, token_int, hyp in results:
+        assert text[0] == "t"

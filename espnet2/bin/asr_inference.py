@@ -510,7 +510,7 @@ class Speech2Text:
             else:
                 hyp_primer = text_prev.tolist()
 
-            self.beam_search.set_hyp_primer(hyp_primer)
+            self.beam_search.set_hyp_primer([self.asr_model.sos] + hyp_primer)
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):

@@ -66,7 +66,8 @@ class BeamSearch(torch.nn.Module):
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
             return_hs (bool): Whether to return hidden intermediates
-            hyp_primer (list[int]): Include prefix when decoding
+            hyp_primer (list[int]): Include prefix when decoding,
+                usually starts with <sos>
             normalize_length (bool): If true, select the best ended hypotheses
                 based on length-normalized scores rather than the accumulated scores
 
@@ -128,7 +129,7 @@ class BeamSearch(torch.nn.Module):
         """
 
         if hyp_primer is not None:
-            self.hyp_primer = [self.sos] + hyp_primer
+            self.hyp_primer = hyp_primer
         else:
             self.hyp_primer = [self.sos]
 
