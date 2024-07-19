@@ -249,8 +249,15 @@ if ! "${skip_data_prep}"; then
         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+
+        if ${skip_train}; then
+            _dsets=${test_sets}
+            echo "skip"
+        else
+            _dsets="${train_set}" "${valid_set}" ${test_sets}
+        fi
         
-        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+        for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
 
             for prepare_opt in ${prepare_opts}; do
@@ -828,7 +835,6 @@ if ! "${skip_eval}"; then
                             --score_config "conf/score_${eval_item}.yaml" \
                             --use_gpu ${gpu_inference} \
                             --io soundfile \
-                            --rank JOB \
                             ${gt_file_op} \
                             ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
                     
