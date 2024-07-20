@@ -192,7 +192,7 @@ class SpeechLM:
                 token = token[token[:, 0] != self.pad]  # exclude padding
                 detokenized = False
 
-                # TODO(Jinchuan): support more detokenization options latre for other tasks
+                # TODO(Jinchuan): support more detokenization options later for other tasks
                 if self.modality == "codec" and this_modality in ["codec", "spk"]:
                     token = (token - self.train_args.token_bias["codec"]).view(-1)
                     content = self.tokenizer.detokenize(token.clone())
