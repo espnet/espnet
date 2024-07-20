@@ -21,16 +21,15 @@ from typing import List, Tuple
 @dataclass
 class Modality:
     discrete: bool = (True,)
-    data_type: str = ("kaldi_ark",)
-
 
 modalities = {}
 # Discrete
 modalities["codec"] = Modality()
 modalities["ssl"] = Modality()
-modalities["text_bpe"] = Modality(data_type="text")
-modalities["g2p"] = Modality(data_type="text")
-modalities["spk"] = Modality(data_type="text")
+modalities["text_bpe"] = Modality()
+modalities["g2p"] = Modality()
+modalities["spk"] = Modality()
+modalities["class"] = Modality()
 # Continuous
 modalities["wav"] = Modality(discrete=False)
 modalities["text_emb"] = Modality(discrete=False)
