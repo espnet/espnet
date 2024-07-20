@@ -14,4 +14,4 @@ echo "\
    :caption: Notebook:
 "
 
-find ./notebook/*.ipynb -exec echo "   {}" \;
+find ./notebook -name "*.ipynb" -exec echo "   {}" \;

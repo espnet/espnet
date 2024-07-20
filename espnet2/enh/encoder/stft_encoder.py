@@ -22,6 +22,9 @@ class STFTEncoder(AbsEncoder):
         onesided: bool = True,
         use_builtin_complex: bool = True,
         default_fs: int = 16000,
+        spec_transform_type: str = None,
+        spec_factor: float = 0.15,
+        spec_abs_exponent: float = 0.5,
     ):
         super().__init__()
         self.stft = Stft(
@@ -42,6 +45,32 @@ class STFTEncoder(AbsEncoder):
         self.n_fft = n_fft
         self.center = center
         self.default_fs = default_fs
+
+        # spec transform related. See equation (1) in paper
+        # 'Speech Enhancement and Dereverberation With Diffusion-Based Generative
+        # Models'. The default value of 0.15, 0.5 also come from the paper.
+        # spec_transform_type: "exponent", "log", or "none"
+        self.spec_transform_type = spec_transform_type
+        # the output specturm will be scaled with: spec * self.spec_factor
+        self.spec_factor = spec_factor
+        # the exponent factor used in the "exponent" transform
+        self.spec_abs_exponent = spec_abs_exponent
+
+    def spec_transform_func(self, spec):
+        if self.spec_transform_type == "exponent":
+            if self.spec_abs_exponent != 1:
+                # only do this calculation if spec_exponent != 1,
+                # otherwise it's quite a bit of wasted computation
+                # and introduced numerical error
+                e = self.spec_abs_exponent
+                spec = spec.abs() ** e * torch.exp(1j * spec.angle())
+            spec = spec * self.spec_factor
+        elif self.spec_transform_type == "log":
+            spec = torch.log(1 + spec.abs()) * torch.exp(1j * spec.angle())
+            spec = spec * self.spec_factor
+        elif self.spec_transform_type == "none":
+            spec = spec
+        return spec
 
     @property
     def output_dim(self) -> int:
@@ -75,6 +104,9 @@ class STFTEncoder(AbsEncoder):
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         self._reset_config()
+
+        spectrum = self.spec_transform_func(spectrum)
+
         return spectrum, flens
 
     def _reset_config(self):
@@ -88,7 +120,6 @@ class STFTEncoder(AbsEncoder):
         Args:
             fs (int): new sampling rate
         """  # noqa: H405
-        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
         self.stft.n_fft = self.n_fft * fs // self.default_fs
         self.stft.win_length = self.win_length * fs // self.default_fs
         self.stft.hop_length = self.hop_length * fs // self.default_fs
@@ -129,6 +160,8 @@ class STFTEncoder(AbsEncoder):
         feature = feature.unsqueeze(1)
         if not (is_torch_1_9_plus and self.use_builtin_complex):
             feature = ComplexTensor(feature.real, feature.imag)
+
+        feature = self.spec_transform_func(feature)
 
         return feature
 

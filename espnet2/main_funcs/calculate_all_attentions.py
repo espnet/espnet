@@ -118,9 +118,11 @@ def calculate_all_attentions(
     for ibatch in range(bs):
         # *: (B, L, ...) -> (1, L2, ...)
         _sample = {
-            k: batch[k][ibatch, None, : batch[k + "_lengths"][ibatch]]
-            if k + "_lengths" in batch
-            else batch[k][ibatch, None]
+            k: (
+                batch[k][ibatch, None, : batch[k + "_lengths"][ibatch]]
+                if k + "_lengths" in batch
+                else batch[k][ibatch, None]
+            )
             for k in keys
         }
 

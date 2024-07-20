@@ -3,12 +3,12 @@
 
 """Energy extractor."""
 
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import humanfriendly
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
@@ -18,20 +18,20 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 class Energy(AbsFeatsExtract):
     """Energy extractor."""
 
+    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
         n_fft: int = 1024,
-        win_length: int = None,
+        win_length: Optional[int] = None,
         hop_length: int = 256,
         window: str = "hann",
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
         use_token_averaged_energy: bool = True,
-        reduction_factor: int = None,
+        reduction_factor: Optional[int] = None,
     ):
-        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)

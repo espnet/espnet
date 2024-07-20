@@ -68,6 +68,8 @@ class DecoderLayer(nn.Module):
             if sequential_attn is not None:
                 self.concat_linear3 = nn.Linear(size + size, size)
 
+        self.tgt_ids = None
+
     def forward(
         self,
         tgt,
@@ -84,7 +86,7 @@ class DecoderLayer(nn.Module):
             tgt (torch.Tensor): Input tensor (#batch, maxlen_out, size).
             tgt_mask (torch.Tensor): Mask for input tensor (#batch, maxlen_out).
             memory (torch.Tensor): Encoded memory, float32 (#batch, maxlen_in, size).
-            memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
+            memory_mask (torch.Tensor): Encoded memory mask (#batch, 1, maxlen_in).
             cache (List[torch.Tensor]): List of cached tensors.
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
             pre_memory (torch.Tensor): Encoded memory (#batch, maxlen_in, size).
@@ -175,3 +177,77 @@ class DecoderLayer(nn.Module):
         if pre_memory is not None:
             return x, tgt_mask, memory, memory_mask, None, pre_memory, pre_memory_mask
         return x, tgt_mask, memory, memory_mask
+
+    def forward_partially_AR(
+        self, tgt, tgt_mask, tgt_lengths, memory, memory_mask, cache=None
+    ):
+        residual = tgt
+        if self.normalize_before:
+            tgt = self.norm1(tgt)
+
+        if cache is None:
+            tgt_q = tgt
+            tgt_q_mask = tgt_mask
+        else:
+            # compute only the last frame query keeping dim: max_time_out -> 1
+            assert cache.shape == (
+                tgt.shape[0],
+                tgt.shape[1] - 1,
+                self.size,
+            ), f"{cache.shape} == {(tgt.shape[0], tgt.shape[1] - 1, self.size)}"
+
+            if self.tgt_ids is None or self.tgt_ids.shape[0] < tgt.shape[0]:
+                self.tgt_ids = torch.arange(tgt.size(0), device=tgt.device).view(-1, 1)
+
+            tgt_q = tgt[
+                self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+            ]  # (n_mask * n_beam, 1, D)
+            residual = residual[
+                self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+            ]
+            tgt_q_mask = None
+            if tgt_mask is not None:
+                tgt_q_mask = tgt_mask[
+                    self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1
+                ]
+
+        if self.concat_after:
+            tgt_concat = torch.cat(
+                (tgt_q, self.self_attn(tgt_q, tgt, tgt, tgt_q_mask)), dim=-1
+            )
+            x = residual + self.concat_linear1(tgt_concat)
+        else:
+            x = residual + self.dropout(self.self_attn(tgt_q, tgt, tgt, tgt_q_mask))
+        if not self.normalize_before:
+            x = self.norm1(x)
+
+        residual = x
+        if self.normalize_before:
+            x = self.norm2(x)
+
+        if self.concat_after:
+            x_concat = torch.cat(
+                (x, self.src_attn(x, memory, memory, memory_mask, expand_kv=True)),
+                dim=-1,
+            )
+            x = residual + self.concat_linear2(x_concat)
+        else:
+            x = residual + self.dropout(
+                self.src_attn(x, memory, memory, memory_mask, expand_kv=True)
+            )
+        if not self.normalize_before:
+            x = self.norm2(x)
+
+        residual = x
+        if self.normalize_before:
+            x = self.norm3(x)
+        x = residual + self.dropout(self.feed_forward(x))
+        if not self.normalize_before:
+            x = self.norm3(x)
+
+        if cache is not None:
+            _tmp = torch.cat([cache, torch.zeros_like(x)], dim=1)
+            _tmp[self.tgt_ids[: tgt.size(0)], tgt_lengths.view(-1, 1) - 1] = x
+            return _tmp, tgt_mask, tgt_lengths, memory, memory_mask
+
+        return x, tgt_mask, tgt_lengths, memory, memory_mask

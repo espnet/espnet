@@ -1,8 +1,6 @@
-#! /usr/bin/python
-# -*- encoding: utf-8 -*-
 # code from https://github.com/clovaai/voxceleb_trainer/blob/master/loss/aamsoftmax.py
 # Adapted from https://github.com/wujiyang/Face_Pytorch (Apache License)
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 import torch
 import torch.nn as nn

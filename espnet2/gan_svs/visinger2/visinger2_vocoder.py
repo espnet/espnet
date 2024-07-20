@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
+from typeguard import typechecked
 
 from espnet2.gan_svs.visinger2.ddsp import (
     remove_above_nyquist,
@@ -23,14 +24,13 @@ from espnet2.gan_svs.visinger2.ddsp import (
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
-    HiFiGANMultiScaleMultiPeriodDiscriminator,
-    HiFiGANPeriodDiscriminator,
-    HiFiGANScaleDiscriminator,
 )
 from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
 
 
 class VISinger2VocoderGenerator(torch.nn.Module):
+
+    @typechecked
     def __init__(
         self,
         in_channels: int = 80,
@@ -103,7 +103,7 @@ class VISinger2VocoderGenerator(torch.nn.Module):
                 n_harmonic + 2,
                 k,
                 u,
-                padding=k // 2 + k % 2,
+                padding=k // 2,
             )
             self.downs.append(down)
 
@@ -413,7 +413,8 @@ class Generator_Noise(torch.nn.Module):
         self.window = torch.hann_window(self.win_size)
 
     def forward(self, x, mask):
-        """
+        """Forward Generator Noise.
+
         Args:
             x (Tensor): Input tensor (B, hidden_channels, T).
             mask (Tensor): Mask tensor (B, 1, T).
@@ -462,8 +463,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
         divisors=[32, 16, 8, 4, 2, 1, 1],
         strides=[1, 2, 1, 2, 1, 2, 1],
     ):
-        """
-        Initialize Multi-Frequency Discriminator module.
+        """Initialize Multi-Frequency Discriminator module.
 
         Args:
             hop_lengths (list): List of hop lengths.
@@ -478,7 +478,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
 
         super().__init__()
 
-        # TODO (Yifeng): Maybe use LogMelFbank instead of TorchSTFT
+        # TODO(Yifeng): Maybe use LogMelFbank instead of TorchSTFT
         self.stfts = torch.nn.ModuleList(
             [
                 TorchSTFT(
@@ -511,8 +511,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
             )
 
     def forward(self, x):
-        """
-        Forward pass of Multi-Frequency Discriminator module.
+        """Forward pass of Multi-Frequency Discriminator module.
 
         Args:
             x (Tensor): Input tensor (B, 1, T * hop_size).
@@ -542,7 +541,8 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
         divisors=[32, 16, 8, 4, 2, 1, 1],
         strides=[1, 2, 1, 2, 1, 2, 1],
     ):
-        """
+        """Base Frequence Discriminator
+
         Args:
             in_channels (int): Number of input channels.
             hidden_channels (int, optional): Number of channels in hidden layers.
@@ -653,8 +653,7 @@ class VISinger2Discriminator(torch.nn.Module):
             "strides": [1, 2, 1, 2, 1, 2, 1],
         },
     ):
-        """
-        Discriminator module for VISinger2, including MSD, MPD, and MFD.
+        """Discriminator module for VISinger2, including MSD, MPD, and MFD.
 
         Args:
             scales (int): Number of scales to be used in the multi-scale discriminator.
@@ -874,6 +873,7 @@ class TorchSTFT(torch.nn.Module):
 
 class MelScale(torch.nn.Module):
     """Turn a normal STFT into a mel frequency STFT, using a conversion
+
     matrix.  This uses triangular filter banks.
     User can control which device the filter bank (fb) is (e.g. fb.to(spec_f.device)).
     Args:
@@ -918,7 +918,8 @@ class MelScale(torch.nn.Module):
         self.register_buffer("fb", fb)
 
     def forward(self, specgram: torch.Tensor) -> torch.Tensor:
-        """
+        """Forward MelScale
+
         Args:
             specgram (Tensor): A spectrogram STFT of dimension (..., freq, time).
         Returns:
@@ -956,6 +957,7 @@ def create_fb_matrix(
     norm: Optional[str] = None,
 ) -> torch.Tensor:
     """Create a frequency bin conversion matrix.
+
     Args:
         n_freqs (int): Number of frequencies to highlight/apply
         f_min (float): Minimum frequency (Hz)

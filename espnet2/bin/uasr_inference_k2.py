@@ -9,7 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -27,7 +27,7 @@ try:
     import k2  # for CI import
     from icefall.decode import get_lattice, one_best_decoding
     from icefall.utils import get_texts
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     k2 = None
 
 
@@ -63,15 +63,16 @@ class k2Speech2Text:
 
     """
 
+    @typechecked
     def __init__(
         self,
         uasr_train_config: Union[Path, str],
         decoding_graph: str,
-        uasr_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        uasr_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -101,7 +102,6 @@ class k2Speech2Text:
         nbest_batch_size: int = 500,
         nll_batch_size: int = 100,
     ):
-        assert check_argument_types()
 
         # 1. Build UASR model
         uasr_model, uasr_train_args = UASRTask.build_model_from_file(
@@ -162,6 +162,7 @@ class k2Speech2Text:
         self.uasr_model_ignore_id = 0
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
@@ -173,7 +174,6 @@ class k2Speech2Text:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
@@ -272,7 +272,6 @@ class k2Speech2Text:
             text = self.tokenizer.tokens2text(token)
             results.append((text, token, token_int, score))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -306,6 +305,7 @@ class k2Speech2Text:
         return k2Speech2Text(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     decoding_graph: str,
@@ -344,7 +344,6 @@ def inference(
     k2_config: Optional[str],
 ):
     assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
-    assert check_argument_types()
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 

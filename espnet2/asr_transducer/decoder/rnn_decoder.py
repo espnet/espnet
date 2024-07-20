@@ -3,7 +3,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
@@ -24,6 +24,7 @@ class RNNDecoder(AbsDecoder):
 
     """
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -37,8 +38,6 @@ class RNNDecoder(AbsDecoder):
     ) -> None:
         """Construct a RNNDecoder object."""
         super().__init__()
-
-        assert check_argument_types()
 
         if rnn_type not in ("lstm", "gru"):
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
@@ -254,7 +253,9 @@ class RNNDecoder(AbsDecoder):
         """
         return (
             torch.cat([s[0] for s in new_states], dim=1),
-            torch.cat([s[1] for s in new_states], dim=1)
-            if self.dtype == "lstm"
-            else None,
+            (
+                torch.cat([s[1] for s in new_states], dim=1)
+                if self.dtype == "lstm"
+                else None
+            ),
         )

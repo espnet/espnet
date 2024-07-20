@@ -1,16 +1,24 @@
 # modified from https://github.com/dhchoi99/NANSY
 # We have modified the implementation of dhchoi99 to be fully differentiable.
 import math
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
+from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.tts.feats_extract.yin import *
+from espnet2.tts.feats_extract.yin import (
+    cumulativeMeanNormalizedDifferenceFunctionTorch,
+    differenceFunctionTorch,
+)
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Ying(AbsFeatsExtract):
+    """Extact Ying-based Features."""
+
+    @typechecked
     def __init__(
         self,
         fs: int = 22050,
@@ -65,7 +73,8 @@ class Ying(AbsFeatsExtract):
         return lag
 
     def yingram_from_cmndf(self, cmndfs: torch.Tensor) -> torch.Tensor:
-        """yingram calculator from cMNDFs
+        """yingram calculator from cMNDFs.
+
         (cumulative Mean Normalized Difference Functions)
 
         Args:
@@ -78,7 +87,6 @@ class Ying(AbsFeatsExtract):
         Returns:
             y:
                 calculated batch yingram
-
 
         """
         # c_ms = np.asarray([Pitch.midi_to_lag(m, fs) for m in ms])
@@ -107,7 +115,6 @@ class Ying(AbsFeatsExtract):
         """
         # x.shape: t -> B,T, B,T = x.shape
         B, T = x.shape
-        w_len = self.W
 
         frames = self.unfold(x.view(B, 1, 1, T))
         frames = frames.permute(0, 2, 1).contiguous().view(-1, self.W)  # [B* frames, W]
@@ -123,9 +130,11 @@ class Ying(AbsFeatsExtract):
         assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
-            x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
-            if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
-            else x.new_tensor(0.0)
+            (
+                x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
+                if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
+                else x.new_tensor(0.0)
+            )
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
         return torch.stack(x_avg)
@@ -139,13 +148,14 @@ class Ying(AbsFeatsExtract):
             x = x[:num_frames]
         return x
 
+    @typechecked
     def forward(
         self,
         input: torch.Tensor,
-        input_lengths: torch.Tensor = None,
-        feats_lengths: torch.Tensor = None,
-        durations: torch.Tensor = None,
-        durations_lengths: torch.Tensor = None,
+        input_lengths: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        durations_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         if input_lengths is None:
             input_lengths = (

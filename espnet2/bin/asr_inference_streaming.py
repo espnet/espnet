@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
@@ -49,14 +49,15 @@ class Speech2TextStreaming:
 
     """
 
+    @typechecked
     def __init__(
         self,
         asr_train_config: Union[Path, str],
-        asr_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        asr_model_file: Union[Path, str, None] = None,
+        lm_train_config: Union[Path, str, None] = None,
+        lm_file: Union[Path, str, None] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -67,11 +68,11 @@ class Speech2TextStreaming:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         disable_repetition_detection=False,
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
     ):
-        assert check_argument_types()
 
         # 1. Build ASR model
         scorers = {}
@@ -127,6 +128,7 @@ class Speech2TextStreaming:
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+            normalize_length=normalize_length,
             disable_repetition_detection=disable_repetition_detection,
             decoder_text_length_limit=decoder_text_length_limit,
             encoded_feat_length_limit=encoded_feat_length_limit,
@@ -289,6 +291,7 @@ class Speech2TextStreaming:
         return feats, feats_lengths, next_states
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
@@ -300,7 +303,6 @@ class Speech2TextStreaming:
             text, token, token_int, hyp
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
@@ -353,10 +355,10 @@ class Speech2TextStreaming:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
 
+@typechecked
 def inference(
     output_dir: str,
     maxlenratio: float,
@@ -370,6 +372,7 @@ def inference(
     lm_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -388,7 +391,6 @@ def inference(
     encoded_feat_length_limit: int,
     decoder_text_length_limit: int,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if word_lm_train_config is not None:
@@ -426,6 +428,7 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         disable_repetition_detection=disable_repetition_detection,
         decoder_text_length_limit=decoder_text_length_limit,
         encoded_feat_length_limit=encoded_feat_length_limit,
@@ -615,6 +618,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     return parser

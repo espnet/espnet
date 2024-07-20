@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 from packaging.version import parse as V
 from torch.nn.utils.rnn import pad_sequence
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -40,6 +40,7 @@ else:
 class ESPnetSTModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -82,7 +83,6 @@ class ESPnetSTModel(AbsESPnetModel):
         tgt_sym_eos: str = "<sos/eos>",
         lang_token_id: int = -1,
     ):
-        assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
         assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -445,15 +445,17 @@ class ESPnetSTModel(AbsESPnetModel):
             loss=loss.detach(),
             loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
-            loss_st_ctc=loss_st_ctc.detach()
-            if type(loss_st_ctc) is not float
-            else loss_st_ctc,
-            loss_st_trans=loss_st_trans.detach()
-            if type(loss_st_trans) is not float
-            else loss_st_trans,
-            loss_st_att=loss_st_att.detach()
-            if type(loss_st_att) is not float
-            else loss_st_att,
+            loss_st_ctc=(
+                loss_st_ctc.detach() if type(loss_st_ctc) is not float else loss_st_ctc
+            ),
+            loss_st_trans=(
+                loss_st_trans.detach()
+                if type(loss_st_trans) is not float
+                else loss_st_trans
+            ),
+            loss_st_att=(
+                loss_st_att.detach() if type(loss_st_att) is not float else loss_st_att
+            ),
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
             acc_mt=acc_mt_att,

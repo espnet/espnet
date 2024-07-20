@@ -5,7 +5,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.diar.layers.multi_mask import MultiMask
@@ -14,6 +14,9 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
+from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
@@ -43,6 +46,7 @@ from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
+from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
@@ -60,6 +64,7 @@ from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
+from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -89,6 +94,7 @@ separator_choices = ClassChoices(
     name="separator",
     classes=dict(
         asteroid=AsteroidModel_Converter,
+        bsrnn=BSRNNSeparator,
         conformer=ConformerSeparator,
         dan=DANSeparator,
         dc_crn=DC_CRNSeparator,
@@ -108,6 +114,7 @@ separator_choices = ClassChoices(
         ineube=iNeuBe,
         tfgridnet=TFGridNet,
         tfgridnetv2=TFGridNetV2,
+        tfgridnetv3=TFGridNetV3,
         uses=USESSeparator,
     ),
     type_check=AbsSeparator,
@@ -172,6 +179,15 @@ preprocessor_choices = ClassChoices(
     default=None,
 )
 
+# Deffusion-based model related choices
+diffusion_choices = ClassChoices(
+    name="diffusion_model",
+    classes=dict(sgmse=ScoreModel),
+    type_check=AbsDiffusion,
+    default=None,
+)
+
+
 MAX_REFERENCE_NUM = 100
 
 
@@ -190,6 +206,8 @@ class EnhancementTask(AbsTask):
         mask_module_choices,
         # --preprocessor and --preprocessor_conf
         preprocessor_choices,
+        # --diffusion_model and --diffusion_model_conf
+        diffusion_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -380,21 +398,19 @@ class EnhancementTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
 
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=0)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
 
         use_preprocessor = getattr(args, "preprocessor", None) is not None
 
@@ -456,7 +472,6 @@ class EnhancementTask(AbsTask):
                 )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -478,20 +493,20 @@ class EnhancementTask(AbsTask):
         retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
-        retval += ["category"]
+        retval += ["category", "fs"]
         retval = tuple(retval)
-        assert check_return_type(retval)
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetEnhancementModel:
-        assert check_argument_types()
 
         encoder = encoder_choices.get_class(args.encoder)(**args.encoder_conf)
         separator = separator_choices.get_class(args.separator)(
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+
         if args.separator.endswith("nomask"):
             mask_module = mask_module_choices.get_class(args.mask_module)(
                 input_dim=encoder.output_dim,
@@ -514,21 +529,33 @@ class EnhancementTask(AbsTask):
                 loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
-        model = ESPnetEnhancementModel(
-            encoder=encoder,
-            separator=separator,
-            decoder=decoder,
-            loss_wrappers=loss_wrappers,
-            mask_module=mask_module,
-            **args.model_conf,
-        )
+        if getattr(args, "diffusion_model", None) is not None:
+            diffusion_model = diffusion_choices.get_class(args.diffusion_model)(
+                **args.diffusion_model_conf
+            )
+            # build diffusion model
+            model = ESPnetDiffusionModel(
+                encoder=encoder,
+                diffusion=diffusion_model,
+                decoder=decoder,
+                **args.model_conf,
+            )
+
+        else:
+            model = ESPnetEnhancementModel(
+                encoder=encoder,
+                separator=separator,
+                decoder=decoder,
+                loss_wrappers=loss_wrappers,
+                mask_module=mask_module,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model
 
     @classmethod

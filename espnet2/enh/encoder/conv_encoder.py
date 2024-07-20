@@ -1,5 +1,3 @@
-import math
-
 import torch
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
@@ -56,7 +54,9 @@ class ConvEncoder(AbsEncoder):
         return output
 
     def streaming_frame(self, audio: torch.Tensor):
-        """streaming_frame. It splits the continuous audio into frame-level
+        """Stream frame.
+
+        It splits the continuous audio into frame-level
         audio chunks in the streaming *simulation*. It is noted that this
         function takes the entire long audio as input for a streaming simulation.
         You may refer to this function to manage your streaming input

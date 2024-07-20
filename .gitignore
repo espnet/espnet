@@ -4,6 +4,8 @@
 \#*\#
 .\#*
 *DS_Store
+dummy_token_list
+empty.py
 out.txt
 espnet.egg-info/
 doc/_build
@@ -16,6 +18,7 @@ tmp*
 __pycache__/
 check_autopep8
 .coverage
+.coverage.*
 htmlcov
 coverage.xml*
 test_utils/bats-core/
@@ -29,6 +32,9 @@ test_spm.model
 *.vim
 *.swp
 *.nfs*
+constraints.txt
+
+out/config.yaml
 
 # recipe related
 egs*/*/*/data*
@@ -47,6 +53,7 @@ egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
+egs2/test/*
 
 # tools related
 tools/chainer
