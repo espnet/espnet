@@ -17,6 +17,7 @@ from espnet2.speechlm.net_utils import (
     logits_to_tokens,
 )
 
+
 class ARDelayLM(ARParallelLM):
     def forward(
         self,
@@ -78,7 +79,7 @@ class ARDelayLM(ARParallelLM):
             dec_seq_lengths = dec_seq_lengths + self.nq - 1
 
         return retval, dec_seq_lengths
-    
+
     def inverse_delay_interleave(
         self,
         dec_seq_delay: torch.Tensor,
@@ -87,15 +88,15 @@ class ARDelayLM(ARParallelLM):
         retval = []
         length = dec_seq_delay.size(1) - self.nq + 1
         for i in range(dec_seq_delay.size(2)):
-            retval.append(dec_seq_delay[:, i:i + length, i])
-        
+            retval.append(dec_seq_delay[:, i : i + length, i])
+
         retval = torch.stack(retval, dim=2)
 
         if dec_seq_lengths_delay is not None:
             dec_seq_lengths_delay = dec_seq_lengths_delay - self.nq + 1
-        
+
         return retval, dec_seq_lengths_delay
-    
+
     @torch.no_grad()
     def inference(
         self,
@@ -119,21 +120,29 @@ class ARDelayLM(ARParallelLM):
 
         # (2) splice-interleave-split
         prefix = prefix.expand(opts.nbest, -1, -1)
-        start = torch.Tensor([opts.start]).tile(opts.nbest, 1, self.nq).long().to(opts.device)
+        start = (
+            torch.Tensor([opts.start])
+            .tile(opts.nbest, 1, self.nq)
+            .long()
+            .to(opts.device)
+        )
         suffix = suffix.expand(opts.nbest, -1, -1)
         full_seq_delay, _ = self.delay_interleave(
-            torch.cat([prefix, start, suffix], dim=1),
-            pad=self.sos_eos
+            torch.cat([prefix, start, suffix], dim=1), pad=self.sos_eos
         )
-        prefix = full_seq_delay[:, :prefix.size(1)]
-        suffix = full_seq_delay[:, prefix.size(1):]
+        prefix = full_seq_delay[:, : prefix.size(1)]
+        suffix = full_seq_delay[:, prefix.size(1) :]
         prefix_emb = self.emb(prefix).sum(dim=2)  # [B, T, D]
         _ = self.decoders(prefix_emb, kv_cache=cache)
 
         # (3) auto-regressive loop
         # (3.1) AR initialization
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
-        maxlen = int(prefix.size(1) * opts.maxlenratio) if opts.minlenratio > 0 else self.n_ctx
+        maxlen = (
+            int(prefix.size(1) * opts.maxlenratio)
+            if opts.minlenratio > 0
+            else self.n_ctx
+        )
         if opts.search_algo == "teacher_force":
             minlen = suffix.size(1) - 1
             maxlen = suffix.size(1) - 1
@@ -146,11 +155,10 @@ class ARDelayLM(ARParallelLM):
         prev_tok = start
         for step in range(maxlen):
             if step < self.nq:
-                prev_tok = torch.cat([
-                    prev_tok[:, :, :step],
-                    suffix[:, step: step + 1, step:]
-                ], dim=2)
-            
+                prev_tok = torch.cat(
+                    [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
+                )
+
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)  # [B, 1, D]
             h = self.decoders(prev_emb, kv_cache=cache)
@@ -163,10 +171,10 @@ class ARDelayLM(ARParallelLM):
             )
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step + 1: step + 2]
+                prev_tok = suffix[:, step + 1 : step + 2]
             else:
                 prev_tok = gen_tok
-            
+
             generated["token"].append(gen_tok)
             generated["score"].append(gen_score)
 
@@ -186,13 +194,13 @@ class ARDelayLM(ARParallelLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
-            
+
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
         for hook in hooks:
             hook.remove()
-        
+
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         if len(valid_idx) == 0:
             return [], []

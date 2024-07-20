@@ -2586,5 +2586,5 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
-        
-        raise ValueError('End of Diagnose')
+
+        raise ValueError("End of Diagnose")

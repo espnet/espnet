@@ -22,6 +22,7 @@ from typing import List, Tuple
 class Modality:
     discrete: bool = (True,)
 
+
 modalities = {}
 # Discrete
 modalities["codec"] = Modality()

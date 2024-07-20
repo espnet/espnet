@@ -130,7 +130,7 @@ class SpeechLMTask(AbsTask):
             type=str2bool,
             default=True,
             help="If ture, add padding to the speaker prompt that is shorter"
-                 "than the pre-defined length."
+            "than the pre-defined length.",
         )
         group.add_argument(
             "--init",
@@ -226,7 +226,11 @@ class SpeechLMTask(AbsTask):
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
             bpemodel=args.bpemodel,
-            bpemodel_type="builtin" if args.corelm_conf.get("hf_model_tag", None) is None else "hugging_face",
+            bpemodel_type=(
+                "builtin"
+                if args.corelm_conf.get("hf_model_tag", None) is None
+                else "hugging_face"
+            ),
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,
@@ -314,7 +318,7 @@ class SpeechLMTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
         # skip this when using HF transformers
-        elif args.corelm_conf.get('hf_model_tag', None) is None:
+        elif args.corelm_conf.get("hf_model_tag", None) is None:
             for m in model.modules():
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
