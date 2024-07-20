@@ -2372,7 +2372,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         bpe_encode_kwargs: Optional[Dict] = None,
         text_cleaner: Optional[str] = None,
         # speaker prompt
-        speaker_prompt_length: int = 1800,
+        speaker_prompt_length: int = 500,
+        pad_speaker_prompt: bool = True,
         # others
         extra_names_and_modalities=[
             "sampled.scp,codec",
@@ -2430,6 +2431,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
+        self.pad_speaker_prompt = pad_speaker_prompt
 
         # extra entries
         self.extra_names_and_modalities = [
@@ -2532,12 +2534,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         0, len(value) - self.speaker_prompt_length - 1
                     )
                     value = value[start : start + self.speaker_prompt_length]
-                # NOTE(Jinchuan): temporarily comment this, as some old models
-                # are trained without this policy
-                # else:
-                #     pad_len = self.speaker_prompt_length - len(value)
-                #     pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                #     value = np.concatenate([value, pad], axis=0)
+                elif self.pad_speaker_prompt:
+                    pad_len = self.speaker_prompt_length - len(value)
+                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                    value = np.concatenate([value, pad], axis=0)
 
             value = value.flatten()
             conti_feat = None
