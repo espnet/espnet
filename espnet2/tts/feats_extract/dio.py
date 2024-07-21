@@ -118,7 +118,6 @@ class Dio(AbsFeatsExtract):
 
         # Padding
         pitch = pad_list(pitch, 0.0)
-
         # Return with the shape (B, T, 1)
         return pitch.unsqueeze(-1), pitch_lengths
 
@@ -134,6 +133,9 @@ class Dio(AbsFeatsExtract):
         f0 = pyworld.stonemask(x, f0, timeaxis, self.fs)
         if self.use_continuous_f0:
             f0 = self._convert_to_continuous_f0(f0)
+        else:
+            f0 = self._convert_to_discrete_f0(f0)
+            f0 = f0.astype(np.float32)
         if self.use_log_f0:
             nonzero_idxs = np.where(f0 != 0)[0]
             f0[nonzero_idxs] = np.log(f0[nonzero_idxs])
@@ -167,6 +169,27 @@ class Dio(AbsFeatsExtract):
         # perform linear interpolation
         interp_fn = interp1d(nonzero_idxs, f0[nonzero_idxs])
         f0 = interp_fn(np.arange(0, f0.shape[0]))
+
+        return f0
+    
+    @staticmethod
+    def _convert_to_discrete_f0(f0: np.array) -> np.array:
+        if (f0 == 0).all():
+            logging.warning("All frames seems to be unvoiced.")
+            return f0
+
+        # padding start and end of f0 sequence
+        start_f0 = f0[f0 != 0][0]
+        end_f0 = f0[f0 != 0][-1]
+        start_idx = np.where(f0 == start_f0)[0][0]
+        end_idx = np.where(f0 == end_f0)[0][-1]
+        f0[:start_idx] = start_f0
+        f0[end_idx:] = end_f0
+
+        # get non-zero frame index
+        nonzero_idxs = np.where(f0 != 0)[0]
+        f0[[nonzero_idxs]] = f0[nonzero_idxs]
+        f0 = f0.astype(np.int32)
 
         return f0
 

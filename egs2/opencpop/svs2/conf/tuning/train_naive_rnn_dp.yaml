@@ -39,6 +39,7 @@ pitch_extract: dio           # pitch extractor type
 pitch_extract_conf:
     use_token_averaged_f0: false
     use_log_f0: true
+    use_continuous_f0: false
 pitch_normalize: None  # normalizer for the pitch feature
 
 
@@ -55,13 +56,13 @@ optim_conf:           # keyword arguments for selected optimizer
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 # num_iters_per_epoch: 200    # number of iterations per epoch
-max_epoch: 500              # number of epochs
+max_epoch: 350              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 
 batch_type: sorted
-batch_size: 48
+batch_size: 16
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches

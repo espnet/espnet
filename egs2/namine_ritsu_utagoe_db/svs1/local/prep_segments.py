@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from egs2.TEMPLATE.svs1.pyscripts.utils.prep_segments import DataHandler, get_parser
+from pyscripts.utils.prep_segments import DataHandler, get_parser
 
 
 class NamineDataHandler(DataHandler):
