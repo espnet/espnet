@@ -3,7 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Implementation of UniAudio architecture: https://arxiv.org/abs/2310.00704
+# Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
 import logging
 from typing import Dict, Tuple
@@ -94,7 +94,7 @@ class ARParallelLM(AbsCoreLM):
         x = self.decoders(x)
 
         # [B, T, 1, D] + [1, 1, nq, D]
-        x = x.unsqueeze(2) + self.head_emb.weight.unsqueeze(0).unsqueeze(0)
+        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)
         logits = self.lm_head(x)  # [B, T, nq, V]
         loss, stats, weight = ce_loss(
             logits,

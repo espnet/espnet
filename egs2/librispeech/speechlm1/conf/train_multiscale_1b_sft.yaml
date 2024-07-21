@@ -1,5 +1,6 @@
 # Trained with Tesla 8xA100-SXM4-40GB. It takes about ? hours.
 # #Params: 1.15B
+
 corelm: multiscale
 corelm_conf:
     share_emb: false
@@ -13,20 +14,20 @@ corelm_conf:
     l_layer: 6
 
 # Dataloader
-# data accumulation, equivalent to 1M updates
 batch_type: numel
-batch_bins: 1000
-accum_grad: 10
-grad_clip: 5
-max_epoch: 3
+batch_bins: 500
+accum_grad: 100
+grad_clip: 50
+max_epoch: 1
 num_workers: 4
 drop_last_iter: true
-log_interval: 1000
+log_interval: 3000
+num_att_plot: 0
 
 # Criterion & Optimization; constant learning rate
 optim: adamw
 optim_conf:
-    lr: 0.00001
+    lr: 0.0000003
     betas:
         - 0.9
         - 0.95
@@ -41,11 +42,10 @@ best_model_criterion:
 keep_nbest_models: 5
 nbest_averaging_interval: 5
 
-
 # Global settings
 use_amp: true
 use_tf32: false
-use_fsdp: true
+use_fsdp: false
 encoder_decoder_format: false
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8

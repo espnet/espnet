@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-# CoreLM
+# CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARLM
 from espnet2.speechlm.core_lm.valle import ValleLM
@@ -15,24 +15,29 @@ from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.ar_multiscale_delay import ARMultiScaleDelayLM
+
+# ESPnet Models
+
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
+
+# Tokenizers
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
-from espnet2.tasks.abs_task import AbsTask
-from espnet2.text.phoneme_tokenizer import g2p_choices
-from espnet2.torch_utils.initialize import initialize
 
-# Top-level model
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
+# Preprocessor
 from espnet2.train.preprocessor import SpeechLMPreprocessor
+from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.text.phoneme_tokenizer import g2p_choices
+
+# Others
+from espnet2.train.class_choices import ClassChoices
+from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.trainer import Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.torch_utils.initialize import initialize
 
 corelm_choices = ClassChoices(
     "corelm",
@@ -119,6 +124,13 @@ class SpeechLMTask(AbsTask):
             type=int,
             default=150,
             help="the length of speaker prompt, in #frame",
+        )
+        group.add_argument(
+            "--pad_speaker_prompt",
+            type=str2bool,
+            default=True,
+            help="If ture, add padding to the speaker prompt that is shorter"
+            "than the pre-defined length.",
         )
         group.add_argument(
             "--init",
@@ -214,13 +226,18 @@ class SpeechLMTask(AbsTask):
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
             bpemodel=args.bpemodel,
-            bpemodel_type="builtin" if args.corelm_conf.get("hf_model_tag", None) is None else "hugging_face",
+            bpemodel_type=(
+                "builtin"
+                if args.corelm_conf.get("hf_model_tag", None) is None
+                else "hugging_face"
+            ),
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
             speaker_prompt_length=args.speaker_prompt_length,
+            pad_speaker_prompt=args.pad_speaker_prompt,
         )
 
         return retval
@@ -301,7 +318,7 @@ class SpeechLMTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
         # skip this when using HF transformers
-        elif args.corelm_conf.get('hf_model_tag', None) is None:
+        elif args.corelm_conf.get("hf_model_tag", None) is None:
             for m in model.modules():
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)

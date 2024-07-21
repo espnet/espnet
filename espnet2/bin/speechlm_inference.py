@@ -189,7 +189,7 @@ class SpeechLM:
                 this_modality = self.train_args.token_list[dec_seq[0, start, 0].item()]
                 this_modality = this_modality.lstrip("<").rstrip("_start/end>")
                 token = dec_seq[0, start + 1 : end]
-                token = token[token[:, 0] != self.pad] # exclude padding
+                token = token[token[:, 0] != self.pad]  # exclude padding
                 detokenized = False
 
                 # TODO(Jinchuan): support more detokenization options later for other tasks

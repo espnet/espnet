@@ -13,6 +13,7 @@ from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOpt
 from espnet2.speechlm.module.warpper import TransformerDecoder
 from espnet2.speechlm.net_utils import ce_loss
 
+
 class ARLM(AbsCoreLM):
     def __init__(
         self,
@@ -102,16 +103,15 @@ class ARLM(AbsCoreLM):
             prefix_len - 1,
             compute_loss=compute_loss,
         )
-        
+
         return loss, logits, stats, weight
-    
+
     def _init_embeddings(self):
         if "text_bpe" not in self.token_bias:
             return
-        
-        start = self.token_bias['text_bpe']
-        values = list(self.token_bias.values())
 
+        start = self.token_bias["text_bpe"]
+        values = list(self.token_bias.values())
 
     @torch.no_grad()
     def inference(
