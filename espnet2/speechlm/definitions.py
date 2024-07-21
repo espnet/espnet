@@ -72,14 +72,29 @@ class SpeechLMTask:
 
 
 tasks = {}
+# Phone + Speaker Prompt -> Target Speech
 tasks["tts"] = SpeechLMTask(
     encoder_entries=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+# BPE + Speaker Prompt -> Target Speech
+tasks["bpe_tts"] = SpeechLMTask(
+    encoder_entries=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
+    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
+    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+# BPE -> Target Speech
 tasks["plain_tts"] = SpeechLMTask(
     encoder_entries=[("text", "g2p", "text")],
+    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
+    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+tasks["plain_bpe_tts"] = SpeechLMTask(
+    encoder_entries=[("text", "text_bpe", "text")],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
