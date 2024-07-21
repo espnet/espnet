@@ -137,7 +137,7 @@ class MLP(nn.Module):
 
 
 class MoE(nn.Module):
-    """Call a Sparsely gated mixture of experts layer 
+    """Call a Sparsely gated mixture of experts layer
     with 1-layer Feed-Forward networks as experts.
     Args:
     input_size: integer - size of the input
