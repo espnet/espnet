@@ -50,7 +50,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     python3 local/data_prep.py ${an4_root} sph2pipe
 
-    for x in test train; do
+    for x in test ${train_set}; do
         sort data/${x}/wav.scp -o data/${x}/wav.scp
     done
 
