@@ -35,8 +35,8 @@ class ResidualVectorQuantizer(nn.Module):
         decay (float): Decay for exponential moving average over the codebooks.
         kmeans_init (bool): Whether to use kmeans to initialize the codebooks.
         kmeans_iters (int): Number of iterations used for kmeans initialization.
-        threshold_ema_dead_code (int): Threshold for dead code expiration. 
-            Replace any codes that have an exponential moving average cluster 
+        threshold_ema_dead_code (int): Threshold for dead code expiration.
+            Replace any codes that have an exponential moving average cluster
             size less than the specified threshold with
             randomly selected vector from the current batch.
     """
@@ -127,9 +127,9 @@ class ResidualVectorQuantizer(nn.Module):
         bandwidth: Optional[float] = None,
         st: Optional[int] = None,
     ) -> torch.Tensor:
-        """Encode a given input tensor with the specified sample rate at 
-            the given bandwidth. The RVQ encode method sets the appropriate 
-            number of quantizer to use and returns indices for each quantizer.
+        """Encode a given input tensor with the specified sample rate at
+        the given bandwidth. The RVQ encode method sets the appropriate
+        number of quantizer to use and returns indices for each quantizer.
         """
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
         st = st or 0

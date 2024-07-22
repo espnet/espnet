@@ -80,7 +80,7 @@ class ValleLM(AbsCoreLM):
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
             dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep 
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep
                 the interface, may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.

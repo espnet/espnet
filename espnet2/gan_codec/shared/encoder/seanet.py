@@ -67,9 +67,9 @@ def apply_parametrization_norm(module: nn.Module, norm: str = "none") -> nn.Modu
 def get_norm_module(
     module: nn.Module, causal: bool = False, norm: str = "none", **norm_kwargs
 ) -> nn.Module:
-    """Return the proper normalization module. If causal is True, this will 
-           ensure the returned module is causal, or return an error if the 
-           normalization doesn't support causal evaluation.
+    """Return the proper normalization module. If causal is True, this will
+    ensure the returned module is causal, or return an error if the
+    normalization doesn't support causal evaluation.
     """
     assert norm in CONV_NORMALIZATIONS
     if norm == "layer_norm":
@@ -108,8 +108,8 @@ def pad1d(
     x: torch.Tensor, paddings: Tuple[int, int], mode: str = "zero", value: float = 0.0
 ):
     """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
-        If this is the case, we insert extra 0 padding to the right before 
-        the reflection happen.
+    If this is the case, we insert extra 0 padding to the right before
+    the reflection happen.
     """
     length = x.shape[-1]
     padding_left, padding_right = paddings
@@ -246,12 +246,12 @@ class SEANetResnetBlock(nn.Module):
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization 
+        norm_params (dict): Parameters to provide to the underlying normalization
             used along with the convolution.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3)
-        true_skip (bool): Whether to use true skip connection or a simple convolution 
+        true_skip (bool): Whether to use true skip connection or a simple convolution
             as the skip connection.
     """
 
@@ -322,14 +322,14 @@ class SEANetEncoder(nn.Module):
         dimension (int): Intermediate representation dimension.
         n_filters (int): Base width for the model.
         n_residual_layers (int): nb of residual layers.
-        ratios (Sequence[int]): kernel size and stride ratios. The encoder 
-            uses downsampling ratios instead of upsampling ratios, hence 
-            it will use the ratios in the reverse order to the ones specified 
+        ratios (Sequence[int]): kernel size and stride ratios. The encoder
+            uses downsampling ratios instead of upsampling ratios, hence
+            it will use the ratios in the reverse order to the ones specified
             here that must match the decoder order
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization 
+        norm_params (dict): Parameters to provide to the underlying normalization
             used along with the convolution.
         kernel_size (int): Kernel size for the initial convolution.
         last_kernel_size (int): Kernel size for the initial convolution.
@@ -337,7 +337,7 @@ class SEANetEncoder(nn.Module):
         dilation_base (int): How much to increase the dilation with each layer.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
-        true_skip (bool): Whether to use true skip connection or a simple (streamable) 
+        true_skip (bool): Whether to use true skip connection or a simple (streamable)
             convolution as the skip connection in the residual network blocks.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3).
         lstm (int): Number of LSTM layers at the end of the encoder.

@@ -96,10 +96,10 @@ class SConvTranspose1d(nn.Module):
 
         y = self.convtr(x)
 
-        # We will only trim fixed padding. Extra padding from 
-        # `pad_for_conv1d` would be removed at the very end, 
-        # when keeping only the right length for the output, as 
-        # removing it here would require also passing the length 
+        # We will only trim fixed padding. Extra padding from
+        # `pad_for_conv1d` would be removed at the very end,
+        # when keeping only the right length for the output, as
+        # removing it here would require also passing the length
         # at the matching layer in the encoder.
         if self.causal:
             # Trim the padding on the right according to the specified ratio
@@ -128,7 +128,7 @@ class SEANetDecoder(nn.Module):
         final_activation (str): Final activation function after all convolutions.
         final_activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization 
+        norm_params (dict): Parameters to provide to the underlying normalization
             used along with the convolution.
         kernel_size (int): Kernel size for the initial convolution.
         last_kernel_size (int): Kernel size for the initial convolution.
@@ -140,8 +140,8 @@ class SEANetDecoder(nn.Module):
             convolution as the skip connection in the residual network blocks.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3).
         lstm (int): Number of LSTM layers at the end of the encoder.
-        trim_right_ratio (float): Ratio for trimming at the right of the transposed 
-            convolution under the causal setup. If equal to 1.0, it means that all 
+        trim_right_ratio (float): Ratio for trimming at the right of the transposed
+            convolution under the causal setup. If equal to 1.0, it means that all
             the trimming is done at the right.
     """
 

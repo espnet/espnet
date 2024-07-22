@@ -84,8 +84,8 @@ class CodecTokenizer(AbsTokenizer):
 
             model_name = "encodec_model_" + str(codec_fs).replace("000", "khz")
             self.codec = getattr(EncodecModel, model_name)().to(device)
-            # NOTE (Jinchuan): This Encodec model has 32 codebooks, 
-            # which is not necessary in usual cases. 
+            # NOTE (Jinchuan): This Encodec model has 32 codebooks,
+            # which is not necessary in usual cases.
             # We only adopt 8 first codebooks, a.k.a., 6kbps.
             bandwidth = 6.0
             self.codec.set_target_bandwidth(bandwidth)
