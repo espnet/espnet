@@ -7,40 +7,26 @@ set -o pipefail
 
 train_set=train_960
 valid_set=dev_clean
-test_sets="dev_clean test_clean"
-test_sets="test_clean_7spk"
-test_sets="train_clean_360"
+test_sets="test_clean"
 
-train_config=conf/train_multiscale.yaml
-train_config=conf/train_parallel.yaml
-# train_config=conf/train_delay.yaml
-# train_config=conf/train_multiscale_delay.yaml
-inference_config=conf/decode_encodec.yaml
+bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
 
-cleaner=tacotron
-g2p=g2p_en_no_space # or g2p_en
-
-# Note(Jinchuan): We only select audio range from 3s to 30s since:
-#                 (1) The speech prompt is 3s
-#                 (2) We limit the longest audio to 30s to avoid
-#                     some corner cases in memeory
+# NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
-    --task "tts" \
+    --stop_stage 5 \
+    --task "bpe_tts" \
     --data_name librispeech \
     --fs 16000 \
     --ngpu 8 \
-    --nj 8 \
-    --cleaner "${cleaner}" \
-    --g2p "${g2p}" \
-    --inference_nj 1 \
-    --gpu_inference true \
+    --nj 32 \
+    --train_config conf/train_foo.yaml \
     --audio_format "flac.ark" \
-    --train_config ${train_config} \
-    --inference_config ${inference_config} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --codec_choice inhouse \
+    --codec_choice ESPnet \
+    --codec_hf_model_tag "espnet/amuse_speech_soundstream_16k" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
+    ${bpe_opts} \
     "$@"

@@ -125,6 +125,7 @@ class SpeechLM:
             self.bias = token_bias[modality]
         else:
             self.bias = 0
+        self.pad = token_list.index("<pad>")
 
     @typechecked
     @torch.no_grad()
@@ -188,9 +189,10 @@ class SpeechLM:
                 this_modality = self.train_args.token_list[dec_seq[0, start, 0].item()]
                 this_modality = this_modality.lstrip("<").rstrip("_start/end>")
                 token = dec_seq[0, start + 1 : end]
+                token = token[token[:, 0] != self.pad]  # exclude padding
                 detokenized = False
 
-                # TODO(Jinchuan): support more detokenization options latre for other tasks
+                # TODO(Jinchuan): support more detokenization options later for other tasks
                 if self.modality == "codec" and this_modality in ["codec", "spk"]:
                     token = (token - self.train_args.token_bias["codec"]).view(-1)
                     content = self.tokenizer.detokenize(token.clone())

@@ -90,7 +90,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             all_prefix_lengths,
             compute_loss=False,
         )
-        stats['loss_ce'] = stats.pop('loss') 
+        stats["loss_ce"] = stats.pop("loss")
 
         if self.reflm is not None:
             with torch.no_grad():

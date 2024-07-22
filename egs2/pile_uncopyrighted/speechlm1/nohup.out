@@ -1,0 +1,10 @@
+2024-07-22T13:13:50 (speechlm.sh:125:main) ./speechlm.sh --stop_stage 5 --task textlm --data_name pile_uncopyrighted --fs 16000 --ngpu 8 --nj 32 --train_config conf/train_foo.yaml --audio_format flac.ark --train_set train_960 --valid_set dev_clean --test_sets test_clean --codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k --min_wav_duration 3.0 --max_wav_duration 30.0 --bpemode huggingface --bpemodel EleutherAI/pythia-1b --stage 1 --stop_stage 5
+textlm
+2024-07-22T13:13:51 (speechlm.sh:238:main) Stage 1: Data preparation for data/train_960, data/dev_clean, etc.
+./speechlm.sh: line 240: local/data.sh: Permission denied
+2024-07-22T13:14:31 (speechlm.sh:125:main) ./speechlm.sh --stop_stage 5 --task textlm --data_name pile_uncopyrighted --fs 16000 --ngpu 8 --nj 32 --train_config conf/train_foo.yaml --audio_format flac.ark --train_set train_960 --valid_set dev_clean --test_sets test_clean --codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k --min_wav_duration 3.0 --max_wav_duration 30.0 --bpemode huggingface --bpemodel EleutherAI/pythia-1b --stage 1 --stop_stage 5
+textlm
+2024-07-22T13:14:31 (speechlm.sh:238:main) Stage 1: Data preparation for data/train_960, data/dev_clean, etc.
+2024-07-22T13:14:31 (data.sh:27:main) local/data.sh 
+hostname: Name or service not known
+2024-07-22T13:14:34 (data.sh:43:main) Process downloaded files

@@ -4,18 +4,18 @@ corelm_conf:
     qk_norm: true
     att_unit: 1024
     head: 16
-    layer: 22
+    layer: 24
 
 # Dataloader
 batch_type: numel
-batch_bins: 5000
-num_iters_per_epoch: 20000
-accum_grad: 2
+batch_bins: 8000
+num_iters_per_epoch: 10000
+accum_grad: 1
 grad_clip: 5
 max_epoch: 60
-num_workers: 4
+num_workers: 8
 drop_last_iter: true
-log_interval: 2000
+log_interval: 1000
 
 # Criterion & Optimization
 optim: adamw

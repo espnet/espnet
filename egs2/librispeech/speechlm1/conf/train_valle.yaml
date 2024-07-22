@@ -45,4 +45,4 @@ use_fsdp: false
 encoder_decoder_format: false
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8
-speaker_prompt_length: 500 # 50fps, a.k.a., 3s
+speaker_prompt_length: 500 # 50fps, a.k.a., 10s

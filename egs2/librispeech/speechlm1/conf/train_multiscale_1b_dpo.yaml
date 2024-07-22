@@ -24,7 +24,7 @@ batch_bins: 500
 accum_grad: 100
 num_iters_per_epoch: 5000
 grad_clip: 50
-max_epoch: 15
+max_epoch: 8
 num_workers: 4
 drop_last_iter: true
 log_interval: 1000

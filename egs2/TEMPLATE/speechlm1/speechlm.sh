@@ -249,8 +249,14 @@ if ! "${skip_data_prep}"; then
         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+
+        if ${skip_train}; then
+            _dsets=${test_sets}
+        else
+            _dsets="${train_set} ${valid_set} ${test_sets}"
+        fi
         
-        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+        for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
 
             for prepare_opt in ${prepare_opts}; do
@@ -309,7 +315,7 @@ if ! "${skip_data_prep}"; then
                 # for discrete operations, we will also generate a vocabulary.
 
                 if [ ! -f ${data_audio}/${dset}/${_name} ]; then
-                    log "File ${data_audio}/${dset}/${_name} is missing. Exit" || exit 1;
+                    log "File ${data_audio}/${dset}/${_name} is missing. Exit" && exit 1;
                 fi
 
                 if [ ${_modality} == "ssl" ]; then
