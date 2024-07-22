@@ -252,9 +252,8 @@ if ! "${skip_data_prep}"; then
 
         if ${skip_train}; then
             _dsets=${test_sets}
-            echo "skip"
         else
-            _dsets="${train_set}" "${valid_set}" ${test_sets}
+            _dsets="${train_set} ${valid_set} ${test_sets}"
         fi
         
         for dset in ${_dsets}; do
@@ -316,7 +315,7 @@ if ! "${skip_data_prep}"; then
                 # for discrete operations, we will also generate a vocabulary.
 
                 if [ ! -f ${data_audio}/${dset}/${_name} ]; then
-                    log "File ${data_audio}/${dset}/${_name} is missing. Exit" || exit 1;
+                    log "File ${data_audio}/${dset}/${_name} is missing. Exit" && exit 1;
                 fi
 
                 if [ ${_modality} == "ssl" ]; then

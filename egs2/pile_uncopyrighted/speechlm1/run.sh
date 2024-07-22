@@ -5,17 +5,17 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_960
-valid_set=dev_clean
-test_sets="test_clean"
+train_set=train
+valid_set=val
+test_sets="test"
 
 bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
 
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
     --stop_stage 5 \
-    --task "bpe_tts" \
-    --data_name librispeech \
+    --task "textlm" \
+    --data_name pile_uncopyrighted \
     --fs 16000 \
     --ngpu 8 \
     --nj 32 \
