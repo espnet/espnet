@@ -209,6 +209,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-init-1">espnet2.asr.layers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-cgmlp-1">espnet2.asr.layers.cgmlp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-fastformer-1">espnet2.asr.layers.fastformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-multiconv-cgmlp-1">espnet2.asr.layers.multiconv_cgmlp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-hugging-face-transformers-decoder-1">espnet2.asr.decoder.hugging_face_transformers_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-init-1">espnet2.asr.decoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-whisper-decoder-1">espnet2.asr.decoder.whisper_decoder</a></li>
@@ -234,6 +235,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-1">espnet2.asr.encoder.transformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-vgg-rnn-encoder-1">espnet2.asr.encoder.vgg_rnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-conformer-encoder-1">espnet2.asr.encoder.conformer_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-multiconvformer-encoder-1">espnet2.asr.encoder.multiconvformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hubert-encoder-1">espnet2.asr.encoder.hubert_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-whisper-encoder-1">espnet2.asr.encoder.whisper_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder-1">espnet2.asr.postencoder.hugging_face_transformers_postencoder</a></li>
@@ -4520,6 +4522,67 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-layers-multiconv-cgmlp-1">
+<span id="espnet2-asr-layers-multiconv-cgmlp"></span><h2>espnet2.asr.layers.multiconv_cgmlp<a class="headerlink" href="#espnet2-asr-layers-multiconv-cgmlp-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.layers.multiconv_cgmlp"></span><p>Extension of convolutional gating (cgMLP) definition with multiple convolutions.</p>
+<p class="rubric">References</p>
+<p><a class="reference external" href="https://openreview.net/forum?id=RA-zVvZLYIy">https://openreview.net/forum?id=RA-zVvZLYIy</a>
+<a class="reference external" href="https://arxiv.org/abs/2105.08050">https://arxiv.org/abs/2105.08050</a>
+<a class="reference external" href="https://arxiv.org/abs/2407.03718">https://arxiv.org/abs/2407.03718</a></p>
+<dl class="class">
+<dt id="espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.layers.multiconv_cgmlp.</code><code class="sig-name descname">MultiConvolutionalGatingMLP</code><span class="sig-paren">(</span><em class="sig-param">size: int</em>, <em class="sig-param">linear_units: int</em>, <em class="sig-param">arch_type: str</em>, <em class="sig-param">kernel_sizes: str</em>, <em class="sig-param">merge_conv_kernel: int</em>, <em class="sig-param">use_non_linear: bool</em>, <em class="sig-param">dropout_rate: float</em>, <em class="sig-param">use_linear_after_conv: bool</em>, <em class="sig-param">activation</em>, <em class="sig-param">gate_activation: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/layers/multiconv_cgmlp.html#MultiConvolutionalGatingMLP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Convolutional Gating MLP (cgMLP).</p>
+<dl class="method">
+<dt id="espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/layers/multiconv_cgmlp.html#MultiConvolutionalGatingMLP.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.layers.multiconv_cgmlp.</code><code class="sig-name descname">MultiConvolutionalSpatialGatingUnit</code><span class="sig-paren">(</span><em class="sig-param">size: int</em>, <em class="sig-param">arch_type: str</em>, <em class="sig-param">kernel_sizes: str</em>, <em class="sig-param">merge_conv_kernel: int</em>, <em class="sig-param">use_non_linear: bool</em>, <em class="sig-param">dropout_rate: float</em>, <em class="sig-param">use_linear_after_conv: bool</em>, <em class="sig-param">activation</em>, <em class="sig-param">gate_activation: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/layers/multiconv_cgmlp.html#MultiConvolutionalSpatialGatingUnit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Multi Convolutional Spatial Gating Unit (M-CSGU).</p>
+<dl class="method">
+<dt id="espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.espnet_initialization_fn">
+<code class="sig-name descname">espnet_initialization_fn</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/layers/multiconv_cgmlp.html#MultiConvolutionalSpatialGatingUnit.espnet_initialization_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.espnet_initialization_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">gate_add=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/layers/multiconv_cgmlp.html#MultiConvolutionalSpatialGatingUnit.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – (N, T, D)</p></li>
+<li><p><strong>gate_add</strong> (<em>torch.Tensor</em>) – (N, T, D/2)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(N, T, D/2)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>out (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-decoder-hugging-face-transformers-decoder-1">
 <span id="espnet2-asr-decoder-hugging-face-transformers-decoder"></span><h2>espnet2.asr.decoder.hugging_face_transformers_decoder<a class="headerlink" href="#espnet2-asr-decoder-hugging-face-transformers-decoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.hugging_face_transformers_decoder"></span><p>Hugging Face Transformers Decoder.</p>
@@ -7120,6 +7183,87 @@ torch.Tensor: Not to be used now.</p>
 <dl class="method">
 <dt id="espnet2.asr.encoder.conformer_encoder.ConformerEncoder.output_size">
 <code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/conformer_encoder.html#ConformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-encoder-multiconvformer-encoder-1">
+<span id="espnet2-asr-encoder-multiconvformer-encoder"></span><h2>espnet2.asr.encoder.multiconvformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-multiconvformer-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.multiconvformer_encoder"></span><p>Multiconvformer encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.multiconvformer_encoder.</code><code class="sig-name descname">MultiConvConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">cgmlp_linear_units: int = 2048</em>, <em class="sig-param">multicgmlp_type: str = 'concat_fusion'</em>, <em class="sig-param">multicgmlp_kernel_sizes: Union[int</em>, <em class="sig-param">str] = '7</em>, <em class="sig-param">15</em>, <em class="sig-param">23</em>, <em class="sig-param">31'</em>, <em class="sig-param">multicgmlp_merge_conv_kernel: int = 31</em>, <em class="sig-param">multicgmlp_use_non_linear: int = True</em>, <em class="sig-param">use_linear_after_conv: bool = False</em>, <em class="sig-param">gate_activation: str = 'identity'</em>, <em class="sig-param">input_layer: str = 'conv2d'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">interctc_layer_idx: List[int] = []</em>, <em class="sig-param">interctc_use_conditioning: bool = False</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/multiconvformer_encoder.html#MultiConvConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Multiconvformer encoder module.
+Link to the paper: <a class="reference external" href="https://arxiv.org/abs/2407.03718">https://arxiv.org/abs/2407.03718</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – Dimension of attention.</p></li>
+<li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
+<li><p><strong>num_blocks</strong> (<em>int</em>) – The number of decoder blocks.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after adding positional encoding.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate in attention.</p></li>
+<li><p><strong>cgmlp_linear_units</strong> (<em>int</em>) – The number of units used in CGMLP block.</p></li>
+<li><p><strong>multicgmlp_type</strong> (<em>str</em>) – “sum”, “weighted_sum”, “concat” or “concat_fusion”.</p></li>
+<li><p><strong>multicgmlp_kernel_sizes</strong> (<em>str</em>) – Comma seperated list of kernel sizes.</p></li>
+<li><p><strong>multicgmlp_merge_conv_kernel</strong> (<em>int</em>) – The number of kernels used in depthwise
+convolution fusion in MultiCGMLP.</p></li>
+<li><p><strong>use_linear_after_conv</strong> (<em>bool</em>) – Whether to use a linear layer after MultiCGMLP.</p></li>
+<li><p><strong>gate_activation</strong> (<em>str</em>) – The activation function used in CGMLP gating.</p></li>
+<li><p><strong>input_layer</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>torch.nn.Module</em><em>]</em>) – Input layer type.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to use layer_norm before the first block.</p></li>
+<li><p><strong>concat_after</strong> (<em>bool</em>) – Whether to concat attention layer’s input and output.
+If True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+If False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – “linear”, “conv1d”, or “conv1d-linear”.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of positionwise conv1d layer.</p></li>
+<li><p><strong>rel_pos_type</strong> (<em>str</em>) – Whether to use the latest relative positional encoding or
+the legacy one. The legacy relative positional encoding will be deprecated
+in the future. More Details can be found in
+<a class="reference external" href="https://github.com/espnet/espnet/pull/2816">https://github.com/espnet/espnet/pull/2816</a>.</p></li>
+<li><p><strong>encoder_pos_enc_layer_type</strong> (<em>str</em>) – Encoder positional encoding layer type.</p></li>
+<li><p><strong>encoder_attn_layer_type</strong> (<em>str</em>) – Encoder attention layer type.</p></li>
+<li><p><strong>activation_type</strong> (<em>str</em>) – Encoder activation function type.</p></li>
+<li><p><strong>macaron_style</strong> (<em>bool</em>) – Whether to use macaron style for positionwise layer.</p></li>
+<li><p><strong>use_cnn_module</strong> (<em>bool</em>) – Whether to use convolution module.</p></li>
+<li><p><strong>zero_triu</strong> (<em>bool</em>) – Whether to zero the upper triangular part of attention matrix.</p></li>
+<li><p><strong>cnn_module_kernel</strong> (<em>int</em>) – Kernerl size of convolution module.</p></li>
+<li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/multiconvformer_encoder.html#MultiConvConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – Input length (#batch).</p></li>
+<li><p><strong>prev_states</strong> (<em>torch.Tensor</em>) – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor (#batch, L, output_size).
+torch.Tensor: Output length (#batch).
+torch.Tensor: Not to be used now.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/multiconvformer_encoder.html#MultiConvConformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

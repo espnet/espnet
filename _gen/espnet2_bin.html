@@ -541,7 +541,7 @@ Text converter related:
                     [--model_conf MODEL_CONF]
                     [--preencoder {sinc,linear,None}]
                     [--preencoder_conf PREENCODER_CONF]
-                    [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert}]
+                    [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert,multiconv_conformer}]
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,length_adaptor,None}]
                     [--postencoder_conf POSTENCODER_CONF]
@@ -1003,7 +1003,7 @@ Optimizer related:
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
-  --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert}
+  --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert,multiconv_conformer}
                         The encoder type (default: rnn)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
@@ -2603,7 +2603,7 @@ SeparateSpeech related:
                         [--normalize_conf NORMALIZE_CONF]
                         [--asr_preencoder {sinc,linear,None}]
                         [--asr_preencoder_conf ASR_PREENCODER_CONF]
-                        [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert}]
+                        [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert,multiconv_conformer}]
                         [--asr_encoder_conf ASR_ENCODER_CONF]
                         [--asr_postencoder {hugging_face_transformers,length_adaptor,None}]
                         [--asr_postencoder_conf ASR_POSTENCODER_CONF]
@@ -3106,7 +3106,7 @@ Optimizer related:
                         The asr_preencoder type (default: None)
   --asr_preencoder_conf ASR_PREENCODER_CONF
                         The keyword arguments for asr_preencoder (default: {})
-  --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert}
+  --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer,avhubert,multiconv_conformer}
                         The asr_encoder type (default: rnn)
   --asr_encoder_conf ASR_ENCODER_CONF
                         The keyword arguments for asr_encoder (default: {})

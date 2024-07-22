@@ -3487,6 +3487,8 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.longformer_encoder">espnet2.asr.encoder.longformer_encoder (module)</a>
 </li>
+      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.multiconvformer_encoder">espnet2.asr.encoder.multiconvformer_encoder (module)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.rnn_encoder">espnet2.asr.encoder.rnn_encoder (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.transformer_encoder">espnet2.asr.encoder.transformer_encoder (module)</a>
@@ -3524,6 +3526,8 @@
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.layers.cgmlp">espnet2.asr.layers.cgmlp (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.layers.fastformer">espnet2.asr.layers.fastformer (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.layers.multiconv_cgmlp">espnet2.asr.layers.multiconv_cgmlp (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.maskctc_model">espnet2.asr.maskctc_model (module)</a>
 </li>
@@ -3829,10 +3833,10 @@
 </li>
       <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.__init__">espnet2.diar.__init__ (module)</a>
 </li>
-      <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.abs_diar">espnet2.diar.abs_diar (module)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.abs_diar">espnet2.diar.abs_diar (module)</a>
+</li>
       <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.attractor.__init__">espnet2.diar.attractor.__init__ (module)</a>
 </li>
       <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.attractor.abs_attractor">espnet2.diar.attractor.abs_attractor (module)</a>
@@ -4752,6 +4756,8 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.fastformer.FastSelfAttention.espnet_initialization_fn">(espnet2.asr.layers.fastformer.FastSelfAttention method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.espnet_initialization_fn">(espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit method)</a>
+</li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.LightweightSincConvs.espnet_initialization_fn">(espnet2.asr.preencoder.sinc.LightweightSincConvs method)</a>
 </li>
       </ul></li>
@@ -5468,6 +5474,8 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward">(espnet2.asr.encoder.longformer_encoder.LongformerEncoder method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.forward">(espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder method)</a>
+</li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.rnn_encoder.RNNEncoder.forward">(espnet2.asr.encoder.rnn_encoder.RNNEncoder method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.transformer_encoder.TransformerEncoder.forward">(espnet2.asr.encoder.transformer_encoder.TransformerEncoder method)</a>
@@ -5503,6 +5511,10 @@
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.cgmlp.ConvolutionalSpatialGatingUnit.forward">(espnet2.asr.layers.cgmlp.ConvolutionalSpatialGatingUnit method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.fastformer.FastSelfAttention.forward">(espnet2.asr.layers.fastformer.FastSelfAttention method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP.forward">(espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit.forward">(espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCInference.forward">(espnet2.asr.maskctc_model.MaskCTCInference method)</a>
 </li>
@@ -8571,8 +8583,6 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_prob_image">mask_prob_image (espnet2.asr.encoder.avhubert_encoder.AVHubertConfig attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_selection">mask_selection (espnet2.asr.encoder.avhubert_encoder.AVHubertConfig attribute)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.mask_type">mask_type() (espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence property)</a>
@@ -8589,6 +8599,8 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.mask_type">(espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE property)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.maskctc.add_mask_token.mask_uniform">mask_uniform() (in module espnet.nets.pytorch_backend.maskctc.add_mask_token)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.mask_along_axis.MaskAlongAxis">MaskAlongAxis (class in espnet2.layers.mask_along_axis)</a>
@@ -8752,6 +8764,12 @@
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba">MultiblankRNNTLossNumba (class in espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks">MultiBlocks (class in espnet2.asr_transducer.encoder.modules.multi_blocks)</a>
+</li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder">MultiConvConformerEncoder (class in espnet2.asr.encoder.multiconvformer_encoder)</a>
+</li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalGatingMLP">MultiConvolutionalGatingMLP (class in espnet2.asr.layers.multiconv_cgmlp)</a>
+</li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.layers.multiconv_cgmlp.MultiConvolutionalSpatialGatingUnit">MultiConvolutionalSpatialGatingUnit (class in espnet2.asr.layers.multiconv_cgmlp)</a>
 </li>
       <li><a href="_gen/espnet2.gan_svs.html#espnet2.gan_svs.visinger2.visinger2_vocoder.MultiFrequencyDiscriminator">MultiFrequencyDiscriminator (class in espnet2.gan_svs.visinger2.visinger2_vocoder)</a>
 </li>
@@ -9179,6 +9197,8 @@
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.linear_encoder.LinearEncoder.output_size">(espnet2.asr.encoder.linear_encoder.LinearEncoder method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.output_size">(espnet2.asr.encoder.longformer_encoder.LongformerEncoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder.output_size">(espnet2.asr.encoder.multiconvformer_encoder.MultiConvConformerEncoder method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.rnn_encoder.RNNEncoder.output_size">(espnet2.asr.encoder.rnn_encoder.RNNEncoder method)</a>
 </li>

@@ -620,6 +620,17 @@ espnet2.asr.layers.fastformer
     :show-inheritance:
 
 
+.. _espnet2.asr.layers.multiconv_cgmlp:
+
+espnet2.asr.layers.multiconv_cgmlp
+----------------------------------
+
+.. automodule:: espnet2.asr.layers.multiconv_cgmlp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.decoder.hugging_face_transformers_decoder:
 
 espnet2.asr.decoder.hugging_face_transformers_decoder
@@ -890,6 +901,17 @@ espnet2.asr.encoder.conformer_encoder
 -------------------------------------
 
 .. automodule:: espnet2.asr.encoder.conformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.multiconvformer_encoder:
+
+espnet2.asr.encoder.multiconvformer_encoder
+-------------------------------------------
+
+.. automodule:: espnet2.asr.encoder.multiconvformer_encoder
     :members:
     :undoc-members:
     :show-inheritance:
