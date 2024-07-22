@@ -40,21 +40,6 @@ modalities["ssl_feat"] = Modality(discrete=False)
 
 
 # (2) Task Definition
-# a. usually we will place a task identifier in the begining.
-#    however, when we want to specify the task by natual langauge,
-#    we don't use that identifier.
-# b. encoder_entries: the entires that should feed to encoder, which
-#    is a list of tuple (file_name, entry_modality, data_type).
-# c. decoder_entries: similar to encoder_entries, but is fed to decoder.
-# d. in decoder-only format, encoder_entries and decoder_entries are merged
-# e. target_entries: entries that the loss computed on. Usually same as
-#    the decoder_entries.
-# f. file_name, the expected file name in original data folder. e.g., wav.scp
-#    entry_modality: the modality defined above, which will be used to determine
-#      how this data will be pre-processed before training. e.g., codec tokenization
-#    data_type: it determines how the data will be loaded during training.
-#    E.g., in TTS, the wave files are indexed with wav.scp, it will experence codec
-#      tokenization and then loaded as kaldi_ark -> (wav.scp, codec, kaldi_ark)
 @dataclass
 class SpeechLMTask:
     encoder_entries: List[Tuple[str, str, str]]
@@ -72,21 +57,18 @@ class SpeechLMTask:
 
 
 tasks = {}
-# Phone + Speaker Prompt -> Target Speech
 tasks["tts"] = SpeechLMTask(
     encoder_entries=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
-# BPE + Speaker Prompt -> Target Speech
 tasks["bpe_tts"] = SpeechLMTask(
     encoder_entries=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
-# BPE -> Target Speech
 tasks["plain_tts"] = SpeechLMTask(
     encoder_entries=[("text", "g2p", "text")],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
@@ -99,14 +81,13 @@ tasks["plain_bpe_tts"] = SpeechLMTask(
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
-# Auto-regressive frame prediction based on codec tokens
-tasks["apc"] = SpeechLMTask(
+tasks["audiolm"] = SpeechLMTask(
     encoder_entries=[],
     decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
-tasks["lm"] = SpeechLMTask(
+tasks["textlm"] = SpeechLMTask(
     encoder_entries=[],
     decoder_entries=[("text", "text_bpe", "text")],
     target_entries=[("text", "text_bpe", "text")],
