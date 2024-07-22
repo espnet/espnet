@@ -149,13 +149,14 @@ class MultiDiscriminator(ABC, nn.Module):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x: torch.Tensor): ...
+    def forward(self, x: torch.Tensor):
+        raise NotImplementedError("forward method is not implemented")
 
     @property
     @abstractmethod
     def num_discriminators(self) -> int:
         """Number of discriminators."""
-        ...
+        raise NotImplementedError("num_discriminators is not implemented")
 
 
 class MultiScaleSTFTDiscriminator(MultiDiscriminator):
