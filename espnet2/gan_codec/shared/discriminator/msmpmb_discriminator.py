@@ -102,7 +102,7 @@ class MultiBandDiscriminator(nn.Module):
         def convs():
             return nn.ModuleList(
                 [
-                     WNConv2d(2, channel, (3, 9), (1, 1), padding=(1, 4)),
+                    WNConv2d(2, channel, (3, 9), (1, 1), padding=(1, 4)),
                     WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
                     WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
                     WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),

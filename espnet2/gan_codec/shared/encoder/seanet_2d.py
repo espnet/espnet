@@ -74,8 +74,8 @@ def pad2d(
     value: float = 0.0,
 ):
     """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
-           If this is the case, we insert extra 0 padding to the right before 
-           the reflection happen.
+    If this is the case, we insert extra 0 padding to the right before
+    the reflection happen.
     """
     freq_len, time_len = x.shape[-2:]
     padding_time, padding_freq = paddings
@@ -204,12 +204,12 @@ class SEANetResnetBlock2d(nn.Module):
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization 
+        norm_params (dict): Parameters to provide to the underlying normalization
             used along with the convolution.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3)
-        true_skip (bool): Whether to use true skip connection or a simple convolution 
+        true_skip (bool): Whether to use true skip connection or a simple convolution
             as the skip connection.
     """
 
@@ -261,7 +261,7 @@ class SEANetResnetBlock2d(nn.Module):
             ]
         self.block = nn.Sequential(*block)
         self.shortcut: nn.Module
-        # true_skip is always false since the default in 
+        # true_skip is always false since the default in
         #     SEANetEncoder / SEANetDecoder does not get changed
         if true_skip:
             self.shortcut = nn.Identity()
@@ -292,7 +292,7 @@ class ReshapeModule(nn.Module):
         return torch.squeeze(x, dim=self.dim)
 
 
-# Only channels, norm, causal are different between 24HZ & 48HZ, 
+# Only channels, norm, causal are different between 24HZ & 48HZ,
 # everything else is default parameter
 # 24HZ -> channels = 1, norm = weight_norm, causal = True
 # 48HZ -> channels = 2, norm = time_group_norm, causal = False
@@ -303,8 +303,8 @@ class SEANetEncoder2d(nn.Module):
         dimension (int): Intermediate representation dimension.
         n_filters (int): Base width for the model.
         n_residual_layers (int): nb of residual layers.
-        ratios (Sequence[int]): kernel size and stride ratios. The encoder uses 
-            downsampling ratios instead of upsampling ratios, hence it will use 
+        ratios (Sequence[int]): kernel size and stride ratios. The encoder uses
+            downsampling ratios instead of upsampling ratios, hence it will use
             the ratios in the reverse order to the ones specified here
             that must match the decoder order
         activation (str): Activation function. ELU = Exponential Linear Unit
@@ -318,7 +318,7 @@ class SEANetEncoder2d(nn.Module):
         dilation_base (int): How much to increase the dilation with each layer.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
-        true_skip (bool): Whether to use true skip connection or a simple (streamable) 
+        true_skip (bool): Whether to use true skip connection or a simple (streamable)
             convolution as the skip connection in the residual network blocks.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3).
         lstm (int): Number of LSTM layers at the end of the encoder.
