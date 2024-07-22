@@ -143,11 +143,11 @@ def analyze_one_metric(
                 count[idx] += utt_dict[example_name]['word_count']
                 accum[idx] += utt_dict[example_name][report_metric]
     
-    logging.info(f"Metric: {report_metric}, Rerank by {rerank_metric}")
+    print(f"Metric: {report_metric}, Rerank by {rerank_metric}")
     result_list = [a / c for a, c in zip(accum, count)]
     for idx, v in enumerate(result_list):
-        logging.info(f"rank: {idx} | value: {v}")
-    logging.info(f"Average: {sum(accum) / sum(count)}")
+        print(f"rank: {idx} | value: {v}")
+    print(f"Average: {sum(accum) / sum(count)}")
     
     if draw_picture:
         (output_dir / "images").mkdir(parents=True, exist_ok=True)
