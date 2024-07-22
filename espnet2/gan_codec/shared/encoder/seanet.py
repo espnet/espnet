@@ -39,7 +39,8 @@ CONV_NORMALIZATIONS = frozenset(
 class ConvLayerNorm(nn.LayerNorm):
     """
     Convolution-friendly LayerNorm that moves channels to last dimensions
-    before running the normalization and moves them back to original position right after.
+    before running the normalization and moves them back to 
+    original position right after.
     """
 
     def __init__(self, normalized_shape: Union[int, List[int], torch.Size], **kwargs):

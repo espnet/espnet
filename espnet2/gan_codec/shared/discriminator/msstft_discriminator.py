@@ -149,7 +149,8 @@ class MultiDiscriminator(ABC, nn.Module):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x: torch.Tensor): ...
+    def forward(self, x: torch.Tensor): 
+        ...
 
     @property
     @abstractmethod
