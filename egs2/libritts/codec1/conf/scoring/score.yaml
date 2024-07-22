@@ -6,14 +6,14 @@
 #  -- f0_rmse: f0 root mean square error
 - name: mcd_f0
   f0min: 40
-  f0max: 8000
+  f0max: 800
   mcep_shift: 5
   mcep_fftl: 1024
   mcep_dim: 39
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 0.1
   power_threshold: -20
-  dtw: True
+  dtw: true
 
 # signal related metrics
 # -- sir: signal to interference ratio
@@ -30,3 +30,34 @@
 # stoi related metrics
 # -- stoi: short-time objective intelligibility
 - name: stoi
+
+# discrete speech metrics
+# -- speech_bert: speech bert score
+# -- speech_bleu: speech bleu score
+# -- speech_token_distance: speech token distance score
+- name: discrete_speech
+
+# pseudo subjective metrics
+# -- utmos: UT-MOS score
+# -- dnsmos: DNS-MOS score
+# -- plcmos: PLC-MOS score
+# -- aecmos: AEC-MOS score
+- name: pseudo_mos
+  predictor_types: ["utmos", "dnsmos", "plcmos"]
+  predictor_args:
+    utmos:
+      fs: 16000
+    dnsmos:
+      fs: 16000
+    plcmos:
+      fs: 16000
+
+# visqol metric
+# -- visqol: visual quality of speech
+- name: visqol
+  model: speech
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+- name: speaker
+  model_tag: default
