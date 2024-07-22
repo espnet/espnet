@@ -1,21 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
 
-train_set=train_960
-valid_set=dev_clean
-test_sets="test_clean"
+norm="_unnorm"
+train_set=train_nodev${norm}
+valid_set=dev_4k${norm}
+test_sets="dev_4k${norm} val${norm}"
 
 bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
 
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
     --stop_stage 5 \
-    --task "bpe_tts" \
-    --data_name librispeech \
+    --task "plain_bpe_tts" \
+    --data_name spgispeech \
     --fs 16000 \
     --ngpu 8 \
     --nj 32 \
@@ -30,3 +31,4 @@ bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
     --max_wav_duration 30.0 \
     ${bpe_opts} \
     "$@"
+
