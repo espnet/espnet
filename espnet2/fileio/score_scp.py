@@ -58,6 +58,16 @@ class XMLReader(collections.abc.Mapping):
     def __getitem__(self, key):
         score = m21.converter.parse(self.data[key])
         m = score.metronomeMarkBoundaries()
+
+        # NOTE(Yuxun): tempo with '(playback only)' returns None in item[2].number
+        tempo = None
+        for item in m:
+            tempo_number = item[2].number
+            if tempo_number is not None:
+                tempo = tempo_number
+                break
+        tempo = int(tempo)
+
         tempo = int(m[0][2].number)
         part = score.parts[0].flat
         notes_list = []

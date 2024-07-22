@@ -1,8 +1,0 @@
-# This configuration is the decoding setting for VITS.
-
-##########################################################
-#                    DECODING SETTING                    #
-##########################################################
-noise_scale: 0.667         # noise scale parameter for the flow in VITS.
-noise_scale_dur: 0.8       # noise scale parameter for the stochastic duration predictor in VITS.
-use_teacher_forcing: false # whether to use teacher forcing.
