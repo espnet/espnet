@@ -5,14 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-# train_config=conf/train_multiscale.yaml
-# train_config=conf/train_multiscale_1b.yaml
-# train_config=conf/train_parallel.yaml
-# train_config=conf/train_multiscale_delay.yaml
 train_config=conf/train_valle.yaml
 inference_config=conf/decode_inhouse.yaml
-inference_model=valid.total_count.ave_5best.till100epoch.pth
-# inference_model=valid.total_count.ave_5best.till75epoch.pth
+inference_model=valid.total_count.ave_5best.till60epoch.pth
 
 train_jsons=""
 valid_jsons=""
