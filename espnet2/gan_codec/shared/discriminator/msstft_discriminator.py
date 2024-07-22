@@ -142,13 +142,15 @@ class DiscriminatorSTFT(nn.Module):
 
 
 class MultiDiscriminator(ABC, nn.Module):
-    """Base implementation for discriminators composed of sub-discriminators acting at different scales."""
+    """Base implementation for discriminators composed of sub-discriminators 
+       acting at different scales."""
 
     def __init__(self):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x: torch.Tensor): ...
+    def forward(self, x: torch.Tensor):
+        ...
 
     @property
     @abstractmethod

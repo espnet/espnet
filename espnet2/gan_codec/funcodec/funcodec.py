@@ -864,8 +864,8 @@ class FunCodecDiscriminator(nn.Module):
             scales (int): Number of multi-scales.
             sclae_downsample_pooling (str): Pooling module name for downsampling of the
                 inputs.
-            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the above pooling
-                module.
+            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the above 
+                pooling module.
             scale_discriminator_params (Dict[str, Any]): Parameters for hifi-gan  scale
                 discriminator module.
             scale_follow_official_norm (bool): Whether to follow the norm setting of the

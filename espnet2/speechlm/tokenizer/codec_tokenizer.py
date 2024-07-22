@@ -64,7 +64,7 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "DAC":
             try:
                 import dac
-            except:
+            except ImportError:
                 raise ImportError("Install DAC with: pip install descript-audio-codec")
 
             model_path = dac.utils.download(
@@ -79,13 +79,14 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "EnCodec":
             try:
                 from encodec import EncodecModel
-            except:
+            except ImportError:
                 raise ImportError("Please install Encodec with: pip install -U encodec")
 
             model_name = "encodec_model_" + str(codec_fs).replace("000", "khz")
             self.codec = getattr(EncodecModel, model_name)().to(device)
-            # NOTE (Jinchuan): This Encodec model has 32 codebooks, which is not necessary
-            # in usual cases. We only adopt 8 first codebooks, a.k.a., 6kbps.
+            # NOTE (Jinchuan): This Encodec model has 32 codebooks, 
+            # which is not necessary in usual cases. 
+            # We only adopt 8 first codebooks, a.k.a., 6kbps.
             bandwidth = 6.0
             self.codec.set_target_bandwidth(bandwidth)
             self.n_codebook = self.codec.quantizer.get_num_quantizers_for_bandwidth(
@@ -99,7 +100,7 @@ class CodecTokenizer(AbsTokenizer):
             try:
                 from models.soundstream import SoundStream
                 from omegaconf import OmegaConf
-            except:
+            except ImportError:
                 raise ImportError("fail to use inhouse codec")
 
             model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"

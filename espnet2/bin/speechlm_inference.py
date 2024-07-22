@@ -425,7 +425,7 @@ def get_parser():
         "--inference_nj",
         type=int,
         default=None,
-        help="nj used in inference, should be the same or smaller than the nq in training",
+        help="nj used in inference, should be the same/smaller than the nq in train",
     )
 
     group = parser.add_argument_group("Postprocessor related")

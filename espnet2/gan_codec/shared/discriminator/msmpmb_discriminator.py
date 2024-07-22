@@ -54,8 +54,8 @@ class MultiScaleDiscriminator(nn.Module):
 
         fmap = []
 
-        for l in self.convs:
-            x = l(x)
+        for layer in self.convs:
+            x = layer(x)
             fmap.append(x)
         x = self.conv_post(x)
         fmap.append(x)
@@ -99,15 +99,17 @@ class MultiBandDiscriminator(nn.Module):
         self.n_fft = n_fft
         self.hop_length = int(window_length * hop_factor)
 
-        convs = lambda: nn.ModuleList(
-            [
-                WNConv2d(2, channel, (3, 9), (1, 1), padding=(1, 4)),
-                WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
-                WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
-                WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
-                WNConv2d(channel, channel, (3, 3), (1, 1), padding=(1, 1)),
-            ]
-        )
+        def convs():
+            return nn.ModuleList(
+                [
+                     WNConv2d(2, channel, (3, 9), (1, 1), padding=(1, 4)),
+                    WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
+                    WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
+                    WNConv2d(channel, channel, (3, 9), (1, 2), padding=(1, 4)),
+                    WNConv2d(channel, channel, (3, 3), (1, 1), padding=(1, 1)),
+                ]
+            )
+
         self.band_convs = nn.ModuleList([convs() for _ in range(len(self.bands))])
         self.conv_post = WNConv2d(channel, 1, (3, 3), (1, 1), padding=(1, 1), act=False)
 

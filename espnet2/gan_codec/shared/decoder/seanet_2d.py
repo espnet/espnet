@@ -107,10 +107,10 @@ class SConvTranspose2d(nn.Module):
 
         y = self.convtr(x)
 
-        # We will only trim fixed padding. Extra padding from `pad_for_conv1d` would be
-        # removed at the very end, when keeping only the right length for the output,
-        # as removing it here would require also passing the length at the matching layer
-        # in the encoder.
+        # We will only trim fixed padding. Extra padding from `pad_for_conv1d` 
+        # would be removed at the very end, when keeping only the right length
+        # for the output, as removing it here would require also passing the 
+        # length at the matching layer in the encoder.
         (freq_out_pad_left, freq_out_pad_right) = self.out_padding[0]
         (time_out_pad_left, time_out_pad_right) = self.out_padding[1]
         if self.causal:
@@ -164,11 +164,13 @@ class SEANetResnetBlock2d(nn.Module):
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization used along with the convolution.
+        norm_params (dict): Parameters to provide to the underlying normalization 
+            used along with the convolution.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3)
-        true_skip (bool): Whether to use true skip connection or a simple convolution as the skip connection.
+        true_skip (bool): Whether to use true skip connection or a simple convolution 
+            as the skip connection.
     """
 
     def __init__(
@@ -219,7 +221,8 @@ class SEANetResnetBlock2d(nn.Module):
             ]
         self.block = nn.Sequential(*block)
         self.shortcut: nn.Module
-        # true_skip is always false since the default in SEANetEncoder / SEANetDecoder does not get changed
+        # true_skip is always false since the default in 
+        # SEANetEncoder / SEANetDecoder does not get changed
         if true_skip:
             self.shortcut = nn.Identity()
         else:
@@ -262,19 +265,21 @@ class SEANetDecoder2d(nn.Module):
         final_activation (str): Final activation function after all convolutions.
         final_activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization used along with the convolution.
+        norm_params (dict): Parameters to provide to the underlying normalization used 
+            along with the convolution.
         kernel_size (int): Kernel size for the initial convolution.
         last_kernel_size (int): Kernel size for the initial convolution.
         residual_kernel_size (int): Kernel size for the residual layers.
         dilation_base (int): How much to increase the dilation with each layer.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
-        true_skip (bool): Whether to use true skip connection or a simple
-            (streamable) convolution as the skip connection in the residual network blocks.
+        true_skip (bool): Whether to use true skip connection or a simple (streamable) 
+            convolution as the skip connection in the residual network blocks.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3).
         lstm (int): Number of LSTM layers at the end of the encoder.
-        trim_right_ratio (float): Ratio for trimming at the right of the transposed convolution under the causal setup.
-            If equal to 1.0, it means that all the trimming is done at the right.
+        trim_right_ratio (float): Ratio for trimming at the right of the transposed 
+            convolution under the causal setup. If equal to 1.0, it means that all 
+            the trimming is done at the right.
     """
 
     def __init__(

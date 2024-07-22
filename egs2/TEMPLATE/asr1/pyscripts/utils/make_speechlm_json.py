@@ -49,7 +49,7 @@ def main():
     task_format = tasks[args.task]
     metadata = {}
 
-    ### (1) collect metadata.
+    # (1) collect metadata.
     # (1.1) task
     metadata["task"] = args.task
 

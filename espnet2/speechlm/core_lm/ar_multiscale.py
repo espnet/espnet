@@ -43,7 +43,8 @@ class MultiScaleLM(AbsCoreLM):
             l_head (int): Number of heads in local Transformer attention.
             l_layer (int): Number of layers in local Transformer.
             n_ctx (int): maximum context length of global Transformer.
-            first_layer_weight (int): a factor to scale the gradient for the first-layer codes.
+            first_layer_weight (int): a factor to scale the gradient for 
+                the first-layer codes.
         """
         super(MultiScaleLM, self).__init__()
 
@@ -72,8 +73,8 @@ class MultiScaleLM(AbsCoreLM):
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-        # later shouls allow the local dimension to be smaller than the global dimension.
-        # for efficient local modeling
+        # later shouls allow the local dimension to be smaller than the global 
+        # dimension for efficient local modeling
         if g_att_unit != l_att_unit:
             raise ValueError(
                 "currently attention size for global and local size should be the same"
@@ -95,8 +96,8 @@ class MultiScaleLM(AbsCoreLM):
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
             dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
-                may not be used.
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep 
+                the interface, may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).

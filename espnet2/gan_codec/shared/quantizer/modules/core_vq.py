@@ -102,14 +102,16 @@ class EuclideanCodebook(nn.Module):
         dim (int): Dimension.
         codebook_size (int): Codebook size.
         kmeans_init (bool): Whether to use k-means to initialize the codebooks.
-            If set to true, run the k-means algorithm on the first training batch and use
-            the learned centroids as initialization.
-        kmeans_iters (int): Number of iterations used for k-means algorithm at initialization.
+            If set to true, run the k-means algorithm on the first training batch 
+            and use the learned centroids as initialization.
+        kmeans_iters (int): Number of iterations used for k-means algorithm at 
+            initialization.
         decay (float): Decay for exponential moving average over the codebooks.
         epsilon (float): Epsilon value for numerical stability.
-        threshold_ema_dead_code (int): Threshold for dead code expiration. Replace any codes
-            that have an exponential moving average cluster size less than the specified threshold with
-            randomly selected vector from the current batch.
+        threshold_ema_dead_code (int): Threshold for dead code expiration. 
+            Replace any codes that have an exponential moving average cluster size 
+            less than the specified threshold with randomly selected vector from 
+            the current batch.
     """
 
     def __init__(
@@ -257,14 +259,16 @@ class VectorQuantization(nn.Module):
     Args:
         dim (int): Dimension
         codebook_size (int): Codebook size
-        codebook_dim (int): Codebook dimension. If not defined, uses the specified dimension in dim.
+        codebook_dim (int): Codebook dimension. If not defined, uses the specified 
+            dimension in dim.
         decay (float): Decay for exponential moving average over the codebooks.
         epsilon (float): Epsilon value for numerical stability.
         kmeans_init (bool): Whether to use kmeans to initialize the codebooks.
         kmeans_iters (int): Number of iterations used for kmeans initialization.
-        threshold_ema_dead_code (int): Threshold for dead code expiration. Replace any codes
-            that have an exponential moving average cluster size less than the specified threshold with
-            randomly selected vector from the current batch.
+        threshold_ema_dead_code (int): Threshold for dead code expiration. 
+            Replace any codes that have an exponential moving average cluster size 
+            less than the specified threshold with randomly selected vector from 
+            the current batch.
     """
 
     def __init__(
