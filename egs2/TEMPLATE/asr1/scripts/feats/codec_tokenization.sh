@@ -30,6 +30,7 @@ src_dir=
 tgt_dir=
 checkpoint_path=null
 config_path=null
+cuda_cmd=utils/run.pl
 
 log "$0 $*"
 . utils/parse_options.sh
