@@ -84,6 +84,7 @@ train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 audio_fold_length=256000 # fold_length for audio data.
+
 # Upload model related
 hf_repo=
 
@@ -138,12 +139,21 @@ Options:
     --inference_model   # Model path for decoding (default=${inference_model}).
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
+    # Scoring related
+    --scoring_config     # Config for scoring (default="${scoring_config}").
+    --scoring_args       # Arguments for scoring (default="${scoring_args}").
+    --scoring_tag        # Suffix for scoring directory (default="${scoring_tag}").
+
+
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set          # Name of training set (required).
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
     --test_sets          # Names of test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
     --audio_fold_length  # Fold length for audio data (default="${audio_fold_length}").
+
+    # Upload model related
+    ---hf_repo          # Huggingface model tag for huggingface model upload
 EOF
 )
 
