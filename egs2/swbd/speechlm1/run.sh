@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_960
-valid_set=dev_clean
-test_sets="test_clean"
+train_set=train_swbd
+valid_set=train_dev
+test_sets="eval2000"
 
 bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
 
@@ -15,7 +15,7 @@ bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
 ./speechlm.sh \
     --stop_stage 5 \
     --task "bpe_tts" \
-    --data_name librispeech \
+    --data_name swbd \
     --fs 16000 \
     --ngpu 8 \
     --nj 32 \
