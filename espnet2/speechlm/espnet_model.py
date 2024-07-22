@@ -8,20 +8,20 @@ from typing import Dict, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
+@typechecked
 class ESPnetSpeechLMModel(AbsESPnetModel):
     def __init__(
         self,
         corelm: AbsCoreLM,
         extract_feats_in_collect_stats: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
 
         self.corelm = corelm
