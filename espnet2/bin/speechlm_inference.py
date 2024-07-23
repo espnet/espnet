@@ -18,7 +18,7 @@ from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
-from espnet2.tasks.speechlm import SpeechLMTask, post_processor_choices
+from espnet2.tasks.speechlm import SpeechLMTask
 
 # utilities
 from espnet2.torch_utils.device_funcs import to_device
@@ -101,8 +101,6 @@ class SpeechLM:
         )
 
         # post_processor: transform tokens to the target modality. E.g., speech, text.
-        post_processor_class = post_processor_choices.get_class(modality)
-        self.post_processor = post_processor_class(**post_processor_conf).to(device)
         if modality in ["codec"]:
             self.bias = token_bias[modality]
         else:
@@ -429,7 +427,6 @@ def get_parser():
     )
 
     group = parser.add_argument_group("Postprocessor related")
-    post_processor_choices.add_arguments(group)
 
     return parser
 
