@@ -611,3 +611,7 @@ def test_Speech2Text_text_prev(asr_config_file, lm_config_file):
     results = speech2text(speech, text_prev="t")
     for text, token, token_int, hyp in results:
         assert text[0] == "t"
+
+    results = speech2text(speech, text_prev=np.array([1]))
+    for text, token, token_int, hyp in results:
+        assert token_int[0] == 1

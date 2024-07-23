@@ -478,6 +478,7 @@ class Speech2Text:
         self.enh_s2t_task = enh_s2t_task
         self.multi_asr = multi_asr
 
+    @typechecked
     @torch.no_grad()
     def __call__(
         self,
