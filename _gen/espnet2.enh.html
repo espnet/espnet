@@ -2953,7 +2953,7 @@ else:          (…, T - bdelay - frame_length + 2, frame_length)</p>
 <span id="espnet2-enh-layers-bsrnn"></span><h2>espnet2.enh.layers.bsrnn<a class="headerlink" href="#espnet2-enh-layers-bsrnn-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.bsrnn"></span><dl class="class">
 <dt id="espnet2.enh.layers.bsrnn.BSRNN">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BSRNN</code><span class="sig-paren">(</span><em class="sig-param">input_dim=481</em>, <em class="sig-param">num_channel=16</em>, <em class="sig-param">num_layer=6</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">causal=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BSRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BSRNN" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BSRNN</code><span class="sig-paren">(</span><em class="sig-param">input_dim=481</em>, <em class="sig-param">num_channel=16</em>, <em class="sig-param">num_layer=6</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">causal=True</em>, <em class="sig-param">num_spk=1</em>, <em class="sig-param">norm_type='GN'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BSRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BSRNN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Band-Split RNN (BSRNN).</p>
 <p class="rubric">References</p>
@@ -2973,6 +2973,8 @@ universal sample rate band-split RNN,” in Proc. ICASSP, 2023.
 <li><p><strong>target_fs</strong> (<em>int</em>) – maximum sampling frequency supported by the model</p></li>
 <li><p><strong>causal</strong> (<em>bool</em>) – Whether or not to adopt causal processing
 if True, LSTM will be used instead of BLSTM for time modeling</p></li>
+<li><p><strong>num_spk</strong> (<em>int</em>) – number of outputs to be generated</p></li>
+<li><p><strong>norm_type</strong> (<em>str</em>) – type of normalization layer (cfLN / cLN / BN / GN)</p></li>
 </ul>
 </dd>
 </dl>
@@ -2992,7 +2994,7 @@ contain effective frequency subbands.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>output tensor of shape (B, T, F, 2)</p>
+<dd class="field-even"><p>output tensor of shape (B, num_spk, T, F, 2)</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>out (torch.Tensor)</p>
@@ -3004,7 +3006,7 @@ contain effective frequency subbands.</p></li>
 
 <dl class="class">
 <dt id="espnet2.enh.layers.bsrnn.BandSplit">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BandSplit</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">channels=128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BandSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BandSplit" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">BandSplit</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">target_fs=48000</em>, <em class="sig-param">channels=128</em>, <em class="sig-param">norm_type='GN'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#BandSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.BandSplit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <dl class="method">
 <dt id="espnet2.enh.layers.bsrnn.BandSplit.forward">
@@ -3037,8 +3039,66 @@ contain effective frequency subbands.</p></li>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">ChannelFreqwiseLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em>, <em class="sig-param">shape='BDTF'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelFreqwiseLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Channel-and-Frequency-wise Layer Normalization (cfLN).</p>
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelFreqwiseLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>y</strong> – [M, N, T, K], M is batch size, N is channel size, T and K are lengths</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[M, N, T, K]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>gLN_y</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelFreqwiseLayerNorm.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">ChannelwiseLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em>, <em class="sig-param">shape='BDTF'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelwiseLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Channel-wise Layer Normalization (cLN).</p>
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelwiseLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>y</strong> – [M, N, T, K], M is batch size, N is channel size, T and K are lengths</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[M, N, T, K]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cLN_y</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#ChannelwiseLayerNorm.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.enh.layers.bsrnn.MaskDecoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">MaskDecoder</code><span class="sig-paren">(</span><em class="sig-param">freq_dim</em>, <em class="sig-param">subbands</em>, <em class="sig-param">channels=128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#MaskDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.MaskDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">MaskDecoder</code><span class="sig-paren">(</span><em class="sig-param">freq_dim</em>, <em class="sig-param">subbands</em>, <em class="sig-param">channels=128</em>, <em class="sig-param">num_spk=1</em>, <em class="sig-param">norm_type='GN'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#MaskDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.MaskDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <dl class="method">
 <dt id="espnet2.enh.layers.bsrnn.MaskDecoder.forward">
@@ -3049,8 +3109,8 @@ contain effective frequency subbands.</p></li>
 <dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – input tensor of shape (B, N, T, K)</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>output mask of shape (B, T, F, 2)
-r (torch.Tensor): output residual of shape (B, T, F, 2)</p>
+<dd class="field-even"><p>output mask of shape (B, num_spk, T, F, 2)
+r (torch.Tensor): output residual of shape (B, num_spk, T, F, 2)</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>m (torch.Tensor)</p>
@@ -3058,6 +3118,13 @@ r (torch.Tensor): output residual of shape (B, T, F, 2)</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.bsrnn.choose_norm">
+<code class="sig-prename descclassname">espnet2.enh.layers.bsrnn.</code><code class="sig-name descname">choose_norm</code><span class="sig-paren">(</span><em class="sig-param">norm_type</em>, <em class="sig-param">channel_size</em>, <em class="sig-param">shape='BDTF'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/bsrnn.html#choose_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.bsrnn.choose_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>The input of normalization will be (M, C, K), where M is batch size.</p>
+<p>C is channel size and K is sequence length.</p>
 </dd></dl>
 
 </section>
@@ -7116,7 +7183,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <span id="espnet2-enh-separator-bsrnn-separator"></span><h2>espnet2.enh.separator.bsrnn_separator<a class="headerlink" href="#espnet2-enh-separator-bsrnn-separator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.separator.bsrnn_separator"></span><dl class="class">
 <dt id="espnet2.enh.separator.bsrnn_separator.BSRNNSeparator">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.bsrnn_separator.</code><code class="sig-name descname">BSRNNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">num_channels: int = 16</em>, <em class="sig-param">num_layers: int = 6</em>, <em class="sig-param">target_fs: int = 48000</em>, <em class="sig-param">causal: bool = True</em>, <em class="sig-param">ref_channel: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/bsrnn_separator.html#BSRNNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.bsrnn_separator.</code><code class="sig-name descname">BSRNNSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">num_channels: int = 16</em>, <em class="sig-param">num_layers: int = 6</em>, <em class="sig-param">target_fs: int = 48000</em>, <em class="sig-param">causal: bool = True</em>, <em class="sig-param">norm_type: str = 'GN'</em>, <em class="sig-param">ref_channel: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/bsrnn_separator.html#BSRNNSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
 <p>Band-split RNN (BSRNN) separator.</p>
 <dl class="simple">
@@ -7139,6 +7206,7 @@ universal sample rate band-split RNN,” in Proc. ICASSP, 2023.
 <li><p><strong>target_fs</strong> – (int) max sampling frequency that the model can handle.</p></li>
 <li><p><strong>causal</strong> (<em>bool</em>) – whether or not to apply causal modeling.
 if True, LSTM will be used instead of BLSTM for time modeling</p></li>
+<li><p><strong>norm_type</strong> (<em>str</em>) – type of the normalization layer (cfLN / cLN / BN / GN).</p></li>
 <li><p><strong>ref_channel</strong> – (int) reference channel. not used for now.</p></li>
 </ul>
 </dd>

@@ -1563,6 +1563,8 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.uses.ChannelAttention">ChannelAttention (class in espnet2.enh.layers.uses)</a>
 </li>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm">ChannelFreqwiseLayerNorm (class in espnet2.enh.layers.bsrnn)</a>
+</li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.channel_selector.ChannelSelector">ChannelSelector (class in espnet.transform.channel_selector)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.uses.ChannelTAC">ChannelTAC (class in espnet2.enh.layers.uses)</a>
@@ -1570,6 +1572,8 @@
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm">ChannelwiseLayerNorm (class in espnet2.diar.layers.tcn_nomask)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm">(class in espnet2.enh.layers.bsrnn)</a>
+</li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm">(class in espnet2.enh.layers.tcn)</a>
 </li>
       </ul></li>
@@ -1621,8 +1625,12 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.Chomp1d">(class in espnet2.enh.layers.tcn)</a>
 </li>
       </ul></li>
-      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.choose_norm">choose_norm() (in module espnet2.enh.layers.tcn)</a>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.choose_norm">choose_norm() (in module espnet2.enh.layers.bsrnn)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.choose_norm">(in module espnet2.enh.layers.tcn)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.chose_norm">chose_norm() (in module espnet2.diar.layers.tcn_nomask)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.branchformer.Branchformer.chunk_forward">chunk_forward() (espnet2.asr_transducer.encoder.blocks.branchformer.Branchformer method)</a>
@@ -1845,12 +1853,12 @@
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.compute_cost_and_score">(espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.compute_costs_data">compute_costs_data (in module espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_ctc_loss">compute_ctc_loss() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.modules.mega.multi_head_damped_ema.MultiHeadDampedEMA.compute_ema_coefficients">compute_ema_coefficients() (espnet2.asr_transducer.decoder.modules.mega.multi_head_damped_ema.MultiHeadDampedEMA method)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.modules.mega.multi_head_damped_ema.MultiHeadDampedEMA.compute_ema_kernel">compute_ema_kernel() (espnet2.asr_transducer.decoder.modules.mega.multi_head_damped_ema.MultiHeadDampedEMA method)</a>
@@ -5771,6 +5779,10 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BSRNN.forward">(espnet2.enh.layers.bsrnn.BSRNN method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BandSplit.forward">(espnet2.enh.layers.bsrnn.BandSplit method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.forward">(espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.forward">(espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.MaskDecoder.forward">(espnet2.enh.layers.bsrnn.MaskDecoder method)</a>
 </li>
@@ -10089,6 +10101,10 @@
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm.reset_parameters">(espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm method)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.GlobalLayerNorm.reset_parameters">(espnet2.diar.layers.tcn_nomask.GlobalLayerNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.reset_parameters">(espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.reset_parameters">(espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.reset_parameters">(espnet2.enh.layers.complexnn.ComplexBatchNorm method)</a>
 </li>

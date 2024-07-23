@@ -2379,6 +2379,7 @@ usage: enh_inference.py [-h] [--config CONFIG]
                         --data_path_and_name_and_type
                         DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                        [--output_format OUTPUT_FORMAT]
                         [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
                         [--train_config TRAIN_CONFIG]
                         [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
@@ -2411,6 +2412,8 @@ Input data related:
   --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
 
 Output data related:
+  --output_format OUTPUT_FORMAT
+                        Output format for the separated speech (default: wav)
   --normalize_output_wav NORMALIZE_OUTPUT_WAV
                         Whether to normalize the predicted wav to [-1~1]
                         (default: False)
@@ -2468,6 +2471,7 @@ usage: enh_inference_streaming.py [-h] [--config CONFIG]
                                   DATA_PATH_AND_NAME_AND_TYPE
                                   [--key_file KEY_FILE]
                                   [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                                  [--output_format OUTPUT_FORMAT]
                                   [--train_config TRAIN_CONFIG]
                                   [--model_file MODEL_FILE]
                                   [--model_tag MODEL_TAG]
@@ -2495,6 +2499,10 @@ Input data related:
   --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
   --key_file KEY_FILE
   --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+
+Output data related:
+  --output_format OUTPUT_FORMAT
+                        Output format for the separated speech (default: wav)
 
 The model configuration related:
   --train_config TRAIN_CONFIG
@@ -3876,6 +3884,7 @@ usage: enh_tse_inference.py [-h] [--config CONFIG]
                             DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
+                            [--output_format OUTPUT_FORMAT]
                             [--train_config TRAIN_CONFIG]
                             [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
                             [--inference_config INFERENCE_CONFIG]
@@ -3910,6 +3919,8 @@ Output data related:
   --normalize_output_wav NORMALIZE_OUTPUT_WAV
                         Whether to normalize the predicted wav to [-1~1]
                         (default: False)
+  --output_format OUTPUT_FORMAT
+                        Output format for the separated speech (default: wav)
 
 The model configuration related:
   --train_config TRAIN_CONFIG

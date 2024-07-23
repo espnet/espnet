@@ -231,11 +231,22 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.tcn</span> <span class="kn">import</span> <span class="n">choose_norm</span> <span class="k">as</span> <span class="n">choose_norm1d</span>
+
+<span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
+
 
 <div class="viewcode-block" id="BSRNN"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BSRNN">[docs]</a><span class="k">class</span> <span class="nc">BSRNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="c1"># ported from https://github.com/sungwon23/BSRNN</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">481</span><span class="p">,</span> <span class="n">num_channel</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">num_layer</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">target_fs</span><span class="o">=</span><span class="mi">48000</span><span class="p">,</span> <span class="n">causal</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="mi">481</span><span class="p">,</span>
+        <span class="n">num_channel</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">num_layer</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">target_fs</span><span class="o">=</span><span class="mi">48000</span><span class="p">,</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">num_spk</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;GN&quot;</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Band-Split RNN (BSRNN).</span>
 
@@ -255,14 +266,18 @@
 <span class="sd">            target_fs (int): maximum sampling frequency supported by the model</span>
 <span class="sd">            causal (bool): Whether or not to adopt causal processing</span>
 <span class="sd">                if True, LSTM will be used instead of BLSTM for time modeling</span>
+<span class="sd">            num_spk (int): number of outputs to be generated</span>
+<span class="sd">            norm_type (str): type of normalization layer (cfLN / cLN / BN / GN)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">norm1d_type</span> <span class="o">=</span> <span class="n">norm_type</span> <span class="k">if</span> <span class="n">norm_type</span> <span class="o">!=</span> <span class="s2">&quot;cfLN&quot;</span> <span class="k">else</span> <span class="s2">&quot;cLN&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span> <span class="o">=</span> <span class="n">num_layer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">band_split</span> <span class="o">=</span> <span class="n">BandSplit</span><span class="p">(</span>
-            <span class="n">input_dim</span><span class="p">,</span> <span class="n">target_fs</span><span class="o">=</span><span class="n">target_fs</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="n">num_channel</span>
+            <span class="n">input_dim</span><span class="p">,</span> <span class="n">target_fs</span><span class="o">=</span><span class="n">target_fs</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="n">num_channel</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="n">norm1d_type</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_fs</span> <span class="o">=</span> <span class="n">target_fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">causal</span> <span class="o">=</span> <span class="n">causal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">norm_time</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rnn_time</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
@@ -272,7 +287,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fc_freq</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="n">hdim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_channel</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layer</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">norm_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">rnn_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
                     <span class="n">num_channel</span><span class="p">,</span>
@@ -282,14 +297,18 @@
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fc_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hdim</span> <span class="k">if</span> <span class="n">causal</span> <span class="k">else</span> <span class="n">hdim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">norm_freq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm_freq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">rnn_freq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">num_channel</span><span class="p">,</span> <span class="n">hdim</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fc_freq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">num_channel</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_decoder</span> <span class="o">=</span> <span class="n">MaskDecoder</span><span class="p">(</span>
-            <span class="n">input_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_split</span><span class="o">.</span><span class="n">subbands</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="n">num_channel</span>
+            <span class="n">input_dim</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">band_split</span><span class="o">.</span><span class="n">subbands</span><span class="p">,</span>
+            <span class="n">channels</span><span class="o">=</span><span class="n">num_channel</span><span class="p">,</span>
+            <span class="n">num_spk</span><span class="o">=</span><span class="n">num_spk</span><span class="p">,</span>
+            <span class="n">norm_type</span><span class="o">=</span><span class="n">norm1d_type</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="BSRNN.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BSRNN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -303,7 +322,7 @@
 <span class="sd">                if None, the input signal is assumed to be already truncated to only</span>
 <span class="sd">                contain effective frequency subbands.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            out (torch.Tensor): output tensor of shape (B, T, F, 2)</span>
+<span class="sd">            out (torch.Tensor): output tensor of shape (B, num_spk, T, F, 2)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
         <span class="n">B</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">shape</span>
@@ -329,11 +348,12 @@
         <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_complex</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
         <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span></div></div>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
 <div class="viewcode-block" id="BandSplit"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BandSplit">[docs]</a><span class="k">class</span> <span class="nc">BandSplit</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">target_fs</span><span class="o">=</span><span class="mi">48000</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">target_fs</span><span class="o">=</span><span class="mi">48000</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;GN&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">input_dim</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span>
         <span class="n">n_fft</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
@@ -351,12 +371,13 @@
                 <span class="sa">f</span><span class="s2">&quot;Please define your own subbands for input_dim=</span><span class="si">{</span><span class="n">input_dim</span><span class="si">}</span><span class="s2"> and &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;target_fs=</span><span class="si">{</span><span class="n">target_fs</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">)</span> <span class="o">==</span> <span class="n">input_dim</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subband_freqs</span> <span class="o">=</span> <span class="n">freqs</span><span class="p">[[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">)]]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">)):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">choose_norm1d</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
 <div class="viewcode-block" id="BandSplit.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.BandSplit.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -373,14 +394,8 @@
 <span class="sd">            z (torch.Tensor): output tensor of shape (B, N, T, K&#39;)</span>
 <span class="sd">                K&#39; might be smaller than len(self.subbands) if fs &lt; self.target_fs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">))</span>
         <span class="n">hz_band</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">subband</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">subband_freqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="k">break</span>
-            <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hz_band</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-                <span class="k">break</span>
             <span class="n">x_band</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">hz_band</span> <span class="p">:</span> <span class="n">hz_band</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span><span class="p">),</span> <span class="p">:]</span>
             <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">x_band</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
                 <span class="n">x_band</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
@@ -396,33 +411,38 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">z</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">hz_band</span> <span class="o">=</span> <span class="n">hz_band</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hz_band</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">subband_freqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">break</span>
         <span class="k">return</span> <span class="n">z</span></div></div>
 
 
 <div class="viewcode-block" id="MaskDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.MaskDecoder">[docs]</a><span class="k">class</span> <span class="nc">MaskDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">freq_dim</span><span class="p">,</span> <span class="n">subbands</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">freq_dim</span><span class="p">,</span> <span class="n">subbands</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_spk</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;GN&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">freq_dim</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="n">subbands</span><span class="p">),</span> <span class="p">(</span><span class="n">freq_dim</span><span class="p">,</span> <span class="n">subbands</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subbands</span> <span class="o">=</span> <span class="n">subbands</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">freq_dim</span> <span class="o">=</span> <span class="n">freq_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_mask</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_residual</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">subband</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mlp_mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-                    <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span>
+                    <span class="n">choose_norm1d</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-                    <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">num_spk</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">GLU</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mlp_residual</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-                    <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span>
+                    <span class="n">choose_norm1d</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-                    <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">subband</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">num_spk</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">GLU</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
@@ -433,30 +453,129 @@
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): input tensor of shape (B, N, T, K)</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            m (torch.Tensor): output mask of shape (B, T, F, 2)</span>
-<span class="sd">            r (torch.Tensor): output residual of shape (B, T, F, 2)</span>
+<span class="sd">            m (torch.Tensor): output mask of shape (B, num_spk, T, F, 2)</span>
+<span class="sd">            r (torch.Tensor): output residual of shape (B, num_spk, T, F, 2)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">)):</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
                 <span class="k">break</span>
             <span class="n">x_band</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span>
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_mask</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">x_band</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="c1"># (B, T, num_spk, subband, 2)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">m</span> <span class="o">=</span> <span class="n">out</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">m</span><span class="p">,</span> <span class="n">out</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">m</span><span class="p">,</span> <span class="n">out</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
             <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_residual</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">x_band</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">res</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="c1"># (B, T, num_spk, subband, 2)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">res</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">r</span> <span class="o">=</span> <span class="n">res</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">res</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># Pad zeros in addition to efffective subbands to cover the full frequency range</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">res</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># Pad zeros in addition to effective subbands to cover the full frequency range</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freq_dim</span> <span class="o">-</span> <span class="n">m</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">))))</span>
         <span class="n">r</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freq_dim</span> <span class="o">-</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">))))</span>
-        <span class="k">return</span> <span class="n">m</span><span class="p">,</span> <span class="n">r</span></div></div>
+        <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">r</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="choose_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.choose_norm">[docs]</a><span class="k">def</span> <span class="nf">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDTF&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
+
+<span class="sd">    C is channel size and K is sequence length.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;cfLN&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ChannelFreqwiseLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;cLN&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span>
+        <span class="c1"># Given input (M, C, T, K), nn.BatchNorm2d(C) will accumulate statics</span>
+        <span class="c1"># along M, T, and K, so this BN usage is right.</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">channel_size</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;GN&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported normalization type&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ChannelwiseLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDTF&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">shape</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;BDTF&quot;</span><span class="p">,</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">],</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+
+<div class="viewcode-block" id="ChannelwiseLayerNorm.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ChannelwiseLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelwiseLayerNorm.forward">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y: [M, N, T, K], M is batch size, N is channel size, T and K are lengths</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            cLN_y: [M, N, T, K]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [M, 1, T, K]</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># [M, 1, T, K]</span>
+        <span class="n">cLN_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">:</span>
+            <span class="n">cLN_y</span> <span class="o">=</span> <span class="n">cLN_y</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cLN_y</span></div></div>
+
+
+<div class="viewcode-block" id="ChannelFreqwiseLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ChannelFreqwiseLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Channel-and-Frequency-wise Layer Normalization (cfLN).&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDTF&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1, 1]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1, 1]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">shape</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;BDTF&quot;</span><span class="p">,</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">],</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+
+<div class="viewcode-block" id="ChannelFreqwiseLayerNorm.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ChannelFreqwiseLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.bsrnn.ChannelFreqwiseLayerNorm.forward">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y: [M, N, T, K], M is batch size, N is channel size, T and K are lengths</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            gLN_y: [M, N, T, K]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [M, 1, T, 1]</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">gLN_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTFD&quot;</span><span class="p">:</span>
+            <span class="n">gLN_y</span> <span class="o">=</span> <span class="n">gLN_y</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gLN_y</span></div></div>
 </pre></div>
 
            </div>

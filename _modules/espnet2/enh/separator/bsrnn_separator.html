@@ -246,6 +246,7 @@
         <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
         <span class="n">target_fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">48000</span><span class="p">,</span>
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;GN&quot;</span><span class="p">,</span>
         <span class="n">ref_channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Band-split RNN (BSRNN) separator.</span>
@@ -267,6 +268,7 @@
 <span class="sd">            target_fs: (int) max sampling frequency that the model can handle.</span>
 <span class="sd">            causal (bool): whether or not to apply causal modeling.</span>
 <span class="sd">                if True, LSTM will be used instead of BLSTM for time modeling</span>
+<span class="sd">            norm_type (str): type of the normalization layer (cfLN / cLN / BN / GN).</span>
 <span class="sd">            ref_channel: (int) reference channel. not used for now.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -274,13 +276,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">ref_channel</span>
 
-        <span class="k">assert</span> <span class="n">num_spk</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bsrnn</span> <span class="o">=</span> <span class="n">BSRNN</span><span class="p">(</span>
             <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
             <span class="n">num_channel</span><span class="o">=</span><span class="n">num_channels</span><span class="p">,</span>
             <span class="n">num_layer</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
             <span class="n">target_fs</span><span class="o">=</span><span class="n">target_fs</span><span class="p">,</span>
             <span class="n">causal</span><span class="o">=</span><span class="n">causal</span><span class="p">,</span>
+            <span class="n">num_spk</span><span class="o">=</span><span class="n">num_spk</span><span class="p">,</span>
+            <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="BSRNNSeparator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.bsrnn_separator.BSRNNSeparator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
@@ -314,7 +317,10 @@
             <span class="k">assert</span> <span class="nb">input</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
             <span class="n">feature</span> <span class="o">=</span> <span class="nb">input</span>
 
-        <span class="n">masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bsrnn</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">additional</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;fs&quot;</span> <span class="ow">in</span> <span class="n">additional</span><span class="p">:</span>
+            <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;fs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">additional</span><span class="p">[</span><span class="s2">&quot;fs&quot;</span><span class="p">]</span>
+        <span class="n">masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bsrnn</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="o">**</span><span class="n">opt</span><span class="p">)</span>
         <span class="c1"># B, num_spk, T, F</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_complex</span><span class="p">(</span><span class="nb">input</span><span class="p">):</span>
             <span class="n">masked</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ComplexTensor</span><span class="p">(</span><span class="n">masked</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">masked</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
