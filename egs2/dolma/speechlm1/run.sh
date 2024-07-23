@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set=train
-valid_set=val
-test_sets="test"
+valid_set=""
+test_sets=""
 
 bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
 codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
@@ -16,7 +16,7 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_sound
 ./speechlm.sh \
     --stop_stage 5 \
     --task "textlm" \
-    --data_name pile_uncopyrighted \
+    --data_name dolma \
     --fs 16000 \
     --ngpu 8 \
     --nj 32 \
