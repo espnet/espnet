@@ -143,6 +143,9 @@ class BatchBeamSearch(BeamSearch):
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
 
+        # NOTE (Shih-Lun): added for OpenAI Whisper ASR
+        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
+
         return self.batchfy(
             [
                 Hypothesis(
@@ -150,7 +153,7 @@ class BatchBeamSearch(BeamSearch):
                     scores=init_scores,
                     states=init_states,
                     hs=[],
-                    yseq=torch.tensor(self.hyp_primer, device=x.device),
+                    yseq=torch.tensor(primer, device=x.device),
                 )
             ]
         )
@@ -382,7 +385,7 @@ class BatchBeamSearch(BeamSearch):
 
         """
         n_batch = running_hyps.yseq.shape[0]
-        logger.debug(f"the number of running hypotheses: {n_batch}")
+        logger.debug(f"the number of running hypothes: {n_batch}")
         if self.token_list is not None:
             logger.debug(
                 "best hypo: "
@@ -413,7 +416,7 @@ class BatchBeamSearch(BeamSearch):
             running_hyps.length[:] = yseq_eos.shape[1]
 
         # add ended hypotheses to a final list, and removed them from current hypotheses
-        # (this will be a problem, number of hyps < beam)
+        # (this will be a probmlem, number of hyps < beam)
         is_eos = (
             running_hyps.yseq[torch.arange(n_batch), running_hyps.length - 1]
             == self.eos
