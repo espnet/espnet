@@ -1,0 +1,44 @@
+// place your custom styles here
+body {
+  color: #1f1e33;
+}
+// place your custom styles here
+.custom-h3 {
+  padding: 0.5em !important;
+  margin: 0 !important;
+  color: #1f1e33;
+  background: #f4feff;
+  border-left: solid 5px #58a0ff;
+
+  em {
+    font-size: 90%;
+    line-height: normal;
+    color: #2980b9;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.custom-h4 {
+  margin: 0.5em 0 !important;
+  padding: 0.3em !important;
+  border: none;
+  border-left-width: medium;
+  border-left-style: none;
+  border-left-color: currentcolor;
+  border-left: 3px solid #ccc;
+  background: #f0f0f0;
+  color: #1f1e33;
+
+  p {
+    margin: 0;
+  }
+}
+
+.small-bracket {
+  font-size: 90%;
+  opacity: 90%;
+}
+
