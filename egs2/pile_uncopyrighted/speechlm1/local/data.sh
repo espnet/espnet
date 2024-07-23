@@ -22,7 +22,7 @@ stage=2
 stop_stage=3
 data_tag=monology/pile-uncopyrighted
 tokenizer_tag=EleutherAI/pythia-1b
-portion=0.2
+portion=0.3
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -47,7 +47,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         clean_name=${file_name%.jsonl.zst}
         zstdcat ${file} | jq -c '.text' | sed 's/^"\(.*\)"$/\1/' |\
             awk -v prefix="$clean_name" -v p="${portion}" \
-            'BEGIN {srand()} {if (NF <= 1000 && rand() <= p) {print prefix "_" NR " " $0}}' \
+            'BEGIN {srand()} {if (NF <= 500 && rand() <= p) {print prefix "_" NR " " $0}}' \
             > $(dirname ${file})/${clean_name} &
     done; wait
 fi
