@@ -5,6 +5,7 @@ import functools
 import logging
 import os
 import sys
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -1196,10 +1197,23 @@ class AbsTask(ABC):
 
             # The following block is copied from:
             # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
-            error_queues = []
+            error_files = []
             processes = []
             mp = torch.multiprocessing.get_context("spawn")
             for i in range(args.ngpu):
+
+                # Each process is assigned a file to write tracebacks to.  We
+                # use the file being non-empty to indicate an exception
+                # occurred (vs an expected shutdown).  Note: this previously
+                # used a multiprocessing.Queue but that can be prone to
+                # deadlocks, so we went with a simpler solution for a one-shot
+                # message between processes.
+                tf = tempfile.NamedTemporaryFile(
+                    prefix="pytorch-errorfile-", suffix=".pickle", delete=False
+                )
+                tf.close()
+                os.unlink(tf.name)
+
                 # Copy args
                 local_args = argparse.Namespace(**vars(args))
 
@@ -1214,9 +1228,9 @@ class AbsTask(ABC):
                 )
                 process.start()
                 processes.append(process)
-                error_queues.append(mp.SimpleQueue())
+                error_files.append(tf.name)
             # Loop on join until it returns True or raises an exception.
-            while not ProcessContext(processes, error_queues).join():
+            while not ProcessContext(processes, error_files).join():
                 pass
 
     @classmethod
