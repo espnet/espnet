@@ -72,6 +72,8 @@ class MultiScaleLM(AbsCoreLM):
             n_layer=g_layer,
             qk_norm=qk_norm,
             dropout=dropout,
+            hf_model_tag=hf_model_tag,
+            token_bias=token_bias,
         )
 
         # Local part
