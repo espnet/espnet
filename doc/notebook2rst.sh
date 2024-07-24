@@ -25,7 +25,7 @@ for document in "${documents[@]}"; do
         -type f \
         -name '*.ipynb' \
         -exec bash -c ". ../../tools/activate_python.sh;jupyter nbconvert --to markdown \"{}\"" \;
-    
+
     basedir=./${document}
     for md_file in `find "./${document}" -name "*.md"`; do
         filename=`basename ${md_file}`

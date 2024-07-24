@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 for submodule in glob.glob(f"{doc}/**/")
             ])
         })
-    
+
     # 1.2. Create Tools
     navbars.append({
         'text': "Tools",
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             'prefix': f"{doc}/",
             'children': [f"README.md"]
         })
-    
+
     # 1.2.1. sort
     navbars[1]['children'].sort(key=lambda x: x['text'].lower())
     navbars[2]['children'].sort(key=lambda x: x['text'].lower())
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     # 1.3 write navBars.yml
     with open('navbars.yml', 'w', encoding='utf-8') as f:
         yaml.dump(navbars, f, default_flow_style=False)
-    
+
     # 2. Create sidebars
     # 2.1. Create guide
     sidebars.append({
@@ -123,4 +123,3 @@ if __name__ == "__main__":
     # 2.3. Write sidebars.yml
     with open('sidebars.yml', 'w', encoding='utf-8') as f:
         yaml.dump(sidebars, f, default_flow_style=False)
-
