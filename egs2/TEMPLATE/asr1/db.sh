@@ -216,6 +216,7 @@ KATHBATH=downloads
 GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
+SLUETED=/scratch/bbjs/sharma3/ted
 KSPONSPEECH=
 HIFITTS=downloads
 
@@ -365,5 +366,4 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
-
 fi
