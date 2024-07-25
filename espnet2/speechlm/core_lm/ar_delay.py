@@ -116,7 +116,7 @@ class ARDelayLM(ARParallelLM):
         """
 
         # (1) initialization
-        cache, hooks = install_kv_cache_hook(self.decoders, {})
+        cache = self.decoders.init({})
 
         # (2) splice-interleave-split
         prefix = prefix.expand(opts.nbest, -1, -1)
@@ -198,8 +198,7 @@ class ARDelayLM(ARParallelLM):
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
-        for hook in hooks:
-            hook.remove()
+        self.decoders.reset(cache)
 
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         if len(valid_idx) == 0:

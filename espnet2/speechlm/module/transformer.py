@@ -62,7 +62,7 @@ class TransformerDecoder(torch.nn.Module):
             self.lm_head = None
 
             self.model_type = "builtin"
-            self.hooks = None
+            self.hooks = dict()
 
         else:
             logging.info(f"Building Transformer Decoder with HF model: {hf_model_tag}")
@@ -99,19 +99,22 @@ class TransformerDecoder(torch.nn.Module):
             return self.model(x=x, mask=mask, kv_cache=kv_cache)
         else:
             return self.model(inputs_embeds=x).last_hidden_state
-    
+
     def init(self, kv_cache):
         if self.model_type == "builtin":
             kv_cache, self.hooks = install_kv_cache_hook(self.model, kv_cache)
         else:
             pass
+
+        return kv_cache
     
     def reset(self, kv_cache):
         if self.model_type == "builtin":
             for hook in self.hooks:
                 hook.remove()
-            for key in kv_cache.keys():
-                kv_cache.pop(key)
+            
+            kv_cache.clear()
+
         else:
             pass
 

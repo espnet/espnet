@@ -188,7 +188,7 @@ class ValleLM(AbsCoreLM):
         """
 
         # (1) initialization
-        cache, hooks = install_kv_cache_hook(self.ar_decoder, {})
+        cache = self.ar_decoder.init({})
 
         # (2) auto-regressive prefix forward on first code layer
         prefix = prefix.expand(opts.nbest, -1, -1)
@@ -249,8 +249,7 @@ class ValleLM(AbsCoreLM):
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
 
         if len(valid_idx) == 0:
-            for hook in hooks:
-                hook.remove()
+            self.ar_decoder.reset(cache)
             logging.warning(f"No valid examples. Return None")
             return [], []
         elif len(valid_idx) < prefix.size(0):
@@ -265,8 +264,7 @@ class ValleLM(AbsCoreLM):
         gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1]  # idx -> count
         gen_scores_ar = gen_scores_ar[:, : finish_idx.max() + 1]
 
-        for hook in hooks:
-            hook.remove()
+        self.ar_decoder.reset(cache)
 
         # (4) non-auto-regressive loop on the remained code layers
         # (4.1) NAR initialization
@@ -286,12 +284,11 @@ class ValleLM(AbsCoreLM):
         # (4.2) NAR loop
         for step in range(1, opts.nq):
             h_nar = self.nar_decoder(prev_emb, ones * step - 1, mask=mask)  # [B, T, D]
-            # Note(Jinchuan): NAR uses greedy decoding. We still use the sampling but
-            # with an extremely small temperature.
-            logits = self.lm_head(h_nar) / 0.00001  # [B, T, V]
+            logits = self.lm_head(h_nar)
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
+                search_algo="greedy_search",
                 allow_eos=False,
                 nq_level=step,
             )

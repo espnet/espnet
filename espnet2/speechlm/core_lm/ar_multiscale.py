@@ -168,7 +168,7 @@ class MultiScaleLM(AbsCoreLM):
         """
 
         # (1) global initialization
-        g_cache, g_hooks = install_kv_cache_hook(self.g_decoders, {})
+        g_cache = self.g_decoders.init({})
 
         # (2) Prefix forward
         prefix = prefix.expand(opts.nbest, -1, -1)
@@ -203,7 +203,7 @@ class MultiScaleLM(AbsCoreLM):
             g_hidden = self.g2l(g_hidden)
 
             # (3.2) local initialization
-            l_cache, l_hooks = install_kv_cache_hook(self.l_decoders, {})
+            l_cache = self.l_decoders.init({})
 
             # (3.3) local loop
             l_generated = {"token": [], "score": []}
@@ -232,8 +232,7 @@ class MultiScaleLM(AbsCoreLM):
                 l_generated["score"].append(gen_score)
 
             # (3.4) local finalize
-            for hook in l_hooks:
-                hook.remove()
+            self.l_decoders.reset(l_cache)
 
             gen_tokens_local = torch.stack(l_generated["token"], dim=2)  # [B, 1, nq]
             gen_scores_local = torch.stack(l_generated["score"], dim=2)
@@ -266,8 +265,7 @@ class MultiScaleLM(AbsCoreLM):
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
-        for hook in g_hooks:
-            hook.remove()
+        self.g_decoders.reset(g_cache)
 
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         g_generated = {
