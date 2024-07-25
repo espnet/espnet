@@ -32,9 +32,9 @@ You have two methods to generate the data:
 
 #### ESPnet format:
 
-It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets. 
+It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
-Noted that since we usually just need waveform to train the model, we can just use `wav.scp` to train a model. 
+Noted that since we usually just need waveform to train the model, we can just use `wav.scp` to train a model.
 However, if you would like to use additional information (transcription, speaker information) for evaluation, we may want to have full-kaldi-style supports.
 
 See also:
