@@ -422,7 +422,7 @@ Below is a list of task we currently support.
 | `textlm`    | Text Language Model | - | (text,text_bpe,text)
 | `audiolm` | Audio Language Model | - | (wav.scp,codec,kaldi_ark)
 | `asr`       | Automatic Speech Recognition    | (wav.scp, codec, kaldi_ark)      | (text, text_bpe, text)   |
-| `mt` | Machine Translation | (src_text,text_BPE,text) | (text,text_bpe,text) 
+| `mt` | Machine Translation | (src_text,text_bpe,text) | (text,text_bpe,text) 
 `tts` | Text-to-Speech | (text,g2p,text), (utt2spk,spk,text) | (wav.scp,codec,kaldi_ark)
 `plain_tts` | Text-to-Speech<br> (without speaker prompt) | (text,g2p,text) | (wav.scp,codec,kaldi_ark)
 `bpe_tts` | Text-to-Speech<br> (replace phone to BPE) | (text,text_bpe,text),(utt2spk,spk,text) | (wav.scp,codec,kaldi_ark)

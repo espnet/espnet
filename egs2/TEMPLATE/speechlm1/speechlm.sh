@@ -245,7 +245,7 @@ if ! "${skip_data_prep}"; then
         # This will be done internally by pyscripts/utils/make_speechlm_json.py in stage 5.
         log "Stage 2: Format all audio files"
 
-        prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
+        all_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].data_triplets_string)")
         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
@@ -259,8 +259,8 @@ if ! "${skip_data_prep}"; then
         for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
 
-            for prepare_opt in ${prepare_opts}; do
-                IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
+            for triplet in ${all_triplets}; do
+                IFS=',' read -r _name _modality _type <<< "${triplet}"
 
                 if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
                     
@@ -304,14 +304,14 @@ if ! "${skip_data_prep}"; then
         fi
 
         # Parse the data preparation operations from Python task definition.
-        prepare_opts=$(python -c "from espnet2.speechlm.definitions import tasks; print(tasks['${task}'].find_modality_type)")
+        all_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].data_triplets_string)")
 
         for dset in ${_dsets}; do
             opts=""
-            for prepare_opt in ${prepare_opts}; do
+            for triplet in ${all_triplets}; do
                 mkdir -p ${data_feats}/${dset}/token_lists
 
-                IFS=',' read -r _name _modality _type <<< "${prepare_opt}"
+                IFS=',' read -r _name _modality _type <<< "${triplet}"
                 # for discrete operations, we will also generate a vocabulary.
 
                 if [ ! -f ${data_audio}/${dset}/${_name} ]; then

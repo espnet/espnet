@@ -15,7 +15,6 @@ from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.net_utils import (
     ce_loss,
-    install_kv_cache_hook,
     length_mask,
     logits_to_tokens,
 )

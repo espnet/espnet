@@ -5,5 +5,6 @@ minlenratio: 0.05
 top_k: 30
 seed: 1
 tokenizer_conf:
-    codec_choice: inhouse
+    codec_choice: ESPnet
+    hf_model_tag: espnet/amuse_speech_soundstream_16k
     codec_fs: 16000
