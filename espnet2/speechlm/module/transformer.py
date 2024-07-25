@@ -8,7 +8,7 @@ from typing import Optional
 import torch
 import logging
 
-from espnet2.speechlm.net_utils import install_kv_cache_hook, logits_to_tokens
+from espnet2.speechlm.net_utils import install_kv_cache_hook
 
 from transformers import (
     GPTNeoXModel,
@@ -45,7 +45,7 @@ class TransformerDecoder(torch.nn.Module):
 
         if hf_model_tag is None:
             logging.info("Build Transformer Decoder with internal implementation")
-            from espnet2.speechlm.module.transformer import (
+            from espnet2.speechlm.module.builtin import (
                 TransformerDecoder as BuiltinTransformerDecoder,
             )
 
@@ -62,6 +62,7 @@ class TransformerDecoder(torch.nn.Module):
             self.lm_head = None
 
             self.model_type = "builtin"
+            self.hooks = None
 
         else:
             logging.info(f"Building Transformer Decoder with HF model: {hf_model_tag}")
@@ -98,6 +99,21 @@ class TransformerDecoder(torch.nn.Module):
             return self.model(x=x, mask=mask, kv_cache=kv_cache)
         else:
             return self.model(inputs_embeds=x).last_hidden_state
+    
+    def init(self, kv_cache):
+        if self.model_type == "builtin":
+            kv_cache, self.hooks = install_kv_cache_hook(self.model, kv_cache)
+        else:
+            pass
+    
+    def reset(self, kv_cache):
+        if self.model_type == "builtin":
+            for hook in self.hooks:
+                hook.remove()
+            for key in kv_cache.keys():
+                kv_cache.pop(key)
+        else:
+            pass
 
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):

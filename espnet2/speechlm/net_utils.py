@@ -8,7 +8,7 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import MultiHeadAttention
+from espnet2.speechlm.module.builtin import MultiHeadAttention
 
 
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
