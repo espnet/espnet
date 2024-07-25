@@ -63,9 +63,10 @@ class ValleLM(AbsCoreLM):
             n_state=att_unit,
             n_head=head,
             n_layer=ar_layer,
-            causal=True,
             qk_norm=qk_norm,
             dropout=dropout,
+            hf_model_tag=hf_model_tag,
+            token_bias=token_bias,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -74,7 +75,6 @@ class ValleLM(AbsCoreLM):
             n_state=att_unit,
             n_head=head,
             n_layer=nar_layer,
-            causal=False,
             qk_norm=qk_norm,
             dropout=dropout,
         )

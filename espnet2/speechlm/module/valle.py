@@ -1,8 +1,13 @@
+#!/usr/bin/env python3
+
+# Copyright 2024 Jinchuan Tian
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 from typing import Optional
 
 from torch import Tensor, nn
 
-from espnet2.speechlm.module.transformer import (
+from espnet2.speechlm.module.builtin import (
     ResidualAttentionBlock,
     TransformerDecoder,
 )
@@ -76,7 +81,7 @@ class ValleNARDecoder(TransformerDecoder):
         n_state: int,
         n_head: int,
         n_layer: int,
-        causal: bool = True,
+        causal: bool = False,
         qk_norm: bool = False,
         dropout: float = 0.0,
         layer_class=ResidualAttentionBlockAdaLN,
