@@ -105,7 +105,7 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 asr_inference_args= # Arguments for decoding, e.g., "--lm_weight 0.1".
                     # Note that it will overwrite args in inference config.
-enh_inference_args="--normalize_output_wav true"
+enh_inference_args="--normalize_output_wav true --output_format wav"
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_enh_asr_model=valid.acc.ave.pth # ASR model path for decoding.

@@ -479,6 +479,7 @@ def inference(
     normalize_segment_scale: bool,
     show_progressbar: bool,
     ref_channel: Optional[int],
+    output_format: str,
     normalize_output_wav: bool,
     enh_s2t_task: bool,
 ):
@@ -542,7 +543,11 @@ def inference(
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(
-            SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
+            SoundScpWriter(
+                f"{output_dir}/wavs/{i + 1}",
+                f"{output_dir}/spk{i + 1}.scp",
+                format=output_format,
+            )
         )
 
     import tqdm
@@ -623,6 +628,12 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("Output data related")
+    group.add_argument(
+        "--output_format",
+        type=str,
+        default="wav",
+        help="Output format for the separated speech",
+    )
     group.add_argument(
         "--normalize_output_wav",
         type=str2bool,
