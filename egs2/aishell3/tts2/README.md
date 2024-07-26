@@ -10,10 +10,10 @@ See the following pages for running on clusters. They can help you to set the en
 ## Brief on TTS2
 
 - In terms of features
-  
-  ``tts2`` uses discrete acoustic features instead of continuous features in ``tts1``. Current TEMPLATE supports the training of a discrete FastSpeech2 model. 
+
+  ``tts2`` uses discrete acoustic features instead of continuous features in ``tts1``. Current TEMPLATE supports the training of a discrete FastSpeech2 model.
 - In terms of data
-  
+
   ``tts2`` additionally requires duration information, which can be obtained from **Speech-Text Alignment Tools** (tacotron teacher model or mfa). According to FastSpeech2 paper, mfa has a higher quality.
 
 
@@ -26,16 +26,16 @@ Here is the basic order for running scripts, followed by more details.
 1. ``./local/run_mfa.sh``
 2. ``./run_train_teacher.sh`` (to stage 8, must use teacher forcing in decoding)
 3. ``./run_train_teacher.sh`` (stage 6 only, to extract energy and pitch)
-4. ``./run.sh --stop_stage 8 --s3prl_upstream_name hf_hubert_custom`` 
+4. ``./run.sh --stop_stage 8 --s3prl_upstream_name hf_hubert_custom``
 5. Train a vocoder at [PWG](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs) (We use discrete hifigan here)
-6. ``./run.sh --stage 9`` 
+6. ``./run.sh --stage 9``
 7. Evaluate the generated wav using [scripts here](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1#evaluation)
-   
+
 
 ### 1. Data Preparation
 
 * Download aishell-3 dataset(trainset & testset)
-* Trim slience to improve the efficiency and potentially improve the generated wave quality by cutting off noise. 
+* Trim slience to improve the efficiency and potentially improve the generated wave quality by cutting off noise.
 * Get the initial ``{dset}_phn`` dictionary.
 * Split 250 samples from the trainset to be the devset.
 
@@ -49,7 +49,7 @@ SSB00050353 shen1 jiao1 suo3 fu4 zong3 jing1 li3 zhou1 ming2 zhi3 chu1
   NOTE: The parameters like ``fs``, ``n_fft``, in ``trim_slience.sh`` don't have to be the same as what in ``run.sh``, since they only determine the precision of slience trimming, where the outcome of different sets of parameters will be roughly the same (corpus w/ minimum slience sound).
 
 ### 2. Train the teacher model
-Following ``tts1``, we train a Tacotron2 model to be the teacher model for FastSpeech2 in ``tts2``. 
+Following ``tts1``, we train a Tacotron2 model to be the teacher model for FastSpeech2 in ``tts2``.
 
 Set ``audio_format=wav`` is recommended, as it can be directly processed if you want to use x-vector. Or you can use ``flac``, but take ``egs2/libirspeech/asr1/local/data.sh`` as a reference for ``uttid path-to-utt``
 
@@ -59,11 +59,11 @@ Remember to keep the frame shift(fs) for the teacher model and the student model
 
 Calculate pitch and energy (still following ``tts1``), for fastspeech2.
 
-### 4. Train discrete fastspeech2 
+### 4. Train discrete fastspeech2
 The datasets include text, durations, speech, discrete speech, pitch, energy, and spembs. Use cn_hubert(pretrained on mandarin) here for discrete tts feature extraction.
 
-### 5. Train a vocoder 
-A customized vocoder for aishell3 discrete features is necessary for the purpose of generating ``wav`` from discrete hubert features. 
+### 5. Train a vocoder
+A customized vocoder for aishell3 discrete features is necessary for the purpose of generating ``wav`` from discrete hubert features.
 
 The vocoder for tts2 are not exactly mel2text, so our goal here is not to train a rule-based vocoder like ``tts1``, but another unique vocoder that maps discrete features to waves.
 
@@ -81,9 +81,9 @@ We use [PWG repo](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs
   :w path/to/newfile_all.txt
   :q!
   ```
-* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data (``wav`` format is better supported in kaldiio than ``flac``). Notice that aishell3 has unknown speakers, so we don't use sid. 
+* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data (``wav`` format is better supported in kaldiio than ``flac``). Notice that aishell3 has unknown speakers, so we don't use sid.
 
-* Modify ``num_embs``(equals to number of k-means clusters) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``. 
+* Modify ``num_embs``(equals to number of k-means clusters) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``.
 
 * Start feature extraction and training from stage 1.
 
@@ -91,7 +91,7 @@ We use [PWG repo](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs
 ### 6. Inference
 Run the inference stage in espnet2 recipe with your trained vocoder. Waveform will be directly generated this time.
 
-### 7. Evaluate model performance 
+### 7. Evaluate model performance
 Please follow [scripts here](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1#evaluation).
 
 
@@ -117,7 +117,7 @@ Originally, ``Stage 1`` in ``run.sh`` calls ``local/data.sh``, but here we won't
 ./local/run_mfa.sh
 ```
 
-which is an entry point that will call ``scripts/mfa.sh`` and further call ``local/data.sh``. If ``--train false``, this script will download pretrained g2p and acoustic models, else if ``--train true``, this script will generate the alignments. The generated results will be stored in the ``<split_sets>_phn`` lexicon. 
+which is an entry point that will call ``scripts/mfa.sh`` and further call ``local/data.sh``. If ``--train false``, this script will download pretrained g2p and acoustic models, else if ``--train true``, this script will generate the alignments. The generated results will be stored in the ``<split_sets>_phn`` lexicon.
 
 For aishell-3, we train a new G2P model on ``mandarin_china_mfa`` dictionary, and generate the lexicon. Then train the speech-text alignment MFA.
 
@@ -133,7 +133,7 @@ In multi-spk scenario, adding speaker id or speaker embedding can help better te
 
 **Speaker Embeddings**
 
-ESPnet supports several types of speaker embeddings (kaldi: x-vector, speechbrain, espnet_spk). The recently proposed espnet_spk shows SOTA performance among many tasks, thus we use it here. 
+ESPnet supports several types of speaker embeddings (kaldi: x-vector, speechbrain, espnet_spk). The recently proposed espnet_spk shows SOTA performance among many tasks, thus we use it here.
 
 
 ### Discrete Speech Challenge Baseline
