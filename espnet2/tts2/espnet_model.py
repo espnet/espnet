@@ -193,12 +193,15 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         """
         # feature extraction
+        discrete_feats, discrete_feats_lengths = self.discrete_feats_extract(
+            discrete_speech, discrete_speech_lengths
+        )
         feats, feats_lengths = speech, speech_lengths
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=discrete_feats_lengths,
+                feats_lengths=discrete_feats_lengths, # 
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
@@ -206,7 +209,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
             energy, energy_lengths = self.energy_extract(
                 speech,
                 speech_lengths,
-                feats_lengths=discrete_feats_lengths,
+                feats_lengths=discrete_feats_lengths, # 
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
