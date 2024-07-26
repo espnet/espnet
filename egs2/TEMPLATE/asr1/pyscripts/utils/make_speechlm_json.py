@@ -92,8 +92,6 @@ def main():
     for example_id in example_dict.keys():
         if all([name in example_dict[example_id] for name in needed_names]):
             valid_example_ids.append(example_id)
-        else:
-            logging.warning(f"Example {example_id} is not complete")
 
     logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
 

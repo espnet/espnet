@@ -3,9 +3,9 @@ corelm_conf:
     share_emb: false
     qk_norm: true
     # global transformer
-    g_att_unit: 768
-    g_head: 12
-    g_layer: 12
+    g_att_unit: 512
+    g_head: 8
+    g_layer: 22
     # local transformer
     l_att_unit: 384
     l_head: 6
@@ -13,8 +13,8 @@ corelm_conf:
 
 # Dataloader
 batch_type: numel
-batch_bins: 6000
-num_iters_per_epoch: 10000
+batch_bins: 16000
+num_iters_per_epoch: 5000
 accum_grad: 1
 grad_clip: 5
 max_epoch: 50

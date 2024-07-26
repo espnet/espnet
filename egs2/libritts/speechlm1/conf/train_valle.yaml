@@ -1,16 +1,16 @@
 corelm: valle
 corelm_conf:
     share_emb: false
-    att_unit: 768
+    att_unit: 512
     qk_norm: true
-    head: 12
-    ar_layer: 6
-    nar_layer: 6
+    head: 8
+    ar_layer: 12
+    nar_layer: 12
 
 # Dataloader
 batch_type: numel
-batch_bins: 6000
-num_iters_per_epoch: 10000
+batch_bins: 16000
+num_iters_per_epoch: 5000
 accum_grad: 1
 grad_clip: 5
 max_epoch: 50

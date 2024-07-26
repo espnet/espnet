@@ -5,6 +5,7 @@
 - [ESPnet2 Speech Language Model (SpeechLM) Recipe](#espnet2-speech-language-model-speechlm-recipe)
   - [Table of Content](#table-of-content)
   - [Environment](#environments)
+  - [Check List of Building a New Task]
   - [The Concept of Task Templete](#the-concept-of-task-templete)
     - [LM modeling paradigm](#lm-modeling-paradigm)
     - [Define Task as a Sequence Template](#define-task-as-a-sequence-template)
@@ -36,7 +37,7 @@
 
 ## Environments
 First, please install ESPnet following the [Install Instruction](https://espnet.github.io/espnet/installation.html).
-  * Recommend to use Pytorch 2.1.0+
+  * Recommend to use Pytorch 2.1.0 and above
 
 If you plan to use third-party models from Huggingface, also install:
 ```
@@ -52,6 +53,26 @@ For evaluation purpose, also install:
 # VERSA, ESPnet evluation toolkit, under rapid development
 pip install git+https://github.com/ftshijt/speech_evaluation.git
 ```
+
+## Check List of Building a New Task
+We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
+  * Task Template Definition:
+    * Check if your task already has a template.
+    * All task template definitions are in: `<espnet>/espent2/speechlm/definitions.py`
+    * If not, define it following [Define Task as a Sequence Template](#define-task-as-a-sequence-template) and [Define a New Task](#define-a-new-task).
+  * Dataset Preparation:
+    * Based on task template, prepare the original dataset files following [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template) and [Stage 1: Data Preparation](#stage-1-data-preparation).
+  * Evaluation Configuration:
+    * Configurate your evluation protocals by `--evaluation_protocal` argument
+    * Check [Stage 10: Evaluation](#stage-10-evaluation)
+  
+Ideally, stages like tokenizatin, data statistics collection, training and inference are all handled automatically. However, it is usuall beneficial if you can also inspect the following items:
+  * In [Stage 5: Tokenization](#stage-5-tokenization), check `data.json` is properly built and all files listed in it exist.
+  * In [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary), check the joint vocabulary is built as expected.
+  * Training and Inference configurations
+  * Many modality-specific configurations. E.g.,
+    * Codec model and SSL model choices
+    * BPE model and g2p model choice
 
 ## The Concept of Task Templete
 ### LM Modeling Paradigm
@@ -91,10 +112,9 @@ For each `entry`, the user should define three factors: `name`, `modality` and `
 Thus, to define a sequence template for a task is to define `name`, `modality` and `type` for each `entry`. Here is the sequence template for codec-based ASR (codec is a kind of model that convert continuous speech into discrete tokens):
 ```
 # Codec-based ASR Sequence Template
-SpeechLMTask(
-    encoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-    decoder_entries=[("text", "text_bpe", "text")],
-    target_entries=[("text", "text_bpe", "text")],
+SPEECHLM_TASKS["asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
 )
 ```
   * The speech entry is defined as the triplet `("wav.scp", "codec", "kaldi_ark")`
@@ -105,22 +125,16 @@ SpeechLMTask(
     * `name=text`: the entry is named as `text`
     * `modality=text_bpe`: this entry is text and is tokenized by BPE
     * `type=text`: data for this entry should be parsed as plain text
-  * Assume you are using encoder-decoder LM, the encoder will process `condition` while decoder will process `target`.  So:
-    * Entries in `encoder_entries` are `condition` for the task
-    * Entries in `decoder_entries` are `target` for the task
-    * Entries in `target_entries` will be used for loss computing.
-      * Usually the same as in `decoder_entries`
-    * For decoder-only LM, the `condition`-`target` and loss computing follows the same logics.
   * With this template, the dataloader will load the data, convert them into discrete sequence and splice them together for model training / inference. See [Example Sequence](#example-sequence) and [Data Loading and Preprocessing](#data-loading-and-preprocessing) for details.
   * See [List of Supported Task](#list-of-supported-task) for more examples on sequence template definitions
 
 ### Define a New Task
 All sequence templates are stored in file `<espnet>/espnet2/speechlm/definitions.py`. To add a new task, the user should add a new item in the dict `tasks`:
 ```
-tasks["<task_name>"] = SpeechLMTask(
-    encoder_entries=[...],
-    decoder_entries=[...],
-    target_entries=[...],
+# Codec-based ASR Sequence Template
+SPEECHLM_TASKS[<task_name>] = SpeechLMTaskTemplate(
+    conditions=[...],
+    targets=[...],
 )
 ```
   * First, the users need to figure out what are `condition` and `target` entries in the task.

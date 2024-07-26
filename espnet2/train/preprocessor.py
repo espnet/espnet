@@ -2481,7 +2481,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
 
-        prefix_len = sum([len(seq) for seq in seqs[n_conditions:]])
+        prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
         prefix_len = prefix_len // self.codec_token_in_use + 2
         new_data["prefix_len"] = np.array([prefix_len])
 
