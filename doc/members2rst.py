@@ -78,7 +78,7 @@ for p in glob(args.root + "/**", recursive=True):
         continue
     if not p.endswith(".py"):
         continue
-    
+
     submodule_name = module_name.split(".")[1]
     os.makedirs(f"{gendir}/{args.root}/{submodule_name}", exist_ok=True)
 
@@ -90,7 +90,7 @@ for p in glob(args.root + "/**", recursive=True):
             # 1.2 generate RST
             with open(f"{gendir}/{args.root}/{submodule_name}/{function_name}.rst", "w") as f_rst:
                 gen_func_rst(f"{module_name}.{function_name}", f_rst)
-        
+
         # 2 get classes
         for clz in top_level_classes(parse_ast(p).body):
             class_name = clz.name
@@ -98,4 +98,3 @@ for p in glob(args.root + "/**", recursive=True):
             # 1.2 generate RST
             with open(f"{gendir}/{args.root}/{submodule_name}/{class_name}.rst", "w") as f_rst:
                 gen_class_rst(f"{module_name}.{class_name}", f_rst)
-

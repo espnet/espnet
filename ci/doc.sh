@@ -30,21 +30,21 @@ mkdir utils_py
 ./doc/argparse2rst.py \
     --title utils_py \
     --output_dir utils_py \
-    ./utils/*.py 
+    ./utils/*.py
 mv utils_py ./doc/_gen/tools
 
 mkdir espnet_bin
 ./doc/argparse2rst.py \
     --title espnet_bin \
     --output_dir espnet_bin \
-    ./espnet/bin/*.py 
+    ./espnet/bin/*.py
 mv espnet_bin ./doc/_gen/tools
 
 mkdir espnet2_bin
 ./doc/argparse2rst.py \
     --title espnet2_bin \
     --output_dir espnet2_bin \
-    ./espnet2/bin/*.py 
+    ./espnet2/bin/*.py
 mv espnet2_bin ./doc/_gen/tools
 
 build_and_convert "utils/*.sh" utils

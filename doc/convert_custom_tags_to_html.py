@@ -163,7 +163,7 @@ def replace_custom_tags(content):
             )
         ):
             return f"&lt;{tag_name}&gt;"
-        
+
         end_tag_pattern = re.compile(f'</{tag_name.split()[0]}>')
         end_tag_match = end_tag_pattern.search(content, match.end())
         if not end_tag_match:
@@ -189,7 +189,7 @@ def replace_string_tags(content):
             )
         ):
             return f"'&lt;{tag_name}&gt;'"
-        
+
         end_tag_pattern = re.compile(f'</{tag_name.split()[0]}>')
         end_tag_match = end_tag_pattern.search(content, match.end())
         if not end_tag_match:
@@ -224,7 +224,6 @@ for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
     # if the tag is not in ALL_HTML_TAGS
     content = replace_string_tags(content)
     content = replace_custom_tags(content)
-    
+
     with open(md, "w") as f:
         f.write(content)
-

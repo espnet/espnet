@@ -125,11 +125,10 @@ S2T inference stage. We can perform ASR or ST using any prepared test data.
 
 Calculate ASR error rates (char / word / token).
 
-### 14-16. (Optional) Pack results for upload
+### 14-15. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
-If you want to run this stage, you need to register your account in zenodo.
+It packs the trained model files and uploads to Hugging Face.
 
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
