@@ -27,7 +27,7 @@ SECONDS=0
 
 # General configuration
 stage=1              # Processes starts from the specified stage.
-stop_stage=10000     # Processes is stopped at the specified stage.
+stop_stage=10     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
@@ -120,6 +120,7 @@ token_list_dir=
 
 # TODO(Jinchuan): Upload model related
 hf_repo=
+
 help_message=""
 
 log "$0 $*"
@@ -542,8 +543,6 @@ if ! ${skip_train}; then
 
         _opts=
         if [ -n "${train_config}" ]; then
-            # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -847,12 +846,76 @@ else
     log "Skip the evaluation stages"
 fi
 
-# TODO(Jinchuan) Evaluation and model upload stages
+packed_model="${speechlm_exp}/${speechlm_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    log "Stage 11: Pack model: ${packed_model}"
 
+    # shellcheck disable=SC2086
+    ${python} -m espnet2.bin.pack speechlm \
+        --train_config "${speechlm_exp}"/config.yaml \
+        --inference_config "${inference_config}" \
+        --model_file "${speechlm_exp}"/"${inference_model}" \
+        --outpath "${packed_model}"
+fi
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    [ -z "${hf_repo}" ] && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+    log "Stage 15: Upload model to HuggingFace: ${hf_repo}"
+
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 11 first."
+        exit 1
+    fi
+
+    gitlfs=$(git lfs --version 2> /dev/null || true)
+    [ -z "${gitlfs}" ] && \
+        log "ERROR: You need to install git-lfs first" && \
+        exit 1
+
+    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+    if command -v git &> /dev/null; then
+        _creator_name="$(git config user.name)"
+        _checkout="git checkout $(git show -s --format=%H)"
+    else
+        _creator_name="$(whoami)"
+        _checkout=""
+    fi
+    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/asr1 -> foo
+    _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+    # copy files in ${dir_repo}
+    unzip -o ${packed_model} -d ${dir_repo}
+    # Generate description file
+    # shellcheck disable=SC2034
+    hf_task=Speech-Language-Model
+    # shellcheck disable=SC2034
+    espnet_task=SpeechLM
+    # shellcheck disable=SC2034
+    lang=multilingual
+    task_exp=${speechlm_exp}
+    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+    this_folder=${PWD}
+    cd ${dir_repo}
+    if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "Update model"
+    fi
+    git push
+    cd ${this_folder}
+    echo done
+fi
 
 # TODO(Jinchuan) Upload the prepared data and trained models
 if ! "${skip_upload_hf_data}"; then
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         log "upload the prepared ${task} dataset prepared in ${data_feats}"
 
         if [ "$(huggingface-cli whoami)" == "Not logged in" ]; then

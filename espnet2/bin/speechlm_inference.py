@@ -214,7 +214,17 @@ class SpeechLM:
         **kwargs: Optional[Any],
     ):
         if model_tag is not None:
-            raise ValueError("Model tag is not supported yet")
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
 
         return SpeechLM(**kwargs)
 
