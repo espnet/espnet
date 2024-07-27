@@ -5,6 +5,7 @@
 
 import argparse
 import json
+import yaml
 import logging
 import sys
 from pathlib import Path
@@ -69,7 +70,7 @@ class SpeechLM:
 
         self.token_list = train_args.token_list
         self.token_bias = train_args.token_bias
-        self.modalities = [triplet[1] for triplet in task.data_triplets]
+        self.modalities = [triplet[1] for triplet in self.task.data_triplets]
         self.pad = self.token_list.index("<pad>")
 
         # (2) predict mask
@@ -224,7 +225,19 @@ class SpeechLM:
                 )
                 raise
             d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            hf_args = d.download_and_unpack(model_tag)
+
+            if "inference_config" in hf_args:
+                infer_args = yaml.safe_load(open(hf_args.pop("inference_config")))
+                hf_args.update(infer_args)
+            
+            # NOTE(Jinchuan): do not override the external arguments
+            for key, value in hf_args.items():
+                if key not in kwargs:
+                    kwargs[key] = value
+            
+        if "task" not in kwargs:
+            raise ValueError("Please specify the task")
 
         return SpeechLM(**kwargs)
 

@@ -4,7 +4,6 @@ search_algo: topk_sampling
 sampling_temperature: 1.2
 minlenratio: 0.05
 top_k: 30
-seed: 1
 
 # offline tokenizer
 codec_conf:
