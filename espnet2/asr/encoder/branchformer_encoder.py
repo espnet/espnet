@@ -47,19 +47,25 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class BranchformerEncoderLayer(torch.nn.Module):
-    """Branchformer encoder layer module.
+    """
+    Branchformer encoder layer module.
+
+    This layer combines self-attention and convolutional gating MLP branches
+    to capture both global and local context.
 
     Args:
-        size (int): model dimension
-        attn: standard self-attention or efficient attention, optional
-        cgmlp: ConvolutionalGatingMLP, optional
-        dropout_rate (float): dropout probability
-        merge_method (str): concat, learned_ave, fixed_ave
-        cgmlp_weight (float): weight of the cgmlp branch, between 0 and 1,
-            used if merge_method is fixed_ave
-        attn_branch_drop_rate (float): probability of dropping the attn branch,
-            used if merge_method is learned_ave
-        stochastic_depth_rate (float): stochastic depth probability
+        size (int): Model dimension.
+        attn (Optional[torch.nn.Module]): Self-attention module.
+        cgmlp (Optional[torch.nn.Module]): Convolutional Gating MLP module.
+        dropout_rate (float): Dropout probability.
+        merge_method (str): Method to merge branches ('concat', 'learned_ave', or 'fixed_ave').
+        cgmlp_weight (float): Weight of the CGMLP branch for 'fixed_ave' merge method. Default: 0.5.
+        attn_branch_drop_rate (float): Probability of dropping the attention branch. Default: 0.0.
+        stochastic_depth_rate (float): Stochastic depth probability. Default: 0.0.
+
+    Note:
+        At least one of `attn` or `cgmlp` must be provided.
+        The merge_method determines how the outputs of the two branches are combined.
     """
 
     def __init__(
@@ -136,18 +142,35 @@ class BranchformerEncoderLayer(torch.nn.Module):
             self.merge_proj = torch.nn.Identity()
 
     def forward(self, x_input, mask, cache=None):
-        """Compute encoded features.
+        """
+            Compute encoded features.
 
         Args:
-            x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
+            x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o positional embedding.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
                 - w/o pos emb: Tensor (#batch, time, size).
             mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
-            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
+            cache (torch.Tensor, optional): Cache tensor of the input (#batch, time - 1, size).
+                Default: None.
 
         Returns:
-            torch.Tensor: Output tensor (#batch, time, size).
-            torch.Tensor: Mask tensor (#batch, time).
+            Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]:
+                - If positional embedding is used:
+                    Tuple containing:
+                    - torch.Tensor: Output tensor with positional embedding (#batch, time, size).
+                    - torch.Tensor: Mask tensor (#batch, time).
+                - If positional embedding is not used:
+                    Tuple containing:
+                    - torch.Tensor: Output tensor (#batch, time, size).
+                    - torch.Tensor: Mask tensor (#batch, time).
+
+        Raises:
+            NotImplementedError: If cache is not None (caching is not implemented).
+
+        Note:
+            This method applies the Branchformer encoding, combining self-attention
+            and convolutional gating MLP branches based on the specified merge method.
+            It also handles stochastic depth if enabled during training.
         """
 
         if cache is not None:
@@ -294,7 +317,42 @@ class BranchformerEncoderLayer(torch.nn.Module):
 
 
 class BranchformerEncoder(AbsEncoder):
-    """Branchformer encoder module."""
+    """
+    Branchformer encoder module.
+
+    This encoder combines self-attention and convolutional gating MLP in parallel branches
+    to capture both global and local context for speech recognition and understanding tasks.
+
+    Args:
+        input_size (int): Dimension of input features.
+        output_size (int): Dimension of output features. Default: 256.
+        use_attn (bool): Whether to use attention branch. Default: True.
+        attention_heads (int): Number of attention heads. Default: 4.
+        attention_layer_type (str): Type of attention layer. Default: "rel_selfattn".
+        pos_enc_layer_type (str): Type of positional encoding. Default: "rel_pos".
+        rel_pos_type (str): Type of relative positional encoding. Default: "latest".
+        use_cgmlp (bool): Whether to use convolutional gating MLP branch. Default: True.
+        cgmlp_linear_units (int): Number of units in CGMLP linear layers. Default: 2048.
+        cgmlp_conv_kernel (int): Kernel size for CGMLP convolution. Default: 31.
+        use_linear_after_conv (bool): Whether to use linear layer after convolution in CGMLP. Default: False.
+        gate_activation (str): Activation function for CGMLP gate. Default: "identity".
+        merge_method (str): Method to merge branches. Default: "concat".
+        cgmlp_weight (Union[float, List[float]]): Weight(s) for CGMLP branch. Default: 0.5.
+        attn_branch_drop_rate (Union[float, List[float]]): Dropout rate(s) for attention branch. Default: 0.0.
+        num_blocks (int): Number of encoder blocks. Default: 12.
+        dropout_rate (float): Dropout rate. Default: 0.1.
+        positional_dropout_rate (float): Dropout rate for positional encoding. Default: 0.1.
+        attention_dropout_rate (float): Dropout rate for attention. Default: 0.0.
+        input_layer (Optional[str]): Type of input layer. Default: "conv2d".
+        zero_triu (bool): Whether to zero out the upper triangular part of attention matrix. Default: False.
+        padding_idx (int): Padding index for embedding layer. Default: -1.
+        stochastic_depth_rate (Union[float, List[float]]): Stochastic depth rate(s). Default: 0.0.
+
+    Note:
+        This implementation is based on the paper "Branchformer: Parallel MLP-Attention
+        Architectures to Capture Local and Global Context for Speech Recognition and Understanding"
+        by Yifan Peng, et al.
+    """
 
     @typechecked
     def __init__(
@@ -505,6 +563,16 @@ class BranchformerEncoder(AbsEncoder):
         self.after_norm = LayerNorm(output_size)
 
     def output_size(self) -> int:
+        """
+            Get the output size of the encoder.
+
+        Returns:
+            int: The dimension of the output features.
+
+        Note:
+            This method returns the size of the encoder's output,
+            which is set during the initialization of the BranchformerEncoder.
+        """
         return self._output_size
 
     def forward(
@@ -513,18 +581,26 @@ class BranchformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+            Calculate forward propagation.
 
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
+            prev_states (torch.Tensor, optional): Not used in current implementation. Default: None.
 
         Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - torch.Tensor: Output tensor (#batch, L, output_size).
+                - torch.Tensor: Output length (#batch).
+                - Optional[torch.Tensor]: Always None in current implementation.
 
+        Raises:
+            TooShortUttError: If the input is too short for subsampling.
+
+        Note:
+            The method applies the Branchformer encoding to the input tensor,
+            handling potential subsampling and masking as needed.
         """
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

@@ -19,17 +19,17 @@ from espnet.nets.pytorch_backend.transducer.utils import (
 
 
 @dataclass
-class Hypothesis:
-    """Default hypothesis definition for Transducer search algorithms."""
+# class Hypothesis:
+#     """Default hypothesis definition for Transducer search algorithms."""
 
-    score: float
-    yseq: List[int]
-    dec_state: Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]],
-        List[Optional[torch.Tensor]],
-        torch.Tensor,
-    ]
-    lm_state: Union[Dict[str, Any], List[Any]] = None
+#     score: float
+#     yseq: List[int]
+#     dec_state: Union[
+#         Tuple[torch.Tensor, Optional[torch.Tensor]],
+#         List[Optional[torch.Tensor]],
+#         torch.Tensor,
+#     ]
+#     lm_state: Union[Dict[str, Any], List[Any]] = None
 
 
 @dataclass

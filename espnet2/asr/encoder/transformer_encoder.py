@@ -36,28 +36,43 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class TransformerEncoder(AbsEncoder):
-    """Transformer encoder module.
+    """
+        Transformer encoder module.
+
+    This class implements a Transformer encoder, which is a key component in sequence-to-sequence models.
+    It processes input sequences through multiple self-attention and feed-forward layers.
 
     Args:
-        input_size: input dim
-        output_size: dimension of attention
-        attention_heads: the number of heads of multi head attention
-        linear_units: the number of units of position-wise feed forward
-        num_blocks: the number of decoder blocks
-        dropout_rate: dropout rate
-        attention_dropout_rate: dropout rate in attention
-        positional_dropout_rate: dropout rate after adding positional encoding
-        input_layer: input layer type
-        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-        normalize_before: whether to use layer_norm before the first block
-        concat_after: whether to concat attention layer's input and output
-            if True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            if False, no additional linear will be applied.
-            i.e. x -> x + att(x)
-        positionwise_layer_type: linear of conv1d
-        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-        padding_idx: padding_idx for input_layer=embed
+        input_size (int): Dimensionality of the input features.
+        output_size (int, optional): Dimensionality of the output. Defaults to 256.
+        attention_heads (int, optional): Number of attention heads. Defaults to 4.
+        linear_units (int, optional): Number of units in position-wise feed-forward layers. Defaults to 2048.
+        num_blocks (int, optional): Number of encoder blocks. Defaults to 6.
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
+        positional_dropout_rate (float, optional): Dropout rate for positional encoding. Defaults to 0.1.
+        attention_dropout_rate (float, optional): Dropout rate in attention layers. Defaults to 0.0.
+        input_layer (str, optional): Type of input layer. Defaults to "conv2d".
+        pos_enc_class (class, optional): Positional encoding class. Defaults to PositionalEncoding.
+        normalize_before (bool, optional): Whether to apply layer normalization before the first block. Defaults to True.
+        concat_after (bool, optional): Whether to concatenate attention layer's input and output. Defaults to False.
+        positionwise_layer_type (str, optional): Type of position-wise layer. Defaults to "linear".
+        positionwise_conv_kernel_size (int, optional): Kernel size for position-wise conv1d layer. Defaults to 1.
+        padding_idx (int, optional): Padding index for embedding layer. Defaults to -1.
+        interctc_layer_idx (List[int], optional): Indices of layers for intermediate CTC. Defaults to [].
+        interctc_use_conditioning (bool, optional): Whether to use conditioning for intermediate CTC. Defaults to False.
+        layer_drop_rate (float, optional): Layer dropout rate. Defaults to 0.0.
+
+    Attributes:
+        embed (torch.nn.Module): Input embedding layer.
+        encoders (torch.nn.Module): Stack of encoder layers.
+        after_norm (LayerNorm): Layer normalization applied after the final encoder layer.
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC.
+        interctc_use_conditioning (bool): Whether to use conditioning for intermediate CTC.
+        conditioning_layer (torch.nn.Module): Conditioning layer for intermediate CTC.
+
+    Note:
+        The encoder supports various types of input layers, including linear, convolutional, and embedding layers.
+        It also allows for intermediate CTC (Connectionist Temporal Classification) computations.
     """
 
     @typechecked
@@ -172,6 +187,16 @@ class TransformerEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
+        """
+                Returns the output size of the encoder.
+
+        Returns:
+            int: The dimensionality of the encoder's output.
+
+        Note:
+            This method returns the value of the `_output_size` attribute, which is set
+            during the initialization of the TransformerEncoder.
+        """
         return self._output_size
 
     def forward(
@@ -182,17 +207,40 @@ class TransformerEncoder(AbsEncoder):
         ctc: CTC = None,
         return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+                Forward pass of the TransformerEncoder.
+
+        This method processes the input through the encoder layers and returns the encoded representation.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
-            ctc (CTC): ctc module for intermediate CTC loss
-            return_all_hs (bool): whether to return all hidden states
+            xs_pad (torch.Tensor): Padded input tensor of shape (B, L, D), where B is the batch size,
+                                   L is the sequence length, and D is the input dimension.
+            ilens (torch.Tensor): Input lengths of each sequence in the batch.
+            prev_states (torch.Tensor, optional): Not used in the current implementation. Defaults to None.
+            ctc (CTC, optional): CTC module for intermediate CTC loss. Defaults to None.
+            return_all_hs (bool, optional): Whether to return all hidden states. Defaults to False.
 
         Returns:
-            position embedded tensor and mask
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
+                - xs_pad (torch.Tensor): Encoded output tensor of shape (B, L', D'), where L' is the
+                                         output sequence length and D' is the output dimension.
+                - olens (torch.Tensor): Output lengths of each sequence in the batch.
+                - None: Placeholder for future use (e.g., hidden states).
+
+        Raises:
+            TooShortUttError: If the input sequence is too short for subsampling in the embedding layer.
+
+        Note:
+            - The method applies input embedding, positional encoding, and multiple transformer encoder layers.
+            - If intermediate CTC layers are specified, it returns intermediate outputs as well.
+            - The output can be normalized if `normalize_before` is set to True during initialization.
+
+        Examples:
+            >>> encoder = TransformerEncoder(input_size=80, output_size=256)
+            >>> xs_pad = torch.randn(2, 100, 80)  # (batch_size, sequence_length, input_dim)
+            >>> ilens = torch.tensor([100, 80])   # Actual lengths of sequences in the batch
+            >>> output, olens, _ = encoder(xs_pad, ilens)
+            >>> print(output.shape)  # Example output shape: torch.Size([2, 100, 256])
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

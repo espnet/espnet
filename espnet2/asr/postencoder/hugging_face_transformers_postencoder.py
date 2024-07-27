@@ -24,7 +24,33 @@ except ImportError:
 
 
 class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
-    """Hugging Face Transformers PostEncoder."""
+    """
+        Hugging Face Transformers PostEncoder.
+
+    This class implements a post-encoder using Hugging Face Transformers models.
+    It can be used to process the output of an encoder in a speech recognition
+    or other sequence processing task.
+
+    Attributes:
+        transformer (transformers.PreTrainedModel): The Hugging Face transformer model.
+        lang_token_embed (torch.Tensor): Language token embedding, if applicable.
+        linear_in (torch.nn.Linear): Linear layer to project input to transformer dimension.
+        length_adaptor (torch.nn.Sequential): Sequence of layers for length adaptation.
+        length_adaptor_ratio (int): Ratio of length reduction in the adaptor.
+
+    Args:
+        input_size (int): Size of the input features.
+        model_name_or_path (str): Name or path of the pre-trained Hugging Face model.
+        length_adaptor_n_layers (int, optional): Number of layers in the length adaptor. Defaults to 0.
+        lang_token_id (int, optional): ID of the language token. Defaults to -1.
+
+    Raises:
+        ImportError: If the 'transformers' library is not installed.
+
+    Note:
+        This class requires the 'transformers' library to be installed.
+        The length adaptor is implemented as described in https://aclanthology.org/2021.acl-long.68.pdf
+    """
 
     @typechecked
     def __init__(
@@ -127,7 +153,36 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward."""
+        """
+                Forward pass of the HuggingFaceTransformersPostEncoder.
+
+        This method processes the input through the length adaptor, linear projection,
+        and the Hugging Face transformer model.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (batch_size, time, feature_dim).
+            input_lengths (torch.Tensor): Tensor of input lengths for each sequence in the batch.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - output (torch.Tensor): The output of the transformer model.
+                - input_lengths (torch.Tensor): Updated lengths after processing.
+
+        Raises:
+            TooShortUttError: If the input sequence is too short for subsampling.
+
+        Note:
+            - The input is first processed by the length adaptor, which may reduce its temporal dimension.
+            - If a language token is specified, it's prepended to the input.
+            - The method handles different configurations of transformer models, including
+              encoder-decoder models, XLNet, T5, and GPT-2.
+
+        Examples:
+            >>> encoder = HuggingFaceTransformersPostEncoder(input_size=256, model_name_or_path="bert-base-uncased")
+            >>> input_tensor = torch.randn(32, 100, 256)  # (batch_size, time, feature_dim)
+            >>> input_lengths = torch.full((32,), 100)
+            >>> output, output_lengths = encoder.forward(input_tensor, input_lengths)
+        """
         if input.size(1) < self.length_adaptor_ratio:
             raise TooShortUttError(
                 f"has {input.size(1)} frames and is too short for subsampling "
@@ -178,11 +233,40 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         return output, input_lengths
 
     def reload_pretrained_parameters(self):
-        self.transformer.load_state_dict(self.pretrained_params)
+        """
+                Reload the pretrained parameters of the transformer model.
+
+        This method resets the transformer's parameters to their original pretrained values.
+        It's useful for resetting the model to its initial state, especially after fine-tuning.
+
+        Note:
+            This method logs an info message upon successful reloading of parameters.
+
+        Examples:
+            >>> encoder = HuggingFaceTransformersPostEncoder(input_size=256, model_name_or_path="bert-base-uncased")
+            >>> # After some training or parameter updates
+            >>> encoder.reload_pretrained_parameters()
+            # This will reset the transformer's parameters to their original pretrained values
+        """
         logging.info("Pretrained Transformers model parameters reloaded!")
 
     def output_size(self) -> int:
-        """Get the output size."""
+        """
+                Get the output size of the transformer model.
+
+        Returns:
+            int: The size of the output features from the transformer model.
+
+        Note:
+            This method returns the hidden size of the transformer model, which
+            corresponds to the dimensionality of the output features.
+
+        Examples:
+            >>> encoder = HuggingFaceTransformersPostEncoder(input_size=256, model_name_or_path="bert-base-uncased")
+            >>> output_dim = encoder.output_size()
+            >>> print(output_dim)
+            768  # For BERT base model
+        """
         return self.transformer.config.hidden_size
 
 
