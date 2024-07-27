@@ -5,7 +5,7 @@
 - [ESPnet2 Speech Language Model (SpeechLM) Recipe](#espnet2-speech-language-model-speechlm-recipe)
   - [Table of Content](#table-of-content)
   - [Environment](#environments)
-  - [Check List of Building a New Task]
+  - [Check List of Building a New Task](#check-list-of-building-a-new-task)
   - [The Concept of Task Templete](#the-concept-of-task-templete)
     - [LM modeling paradigm](#lm-modeling-paradigm)
     - [Define Task as a Sequence Template](#define-task-as-a-sequence-template)
@@ -58,21 +58,22 @@ pip install git+https://github.com/ftshijt/speech_evaluation.git
 We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
   * Task Template Definition:
     * Check if your task already has a template.
-    * All task template definitions are in: `<espnet>/espent2/speechlm/definitions.py`
+      * All existing task template definitions are in: `<espnet>/espent2/speechlm/definitions.py`
     * If not, define it following [Define Task as a Sequence Template](#define-task-as-a-sequence-template) and [Define a New Task](#define-a-new-task).
   * Dataset Preparation:
-    * Based on task template, prepare the original dataset files following [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template) and [Stage 1: Data Preparation](#stage-1-data-preparation).
+    * Based on task template, prepare the original data files following [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template) and [Stage 1: Data Preparation](#stage-1-data-preparation).
   * Evaluation Configuration:
     * Configurate your evluation protocals by `--evaluation_protocal` argument
     * Check [Stage 10: Evaluation](#stage-10-evaluation)
   
-Ideally, stages like tokenizatin, data statistics collection, training and inference are all handled automatically. However, it is usuall beneficial if you can also inspect the following items:
-  * In [Stage 5: Tokenization](#stage-5-tokenization), check `data.json` is properly built and all files listed in it exist.
-  * In [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary), check the joint vocabulary is built as expected.
-  * Training and Inference configurations
+Ideally, stages like tokenization, data statistics collection, training and inference are all handled automatically. However, it is usually beneficial if you can also inspect the following items:
+  * In [Stage 5: Tokenization](#stage-5-tokenization), check if `data.json` is properly built and all files listed in it exist.
+  * In [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary), check if the joint vocabulary is built as expected.
+  * Training and Inference configurations.
   * Many modality-specific configurations. E.g.,
     * Codec model and SSL model choices
     * BPE model and g2p model choice
+  * Check the inference results, specifically ensure the training and teacher-forced inference have the same results.
 
 ## The Concept of Task Templete
 ### LM Modeling Paradigm
@@ -129,7 +130,7 @@ SPEECHLM_TASKS["asr"] = SpeechLMTaskTemplate(
   * See [List of Supported Task](#list-of-supported-task) for more examples on sequence template definitions
 
 ### Define a New Task
-All sequence templates are stored in file `<espnet>/espnet2/speechlm/definitions.py`. To add a new task, the user should add a new item in the dict `tasks`:
+All sequence templates are stored in file `<espnet>/espnet2/speechlm/definitions.py`. To add a new task, the user should add a new item in the dict `SPEECHLM_TASKS`:
 ```
 # Codec-based ASR Sequence Template
 SPEECHLM_TASKS[<task_name>] = SpeechLMTaskTemplate(
@@ -148,7 +149,7 @@ SPEECHLM_TASKS[<task_name>] = SpeechLMTaskTemplate(
       * See [List of Supported Type](#list-of-supported-type)
 
 ### Build Model with a Defined Sequence Template
-Once the sequence template is defined, the only step remained to the user is to prepare the dataset. Ideally, stages of tokenization, training, inference and evaluation are handled automatically by our ESPnet SpeechLM script. See [Recipe Workflow](#recipe-flow) for details.
+Once the sequence template is defined, users should also prepare the dataset. Ideally, stages of tokenization, training, inference and evaluation are handled automatically by our ESPnet SpeechLM script. See [Recipe Workflow](#recipe-flow) for details.
 
 During the data preparation stage, the user only needs to create a data index file for each `entry` in the task sequence template, with the identical file name of `name` from that entry.
   * E.g., for ASR task, simply prepare two files: `wav.scp` and `text`.
@@ -259,8 +260,8 @@ After all tokenization is done and all modality-specific vocabularies are built,
         "dump/raw_asr_librispeech/test_clean/token_lists/text_bpe_token_list"
     ],
     "data_files": [
-        "dump/raw_asr_librispeech/test_clean/entries/wav.scp,codec,kaldi_ark",
-        "dump/raw_asr_librispeech/test_clean/entries/text,text_bpe,text",
+        "dump/raw_asr_librispeech/test_clean/index_files/wav.scp,codec,kaldi_ark",
+        "dump/raw_asr_librispeech/test_clean/index_files/text,text_bpe,text",
     ],
     "num_examples": 2220,
     "examples": [
@@ -395,13 +396,13 @@ Hint:
 Most users should be confortable to stay with `type` of `text` and `kaldi_ark`, both of which have the format `example_id` `content` in each line of it.
   * If the file is saved as kaldi_ark, use `kaldi_ark`
     * Usually, tokenized speech (`modality={codec, ssl}`) is in this format.
-    * Each line will look like: `<path-to-ark>:<index_number>`. E.g., foo.ark:1234
+    * Each line will look like: `example_id <path-to-ark>:<index_number>`. E.g., foo.ark:1234
   * If the file can be effectively parsed as plain text, use `text`.
     * usualy, data with `modality={text_bpe, g2p, spk, class}` is in this foramt.
 For advanced users, ESPnet dataset will support more `type` options. See `DATA_TYPES` in `<espnet>/espnet2/train/dataset.py` for the full list.
 
 ### Example Sequence
-When using speech codec models to represent audio/speech, it will use `N` tokens for each frame, which is not compatible with standard LM. Thus, for any modality other than codec, we repeat it by `N` times before splicing all sequence entries together.
+When using speech codec models to represent audio/speech, it will use `N` tokens for each frame, which is not compatible with standard LM. Thus, for any modality other than codec, we repeat it by `N` times before splicing all sequence entries together. The final sequence will be in the shape of `[T, N]`.
 
 Besides the tokens from each modality, we additionally add some special tokens for flow control and other logics, such as
   * Start/End of Sentence `<sos/eos>`
@@ -429,7 +430,6 @@ So that, a complete sequence for ASR task (`N=3`) can look like:
 Below is a list of task we currently support. 
   * Each triplet stands for an `entry` and consists of `name`, `modality` and `type`. 
   * The real task list in use is in `<espnet>/espnet2/speechlm/definitions.py`.
-  * In the sequence template, all condition entries are in `encoder_entries` and all target entries are in `decoder_entries`. Currently, we assume `decoder_entries` are the same as `target_entries`.
 
 | Task Name | Task Full Name                  | Condition Triplet                       | Target Triplet                  |
 |-----------|---------------------------------|----------------------------------|--------------------------|
@@ -438,11 +438,7 @@ Below is a list of task we currently support.
 | `asr`       | Automatic Speech Recognition    | (wav.scp, codec, kaldi_ark)      | (text, text_bpe, text)   |
 | `mt` | Machine Translation | (src_text,text_bpe,text) | (text,text_bpe,text) 
 `tts` | Text-to-Speech | (text,g2p,text), (utt2spk,spk,text) | (wav.scp,codec,kaldi_ark)
-`plain_tts` | Text-to-Speech<br> (without speaker prompt) | (text,g2p,text) | (wav.scp,codec,kaldi_ark)
-`bpe_tts` | Text-to-Speech<br> (replace phone to BPE) | (text,text_bpe,text),(utt2spk,spk,text) | (wav.scp,codec,kaldi_ark)
-`plain_bpe_tts` | Text-to-Speech<br> (replace phone to BPE, without speaker Prompt) | (text,text_bpe,text) | (wav.scp,codec,kaldi_ark)
 `se` | Speech Enhancement | (noisy.scp,codec,kaldi_ark) | (wav.scp,codec,kaldi_ark)
-`vc` | Voice Conversion | (src.wav,codec,kaldi_ark),(utt2spk,spk,kaldi_ark) | (wav.scp,codec,kaldi_ark)
 `st` | Speech Translation<br>(with source language) | (wav.scp,codec,kaldi_ark) | (src_text,text_bpe,text), (text,text_bpe,text)
 ...
 
@@ -453,6 +449,7 @@ We currently support the following architectures that are specifically designed 
   * [Parallel](https://arxiv.org/abs/2306.05284)
   * [Delay](https://arxiv.org/abs/2306.05284)
   * [MutiScale Transformer](https://arxiv.org/abs/2310.00704)
+Note: Vall-E cannot be used when data in `codec` modality doesn't exist or `N=1`. This is because there are no codes for Vall-E non-auto-regressive modeling.
 
 ### HuggingFace Transformer Implementation and Pre-trained Models
 We provide a unified interface for ESPnet built-in Transformer and HuggingFace Transformer models.
@@ -494,8 +491,8 @@ For each given `data.json`, a `EspnetSpeechLMDataset` object can be built automa
 Remember in the [data.json](#make-datajson) section, we have the `all_files` list in the given `data.json`:
 ```
 "data_files": [
-    "dump/raw_asr_librispeech/test_clean/entries/wav.scp,codec,kaldi_ark",
-    "dump/raw_asr_librispeech/test_clean/entries/text,text_bpe,text",
+    "dump/raw_asr_librispeech/test_clean/index_files/wav.scp,codec,kaldi_ark",
+    "dump/raw_asr_librispeech/test_clean/index_files/text,text_bpe,text",
 ]
 ```
 A dict called `loader_dict` is built with the lines in `data_files`. For each line, we load the index file with `type` reader and then save it with the key of `name`
@@ -507,7 +504,8 @@ A dict called `loader_dict` is built with the lines in `data_files`. For each li
 ```
 Then, a example dict can be obtained with a given `example_id`
 ```
-{
+# example dict
+data = {
   "wav.scp": self.loader_dict["wav.scp"][example_id]
   "text": self.loader_dict["text"][example_id]
 }

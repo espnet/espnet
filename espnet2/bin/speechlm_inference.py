@@ -17,15 +17,17 @@ from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.definitions import tasks as speechlm_tasks
+from espnet2.speechlm.definitions import SPEECHLM_TASKS, SpeechLMTaskTemplate
 from espnet2.tasks.speechlm import SpeechLMTask, tokenizer_choices
 
 # utilities
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet2.utils.types import str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.nested_dict_action import NestedDictAction
 
 
 class SpeechLM:
@@ -37,11 +39,11 @@ class SpeechLM:
     @typechecked
     def __init__(
         self,
+        task: Union[str, SpeechLMTaskTemplate],
         train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         dtype: str = "float32",
         device: str = "cpu",
-        verbose: bool = False,
         search_algo: str = "topk_sampling",
         inference_nq: Optional[int] = None,
         nbest: int = 1,
@@ -50,8 +52,7 @@ class SpeechLM:
         top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
-        modality: str = "codec",
-        tokenizer_conf: dict = {},
+        codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
 
@@ -60,36 +61,45 @@ class SpeechLM:
             train_config, model_file, device
         )
         self.model = model.to(dtype=getattr(torch, dtype)).eval()
+        self.preprocessor = SpeechLMTask.build_preprocess_fn(train_args, False)
         self.device = device
-        self.verbose = verbose
         self.dtype = dtype
-        self.modality = modality
         self.train_args = train_args
+        self.task = SPEECHLM_TASKS[task] if isinstance(task, str) else task
 
-        # (2) token_mask
-        token_bias = train_args.token_bias
-        token_list = train_args.token_list
-        inference_nq = model.corelm.nq if inference_nq is None else inference_nq
-        assert inference_nq <= model.corelm.nq
-        valid_start = token_bias[modality]
-        valid_end = min(
-            [s for s in token_bias.values() if s > valid_start] + [len(token_list)]
-        )
+        self.token_list = train_args.token_list
+        self.token_bias = train_args.token_bias
+        self.modalities = [triplet[1] for triplet in task.data_triplets]
+        self.pad = self.token_list.index("<pad>")
 
-        masks = torch.ones(inference_nq, len(token_list)).to(device).bool()
-        if modality == "codec":
-            increment = (valid_end - valid_start) // train_args.codec_token_per_frame
-            for l_idx in range(inference_nq):
-                masks[
-                    l_idx,
-                    valid_start
-                    + l_idx * increment : valid_start
-                    + (l_idx + 1) * increment,
-                ] = False
-        else:
-            masks[:, valid_start:valid_end] = False
+        # (2) predict mask
+        self.inference_nq = model.corelm.nq if inference_nq is None else inference_nq
+        predict_masks = dict()
+        all_boundaries = list(self.token_bias.values()) + [len(self.token_list)]
+        for modality in set(self.modalities):
+            if modality == "spk": # never predict "spk" modality
+                continue
+
+            mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
+            start = self.token_bias[modality]
+            end = min([b for b in all_boundaries if b > start])
+            if modality in ["codec", "spk"]:
+                inc = (end - start) // train_args.codec_token_per_frame
+                for n in range(self.inference_nq):
+                    mask[n, start + n * inc: start + (n+1) * inc] = False
+            else:
+                mask[:, start: end] = False
+
+            # When more than one target, allow modality switch
+            if len(self.task.targets) > 1:
+                mask[0, 32: 64] = False
+
+            modality = modality = f"<{modality}_start/end>"
+            modality_idx = self.token_list.index(modality)
+            predict_masks[modality_idx] = mask
 
         # (3) inference options
+        start_modality = self.modalities[len(self.task.conditions)]
         self.inference_opts = SpeechLMInferenceOptions(
             device=device,
             search_algo=search_algo,
@@ -100,119 +110,103 @@ class SpeechLM:
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
             eos=train_args.token_list.index("<sos/eos>"),
-            start=train_args.token_list.index(f"<{modality}_start/end>"),
-            masks=masks,
-            nq=inference_nq if inference_nq is not None else model.corelm.nq,
+            start=train_args.token_list.index(f"<{start_modality}_start/end>"),
+            masks=predict_masks,
+            nq=self.inference_nq,
         )
 
-        # (4) tokenizer: detokenize speechlm tokens to the exact output, e.g. audio or text
-        tokenizer_class = tokenizer_choices.get_class(modality)
-
-        if modality == "text_bpe":
-            tokenizer_conf.update(
-                dict(
-                    token_list=train_args.token_list.copy(),
-                    model=train_args.bpemodel,
-                )
-            )
-        self.tokenizer = tokenizer_class(**tokenizer_conf)
-        try:
-            self.tokenizer = self.tokenizer.to(device)
-        except:
-            logging.warning(f"cannot move tokenizer to device: {device}")
-
-        if modality in ["codec"]:
-            self.bias = token_bias[modality]
+        # (4) Only a limited number of modalities support detokenization
+        # (4.1) offline tokenizers should be resumed from external config
+        if "codec" in self.modalities or "spk" in self.modalities:
+            self.codec_tokenizer = tokenizer_choices.get_class('codec')(**codec_conf)
+            self.codec_tokenizer.to(self.device)
         else:
-            self.bias = 0
-        self.pad = token_list.index("<pad>")
+            self.codec_tokenizer = None
+        
+        # (4.2) online tokenizers should be from preprocessor
+        if "text_bpe" in self.modalities:
+            self.text_bpe_tokenizer = self.preprocessor.bpe
+        else:
+            self.text_bpe_tokenizer = None
+
 
     @typechecked
     @torch.no_grad()
-    def __call__(
-        self,
-        dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor,
-        prefix_len: torch.Tensor,
-        **kwargs,
-    ) -> Tuple[List[Any], List[Any]]:
-        """Run SpeechLM inference"""
+    def __call__(self, data: Dict) -> List:
+        """ Run SpeechLM inference """
 
-        enc_seq = kwargs.get("enc_seq", None)
-        enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
-        if enc_seq is not None or enc_seq_lengths is not None:
-            raise NotImplementedError("encoder-decoder is not supported yet.")
+        if not "dec_seq" in data:
+            data = self.preprocessor(data)
+        
+        dec_seq = data.get("dec_seq")
+        prefix_len = data.get("prefix_len").squeeze(1)
 
         # (1) language model inference
-        # NOTE(Jinchuan): the token dec_seq[prefix_len] is exactly
-        # self.inference_opts.start and will be handled by the
-        # inference algorithm. We discard it here.
-        prefix_len = prefix_len.squeeze(1)
-        gen_tokens, gen_scores = self.model.corelm.inference(
+        gen_tokens, _ = self.model.corelm.inference(
             prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
             enc_seq=None,
-            suffix=dec_seq[:, prefix_len + 1 :],
+            suffix=dec_seq[:, prefix_len + 1:],
         )
 
-        # (2) predicted tokens detokenization
-        generated = []
-        for token, score in zip(gen_tokens, gen_scores):
-            if self.modality == "codec":
-                token = token.view(-1) - self.bias
-                score = score.view(-1)
+        # (2) record the prefix segments
+        retval = [[] for _ in self.modalities]
+        prefix = dec_seq[0, :prefix_len]
+
+        segments = self.parse_sequence(prefix)
+        if len(segments) != len(self.task.conditions):
+            raise ValueError("Invalid Condition segments")
+        
+        for idx, segment in enumerate(segments):
+            retval[idx].append(segment)
+        
+        # (3) record the generated segments
+        start = self.inference_opts.start
+        start = torch.Tensor([start] * self.inference_nq).view(1, -1).to(self.device)
+        for gen_token in gen_tokens:
+            gen_token = torch.cat([start.long(), gen_token], dim=0)
+            segments = self.parse_sequence(gen_token)
+
+            if len(segments) != len(self.task.targets):
+                logging.warning(f"Invalid target segments. Skip")
+                continue
+
+            for idx2, segment in enumerate(segments, start=len(self.task.conditions)):
+                retval[idx2].append(segment)
+        
+        return retval
+
+    def parse_sequence(self, sequence):
+        segment_starts = torch.logical_and(sequence[:, 0] >= 32, sequence[:, 0] < 64)
+        segment_starts = segment_starts.nonzero(as_tuple=True)[0].cpu().tolist()
+        segment_starts = segment_starts + [len(sequence)]
+
+        retval = []
+        for start, end in zip(segment_starts[:-1], segment_starts[1:]):
+            modality_id = sequence[start, 0].int().item()
+            modality = self.token_list[modality_id]
+            modality = modality.lstrip("<").rstrip("_start/end>")
+
+            segment = sequence[start + 1: end]
+            segment = segment[segment[:, 0] != self.pad]
+
+            if modality in ["codec", "spk"]:
+                segment = segment.view(-1) - self.token_bias['codec']
+                detokenized = self.codec_tokenizer.detokenize(segment.clone())
+
+            elif modality in ["text_bpe"]:
+                segment = segment[:, 0].cpu().tolist()
+                detokenized = self.text_bpe_tokenizer.detokenize([
+                    self.token_list[tok] for tok in segment
+                ])
+
             else:
-                token = token[:, 0].view(-1) - self.bias
-                score = score[:, 0].view(-1)
-            content = self.tokenizer.detokenize(token.clone())
-
-            generated.append((token, score, content))
-
-        # (3) prefix tokens detokenization
-        conditions = []
-        if self.verbose:
-            # [32, 64) is reserved for modality start. See:
-            # espnet2.speechlm.definitions.py
-            starts = (
-                torch.logical_and(
-                    dec_seq[0, :prefix_len, 0] >= 32,
-                    dec_seq[0, :prefix_len, 0] < 64,
-                )
-                .nonzero(as_tuple=True)[0]
-                .cpu()
-                .tolist()
-            )
-            starts = starts + [prefix_len.cpu().item()]
-
-            for idx in range(len(starts) - 1):
-                start, end = starts[idx], starts[idx + 1]
-                this_modality = self.train_args.token_list[dec_seq[0, start, 0].item()]
-                this_modality = this_modality.lstrip("<").rstrip("_start/end>")
-                token = dec_seq[0, start + 1 : end]
-                token = token[token[:, 0] != self.pad]  # exclude padding
-                detokenized = False
-
-                # TODO(Jinchuan): support more detokenization options later for other tasks
-                if self.modality == "codec" and this_modality in ["codec", "spk"]:
-                    token = (token - self.train_args.token_bias["codec"]).view(-1)
-                    content = self.tokenizer.detokenize(token.clone())
-                    detokenized = True
-
-                elif this_modality in ["g2p"]:
-                    token = token[:, 0]
-                    content = " ".join(
-                        [self.train_args.token_list[c] for c in token.cpu().tolist()]
-                    )
-                    detokenized = True
-
-                else:
-                    token = token.flatten()
-                    content = None
-                    detokenized = False
-
-                conditions.append((token, content, this_modality, detokenized))
-
-        return generated, conditions
+                segment = segment[:, 0] - self.token_bias[modality]
+                detokenized = None
+            
+            retval.append((modality, segment, detokenized))
+        
+        return retval
 
     @staticmethod
     def from_pretrained(
@@ -235,11 +229,8 @@ def inference(
     num_workers: int,
     dtype: str,
     log_level: Union[int, str],
-    rank: int,
-    verbose: bool,
     # data related
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
-    key_file: Optional[str],
     # model related
     train_config: Optional[str],
     model_file: Optional[str],
@@ -252,10 +243,9 @@ def inference(
     top_p: float = 0.8,
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
-    inference_nj: Optional[int] = 1,
-    # tokenizer related
-    tokenizer: str = "",
-    tokenizer_conf: dict = {},
+    inference_nq: Optional[int] = 1,
+    # offline tokenizers
+    codec_conf: dict = None,
 ):
     """Run SpeechLM inference."""
     if batch_size > 1:
@@ -267,23 +257,15 @@ def inference(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if torch.cuda.is_available() and ngpu >= 1:
-        if torch.cuda.device_count() > 1:
-            device_id = rank % torch.cuda.device_count()
-        else:
-            device_id = 0
-        device = f"cuda:{device_id}"
+    if torch.cuda.is_available():
+        device = f"cuda:0"
     else:
         device = "cpu"
 
     # 1. parse task
     assert len(data_path_and_name_and_type) == 1, "Can only do inference for one json"
     task_name = json.load(open(data_path_and_name_and_type[0][0]))["task"]
-    task = speechlm_tasks[task_name]
-    output_name, output_modality = task.decoder_entries[-1][:2]
-    assert (
-        output_modality == tokenizer
-    ), f"Tokenizer should be {output_modality} for task: {task_name}"
+    task = SPEECHLM_TASKS[task_name]
 
     # 2. Build model
     speechlm_kwargs = dict(
@@ -291,17 +273,16 @@ def inference(
         model_file=model_file,
         dtype=dtype,
         device=device,
-        verbose=verbose,
         search_algo=search_algo,
-        inference_nq=inference_nj,
+        inference_nq=inference_nq,
         nbest=nbest,
         sampling_temperature=sampling_temperature,
         top_k=top_k,
         top_p=top_p,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
-        modality=output_modality,
-        tokenizer_conf=tokenizer_conf,
+        task=task,
+        codec_conf=codec_conf,
     )
 
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
@@ -311,7 +292,6 @@ def inference(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
-        key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=SpeechLMTask.build_preprocess_fn(speechlm.train_args, False),
         collate_fn=SpeechLMTask.build_collate_fn(speechlm.train_args, False),
@@ -320,24 +300,18 @@ def inference(
         multi_task_dataset=True,
     )
 
-    # 4 Start for-loop
-    (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    prefix_triplets = [
-        triplet
-        for triplet in task.encoder_entries + task.decoder_entries
-        if triplet not in task.target_entries
-    ]
+    # 4. build writer
+    writers, token_writers = dict(), dict()
+    for triplet in task.data_triplets:
+        name, modality, _ = triplet
+        (output_dir / name).mkdir(parents=True, exist_ok=True)
+        file_name = str(output_dir / name / ("token_" + name))
+        token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
+        if modality in ["spk", "codec", "text"]:
+            file_name = str(output_dir / name / name)
+            writers[name] = open(file_name, 'w')
 
-    writer = open(output_dir / output_name / "example_list", "w")
-    token_writer = WriteHelper(
-        f'ark,scp:{str(output_dir / output_name / "token")}.ark,{str(output_dir / output_name / "token")}.scp'
-    )
-    score_writer = WriteHelper(
-        f'ark,scp:{str(output_dir / output_name / "score")}.ark,{str(output_dir / output_name / "score")}.scp'
-    )
-    prefix_writers = [None for _ in prefix_triplets]
-    prefix_token_writers = [None for _ in prefix_triplets]
-
+    # 5. inference loop
     for _, (keys, batch) in enumerate(loader, 1):
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
@@ -347,100 +321,50 @@ def inference(
         batch = to_device(batch, device=device)
         key = keys[0]
 
-        logging.info(f"Inference on example: {key}")
-
-        # NOTE (Jinchuan): set random seed for each example so each result can be
-        # reproduced independently.
+        # NOTE(Jinchuan): make each example independently rseproducible
         set_all_random_seed(seed)
 
-        # (1) model infernece
-        generated, conditions = speechlm(**batch)
+        # 5.1 model infernece
+        logging.info(f"Inference on example: {key}")
+        all_segments = speechlm(batch)
 
-        # (2) parse and save generated content
-        for h_idx, (token, score, content) in enumerate(generated):
-            example_name = f"{key}_sample{h_idx}"
-
-            if output_modality == "codec":
-                wave_path = output_dir / output_name / f"{example_name}.wav"
-                writer.write(f"{example_name} {str(wave_path)}\n")
-
-                torchaudio.save(
-                    wave_path,
-                    content.view(1, -1).cpu(),
-                    sample_rate=speechlm.tokenizer.sample_rate,
-                    bits_per_sample=16,
-                )
-                logging.info(f"save generated audio {example_name}: {wave_path}")
-
-            elif output_modality == "text_bpe":
-                writer.write(f"{example_name} {content[0]}\n")
-
-            else:
-                raise NotImplementedError(
-                    f"Output modality {output_modality} is not supported"
-                )
-
-            if isinstance(token, torch.Tensor):
-                token = token.int().cpu().numpy()
-            if isinstance(score, torch.Tensor):
-                score = score.float().cpu().numpy()
-
-            token_writer[example_name] = token
-            score_writer[example_name] = score
-
-        # (3) parse and save conditon content
-        if verbose:
-            # NOTE(Jinchuan): remove task prefix so that the recorded prefix will have the same
-            # format like other reference file. E.g., text in original dataset
-            key = key.lstrip(f"{task_name}_")
-
-            assert len(conditions) == len(prefix_triplets)
-            for c_idx, (token, content, modality, detokenized) in enumerate(conditions):
-                if not detokenized:
-                    continue
-
-                name, _modality, _ = prefix_triplets[c_idx]
+        for triplet, segments in zip(task.data_triplets, all_segments):
+            name, _modality, _ = triplet
+            generated = triplet in task.targets
+            for idx, segment in enumerate(segments):
+                modality, token, detokenized = segment
                 assert modality == _modality, (modality, _modality)
 
-                # (3.1) save content
-                if prefix_writers[c_idx] == None:
-                    (output_dir / name).mkdir(parents=True, exist_ok=True)
-                    prefix_writer = open(output_dir / name / "example_list", "w")
-                    prefix_writers[c_idx] = prefix_writer
-
-                prefix_writer = prefix_writers[c_idx]
-                if modality in ["codec", "spk"]:
-                    content_path = output_dir / name / f"{key}.wav"
-                    torchaudio.save(
-                        content_path,
-                        content.view(1, -1).cpu(),
-                        sample_rate=speechlm.tokenizer.sample_rate,
-                        bits_per_sample=16,
-                        encoding="PCM_S",
-                    )
-                    prefix_writer.write(f"{key} {content_path}\n")
-                    logging.info(
-                        f"save prefix audio {name} audio {key}: {content_path}"
-                    )
-
-                elif modality in ["g2p"]:
-                    prefix_writer.write(f"{key} {content}\n")
-
-                    logging.info(f"prefix part {modality}: {content}")
-
+                if generated:
+                    example_name = f"{key}_sample{idx}"
                 else:
-                    raise ValueError(
-                        f"save prefix in modality {modality} is not supported yet"
-                    )
+                    example_name = key.lstrip(f"{task_name}_")
 
-                if prefix_token_writers[c_idx] is None:
-                    prefix_token_writer = WriteHelper(
-                        f'ark,scp:{str(output_dir / name / "token")}.ark,{str(output_dir / name / "token")}.scp'
-                    )
-                    prefix_token_writers[c_idx] = prefix_token_writer
-                prefix_token_writer = prefix_token_writers[c_idx]
-                prefix_token_writer[key] = token.int().cpu().numpy()
+                # 5.2 save token
+                token_writers[name][example_name] = token.int().cpu().numpy()
 
+                # 5.3 save tokenized results
+                if detokenized is not None:
+                    if modality in ["codec", "spk"]:
+                        audio_path = output_dir / name / f"{example_name}.wav"
+                        torchaudio.save(
+                            audio_path,
+                            detokenized.view(1, -1).cpu(),
+                            sample_rate=speechlm.codec_tokenizer.sample_rate,
+                            bits_per_sample=16,
+                            encoding="PCM_S",
+                        )
+                        writers[name].write(f"{example_name} {audio_path}\n")
+                        logging.info(f"Save audio: {audio_path}")
+                    
+                    elif modality in ["text_bpe"]:
+                        writers[name].write(f"{example_name} {detokenized}")
+                        logging.info(f"Save text: {detokenized}")
+                    
+                    else:
+                        raise ValueError(
+                            f"Modality {modality} is tokenized but no method to save."
+                        )
 
 def get_parser():
     """Get argument parser."""
@@ -494,15 +418,6 @@ def get_parser():
         default=1,
         help="The batch size for inference",
     )
-    parser.add_argument(
-        "--rank", type=int, default=1, help="the job rank in decoding process"
-    )
-    parser.add_argument(
-        "--verbose",
-        type=str2bool,
-        default=False,
-        help="If true, also dump the condition in the prefix (in the same modality only)",
-    )
 
     group = parser.add_argument_group("Input data related")
     group.add_argument(
@@ -510,10 +425,6 @@ def get_parser():
         type=str2triple_str,
         required=True,
         action="append",
-    )
-    group.add_argument(
-        "--key_file",
-        type=str_or_none,
     )
 
     group = parser.add_argument_group("The model configuration related")
@@ -555,7 +466,6 @@ def get_parser():
             "topk_sampling",
             "topp_sampling",
             "teacher_force",
-            "beam_search",
             "greedy_search",
         ],
         help="the search algorithm of SpeechLM",
@@ -585,14 +495,22 @@ def get_parser():
         help="if positive, restrict the sampling to tokens with top-p probs",
     )
     group.add_argument(
-        "--inference_nj",
+        "--inference_nq",
         type=int,
         default=None,
-        help="nj used in inference, should be the same or smaller than the nq in training",
+        help="nq in inference stage",
     )
 
-    group = parser.add_argument_group("tokenizer related")
-    tokenizer_choices.add_arguments(group)
+    # Offline tokenizer configurations. The offline tokenizers are not used during 
+    # training and thus should be specified externally.
+    for tokenizer in ["codec"]:
+        tokenizer_class = tokenizer_choices.get_class(tokenizer)
+        group.add_argument(
+            f"--{tokenizer}_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(tokenizer_class),
+            help=f"The keyword arguments for {tokenizer} class.",
+        )
 
     return parser
 

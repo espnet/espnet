@@ -12,7 +12,11 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss, logits_to_tokens
+from espnet2.speechlm.net_utils import (
+    ce_loss, 
+    logits_to_tokens,
+    modality_index_to_mask,
+)
 
 
 class MultiScaleLM(AbsCoreLM):
@@ -197,6 +201,9 @@ class MultiScaleLM(AbsCoreLM):
             .long()
             .to(opts.device)
         )
+        modality_index = g_prev_tok[:, 0, 0]
+        mask = modality_index_to_mask(modality_index, opts)
+
         g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
         for g_step in range(maxlen):
             g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache)  # [B, 1, D]
@@ -216,6 +223,7 @@ class MultiScaleLM(AbsCoreLM):
                 gen_tok, gen_score = logits_to_tokens(
                     logits.unsqueeze(2),
                     opts,
+                    mask,
                     allow_eos=(l_step == 0 and g_step >= minlen),
                     nq_level=l_step,
                 )
@@ -261,6 +269,23 @@ class MultiScaleLM(AbsCoreLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
+            
+            # (3.6) detect modality switch
+            modality_change_mask =  torch.logical_and(
+                g_prev_tok[:, 0, 0] >= 32,
+                g_prev_tok[:, 0, 0] < 64,
+            )
+            if torch.any(modality_change_mask):
+                modality_index = torch.where(
+                    modality_change_mask,
+                    g_prev_tok[:, 0, 0],
+                    modality_index,
+                )
+                mask = modality_index_to_mask(modality_index, opts)
+                logging.warning(
+                    f"Step {g_step}: change modality index {modality_index}"
+                )
+
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 

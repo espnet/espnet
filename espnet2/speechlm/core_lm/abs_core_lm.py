@@ -22,7 +22,7 @@ class SpeechLMInferenceOptions:
     minlenratio: float = 0.0
     eos: int = 5
     start: int = 1
-    masks: torch.Tensor = None
+    masks: Dict[str, torch.Tensor] = None
     nq: int = None
 
 

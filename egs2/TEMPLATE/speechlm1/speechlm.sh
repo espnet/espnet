@@ -136,8 +136,6 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-echo ${task}
-
 # Check for stage 1-5: data prep
 if ! "${skip_data_prep}"; then
     if [ -z "${task}" ]; then
@@ -654,8 +652,6 @@ if ! "${skip_eval}"; then
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${inference_nj}" "${_logdir}"/speechlm_inference.JOB.log \
                 ${python} -m espnet2.bin.speechlm_inference \
                     --ngpu "${_ngpu}" \
-                    --rank JOB \
-                    --verbose true \
                     --nbest ${nbest} \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
                     --train_config "${speechlm_exp}"/config.yaml \
@@ -665,23 +661,15 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for entry in `ls ${_logdir}/output.1`; do
-                for file in example_list token.scp score.scp; do
-                    if [ ! -f ${_logdir}/output.1/${entry}/${file} ]; then
-                        continue
-                    fi
-                    
-                    if [ "${file}" == "example_list" ]; then
-                        cat_file=${entry}
-                    else
-                        cat_file=${entry}_${file}
-                    fi
-
+                if [ -f ${_logdir}/output.1/${entry}/${entry} ]; then
                     for n in `seq ${inference_nj}`; do
-                        if [ -f ${_logdir}/output.${n}/${entry}/${file} ]; then
-                            cat ${_logdir}/output.${n}/${entry}/${file}
-                        fi
-                    done | sort > ${_dir}/${cat_file}
-                done
+                        cat ${_logdir}/output.${n}/${entry}/${entry}
+                    done | sort > ${_dir}/${entry}
+                fi
+
+                for n in `seq ${inference_nj}`; do
+                    cat ${_logdir}/output.${n}/${entry}/token_${entry}.scp
+                done | sort > ${_dir}/token_${entry}.scp
             done
         done
     fi
