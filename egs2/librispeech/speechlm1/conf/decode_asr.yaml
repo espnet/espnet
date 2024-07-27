@@ -1,4 +1,0 @@
-tokenizer: text_bpe
-search_algo: greedy_search
-verbose: false
-seed: 1
