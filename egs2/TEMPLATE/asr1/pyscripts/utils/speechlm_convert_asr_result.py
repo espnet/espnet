@@ -34,8 +34,8 @@ def main(args):
         
         stat_dict = {
             "key": ref_name,
-            "edit_distance": editdistance.eval(ref_content, hyp_content),
-            "word_count": len(ref_content),
+            "wer": editdistance.eval(ref_content, hyp_content),
+            "weight": len(ref_content),
         }
         json.dump(stat_dict, writer)
         writer.write("\n")
@@ -54,6 +54,7 @@ def parse_line(line, file_type):
     elif file_type == "trn":
         content = " ".join(line[:-1])
         example_name = line[-1].lstrip("(").rstrip(")")
+        
     else:
         raise NotImplementedError
 

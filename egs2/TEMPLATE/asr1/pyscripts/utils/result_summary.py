@@ -66,30 +66,34 @@ def main(args):
             line = json.loads(line)
             example_name = line.pop("key")
             utt_name = example_name.split("_sample")[0]
+            
+            if "weight" in line:
+                weight = line["weight"]
+                line.pop("weight")
+            else:
+                weight = 1.0
 
-            # dict arch: utt_name -> example_name -> metric -> value
+            # dict arch: utt_name -> example_name -> metric -> (value, weight)
             if utt_name not in stats_dict:
                 stats_dict[utt_name] = {}
             for key, value in line.items():
                 if example_name not in stats_dict[utt_name]:
                     stats_dict[utt_name][example_name] = {}
-                stats_dict[utt_name][example_name][key] = value
+                stats_dict[utt_name][example_name][key] = (value, weight)
 
     # (2) validate all utterances:
     for utt_name in stats_dict.keys():
+        other_sample = next(iter(stats_dict[utt_name].values()))
+
         # (2.1) add dummy examples until reach `nbest` examples
         count = 0
         while len(stats_dict[utt_name]) < args.nbest:
             example_name = utt_name + f"_pad{count}"
             stats_dict[utt_name][example_name] = {}
             for metric in args.metrics:
-                if metric in ["word_count", "edit_distance"]:
-                    word_count = stats_dict[utt_name][f"{utt_name}_sample0"][
-                        "word_count"
-                    ]
-                    stats_dict[utt_name][example_name][metric] = word_count
-                else:
-                    stats_dict[utt_name][example_name][metric] = worse_result(metric)
+                weight = other_sample[metric][1]
+                worst_value = worse_result(metric)
+                stats_dict[utt_name][example_name][metric] = (worst_value, weight)
             count += 1
             logging.info(f"add dummy example {example_name}")
 
@@ -97,15 +101,9 @@ def main(args):
         for example_name in stats_dict[utt_name].keys():
             for metric in args.metrics:
                 if metric not in stats_dict[utt_name][example_name]:
-                    if metric in ["word_count", "edit_distance"]:
-                        word_count = stats_dict[utt_name][f"{utt_name}_sample0"][
-                            "word_count"
-                        ]
-                        stats_dict[utt_name][example_name][metric] = word_count
-                    else:
-                        stats_dict[utt_name][example_name][metric] = worse_result(
-                            metric
-                        )
+                    weight = other_sample[metric][1]
+                    worst_value = worse_result(metric)
+                    stats_dict[utt_name][example_name][metric] = (worst_value, weight)
                     logging.info(f"add dummy metric {metric} to example {example_name}")
 
         # (2.3) Additionally, add the overall score as an additional metric
@@ -117,11 +115,9 @@ def main(args):
     else:
         metric_combos = [(a, a) for a in args.metrics]
 
-    metric_combos += [("rank_score", a) for a in args.metrics]
+    metric_combos += [("overall_score", a) for a in args.metrics]
 
     for rerank_metric, report_metric in metric_combos:
-        if report_metric == "word_count" or rerank_metric == "word_count":
-            continue
         analyze_one_metric(
             stats_dict,
             rerank_metric,
@@ -131,7 +127,6 @@ def main(args):
             args.output_dir,
         )
 
-
 def analyze_one_metric(
     stats_dict,
     rerank_metric,
@@ -140,30 +135,26 @@ def analyze_one_metric(
     draw_picture,
     output_dir,
 ):
-    count = [0.0 for _ in range(nbest)]
+    weights = [0.0 for _ in range(nbest)]
     accum = [0.0 for _ in range(nbest)]
 
     for utt_dict in stats_dict.values():
         example_names = list(utt_dict.keys())
         example_names.sort(
-            key=lambda x: utt_dict[x][rerank_metric],
+            key=lambda x: utt_dict[x][rerank_metric][0],
             reverse=sort_reverse(rerank_metric),
         )
 
         for idx, example_name in enumerate(example_names):
-            if report_metric in ["spk_similarity", "utmos"]:
-                count[idx] += 1
-                accum[idx] += utt_dict[example_name][report_metric]
-            elif report_metric in ["edit_distance"]:
-                # should always have word count
-                count[idx] += utt_dict[example_name]["word_count"]
-                accum[idx] += utt_dict[example_name][report_metric]
+            score, weight = utt_dict[example_name][report_metric]
+            weights[idx] += weight
+            accum[idx] += score
 
     print(f"Metric: {report_metric}, Rerank by {rerank_metric}")
-    result_list = [a / c for a, c in zip(accum, count)]
+    result_list = [a / c for a, c in zip(accum, weights)]
     for idx, v in enumerate(result_list):
         print(f"rank: {idx} | value: {v}")
-    print(f"Average: {sum(accum) / sum(count)}")
+    print(f"Average: {sum(accum) / sum(weights)}")
 
     if draw_picture:
         (output_dir / "images").mkdir(parents=True, exist_ok=True)
@@ -201,11 +192,8 @@ def worse_result(metric):
     elif metric == "utmos":
         return 0.0
 
-    elif metric == "edit_distance":
-        return 10000  # dummy
-
-    elif metric == "word_count":
-        return 10000  # dummy
+    elif metric == "wer":
+        return 1.0
 
     else:
         raise NotImplementedError(f"{metric}")
@@ -220,21 +208,14 @@ def sort_reverse(metric):
     elif metric == "utmos":
         return True
 
-    elif metric == "edit_distance":
+    elif metric == "wer":
         return False
-
-    elif metric == "word_count":
-        return False
-
-    elif metric == "rank_score":
+    
+    elif metric == "overall_score":
         return False
 
     else:
-        raise NotImplementedError
-
-
-import matplotlib.pyplot as plt
-
+        raise NotImplementedError(f"{metric}")
 
 def draw_line_chart(lists, title="", xlabel="", ylabel="", path=None):
     for i, data in enumerate(lists):
@@ -249,23 +230,20 @@ def draw_line_chart(lists, title="", xlabel="", ylabel="", path=None):
 
 
 def add_overall_score(utt_dict):
-    # summa
     example_names = list(utt_dict.keys())
     metrics = list(utt_dict[example_names[0]].keys())
 
-    for name in example_names:
-        utt_dict[name]["rank_score"] = 0
+    scores = {name: 0.0 for name in example_names}
 
     for metric in metrics:
-        if metric == "word_count":
-            continue
-
         name_values = [(name, utt_dict[name][metric]) for name in example_names]
         name_values.sort(key=lambda x: x[1], reverse=sort_reverse(metric))
 
         for score, (name, _) in enumerate(name_values):
-            utt_dict[name]["rank_score"] += score
-
+            scores[name] += score
+    
+    for name, score in scores.items():
+        utt_dict[name]["overall_score"] = (score, 1.0) # add weight
 
 if __name__ == "__main__":
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"

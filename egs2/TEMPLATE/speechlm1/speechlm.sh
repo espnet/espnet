@@ -88,6 +88,7 @@ nbest=1            # number of best hypotheses to generate during inference.
 
 # Scoring related
 scoring_args=
+additional_ref_files=
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -691,155 +692,69 @@ if ! "${skip_eval}"; then
         fi
 
         for test_json in ${test_jsons}; do
-            # (1) find task, dataset name and folder names
+            # (1) Find task, dataset name and folder name
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
             _src_dir="$(dirname "${test_json}")"
             _dset="$(basename ${_src_dir})"
-            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"
-
-            # (2) evaluation template for each task. Try to make less duplication in task definition
-            if [ ${task} == "tts" ]; then
-                eval_items="signal spk speech_wer"
-                eval_metrics="utmos spk_similarity word_count edit_distance"
-                
-                audio_file=${_dir}/wav.scp
-                audio_ref_file=${_src_dir}/wav.scp
-                text_file=
-                text_ref_file=${_src_dir}/text
-                spk_ref_file=${_dir}/utt2spk
-                generated_file=${audio_file}
+            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"; 
+            mkdir -p ${_dir}/eval_cache
             
-            elif [ ${task} == "asr" ]; then
-                eval_items="wer"
-                eval_metrics="word_count edit_distance"
-                
-                audio_file=
-                audio_ref_file=
-                text_file=${_dir}/text
-                text_ref_file=${_src_dir}/text
-                spk_ref_file=
-                generated_file=${text_file}
+            target_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].target_string)")
+            target_files=$(echo ${target_triplets} | tr ' ' '\n' | awk -F ',' '{print $1}')
 
-            else
-                log "unrecognized task: ${task}. Exit !" && exit 1;
+            condition_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].condition_string)")
+            condition_files=$(echo ${condition_triplets} | tr ' ' '\n' | awk -F ',' '{print $1}')
+
+            # (2) process files before scoring.
+            # (2.1) intersection of all generated example files
+            awk '{print $1}' ${_dir}/$(echo ${target_files} | cut -d ' ' -f 1) > ${_dir}/eval_cache/gen_list
+            for file in $(echo ${target_files} | cut -d ' ' -f 2-); do
+                utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/${file} \
+                    > ${_dir}/eval_cache/gen_list.tmp
+                mv ${_dir}/eval_cache/gen_list.tmp ${_dir}/eval_cache/gen_list
+            done
+
+            # (2.2) extend the prefix and suffix of all reference files. I.e.,
+            #       all target files in decoding dir;
+            #       all condition files in original data dir
+            all_ref_files=
+            for file in ${condition_files}; do
+                if [ -f ${_dir}/${file} ]; then
+                    all_ref_files+="${_dir}/${file} "
+                fi
+            done
+            for file in ${target_files}; do
+                all_ref_files+="${_src_dir}/index_files/${file} "
+            done
+            
+            if [ "${task}" == "tts" ]; then
+                all_ref_files+="${_src_dir}/index_files/text "
             fi
 
-            # (3) revise prefix
-            # The example name of the generated file will have prefix "${task}_" and suffix "sampleN"
-            # due to batch inference. Thus, any reference file should also align with the generated file.
-            mkdir -p ${_dir}/eval_cache
-            _nj=$(min "${inference_nj}" "$(<${generated_file} wc -l)" )
-            for _file_name in audio_file audio_ref_file text_file text_ref_file spk_ref_file; do
-                if [ -z ${!_file_name} ]; then
-                    continue
-                fi
+            for file in ${all_ref_files}; do
+                name=$(basename ${file})
+                awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
+                    ${file} > ${_dir}/eval_cache/${name}
                 
-                if [ "${!_file_name}" != "${generated_file}" ]; then
-                    awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
-                        ${!_file_name} | sort > ${_dir}/eval_cache/${_file_name}
-                    eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
-                else
-                    cat ${!_file_name} | sort > ${_dir}/eval_cache/${_file_name}
-                    eval "${_file_name}=${_dir}/eval_cache/${_file_name}"
-                    generated_file=${!_file_name}
-                fi
+                utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/eval_cache/${name} \
+                    > ${_dir}/eval_cache/${name}.tmp
+                mv ${_dir}/eval_cache/${name}.tmp ${_dir}/eval_cache/${name}
             done
 
-            # (4) shard by inference_nj
-            _nj=$(min "${inference_nj}" "$(<${generated_file} wc -l)" )
-            split_files=""
-            for n in `seq ${_nj}`; do
-                split_files+="${generated_file}.${n} "
-            done
-            utils/split_scp.pl ${generated_file} ${split_files}
+            # (2.3) generated valid keys
+            for file in ${target_files}; do
+                awk '{print $1}' ${_src_dir}/index_files/${file}
+            done | sort | uniq > ${_dir}/eval_cache/key_file
 
-            for _file_name in audio_file audio_ref_file text_file text_ref_file spk_ref_file; do
-                if [ -z ${!_file_name} ] || [ ! -f ${!_file_name} ] || [ "${!_file_name}" == "${generated_file}" ]; then
-                    continue
-                fi
-
-                for n in `seq ${_nj}`; do
-                    utils/filter_scp.pl ${generated_file}.${n} ${!_file_name} > ${!_file_name}.${n}
-                done
-
-                # NOTE(Jinchuan) some reference examples should be excluded as some sampling will fail.
-                # so here we only aggregate the items that was kept in ${generated_file}
-                utils/filter_scp.pl ${generated_file} ${!_file_name} > ${!_file_name}.tmp
-                mv ${!_file_name}.tmp ${!_file_name}
-            done
-
-            # (5) evaluate each items
-            all_eval_results=""
-            for eval_item in ${eval_items}; do
-                _eval_dir=${_dir}/eval_${eval_item}
-                mkdir -p ${_eval_dir}
-                
-                # (5.1) WER with whisper-large
-                # TODO (Jinchuan & Jiatong): current evaluation tool doesn't support
-                # WER computation. We should deprecate this branch in the future and
-                # rely on Jiatong's evaluation toolkit only.
-                if [ "${eval_item}" == "speech_wer" ]; then
-                    ./scripts/utils/evaluate_asr.sh \
-                        --whisper_tag large \
-                        --whisper_dir local/whisper \
-                        --cleaner whisper_en \
-                        --hyp_cleaner whisper_en \
-                        --inference_nj ${inference_nj} \
-                        --nj ${nj} \
-                        --gt_text ${text_ref_file} \
-                        --gpu_inference ${gpu_inference} \
-                        --scoring_metrics "wer" \
-                        ${audio_file} ${_eval_dir}
-                    
-                    ./pyscripts/utils/speechlm_convert_asr_result.py \
-                        --ref_file ${_eval_dir}/score_wer/ref.trn \
-                        --hyp_file ${_eval_dir}/score_wer/hyp.trn \
-                        --out_file ${_eval_dir}/utt_result.txt \
-                        --file_type trn
-                    
-                    all_eval_results+="${_eval_dir}/utt_result.txt "
-                
-                elif [ "${eval_item}" == "wer" ]; then
-                    echo start from here
-                    ./pyscripts/utils/speechlm_convert_asr_result.py \
-                        --ref_file ${text_ref_file} \
-                        --hyp_file ${_dir}/text \
-                        --out_file ${_eval_dir}/utt_result.txt
-                    all_eval_results+="${_eval_dir}/utt_result.txt "
-
-                # (5.2) All other metrics from Jiatong's evaluation tool.
-                else
-                    gt_file_op=
-                    if [ "${eval_item}" == "spk" ]; then
-                        gt_file_op="--gt ${spk_ref_file} "
-                    fi
-
-                    ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/eval_${eval_item}.JOB.log \
-                        ${python} -m speech_evaluation.bin.espnet_scorer \
-                            --pred ${generated_file}.JOB \
-                            --output_file ${_eval_dir}/result.JOB.txt \
-                            --score_config "conf/score_${eval_item}.yaml" \
-                            --use_gpu ${gpu_inference} \
-                            --io soundfile \
-                            ${gt_file_op} \
-                            ${scoring_args} || { cat $(grep -l -i error "${_eval_dir}"/eval_${eval_item}.JOB.log) ; exit 1; }
-                    
-                    ${python} pyscripts/utils/aggregate_eval.py \
-                        --logdir "${_eval_dir}" \
-                        --scoredir "${_eval_dir}" \
-                        --nj "${_nj}"
-                    all_eval_results+="${_eval_dir}/utt_result.txt "
-                fi
-            done
-
-            echo "evaluateion based on ${all_eval_results}"
-            python3 pyscripts/utils/rerank.py \
-                --all_eval_results ${all_eval_results} \
-                --output_dir ${_dir} \
-                --metrics ${eval_metrics} \
-                --nbest ${nbest} \
-                --cross_rerank false \
-                > ${_dir}/final_result.txt
+            # (3) Task-specific evaluation 
+            ./scripts/utils/speechlm_eval/eval_${task}.sh \
+                --gen_dir ${_dir} \
+                --ref_dir ${_dir}/eval_cache \
+                --key_file ${_dir}/eval_cache/key_file \
+                --nj ${nj} \
+                --inference_nj ${inference_nj} \
+                --gpu_inference ${gpu_inference} \
+                --nbest ${nbest}
         done
     fi
 else

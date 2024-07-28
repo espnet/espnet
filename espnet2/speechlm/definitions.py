@@ -46,6 +46,20 @@ class SpeechLMTaskTemplate:
         for entry in self.data_triplets:
             ans = ans + ",".join(entry) + " "
         return ans
+    
+    @property
+    def condition_string(self):
+        ans = ""
+        for entry in self.conditions:
+            ans = ans + ",".join(entry) + " "
+        return ans
+    
+    @property
+    def target_string(self):
+        ans = ""
+        for entry in self.targets:
+            ans = ans + ",".join(entry) + " "
+        return ans
 
 SPEECHLM_TASKS = dict()
 
