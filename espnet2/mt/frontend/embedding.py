@@ -187,7 +187,7 @@ class CodecEmbedding(AbsFrontend):
             x[:, :, n] -= n * self.codebook_size
         # NOTE (Jinchuan): do this clip so that the dequantization process
         # will not encounter an error. In practice, only the padding values
-        # will exceed this range and is ignored by the length mask later.
+        # will exceed this range and is ignored due to the length masking.
         x = torch.clip(x, min=0, max=self.codebook_size - 1)
 
         z = self.quantizer.decode(x.permute(2, 0, 1)).permute(0, 2, 1)

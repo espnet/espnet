@@ -777,7 +777,6 @@ fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
-    log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
 
     if "${eval_valid_set}"; then
         _dev_set="org/${valid_set}"
@@ -786,6 +785,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     if [ "${tokenization_choice}" == "ssl" ]; then
+        log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
         scripts/feats/perform_kmeans.sh \
             --stage 1 --stop-stage 4 \
             --train_set "${train_set}" \
@@ -888,6 +888,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
     elif [ "${tokenization_choice}" == "codec" ]; then
         for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+            log "Stage 5a: Perform codec tokenization with codec choice ${codec_choice} .. "
+
             # NOTE (Jinchuan) bias=2, reserve two slots for <blk> and <unk>
             scripts/feats/codec_tokenization.sh \
                 --src_dir ${data_audio}/${dset} \
