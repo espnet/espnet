@@ -5,7 +5,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -22,7 +22,7 @@ class SpeechLMInferenceOptions:
     minlenratio: float = 0.0
     eos: int = 5
     start: int = 1
-    masks: torch.Tensor = None
+    masks: Dict[str, torch.Tensor] = None
     nq: int = None
 
 

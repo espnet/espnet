@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.speechlm.definitions import modalities, special_tokens
+from espnet2.speechlm.definitions import MODALITIES, special_tokens
 
 
 def get_parser():
@@ -52,12 +52,12 @@ def main():
     logging.info(f"Find all token_list files: {all_vocab}")
 
     # (2) Assign each token_list file to the modality
-    vocab_dict = {modality: [] for modality in modalities}
+    vocab_dict = {modality: [] for modality in MODALITIES}
     for vocab in all_vocab:
         vocab = Path(vocab)
         vocab_stem = str(vocab.stem)
         for modality in vocab_dict.keys():
-            if vocab_stem.startswith(modality) and modalities[modality].discrete:
+            if vocab_stem.startswith(modality) and MODALITIES[modality].discrete:
                 vocab_dict[modality].append(vocab)
 
     # (3) First include special tokens.

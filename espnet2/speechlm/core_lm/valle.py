@@ -15,9 +15,9 @@ from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.net_utils import (
     ce_loss,
-    install_kv_cache_hook,
     length_mask,
     logits_to_tokens,
+    modality_index_to_mask,
 )
 
 
@@ -63,9 +63,10 @@ class ValleLM(AbsCoreLM):
             n_state=att_unit,
             n_head=head,
             n_layer=ar_layer,
-            causal=True,
             qk_norm=qk_norm,
             dropout=dropout,
+            hf_model_tag=hf_model_tag,
+            token_bias=token_bias,
         )
 
         self.nar_decoder = ValleNARDecoder(
@@ -74,7 +75,6 @@ class ValleLM(AbsCoreLM):
             n_state=att_unit,
             n_head=head,
             n_layer=nar_layer,
-            causal=False,
             qk_norm=qk_norm,
             dropout=dropout,
         )
@@ -188,7 +188,7 @@ class ValleLM(AbsCoreLM):
         """
 
         # (1) initialization
-        cache, hooks = install_kv_cache_hook(self.ar_decoder, {})
+        cache = self.ar_decoder.init({})
 
         # (2) auto-regressive prefix forward on first code layer
         prefix = prefix.expand(opts.nbest, -1, -1)
@@ -211,6 +211,10 @@ class ValleLM(AbsCoreLM):
         generated = {"token": [], "score": []}
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
         prev_tok = torch.Tensor([opts.start]).tile(opts.nbest, 1).long().to(opts.device)
+        modality_index = prev_tok.flatten()
+        mask = modality_index_to_mask(modality_index, opts)
+        mask_cache = []
+
         for step in range(maxlen):
             #  (3.2) AR loop
             prev_emb = self.emb(prev_tok)  # [B, 1, D]
@@ -219,6 +223,7 @@ class ValleLM(AbsCoreLM):
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
+                mask,
                 allow_eos=step >= minlen,
                 nq_level=0,
             )
@@ -232,8 +237,23 @@ class ValleLM(AbsCoreLM):
                 prev_tok = suffix[:, step : step + 1, 0]
             else:
                 prev_tok = gen_tok  # [B, 1]
-
-            # (3.3) detect ended hypotheses.
+            
+            # (3.3) detect modality swtich
+            mask_cache.append(mask.clone())
+            modality_change_mask =  torch.logical_and(
+                prev_tok[:, 0] >= 32,
+                prev_tok[:, 0] < 64,
+            )
+            if torch.any(modality_change_mask):
+                modality_index = torch.where(
+                    modality_change_mask,
+                    prev_tok[:, 0],
+                    modality_index,
+                )
+                mask = modality_index_to_mask(modality_index, opts)
+                logging.warning(f"Step {step}: change modality index {modality_index}")
+            
+            # (3.4) detect ended hypotheses.
             finish_idx = torch.where(
                 torch.logical_and(prev_tok[:, 0] == opts.eos, finish_idx == -1),
                 step,
@@ -243,14 +263,19 @@ class ValleLM(AbsCoreLM):
             if torch.all(torch.ge(finish_idx, 0)):
                 break
 
+            if step == maxlen - 1:
+                logging.warning(
+                    f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
+                    f"Consider increasing the maxlenratio"
+                )
+
         logging.info(f"Terminate at steps: {finish_idx.cpu().tolist()}")
 
         # (3.4) finalize auto-regressive
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
 
         if len(valid_idx) == 0:
-            for hook in hooks:
-                hook.remove()
+            self.ar_decoder.reset(cache)
             logging.warning(f"No valid examples. Return None")
             return [], []
         elif len(valid_idx) < prefix.size(0):
@@ -265,8 +290,7 @@ class ValleLM(AbsCoreLM):
         gen_tokens_ar = gen_tokens_ar[:, : finish_idx.max() + 1]  # idx -> count
         gen_scores_ar = gen_scores_ar[:, : finish_idx.max() + 1]
 
-        for hook in hooks:
-            hook.remove()
+        self.ar_decoder.reset(cache)
 
         # (4) non-auto-regressive loop on the remained code layers
         # (4.1) NAR initialization
@@ -283,15 +307,19 @@ class ValleLM(AbsCoreLM):
         mask = length_mask(prefix.size(1) + finish_idx + 1).bool()
         mask = mask.unsqueeze(1).unsqueeze(1)
         generated = {"token": [], "score": []}
+
+        mask_cache = [mask_cache[0]] * prefix.size(1) + mask_cache
+        vocab_mask = torch.cat(mask_cache, dim=1)
+
         # (4.2) NAR loop
         for step in range(1, opts.nq):
             h_nar = self.nar_decoder(prev_emb, ones * step - 1, mask=mask)  # [B, T, D]
-            # Note(Jinchuan): NAR uses greedy decoding. We still use the sampling but
-            # with an extremely small temperature.
-            logits = self.lm_head(h_nar) / 0.00001  # [B, T, V]
+            logits = self.lm_head(h_nar)
             gen_tok, gen_score = logits_to_tokens(
                 logits.unsqueeze(2),
                 opts,
+                vocab_mask,
+                search_algo="greedy_search",
                 allow_eos=False,
                 nq_level=step,
             )
