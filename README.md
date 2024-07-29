@@ -848,7 +848,7 @@ Also, we can use this tool to provide token-level segmentation information if we
     pages = "302--311",
 }
 @article{hayashi2021espnet2,
-  title={Espnet2-tts: Extending the edge of tts research},
+  title={{ESP}net2-{TTS}: Extending the edge of {TTS} research},
   author={Hayashi, Tomoki and Yamamoto, Ryuichi and Yoshimura, Takenori and Wu, Peter and Shi, Jiatong and Saeki, Takaaki and Ju, Yooncheol and Yasuda, Yusuke and Takamichi, Shinnosuke and Watanabe, Shinji},
   journal={arXiv preprint arXiv:2110.07840},
   year={2021}
@@ -885,7 +885,7 @@ Also, we can use this tool to provide token-level segmentation information if we
   pages={5458--5462},
 }
 @inproceedings{gao2023euro,
-  title={EURO: ESPnet unsupervised asr open-source toolkit},
+  title={{EURO: ESP}net unsupervised {ASR} open-source toolkit},
   author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
   booktitle={ICASSP 2023-2023 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
   pages={1--5},
@@ -893,7 +893,7 @@ Also, we can use this tool to provide token-level segmentation information if we
   organization={IEEE}
 }
 @inproceedings{peng2023reproducing,
-  title={Reproducing whisper-style training using an open-source toolkit and publicly available data},
+  title={Reproducing {W}hisper-style training using an open-source toolkit and publicly available data},
   author={Peng, Yifan and Tian, Jinchuan and Yan, Brian and Berrebbi, Dan and Chang, Xuankai and Li, Xinjian and Shi, Jiatong and Arora, Siddhant and Chen, William and Sharma, Roshan and others},
   booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
   pages={1--8},
@@ -901,7 +901,7 @@ Also, we can use this tool to provide token-level segmentation information if we
   organization={IEEE}
 }
 @inproceedings{sharma2023espnet,
-  title={ESPnet-summ: Introducing a novel large dataset, toolkit, and a cross-corpora evaluation of speech summarization systems},
+  title={ESPnet-{SUMM}: Introducing a novel large dataset, toolkit, and a cross-corpora evaluation of speech summarization systems},
   author={Sharma, Roshan and Chen, William and Kano, Takatomo and Sharma, Ruchira and Arora, Siddhant and Watanabe, Shinji and Ogawa, Atsunori and Delcroix, Marc and Singh, Rita and Raj, Bhiksha},
   booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
   pages={1--8},
@@ -909,7 +909,7 @@ Also, we can use this tool to provide token-level segmentation information if we
   organization={IEEE}
 }
 @article{jung2024espnet,
-  title={ESPnet-SPK: full pipeline speaker embedding toolkit with reproducible recipes, self-supervised front-ends, and off-the-shelf models},
+  title={{ESPnet-SPK}: full pipeline speaker embedding toolkit with reproducible recipes, self-supervised front-ends, and off-the-shelf models},
   author={Jung, Jee-weon and Zhang, Wangyou and Shi, Jiatong and Aldeneh, Zakaria and Higuchi, Takuya and Theobald, Barry-John and Abdelaziz, Ahmed Hussen and Watanabe, Shinji},
   journal={Proc. Interspeech 2024},
   year={2024}
