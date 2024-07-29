@@ -47,7 +47,7 @@ from espnet2.utils.sized_dict import SizedDict
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
     @typechecked
-    def __init__(self, loader, dtype=None, allow_multi_rates=False):
+    def __init__(self, loader: SoundScpReader, dtype: Union[None, str] =None, allow_multi_rates: bool =False):
         self.loader = loader
         self.dtype = dtype
         self.rate = None
@@ -102,6 +102,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 
 
 class H5FileWrapper:
+    @typechecked
     def __init__(self, path: str):
         self.path = path
         self.h5_file = h5py.File(path, "r")
@@ -122,7 +123,7 @@ class H5FileWrapper:
 
 class AdapterForSingingScoreScpReader(collections.abc.Mapping):
     @typechecked
-    def __init__(self, loader):
+    def __init__(self, loader: SingingScoreReader):
         self.loader = loader
 
     def keys(self):
@@ -148,7 +149,7 @@ class AdapterForSingingScoreScpReader(collections.abc.Mapping):
 
 class AdapterForLabelScpReader(collections.abc.Mapping):
     @typechecked
-    def __init__(self, loader):
+    def __init__(self, loader: Dict[str, List[List[Union[str, float, int]]]]):
         self.loader = loader
 
     def keys(self):
