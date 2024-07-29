@@ -4,12 +4,12 @@ espnet2.optimizers package
 
 
 
-.. _espnet2.optimizers.__init__:
+.. _espnet2.optimizers.sgd:
 
-espnet2.optimizers.__init__
----------------------------
+espnet2.optimizers.sgd
+----------------------
 
-.. automodule:: espnet2.optimizers.__init__
+.. automodule:: espnet2.optimizers.sgd
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,12 +26,12 @@ espnet2.optimizers.optim_groups
     :show-inheritance:
 
 
-.. _espnet2.optimizers.sgd:
+.. _espnet2.optimizers.__init__:
 
-espnet2.optimizers.sgd
-----------------------
+espnet2.optimizers.__init__
+---------------------------
 
-.. automodule:: espnet2.optimizers.sgd
+.. automodule:: espnet2.optimizers.__init__
     :members:
     :undoc-members:
     :show-inheritance:

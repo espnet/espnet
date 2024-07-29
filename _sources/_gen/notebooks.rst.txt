@@ -2,29 +2,29 @@
    :maxdepth: 1
    :caption: Notebook:
 
-   ./notebook/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb
-   ./notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.ipynb
-   ./notebook/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb
-   ./notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.ipynb
-   ./notebook/ESPnet2/Demo/SE/se_demo.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.ipynb
+   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb
    ./notebook/ESPnet2/Demo/SLU/2pass_slu_demo.ipynb
    ./notebook/ESPnet2/Demo/Others/onnx_conversion_demo.ipynb
    ./notebook/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.ipynb
-   ./notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.ipynb
-   ./notebook/ESPnet1/pretrained.ipynb
-   ./notebook/ESPnet1/st_demo.ipynb
+   ./notebook/ESPnet2/Demo/SE/se_demo.ipynb
+   ./notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.ipynb
+   ./notebook/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb
+   ./notebook/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb
+   ./notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.ipynb
    ./notebook/ESPnet1/tts_realtime_demo.ipynb
-   ./notebook/ESPnet1/asr_library.ipynb
    ./notebook/ESPnet1/tts_recipe.ipynb
+   ./notebook/ESPnet1/st_demo.ipynb
+   ./notebook/ESPnet1/pretrained.ipynb
    ./notebook/ESPnet1/asr_recipe.ipynb
+   ./notebook/ESPnet1/asr_library.ipynb
