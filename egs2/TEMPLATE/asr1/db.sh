@@ -219,17 +219,6 @@ VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
 
-if [[ `hostname` == capricornus_tyx_2258 ]]; then
-    OPENCPOP=/data3/tyx/dataset/opencpop
-    ONIKU=/data3/tyx/dataset/ONIKU_KURUMI_UTAGOE_DB
-    OFUTON=/data3/tyx/dataset/OFUTON_P_UTAGOE_DB
-    KIRITAN=/data3/tyx/dataset/kiritan_singing
-    NATSUME=/data3/tyx/dataset/Natsume_Singing_DB
-    ITAKO=/data3/tyx/dataset/itako
-    NAMINE=/data3/tyx/dataset/namine_ritsu_utagoe_db
-    NIT_SONG070=/data3/tyx/dataset/
-fi
-
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
