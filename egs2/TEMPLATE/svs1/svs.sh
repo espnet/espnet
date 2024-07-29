@@ -1118,7 +1118,7 @@ else
 fi
 
 packed_model="${svs_exp}/${svs_exp##*/}_${inference_model%.*}.zip"
-if ! "${skip_upload}"; then
+if ! "${skip_packing}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack model: ${packed_model}"
 

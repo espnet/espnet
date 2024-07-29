@@ -68,7 +68,6 @@ class XMLReader(collections.abc.Mapping):
                 break
         tempo = int(tempo)
 
-        tempo = int(m[0][2].number)
         part = score.parts[0].flat
         notes_list = []
         prepitch = -1
@@ -83,7 +82,7 @@ class XMLReader(collections.abc.Mapping):
                             note = n
                             break
                 if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
-                    if note.pitch.midi == prepitch:  # same pitch
+                    if note.pitch.midi == prepitch or prepitch == 0:  # same pitch
                         notes_list[-1].et += dur
                     else:  # different pitch
                         notes_list.append(NOTE("—", note.pitch.midi, st, st + dur))
