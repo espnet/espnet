@@ -371,7 +371,7 @@ def inference(
                     if modality in ["codec", "spk"]:
                         audio_path = output_dir / name / f"{example_name}.wav"
                         torchaudio.save(
-                            audio_path,
+                            str(audio_path),
                             detokenized.view(1, -1).cpu(),
                             sample_rate=speechlm.codec_tokenizer.sample_rate,
                             bits_per_sample=16,
