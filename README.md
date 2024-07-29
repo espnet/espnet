@@ -47,14 +47,14 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - [Material](https://github.com/espnet/interspeech2019-tutorial)
 - 2021 Tutorial at CMU
   - [Online video](https://youtu.be/2mRz3wH1vd0)
-  - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb)
+  - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.ipynb)
 - 2022 Tutorial at CMU
   - Usage of ESPnet (ASR as an example)
     - [Online video](https://youtu.be/YDN8cVjxSik)
-    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.ipynb)
+    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.ipynb)
   - Add new models/tasks to ESPnet
     - [Online video](https://youtu.be/Css3XAes7SU)
-    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb)
+    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.ipynb)
 
 
 ## Key Features
@@ -110,15 +110,15 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
 - Transfer Learning :
   - easy usage and transfers from models previously trained by your group or models from [ESPnet Hugging Face repository](https://huggingface.co/espnet).
-  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/espnet2_asr_transfer_learning_demo.ipynb).
+  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_transfer_learning_demo.ipynb).
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 - Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences
 - OpenAI [Whisper](https://openai.com/blog/whisper/) model, robust ASR based on large-scale, weakly-supervised multitask learning
 
 Demonstration
-- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
+- Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/ASR/asr_realtime_demo.ipynb)
 - [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Hugging Face Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
-- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/espnet2_streaming_asr_demo.ipynb) with ESPnet2.
+- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/ESPnet2/Demo/ASR/streaming_asr_demo.ipynb) with ESPnet2.
 
 ### TTS: Text-to-speech
 - Architecture
@@ -129,7 +129,7 @@ Demonstration
     - Conformer FastSpeech & FastSpeech2
     - VITS
     - JETS
-- Multi-speaker & multi-language extention
+- Multi-speaker & multi-language extension
     - Pre-trained speaker embedding (e.g., X-vector)
     - Speaker ID embedding
     - Language ID embedding
@@ -149,7 +149,7 @@ Demonstration
     - Mix of the above models
 
 Demonstration
-- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/ESPnet2/Demo/TTS/tts_realtime_demo.ipynb)
 - Integrated to [Hugging Face Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS)
 
 To train the neural vocoder, please check the following repositories:
@@ -848,7 +848,7 @@ Also, we can use this tool to provide token-level segmentation information if we
     pages = "302--311",
 }
 @article{hayashi2021espnet2,
-  title={Espnet2-tts: Extending the edge of tts research},
+  title={{ESP}net2-{TTS}: Extending the edge of {TTS} research},
   author={Hayashi, Tomoki and Yamamoto, Ryuichi and Yoshimura, Takenori and Wu, Peter and Shi, Jiatong and Saeki, Takaaki and Ju, Yooncheol and Yasuda, Yusuke and Takamichi, Shinnosuke and Watanabe, Shinji},
   journal={arXiv preprint arXiv:2110.07840},
   year={2021}
@@ -884,16 +884,58 @@ Also, we can use this tool to provide token-level segmentation information if we
   booktitle={Proc. Interspeech 2022},
   pages={5458--5462},
 }
-@article{gao2022euro,
-  title={{EURO}: {ESPnet} Unsupervised ASR Open-source Toolkit},
+@inproceedings{gao2023euro,
+  title={{EURO: ESP}net unsupervised {ASR} open-source toolkit},
   author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
-  journal={arXiv preprint arXiv:2211.17196},
-  year={2022}
+  booktitle={ICASSP 2023-2023 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={1--5},
+  year={2023},
+  organization={IEEE}
 }
-@article{peng2023reproducing,
-  title={Reproducing Whisper-Style Training Using an Open-Source Toolkit and Publicly Available Data},
+@inproceedings{peng2023reproducing,
+  title={Reproducing {W}hisper-style training using an open-source toolkit and publicly available data},
   author={Peng, Yifan and Tian, Jinchuan and Yan, Brian and Berrebbi, Dan and Chang, Xuankai and Li, Xinjian and Shi, Jiatong and Arora, Siddhant and Chen, William and Sharma, Roshan and others},
-  journal={arXiv preprint arXiv:2309.13876},
-  year={2023}
+  booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  pages={1--8},
+  year={2023},
+  organization={IEEE}
 }
+@inproceedings{sharma2023espnet,
+  title={ESPnet-{SUMM}: Introducing a novel large dataset, toolkit, and a cross-corpora evaluation of speech summarization systems},
+  author={Sharma, Roshan and Chen, William and Kano, Takatomo and Sharma, Ruchira and Arora, Siddhant and Watanabe, Shinji and Ogawa, Atsunori and Delcroix, Marc and Singh, Rita and Raj, Bhiksha},
+  booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  pages={1--8},
+  year={2023},
+  organization={IEEE}
+}
+@article{jung2024espnet,
+  title={{ESPnet-SPK}: full pipeline speaker embedding toolkit with reproducible recipes, self-supervised front-ends, and off-the-shelf models},
+  author={Jung, Jee-weon and Zhang, Wangyou and Shi, Jiatong and Aldeneh, Zakaria and Higuchi, Takuya and Theobald, Barry-John and Abdelaziz, Ahmed Hussen and Watanabe, Shinji},
+  journal={Proc. Interspeech 2024},
+  year={2024}
+}
+@inproceedings{yan-etal-2023-espnet,
+    title = "{ESP}net-{ST}-v2: Multipurpose Spoken Language Translation Toolkit",
+    author = "Yan, Brian  and
+      Shi, Jiatong  and
+      Tang, Yun  and
+      Inaguma, Hirofumi  and
+      Peng, Yifan  and
+      Dalmia, Siddharth  and
+      Pol{\'a}k, Peter  and
+      Fernandes, Patrick  and
+      Berrebbi, Dan  and
+      Hayashi, Tomoki  and
+      Zhang, Xiaohui  and
+      Ni, Zhaoheng  and
+      Hira, Moto  and
+      Maiti, Soumi  and
+      Pino, Juan  and
+      Watanabe, Shinji",
+    booktitle = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations)",
+    year = "2023",
+    publisher = "Association for Computational Linguistics",
+    pages = "400--411",
+}
+
 ```
