@@ -43,8 +43,8 @@ class XMLReader(collections.abc.Mapping):
     @typechecked
     def __init__(
         self,
-        fname,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        dtype: Union[np.int16, int] =np.int16,
     ):
         assert m21 is not None, (
             "Cannot load music21 package. ",
@@ -215,9 +215,9 @@ class MIDReader(collections.abc.Mapping):
     @typechecked
     def __init__(
         self,
-        fname,
-        add_rest=True,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        add_rest: bool =True,
+        dtype: Union[np.int16, int] =np.int16,
     ):
         assert miditoolkit is not None, (
             "Cannot load miditoolkit package. ",
@@ -287,8 +287,8 @@ class SingingScoreReader(collections.abc.Mapping):
     @typechecked
     def __init__(
         self,
-        fname,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        dtype: Union[np.int16, int] =np.int16,
     ):
         self.fname = fname
         self.dtype = dtype
