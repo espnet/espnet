@@ -275,12 +275,14 @@ if ! "${skip_data_prep}"; then
                     "data/${dset}/${_name}" "${data_audio}/${dset}"
 
                     # Filter Length
-                    awk -v min_len="${_min_length}" -v max_len="${_max_length}" '
-                    FNR==NR { lengths[$1]=$2; next }
-                    ($1 in lengths) && (lengths[$1] >= min_len) && (lengths[$1] <= max_len) { print $0 }
-                    ' ${data_audio}/${dset}/utt2num_samples ${data_audio}/${dset}/${_name} \
-                    > ${data_audio}/${dset}/${_name}.tmp
-                    mv ${data_audio}/${dset}/${_name}.tmp ${data_audio}/${dset}/${_name}
+                    if [[ ! " ${dset} " =~ " ${test_sets} " ]]; then
+                        awk -v min_len="${_min_length}" -v max_len="${_max_length}" '
+                        FNR==NR { lengths[$1]=$2; next }
+                        ($1 in lengths) && (lengths[$1] >= min_len) && (lengths[$1] <= max_len) { print $0 }
+                        ' ${data_audio}/${dset}/utt2num_samples ${data_audio}/${dset}/${_name} \
+                        > ${data_audio}/${dset}/${_name}.tmp
+                        mv ${data_audio}/${dset}/${_name}.tmp ${data_audio}/${dset}/${_name}
+                    fi
 
                 else
                     # Other non-speech items
