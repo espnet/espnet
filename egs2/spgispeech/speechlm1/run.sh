@@ -10,7 +10,8 @@ train_set=train_nodev${norm}
 valid_set=dev_4k${norm}
 test_sets="dev_4k${norm} val${norm}"
 
-bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
+bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
 
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
@@ -25,10 +26,8 @@ bpe_opts="--bpemode huggingface --bpemodel EleutherAI/pythia-1b"
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --codec_choice ESPnet \
-    --codec_hf_model_tag "espnet/amuse_speech_soundstream_16k" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    ${bpe_opts} \
+    ${bpe_opts} ${codec_opts} \
     "$@"
 

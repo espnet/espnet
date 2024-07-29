@@ -2383,8 +2383,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_bias = token_bias
         self.encoder_decoder_format = encoder_decoder_format
 
-        self.modalities = speechlm_definitions.modalities
-        self.tasks = speechlm_definitions.tasks
+        self.modalities = speechlm_definitions.MODALITIES
+        self.tasks = speechlm_definitions.SPEECHLM_TASKS
 
         self.converter = TokenIDConverter(
             token_list=token_list,
@@ -2448,18 +2448,16 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task = self.tasks[task_name]
 
         # (Jinchuan): Temp code. should remove when implement the continuous features
-        for e in task.encoder_entries + task.decoder_entries:
-            if not self.modalities[e[1]].discrete:
+        for triplet in task.data_triplets:
+            if not self.modalities[triplet[1]].discrete:
                 raise ValueError("Continuous feature is not supported yet.")
 
-        # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []
-        n_enc_entries = len(task.encoder_entries)
-        for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
-            for entry in entries:
-                name, modality, _ = entry
-                value, _ = self.modality_specific_processing(data[name], modality)
-                seqs.append(value)
+        # (2) get exact tokenised value based on all data triplets
+        seqs = []
+        for triplet in task.data_triplets:
+            name, modality, _ = triplet
+            value, _ = self.modality_specific_processing(data[name], modality)
+            seqs.append(value)
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2470,21 +2468,21 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_identifier = self.special_token(task_identifier)
 
         new_data = {}
+        n_conditions = len(task.conditions)
         if self.encoder_decoder_format:
             new_data["enc_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
+                [sos_eos] + [task_identifier] + seqs[:n_conditions] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
             new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
+                [sos_eos] + seqs[n_conditions:] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
         else:
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
 
-        prefix_len = (
-            len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
-        )
+        prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
+        prefix_len = prefix_len // self.codec_token_in_use + 2
         new_data["prefix_len"] = np.array([prefix_len])
 
         # (4) entries that are not included in sequences
@@ -2510,7 +2508,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 ]
             ).reshape(-1, self.codec_token_in_use)
 
-            max_len = int(len(new_data["dec_seq"]) * 1.3)
+            max_len = int(len(new_data["dec_seq"]) * 1.3) # to avoid overly long seq
             new_data["sampled_seq"] = sampled_seq[:max_len]
         else:
             raise NotImplementedError
@@ -2572,8 +2570,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
         sampled_seq = data.get("sampled_seq", None)
+        prefix_len = data.get("prefix_len")
 
         logging.warning(f"Diagnose in preprocessor ...")
+        logging.warning(f"Prefix length: {prefix_len}")
         for name, seq in [
             ("encoder", enc_seq),
             ("decoder", dec_seq),

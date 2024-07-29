@@ -8,7 +8,7 @@ import json
 import logging
 from pathlib import Path
 
-from espnet2.speechlm.definitions import tasks
+from espnet2.speechlm.definitions import SPEECHLM_TASKS
 
 
 def get_parser():
@@ -46,7 +46,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    task_format = tasks[args.task]
+    task_format = SPEECHLM_TASKS[args.task]
     metadata = {}
 
     ### (1) collect metadata.
@@ -60,22 +60,22 @@ def main():
     # (2) make sure all examples are ordered and paired
     # (2.1) match all input files with the required files
     file_triplets = []
-    all_entries_required = task_format.encoder_entries + task_format.decoder_entries
-    all_entries_provided = [e.strip().split(",") for e in args.file_modality_type]
-    for tgt_name, tgt_modality, tgt_type in all_entries_required:
-        entry_found = False
-        for name, modality, _type in all_entries_provided:
+    all_triplets_required = task_format.data_triplets
+    all_triplets_provided = [e.strip().split(",") for e in args.file_modality_type]
+    for tgt_name, tgt_modality, tgt_type in all_triplets_required:
+        triplet_found = False
+        for name, modality, _type in all_triplets_provided:
             if (
                 modality == tgt_modality
                 and _type == tgt_type
                 and name.endswith(tgt_name)
             ):
-                entry_found = True
+                triplet_found = True
                 file_triplets.append([name, modality, _type])
-        if not entry_found:
-            raise ValueError(f"No triplet: {tgt_name},{tgt_modality},{tgt_type}")
+        if not triplet_found:
+            raise ValueError(f"No triplet Found: {tgt_name},{tgt_modality},{tgt_type}")
 
-    # (2.2) load all data entries
+    # (2.2) load all data index file
     example_dict = {}
     for file_triplet in file_triplets:
         file_path = file_triplet[0]
@@ -88,26 +88,24 @@ def main():
 
     # (2.3) find all examples that are well-paired.
     valid_example_ids = []
-    needed_names = [e[0] for e in all_entries_required]
+    needed_names = [e[0] for e in all_triplets_required]
     for example_id in example_dict.keys():
         if all([name in example_dict[example_id] for name in needed_names]):
             valid_example_ids.append(example_id)
-        else:
-            logging.warning(f"Example {example_id} is not complete")
 
     logging.info(f"Keep {len(valid_example_ids)} out of {len(example_dict)} examples")
 
     # (3) dump each entry only for valid examples. All entries are ordered.
-    entry_path = Path(args.output_json).parent / "entries"
-    entry_path.mkdir(parents=True, exist_ok=True)
-    writers = {name: open(entry_path / name, "w") for name in needed_names}
+    save_path = Path(args.output_json).parent / "index_files"
+    save_path.mkdir(parents=True, exist_ok=True)
+    writers = {name: open(save_path / name, "w") for name in needed_names}
     for example_id in valid_example_ids:
         for name in needed_names:
             writers[name].write(f"{example_id} {example_dict[example_id][name]}\n")
 
     metadata["data_files"] = []
-    for name, modality, _type in all_entries_required:
-        file_path = str(entry_path / name)
+    for name, modality, _type in all_triplets_required:
+        file_path = str(save_path / name)
         triplet = f"{file_path},{modality},{_type}"
         metadata["data_files"].append(triplet)
 

@@ -12,7 +12,7 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss, install_kv_cache_hook, logits_to_tokens
+from espnet2.speechlm.net_utils import ce_loss
 
 
 class ARParallelLM(AbsCoreLM):
@@ -59,6 +59,8 @@ class ARParallelLM(AbsCoreLM):
             n_layer=layer,
             qk_norm=qk_norm,
             dropout=dropout,
+            hf_model_tag=hf_model_tag,
+            token_bias=token_bias,
         )
 
         self.nq = nq

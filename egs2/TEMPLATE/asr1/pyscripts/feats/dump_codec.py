@@ -7,10 +7,9 @@ import argparse
 import logging
 import os
 import sys
-import time
-
 import kaldiio
 import torch
+import numpy as np
 
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool, str_or_none
@@ -126,6 +125,10 @@ def dump_codec(
 
         if wav.ndim != 1:
             raise ValueError("Multi-Channel audio is not supported so far")
+        
+        if np.issubdtype(wav.dtype, np.integer):
+            max_val = np.iinfo(wav.dtype).max
+            wav = wav.astype(np.float32) / max_val
 
         wav = torch.from_numpy(wav)
         buffer.append(wav)
