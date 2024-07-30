@@ -78,7 +78,13 @@ See also:
 
 ### 7. Codec Scoring
 
+Codec model scoring stage.
+The scoring is supported by [VERSA](https://github.com/shinjiwlab/versa).
+You can change the scoring setting via `--scoring_config` and `--scoring_args`.
 
+See also:
+- [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
+- [VERSA documents](https://github.com/shinjiwlab/versa)
 
 ### 8. (Optional) Pack results for upload
 
@@ -91,14 +97,14 @@ Upload the trained model to Hugging Face for sharing. Additional information at 
 
 ## How to run
 
-Here, we show the procedure to run the recipe using `egs2/ljspeech/codec1`.
+Here, we show the procedure to run the recipe using `egs2/libritts/codec1`.
 
 Move on the recipe directory.
 ```sh
-$ cd egs2/ljspeech/codec1
+$ cd egs2/libritts/codec1
 ```
 
-Modify `LJSPEECH` variable in `db.sh` if you want to change the download directory.
+Modify `libritts` variable in `db.sh` if you want to change the download directory.
 ```sh
 $ vim db.sh
 ```
@@ -118,11 +124,11 @@ As a default, we train Tacotron2 (`conf/train.yaml`) with `feats_type=raw` + `to
 Then, you can get the following directories in the recipe directory.
 ```sh
 ├── data/ # Kaldi-style data directory
-│   ├── dev/        # validation set
-│   ├── eval1/      # evaluation set
-│   └── tr_no_dev/  # training set
+│   ├── dev/        # validation set
+│   ├── eval1/      # evaluation set
+│   └── tr_no_dev/  # training set
 ├── dump/ # feature dump directory
-│   └── raw/
+│   └── raw/
 │       ├── org/
 │       │    ├── tr_no_dev/ # training set before filtering
 │       │    └── dev/       # validation set before filtering
@@ -130,8 +136,8 @@ Then, you can get the following directories in the recipe directory.
 │       ├── dev/       # validation set after filtering
 │       └── tr_no_dev/ # training set after filtering
 └── exp/ # experiment directory
-    ├── codec_stats_raw_phn_tacotron_g2p_en_no_space # statistics
-    └── codec_train_raw_phn_tacotron_g2p_en_no_space # model
+    ├── codec_stats_raw_phn_tacotron_g2p_en_no_space # statistics
+    └── codec_train_raw_phn_tacotron_g2p_en_no_space # model
         ├── tensorboard/           # tensorboard log
         ├── images/                # plot of training curves
         ├── decode_train.loss.ave/ # decoded results
@@ -163,5 +169,27 @@ This might helps you to understand each stage's processing and directory structu
 
 You can train the following models by changing `*.yaml` config for `--train_config` option in `codec.sh`.
 
+Current support models (You can refer to libritts recipe as we usually start from the corpus).
+- [SoundStream](https://arxiv.org/abs/2107.03312)
+- [Encodec](https://github.com/facebookresearch/encodec)
+- [DAC](https://github.com/descriptinc/descript-audio-codec)
+- [FunCodec (Freq-Codec)](https://github.com/modelscope/FunCodec)
+- [HiFiCodec](https://github.com/yangdongchao/AcademiCodec)
+
 
 ## FAQ
+
+### Pre-trained codec models and usage
+We provide pre-trained codec models in [ESPnet huggingface](https://huggingface.co/espnet)
+
+A quick usage of pre-trained models is as follows:
+```
+from espnet2.bin.gan_codec_inference import AudioCoding
+import numpy as np
+
+# the model tag can be found in ESPnet huggingface models
+codec_api = AudioCoding.from_pretrained(model_tag="espnet/libritts_soundstream16k")
+audio_info = codec_api(np.zeros(16000, dtype=np.float32))
+```
+
+For advanced usage (e.g., batch tokenization and auto-packing to other tasks), see also `egs2/TEMPLATE/codec1/scripts/feats/codec_tokenization.sh`
