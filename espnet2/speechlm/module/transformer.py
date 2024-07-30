@@ -6,6 +6,17 @@
 # Derived from OpenAI Whisper model file:
 # https://github.com/openai/whisper/blob/main/whisper/model.py
 
+# (1) A concise implementation of Transformer Decoder-Only Architecture.
+# (2) This is the built-in implementation from ESPnet. Users can also
+# adopt HuggingFace transformer models besides this.
+# (3) We intentionally keep this implementation simple and will not keep
+# many configuration choices for it.
+# (4) Similar to HuggingFace models, this module contains stacked Transformer
+# layers and positional embeddings, but no embedding table and lm_head.
+# (5) Attention is based on Pytorch built-in flash attention. Please use
+# compatible Pytorch versions.
+
+
 from typing import Optional
 
 import torch
