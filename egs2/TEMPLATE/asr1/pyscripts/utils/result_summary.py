@@ -23,6 +23,11 @@ def parse_arguments():
         help="utterance-level result files",
     )
     parser.add_argument(
+        "--key_file",
+        type=Path,
+        help="list of all valid keys",
+    )
+    parser.add_argument(
         "--output_dir",
         type=Path,
         help="the directory for output results",
@@ -80,6 +85,11 @@ def main(args):
                 if example_name not in stats_dict[utt_name]:
                     stats_dict[utt_name][example_name] = {}
                 stats_dict[utt_name][example_name][key] = (value, weight)
+    
+    for line in open(args.key_file):
+        utt_name = line.strip().split()[0]
+        if utt_name not in stats_dict:
+            logging.warning(f"Utterance {utt_name} doesn't have even one sample!")
 
     # (2) validate all utterances:
     for utt_name in stats_dict.keys():
@@ -126,6 +136,16 @@ def main(args):
             args.draw_picture,
             args.output_dir,
         )
+    
+    # (4) a select list based on overall_score
+    writer = open(args.output_dir / "selected_examples", 'w')
+    for utt_dict in stats_dict.values():
+        name_and_scores = [
+            (key, utt_dict[key]["overall_score"]) for key in utt_dict.keys()
+        ]
+        name_and_scores.sort(key=lambda x: x[1])
+        best_name = name_and_scores[0][0]
+        writer.write(f"{best_name}\n")
 
 def analyze_one_metric(
     stats_dict,
