@@ -2,7 +2,8 @@
 # All rights reserved.
 #
 # This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
+
 
 import typing as tp
 from abc import ABC, abstractmethod

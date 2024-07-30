@@ -1,5 +1,10 @@
+# Adapted by Zhihao Du for 2D SEANet (from seanet.py)
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
-# Adapted by Zhihao Du for 2D SEANet
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Encodec SEANet-based encoder and decoder implementation."""
 

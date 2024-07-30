@@ -1,9 +1,13 @@
 # Copyright 2024 Jiatong Shi
 # Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 # Adapted from https://github.com/facebookresearch/encodec
+
 # Original license as follows:
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Residual vector quantizer implementation."""
 import math

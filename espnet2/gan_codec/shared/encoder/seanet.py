@@ -1,5 +1,10 @@
-# Adapted from https://github.com/facebookresearch/encodec
+# Adapted from https://github.com/facebookresearch/encodec by Jiatong Shi
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
