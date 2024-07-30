@@ -21,3 +21,6 @@ export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
 
 # NOTE(kamo): Source at the last to overwrite the setting
 . local/path.sh
+
+export CFLAGS="-I${$CONDA_PREFIX}/include"
+export LDFLAGS="-L${$CONDA_PREFIX}/lib"

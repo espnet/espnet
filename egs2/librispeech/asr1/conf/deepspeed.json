@@ -10,11 +10,20 @@
       "overlap_comm": true,
       "contiguous_gradients": true,
       "reduce_scatter": true,
+      "stage3_param_persistence_threshold": 1e5,
       "reduce_bucket_size": 5e8,
       "allgather_bucket_size": 5e8,
       "prefetch_bucket_size": 5e8,
       "max_live_parameters": 1e9,
-      "max_reuse_distance": 1e9
+      "max_reuse_distance": 1e9,
+      "offload_param": {
+        "device": "cpu",
+        "pin_memory": true
+      },
+      "offload_optimizer": {
+        "device": "cpu",
+        "pin_memory": true
+      }
     },
     "optimizer": {
       "type": "Adam",
@@ -25,7 +34,18 @@
           0.95
         ],
         "eps": 1e-8,
-        "weight_decay": 3e-7
+        "weight_decay": 3e-7,
+        "adam_w_mode": true
       }
-    }
+    },
+    "scheduler": {
+      "type": "WarmupLR",
+      "params": {
+          "warmup_min_lr": 0,
+          "warmup_max_lr": 0.001,
+          "warmup_num_steps": 30000
+      }
+    },
+    "wall_clock_breakdown": true,
+    "steps_per_print": 1000
   }

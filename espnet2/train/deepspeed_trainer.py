@@ -86,7 +86,7 @@ class DeepSpeedTrainer(Trainer):
         if trainer_options.log_interval is None:
             trainer_options.log_interval = 1000
         
-        # (4) epoch loop
+        # (4) loop on epochs
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == trainer_options.max_epoch + 1:
             logging.warning(
@@ -97,6 +97,7 @@ class DeepSpeedTrainer(Trainer):
             set_all_random_seed(trainer_options.seed + iepoch)
             reporter.set_epoch(iepoch)
 
+            # (4.1) train one epoch
             with reporter.observe("train") as sub_reporter:
                 cls.train_one_epoch(
                     model=model,
@@ -105,6 +106,28 @@ class DeepSpeedTrainer(Trainer):
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
+            
+            # (4.2) valid one epoch
+            with reporter.observe("valid") as sub_reporter:
+                cls.valid_one_epoch(
+                    model=model,
+                    iterator=valid_iter_factory.build_iter(iepoch),
+                    reporter=sub_reporter,
+                    options=trainer_options,
+                    distributed_option=distributed_option,
+                )
+            
+            # (4.3) save checkpoint
+            checkpoint_path = output_dir / f"checkpoint_{iepoch}"
+            model.save_checkpoint(
+                checkpoint_path,
+                tag=f"{iepoch}",
+                clinet_state={"reporter": reporter.state_dict()}
+            )
+
+            # (4.4) TODO: manage existing checkpoint, link folders, early stop etc.
+            
+
     
     @classmethod
     @typechecked
@@ -147,6 +170,46 @@ class DeepSpeedTrainer(Trainer):
                 loss_scale=model.loss_scale(),
                 learning_rate=model.get_lr()[0],
             ))
+
+            reporter.next()
+            if iiter % options.log_interval == 0:
+                logging.info(reporter.log_message(-options.log_interval))
+
+        else:
+            iterator_stop.fill_(1)
+            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+    
+    @classmethod
+    @typechecked
+    @torch.no_grad()
+    def valid_one_epoch(
+        cls,
+        model,
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        reporter: SubReporter,
+        options: DeepSpeedTrainerOptions,
+        distributed_option: DistributedOption,
+    ) -> None:
+        model.eval()
+        iterator_stop = torch.tensor(0).cuda()
+
+        for iiter, (utt_id, batch) in enumerate(iterator):
+            assert isinstance(batch, dict), type(batch)
+
+            # (0) ensure all ranks have not finished.
+            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            if iterator_stop > 0:
+                break
+
+            # (1) forward
+            batch["utt_id"] = utt_id
+            batch = to_device(batch, "cuda", dtype=options.train_dtype)
+            loss, stats, weight = model(**batch)
+
+            # (2) all-reduce statistics and logging on model side
+            stats = {k: v for k, v in stats.items() if v is not None}
+            stats, weight = recursive_average(stats, weight, True)
+            reporter.register(stats, weight)
 
             reporter.next()
             if iiter % options.log_interval == 0:
