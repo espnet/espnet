@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Union
 
+import librosa
 import numpy as np
 import torch
 from mir_eval.separation import bss_eval_sources
@@ -223,8 +224,26 @@ def scoring(
                 if pesq:
                     if sample_rate == 8000:
                         mode = "nb"
+                        ref_ = ref[i]
+                        inf_ = inf[int(perm[i])]
                     elif sample_rate == 16000:
                         mode = "wb"
+                        ref_ = ref[i]
+                        inf_ = inf[int(perm[i])]
+                    elif sample_rate > 16000:
+                        mode = "wb"
+                        ref_ = librosa.resample(
+                            ref[i], orig_sr=sample_rate, target_sr=16000
+                        )
+                        inf_ = librosa.resample(
+                            inf[int(perm[i])], orig_sr=sample_rate, target_sr=16000
+                        )
+                        sample_rate = 16000
+                        logging.warning(
+                            "The sample rate is higher than 16000 Hz. "
+                            "PESQ is calculated in the wideband mode and "
+                            "the signal is resampled to 16 kHz."
+                        )
                     else:
                         raise ValueError(
                             "sample rate must be 8000 or 16000 for PESQ evaluation, "
@@ -232,8 +251,8 @@ def scoring(
                         )
                     pesq_score = pesq(
                         sample_rate,
-                        ref[i],
-                        inf[int(perm[i])],
+                        ref_,
+                        inf_,
                         mode=mode,
                         on_error=PesqError.RETURN_VALUES,
                     )
