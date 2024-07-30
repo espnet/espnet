@@ -28,6 +28,18 @@ def to_device(data, device=None, dtype=None, non_blocking=False, copy=False):
     elif isinstance(data, np.ndarray):
         return to_device(torch.from_numpy(data), device, dtype, non_blocking, copy)
     elif isinstance(data, torch.Tensor):
+        if dtype is not None:
+            dtype = str(dtype).lstrip("torch.")
+            cur_dtype = str(data.dtype).lstrip("torch.")
+        
+            if not (
+                ("int" in dtype and "int" in cur_dtype)
+                or ("float" in dtype and "float" in cur_dtype)
+            ):
+                dtype = None  # avoid conversion between int and float.
+            else:
+                dtype = getattr(torch, dtype)
+
         return data.to(device, dtype, non_blocking, copy)
     else:
         return data
