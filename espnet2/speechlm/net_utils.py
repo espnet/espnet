@@ -8,7 +8,7 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import MultiHeadAttention
+from espnet2.speechlm.module.builtin import MultiHeadAttention
 
 
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
@@ -144,22 +144,34 @@ def install_kv_cache_hook(model, cache):
 def logits_to_tokens(
     logits: torch.Tensor,
     opts: SpeechLMInferenceOptions,
+    mask: torch.Tensor,
     search_algo: str = None,
     allow_eos: bool = True,
     nq_level: int = None,
 ):
+    """
+    Select the generated tokens and their scores based on logits prediction.
+
+    logits (torch.Tensor), predicted logits, of size [B, T, nq, V]
+    opts (SpeechLMInferenceOptions): search options
+    mask (torch.Tensor): mask to specify valid tokens, of size [B, 1, nq, V]
+    search_algo (str): search algorithm
+    allow_eos (bool): whether to allow end-of-sentence prediction
+    nq_level (int or None): if not None, only conpute the specified codec level nq.
+
+    """
     assert logits.dim() == 4
     search_algo = search_algo if search_algo is not None else opts.search_algo
-
     neg_inf = torch.finfo(logits.dtype).min
 
     # (1) Apply mask
-    mask = opts.masks.clone()
-    if allow_eos:  # only predict eos in the first code
-        mask[0, opts.eos] = False
     if nq_level is not None:
-        mask = mask[nq_level : nq_level + 1]
-    mask = mask.unsqueeze(0).unsqueeze(0)  # [nq, V] -> [B=1, T=1, nq, V]
+        mask = mask[:, :, nq_level : nq_level + 1]
+    
+    if allow_eos:
+        mask = mask.clone()
+        mask[:, :, 0, opts.eos] = False
+
     logits.masked_fill_(mask, neg_inf)
 
     # (2) token selection
@@ -197,3 +209,15 @@ def logits_to_tokens(
         raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
 
     return gen_token_idx, gen_token_score
+
+def modality_index_to_mask(
+    modality_index: torch.Tensor, 
+    inference_opts: SpeechLMInferenceOptions,
+):
+    assert modality_index.dim() == 1
+    modality_index = modality_index.cpu().tolist()
+    mask = torch.stack([
+        inference_opts.masks[idx] for idx in modality_index
+    ], dim=0).unsqueeze(1) # [B, 1, nq, V]
+
+    return mask

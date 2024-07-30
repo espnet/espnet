@@ -1,6 +1,6 @@
 frontend: codec     # embedding + positional encoding
 frontend_conf:
-    hf_model_tag: espnet/amuse_encodec_16k
+    hf_model_tag: espnet/amuse_speech_soundstream_16k
     token_bias: 2
     patch_size: 8
     positional_dropout_rate: 0.1

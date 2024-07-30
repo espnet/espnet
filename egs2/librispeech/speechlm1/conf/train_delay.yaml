@@ -8,7 +8,7 @@ corelm_conf:
 
 # Dataloader
 batch_type: numel
-batch_bins: 22000
+batch_bins: 8000
 num_iters_per_epoch: 10000
 accum_grad: 1
 grad_clip: 5

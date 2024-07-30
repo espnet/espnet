@@ -10,7 +10,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.module.transformer import ResidualAttentionBlock
+from espnet2.speechlm.module.builtin import ResidualAttentionBlock
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 

@@ -27,8 +27,7 @@ stop_stage=1
 input_dir=
 nj=1
 ngpu_per_nj=1 
-python=python3
-
+python=$(which python3)
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -51,7 +50,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/split_scp.pl ${key_file} ${split_scps}
 
     ${cuda_cmd} --gpu ${ngpu_per_nj} JOB=1:${_nj} ${input_dir}/punctuate/logs/punctuate.JOB.log \
-        ${python} pyscripts/utils/llm_punctuate.py \
+        ${python} pyscripts/text/llm_punctuate.py \
           -i ${input_dir}/punctuate/logs/text.JOB \
           -o ${input_dir}/punctuate/logs/text.punctuate.JOB \
           || exit 1;

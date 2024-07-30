@@ -21,6 +21,7 @@ g2p=g2p_en_no_space # or g2p_en
 #                     some corner cases in memeory
 ./speechlm.sh \
     --task "tts" \
+    --data_name "libriheavy" \
     --fs 16000 \
     --ngpu 4 \
     --nj 64 \

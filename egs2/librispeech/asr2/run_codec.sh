@@ -17,6 +17,7 @@ asr_config=conf/tuning/train_asr_ebranchformer_codec.yaml
 inference_config=conf/decode_ctc0.3.yaml
 
 tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
 
 # ts: true sequence. codec should always in "ts" case
 # rm: deduplicated sequence which removes duplicated tokens
@@ -44,4 +45,4 @@ tgt_case="ts"
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" \
     --tgt_bpe_train_text "data/${train_set}/text" \
-    "$@"
+    ${codec_opts} "$@"

@@ -5,6 +5,7 @@ import functools
 import logging
 import os
 import sys
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -884,6 +885,18 @@ class AbsTask(ABC):
             "adaptively adjust the chunk length for data of different sampling rates. "
             "(If None, the chunk length will be fixed.)",
         )
+        group.add_argument(
+            "--chunk_max_abs_length",
+            type=int_or_none,
+            default=None,
+            help="Maximum number of samples per chunk for all sampling rates",
+        )
+        group.add_argument(
+            "--chunk_discard_short_samples",
+            type=str2bool,
+            default=True,
+            help="Discard samples shorter than the minimum chunk length",
+        )
 
         group = parser.add_argument_group("Dataset related")
         _data_path_and_name_and_type_help = (
@@ -1234,10 +1247,23 @@ class AbsTask(ABC):
 
             # The following block is copied from:
             # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
-            error_queues = []
+            error_files = []
             processes = []
             mp = torch.multiprocessing.get_context("spawn")
             for i in range(args.ngpu):
+
+                # Each process is assigned a file to write tracebacks to.  We
+                # use the file being non-empty to indicate an exception
+                # occurred (vs an expected shutdown).  Note: this previously
+                # used a multiprocessing.Queue but that can be prone to
+                # deadlocks, so we went with a simpler solution for a one-shot
+                # message between processes.
+                tf = tempfile.NamedTemporaryFile(
+                    prefix="pytorch-errorfile-", suffix=".pickle", delete=False
+                )
+                tf.close()
+                os.unlink(tf.name)
+
                 # Copy args
                 local_args = argparse.Namespace(**vars(args))
 
@@ -1252,9 +1278,9 @@ class AbsTask(ABC):
                 )
                 process.start()
                 processes.append(process)
-                error_queues.append(mp.SimpleQueue())
+                error_files.append(tf.name)
             # Loop on join until it returns True or raises an exception.
-            while not ProcessContext(processes, error_queues).join():
+            while not ProcessContext(processes, error_files).join():
                 pass
 
     @classmethod
@@ -1998,6 +2024,8 @@ class AbsTask(ABC):
             num_cache_chunks=num_cache_chunks,
             excluded_key_prefixes=args.chunk_excluded_key_prefixes,
             default_fs=args.chunk_default_fs,
+            chunk_max_abs_length=args.chunk_max_abs_length,
+            discard_short_samples=args.chunk_discard_short_samples,
         )
 
     # NOTE(kamo): Not abstract class

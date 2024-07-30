@@ -1,0 +1,41 @@
+# This is a debug config for CI
+encoder: conv
+encoder_conf:
+    channel: 32
+    kernel_size: 20
+    stride: 10
+decoder: conv
+decoder_conf:
+    channel: 32
+    kernel_size: 20
+    stride: 10
+separator: tcn
+separator_conf:
+    num_spk: 1
+    layer: 2
+    stack: 2
+    bottleneck_dim: 16
+    hidden_dim: 48
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+
+criterions:
+  # The first criterion
+  - name: mse_td
+    conf: {}
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+
+max_epoch: 1
+batch_type: folded
+batch_size: 2
+iterator_type: chunk
+chunk_length: 25 # 0.5s
+chunk_default_fs: 50 # GCD among all possible sampling frequencies
+chunk_max_abs_length: 100000 # max number of samples per chunk for all sampling frequencies (reduce this value if OOM occurs)
+chunk_discard_short_samples: false

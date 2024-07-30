@@ -7,38 +7,30 @@ set -o pipefail
 
 lang="en" 
 data_split="full" # one of full 1h 10h
+local_data_opts="--lang ${lang} --data_split ${data_split}"
 
 train_set="mls_${lang}_train"
 valid_set="mls_${lang}_dev"
 test_sets=""
 
-train_config=conf/train_valle.yaml
-inference_config=conf/decode_encodec.yaml
+bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
 
-cleaner=tacotron
-g2p=g2p_en_no_space # or g2p_en
-
-# Note(Jinchuan): We only select audio range from 3s to 30s since:
-#                 (1) The speech prompt is 3s
-#                 (2) We limit the longest audio to 30s to avoid
-#                     some corner cases in memeory
+# NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
-    --local_data_opts "--lang ${lang} --data_split ${data_split}" \
-    --task "tts" \
+    --stop_stage 5 \
+    --local_data_opts "${local_data_opts}" \
+    --task "bpe_tts" \
+    --data_name mlsen \
     --fs 16000 \
-    --ngpu 4 \
-    --nj 64 \
-    --cleaner "${cleaner}" \
-    --g2p "${g2p}" \
-    --inference_nj 1 \
-    --gpu_inference true \
+    --ngpu 8 \
+    --nj 88 \
+    --train_config conf/train_foo.yaml \
     --audio_format "flac.ark" \
-    --train_config ${train_config} \
-    --inference_config ${inference_config} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --codec_choice inhouse \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
+    ${bpe_opts} ${codec_opts} \
     "$@"
