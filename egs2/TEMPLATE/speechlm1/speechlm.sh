@@ -745,7 +745,7 @@ if ! "${skip_eval}"; then
 
             # (2.3) generated valid keys
             for file in ${target_files}; do
-                awk '{print $1}' ${_src_dir}/index_files/${file}
+                awk -v prefix="${task}" '{print prefix "_" $1}' ${_src_dir}/index_files/${file}
             done | sort | uniq > ${_dir}/eval_cache/key_file
 
             # (3) Task-specific evaluation 

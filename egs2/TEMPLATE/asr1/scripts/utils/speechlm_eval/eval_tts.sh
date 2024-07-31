@@ -169,8 +169,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         metrics+="utmos "
     fi
 
-    python3 pyscripts/utils/result_summary.py \
+    ${python} pyscripts/utils/result_summary.py \
         --all_eval_results ${all_eval_results} \
+        --key_file ${key_file} \
         --output_dir ${gen_dir}/scoring \
         --metrics ${metrics} \
         --nbest ${nbest} \
