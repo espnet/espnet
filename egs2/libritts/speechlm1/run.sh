@@ -5,28 +5,27 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train-clean-460
+train_set=train-960
 valid_set=dev-clean
 test_sets="test-clean"
 
 train_config=conf/train_valle.yaml
+# train_config=conf/train_delay.yaml
 # train_config=conf/train_multiscale.yaml
-inference_config=conf/decode_espnet.yaml
+inference_config=conf/decode_espnet_codec.yaml
 
 cleaner=tacotron
 g2p=g2p_en_no_space # or g2p_en
 local_data_opts="--trim_all_silence true" # trim all silence in the audio
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
 
-# Note(Jinchuan): We only select audio range from 3s to 30s since:
-#                 (1) The speech prompt is 3s
-#                 (2) We limit the longest audio to 30s to avoid
-#                     some corner cases in memeory
+
 ./speechlm.sh \
     --task "tts" \
     --data_name libritts \
-    --fs 24000 \
-    --ngpu 4 \
-    --nj 64 \
+    --fs 16000 \
+    --ngpu 1 \
+    --nj 16 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
     --inference_nj 1 \
@@ -38,9 +37,6 @@ local_data_opts="--trim_all_silence true" # trim all silence in the audio
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --codec_choice ESPnet \
-    --codec_checkpoint_path espnet_codec/24khz_soundstream/train.total_count.best.pth \
-    --codec_config_path espnet_codec/24khz_soundstream/config.yaml \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    "$@"
+    ${codec_opts} "$@"

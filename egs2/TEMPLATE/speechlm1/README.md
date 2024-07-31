@@ -21,8 +21,8 @@
     - [Stage 8: Training](#stage-8-training)
     - [Stage 9: Inference](#stage-9-inference)
     - [Stage 10: Evaluation](#stage-10-evaluation)
-    - [Stage 11: Model Sharing](#stage-11-model-sharing)
-    - [Stage 12: Dataset Sharing](#stage-12-dataset-sharing)
+    - [Stage 11-12: Model Sharing](#stage-11-model-sharing)
+    - [Stage 13: Dataset Sharing](#stage-12-dataset-sharing)
   - [Miscellaneous](#miscellaneous)
     - [Entry Name Rules](#entry-name-rules)
     - [List of Supported Modalities](#list-of-supported-modalities)
@@ -31,8 +31,9 @@
     - [List of Supported Task](#list-of-supported-task)
     - [Supported SpeechLM Model Architecture](#supported-speechlm-model-architecture)
     - [HuggingFace Transformer Implementation and Pre-trained Models](#huggingface-transformer-implementation-and-pre-trained-models)
-    - [Evaluation Protocals and More](#evaluation-protocals-and-more)
+    - [Build a Evaluation Script](#build-a-evaluation-script)
     - [Data Loading and Preprocessing](#data-loading-and-preprocessing)
+  - [Resources](#resources)
   - [FQA](#fqa)
 
 ## Environments
@@ -48,32 +49,38 @@ pip install huggingface-hub transformers tokenizers datasets
 pip install flash-attn --no-build-isolation
 ```
 
-For evaluation purpose, also install:
+For evaluation purpose, also install VERSA (ESPnet evluation toolkit, under rapid development).
 ```
-# VERSA, ESPnet evluation toolkit, under rapid development
-pip install git+https://github.com/ftshijt/speech_evaluation.git
+git clone https://github.com/ftshijt/speech_evaluation.git
+cd speech_evaluation
+pip install .
 ```
+VISQOL dependency may have some issue. If you don't need that, comment [this line](#https://github.com/ftshijt/speech_evaluation/blob/50419bda43c27a0c3c484e96214bf5e02dbed089/setup.py#L54) and then install 
+
+TODO: Build DeepSpeed environment
 
 ## Check List of Building a New Task
 We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
   * Task Template Definition:
     * Check if your task already has a template.
-      * All existing task template definitions are in: `<espnet>/espent2/speechlm/definitions.py`
+      * All existing task template definitions are in: `<espnet>/espnet2/speechlm/definitions.py`
     * If not, define it following [Define Task as a Sequence Template](#define-task-as-a-sequence-template) and [Define a New Task](#define-a-new-task).
   * Dataset Preparation:
     * Based on task template, prepare the original data files following [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template) and [Stage 1: Data Preparation](#stage-1-data-preparation).
-  * Evaluation Configuration:
-    * Configurate your evluation protocals by `--evaluation_protocal` argument
-    * Check [Stage 10: Evaluation](#stage-10-evaluation)
+  * Evaluation Script
+    * Make sure what metrics are needed in your task
+    * Check [Stage 10: Evaluation](#stage-10-evaluation) and [Build a Evaluation Script](#build-a-evaluation-script)
   
 Ideally, stages like tokenization, data statistics collection, training and inference are all handled automatically. However, it is usually beneficial if you can also inspect the following items:
   * In [Stage 5: Tokenization](#stage-5-tokenization), check if `data.json` is properly built and all files listed in it exist.
   * In [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary), check if the joint vocabulary is built as expected.
   * Training and Inference configurations.
   * Many modality-specific configurations. E.g.,
-    * Codec model and SSL model choices
-    * BPE model and g2p model choice
+    * Codec model and SSL model choices;
+    * BPE model and g2p model choices.
   * Check the inference results, specifically ensure the training and teacher-forced inference have the same results.
+
+Developers are also highly encouraged to adopt our resources, such as codec model, ssl model and pre-trained language models. We also provide an example recipe. See [Resources](#resources).
 
 ## The Concept of Task Templete
 ### LM Modeling Paradigm
@@ -214,7 +221,7 @@ ESPnet SpeechLM recipe consists of 12 stages.
 ### Stage 1: Data Preparation
 The data preparation stage is totally customized according to different task and dataset. Users are responsible to make a shell script `local/data.sh` to handle all data preparation process that is specific to your recipe. This script will be called automatically by `speechlm.sh` in this stage.
 
-The data preparation stage is totally flexible to users as long as the final outcome follows the format as described in [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template). The prepared files should be placed in `./data` folder.
+The data preparation stage is totally flexible to users as long as the final outcome follows the format as described in [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template). The prepared files should be placed in `./data` folder. 
 
 Remember to specify the train / valid / test dataset names to proceed:
 ```
@@ -310,8 +317,8 @@ asr_100-121669-0002 891
 
 ### Stage 8: Training
 The training process is to train the LM using the spliced token sequences and compute the cross-entropy loss over the `target entry` segments. 
-  * The top-level model is in `espent2/speechlm/espnet_model.py`, which is a warpper for the real SpeechLM implementation `corelm`.
-    * `corelm` refer to a SpeechLM architecture and are in `<espnet>/wse3espent2/speechlm/corelm`
+  * The top-level model is in `espnet2/speechlm/espnet_model.py`, which is a warpper for the real SpeechLM implementation `corelm`.
+    * `corelm` refer to a SpeechLM architecture and are in `<espnet>/wse3espnet2/speechlm/corelm`
   * Regardless what `corelm` you choose, its input interface for forward are the same:
     * `dec_seq`: decoder sequence, of size `[B, T, N]`.
     * `dec_seq_lengths`: the effective length of decoder sequence, of size `[B]`.
@@ -332,7 +339,7 @@ The training process is to train the LM using the spliced token sequences and co
 
 ### Stage 9: Inference
 During the inference, the basic idea is to generate `target` based on `condition`. For SpeechLM, this is to generate `target` sequence based on the `condition` sequence. 
-  * For each `corelm` architecture, there is a `inference` implementation
+  * For each `corelm` architecture, there is a `inference` implementation.
   * For the search algorithms, we currently support:
     * Top-k sampling
     * Top-p sampling
@@ -340,42 +347,16 @@ During the inference, the basic idea is to generate `target` based on `condition
 
 After SpeechLM inference, the `target` tokens will experience detokenization process so that the ultimate system output is obtained (e.g., audio, text). The detokenization process depends on the `modality` of `target entry`. See [List of Supported Modalities](#list-of-supported-modalities).
 
-After infernece, several index files are created based on `name` of `target entry`:
-  * `name`: the index of output results
-  * `name`_token.scp: the corresponding token ids, kaldi_ark file
-  * `name`_score.scp: the corresponding token scores, kaldi_ark file
+### Stage 11-12: Model Sharing
+Similar to other ESPnet modules, SpeechLM models can also be released by HuggingFace. See [Contributing.md](https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes)
 
-If inference with `--verbose` option, some of the `condition entries` are also reserved as inference results. For each `entry` with its `name`:
-  * `name`: the index of this condition
-  * `name`_token.scp: the corresponding token ids.
-
-### Stage 10: Evaluation
-ESPnet SpeechLM framework is designed to handle different tasks in a unified framework, so that there is no unified evaluation procedure to all tasks. Instead, we provide several evaluation protocals so that users can select the protocal based on their own tasks. E.g., for ASR task, simply set `--evaluation_protocal wer` is sufficient to obtain the WER results.
-  * See [Evaluation Protocals and More](#evaluation-protocals-and-more) for suitable protocals
-  * Some protocals can be configurable, so that the corresponding `conf/eval_${protocal_name}.yaml` will be used.
-  * Some protocals compares the generated examples with refernece. By default:
-    * ${datadir}/text is the text reference
-    * ${datadir}/wav.scp is the speech reference
-    * ${decode_dir}/utt2spk is the speaker-identity reference
-    * User can also specify the reference file, also see [Evaluation Protocals and More](#evaluation-protocals-and-more).
-  * Currently, some protocals are supported by ESPnet scripts while others are supported by ESPnet evluation toolkit, i.e., VERSA. We will finally move all evaluation process to VERSA.
-  * When all evaluation protocals are conducted, `${decode_dir}/final_result.txt` will be generated to summarize all of these metrics.
-
-### Stage 11: Model Sharing
-TBD
-
-### Stage 12: Dataset Sharing
-TBD
+### Stage 13: Dataset Sharing
+Besides sharing the model, developers can also share their data, specifically the tokenized data described by `data.json`. As described in [Multi-Task Training and Multi-Task Dataset](#multi-task-training-and-multi-task-dataset), a team can easily build a data mixture for multi-task training once its members share their data for each task and each dataset.
 
 ## Miscellaneous
 ### Entry Name Rules
 The names of the entries are usually flexible, but still with some constraints:
   * If there is an entry of modality `spk` (for speaker prompt), there should be another entry called `wav.scp` as the speaker prompt will be selected from the `wav.scp` on-the-fly.
-  * For evaluation purpose (see [Stage 10](#stage-10-evaluation)), by default we assume:
-    * The reference speech file is named `wav.scp`
-    * The refernece text file is named `text`
-    * The reference speaker file is named `utt2spk`
-    * See [Evaluation Protocals and More](#evaluation-protocals-and-more).
 
 Also, for consistency, it is highly recommended to follow the [kaldi-style file format](#https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory).
 
@@ -449,6 +430,7 @@ We currently support the following architectures that are specifically designed 
   * [Parallel](https://arxiv.org/abs/2306.05284)
   * [Delay](https://arxiv.org/abs/2306.05284)
   * [MutiScale Transformer](https://arxiv.org/abs/2310.00704)
+
 Note: Vall-E cannot be used when data in `codec` modality doesn't exist or `N=1`. This is because there are no codes for Vall-E non-auto-regressive modeling.
 
 ### HuggingFace Transformer Implementation and Pre-trained Models
@@ -465,25 +447,41 @@ We provide a unified interface for ESPnet built-in Transformer and HuggingFace T
   * Automatic Mixed Precision (AMP) Training is recommended to use (with training config argument `--use_amp true`) but will cause numerical instability sometimes, especially with `fp16` data type. If the users work with Ampere GPUs and above, `bf16` data type is used by default and will be more stable. For ESPnet built-in Transformer, we recommend to use `qk_norm` option to stabilize the training.
   * We plan to support DeepSpeed in the future.
 
-### Evaluation Protocals and More
-Currently we support the following evaluation protocals:
-| Name          | Comment                        | Metrics        | Reference  | Configurable | Source |
-|---------------|--------------------------------|----------------|------------|--------------|--------|
-| edit_distance | ASR performance                | CER, WER, TER  | ${ref_text}| No           | ESPnet |
-| speech_edit_distance    | Speech Intelligibility | CER, WER, TER  | ${ref_text}| Yes          | ESPnet |
-bleu | ST performance | BLEU | ${ref_text} | No | ESPnet
- signal | Signal-level Audio Quality | MOS, STOI, PESQ, VISQOL, etc.| ${ref_audio} | Yes | VERSA |
- speaker | Speaker Identity | Speaker Similarity | ${ref_speaker} | Yes | VERSA |
+### Build a Evaluation Script
+Advance users who extend ESPnet SpeechLM to a new task usually need to create a evaluation script `scripts/utils/speechlm_eval/eval_<task>.sh`. This script will compute multiple metrics based on the generated content and then output a evaluation summary.
+  * See `scripts/utils/speechlm_eval/eval_tts.sh` as an example
 
-To change the default reference file, specify:
-  * `--eval_ref_text <fine_name>` to change the default text reference;
-  * `--eval_ref_audio <file_name>` to change the default audio reference;
-  * `--eval_ref_speaker <file_name>` to change the default speaker identity refernece.
+The evaluation script would contain two parts:
+  * Compute the result for each metric
+    * For each metric, it should generate a result file `utt_result.json`.
+      * Each line should contain the example_id (`key`) and metric name
+      * Optionally, specify a feature `weight` for this example. E.g., word count when computing WER for ASR.
+      * E.g., `{"key": "tts_id00001-001_sample0", "wer": 9, "weight": 10}`
+
+  * Summarize all `utt_result.json` and generate the final statistics.
+    * we provide `pyscripts/utils/result_summary.py` for this purpose.
+
+Developers are highly recommend to use [VERSA](https://github.com/ftshijt/speech_evaluation) for evaluation purpose. Developrs can simply compute a metric by providing a simple json config. Currently, we support:
+  * MCD
+  * F0-RMSE
+  * F0-CORR
+  * STOI
+  * PESQ 
+  * CI-SDR
+  * D-BLEU 
+  * D-Distance 
+  * S-BERT
+  * VISQOL
+  * UTMOS 
+  * PLCMOS 
+  * DNSMOS 
+  * WER 
+  * SPK-S
 
 ### Data Loading and Preprocessing
 The core code for data load and preprocessing are in the following objects:
-  * `ESPnetDataset`, `EspnetSpeechLMDataset`, `ESPnetMultiTaskDataset` in `<espnent>/espent2/train/dataset.py`, for data loading logics
-  * `SpeechLMPreprocessor` in `<espnent>/espent2/train/preprocessor.py`, for data preprocessing logics.
+  * `ESPnetDataset`, `EspnetSpeechLMDataset`, `ESPnetMultiTaskDataset` in `<espnent>/espnet2/train/dataset.py`, for data loading logics
+  * `SpeechLMPreprocessor` in `<espnent>/espnet2/train/preprocessor.py`, for data preprocessing logics.
 
 #### ESPnet Dataset
 For each given `data.json`, a `EspnetSpeechLMDataset` object can be built automatically, which is largely inherited by `ESPnetDataset` object. We will firstly introduce the `ESPnetDataset` module.
@@ -570,5 +568,22 @@ Note, we always use the `ESPnetMultiTaskDataset` as a unified interface even tho
 
 #### Sharded Dataset
 When training with massive data, storing the whole dataset in each GPU process is expensive. So that, in [stage 7](#stage-7-collect-statistics), we shard each input `data.json` based on the number of GPUs.
+
+## Resources
+### Tokenization Models
+`Codec`: As of Jul 30, 2024, we encourage the developers to use our open-sourced codec-model from Jiatong:
+  * https://huggingface.co/espnet/amuse_speech_soundstream_16k
+  * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k`
+
+`ssl`: We will have a SSL + K-means tokenizer built on XEUS from William (Pending)
+
+### Pretrained Models:
+We provide pre-trained models for fine-tuning purpose. The models are of size of ~300M and is pre-trained on 55k hours of English Speech data using TTS task. The model currently accept `codec` and `g2p` modalities; users who work on other tasks/modalities can discard the pre-trained embedding layers and just use the transformer layers.
+  * Vall-E Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_valle
+  * Delay Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_delay
+  * MultiScale Transformer Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_multiscale
+
+### Recipes：
+  * `TTS` recipe for `LibriTTS`: `<espnet>/egs2/libritts/speechlm1/run.sh`
 
 ## FQA
