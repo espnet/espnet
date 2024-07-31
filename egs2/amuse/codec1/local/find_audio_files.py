@@ -33,7 +33,7 @@ def document_audio_files(audio_files, output_file, key_prefix):
     Documents the found audio files in a specified format.
 
     Args:
-        audio_files (list): A list of tuples containing file names 
+        audio_files (list): A list of tuples containing file names
             and their absolute paths.
         output_file (str): The file where the documentation will be written.
         key_prefix (str): The key prefix for wavid.
