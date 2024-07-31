@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 import os
 
-from egs2.TEMPLATE.svs1.pyscripts.utils.prep_segments import (
-    DataHandler,
-    LabelInfo,
-    SegInfo,
-    get_parser,
-)
+from pyscripts.utils.prep_segments import DataHandler, LabelInfo, SegInfo, get_parser
+
 from espnet2.fileio.score_scp import MIDReader
 
 

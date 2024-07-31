@@ -15,7 +15,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -110,7 +110,7 @@ class VISingerGenerator(torch.nn.Module):
         use_phoneme_predictor: bool = False,
         expand_f0_method: str = "repeat",
         # hubert
-        hubert_channels: int = 0,
+        hubert_channels: Union[int, None] = 0,
     ):
         """Initialize VITS generator module.
 

@@ -58,7 +58,16 @@ class XMLReader(collections.abc.Mapping):
     def __getitem__(self, key):
         score = m21.converter.parse(self.data[key])
         m = score.metronomeMarkBoundaries()
-        tempo = int(m[0][2].number)
+
+        # NOTE(Yuxun): tempo with '(playback only)' returns None in item[2].number
+        tempo = None
+        for item in m:
+            tempo_number = item[2].number
+            if tempo_number is not None:
+                tempo = tempo_number
+                break
+        tempo = int(tempo)
+
         part = score.parts[0].flat
         notes_list = []
         prepitch = -1
@@ -73,7 +82,7 @@ class XMLReader(collections.abc.Mapping):
                             note = n
                             break
                 if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
-                    if note.pitch.midi == prepitch:  # same pitch
+                    if note.pitch.midi == prepitch or prepitch == 0:  # same pitch
                         notes_list[-1].et += dur
                     else:  # different pitch
                         notes_list.append(NOTE("—", note.pitch.midi, st, st + dur))

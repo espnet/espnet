@@ -18,6 +18,7 @@ class BSRNNSeparator(AbsSeparator):
         num_layers: int = 6,
         target_fs: int = 48000,
         causal: bool = True,
+        norm_type: str = "GN",
         ref_channel: Optional[int] = None,
     ):
         """Band-split RNN (BSRNN) separator.
@@ -39,6 +40,7 @@ class BSRNNSeparator(AbsSeparator):
             target_fs: (int) max sampling frequency that the model can handle.
             causal (bool): whether or not to apply causal modeling.
                 if True, LSTM will be used instead of BLSTM for time modeling
+            norm_type (str): type of the normalization layer (cfLN / cLN / BN / GN).
             ref_channel: (int) reference channel. not used for now.
         """
         super().__init__()
@@ -46,13 +48,14 @@ class BSRNNSeparator(AbsSeparator):
         self._num_spk = num_spk
         self.ref_channel = ref_channel
 
-        assert num_spk == 1, num_spk
         self.bsrnn = BSRNN(
             input_dim=input_dim,
             num_channel=num_channels,
             num_layer=num_layers,
             target_fs=target_fs,
             causal=causal,
+            num_spk=num_spk,
+            norm_type=norm_type,
         )
 
     def forward(
@@ -86,7 +89,10 @@ class BSRNNSeparator(AbsSeparator):
             assert input.size(-1) == 2, input.shape
             feature = input
 
-        masked = self.bsrnn(feature).unsqueeze(1)
+        opt = {}
+        if additional is not None and "fs" in additional:
+            opt["fs"] = additional["fs"]
+        masked = self.bsrnn(feature, **opt)
         # B, num_spk, T, F
         if not is_complex(input):
             masked = list(ComplexTensor(masked[..., 0], masked[..., 1]).unbind(1))

@@ -1,3 +1,29 @@
+# Multiconvformer
+- Params: 108.09 M
+- ASR config: [conf/tuning/train_asr_multiconv_e12_mlp3072_linear2048_layerdrop.yaml](conf/tuning/train_asr_multiconv_e12_mlp3072_linear2048_layerdrop.yaml)
+- Model link: [https://huggingface.co/Darshan7575/slurp_multiconvformer_conv_fusion](https://huggingface.co/Darshan7575/slurp_multiconvformer_conv_fusion)
+
+# RESULTS
+## Environments
+- date: `Wed Feb 21 01:04:03 EST 2024`
+- python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
+- espnet version: `espnet 202310`
+- pytorch version: `pytorch 2.1.2+cu118`
+- Git hash: `edb6ec64bb5d4f2c68a3b81674f0c2822e2e5b58`
+  - Commit date: `Fri Feb 9 21:26:35 2024 +0530`
+
+### Intent Classification
+
+- Valid Intent Classification Result: 0.8882623705408516
+- Test Intent Classification Result: 0.8737574552683897
+
+### Entity
+
+|Slu f1|Precision|Recall|F-Measure|
+|:---:|:---:|:---:|:---:|
+| test | 0.8076 | 0.7710 | 0.7889 |
+
+
 # E-Branchformer
 
 - ASR config: [conf/tuning/train_asr_e_branchformer_e12_mlp3072_linear1024_layerdrop.yaml](conf/tuning/train_asr_e_branchformer_e12_mlp3072_linear1024_layerdrop.yaml)

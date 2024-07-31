@@ -99,20 +99,21 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
                 segment = SegInfo()
         # remove rest note
         if "itako04" in file_id:
-            if i in [191, 193, 194, 195, 197, 199, 200, 201, 202, 203, 207]:
+            if i in [192, 193, 195, 198]:
                 continue
             # correct timee
-            if i == 198:
-                note.et = 81.572
-            if i == 192:
-                note.et = 80.92
+            if i == 197:
+                note.et = 82.60
             # add missing lyric
             if i == 190:
                 note.lyric = "て"
-            if i == 205:
+                note.midi = 67
+            if i == 199:
                 note.lyric = "あ"
-            if i == 208:
+                note.midi = 64
+            if i == 201:
                 note.lyric = "ひ"
+                note.midi = 66
         # replace wrong note lyric with correct one
         if "itako02" in file_id and note.lyric == "—":
             note.lyric = "P"
