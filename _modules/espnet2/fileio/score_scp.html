@@ -286,7 +286,16 @@
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="n">score</span> <span class="o">=</span> <span class="n">m21</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">metronomeMarkBoundaries</span><span class="p">()</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+
+        <span class="c1"># NOTE(Yuxun): tempo with &#39;(playback only)&#39; returns None in item[2].number</span>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">tempo_number</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">number</span>
+            <span class="k">if</span> <span class="n">tempo_number</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tempo</span> <span class="o">=</span> <span class="n">tempo_number</span>
+                <span class="k">break</span>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tempo</span><span class="p">)</span>
+
         <span class="n">part</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">flat</span>
         <span class="n">notes_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">prepitch</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
@@ -301,7 +310,7 @@
                             <span class="n">note</span> <span class="o">=</span> <span class="n">n</span>
                             <span class="k">break</span>
                 <span class="k">if</span> <span class="n">lr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">lr</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">lr</span> <span class="o">==</span> <span class="s2">&quot;ー&quot;</span><span class="p">:</span>  <span class="c1"># multi note in one syllable</span>
-                    <span class="k">if</span> <span class="n">note</span><span class="o">.</span><span class="n">pitch</span><span class="o">.</span><span class="n">midi</span> <span class="o">==</span> <span class="n">prepitch</span><span class="p">:</span>  <span class="c1"># same pitch</span>
+                    <span class="k">if</span> <span class="n">note</span><span class="o">.</span><span class="n">pitch</span><span class="o">.</span><span class="n">midi</span> <span class="o">==</span> <span class="n">prepitch</span> <span class="ow">or</span> <span class="n">prepitch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># same pitch</span>
                         <span class="n">notes_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">et</span> <span class="o">+=</span> <span class="n">dur</span>
                     <span class="k">else</span><span class="p">:</span>  <span class="c1"># different pitch</span>
                         <span class="n">notes_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NOTE</span><span class="p">(</span><span class="s2">&quot;—&quot;</span><span class="p">,</span> <span class="n">note</span><span class="o">.</span><span class="n">pitch</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">st</span> <span class="o">+</span> <span class="n">dur</span><span class="p">))</span>
