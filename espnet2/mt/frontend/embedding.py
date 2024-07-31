@@ -122,16 +122,18 @@ class PatchEmbedding(AbsFrontend):
     def output_size(self) -> int:
         """Return output length of feature dimension D, i.e. the embedding dim."""
         return self.embed_dim
-    
+
+
 class CodecEmbedding(AbsFrontend):
-    """ Use codec dequantization process and the input embeddings """
+    """Use codec dequantization process and the input embeddings"""
+
     @typechecked
     def __init__(
         self,
         input_size,
-        hf_model_tag: str="espnet/amuse_encodec_16k",
-        token_bias: int=2,
-        token_per_frame: int=8,
+        hf_model_tag: str = "espnet/amuse_encodec_16k",
+        token_bias: int = 2,
+        token_per_frame: int = 8,
         pos_enc_class=PositionalEncoding,
         positional_dropout_rate: float = 0.1,
     ):
@@ -145,18 +147,19 @@ class CodecEmbedding(AbsFrontend):
         """
 
         super().__init__()
-        
+
         from espnet2.bin.gan_codec_inference import AudioCoding
+
         model = AudioCoding.from_pretrained(model_tag=hf_model_tag).model
         self.quantizer = model.codec.generator.quantizer
         self.codebook_size = self.quantizer.bins
         self.codebook_dim = self.quantizer.codebook_dim
         self.token_bias = token_bias
-        
+
         # NOTE(Jinchuan): make it as an external parameter rather than parsing from
         # the quantizer since not all codebooks will be used all the time.
         self.token_per_frame = token_per_frame
-        
+
         self.vocab_size = input_size
         self.pos = pos_enc_class(self.codebook_dim, positional_dropout_rate)
         self.ln = torch.nn.LayerNorm(self.codebook_dim)
@@ -183,7 +186,7 @@ class CodecEmbedding(AbsFrontend):
         # will not encounter an error. In practice, only the padding values
         # will exceed this range and is ignored by the length mask later.
         x = torch.clip(x, min=0, max=self.codebook_size - 1)
-        
+
         z = self.quantizer.decode(x.permute(2, 0, 1)).permute(0, 2, 1)
 
         z = self.ln(z)
@@ -192,7 +195,7 @@ class CodecEmbedding(AbsFrontend):
         input_lengths = input_lengths // self.token_per_frame
 
         return z, input_lengths
-    
+
     def output_size(self) -> int:
-        """ Return output length of feature dimension D, i.e. the embedding dim. """
+        """Return output length of feature dimension D, i.e. the embedding dim."""
         return self.codebook_dim
