@@ -2407,7 +2407,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if bpemodel is not None:
             if bpe_encode_kwargs is None:
                 bpe_encode_kwargs = dict()
-            if bpemodel_type == "builtin":
+            if bpemodel_type == "unigram":
                 self.bpe = build_tokenizer(
                     token_type="bpe",
                     bpemodel=bpemodel + ".model",
@@ -2415,7 +2415,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 )
             else:
                 self.bpe = build_tokenizer(
-                    token_type="hugging_face",
+                    token_type="huggingface",
                     bpemodel=bpemodel,
                 )
         else:

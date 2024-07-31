@@ -491,6 +491,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --bpemode ${bpemode} \
                 --bpemodel "${bpemodel}" \
                 --multi_task_dataset true \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -594,6 +595,7 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --bpemode ${bpemode} \
                 --bpemodel "${bpemodel}" \
                 --multi_task_dataset true \
                 --sharded_dataset true \

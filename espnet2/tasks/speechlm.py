@@ -159,6 +159,13 @@ class SpeechLMTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
+            "--bpemode",
+            type=str_or_none,
+            default="unigram",
+            choices=["unigram", "huggingface"],
+            help="bpe model from ESPnet built-in method (unigram) or HuggingFace",
+        )
+        group.add_argument(
             "--bpemodel",
             type=str_or_none,
             default=None,
@@ -224,11 +231,7 @@ class SpeechLMTask(AbsTask):
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
             bpemodel=args.bpemodel,
-            bpemodel_type=(
-                "builtin"
-                if args.corelm_conf.get("hf_model_tag", None) is None
-                else "hugging_face"
-            ),
+            bpemodel_type=args.bpemode,
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,
