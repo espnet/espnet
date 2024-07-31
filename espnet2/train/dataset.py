@@ -47,7 +47,12 @@ from espnet2.utils.sized_dict import SizedDict
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
     @typechecked
-    def __init__(self, loader: SoundScpReader, dtype: Union[None, str] =None, allow_multi_rates: bool =False):
+    def __init__(
+        self,
+        loader: SoundScpReader,
+        dtype: Union[None, str] = None,
+        allow_multi_rates: bool = False,
+    ):
         self.loader = loader
         self.dtype = dtype
         self.rate = None
@@ -626,9 +631,10 @@ class ESPnetDataset(AbsDataset):
 class EspnetSpeechLMDataset(ESPnetDataset):
     """
     Dataset object that is specifically designed for SpeechLM. It will allows
-    dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is 
+    dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is
     task-specific and can be queried by ESPnetMultiTaskDataset.
     """
+
     def __init__(
         self,
         example_list: List,
@@ -678,7 +684,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
 class ESPnetMultiTaskDataset(AbsDataset):
     """
-    The top-level Dataset object that can manage multiple EspnetSpeechLMDataset 
+    The top-level Dataset object that can manage multiple EspnetSpeechLMDataset
     objects, each of which serves a specific task and dataset.
     This object will query all these EspnetSpeechLMDataset and combine examples
     from different tasks for multi-task training. Typically, this dataset is
