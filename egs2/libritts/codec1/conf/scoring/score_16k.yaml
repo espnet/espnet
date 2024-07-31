@@ -13,11 +13,7 @@
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 0.1
   power_threshold: -20
-<<<<<<<< HEAD:egs2/libritts/codec1/conf/scoring/score_cpu.yaml
   dtw: true
-========
-  dtw: false
->>>>>>>> d3db6f7ab0de547c2d547053aa657abcc5fc40c3:egs2/libritts/codec1/conf/scoring/score_16k_cpu.yaml
 
 # signal related metrics
 # -- sir: signal to interference ratio
@@ -35,11 +31,33 @@
 # -- stoi: short-time objective intelligibility
 - name: stoi
 
-<<<<<<<< HEAD:egs2/libritts/codec1/conf/scoring/score_cpu.yaml
-========
+# discrete speech metrics
+# -- speech_bert: speech bert score
+# -- speech_bleu: speech bleu score
+# -- speech_token_distance: speech token distance score
+- name: discrete_speech
 
->>>>>>>> d3db6f7ab0de547c2d547053aa657abcc5fc40c3:egs2/libritts/codec1/conf/scoring/score_16k_cpu.yaml
+# pseudo subjective metrics
+# -- utmos: UT-MOS score
+# -- dnsmos: DNS-MOS score
+# -- plcmos: PLC-MOS score
+# -- aecmos: AEC-MOS score
+- name: pseudo_mos
+  predictor_types: ["utmos", "dnsmos", "plcmos"]
+  predictor_args:
+    utmos:
+      fs: 16000
+    dnsmos:
+      fs: 16000
+    plcmos:
+      fs: 16000
+
 # visqol metric
 # -- visqol: visual quality of speech
 - name: visqol
   model: speech
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+- name: speaker
+  model_tag: default
