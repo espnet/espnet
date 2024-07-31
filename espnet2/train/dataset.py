@@ -623,9 +623,12 @@ class ESPnetDataset(AbsDataset):
         return retval
 
 
-# (Jinchuan) Nearly the same as ESPnetDataset, but with added features
-# specifically designed to SpeechLM.
 class EspnetSpeechLMDataset(ESPnetDataset):
+    """
+    Dataset object that is specifically designed for SpeechLM. It will allows
+    dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is 
+    task-specific and can be queried by ESPnetMultiTaskDataset.
+    """
     def __init__(
         self,
         example_list: List,
@@ -643,11 +646,11 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 self.spk2utt[v].append(k)
 
         # (2) keep example_list and clean some non-iterable loaders
-        self.example_list = example_list
+        example_dict = {k: None for k in example_list}  # hash for faster query
         for key in self.loader_dict.keys():
             loader = self.loader_dict[key]
             if isinstance(loader, Dict):
-                loader = {k: v for k, v in loader.items() if k in example_list}
+                loader = {k: v for k, v in loader.items() if k in example_dict}
                 self.loader_dict[key] = loader
 
         # (3) keep task
@@ -674,15 +677,14 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
-    """Pytorch Dataset class for ESPNet
-       Warp multiple EspnetSpeechLMDataset objects for multi-tasking
-
-    Examples:
-        >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
-        ...                          ('token_int', 'output', 'text_int')],
-        ...                         )
-        ... uttid, data = dataset['uttid']
-        {'input': per_utt_array, 'output': per_utt_array}
+    """
+    The top-level Dataset object that can manage multiple EspnetSpeechLMDataset 
+    objects, each of which serves a specific task and dataset.
+    This object will query all these EspnetSpeechLMDataset and combine examples
+    from different tasks for multi-task training. Typically, this dataset is
+    used in ESPnet SpeechLM models
+    See details in:
+    <espnet>/egs2/TEMPLATE/speechlm1#data-loading-and-preprocessing
     """
 
     def __init__(
