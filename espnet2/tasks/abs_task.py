@@ -441,6 +441,18 @@ class AbsTask(ABC):
             type=str2bool,
             help="Enable sharded training provided by fairscale",
         )
+        group.add_argument(
+            "--use_deepspeed",
+            default=False,
+            type=str2bool,
+            help="Enable deepspeed for training",
+        )
+        group.add_argument(
+            "--deepspeed_config",
+            default=None,
+            type=str,
+            help="deepspeed training config",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -1496,6 +1508,13 @@ class AbsTask(ABC):
 
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
+            
+            if args.use_deepspeed:
+                if cls.trainer != Trainer:
+                    raise ValueError("only default trainer is compatible with deepspeed")
+                from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+                cls.trainer = DeepSpeedTrainer
+
             trainer_options = cls.trainer.build_options(args)
             cls.trainer.run(
                 model=model,
