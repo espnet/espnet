@@ -13,11 +13,7 @@
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 0.1
   power_threshold: -20
-<<<<<<<< HEAD:egs2/libritts/codec1/conf/scoring/score_cpu.yaml
   dtw: true
-========
-  dtw: false
->>>>>>>> d3db6f7ab0de547c2d547053aa657abcc5fc40c3:egs2/libritts/codec1/conf/scoring/score_16k_cpu.yaml
 
 # signal related metrics
 # -- sir: signal to interference ratio
@@ -34,9 +30,6 @@
 # stoi related metrics
 # -- stoi: short-time objective intelligibility
 - name: stoi
-
-<<<<<<<< HEAD:egs2/libritts/codec1/conf/scoring/score_cpu.yaml
-========
 
 >>>>>>>> d3db6f7ab0de547c2d547053aa657abcc5fc40c3:egs2/libritts/codec1/conf/scoring/score_16k_cpu.yaml
 # visqol metric
