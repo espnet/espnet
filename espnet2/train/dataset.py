@@ -6,6 +6,7 @@ import logging
 import numbers
 import random
 import re
+import types
 from abc import ABC, abstractmethod
 from typing import (
     Any,
@@ -18,7 +19,6 @@ from typing import (
     Tuple,
     Union,
 )
-import types
 
 import h5py
 import humanfriendly
