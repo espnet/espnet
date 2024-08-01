@@ -18,6 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
+import types
 
 import h5py
 import humanfriendly
@@ -49,7 +50,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
     @typechecked
     def __init__(
         self,
-        loader: SoundScpReader,
+        loader: Union[SoundScpReader, kaldiio.utils.LazyLoader],
         dtype: Union[None, str] = None,
         allow_multi_rates: bool = False,
     ):
