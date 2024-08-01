@@ -4,10 +4,10 @@
 import torch
 import deepspeed
 import logging
-import time
 import json
 import argparse
 import dataclasses
+import torch.distributed as dist
 
 from deepspeed import DeepSpeedEngine
 from pathlib import Path
@@ -15,9 +15,9 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from typeguard import typechecked
 from torch.distributed import ReduceOp
 
+
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.trainer import Trainer
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -34,11 +34,6 @@ class DeepSpeedTrainerOptions:
     log_interval: Optional[int]
     output_dir: Union[Path, str]
     max_epoch: int
-    patience: Optional[int]
-    nbest_averaging_interval: int
-    early_stopping_criterion: Sequence[str]
-    best_model_criterion: Sequence[Sequence[str]]
-    val_scheduler_criterion: Sequence[str]
     deepspeed_config: Union[Path, str]
 
 class DeepSpeedTrainer(Trainer):
@@ -49,9 +44,29 @@ class DeepSpeedTrainer(Trainer):
         return build_dataclass(DeepSpeedTrainerOptions, args)
 
     @staticmethod
-    def resume(checkpoint: Union[str, Path]):
-        raise NotImplementedError
+    @typechecked
+    def resume(
+        model: DeepSpeedEngine,
+        reporter: Reporter,
+        output_dir: Path,
+    ):
+        ckpts = [
+            item for item in output_dir.iterdir()
+            if item.is_dir() and item.name.startswith('checkpoint_')
+        ]
 
+        if len(ckpts) == 0:
+            logging.info("Try to resume but find no checkpoint")
+            return
+    
+        ckpt_num = max([int(item.name.split('_')[-1]) for item in ckpts])
+        ckpt_path = output_dir / f"checkpoint_{ckpt_num}"
+        logging.info(f"Resume training from {ckpt_path}")
+
+        _, clinet_states = model.load_checkpoint(ckpt_path)
+
+        reporter.load_state_dict(clinet_states['reporter'])
+            
     @classmethod
     @typechecked
     def run(
@@ -59,9 +74,7 @@ class DeepSpeedTrainer(Trainer):
         model: Union[AbsESPnetModel, DeepSpeedEngine],
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
-        plot_attention_iter_factory: Optional[AbsIterFactory],
         trainer_options: DeepSpeedTrainerOptions,
-        distributed_option: DistributedOption,
         **kwargs,
     ) -> None:
         
@@ -69,9 +82,6 @@ class DeepSpeedTrainer(Trainer):
         del kwargs
 
         # (2) initailize deepspeed
-        assert distributed_option.distributed, "Distributed training not enabled."
-        assert torch.distributed.is_initialized(), "Distributed backend not enabled"
-
         deepspeed_config = json.load(open(trainer_options.deepspeed_config))
         trainer_options.train_dtype = cls.setup_data_dtype(deepspeed_config)
         model, _, _, _ = deepspeed.initialize(
@@ -80,13 +90,20 @@ class DeepSpeedTrainer(Trainer):
             config=deepspeed_config,
         )
 
-        # (3) Setup reporter, output_dir, dataloader etc.
+        # (3) setup reporter, output_dir, dataloader etc.
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
-        if trainer_options.log_interval is None:
-            trainer_options.log_interval = 1000
+
+        # (4) resume
+        if trainer_options.resume:
+            cls.resume(
+                model=model,
+                reporter=reporter,
+                output_dir=output_dir,
+            )
         
-        # (4) loop on epochs
+        
+        # (5) loop on epochs
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == trainer_options.max_epoch + 1:
             logging.warning(
@@ -97,38 +114,37 @@ class DeepSpeedTrainer(Trainer):
             set_all_random_seed(trainer_options.seed + iepoch)
             reporter.set_epoch(iepoch)
 
-            # (4.1) train one epoch
+            # (5.1) train one epoch
             with reporter.observe("train") as sub_reporter:
                 cls.train_one_epoch(
                     model=model,
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
-                    distributed_option=distributed_option,
                 )
             
-            # (4.2) valid one epoch
+            # (5.2) valid one epoch
             with reporter.observe("valid") as sub_reporter:
                 cls.valid_one_epoch(
                     model=model,
                     iterator=valid_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     options=trainer_options,
-                    distributed_option=distributed_option,
                 )
             
-            # (4.3) save checkpoint
+            # (5.3) save checkpoint
             checkpoint_path = output_dir / f"checkpoint_{iepoch}"
             model.save_checkpoint(
                 checkpoint_path,
                 tag=f"{iepoch}",
-                clinet_state={"reporter": reporter.state_dict()}
+                client_state={"reporter": reporter.state_dict()}
             )
 
-            # (4.4) TODO: manage existing checkpoint, link folders, early stop etc.
-            
+            # (5.4) reporter
+            if dist.get_rank() == 0:
+                logging.info(reporter.log_message())
+                reporter.matplotlib_plot(output_dir / "images")
 
-    
     @classmethod
     @typechecked
     def train_one_epoch(
@@ -137,16 +153,24 @@ class DeepSpeedTrainer(Trainer):
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: DeepSpeedTrainerOptions,
-        distributed_option: DistributedOption,
     ) -> None:
         model.train()
         iterator_stop = torch.tensor(0).cuda()
 
-        for iiter, (utt_id, batch) in enumerate(iterator):
+        log_interval = options.log_interval
+        if log_interval is None:
+            try:
+                log_interval = max(len(iterator) // 20, 10)
+            except TypeError:
+                log_interval = 100
+
+        for iiter, (utt_id, batch) in enumerate(iterator, 1):
             assert isinstance(batch, dict), type(batch)
 
+            print(f'rank: {dist.get_rank()} | iter: {iiter}', flush=True)
+
             # (0) ensure all ranks have not finished.
-            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            dist.all_reduce(iterator_stop, ReduceOp.SUM)
             if iterator_stop > 0:
                 break
 
@@ -161,7 +185,7 @@ class DeepSpeedTrainer(Trainer):
             reporter.register(stats, weight)
 
             # (3) backward and logging on trainer side
-            loss = loss / weight * torch.distributed.get_world_size()
+            loss = loss / weight * dist.get_world_size()
             model.backward(loss)
             model.step()
 
@@ -172,12 +196,12 @@ class DeepSpeedTrainer(Trainer):
             ))
 
             reporter.next()
-            if iiter % options.log_interval == 0:
-                logging.info(reporter.log_message(-options.log_interval))
+            if iiter % log_interval == 0:
+                logging.info(reporter.log_message(-log_interval))
 
         else:
             iterator_stop.fill_(1)
-            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            dist.all_reduce(iterator_stop, ReduceOp.SUM)
     
     @classmethod
     @typechecked
@@ -188,7 +212,6 @@ class DeepSpeedTrainer(Trainer):
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: DeepSpeedTrainerOptions,
-        distributed_option: DistributedOption,
     ) -> None:
         model.eval()
         iterator_stop = torch.tensor(0).cuda()
@@ -196,8 +219,10 @@ class DeepSpeedTrainer(Trainer):
         for iiter, (utt_id, batch) in enumerate(iterator):
             assert isinstance(batch, dict), type(batch)
 
+            print(f'eval rank: {dist.get_rank()} | iter: {iiter}', flush=True)
+
             # (0) ensure all ranks have not finished.
-            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            dist.all_reduce(iterator_stop, ReduceOp.SUM)
             if iterator_stop > 0:
                 break
 
@@ -209,15 +234,13 @@ class DeepSpeedTrainer(Trainer):
             # (2) all-reduce statistics and logging on model side
             stats = {k: v for k, v in stats.items() if v is not None}
             stats, weight = recursive_average(stats, weight, True)
-            reporter.register(stats, weight)
 
+            reporter.register(stats, weight)
             reporter.next()
-            if iiter % options.log_interval == 0:
-                logging.info(reporter.log_message(-options.log_interval))
 
         else:
             iterator_stop.fill_(1)
-            torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+            dist.all_reduce(iterator_stop, ReduceOp.SUM)
 
     @classmethod
     @typechecked
