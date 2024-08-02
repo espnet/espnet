@@ -9,7 +9,7 @@ set -o pipefail
     --nj 2 \
     --inference_nj 2 \
     --train_config conf/train_soundstream_debug.yaml \
-    --inference_config conf/decode_asr_debug.yaml \
+    --inference_config conf/decode_soundstream_debug.yaml \
     --train_set train \
     --valid_set train_dev \
     --test_sets "train_dev test" "$@"
