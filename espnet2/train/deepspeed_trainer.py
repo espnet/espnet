@@ -1,28 +1,27 @@
 """ DeepSpeed Trainer Module """
 
-import torch
-import deepspeed
-import logging
-import json
 import argparse
 import dataclasses
-import torch.distributed as dist
-
-from deepspeed import DeepSpeedEngine
+import json
+import logging
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from typeguard import typechecked
-from torch.distributed import ReduceOp
 
+import deepspeed
+import torch
+import torch.distributed as dist
+from deepspeed import DeepSpeedEngine
+from torch.distributed import ReduceOp
+from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.train.trainer import Trainer
-from espnet2.utils.build_dataclass import build_dataclass
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.trainer import Trainer
+from espnet2.utils.build_dataclass import build_dataclass
 
 
 @dataclasses.dataclass
