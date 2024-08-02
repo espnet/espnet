@@ -12,14 +12,14 @@
       "reduce_scatter": true,
       "reduce_bucket_size": 5e8,
       "allgather_bucket_size": 5e8
-  },
-    "activation_checkpointing": {
-      "partition_activations": false,
-      "cpu_checkpointing": false,
-      "contiguous_memory_optimization": false,
-      "number_checkpoints": null,
-      "synchronize_checkpoint_boundary": false,
-      "profile": false
+    },
+    "zero_optimization": {
+      "stage": 2,
+      "contiguous_gradients": true,
+      "overlap_comm": true,
+      "reduce_scatter": true,
+      "reduce_bucket_size": 5e8,
+      "allgather_bucket_size": 5e8
     },
     "optimizer": {
       "type": "Adam",
@@ -38,7 +38,7 @@
       "type": "WarmupLR",
       "params": {
           "warmup_min_lr": 0,
-          "warmup_max_lr": 0.001,
+          "warmup_max_lr": 0.0001,
           "warmup_num_steps": 30000
       }
     },

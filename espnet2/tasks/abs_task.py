@@ -1508,11 +1508,14 @@ class AbsTask(ABC):
 
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
-            
+
             if args.use_deepspeed:
                 if cls.trainer != Trainer:
-                    raise ValueError("only default trainer is compatible with deepspeed")
+                    raise ValueError(
+                        "only default trainer is compatible with deepspeed"
+                    )
                 from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+
                 cls.trainer = DeepSpeedTrainer
 
             trainer_options = cls.trainer.build_options(args)

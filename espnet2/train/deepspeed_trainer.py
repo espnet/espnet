@@ -1,4 +1,3 @@
-
 """ DeepSpeed Trainer Module """
 
 import torch
@@ -36,6 +35,7 @@ class DeepSpeedTrainerOptions:
     max_epoch: int
     deepspeed_config: Union[Path, str]
 
+
 class DeepSpeedTrainer(Trainer):
 
     @classmethod
@@ -51,22 +51,23 @@ class DeepSpeedTrainer(Trainer):
         output_dir: Path,
     ):
         ckpts = [
-            item for item in output_dir.iterdir()
-            if item.is_dir() and item.name.startswith('checkpoint_')
+            item
+            for item in output_dir.iterdir()
+            if item.is_dir() and item.name.startswith("checkpoint_")
         ]
 
         if len(ckpts) == 0:
             logging.info("Try to resume but find no checkpoint")
             return
-    
-        ckpt_num = max([int(item.name.split('_')[-1]) for item in ckpts])
+
+        ckpt_num = max([int(item.name.split("_")[-1]) for item in ckpts])
         ckpt_path = output_dir / f"checkpoint_{ckpt_num}"
         logging.info(f"Resume training from {ckpt_path}")
 
         _, clinet_states = model.load_checkpoint(ckpt_path)
 
-        reporter.load_state_dict(clinet_states['reporter'])
-            
+        reporter.load_state_dict(clinet_states["reporter"])
+
     @classmethod
     @typechecked
     def run(
@@ -77,7 +78,7 @@ class DeepSpeedTrainer(Trainer):
         trainer_options: DeepSpeedTrainerOptions,
         **kwargs,
     ) -> None:
-        
+
         # (1) arguments needed in previous trainer but not this one. Delete them
         del kwargs
 
@@ -101,15 +102,14 @@ class DeepSpeedTrainer(Trainer):
                 reporter=reporter,
                 output_dir=output_dir,
             )
-        
-        
+
         # (5) loop on epochs
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == trainer_options.max_epoch + 1:
             logging.warning(
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
-        
+
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
             set_all_random_seed(trainer_options.seed + iepoch)
             reporter.set_epoch(iepoch)
@@ -122,7 +122,7 @@ class DeepSpeedTrainer(Trainer):
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            
+
             # (5.2) valid one epoch
             with reporter.observe("valid") as sub_reporter:
                 cls.valid_one_epoch(
@@ -131,13 +131,13 @@ class DeepSpeedTrainer(Trainer):
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            
+
             # (5.3) save checkpoint
             checkpoint_path = output_dir / f"checkpoint_{iepoch}"
             model.save_checkpoint(
                 checkpoint_path,
                 tag=f"{iepoch}",
-                client_state={"reporter": reporter.state_dict()}
+                client_state={"reporter": reporter.state_dict()},
             )
 
             # (5.4) reporter
@@ -190,11 +190,13 @@ class DeepSpeedTrainer(Trainer):
                 model.backward(loss)
                 model.step()
 
-                reporter.register(dict(
-                    grad_norm = model.get_global_grad_norm(),
-                    loss_scale=model.loss_scale(),
-                    learning_rate=model.get_lr()[0],
-                ))
+                reporter.register(
+                    dict(
+                        grad_norm=model.get_global_grad_norm(),
+                        loss_scale=model.loss_scale(),
+                        learning_rate=model.get_lr()[0],
+                    )
+                )
 
                 reporter.next()
                 if iiter % log_interval == 0:
@@ -203,7 +205,7 @@ class DeepSpeedTrainer(Trainer):
         else:
             iterator_stop.fill_(1)
             dist.all_reduce(iterator_stop, ReduceOp.SUM)
-    
+
     @classmethod
     @typechecked
     @torch.no_grad()
@@ -246,15 +248,15 @@ class DeepSpeedTrainer(Trainer):
     def setup_data_dtype(cls, deepspeed_config: Dict):
         if "bf16" in deepspeed_config:
             return torch.bfloat16
-        
+
         elif "fp16" in deepspeed_config:
             return torch.float16
-        
+
         elif "amp" in deepspeed_config:
             if torch.cuda.is_bf16_supported():
                 return torch.bfloat16
             else:
                 return torch.float16
-            
+
         else:
             return torch.float

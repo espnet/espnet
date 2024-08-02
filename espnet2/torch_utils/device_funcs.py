@@ -29,9 +29,9 @@ def to_device(data, device=None, dtype=None, non_blocking=False, copy=False):
         return to_device(torch.from_numpy(data), device, dtype, non_blocking, copy)
     elif isinstance(data, torch.Tensor):
         if dtype is not None:
-            dtype = str(dtype).lstrip("torch.")
-            cur_dtype = str(data.dtype).lstrip("torch.")
-        
+            dtype = str(dtype).removeprefix("torch.")
+            cur_dtype = str(data.dtype).removeprefix("torch.")
+
             if not (
                 ("int" in dtype and "int" in cur_dtype)
                 or ("float" in dtype and "float" in cur_dtype)
