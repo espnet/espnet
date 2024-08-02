@@ -47,10 +47,9 @@ from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    @typechecked
     def __init__(
         self,
-        loader: Union[SoundScpReader, kaldiio.utils.LazyLoader],
+        loader,
         dtype: Union[None, str] = None,
         allow_multi_rates: bool = False,
     ):
@@ -128,8 +127,7 @@ class H5FileWrapper:
 
 
 class AdapterForSingingScoreScpReader(collections.abc.Mapping):
-    @typechecked
-    def __init__(self, loader: SingingScoreReader):
+    def __init__(self, loader):
         self.loader = loader
 
     def keys(self):
