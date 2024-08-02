@@ -31,7 +31,6 @@
 # -- stoi: short-time objective intelligibility
 - name: stoi
 
->>>>>>>> d3db6f7ab0de547c2d547053aa657abcc5fc40c3:egs2/libritts/codec1/conf/scoring/score_16k_cpu.yaml
 # visqol metric
 # -- visqol: visual quality of speech
 - name: visqol
