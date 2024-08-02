@@ -111,11 +111,11 @@ cleaner=tacotron
 subword_choice=sentencepiece      # sentencepiece or huggingface
 subword_model=                    # external subword model path or huggingface model tag
 sentencepiece_choice=bpe          # bpe, unigram etc.
-subword_train_text=               # text used to train BPE, if given
+subword_train_text=               # text used to train subword model, if given
 nbpe=5000
 bpe_nlsyms=
-bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_char_cover=1.0  # character coverage when modeling BPE
+bpe_input_sentence_size=10000000 # Size of input sentence for sentencepiece.
+bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -370,11 +370,6 @@ if ! "${skip_data_prep}"; then
                             if [ -z ${subword_train_text} ]; then
                                 subword_train_text=${data_audio}/${dset}/${_name}
                             fi
-                            log "Training BPE model with ${subword_train_text}"
-                            nutt=$(min "10000000" "$(wc -l < ${subword_train_text})")
-                            cat ${subword_train_text} | shuf | head -n ${nutt} \
-                            | cut -d ' ' -f 2- \
-                            > ${subword_train_text}.text_bpe_train && echo ""
                             
                             if [ -n "${bpe_nlsyms}" ]; then
                                 if test -f "${bpe_nlsyms}"; then
@@ -388,16 +383,17 @@ if ! "${skip_data_prep}"; then
                             fi
 
                             spm_train \
-                                --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
+                                --input=${subword_train_text} \
                                 --vocab_size="${nbpe}" \
                                 --model_type="${sentencepiece_choice}" \
-                                --model_prefix="${subword_model}" \
+                                --model_prefix="${data_feats}/${dset}/token_lists/text_bpe" \
                                 --character_coverage=${bpe_char_cover} \
                                 --input_sentence_size="${bpe_input_sentence_size}" \
+                                --shuffle_input_sentence \
                                 ${_opts_spm}
                         fi
 
-                        < "${subword_model}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                        < "${data_feats}/${dset}/token_lists/text_bpe.vocab" awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
                         > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     fi
 
