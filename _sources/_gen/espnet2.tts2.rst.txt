@@ -4,6 +4,17 @@ espnet2.tts2 package
 
 
 
+.. _espnet2.tts2.__init__:
+
+espnet2.tts2.__init__
+---------------------
+
+.. automodule:: espnet2.tts2.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts2.espnet_model:
 
 espnet2.tts2.espnet_model
@@ -26,12 +37,12 @@ espnet2.tts2.abs_tts2
     :show-inheritance:
 
 
-.. _espnet2.tts2.__init__:
+.. _espnet2.tts2.feats_extract.__init__:
 
-espnet2.tts2.__init__
----------------------
+espnet2.tts2.feats_extract.__init__
+-----------------------------------
 
-.. automodule:: espnet2.tts2.__init__
+.. automodule:: espnet2.tts2.feats_extract.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,23 +59,23 @@ espnet2.tts2.feats_extract.identity
     :show-inheritance:
 
 
-.. _espnet2.tts2.feats_extract.__init__:
-
-espnet2.tts2.feats_extract.__init__
------------------------------------
-
-.. automodule:: espnet2.tts2.feats_extract.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.tts2.feats_extract.abs_feats_extract:
 
 espnet2.tts2.feats_extract.abs_feats_extract
 --------------------------------------------
 
 .. automodule:: espnet2.tts2.feats_extract.abs_feats_extract
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts2.fastspeech2.__init__:
+
+espnet2.tts2.fastspeech2.__init__
+---------------------------------
+
+.. automodule:: espnet2.tts2.fastspeech2.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -87,17 +98,6 @@ espnet2.tts2.fastspeech2.fastspeech2_discrete
 ---------------------------------------------
 
 .. automodule:: espnet2.tts2.fastspeech2.fastspeech2_discrete
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts2.fastspeech2.__init__:
-
-espnet2.tts2.fastspeech2.__init__
----------------------------------
-
-.. automodule:: espnet2.tts2.fastspeech2.__init__
     :members:
     :undoc-members:
     :show-inheritance:

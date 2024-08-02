@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.speechlm package &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.mt package" href="espnet2.mt.html" />
+    <link rel="prev" title="espnet2.uasr package" href="espnet2.uasr.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202402
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts2.html">espnet2.tts2 package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2st.html">espnet2.s2st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.speechlm package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-init-1">espnet2.speechlm.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-espnet-model-1">espnet2.speechlm.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-definitions-1">espnet2.speechlm.definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-net-utils-1">espnet2.speechlm.net_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-tokenizer-abs-tokenizer-1">espnet2.speechlm.tokenizer.abs_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-tokenizer-init-1">espnet2.speechlm.tokenizer.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-tokenizer-codec-tokenizer-1">espnet2.speechlm.tokenizer.codec_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-module-valle-1">espnet2.speechlm.module.valle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-module-init-1">espnet2.speechlm.module.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-module-transformer-1">espnet2.speechlm.module.transformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-core-lm-valle-1">espnet2.speechlm.core_lm.valle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-core-lm-ar-multiscale-1">espnet2.speechlm.core_lm.ar_multiscale</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-core-lm-init-1">espnet2.speechlm.core_lm.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-speechlm-core-lm-abs-core-lm-1">espnet2.speechlm.core_lm.abs_core_lm</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_codec.html">espnet2.gan_codec package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fst.html">espnet2.fst package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">espnet2.speechlm package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_gen/espnet2.speechlm.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="espnet2-speechlm-package">
+<h1>espnet2.speechlm package<a class="headerlink" href="#espnet2-speechlm-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-speechlm-init-1">
+<span id="espnet2-speechlm-init"></span><h2>espnet2.speechlm.__init__<a class="headerlink" href="#espnet2-speechlm-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.__init__"></span></section>
+<section id="espnet2-speechlm-espnet-model-1">
+<span id="espnet2-speechlm-espnet-model"></span><h2>espnet2.speechlm.espnet_model<a class="headerlink" href="#espnet2-speechlm-espnet-model-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.espnet_model"></span><dl class="class">
+<dt id="espnet2.speechlm.espnet_model.ESPnetSpeechLMModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.espnet_model.</code><code class="sig-name descname">ESPnetSpeechLMModel</code><span class="sig-paren">(</span><em class="sig-param">corelm: espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM</em>, <em class="sig-param">extract_feats_in_collect_stats: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/espnet_model.html#ESPnetSpeechLMModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.espnet_model.ESPnetSpeechLMModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.speechlm.espnet_model.ESPnetSpeechLMModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/espnet_model.html#ESPnetSpeechLMModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.espnet_model.ESPnetSpeechLMModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.espnet_model.ESPnetSpeechLMModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dec_seq: torch.Tensor</em>, <em class="sig-param">dec_seq_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/speechlm/espnet_model.html#ESPnetSpeechLMModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.espnet_model.ESPnetSpeechLMModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-definitions-1">
+<span id="espnet2-speechlm-definitions"></span><h2>espnet2.speechlm.definitions<a class="headerlink" href="#espnet2-speechlm-definitions-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.definitions"></span><dl class="class">
+<dt id="espnet2.speechlm.definitions.Modality">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.definitions.</code><code class="sig-name descname">Modality</code><span class="sig-paren">(</span><em class="sig-param">discrete: bool = (True</em>, <em class="sig-param">)</em>, <em class="sig-param">data_type: str = ('kaldi_ark'</em>, <em class="sig-param">)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/definitions.html#Modality"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.definitions.Modality" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.speechlm.definitions.Modality.data_type">
+<code class="sig-name descname">data_type</code><em class="property"> = ('kaldi_ark',)</em><a class="headerlink" href="#espnet2.speechlm.definitions.Modality.data_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.definitions.Modality.discrete">
+<code class="sig-name descname">discrete</code><em class="property"> = (True,)</em><a class="headerlink" href="#espnet2.speechlm.definitions.Modality.discrete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.definitions.SpeechLMTask">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.definitions.</code><code class="sig-name descname">SpeechLMTask</code><span class="sig-paren">(</span><em class="sig-param">encoder_entries: List[Tuple[str, str, str]], decoder_entries: List[Tuple[str, str, str]], target_entries: List[Tuple[str, str, str]], use_task_identifier: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/definitions.html#SpeechLMTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.definitions.SpeechLMTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.definitions.SpeechLMTask.find_modality_type">
+<em class="property">property </em><code class="sig-name descname">find_modality_type</code><a class="headerlink" href="#espnet2.speechlm.definitions.SpeechLMTask.find_modality_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.definitions.SpeechLMTask.use_task_identifier">
+<code class="sig-name descname">use_task_identifier</code><em class="property"> = True</em><a class="headerlink" href="#espnet2.speechlm.definitions.SpeechLMTask.use_task_identifier" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.speechlm.definitions.pad_until">
+<code class="sig-prename descclassname">espnet2.speechlm.definitions.</code><code class="sig-name descname">pad_until</code><span class="sig-paren">(</span><em class="sig-param">token_list</em>, <em class="sig-param">until</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/definitions.html#pad_until"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.definitions.pad_until" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-speechlm-net-utils-1">
+<span id="espnet2-speechlm-net-utils"></span><h2>espnet2.speechlm.net_utils<a class="headerlink" href="#espnet2-speechlm-net-utils-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.net_utils"></span><dl class="function">
+<dt id="espnet2.speechlm.net_utils.causal_mask">
+<code class="sig-prename descclassname">espnet2.speechlm.net_utils.</code><code class="sig-name descname">causal_mask</code><span class="sig-paren">(</span><em class="sig-param">qlen: int</em>, <em class="sig-param">device: torch.device</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/speechlm/net_utils.html#causal_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.net_utils.causal_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.speechlm.net_utils.ce_loss">
+<code class="sig-prename descclassname">espnet2.speechlm.net_utils.</code><code class="sig-name descname">ce_loss</code><span class="sig-paren">(</span><em class="sig-param">logits: torch.Tensor</em>, <em class="sig-param">target: torch.Tensor</em>, <em class="sig-param">lengths: torch.Tensor</em>, <em class="sig-param">prefix_len: torch.Tensor = None</em>, <em class="sig-param">first_layer_weight: int = 1.0</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/speechlm/net_utils.html#ce_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.net_utils.ce_loss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.speechlm.net_utils.install_kv_cache_hook">
+<code class="sig-prename descclassname">espnet2.speechlm.net_utils.</code><code class="sig-name descname">install_kv_cache_hook</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">cache</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/net_utils.html#install_kv_cache_hook"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.net_utils.install_kv_cache_hook" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.speechlm.net_utils.length_mask">
+<code class="sig-prename descclassname">espnet2.speechlm.net_utils.</code><code class="sig-name descname">length_mask</code><span class="sig-paren">(</span><em class="sig-param">lengths: torch.Tensor</em>, <em class="sig-param">maxlen: int = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/speechlm/net_utils.html#length_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.net_utils.length_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.speechlm.net_utils.logits_to_tokens">
+<code class="sig-prename descclassname">espnet2.speechlm.net_utils.</code><code class="sig-name descname">logits_to_tokens</code><span class="sig-paren">(</span><em class="sig-param">logits: torch.Tensor</em>, <em class="sig-param">opts: espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions</em>, <em class="sig-param">allow_eos: bool = True</em>, <em class="sig-param">nq_level: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/net_utils.html#logits_to_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.net_utils.logits_to_tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-speechlm-tokenizer-abs-tokenizer-1">
+<span id="espnet2-speechlm-tokenizer-abs-tokenizer"></span><h2>espnet2.speechlm.tokenizer.abs_tokenizer<a class="headerlink" href="#espnet2-speechlm-tokenizer-abs-tokenizer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.tokenizer.abs_tokenizer"></span><dl class="class">
+<dt id="espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.tokenizer.abs_tokenizer.</code><code class="sig-name descname">AbsTokenizer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/abs_tokenizer.html#AbsTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>The abstract tokenizer class for SpeechLM.
+The main objective of this module is to transform the LM-generated tokens
+into the corresponding targets. E.g.,
+Speech Codec codes -&gt; waveform
+BPE tokens -&gt; text
+…</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">tokens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Any<a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/abs_tokenizer.html#AbsTokenizer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-tokenizer-init-1">
+<span id="espnet2-speechlm-tokenizer-init"></span><h2>espnet2.speechlm.tokenizer.__init__<a class="headerlink" href="#espnet2-speechlm-tokenizer-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.tokenizer.__init__"></span></section>
+<section id="espnet2-speechlm-tokenizer-codec-tokenizer-1">
+<span id="espnet2-speechlm-tokenizer-codec-tokenizer"></span><h2>espnet2.speechlm.tokenizer.codec_tokenizer<a class="headerlink" href="#espnet2-speechlm-tokenizer-codec-tokenizer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.tokenizer.codec_tokenizer"></span><dl class="class">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.tokenizer.codec_tokenizer.</code><code class="sig-name descname">CodecTokenizer</code><span class="sig-paren">(</span><em class="sig-param">codec_choice: str</em>, <em class="sig-param">codec_fs: int</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dump_audio: bool = False</em>, <em class="sig-param">checkpoint_path: str = None</em>, <em class="sig-param">config_path: str = None</em>, <em class="sig-param">max_token_per_frame: int = 32</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer" title="espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.speechlm.tokenizer.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<p>Codec Tokenizer implementation</p>
+<dl class="simple">
+<dt>Use cases:</dt><dd><ul class="simple">
+<li><p>use encode and decode for discrete (de)tokenization</p></li>
+<li><p>use encode_continuous and decode_continuous for continuous
+(de)tokenization</p></li>
+<li><p>use forward and detokenization for discrete (de)tokenization
+with flatten sequence style, which is more friendly for
+speechlm task</p></li>
+</ul>
+</dd>
+</dl>
+<p>Codec Tokenizer initialization</p>
+<dl class="simple">
+<dt>Each of the codec implementation should assign all following features:</dt><dd><p>self.n_codebook (int): the number of codec codebooks.
+self.size_codebook (int): the dimension of codebooks.
+self.sample_rate (int): the sample rate the model trained on.
+self.subsample (int): the subsample rate, a.k.a., frame shift.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.decode">
+<code class="sig-name descname">decode</code><span class="sig-paren">(</span><em class="sig-param">codes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recover the waveform from the codes.
+Input:</p>
+<blockquote>
+<div><p>codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><p>waveform (torch.Tensor): float tensor in shape [B, n_sample]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.decode_continuous">
+<code class="sig-name descname">decode_continuous</code><span class="sig-paren">(</span><em class="sig-param">z</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.decode_continuous"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.decode_continuous" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recover the waveform from the continuous representations of codec
+Input:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>z (torch.Tensor): Float tensor in shape [B, T, D], codec</dt><dd><p>continuous representations</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><p>waveform (torch.Tensor): float tensor in shape [B, n_sample]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.detokenize">
+<code class="sig-name descname">detokenize</code><span class="sig-paren">(</span><em class="sig-param">codes</em>, <em class="sig-param">n_codebook=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.detokenize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.detokenize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert flatten codec codes into resynthesis the audio
+Input:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>codes (torch.Tensor): int tensor in shape [B, T * n_codebook],</dt><dd><p>or [T * n_codebook]</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><dl class="simple">
+<dt>waveform (torch.Tensor): float tensor in shape [B, n_sample],</dt><dd><p>or [n_sample]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.encode">
+<code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">wavs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert audio waveforms into codec codes
+Input:</p>
+<blockquote>
+<div><p>wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><p>codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.encode_continuous">
+<code class="sig-name descname">encode_continuous</code><span class="sig-paren">(</span><em class="sig-param">wavs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.encode_continuous"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.encode_continuous" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert audio waveforms into continuous codec encoding results
+Input:</p>
+<blockquote>
+<div><p>wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><p>z (torch.Tensor): float tensor in shape [B, T, D]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">wavs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/tokenizer/codec_tokenizer.html#CodecTokenizer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.tokenizer.codec_tokenizer.CodecTokenizer.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert audio waveforms into flatten codec codes and resynthesis the audio
+Input:</p>
+<blockquote>
+<div><p>wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Output:</dt><dd><p>codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
+resyn_audio (torch.Tensor): float tensor in shape [B, n_samples]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-module-valle-1">
+<span id="espnet2-speechlm-module-valle"></span><h2>espnet2.speechlm.module.valle<a class="headerlink" href="#espnet2-speechlm-module-valle-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.module.valle"></span><dl class="class">
+<dt id="espnet2.speechlm.module.valle.AdaLN">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.valle.</code><code class="sig-name descname">AdaLN</code><span class="sig-paren">(</span><em class="sig-param">n_state</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#AdaLN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.AdaLN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.valle.AdaLN.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">level_emb: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#AdaLN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.AdaLN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.valle.ResidualAttentionBlockAdaLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.valle.</code><code class="sig-name descname">ResidualAttentionBlockAdaLM</code><span class="sig-paren">(</span><em class="sig-param">n_state: int</em>, <em class="sig-param">n_head: int</em>, <em class="sig-param">cross_attention: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#ResidualAttentionBlockAdaLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.ResidualAttentionBlockAdaLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.speechlm.module.transformer.ResidualAttentionBlock" title="espnet2.speechlm.module.transformer.ResidualAttentionBlock"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.speechlm.module.transformer.ResidualAttentionBlock</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.valle.ResidualAttentionBlockAdaLM.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">level: torch.Tensor</em>, <em class="sig-param">xa: Optional[torch.Tensor] = None</em>, <em class="sig-param">mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">kv_cache: Optional[dict] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#ResidualAttentionBlockAdaLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.ResidualAttentionBlockAdaLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.valle.ValleNARDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.valle.</code><code class="sig-name descname">ValleNARDecoder</code><span class="sig-paren">(</span><em class="sig-param">n_level: int</em>, <em class="sig-param">n_ctx: int</em>, <em class="sig-param">n_state: int</em>, <em class="sig-param">n_head: int</em>, <em class="sig-param">n_layer: int</em>, <em class="sig-param">causal: bool = True</em>, <em class="sig-param">layer_class=&lt;class 'espnet2.speechlm.module.valle.ResidualAttentionBlockAdaLM'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#ValleNARDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.ValleNARDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.speechlm.module.transformer.TransformerDecoder" title="espnet2.speechlm.module.transformer.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.speechlm.module.transformer.TransformerDecoder</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.valle.ValleNARDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">level: torch.Tensor</em>, <em class="sig-param">kv_cache: Optional[dict] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/valle.html#ValleNARDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.valle.ValleNARDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-module-init-1">
+<span id="espnet2-speechlm-module-init"></span><h2>espnet2.speechlm.module.__init__<a class="headerlink" href="#espnet2-speechlm-module-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.module.__init__"></span></section>
+<section id="espnet2-speechlm-module-transformer-1">
+<span id="espnet2-speechlm-module-transformer"></span><h2>espnet2.speechlm.module.transformer<a class="headerlink" href="#espnet2-speechlm-module-transformer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.module.transformer"></span><dl class="class">
+<dt id="espnet2.speechlm.module.transformer.LayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.transformer.</code><code class="sig-name descname">LayerNorm</code><span class="sig-paren">(</span><em class="sig-param">normalized_shape: Union[int, List[int], torch.Size], eps: float = 1e-05, elementwise_affine: bool = True, device=None, dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.LayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.normalization.LayerNorm</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.LayerNorm.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#LayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.LayerNorm.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.transformer.Linear">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.transformer.</code><code class="sig-name descname">Linear</code><span class="sig-paren">(</span><em class="sig-param">in_features: int</em>, <em class="sig-param">out_features: int</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">device=None</em>, <em class="sig-param">dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.Linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.linear.Linear</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.Linear.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#Linear.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.Linear.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.transformer.MultiHeadAttention">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.transformer.</code><code class="sig-name descname">MultiHeadAttention</code><span class="sig-paren">(</span><em class="sig-param">n_state: int</em>, <em class="sig-param">n_head: int</em>, <em class="sig-param">causal: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#MultiHeadAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.MultiHeadAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.MultiHeadAttention.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">xa: Optional[torch.Tensor] = None</em>, <em class="sig-param">mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">kv_cache: Optional[dict] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#MultiHeadAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.MultiHeadAttention.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.MultiHeadAttention.qkv_attention">
+<code class="sig-name descname">qkv_attention</code><span class="sig-paren">(</span><em class="sig-param">q: torch.Tensor</em>, <em class="sig-param">k: torch.Tensor</em>, <em class="sig-param">v: torch.Tensor</em>, <em class="sig-param">mask: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#MultiHeadAttention.qkv_attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.MultiHeadAttention.qkv_attention" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.transformer.ResidualAttentionBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.transformer.</code><code class="sig-name descname">ResidualAttentionBlock</code><span class="sig-paren">(</span><em class="sig-param">n_state: int</em>, <em class="sig-param">n_head: int</em>, <em class="sig-param">cross_attention: bool = False</em>, <em class="sig-param">causal: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#ResidualAttentionBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.ResidualAttentionBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.ResidualAttentionBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">xa: Optional[torch.Tensor] = None</em>, <em class="sig-param">mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">kv_cache: Optional[dict] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#ResidualAttentionBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.ResidualAttentionBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.module.transformer.TransformerDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.module.transformer.</code><code class="sig-name descname">TransformerDecoder</code><span class="sig-paren">(</span><em class="sig-param">n_ctx: int</em>, <em class="sig-param">n_state: int</em>, <em class="sig-param">n_head: int</em>, <em class="sig-param">n_layer: int</em>, <em class="sig-param">causal: bool = True</em>, <em class="sig-param">layer_class=&lt;class 'espnet2.speechlm.module.transformer.ResidualAttentionBlock'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#TransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.speechlm.module.transformer.TransformerDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">mask: torch.Tensor = None</em>, <em class="sig-param">kv_cache: Optional[dict] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/module/transformer.html#TransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.module.transformer.TransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-core-lm-valle-1">
+<span id="espnet2-speechlm-core-lm-valle"></span><h2>espnet2.speechlm.core_lm.valle<a class="headerlink" href="#espnet2-speechlm-core-lm-valle-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.core_lm.valle"></span><dl class="class">
+<dt id="espnet2.speechlm.core_lm.valle.ValleLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.core_lm.valle.</code><code class="sig-name descname">ValleLM</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">nq: int</em>, <em class="sig-param">share_emb: bool = True</em>, <em class="sig-param">att_unit: int = 256</em>, <em class="sig-param">head: int = 2</em>, <em class="sig-param">ar_layer: int = 4</em>, <em class="sig-param">nar_layer: int = 4</em>, <em class="sig-param">n_ctx: int = 3000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/valle.html#ValleLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.valle.ValleLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM" title="espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM</span></code></a></p>
+<p>Initialize Vall-E model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocab_size</strong> (<em>int</em>) – Dimention of vocabulary.</p></li>
+<li><p><strong>nq</strong> (<em>int</em>) – Number of codes for each token / frame, usually for speech codec.</p></li>
+<li><p><strong>share_emb</strong> (<em>bool</em>) – If true, share the embedding and lm_head weight.</p></li>
+<li><p><strong>att_unit</strong> (<em>int</em>) – Dimention of Transformer attention.</p></li>
+<li><p><strong>head</strong> (<em>int</em>) – Number of heads in Transformer attention.</p></li>
+<li><p><strong>ar_layer</strong> (<em>int</em>) – Number of layers in AR Transformer.</p></li>
+<li><p><strong>nar_layer</strong> (<em>int</em>) – Number of layers in NAR Transformer.</p></li>
+<li><p><strong>n_ctx</strong> (<em>int</em>) – maximum context length of AR &amp; NAR Transformer.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.valle.ValleLM.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dec_seq: torch.Tensor</em>, <em class="sig-param">dec_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">enc_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">prefix_len: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Dict]<a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/valle.html#ValleLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.valle.ValleLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Vall-E forward for training</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dec_seq</strong> (<em>LongTensor</em>) – Batch of decoder sequences (B, T, nq).</p></li>
+<li><p><strong>dec_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched decoder sequences (B,).</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Batch of encoder sequences (B, T, nq), keep
+the interface, may not be used.</p></li>
+<li><p><strong>enc_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched encoder sequences (B,),
+keep the interface, may not be used.</p></li>
+<li><p><strong>prefix_len</strong> (<em>LongTensor</em>) – Lengths of condition part in dec_seq (B,).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.valle.ValleLM.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">prefix: torch.Tensor</em>, <em class="sig-param">opts: espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">suffix: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/valle.html#ValleLM.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.valle.ValleLM.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Vall-E Inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>LongTensor</em>) – Prefix part of dec_seq (B, T, nq).</p></li>
+<li><p><strong>opts</strong> (<a class="reference internal" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions" title="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions"><em>SpeechLMInferenceOptions</em></a>) – inference options.</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Encoder token sequence (B, T, nq).</p></li>
+<li><p><strong>suffix</strong> (<em>LongTensor</em>) – suffix part of dec_seq (B, T, nq),
+usually the target sequence for teacher-forcing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.valle.ValleLM.prepare_input">
+<code class="sig-name descname">prepare_input</code><span class="sig-paren">(</span><em class="sig-param">dec_seq_emb</em>, <em class="sig-param">prefix_len</em>, <em class="sig-param">level</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/valle.html#ValleLM.prepare_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.valle.ValleLM.prepare_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-core-lm-ar-multiscale-1">
+<span id="espnet2-speechlm-core-lm-ar-multiscale"></span><h2>espnet2.speechlm.core_lm.ar_multiscale<a class="headerlink" href="#espnet2-speechlm-core-lm-ar-multiscale-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.core_lm.ar_multiscale"></span><dl class="class">
+<dt id="espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.core_lm.ar_multiscale.</code><code class="sig-name descname">MultiScaleLM</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">nq: int</em>, <em class="sig-param">share_emb: bool = True</em>, <em class="sig-param">g_att_unit: int = 256</em>, <em class="sig-param">g_head: int = 2</em>, <em class="sig-param">g_layer: int = 4</em>, <em class="sig-param">l_att_unit: int = 256</em>, <em class="sig-param">l_head: int = 2</em>, <em class="sig-param">l_layer: int = 4</em>, <em class="sig-param">n_ctx: int = 3000</em>, <em class="sig-param">first_layer_weight: int = 1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/ar_multiscale.html#MultiScaleLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM" title="espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM</span></code></a></p>
+<p>Initialize MultiScaleLM</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocab_size</strong> (<em>int</em>) – Dimention of vocabulary.</p></li>
+<li><p><strong>nq</strong> (<em>int</em>) – Number of codes for each token / frame, usually for speech codec.</p></li>
+<li><p><strong>share_emb</strong> (<em>bool</em>) – If true, share the embedding and lm_head weight.</p></li>
+<li><p><strong>g_att_unit</strong> (<em>int</em>) – Dimention of global Transformer attention.</p></li>
+<li><p><strong>g_head</strong> (<em>int</em>) – Number of heads in global Transformer attention.</p></li>
+<li><p><strong>g_layer</strong> (<em>int</em>) – Number of layers in global Transformer.</p></li>
+<li><p><strong>l_att_unit</strong> (<em>int</em>) – Dimention of local Transformer attention.</p></li>
+<li><p><strong>l_head</strong> (<em>int</em>) – Number of heads in local Transformer attention.</p></li>
+<li><p><strong>l_layer</strong> (<em>int</em>) – Number of layers in local Transformer.</p></li>
+<li><p><strong>n_ctx</strong> (<em>int</em>) – maximum context length of global Transformer.</p></li>
+<li><p><strong>first_layer_weight</strong> (<em>int</em>) – a factor to scale the gradient for
+the first-layer codes.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dec_seq: torch.Tensor</em>, <em class="sig-param">dec_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">enc_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">prefix_len: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/ar_multiscale.html#MultiScaleLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Auto-Regresive MultiScale forward for training</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dec_seq</strong> (<em>LongTensor</em>) – Batch of decoder sequences (B, T, nq).</p></li>
+<li><p><strong>dec_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched decoder sequences (B,).</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Batch of encoder sequences (B, T, nq), keep
+the interface, may not be used.</p></li>
+<li><p><strong>enc_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched encoder sequences (B,),
+keep the interface, may not be used.</p></li>
+<li><p><strong>prefix_len</strong> (<em>LongTensor</em>) – Lengths of condition part in dec_seq (B,).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">prefix: torch.Tensor</em>, <em class="sig-param">opts: espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">suffix: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/ar_multiscale.html#MultiScaleLM.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.ar_multiscale.MultiScaleLM.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Auto-Regresive MultiScale Inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>LongTensor</em>) – Prefix part of dec_seq (B, T_dec, nq).</p></li>
+<li><p><strong>opts</strong> (<a class="reference internal" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions" title="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions"><em>SpeechLMInferenceOptions</em></a>) – inference options.</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Encoder token sequence (B, T_enc, nq).</p></li>
+<li><p><strong>suffix</strong> (<em>LongTensor</em>) – suffix part of dec_seq (B, T_dec, nq),
+usually the target sequence for teacher-forcing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-speechlm-core-lm-init-1">
+<span id="espnet2-speechlm-core-lm-init"></span><h2>espnet2.speechlm.core_lm.__init__<a class="headerlink" href="#espnet2-speechlm-core-lm-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.core_lm.__init__"></span></section>
+<section id="espnet2-speechlm-core-lm-abs-core-lm-1">
+<span id="espnet2-speechlm-core-lm-abs-core-lm"></span><h2>espnet2.speechlm.core_lm.abs_core_lm<a class="headerlink" href="#espnet2-speechlm-core-lm-abs-core-lm-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.speechlm.core_lm.abs_core_lm"></span><dl class="class">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.core_lm.abs_core_lm.</code><code class="sig-name descname">AbsCoreLM</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/abs_core_lm.html#AbsCoreLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>The abstract CoreLM class for SpeechLM, which is the major component of SpeechLM.</p>
+<p>It supports or is going to support several styles of SpeechLM:
+Auto-Regressive (AR):</p>
+<blockquote>
+<div><p>SpearTTS: <a class="reference external" href="https://arxiv.org/abs/2302.03540">https://arxiv.org/abs/2302.03540</a> (TODO)
+MusicGen: <a class="reference external" href="https://arxiv.org/abs/2306.05284">https://arxiv.org/abs/2306.05284</a> (TODO)
+UniAudio: <a class="reference external" href="https://arxiv.org/abs/2310.00704">https://arxiv.org/abs/2310.00704</a></p>
+</div></blockquote>
+<dl class="simple">
+<dt>Non-Auto-Regressive (NAR):</dt><dd><p>SoundStorm: <a class="reference external" href="https://arxiv.org/abs/2305.09636">https://arxiv.org/abs/2305.09636</a> (TODO)</p>
+</dd>
+<dt>Auto-Regressive + Non-Auto-Regressive (AR + NRA): Hybrid of AR and NAR.</dt><dd><p>Vall-E: <a class="reference external" href="https://arxiv.org/abs/2301.02111">https://arxiv.org/abs/2301.02111</a></p>
+</dd>
+<dt>For developers: to build a new core_lm model, try to follow:</dt><dd><ol class="arabic simple">
+<li><p>Build with Espnet Espnet internal modules:
+Use modules from <cite>espnet2.speechlm.module.transformer.py</cite>. If you get
+some modules that is specific to your model, put them under
+<cite>espnet2.speechlm.module.&lt;model_name&gt;.py</cite>.</p></li>
+<li><p>or, Build with HuggingFace model/modules:
+Put everyhing in <cite>espnet2.speechlm.core_lm.&lt;model_name&gt;.py</cite>. Usually
+this is just a warpper that bridges HF models into Espnet SpeechLM.</p></li>
+</ol>
+</dd>
+</dl>
+<p>Reminder: try to avoid any model dependency beyond espnet2.speechlm</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dec_seq: torch.Tensor</em>, <em class="sig-param">dec_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">enc_seq_lengths: torch.Tensor = None</em>, <em class="sig-param">prefix_len: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/abs_core_lm.html#AbsCoreLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Model forward</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dec_seq</strong> (<em>LongTensor</em>) – Batch of decoder sequences (B, T, nq).</p></li>
+<li><p><strong>dec_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched decoder sequences (B,).</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Batch of encoder sequences (B, T, nq), keep
+the interface, may not be used.</p></li>
+<li><p><strong>enc_seq_lengths</strong> (<em>LongTensor</em>) – Lengths of batched encoder sequences (B,),
+keep the interface, may not be used.</p></li>
+<li><p><strong>prefix_len</strong> (<em>LongTensor</em>) – Lengths of condition part in dec_seq (B,).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">prefix: torch.Tensor</em>, <em class="sig-param">opts: espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions</em>, <em class="sig-param">enc_seq: torch.Tensor = None</em>, <em class="sig-param">suffix: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/abs_core_lm.html#AbsCoreLM.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.AbsCoreLM.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inference</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>LongTensor</em>) – Prefix part of dec_seq (B, T_dec, nq).</p></li>
+<li><p><strong>opts</strong> (<a class="reference internal" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions" title="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions"><em>SpeechLMInferenceOptions</em></a>) – inference options.</p></li>
+<li><p><strong>enc_seq</strong> (<em>LongTensor</em>) – Encoder token sequence (B, T_enc, nq).</p></li>
+<li><p><strong>suffix</strong> (<em>LongTensor</em>) – suffix part of dec_seq (B, T_dec, nq),
+usually the target sequence for teacher-forcing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.speechlm.core_lm.abs_core_lm.</code><code class="sig-name descname">SpeechLMInferenceOptions</code><span class="sig-paren">(</span><em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">search_algo: str = 'sampling'</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">sampling_temperature: float = 1.0</em>, <em class="sig-param">top_k: int = 20</em>, <em class="sig-param">maxlenratio: float = 0.0</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">eos: int = 5</em>, <em class="sig-param">start: int = 1</em>, <em class="sig-param">masks: torch.Tensor = None</em>, <em class="sig-param">nq: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/speechlm/core_lm/abs_core_lm.html#SpeechLMInferenceOptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.device">
+<code class="sig-name descname">device</code><em class="property"> = 'cpu'</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.device" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.eos">
+<code class="sig-name descname">eos</code><em class="property"> = 5</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.eos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.masks">
+<code class="sig-name descname">masks</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.masks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.maxlenratio">
+<code class="sig-name descname">maxlenratio</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.maxlenratio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.minlenratio">
+<code class="sig-name descname">minlenratio</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.minlenratio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.nbest">
+<code class="sig-name descname">nbest</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.nbest" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.nq">
+<code class="sig-name descname">nq</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.nq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.sampling_temperature">
+<code class="sig-name descname">sampling_temperature</code><em class="property"> = 1.0</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.sampling_temperature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.search_algo">
+<code class="sig-name descname">search_algo</code><em class="property"> = 'sampling'</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.search_algo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.start">
+<code class="sig-name descname">start</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.top_k">
+<code class="sig-name descname">top_k</code><em class="property"> = 20</em><a class="headerlink" href="#espnet2.speechlm.core_lm.abs_core_lm.SpeechLMInferenceOptions.top_k" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2.uasr.html" class="btn btn-neutral float-left" title="espnet2.uasr package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2.mt.html" class="btn btn-neutral float-right" title="espnet2.mt package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

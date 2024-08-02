@@ -1,0 +1,357 @@
+
+espnet2.gan_codec package
+=========================
+
+
+
+.. _espnet2.gan_codec.__init__:
+
+espnet2.gan_codec.__init__
+--------------------------
+
+.. automodule:: espnet2.gan_codec.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.espnet_model:
+
+espnet2.gan_codec.espnet_model
+------------------------------
+
+.. automodule:: espnet2.gan_codec.espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.abs_gan_codec:
+
+espnet2.gan_codec.abs_gan_codec
+-------------------------------
+
+.. automodule:: espnet2.gan_codec.abs_gan_codec
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.encodec.__init__:
+
+espnet2.gan_codec.encodec.__init__
+----------------------------------
+
+.. automodule:: espnet2.gan_codec.encodec.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.encodec.encodec:
+
+espnet2.gan_codec.encodec.encodec
+---------------------------------
+
+.. automodule:: espnet2.gan_codec.encodec.encodec
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.dac.dac:
+
+espnet2.gan_codec.dac.dac
+-------------------------
+
+.. automodule:: espnet2.gan_codec.dac.dac
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.dac.__init__:
+
+espnet2.gan_codec.dac.__init__
+------------------------------
+
+.. automodule:: espnet2.gan_codec.dac.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.__init__:
+
+espnet2.gan_codec.shared.__init__
+---------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.discriminator.msstft_conv:
+
+espnet2.gan_codec.shared.discriminator.msstft_conv
+--------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.discriminator.msstft_conv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.discriminator.__init__:
+
+espnet2.gan_codec.shared.discriminator.__init__
+-----------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.discriminator.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.discriminator.msstft_discriminator:
+
+espnet2.gan_codec.shared.discriminator.msstft_discriminator
+-----------------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.discriminator.msstft_discriminator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.discriminator.msmpmb_discriminator:
+
+espnet2.gan_codec.shared.discriminator.msmpmb_discriminator
+-----------------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.discriminator.msmpmb_discriminator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.discriminator.stft_discriminator:
+
+espnet2.gan_codec.shared.discriminator.stft_discriminator
+---------------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.discriminator.stft_discriminator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.loss.__init__:
+
+espnet2.gan_codec.shared.loss.__init__
+--------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.loss.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.loss.loss_balancer:
+
+espnet2.gan_codec.shared.loss.loss_balancer
+-------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.loss.loss_balancer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.loss.freq_loss:
+
+espnet2.gan_codec.shared.loss.freq_loss
+---------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.loss.freq_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.decoder.seanet:
+
+espnet2.gan_codec.shared.decoder.seanet
+---------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.decoder.seanet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.decoder.__init__:
+
+espnet2.gan_codec.shared.decoder.__init__
+-----------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.decoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.decoder.seanet_2d:
+
+espnet2.gan_codec.shared.decoder.seanet_2d
+------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.decoder.seanet_2d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.quantizer.__init__:
+
+espnet2.gan_codec.shared.quantizer.__init__
+-------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.quantizer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.quantizer.residual_vq:
+
+espnet2.gan_codec.shared.quantizer.residual_vq
+----------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.quantizer.residual_vq
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.quantizer.modules.__init__:
+
+espnet2.gan_codec.shared.quantizer.modules.__init__
+---------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.quantizer.modules.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.quantizer.modules.distrib:
+
+espnet2.gan_codec.shared.quantizer.modules.distrib
+--------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.quantizer.modules.distrib
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.quantizer.modules.core_vq:
+
+espnet2.gan_codec.shared.quantizer.modules.core_vq
+--------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.quantizer.modules.core_vq
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.encoder.seanet:
+
+espnet2.gan_codec.shared.encoder.seanet
+---------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.encoder.seanet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.encoder.snake_activation:
+
+espnet2.gan_codec.shared.encoder.snake_activation
+-------------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.encoder.snake_activation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.encoder.__init__:
+
+espnet2.gan_codec.shared.encoder.__init__
+-----------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.encoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.shared.encoder.seanet_2d:
+
+espnet2.gan_codec.shared.encoder.seanet_2d
+------------------------------------------
+
+.. automodule:: espnet2.gan_codec.shared.encoder.seanet_2d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.funcodec.__init__:
+
+espnet2.gan_codec.funcodec.__init__
+-----------------------------------
+
+.. automodule:: espnet2.gan_codec.funcodec.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.funcodec.funcodec:
+
+espnet2.gan_codec.funcodec.funcodec
+-----------------------------------
+
+.. automodule:: espnet2.gan_codec.funcodec.funcodec
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.soundstream.__init__:
+
+espnet2.gan_codec.soundstream.__init__
+--------------------------------------
+
+.. automodule:: espnet2.gan_codec.soundstream.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_codec.soundstream.soundstream:
+
+espnet2.gan_codec.soundstream.soundstream
+-----------------------------------------
+
+.. automodule:: espnet2.gan_codec.soundstream.soundstream
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
