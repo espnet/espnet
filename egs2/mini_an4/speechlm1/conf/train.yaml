@@ -1,0 +1,58 @@
+# Model
+model: espnet
+model_conf:
+    share_emb: true
+
+corelm: espnet_builtin
+corelm_conf:
+    pos_enc: sinusoidal
+    att_unit: 512
+    head: 8
+    unit: 1024
+    encoder_layer: 1
+    decoder_layer: 1
+    dropout_rate: 0.0
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.0
+    flashattention: true
+
+predictor: multiscale
+predictor_conf:
+    pos_enc: sinusoidal
+    att_unit: 256
+    head: 4
+    unit: 512
+    decoder_layer: 1
+    dropout_rate: 0.0
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.0
+    flashattention: true
+
+postprocessor: none
+
+# Dataloader
+batch_type: numel
+batch_bins: 35000000
+accum_grad: 1
+max_epoch: 10
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 30000
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+# Global settings
+encoder_decoder_format: true
+codec_token_per_frame: 12 # DAC
+codec_token_in_use: 3
