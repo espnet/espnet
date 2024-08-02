@@ -4,13 +4,16 @@ import torch
 from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 
 
-@pytest.mark.parametrize("input_layer, odim", [[None, None], ["linear", 100]])
-def test_length_adaptor_forward(input_layer, odim):
+@pytest.mark.parametrize(
+    "input_layer, output_layer, odim",
+    [[None, None, None], ["linear", None, 100], [None, "linear", 100]],
+)
+def test_length_adaptor_forward(input_layer, output_layer, odim):
     idim = 200
     x_max_length = 50
     length_adaptor_n_layers = 1
     postencoder = LengthAdaptorPostEncoder(
-        idim, length_adaptor_n_layers, input_layer, odim
+        idim, length_adaptor_n_layers, input_layer, odim, output_layer=output_layer
     )
     x = torch.randn([4, x_max_length, idim], requires_grad=True)
     x_lengths = torch.LongTensor([20, 5, x_max_length, 15])
