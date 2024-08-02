@@ -6,24 +6,20 @@
       "enabled": true
     },
     "zero_optimization": {
-      "stage": 3,
-      "overlap_comm": true,
+      "stage": 2,
       "contiguous_gradients": true,
+      "overlap_comm": true,
       "reduce_scatter": true,
-      "stage3_param_persistence_threshold": 1e5,
       "reduce_bucket_size": 5e8,
-      "allgather_bucket_size": 5e8,
-      "prefetch_bucket_size": 5e8,
-      "max_live_parameters": 1e9,
-      "max_reuse_distance": 1e9,
-      "offload_param": {
-        "device": "cpu",
-        "pin_memory": true
-      },
-      "offload_optimizer": {
-        "device": "cpu",
-        "pin_memory": true
-      }
+      "allgather_bucket_size": 5e8
+  },
+    "activation_checkpointing": {
+      "partition_activations": false,
+      "cpu_checkpointing": false,
+      "contiguous_memory_optimization": false,
+      "number_checkpoints": null,
+      "synchronize_checkpoint_boundary": false,
+      "profile": false
     },
     "optimizer": {
       "type": "Adam",
@@ -46,6 +42,6 @@
           "warmup_num_steps": 30000
       }
     },
-    "wall_clock_breakdown": true,
+    "wall_clock_breakdown": false,
     "steps_per_print": 1000
   }

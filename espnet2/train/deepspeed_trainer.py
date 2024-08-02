@@ -164,40 +164,41 @@ class DeepSpeedTrainer(Trainer):
             except TypeError:
                 log_interval = 100
 
-        for iiter, (utt_id, batch) in enumerate(iterator, 1):
+        for iiter, (utt_id, batch) in enumerate(
+            reporter.measure_iter_time(iterator, "iter_time"), 1
+        ):
             assert isinstance(batch, dict), type(batch)
 
-            print(f'rank: {dist.get_rank()} | iter: {iiter}', flush=True)
+            with reporter.measure_time("step_time"):
+                # (0) ensure all ranks have not finished.
+                dist.all_reduce(iterator_stop, ReduceOp.SUM)
+                if iterator_stop > 0:
+                    break
 
-            # (0) ensure all ranks have not finished.
-            dist.all_reduce(iterator_stop, ReduceOp.SUM)
-            if iterator_stop > 0:
-                break
+                # (1) forward
+                batch["utt_id"] = utt_id
+                batch = to_device(batch, "cuda", dtype=options.train_dtype)
+                loss, stats, weight = model(**batch)
 
-            # (1) forward
-            batch["utt_id"] = utt_id
-            batch = to_device(batch, "cuda", dtype=options.train_dtype)
-            loss, stats, weight = model(**batch)
+                # (2) all-reduce statistics and logging on model side
+                stats = {k: v for k, v in stats.items() if v is not None}
+                stats, weight = recursive_average(stats, weight, True)
+                reporter.register(stats, weight)
 
-            # (2) all-reduce statistics and logging on model side
-            stats = {k: v for k, v in stats.items() if v is not None}
-            stats, weight = recursive_average(stats, weight, True)
-            reporter.register(stats, weight)
+                # (3) backward and logging on trainer side
+                loss = loss / weight * dist.get_world_size()
+                model.backward(loss)
+                model.step()
 
-            # (3) backward and logging on trainer side
-            loss = loss / weight * dist.get_world_size()
-            model.backward(loss)
-            model.step()
+                reporter.register(dict(
+                    grad_norm = model.get_global_grad_norm(),
+                    loss_scale=model.loss_scale(),
+                    learning_rate=model.get_lr()[0],
+                ))
 
-            reporter.register(dict(
-                grad_norm = model.get_global_grad_norm(),
-                loss_scale=model.loss_scale(),
-                learning_rate=model.get_lr()[0],
-            ))
-
-            reporter.next()
-            if iiter % log_interval == 0:
-                logging.info(reporter.log_message(-log_interval))
+                reporter.next()
+                if iiter % log_interval == 0:
+                    logging.info(reporter.log_message(-log_interval))
 
         else:
             iterator_stop.fill_(1)
@@ -218,8 +219,6 @@ class DeepSpeedTrainer(Trainer):
 
         for iiter, (utt_id, batch) in enumerate(iterator):
             assert isinstance(batch, dict), type(batch)
-
-            print(f'eval rank: {dist.get_rank()} | iter: {iiter}', flush=True)
 
             # (0) ensure all ranks have not finished.
             dist.all_reduce(iterator_stop, ReduceOp.SUM)
