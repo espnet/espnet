@@ -1,14 +1,20 @@
 """ DeepSpeed Trainer Module """
 
 import torch
-import deepspeed
 import logging
 import json
 import argparse
 import dataclasses
 import torch.distributed as dist
 
-from deepspeed import DeepSpeedEngine
+try:
+    import deepspeed
+    from deepspeed import DeepSpeedEngine
+except ImportError:
+    logging.warning("deepspeed is not installed")
+    deepspeed = None
+    DeepSpeedEngine = None
+
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from typeguard import typechecked
@@ -83,6 +89,8 @@ class DeepSpeedTrainer(Trainer):
         del kwargs
 
         # (2) initailize deepspeed
+        if deepspeed is None:
+            raise ImportError("Cannot proceed as deepspeed is not installed")
         deepspeed_config = json.load(open(trainer_options.deepspeed_config))
         trainer_options.train_dtype = cls.setup_data_dtype(deepspeed_config)
         model, _, _, _ = deepspeed.initialize(
