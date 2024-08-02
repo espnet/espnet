@@ -2377,8 +2377,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         space_symbol: Optional[str] = "<space>",
         non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
         g2p_type: Optional[str] = None,
-        bpemodel: Optional[Union[Path, str, Iterable[str]]] = None,
-        bpemodel_type: str = "builtin",
+        subword_model: Optional[Union[Path, str, Iterable[str]]] = None,
+        subword_model_type: str = "sentencepiece",
         bpe_encode_kwargs: Optional[Dict] = None,
         text_cleaner: Optional[str] = None,
         # speaker prompt
@@ -2404,19 +2404,19 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         ### Modality-specific utilities
         # Text BPE (text_bpe):
-        if bpemodel is not None:
+        if subword_model is not None:
             if bpe_encode_kwargs is None:
                 bpe_encode_kwargs = dict()
-            if bpemodel_type == "unigram":
+            if subword_model_type == "sentencepiece":
                 self.bpe = build_tokenizer(
                     token_type="bpe",
-                    bpemodel=bpemodel + ".model",
+                    bpemodel=subword_model + ".model",
                     encode_kwargs=bpe_encode_kwargs,
                 )
             else:
                 self.bpe = build_tokenizer(
                     token_type="huggingface",
-                    bpemodel=bpemodel,
+                    bpemodel=subword_model,
                 )
         else:
             self.bpe = None

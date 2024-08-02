@@ -159,14 +159,14 @@ class SpeechLMTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
-            "--bpemode",
+            "--subword_choice",
             type=str_or_none,
-            default="unigram",
-            choices=["unigram", "huggingface"],
-            help="bpe model from ESPnet built-in method (unigram) or HuggingFace",
+            default="sentencepiece",
+            choices=["sentencepiece", "huggingface"],
+            help="subword model from sentencepiece or HuggingFace",
         )
         group.add_argument(
-            "--bpemodel",
+            "--subword_model",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece or HF model tag",
@@ -230,8 +230,8 @@ class SpeechLMTask(AbsTask):
             token_list=args.token_list,
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
-            bpemodel=args.bpemodel,
-            bpemodel_type=args.bpemode,
+            subword_model=args.subword_model,
+            subword_model_type=args.subword_choice,
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,

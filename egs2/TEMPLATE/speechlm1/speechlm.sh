@@ -108,9 +108,10 @@ semantic_opts=""
 g2p="g2p_en" # g2p
 cleaner=tacotron
 # (4) text bpe
-bpemode=unigram    # unigram or huggingface
-bpemodel=          # external BPE model, use it if given; or Huggingface model tag
-bpe_train_text=    # text used to train BPE, if given
+subword_choice=sentencepiece      # sentencepiece or huggingface
+subword_model=                    # external subword model path or huggingface model tag
+sentencepiece_choice=bpe          # bpe, unigram etc.
+subword_train_text=               # text used to train BPE, if given
 nbpe=5000
 bpe_nlsyms=
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
@@ -181,19 +182,19 @@ if [ -z "${speechlm_stats_dir}" ]; then
     speechlm_stats_dir="${expdir}/speechlm_stats_${data_combo_name}"
 fi
 
-if [ "${bpemode}" == "unigram" ]; then
-    if  [ ! -z "${bpemodel}" ]; then
-        if [ ! -f "${bpemodel}".model ]; then
-            log "bpemodel is specified but not exist ... " && exit 1;
+if [ "${subword_choice}" == "sentencepiece" ]; then
+    if  [ ! -z "${subword_model}" ]; then
+        if [ ! -f "${subword_model}".model ]; then
+            log "subword_model is specified but not exist ... " && exit 1;
         fi
     else
         if ! "${skip_data_prep}"; then
-            bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+            subword_model=${data_feats}/${train_set}/token_lists/text_bpe
         fi
     fi
 else
-    if [ -z "${bpemodel}" ]; then
-        log "To use HF tokenizer, you should specify the bpemodel by the model tag" && exit 1;
+    if [ -z "${subword_model}" ]; then
+        log "To use HF tokenizer, you should specify the subword_model by the model tag" && exit 1;
     fi
 fi
 
@@ -354,26 +355,26 @@ if ! "${skip_data_prep}"; then
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
                 
                 elif [ ${_modality} == "text_bpe" ]; then
-                    if [ "${bpemode}" == "huggingface" ]; then
-                        if [ -z ${bpemodel} ]; then
+                    if [ "${subword_choice}" == "huggingface" ]; then
+                        if [ -z ${subword_model} ]; then
                             log "Specify hf_tokenizer to use HuggingFace pre-trained tokenizer" && exit 1;
                         fi
 
-                        ${python} pyscripts/utils/build_hf_vocab.py --model_tag ${bpemodel} \
+                        ${python} pyscripts/utils/build_hf_vocab.py --model_tag ${subword_model} \
                             > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     else
-                        if [ -f ${bpemodel}.model ] && [ -f ${bpemodel}.vocab ]; then
-                            log "Skip training BPE model as it already exists"
+                        if [ -f ${subword_model}.model ] && [ -f ${subword_model}.vocab ]; then
+                            log "Skip training subword model as it already exists"
 
                         else
-                            if [ -z ${bpe_train_text} ]; then
-                                bpe_train_text=${data_audio}/${dset}/${_name}
+                            if [ -z ${subword_train_text} ]; then
+                                subword_train_text=${data_audio}/${dset}/${_name}
                             fi
-                            log "Training BPE model with ${bpe_train_text}"
-                            nutt=$(min "100000" "$(wc -l < ${bpe_train_text})")
-                            cat ${bpe_train_text} | shuf | head -n ${nutt} \
+                            log "Training BPE model with ${subword_train_text}"
+                            nutt=$(min "10000000" "$(wc -l < ${subword_train_text})")
+                            cat ${subword_train_text} | shuf | head -n ${nutt} \
                             | cut -d ' ' -f 2- \
-                            > ${bpe_train_text}.text_bpe_train && echo ""
+                            > ${subword_train_text}.text_bpe_train && echo ""
                             
                             if [ -n "${bpe_nlsyms}" ]; then
                                 if test -f "${bpe_nlsyms}"; then
@@ -389,14 +390,14 @@ if ! "${skip_data_prep}"; then
                             spm_train \
                                 --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
                                 --vocab_size="${nbpe}" \
-                                --model_type="${bpemode}" \
-                                --model_prefix="${bpemodel}" \
+                                --model_type="${sentencepiece_choice}" \
+                                --model_prefix="${subword_model}" \
                                 --character_coverage=${bpe_char_cover} \
                                 --input_sentence_size="${bpe_input_sentence_size}" \
                                 ${_opts_spm}
                         fi
 
-                        < "${bpemodel}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                        < "${subword_model}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
                         > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     fi
 
@@ -416,7 +417,7 @@ if ! "${skip_data_prep}"; then
                 fi
             done
 
-            # The metadata for this dataset/task is saved in a yaml file
+            # The metadata for this dataset/task is saved in a json file
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
@@ -491,8 +492,8 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemode ${bpemode} \
-                --bpemodel "${bpemodel}" \
+                --subword_choice ${subword_choice} \
+                --subword_model "${subword_model}" \
                 --multi_task_dataset true \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
@@ -595,8 +596,8 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemode ${bpemode} \
-                --bpemodel "${bpemodel}" \
+                --subword_choice ${subword_choice} \
+                --subword_model "${subword_model}" \
                 --multi_task_dataset true \
                 --sharded_dataset true \
                 --resume true \
