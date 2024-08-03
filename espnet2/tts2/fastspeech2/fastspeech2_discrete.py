@@ -259,8 +259,12 @@ class FastSpeech2Discrete(AbsTTS2):
                 num_blocks=elayers,
                 input_layer=encoder_input_layer,
                 dropout_rate=transformer_enc_dropout_rate,
-                positional_dropout_rate=transformer_enc_positional_dropout_rate,
-                attention_dropout_rate=transformer_enc_attn_dropout_rate,
+                positional_dropout_rate=(
+                    transformer_enc_positional_dropout_rate
+                ),
+                attention_dropout_rate=(
+                    transformer_enc_attn_dropout_rate
+                ),
                 pos_enc_class=pos_enc_class,
                 normalize_before=encoder_normalize_before,
                 concat_after=encoder_concat_after,
@@ -276,7 +280,9 @@ class FastSpeech2Discrete(AbsTTS2):
                 num_blocks=elayers,
                 input_layer=encoder_input_layer,
                 dropout_rate=transformer_enc_dropout_rate,
-                positional_dropout_rate=transformer_enc_positional_dropout_rate,
+                positional_dropout_rate=(
+                    transformer_enc_positional_dropout_rate
+                ),
                 attention_dropout_rate=transformer_enc_attn_dropout_rate,
                 normalize_before=encoder_normalize_before,
                 concat_after=encoder_concat_after,
@@ -379,8 +385,12 @@ class FastSpeech2Discrete(AbsTTS2):
                             num_blocks=dlayers,
                             input_layer=None,
                             dropout_rate=transformer_dec_dropout_rate,
-                            positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                            attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                            positional_dropout_rate=(
+                                transformer_dec_positional_dropout_rate
+                            ),
+                            attention_dropout_rate=(
+                                transformer_dec_attn_dropout_rate
+                            ),
                             pos_enc_class=pos_enc_class,
                             normalize_before=decoder_normalize_before,
                             concat_after=decoder_concat_after,
