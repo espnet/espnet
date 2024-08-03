@@ -379,13 +379,16 @@ class FastSpeech2Discrete(AbsTTS2):
                             num_blocks=dlayers,
                             input_layer=None,
                             dropout_rate=transformer_dec_dropout_rate,
-                            positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                            attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                            positional_dropout_rate= \
+                                transformer_dec_positional_dropout_rate,
+                            attention_dropout_rate= \
+                                transformer_dec_attn_dropout_rate,
                             pos_enc_class=pos_enc_class,
                             normalize_before=decoder_normalize_before,
                             concat_after=decoder_concat_after,
                             positionwise_layer_type=positionwise_layer_type,
-                            positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                            positionwise_conv_kernel_size= \
+                                positionwise_conv_kernel_size,
                         )
                         for i in range(self.discrete_token_layers)
                     ]
@@ -408,13 +411,16 @@ class FastSpeech2Discrete(AbsTTS2):
                     num_blocks=dlayers,
                     input_layer=None,
                     dropout_rate=transformer_dec_dropout_rate,
-                    positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                    attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                    positional_dropout_rate= \
+                        transformer_dec_positional_dropout_rate,
+                    attention_dropout_rate= \
+                        transformer_dec_attn_dropout_rate,
                     pos_enc_class=pos_enc_class,
                     normalize_before=decoder_normalize_before,
                     concat_after=decoder_concat_after,
                     positionwise_layer_type=positionwise_layer_type,
-                    positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                    positionwise_conv_kernel_size=\
+                        positionwise_conv_kernel_size,
                 )
                 # define final projection
                 self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
@@ -427,12 +433,16 @@ class FastSpeech2Discrete(AbsTTS2):
                 num_blocks=dlayers,
                 input_layer=None,
                 dropout_rate=transformer_dec_dropout_rate,
-                positional_dropout_rate=transformer_dec_positional_dropout_rate,
-                attention_dropout_rate=transformer_dec_attn_dropout_rate,
+                positional_dropout_rate= \
+                    transformer_dec_positional_dropout_rate,
+                attention_dropout_rate= \
+                    transformer_dec_attn_dropout_rate,
                 normalize_before=decoder_normalize_before,
                 concat_after=decoder_concat_after,
-                positionwise_layer_type=positionwise_layer_type,
-                positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                positionwise_layer_type= \
+                    positionwise_layer_type,
+                positionwise_conv_kernel_size= \
+                    positionwise_conv_kernel_size,
                 macaron_style=use_macaron_style_in_conformer,
                 pos_enc_layer_type=conformer_pos_enc_layer_type,
                 selfattention_layer_type=conformer_self_attn_layer_type,
