@@ -67,6 +67,8 @@ class ARParallelLM(AbsCoreLM):
         self.n_ctx = n_ctx
         self.sos_eos = sos_eos
 
+        self.decoders.init_embeddings(self.emb, self.lm_head)
+
     def forward(
         self,
         dec_seq: torch.Tensor,

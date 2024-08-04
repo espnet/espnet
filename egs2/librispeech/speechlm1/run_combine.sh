@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_multiscale.yaml
+train_config=conf/train_delay_1b.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
@@ -75,8 +75,8 @@ fi
     --skip_data_prep true \
     --data_combo_name ${data_combo_name%_} \
     --fs 16000 \
-    --num_nodes 2 \
-    --ngpu 4 \
+    --num_nodes 1 \
+    --ngpu 8 \
     --nj 88 \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \

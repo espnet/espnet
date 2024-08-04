@@ -63,22 +63,11 @@ class NumElementsBatchSampler(AbsSampler):
         else:
             feat_dims = None
 
-        # Note (Jinchuan): the increment size of global batch size, which
-        # should be a integer multiples of world_size when working in
-        # the distributed mode. This ensure that each GPU will always
-        # have the same local batch size -> better workload balance.
-        # if torch.distributed.is_initialized():
-        #     increment = torch.distributed.get_world_size()
-        # else:
-        #     increment = 1
-
         # Decide batch-sizes
         batch_sizes = []
         current_batch_keys = []
         for key in keys:
             current_batch_keys.append(key)
-            # if len(current_batch_keys) % increment != 0:
-            #     continue
 
             # shape: (Length, dim1, dim2, ...)
             if padding:
@@ -98,8 +87,10 @@ class NumElementsBatchSampler(AbsSampler):
                 )
 
             if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
-                batch_sizes.append(len(current_batch_keys))
-                current_batch_keys = []
+                # NOTE (Jinchuan): exclude the last sample so that the batch size
+                # is strictly smaller than the specified batch_bins
+                batch_sizes.append(len(current_batch_keys) - 1)
+                current_batch_keys = current_batch_keys[-1:]
         else:
             if len(current_batch_keys) != 0 and (
                 not self.drop_last or len(batch_sizes) == 0
@@ -109,9 +100,11 @@ class NumElementsBatchSampler(AbsSampler):
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
             raise RuntimeError("0 batches")
-
+        
         # If the last batch-size is smaller than minimum batch_size,
-        # the samples are redistributed to the other mini-batches
+        # the samples are redistributed to the other mini-batches.
+        # NOTE(Jinchuan): recommend to use "drop_last", as this operation
+        # may lead to one extremely large mini-batch that can lead OOM.
         if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
             for i in range(batch_sizes.pop(-1)):
                 batch_sizes[-(i % len(batch_sizes)) - 1] += 1
@@ -154,7 +147,7 @@ class NumElementsBatchSampler(AbsSampler):
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
             )
-
+        
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("

@@ -24,7 +24,8 @@ from transformers.utils import (
 HF_OBJ = {
     "EleutherAI/pythia": [GPTNeoXModel, GPTNeoXForCausalLM],
     "Qwen/Qwen2": [AutoModel, AutoModelForCausalLM],
-    "allenai/OLMo-1B": [AutoModel, AutoModelForCausalLM],
+    "allenai/OLMo": [AutoModel, AutoModelForCausalLM],
+    "meta-llama/Meta-Llama-3.1": [AutoModel, AutoModelForCausalLM],
 }
 
 class TransformerDecoder(torch.nn.Module):
@@ -121,13 +122,12 @@ class TransformerDecoder(torch.nn.Module):
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):
         """When using HF pretrained model, inherit the embeddings and lm_head"""
-        if self.model_type == "builtin":
-            return
-
-        if "text_bpe" not in self.token_bias:
-            return
-
-        if self.emb is None or self.lm_head is None:
+        if (
+            self.model_type == "builtin" or
+            "text_bpe" not in self.token_bias or
+            (self.emb is None or self.lm_head is None)
+        ):
+            del self.lm_head, self.emb
             return
 
         # find the range of text vocab

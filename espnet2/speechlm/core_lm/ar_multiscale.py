@@ -97,6 +97,8 @@ class MultiScaleLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
 
+        self.g_decoders.init_embeddings(self.emb, self.lm_head)
+
     def forward(
         self,
         dec_seq: torch.Tensor,
