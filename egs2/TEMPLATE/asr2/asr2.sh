@@ -799,6 +799,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --feature_conf "${kmeans_feature_conf}" \
             --km_dir "${km_dir}" \
             --portion "${portion}" \
+            --cluster_method "${cluster_method}" \
             --nclusters "${nclusters}" \
             --storage_save_mode ${storage_save_mode} \
             --use_gpu ${gpu_kmeans} \
