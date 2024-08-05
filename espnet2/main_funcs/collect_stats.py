@@ -51,6 +51,9 @@ def collect_stats(
             for iiter, (keys, batch) in enumerate(itr, 1):
                 batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
 
+                # remove structured items in collect_stats
+                batch = {k: v for k, v in batch.items() if isinstance(v, torch.Tensor)}
+
                 # 1. Write shape file
                 for name in batch:
                     if name.endswith("_lengths"):

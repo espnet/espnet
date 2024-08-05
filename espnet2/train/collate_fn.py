@@ -17,10 +17,12 @@ class CommonCollateFn:
         float_pad_value: Union[float, int] = 0.0,
         int_pad_value: int = -32768,
         not_sequence: Collection[str] = (),
+        not_process: Collection[str] = (),
     ):
         self.float_pad_value = float_pad_value
         self.int_pad_value = int_pad_value
         self.not_sequence = set(not_sequence)
+        self.not_process = set(not_process)
 
     def __repr__(self):
         return (
@@ -36,6 +38,7 @@ class CommonCollateFn:
             float_pad_value=self.float_pad_value,
             int_pad_value=self.int_pad_value,
             not_sequence=self.not_sequence,
+            not_process=self.not_process,
         )
 
 
@@ -185,6 +188,7 @@ def common_collate_fn(
     float_pad_value: Union[float, int] = 0.0,
     int_pad_value: int = -32768,
     not_sequence: Collection[str] = (),
+    not_process: Collection[str] = (),
 ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
     """Concatenate ndarray-list to an array and convert to torch.Tensor.
 
@@ -213,6 +217,12 @@ def common_collate_fn(
 
     output = {}
     for key in data[0]:
+        # NOTE(Jinchuan): force some structured items to be unchanged.
+        # return it as a tuple
+        if key in not_process:
+            output[key] = tuple(d[key] for d in data)
+            continue
+        
         # NOTE(kamo):
         # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.

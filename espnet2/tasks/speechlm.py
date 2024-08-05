@@ -217,7 +217,11 @@ class SpeechLMTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         int_pad = args.token_list.index("<pad>")
-        return CommonCollateFn(int_pad_value=int_pad)
+        return CommonCollateFn(
+            int_pad_value=int_pad,
+            not_process=["conti_feats"],
+            not_sequence=["prefix_len"],
+        )
 
     @classmethod
     @typechecked

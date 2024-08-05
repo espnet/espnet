@@ -12,7 +12,7 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss
+from espnet2.speechlm.net_utils import ce_loss, install_continuous_features
 
 
 class ARParallelLM(AbsCoreLM):
@@ -76,6 +76,7 @@ class ARParallelLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        conti_feats: Tuple = None,
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
@@ -95,6 +96,7 @@ class ARParallelLM(AbsCoreLM):
         target = dec_seq[:, 1:]
         x = dec_seq[:, :-1]
         x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
+        x, _ = install_continuous_features(x, None, conti_feats)
         x = self.decoders(x)
 
         # [B, T, 1, D] + [1, 1, nq, D]

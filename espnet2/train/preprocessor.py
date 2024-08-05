@@ -2457,17 +2457,16 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        # (Jinchuan): Temp code. should remove when implement the continuous features
-        for triplet in task.data_triplets:
-            if not self.modalities[triplet[1]].discrete:
-                raise ValueError("Continuous feature is not supported yet.")
-
         # (2) get exact tokenised value based on all data triplets
-        seqs = []
+        seqs, conti_feats = [], []
         for triplet in task.data_triplets:
             name, modality, _ = triplet
-            value, _ = self.modality_specific_processing(data[name], modality)
+            value, conti_feat = self.modality_specific_processing(data[name], modality)
             seqs.append(value)
+
+            if triplet in task.targets and conti_feat is not None:
+                raise ValueError("Continuous feats can only be the condition")
+            conti_feats.append(conti_feat)
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2495,7 +2494,30 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         prefix_len = prefix_len // self.codec_token_in_use + 2
         new_data["prefix_len"] = np.array([prefix_len])
 
-        # (4) entries that are not included in sequences
+        # (4) continuous features
+        new_conti_feats = []
+        for idx, conti_feat in enumerate(conti_feats, 1):
+            if conti_feat is None:
+                continue
+
+            if self.encoder_decoder_format:
+                if idx <= n_conditions:
+                    prev_segs = [sos_eos] + [task_identifier] + seqs[:idx - 1]
+                    part = "enc"
+                else:
+                    prev_segs = [sos_eos] + seqs[n_conditions: idx - 1]
+                    part = "dec"
+            else:
+                prev_segs = [sos_eos] + [task_identifier] + seqs[:idx - 1]
+                part = "dec"
+            
+            bias = sum(len(seg) for seg in prev_segs) // self.codec_token_in_use
+            conti_emb, start, end = conti_feat
+            new_conti_feats.append((conti_emb, start + bias , end + bias, part))
+
+        new_data["conti_feats"] = new_conti_feats
+
+        # (5) entries that are not included in sequences
         for name, modality in self.extra_names_and_modalities:
             if name not in data:
                 continue
@@ -2566,7 +2588,26 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value.repeat(self.codec_token_in_use, axis=0)
             conti_feat = None
 
-        # TODO(Jinchuan): Support continuous modalities
+        elif modality in ["text_emb"]:
+            if value.ndim != 2:
+                raise ValueError(f"Text embedding should have size of [T, D]")
+            
+            conti_emb = value.copy()
+
+            value = self.special_token(f"<pad>")
+            # add extra paddings of (self.codec_token_in_use - 1) so there
+            # is no overlap between tokens and continuous embeddings when using
+            # delay interleave.
+            value_len = conti_emb.shape[0] + self.codec_token_in_use - 1
+            value = np.tile(value, value_len)
+
+            # embedidngs, start, end
+            conti_feat = (
+                conti_emb, 
+                self.codec_token_in_use, 
+                self.codec_token_in_use + conti_emb.shape[0],
+            )
+
         else:
             raise NotImplementedError
 
@@ -2596,5 +2637,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
+        
+        conti_feats = data.get("conti_feats")
+        for idx, conti_feat in enumerate(conti_feats):
+            conti_emb, start, end, part = conti_feat
+            assert len(conti_emb) == end - start
+            logging.warning(f"{idx}-th conti feats on {part}, range [{start}, {end})")
 
         raise ValueError("End of Diagnose")

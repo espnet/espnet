@@ -467,6 +467,7 @@ class ESPnetDataset(AbsDataset):
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
+        structured_items: Collection[str] = [],
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(
@@ -481,6 +482,7 @@ class ESPnetDataset(AbsDataset):
         self.max_cache_fd = max_cache_fd
         # allow audios to have different sampling rates
         self.allow_multi_rates = allow_multi_rates
+        self.structured_items = structured_items
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -614,6 +616,10 @@ class ESPnetDataset(AbsDataset):
 
         # 3. Force data-precision
         for name in data:
+            # For structured items, skip type and precision check
+            if name in self.structured_items:
+                continue
+
             value = data[name]
             if not isinstance(value, np.ndarray):
                 raise RuntimeError(
@@ -744,6 +750,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 path_name_type_list=this_path_name_type_list,
                 example_list=example_list,
                 task=json_dict["task"],
+                structured_items=["conti_feats"],
                 **kwargs,
             )
             self.datasets.append(dataset)

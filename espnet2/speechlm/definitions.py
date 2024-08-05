@@ -93,7 +93,7 @@ SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
 )
 
 SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
-    conditions=[("text", "text_emb", "text")],
+    conditions=[("text", "text_emb", "kaldi_ark")],
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 

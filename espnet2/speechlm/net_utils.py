@@ -3,7 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 import torch
 
@@ -221,3 +221,28 @@ def modality_index_to_mask(
     ], dim=0).unsqueeze(1) # [B, 1, nq, V]
 
     return mask
+
+@torch.no_grad()
+def install_continuous_features(
+    dec_emb: torch.Tensor,
+    enc_emb: Optional[torch.Tensor] = None,
+    conti_feats: Tuple = None,
+):
+    if conti_feats is None:
+        return dec_emb, enc_emb
+    
+    assert dec_emb.size(0) == len(conti_feats)
+    if enc_emb is not None:
+        assert enc_emb.size(0) == len(conti_feats)
+    
+    for b, conti_feat in enumerate(conti_feats):
+        for conti_emb, start, end, part in conti_feat:
+            if part == "dec":
+                assert conti_emb.size(1) == dec_emb.size(2)
+                dec_emb[b, start: end] = conti_emb
+            else:
+                assert conti_emb.size(1) == enc_emb.size(2)
+                enc_emb[b, start: end] = conti_emb
+        
+    return dec_emb, enc_emb
+    
