@@ -37,6 +37,6 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_sound
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 3.0 \
+    --min_wav_duration 1.0 \
     --max_wav_duration 30.0 \
     ${codec_opts} "$@"

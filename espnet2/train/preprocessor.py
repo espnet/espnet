@@ -2415,7 +2415,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 )
             else:
                 self.bpe = build_tokenizer(
-                    token_type="huggingface",
+                    token_type="hugging_face",
                     bpemodel=subword_model,
                 )
         else:
