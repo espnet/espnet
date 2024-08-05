@@ -21,7 +21,6 @@ MODALITIES["g2p"] = Modality()
 MODALITIES["spk"] = Modality()
 MODALITIES["class"] = Modality()
 
-# Continuous (currently not in use)
 MODALITIES["wav"] = Modality(discrete=False)
 MODALITIES["text_emb"] = Modality(discrete=False)
 MODALITIES["ssl_feat"] = Modality(discrete=False)
@@ -91,6 +90,11 @@ SPEECHLM_TASKS["asr"] = SpeechLMTaskTemplate(
 SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
     conditions=[("src_text", "text_bpe", "text")],
     targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_emb", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
 ############### END OF TASK DEFINITION ###############
