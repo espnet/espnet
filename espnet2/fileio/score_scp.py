@@ -297,11 +297,7 @@ class SingingScoreReader(collections.abc.Mapping):
     def __init__(
         self,
         fname: Union[Path, str],
-<<<<<<< HEAD
         dtype: type = np.int16,
-=======
-        dtype: Union[np.int16, int] = np.int16,
->>>>>>> 79a8d4e5135b57f8e192e091b2a6b4b5337bb26b
     ):
         self.fname = fname
         self.dtype = dtype
