@@ -32,11 +32,14 @@ scheduler_conf:
     mode: min
     factor: 0.5
     patience: 2
+freeze_param:
+- separator.uses.blocks.0.channel_nn
+- separator.uses.blocks.1.channel_nn
 
 allow_multi_rates: true
 
 preprocessor: enh
-force_single_channel: false
+force_single_channel: true
 channel_reordering: true
 # The categories list order must be the same everywhere in this config
 categories:
@@ -51,7 +54,7 @@ num_spk: 1
 
 model_conf:
     extract_feats_in_collect_stats: false
-    normalize_variance: true
+    normalize_variance_per_ch: true
     # The categories list order must be the same everywhere in this config
     categories:
     - 1ch_16k
@@ -73,18 +76,21 @@ decoder_conf:
     n_fft: 256
     hop_length: 128
     default_fs: 8000
-separator: uses
+separator: uses2
 separator_conf:
     num_spk: 1
     enc_channels: 256
     bottleneck_size: 64
-    num_blocks: 6
-    num_spatial_blocks: 3
+    num_blocks: 3
+    num_spatial_blocks: 2
     segment_size: 64
     ref_channel: 0
-    memory_size: 20
-    memory_types: 2
+    tf_mode: swin
+    swin_block_depth: [4, 4, 4, 4]
     # Transformer-related arguments
+    input_resolution: [130, 256]
+    window_size: [10, 8]
+    use_checkpoint: false
     rnn_type: lstm
     bidirectional: true
     hidden_size: 128
@@ -92,7 +98,7 @@ separator_conf:
     dropout: 0.0
     norm_type: cLN
     activation: relu
-    ch_mode: tac
+    ch_mode: att_tac
     ch_att_dim: 256
     eps: 1.0e-5
 
@@ -113,18 +119,6 @@ criterions:
     wrapper_conf:
       weight: 1.0
   # The second criterion
-  - name: mr_l1_tfd_dereverb
-    conf:
-      window_sz: [256, 512, 768, 1024]
-      hop_sz: null
-      eps: 1.0e-8
-      time_domain_weight: 0.5
-      normalize_variance: true
-      is_dereverb_loss: true
-    wrapper: fixed_order
-    wrapper_conf:
-      weight: 1.0
-  # The third criterion
   - name: si_snr
     conf:
       eps: 1.0e-7
