@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_codec.soundstream.soundstream import SoundStreamGenerator, SoundStreamDiscriminator
+from espnet2.gan_codec.encodec.encodec import EncodecDiscriminator
+from espnet2.gan_codec.soundstream.soundstream import SoundStreamGenerator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -52,39 +53,19 @@ def make_generator_args(**kwargs):
     return default
 
 def make_discriminator_args(**kwargs):
-    defaults = dict(
-        scales=2,
-        scale_downsample_pooling="AvgPool1d",
-        scale_downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 16,
-            "max_downsample_channels": 16,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
-        scale_follow_official_norm=False,
-        # ComplexSTFT discriminator related
-        complexstft_discriminator_params={
-            "in_channels": 1,
-            "channels": 4,
-            "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
-            "chan_mults": [1, 2, 4, 4, 8, 8],
-            "n_fft": 16,
-            "hop_length": 4,
-            "win_length": 16,
-            "stft_normalized": False,
-        },
-    )
+    defaults = {"msstft_discriminator_params": 
+    {
+        "filters": 32,
+        "in_channels": 1,
+        "out_channels": 1,
+        "sep_channels": False,
+        "norm": "weight_norm",
+        "n_ffts": [32, 16],
+        "hop_lengths": [8, 4],
+        "win_lengths": [32, 16],
+        "activation": "LeakyReLU",
+        "activation_params": {"negative_slope": 0.3},
+    }}
     defaults.update(kwargs)
     return defaults
 
@@ -114,13 +95,11 @@ def make_mel_loss_args(**kwargs):
     [
         ({}, {}, {}, True, True),
         ({}, {}, {}, False, False),
-        ({}, {"scales": 1}, {}, False, True),
-        ({}, {"scale_follow_official_norm": True}, {}, False, True),
         ({"quantizer_kmeans_init": False}, {}, {}, False, True),
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_soundstream(
+def test_encodec(
     dict_g, dict_d, dict_loss, average, include
 ):
     batch_size = 2
@@ -130,7 +109,7 @@ def test_soundstream(
     args_loss = make_mel_loss_args(**dict_loss)
     y = torch.randn(batch_size, 1, batch_length)
     model_g = SoundStreamGenerator(**args_g)
-    model_d = SoundStreamDiscriminator(**args_d)
+    model_d = EncodecDiscriminator(**args_d)
     aux_criterion = MultiScaleMelSpectrogramLoss(**args_loss)
     feat_match_criterion = FeatureMatchLoss(
         average_by_layers=average,

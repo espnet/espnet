@@ -70,25 +70,6 @@ class DAC(AbsGANCodec):
             "quantizer_dropout": True,
         },
         discriminator_params: Dict[str, Any] = {
-            "scales": 3,
-            "scale_downsample_pooling": "AvgPool1d",
-            "scale_downsample_pooling_params": {
-                "kernel_size": 4,
-                "stride": 2,
-                "padding": 2,
-            },
-            "scale_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [15, 41, 5, 3],
-                "channels": 128,
-                "max_downsample_channels": 1024,
-                "max_groups": 16,
-                "bias": True,
-                "downsample_scales": [2, 2, 4, 4, 1],
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-            },
             "scale_follow_official_norm": False,
             "msmpmb_discriminator_params": {
                 "rates": [],

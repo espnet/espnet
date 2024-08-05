@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_codec.soundstream.soundstream import SoundStreamGenerator, SoundStreamDiscriminator
+from espnet2.gan_codec.dac.dac import DACGenerator, DACDiscriminator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -20,6 +20,7 @@ def make_generator_args(**kwargs):
     default = dict(
         sample_rate=120,
         hidden_dim=2,
+        codebook_dim=2,
         encdec_channels=1,
         encdec_n_filters=32,
         encdec_n_residual_layers=1,
@@ -53,36 +54,34 @@ def make_generator_args(**kwargs):
 
 def make_discriminator_args(**kwargs):
     defaults = dict(
-        scales=2,
-        scale_downsample_pooling="AvgPool1d",
-        scale_downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 16,
-            "max_downsample_channels": 16,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
-        scale_follow_official_norm=False,
-        # ComplexSTFT discriminator related
-        complexstft_discriminator_params={
-            "in_channels": 1,
-            "channels": 4,
-            "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
-            "chan_mults": [1, 2, 4, 4, 8, 8],
-            "n_fft": 16,
-            "hop_length": 4,
-            "win_length": 16,
-            "stft_normalized": False,
+        msmpmb_discriminator_params={
+            "rates": [],
+            "periods": [2, 3],
+            "fft_sizes": [32, 16, 8],
+            "sample_rate": 120,
+            "periods": [2, 3, 5, 7, 11],
+            "period_discriminator_params": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "kernel_sizes": [5, 3],
+                "channels": 4,
+                "downsample_scales": [3, 1],
+                "max_downsample_channels": 16,
+                "bias": True,
+                "nonlinear_activation": "LeakyReLU",
+                "nonlinear_activation_params": {"negative_slope": 0.1},
+                "use_weight_norm": True,
+                "use_spectral_norm": False,
+            },
+            "band_discriminator_params": {
+                "hop_factor": 0.25,
+                "sample_rate": 120,
+                "bands": [
+                    (0.0, 0.5),
+                    (0.5, 1.0),
+                ],
+                "channel": 32,
+            },
         },
     )
     defaults.update(kwargs)
@@ -114,13 +113,11 @@ def make_mel_loss_args(**kwargs):
     [
         ({}, {}, {}, True, True),
         ({}, {}, {}, False, False),
-        ({}, {"scales": 1}, {}, False, True),
-        ({}, {"scale_follow_official_norm": True}, {}, False, True),
         ({"quantizer_kmeans_init": False}, {}, {}, False, True),
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_soundstream(
+def test_encodec(
     dict_g, dict_d, dict_loss, average, include
 ):
     batch_size = 2
@@ -129,8 +126,8 @@ def test_soundstream(
     args_d = make_discriminator_args(**dict_d)
     args_loss = make_mel_loss_args(**dict_loss)
     y = torch.randn(batch_size, 1, batch_length)
-    model_g = SoundStreamGenerator(**args_g)
-    model_d = SoundStreamDiscriminator(**args_d)
+    model_g = DACGenerator(**args_g)
+    model_d = DACDiscriminator(**args_d)
     aux_criterion = MultiScaleMelSpectrogramLoss(**args_loss)
     feat_match_criterion = FeatureMatchLoss(
         average_by_layers=average,
