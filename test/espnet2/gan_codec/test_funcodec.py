@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_codec.funcodec.funcodec import FunCodecGenerator, FunCodecDiscriminator
+from espnet2.gan_codec.funcodec.funcodec import FunCodecDiscriminator, FunCodecGenerator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -49,10 +49,11 @@ def make_generator_args(**kwargs):
         quantizer_threshold_ema_dead_code=2,
         quantizer_target_bandwidth=[7.5, 15],
         codec_domain=["mag_phase", "mag_phase"],
-        domain_conf={"n_fft": 16, "hop_length": 4}
+        domain_conf={"n_fft": 16, "hop_length": 4},
     )
     default.update(kwargs)
     return default
+
 
 def make_discriminator_args(**kwargs):
     defaults = dict(
@@ -135,9 +136,7 @@ def make_mel_loss_args(**kwargs):
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_funcodec(
-    dict_g, dict_d, dict_loss, average, include
-):
+def test_funcodec(dict_g, dict_d, dict_loss, average, include):
     batch_size = 2
     batch_length = 128
     args_g = make_generator_args(**dict_g)

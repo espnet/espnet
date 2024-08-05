@@ -682,7 +682,7 @@ class DACDiscriminator(nn.Module):
         """Initialize DAC Discriminator module.
 
         Args:
-            
+
         """
         super().__init__()
 
