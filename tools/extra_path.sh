@@ -42,7 +42,7 @@ export LDFLAGS="-L${CONDA_PREFIX}/lib"
 
 # DeepSpeed related. Users should set CUDA_HOME by themselves.
 CUDA_HOME=
-if [ -n ${CUDA_HOME} ]; then
+if [ -n "${CUDA_HOME}" ]; then
     export LIBRARY_PATH=${CUDA_HOME}/lib64:${LIBRARY_PATH}
     export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
     export PATH=${CUDA_HOME}/bin:${PATH}
