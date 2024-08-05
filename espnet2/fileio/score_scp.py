@@ -16,6 +16,10 @@ try:
     import miditoolkit  # for CI import
 except (ImportError, ModuleNotFoundError):
     miditoolkit = None
+try:
+    import utaufile# for CI import
+except (ImportError, ModuleNotFoundError):
+    utaufile = None
 
 
 class NOTE(object):
@@ -24,6 +28,92 @@ class NOTE(object):
         self.midi = midi
         self.st = st
         self.et = et
+
+class USTReader(collections.abc.Mapping):
+    """Reader class for 'ust.scp'.
+
+    Examples:
+        key1 /some/path/a.ust
+        key2 /some/path/b.ust
+        key3 /some/path/c.ust
+        key4 /some/path/d.ust
+        ...
+
+        >>> reader = USTScpReader('ust.scp')
+        >>> tempo, note_list = reader['key1']
+    """
+
+    @typechecked
+    def __init__(
+        self,
+        fname,
+        dtype=np.int16,
+    ):
+        assert utaufile is not None, (
+            "Cannot load utaufile package. ",
+            "Please install Muskit modules via ",
+            "(cd tools && make muskit.done)",
+        )
+        self.fname = fname
+        self.dtype = dtype
+        self.data = read_2columns_text(fname)  # get key-value dict
+
+    def __getitem__(self, key):
+        ust_score = utaufile.openust(self.data[key])
+        tempo = int(ust_score.tempo)
+
+        part = ust_score.note
+        notes_list = []
+        prepitch = -1
+        st = 0
+        for note in part:
+            dur = note.length / 1000.0
+            pitch = note.notenum
+            if not note.isR():  # silence label
+                lr = note.lyric
+                if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
+                    if pitch == prepitch or prepitch == 0:  # same pitch
+                        notes_list[-1].et += dur
+                    else:  # different pitch
+                        notes_list.append(NOTE("—", pitch, st, st + dur))
+                elif lr == "br":  # <br> is tagged as a note
+                    if prepitch == 0:
+                        notes_list[-1].et += dur
+                    else:
+                        notes_list.append(NOTE("P", 0, st, st + dur))
+                    prepitch = 0
+                    st += dur
+                    continue
+                else:  # normal note for one syllable
+                    notes_list.append(NOTE(lr, pitch, st, st + dur))
+                prepitch = pitch
+            else:  # rest note
+                if prepitch == 0:
+                    notes_list[-1].et += dur
+                else:
+                    notes_list.append(NOTE("P", 0, st, st + dur))
+                prepitch = 0
+            st += dur
+        # NOTE(Yuxun): implicit rest at the end of ust file should be removed.
+        while notes_list[-1].lyric == "P":
+            notes_list.pop()
+        return tempo, notes_list
+
+
+    def get_path(self, key):
+        return self.data[key]
+
+    def __contains__(self, item):
+        return item
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()
 
 
 class XMLReader(collections.abc.Mapping):

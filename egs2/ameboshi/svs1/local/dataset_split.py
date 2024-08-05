@@ -1,6 +1,9 @@
 import argparse
 import os
+import re
 import shutil
+
+from espnet2.fileio.score_scp import SingingScoreWriter, USTReader
 
 UTT_PREFIX = "ameboshi"
 DEV_LIST = [
@@ -59,27 +62,29 @@ def process_pho_info(phone):
     return " ".join(label_info), " ".join(pho_info)
 
 
-def process_subset(src_data, subset, check_func, fs, wav_dump):
+def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
     subfolder = os.listdir(src_data)
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
-    musicxmlscp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
+    ust_scp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
 
     for folder in subfolder:
         if not os.path.isdir(os.path.join(src_data, folder)):
             continue
         if not check_func(folder):
             continue
+        # NOTE(Yuxun): name of data directory may include blank space
+        folder = folder.replace(' ', '_')
         utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(folder))
 
-        cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
-            os.path.join(src_data, folder, folder),
-            fs,
-            os.path.join(wav_dump, folder),
-        )
-        os.system(cmd)
+        # cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
+        #     os.path.join(src_data, folder, folder),
+        #     fs,
+        #     os.path.join(wav_dump, folder),
+        # )
+        # os.system(cmd)
 
         wavscp.write(
             "{} {}\n".format(
@@ -91,11 +96,9 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
             os.path.join(src_data, folder, "{}.lab".format(folder))
         )
         label_scp.write("{} {}\n".format(utt_id, label_info))
-        musicxmlscp.write(
-            "{} {}\n".format(
-                utt_id, os.path.join(src_data, folder, "{}.musicxml".format(folder))
-            )
-        )
+        ust_scp.write("{} {}\n".format(
+            utt_id, os.path.join(src_data, folder, "{}.ust".format(folder))
+        ))
 
 
 if __name__ == "__main__":
@@ -108,11 +111,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wav_dump", type=str, default="wav_dump", help="wav dump directory"
     )
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.wav_dump):
         os.makedirs(args.wav_dump)
 
-    process_subset(args.src_data, args.train, train_check, args.fs, args.wav_dump)
-    process_subset(args.src_data, args.dev, dev_check, args.fs, args.wav_dump)
-    process_subset(args.src_data, args.test, test_check, args.fs, args.wav_dump)
+    process_subset(args.src_data, args.train, train_check, args.fs, args.wav_dump, args.score_dump)
+    process_subset(args.src_data, args.dev, dev_check, args.fs, args.wav_dump, args.score_dump)
+    process_subset(args.src_data, args.test, test_check, args.fs, args.wav_dump, args.score_dump)

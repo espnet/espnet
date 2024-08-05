@@ -6,10 +6,10 @@ import sys
 
 import music21 as m21
 
-from espnet2.fileio.score_scp import SingingScoreWriter, XMLReader
+from espnet2.fileio.score_scp import SingingScoreWriter, USTReader
 
-"""Generate segments according to structured musicXML."""
-"""Transfer music score (from musicXML) into 'score.json' format."""
+"""Generate segments according to structured musicust."""
+"""Transfer music score (from musicust) into 'score.json' format."""
 
 
 class SegInfo(object):
@@ -56,7 +56,7 @@ def pack_zero(file_id, number, length=4):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description="Prepare segments from MUSICXML files",
+        description="Prepare segments from MUSICust files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp", type=str, help="scp folder")
@@ -84,25 +84,25 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         note = notes[i]
         # fix errors in dataset
         # remove rest note
-        if (
-            (
-                "i_vow_to_thee_my_country" in file_id
-                and note.lyric in sil
-                and notes[i + 1].lyric == "ろ"
-            )
-            or (
-                "shabondama" in file_id
-                and note.lyric in sil
-                and notes[i + 1].lyric == "だ"
-            )
-            or (
-                "kusakeiba" in file_id
-                and note.lyric in sil
-                and notes[i - 3].lyric == "’い"
-            )
-        ):
-            notes[i + 1].st = note.st
-            continue
+        # if (
+        #     (
+        #         "i_vow_to_thee_my_country" in file_id
+        #         and note.lyric in sil
+        #         and notes[i + 1].lyric == "ろ"
+        #     )
+        #     or (
+        #         "shabondama" in file_id
+        #         and note.lyric in sil
+        #         and notes[i + 1].lyric == "だ"
+        #     )
+        #     or (
+        #         "kusakeiba" in file_id
+        #         and note.lyric in sil
+        #         and notes[i - 3].lyric == "’い"
+        #     )
+        # ):
+        #     notes[i + 1].st = note.st
+        #     continue
         if note.lyric in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -111,44 +111,12 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # add pause (split)
         elif (
             (note.lyric is not None and note.lyric[0] in ["・", "’"])
-            or ("hana" in file_id and note.lyric == "あ" and notes[i - 1].lyric == "や")
-            or ("hana" in file_id and note.lyric == "も" and notes[i - 1].lyric == "に")
-            or (
-                "santa_lucia" in file_id
-                and note.lyric == "な"
-                and notes[i - 1].lyric == "わ"
-            )
-            or (
-                "santa_lucia" in file_id
-                and note.lyric == "そ"
-                and notes[i - 8].lyric == "ぜ"
-            )
-            or (
-                "furusato" in file_id
-                and note.lyric == "か"
-                and notes[i + 2].lyric == "か"
-            )
-            or (
-                "aria" in file_id
-                and note.lyric == "でぃ"
-                and notes[i - 1].lyric == "い"
-            )
-            or ("aria" in file_id and note.lyric == "ぷ" and notes[i - 1].lyric == "じ")
-            or (
-                "antagata_dokosa" in file_id
-                and notes[i - 1].lyric == "さ"
-                and notes[i - 2].lyric != "こ"
-            )
-            or (
-                "kusakeiba" in file_id
-                and note.lyric == "どぅ"
-                and notes[i - 1].lyric == "ぎ"
-            )
+            or ("hana" in file_id and notes[i].lyric == "’う" and notes[i - 1].lyric == "の")
+            or ("yuki" in file_id and notes[i].lyric == "わ" and notes[i - 1].lyric == "も")
         ):
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
-            # remove spcial mark
             if note.lyric[0] in ["・", "’"]:
                 segment.add(note.st, note.et, note.lyric[1:], note.midi)
             else:
@@ -174,14 +142,14 @@ if __name__ == "__main__":
     segments = []
     scorescp = open(os.path.join(args.scp, "score.scp"), "r", encoding="utf-8")
     update_segments = open(
-        os.path.join(args.scp, "segments_from_xml.tmp"), "w", encoding="utf-8"
+        os.path.join(args.scp, "segments_from_ust.tmp"), "w", encoding="utf-8"
     )
     update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
-    reader = XMLReader(os.path.join(args.scp, "score.scp"))
-    for xml_line in scorescp:
-        xmlline = xml_line.strip().split(" ")
-        recording_id = xmlline[0]
-        path = xmlline[1]
+    reader = USTReader(os.path.join(args.scp, "score.scp"))
+    for ust_line in scorescp:
+        ustline = ust_line.strip().split(" ")
+        recording_id = ustline[0]
+        path = ustline[1]
         tempo, temp_info = reader[recording_id]
         segments.append(
             make_segment(recording_id, tempo, temp_info, args.threshold, args.silence)
