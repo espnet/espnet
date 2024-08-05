@@ -50,7 +50,9 @@ feature_reader_choice = dict(
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--km_path", type=str, required=True)
-    parser.add_argument("--cluster_method", type=str, default="kmeans", choices=("kmeans", "ica"))
+    parser.add_argument(
+        "--cluster_method", type=str, default="kmeans", choices=("kmeans", "ica")
+    )
     parser.add_argument("--use_gpu", type=str2bool, default=False)
     parser.add_argument("--online_feature_extract", type=str2bool, default=False)
     parser.add_argument("--feature_conf", type=str, default=None)
@@ -90,17 +92,17 @@ def get_parser():
 
 class ApplyClusteringMethod:
     def __init__(
-            self,
-            model_path: typing.Union[str, pathlib.Path],
-            use_gpu: bool,
-        ):
+        self,
+        model_path: typing.Union[str, pathlib.Path],
+        use_gpu: bool,
+    ):
         self.model = joblib.load(model_path)
         self.use_gpu = use_gpu and torch.cuda.is_available()
 
     def __call__(
-            self,
-            x: typing.Union[np.ndarray, torch.Tensor],
-        ) -> np.ndarray:
+        self,
+        x: typing.Union[np.ndarray, torch.Tensor],
+    ) -> np.ndarray:
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
         if self.use_gpu:
@@ -126,16 +128,13 @@ class ApplyKmeans(ApplyClusteringMethod):
             self.Cnorm = self.Cnorm.cuda()
 
     def impl(self, x):
-        dist = (
-            x.pow(2).sum(1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
-        )
+        dist = x.pow(2).sum(1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
         return dist.argmin(dim=1).cpu().numpy()
 
 
 class ApplyICA(ApplyClusteringMethod):
     def impl(self, x):
         raise NotImplementedError()
-
 
 
 def dump_label(
@@ -159,7 +158,9 @@ def dump_label(
     apply_clustering = {
         "kmeans": ApplyKmeans,
         "ica": ApplyICA,
-    }[cluster_method](km_path, use_gpu=use_gpu)
+    }[
+        cluster_method
+    ](km_path, use_gpu=use_gpu)
 
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
