@@ -19,10 +19,8 @@ except ImportError:
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
-import deepspeed
 import torch
 import torch.distributed as dist
-from deepspeed import DeepSpeedEngine
 from torch.distributed import ReduceOp
 from typeguard import typechecked
 
