@@ -255,6 +255,10 @@ discrete_speech_metrics.done: espnet.done
 	. ./activate_python.sh && ./installers/install_discrete_speech_metrics.sh
 	touch discrete_speech_metrics.done
 
+versa.done: espnet.done
+        . ./activate_python.sh && ./installers/install_versa.sh
+        touch versa.done
+
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 
@@ -273,7 +277,7 @@ clean_extra:
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
-	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN
+	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip
