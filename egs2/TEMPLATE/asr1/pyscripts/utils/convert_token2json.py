@@ -40,6 +40,7 @@ if __name__ == "__main__":
             if len(line.strip()) == 0:
                 break
             key, value = line.strip().split(maxsplit=1)
+
             if value.endswith("|"):
                 # Streaming input e.g. cat a.wav |
                 with kaldiio.open_like_kaldi(value, "rb") as wav_f:

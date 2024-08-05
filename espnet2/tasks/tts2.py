@@ -26,7 +26,8 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
-from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
+from espnet2.tts2.fastspeech2.fastspeech2_discrete import FastSpeech2Discrete
+from espnet2.tts2.fastspeech2_ma.fastspeech2_discrete_ma import FastSpeech2DiscreteMA
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
@@ -47,6 +48,7 @@ tts_choices = ClassChoices(
     "tts",
     classes=dict(
         fastspeech2=FastSpeech2Discrete,
+        fastspeech2_ma=FastSpeech2DiscreteMA,
     ),
     type_check=AbsTTS2,
     default="fastspeech2",
