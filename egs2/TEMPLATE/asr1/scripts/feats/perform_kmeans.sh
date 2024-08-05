@@ -32,6 +32,7 @@ use_gpu=false       # Whether to use gpu in feature extraction
 suffix=             # A suffix to distinguish the feature dump directory. Empty in usual cases.
 audio_format="wav"  # The audio format of the source speech (flac, wav, *_ark, etc)
 
+cluster_method="kmeans"     # Method to use when clustering (options: kmeans, ica)
 skip_train_kmeans=false     # Whether to skip the kmeans model training
 nclusters=100       # Number of clusters of kmeans model
 portion=0.1         # Portion of data from training set used to train kmeans model
@@ -204,7 +205,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
     # It typically requires 120GB RAM to run kmeans steps.
     ${cpu_cmd} --num_threads ${num_threads} ${_logdir}/learn_kmeans.log \
         ${python} pyscripts/utils/learn_kmeans.py \
-            --km_path ${km_dir}/km_${nclusters}.mdl \
+            --cluster_method ${cluster_method} \
+            --km_path ${km_dir}/${cluster_method}_${nclusters}.mdl \
             --n_clusters ${nclusters} \
             --percent -1 \
             --in_filetype mat \
@@ -267,7 +269,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_km${nclusters}.JOB.log \
             ${python} pyscripts/feats/dump_km_label.py \
                 ${_opts} \
-                --km_path "${km_dir}/km_${nclusters}.mdl" \
+                --cluster_method ${cluster_method} \
+                --km_path "${km_dir}/${cluster_method}_${nclusters}.mdl" \
                 --out_filetype "mat" \
                 --use_gpu ${use_gpu} \
                 --utt2num_samples "${_dump_dir}/logdir/utt2num_samples.JOB" \

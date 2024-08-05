@@ -60,6 +60,7 @@ max_wav_duration=30  # Maximum duration in second.
 # Kmeans / Codec related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
+cluster_method="kmeans"     # Method to use when clustering (options: kmeans, ica)
 portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
@@ -478,7 +479,7 @@ else
     s3prl_conf="{upstream=${kmeans_feature_type}}"
     kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
 fi
-km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+km_dir="${expdir}"/${cluster_method}/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
 
 # Set tag for naming of model directory
 if [ -z "${asr_tag}" ]; then
@@ -1711,7 +1712,7 @@ if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~
     if [ "${nlsyms_txt}" != none ]; then
         _opts+="--option ${nlsyms_txt} "
     fi
-    _km_dir="exp/kmeans/$(echo ${kmeans_feature} | tr '/' '_')_${nclusters}clusters"
+    _km_dir="exp/${cluster_method}/$(echo ${kmeans_feature} | tr '/' '_')_${nclusters}clusters"
     _opts+="--option ${_km_dir}/km_${nclusters}.mdl "
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.pack asr \

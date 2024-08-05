@@ -35,6 +35,7 @@ def get_parser():
     parser.add_argument(
         "--percent", default=-1, type=float, help="sample a subset; -1 for all"
     )
+    parser.add_argument("--cluster_method", default="kmeans", choices=("kmeans", "ica"))
     parser.add_argument("--init", default="k-means++")
     parser.add_argument("--max_iter", default=100, type=int)
     parser.add_argument("--batch_size", default=10000, type=int)
@@ -129,6 +130,7 @@ def learn_kmeans(
     in_filetype,
     km_path,
     n_clusters,
+    cluster_method,
     seed,
     percent,
     init,
@@ -141,22 +143,31 @@ def learn_kmeans(
 ):
     np.random.seed(seed)
     feat = load_feature(rspecifier, in_filetype, percent)
-    km_model = get_km_model(
-        n_clusters,
-        init,
-        max_iter,
-        batch_size,
-        tol,
-        max_no_improvement,
-        n_init,
-        reassignment_ratio,
-        seed,
-    )
-    km_model.fit(feat)
+
+    if cluster_method == "kmeans":
+        km_model = get_km_model(
+            n_clusters,
+            init,
+            max_iter,
+            batch_size,
+            tol,
+            max_no_improvement,
+            n_init,
+            reassignment_ratio,
+            seed,
+        )
+        km_model.fit(feat)
+        inertia = -km_model.score(feat) / len(feat)
+        logger.info("total intertia: %.5f", inertia)
+
+    elif cluster_method == "ica":
+        raise NotImplemented
+
+    else:
+        raise ValueError(f"Wrong parameter for --cluster_method: {cluster_method}")
+
     joblib.dump(km_model, km_path)
 
-    inertia = -km_model.score(feat) / len(feat)
-    logger.info("total intertia: %.5f", inertia)
     logger.info("finished successfully")
 
 

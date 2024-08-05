@@ -10,7 +10,9 @@
 import argparse
 import logging
 import os
+import pathlib
 import sys
+import typing
 
 import joblib
 import numpy as np
@@ -48,6 +50,7 @@ feature_reader_choice = dict(
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--km_path", type=str, required=True)
+    parser.add_argument("--cluster_method", type=str, default="kmeans", choices=("kmeans", "ica"))
     parser.add_argument("--use_gpu", type=str2bool, default=False)
     parser.add_argument("--online_feature_extract", type=str2bool, default=False)
     parser.add_argument("--feature_conf", type=str, default=None)
@@ -85,32 +88,54 @@ def get_parser():
     return parser
 
 
-class ApplyKmeans(object):
-    def __init__(self, km_path, use_gpu):
-        self.km_model = joblib.load(km_path)
-        self.C_np = self.km_model.cluster_centers_.transpose()
-        self.Cnorm_np = (self.C_np**2).sum(0, keepdims=True)
+class ApplyClusteringMethod:
+    def __init__(
+            self,
+            model_path: typing.Union[str, pathlib.Path],
+            use_gpu: bool,
+        ):
+        self.model = joblib.load(model_path)
+        self.use_gpu = use_gpu and torch.cuda.is_available()
 
-        self.C = torch.from_numpy(self.C_np)
-        self.Cnorm = torch.from_numpy(self.Cnorm_np)
-        if use_gpu and torch.cuda.is_available():
+    def __call__(
+            self,
+            x: typing.Union[np.ndarray, torch.Tensor],
+        ) -> np.ndarray:
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if self.use_gpu:
+            x = x.cuda()
+        return self.impl(x)
+
+    def impl(self, x: torch.Tensor) -> np.ndarray:
+        raise NotImplementedError
+
+
+class ApplyKmeans(ApplyClusteringMethod):
+    def __init__(self, km_path, use_gpu):
+        super().__init__(km_path, use_gpu)
+
+        C_np = self.model.cluster_centers_.transpose()
+        Cnorm_np = (self.C_np**2).sum(0, keepdims=True)
+
+        self.C = torch.from_numpy(C_np)
+        self.Cnorm = torch.from_numpy(Cnorm_np)
+
+        if self.use_gpu:
             self.C = self.C.cuda()
             self.Cnorm = self.Cnorm.cuda()
 
-    def __call__(self, x):
-        if isinstance(x, torch.Tensor):
-            x = x.to(self.C.device)
-            dist = (
-                x.pow(2).sum(1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
-            )
-            return dist.argmin(dim=1).cpu().numpy()
-        else:
-            dist = (
-                (x**2).sum(1, keepdims=True)
-                - 2 * np.matmul(x, self.C_np)
-                + self.Cnorm_np
-            )
-            return np.argmin(dist, axis=1)
+    def impl(self, x):
+        dist = (
+            x.pow(2).sum(1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
+        )
+        return dist.argmin(dim=1).cpu().numpy()
+
+
+class ApplyICA(ApplyClusteringMethod):
+    def impl(self, x):
+        raise NotImplementedError()
+
 
 
 def dump_label(
@@ -119,6 +144,7 @@ def dump_label(
     wspecifier,
     out_filetype,
     km_path,
+    cluster_method,
     use_gpu,
     online_feature_extract,
     **kwargs
@@ -130,7 +156,10 @@ def dump_label(
     else:
         feature_conf = None
 
-    apply_kmeans = ApplyKmeans(km_path, use_gpu=use_gpu)
+    apply_clustering = {
+        "kmeans": ApplyKmeans,
+        "ica": ApplyICA,
+    }[cluster_method](km_path, use_gpu=use_gpu)
 
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
@@ -139,7 +168,7 @@ def dump_label(
             filetype=out_filetype,
         ) as writer:
             for utt, feat in file_reader_helper(rspecifier, in_filetype):
-                lab = apply_kmeans(feat)
+                lab = apply_clustering(feat)
                 writer[utt] = lab
     else:
         assert feature_conf["type"] in feature_reader_choice
@@ -170,7 +199,7 @@ def dump_label(
                 )
 
                 for idx, utt in enumerate(utt_ids):
-                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
+                    lab = apply_clustering(feats[idx][: feats_lens[idx]].numpy())
                     writer[utt] = lab
 
     logger.info("finished successfully")
