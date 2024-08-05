@@ -117,7 +117,7 @@ def make_mel_loss_args(**kwargs):
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_encodec(
+def test_dac(
     dict_g, dict_d, dict_loss, average, include
 ):
     batch_size = 2
