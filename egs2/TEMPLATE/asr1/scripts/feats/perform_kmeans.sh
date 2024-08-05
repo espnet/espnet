@@ -266,7 +266,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 > ${_dump_dir}/logdir/utt2num_samples.${n}
         done
 
-        ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_km${nclusters}.JOB.log \
+        ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_${cluster_method}_${nclusters}.JOB.log \
             ${python} pyscripts/feats/dump_km_label.py \
                 ${_opts} \
                 --cluster_method ${cluster_method} \
@@ -275,12 +275,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 --use_gpu ${use_gpu} \
                 --utt2num_samples "${_dump_dir}/logdir/utt2num_samples.JOB" \
                 "scp:${_dump_dir}/logdir/inference_kmeans.JOB.scp" \
-                "ark,t:${_dump_dir}/logdir/pseudo_labels_km${nclusters}.JOB.txt" || exit 1;
+                "ark,t:${_dump_dir}/logdir/pseudo_labels_${cluster_method}_${nclusters}.JOB.txt" || exit 1;
 
         # concatenate scp files
         for n in $(seq ${_nj}); do
-            cat "${_dump_dir}"/logdir/pseudo_labels_km${nclusters}.${n}.txt || exit 1;
-        done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_km${nclusters}.txt || exit 1;
+            cat "${_dump_dir}"/logdir/pseudo_labels_${cluster_method}_${nclusters}.${n}.txt || exit 1;
+        done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_${cluster_method}_${nclusters}.txt || exit 1;
     done
 fi
 
@@ -304,7 +304,7 @@ if [ -n "${alignment_phoneme_dir}" ]; then
             # TODO(simpleoier): This script and arguments design are specific to LibriSpeech dataset.
             ${python} local/measure_teacher_quality.py \
                 --lab_dir "${featdir}/${feature_type}/${suffix}" \
-                --lab_name "pseudo_labels_km${nclusters}.txt" \
+                --lab_name "pseudo_labels_${cluster_method}_${nclusters}.txt" \
                 --lab_sets "${dev_set}" \
                 --phn_dir "${alignment_phoneme_dir}" \
                 --phn_sets ${phn_sets} \
@@ -324,8 +324,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
     for dset in "${train_set}" "${dev_set}" ${other_sets}; do
         label_dir="${featdir}/${feature_type}/${suffix}${dset}"
-        if [ -f "${label_dir}"/pseudo_labels_km${nclusters}.txt ]; then
-            cp "${label_dir}"/pseudo_labels_km${nclusters}.txt ${datadir}/${dset}/text.km.${km_tag}
+        if [ -f "${label_dir}"/pseudo_labels_${cluster_method}_${nclusters}.txt ]; then
+            cp "${label_dir}"/pseudo_labels_${cluster_method}_${nclusters}.txt ${datadir}/${dset}/text.km.${km_tag}
         fi
         utils/fix_data_dir.sh --utt_extra_files "text.km.${km_tag}" ${datadir}/${dset}
     done
