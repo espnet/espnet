@@ -256,8 +256,8 @@ discrete_speech_metrics.done: espnet.done
 	touch discrete_speech_metrics.done
 
 versa.done: espnet.done
-        . ./activate_python.sh && ./installers/install_versa.sh
-        touch versa.done
+	. ./activate_python.sh && ./installers/install_versa.sh
+	touch versa.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
