@@ -116,6 +116,9 @@ nbpe=5000
 bpe_nlsyms=
 bpe_input_sentence_size=10000000 # Size of input sentence for sentencepiece.
 bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
+# (5) Text LM embeddings
+textlm_hf_model_tag=
+textlm_max_words=1000
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -323,6 +326,16 @@ if ! "${skip_data_prep}"; then
 
                 if [ ${_modality} == "ssl" ]; then
                     log "ssl tokenization is not implemented" && exit 1;
+
+                elif [ ${_modality} == "text_emb" ]; then
+                    log "Offline Text LM inference for text embeddings"
+                    scripts/feats/dump_textlm.sh \
+                      --src_dir ${data_audio}/${dset} \
+                      --tgt_dir ${data_feats}/${dset} \
+                      --file_name ${_name} \
+                      --hf_model_tag ${textlm_hf_model_tag} \
+                      --max_words ${textlm_max_words} \
+                      --nj ${nj}
 
                 elif [ ${_modality} == "codec" ]; then
                     log "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
