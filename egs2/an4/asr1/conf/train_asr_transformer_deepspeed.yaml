@@ -8,22 +8,22 @@
 # * model saving and loading
 # * learning rate scheduler
 # * ...
-# 
+#
 # With DeepSpeed, one can also use some advanced trainer features, such as:
 # * ZeRO-1/2/3 optimization
 # * parameter offload
 # * activation checkpointing
 # * ...
 # So that a very large model can be trained easily.
-# 
+#
 # The provided conf/deepspeed_zero2.json only contains a simple use case of DeepSpeed.
 # Based on model arch and cluster feature, advanced users are encouraged to tune the
 # config file following the official documents: https://deepspeed.readthedocs.io/en/latest/
 #
-# Before training with DeepSpeed, make sure it has been installed. 
-# DeepSpeed will compile some torch extensions when you use them for the first time. So make 
-# sure you have ${CUDA_HOME} in your environment variables that contain a complete CUDA 
-# installation that is compatible with your pytorch CUDA. The compatibility requirement is 
+# Before training with DeepSpeed, make sure it has been installed.
+# DeepSpeed will compile some torch extensions when you use them for the first time. So make
+# sure you have ${CUDA_HOME} in your environment variables that contain a complete CUDA
+# installation that is compatible with your pytorch CUDA. The compatibility requirement is
 # only about the major CUDA version. E.g., CUDA 11.x are always compatible with each other.
 
 use_deepspeed: true
