@@ -28,7 +28,7 @@ WITH_OMP=ON
 
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
-python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
+python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
 extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
 
 activate_python.sh:
@@ -66,12 +66,8 @@ sndfile.done: activate_python.sh
 	# However, some old linuxs are not compatible with the wheel, so libsndfile is installed for this case.
 	. ./activate_python.sh && { conda install -y libsndfile -c conda-forge; }
 	touch sndfile.done
-setuptools.done: activate_python.sh
-	# NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
-	. ./activate_python.sh && { pip install setuptools; }
-	touch setuptools.done
 ifneq ($(strip $(USE_CONDA)),)
-conda_packages.done: bc.done cmake.done flac.done sox.done sndfile.done setuptools.done
+conda_packages.done: bc.done cmake.done flac.done sox.done sndfile.done
 else
 conda_packages.done:
 endif
@@ -93,7 +89,12 @@ sph2pipe: sph2pipe/sph2pipe
 sph2pipe/sph2pipe:
 	./installers/install_sph2pipe.sh
 
-packaging.done: activate_python.sh
+setuptools.done: activate_python.sh
+        # NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
+        . ./activate_python.sh && { pip install setuptools; }
+        touch setuptools.done
+
+packaging.done: setuptools.done
 	. ./activate_python.sh && python3 -m pip install packaging
 	touch packaging.done
 
