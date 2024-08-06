@@ -45,7 +45,6 @@ def test_resolve_distributed_mode1(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with pytest.raises(RuntimeError):
         resolve_distributed_mode(args)
@@ -63,7 +62,6 @@ def test_resolve_distributed_mode2(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with pytest.raises(RuntimeError):
         resolve_distributed_mode(args)
@@ -81,7 +79,6 @@ def test_resolve_distributed_mode3(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     resolve_distributed_mode(args)
 
@@ -98,7 +95,6 @@ def test_resolve_distributed_mode4(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     resolve_distributed_mode(args)
     assert args.distributed
@@ -116,7 +112,6 @@ def test_resolve_distributed_mode5(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with pytest.raises(RuntimeError):
         resolve_distributed_mode(args)
@@ -134,7 +129,6 @@ def test_resolve_distributed_mode6(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with pytest.raises(RuntimeError):
         resolve_distributed_mode(args)
@@ -152,7 +146,6 @@ def test_resolve_distributed_mode7(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     resolve_distributed_mode(args)
     assert args.distributed
@@ -171,7 +164,6 @@ def test_resolve_distributed_mode9(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     resolve_distributed_mode(args)
     assert args.distributed
@@ -190,7 +182,6 @@ def test_resolve_distributed_mode10(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     resolve_distributed_mode(args)
     assert not args.distributed
@@ -211,7 +202,6 @@ def test_init_cpu(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     args.dist_rank = 0
     option = build_dataclass(DistributedOption, args)
@@ -238,7 +228,6 @@ def test_init_cpu2():
         dist_init_method="env://",
         dist_master_addr=None,
         dist_master_port=free_port(),
-        use_deepspeed=False,
     )
     args.dist_rank = 0
     option = build_dataclass(DistributedOption, args)
@@ -266,7 +255,6 @@ def test_init_cpu3():
         dist_init_method="env://",
         dist_master_addr="localhost",
         dist_master_port=None,
-        use_deepspeed=False,
     )
     args.dist_rank = 0
     option = build_dataclass(DistributedOption, args)
@@ -294,7 +282,6 @@ def test_init_cpu4():
         dist_init_method="env://",
         dist_master_addr="localhost",
         dist_master_port=free_port(),
-        use_deepspeed=False,
     )
     args.dist_rank = 0
     option = build_dataclass(DistributedOption, args)
@@ -321,7 +308,6 @@ def test_init_cpu5():
         dist_init_method="env://",
         dist_master_addr="localhost",
         dist_master_port=free_port(),
-        use_deepspeed=False,
     )
     args.dist_rank = 0
     option = build_dataclass(DistributedOption, args)
@@ -346,7 +332,6 @@ def test_resolve_distributed_mode_slurm1(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with unittest.mock.patch.dict(
         "os.environ",
@@ -375,7 +360,6 @@ def test_resolve_distributed_mode_slurm2(dist_init_method):
         dist_init_method=dist_init_method,
         dist_master_addr=None,
         dist_master_port=None,
-        use_deepspeed=False,
     )
     with unittest.mock.patch.dict(
         "os.environ",
@@ -405,7 +389,6 @@ def test_resolve_distributed_mode_slurm3():
         dist_init_method="env://",
         dist_master_addr=None,
         dist_master_port=10000,
-        use_deepspeed=False,
     )
     env = dict(
         SLURM_PROCID="0",

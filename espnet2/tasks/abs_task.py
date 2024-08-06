@@ -289,7 +289,6 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     def get_parser(cls) -> config_argparse.ArgumentParser:
-
         class ArgumentDefaultsRawTextHelpFormatter(
             argparse.RawTextHelpFormatter,
             argparse.ArgumentDefaultsHelpFormatter,
@@ -1543,13 +1542,20 @@ class AbsTask(ABC):
             # Instead of it, define "Options" object and build here.
 
             if args.use_deepspeed:
-                if cls.trainer != Trainer:
+                if not distributed_option.distributed:
+                    logging.warning(
+                        "DeepSpeed is for distributed training. E.g., --ngpu > 1 "
+                        "Switch back to the normal trainer."
+                    )
+                elif cls.trainer != Trainer:
                     raise ValueError(
                         "only default trainer is compatible with deepspeed"
                     )
-                from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+                else:
+                    from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
 
-                cls.trainer = DeepSpeedTrainer
+                    cls.trainer = DeepSpeedTrainer
+                    distributed_option.init_deepspeed()
 
             trainer_options = cls.trainer.build_options(args)
             cls.trainer.run(
