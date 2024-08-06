@@ -69,7 +69,7 @@ sndfile.done: activate_python.sh
 setuptools.done: activate_python.sh
 	# NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
 	. ./activate_python.sh && { pip install setuptools; }
-        touch setuptools.done
+	touch setuptools.done
 ifneq ($(strip $(USE_CONDA)),)
 conda_packages.done: bc.done cmake.done flac.done sox.done sndfile.done setuptools.done
 else
