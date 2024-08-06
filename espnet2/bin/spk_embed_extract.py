@@ -418,6 +418,13 @@ def get_parser():
         "multi node data parallel training",
     )
     group.add_argument(
+        "--use_deepspeed",
+        default=False,
+        choices=[False],
+        type=str2bool,
+        help="A placeholder for distributed initialization. Not really in use",
+    )
+    group.add_argument(
         "--unused_parameters",
         type=str2bool,
         default=False,
