@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_codec.dac.dac import DACGenerator, DACDiscriminator
+from espnet2.gan_codec.dac.dac import DACDiscriminator, DACGenerator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -51,6 +51,7 @@ def make_generator_args(**kwargs):
     )
     default.update(kwargs)
     return default
+
 
 def make_discriminator_args(**kwargs):
     defaults = dict(
@@ -117,9 +118,7 @@ def make_mel_loss_args(**kwargs):
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_dac(
-    dict_g, dict_d, dict_loss, average, include
-):
+def test_dac(dict_g, dict_d, dict_loss, average, include):
     batch_size = 2
     batch_length = 128
     args_g = make_generator_args(**dict_g)

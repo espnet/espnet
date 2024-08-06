@@ -8,8 +8,8 @@ import pytest
 import torch
 
 from espnet2.gan_codec.encodec.encodec import EncodecDiscriminator
-from espnet2.gan_codec.soundstream.soundstream import SoundStreamGenerator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
+from espnet2.gan_codec.soundstream.soundstream import SoundStreamGenerator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -52,20 +52,22 @@ def make_generator_args(**kwargs):
     default.update(kwargs)
     return default
 
+
 def make_discriminator_args(**kwargs):
-    defaults = {"msstft_discriminator_params": 
-    {
-        "filters": 32,
-        "in_channels": 1,
-        "out_channels": 1,
-        "sep_channels": False,
-        "norm": "weight_norm",
-        "n_ffts": [32, 16],
-        "hop_lengths": [8, 4],
-        "win_lengths": [32, 16],
-        "activation": "LeakyReLU",
-        "activation_params": {"negative_slope": 0.3},
-    }}
+    defaults = {
+        "msstft_discriminator_params": {
+            "filters": 32,
+            "in_channels": 1,
+            "out_channels": 1,
+            "sep_channels": False,
+            "norm": "weight_norm",
+            "n_ffts": [32, 16],
+            "hop_lengths": [8, 4],
+            "win_lengths": [32, 16],
+            "activation": "LeakyReLU",
+            "activation_params": {"negative_slope": 0.3},
+        }
+    }
     defaults.update(kwargs)
     return defaults
 
@@ -99,9 +101,7 @@ def make_mel_loss_args(**kwargs):
         ({"encdec_true_skip": True}, {}, {}, True, True),
     ],
 )
-def test_encodec(
-    dict_g, dict_d, dict_loss, average, include
-):
+def test_encodec(dict_g, dict_d, dict_loss, average, include):
     batch_size = 2
     batch_length = 128
     args_g = make_generator_args(**dict_g)
