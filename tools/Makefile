@@ -91,7 +91,7 @@ sph2pipe/sph2pipe:
 
 setuptools.done: activate_python.sh
 	# NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
-	. ./activate_python.sh && { pip install setuptools; }
+	. ./activate_python.sh && { python -m ensurepip --upgrade; pip install setuptools; }
 	touch setuptools.done
 
 packaging.done: setuptools.done
