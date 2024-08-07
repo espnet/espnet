@@ -306,7 +306,7 @@ class Text2Speech:
         return Text2Speech(**kwargs)
 
 
-@typechecked
+# @typechecked
 def inference(
     output_dir: str,
     batch_size: int,
