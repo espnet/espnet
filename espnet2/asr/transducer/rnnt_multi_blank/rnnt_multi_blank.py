@@ -37,6 +37,21 @@ __all__ = ["rnnt_loss", "RNNTLossNumba", "MultiblankRNNTLossNumba"]
 
 
 class _RNNTNumba(Function):
+    """
+    A custom autograd function for computing RNN Transducer (RNNT) loss using Numba.
+
+    This class implements the forward and backward passes for the RNNT loss
+    computation, leveraging Numba for efficient CPU and GPU implementations.
+    It is designed to be used within PyTorch's autograd system.
+
+    The class supports both standard RNNT loss and FastEmit regularization,
+    with options for different reduction methods and gradient clamping.
+
+    Note:
+        This is an internal class and should not be instantiated directly.
+        Instead, use the `rnnt_loss` function or `RNNTLossNumba` module.
+    """
+
     @staticmethod
     def forward(
         ctx,
@@ -49,18 +64,34 @@ class _RNNTNumba(Function):
         fastemit_lambda,
         clamp,
     ):
-        """RNNTNumba Forward.
+        """
+            Forward pass for the RNN Transducer loss computation.
 
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
-            containing output from network
-        labels: 2 dimensional Tensor containing all the targets of
-            the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each
-            output sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
-        fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-            FastEmit: Low-latency Streaming ASR with Sequence-level
-            Emission Regularization.
+        This method computes the RNNT loss given the network outputs and labels.
+        It supports both CPU and GPU implementations.
+
+        Args:
+            ctx (object): Context object to save information for backward pass.
+            acts (torch.Tensor): A 4D tensor (batch x seqLength x labelLength x outputDim)
+                containing output from network.
+            labels (torch.Tensor): 2D tensor containing all the targets of the batch
+                with zero padded.
+            act_lens (torch.Tensor): 1D tensor of size (batch) containing size of each
+                output sequence from the network.
+            label_lens (torch.Tensor): 1D tensor of (batch) containing label length
+                of each example.
+            blank (int): The blank label index.
+            reduction (str): Specifies the reduction to apply to the output.
+            fastemit_lambda (float): Scaling factor for FastEmit regularization.
+            clamp (float): Value for gradient clamping.
+
+        Returns:
+            torch.Tensor: The computed RNNT loss.
+
+        Note:
+            This method saves gradients in the context for use in the backward pass.
+            The actual loss computation is delegated to CUDA or CPU implementations
+            based on the input tensor's device.
         """
 
         is_cuda = acts.is_cuda
@@ -101,15 +132,52 @@ class _RNNTNumba(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        """
+            Backward pass for the RNN Transducer loss computation.
+
+        This method computes the gradients of the RNNT loss with respect to the inputs.
+
+        Args:
+            ctx (object): Context object containing saved tensors from the forward pass.
+            grad_output (torch.Tensor): Gradient of the loss with respect to the output
+                of the forward pass.
+
+        Returns:
+            tuple: A tuple containing the gradients with respect to each input of the
+            forward function. The gradients for non-tensor inputs are None.
+
+        Note:
+            This method relies on the gradients computed and saved during the forward pass.
+            It scales the saved gradients by the incoming gradient and returns them.
+            The gradient computation is automatically handled by PyTorch's autograd system.
+        """
         if grad_output is not None and ctx.grads is not None:
             grad_output = grad_output.view(-1, 1, 1, 1).to(ctx.grads)
             return ctx.grads.mul_(grad_output), None, None, None, None, None, None, None
 
 
 class _MultiblankRNNTNumba(Function):
-    """Numba class for multi-blank transducer loss
+    """
+    A custom autograd function for computing Multi-blank RNN Transducer (RNNT) loss using Numba.
 
-    (https://arxiv.org/pdf/2211.03541.pdf)
+    This class implements the forward and backward passes for the Multi-blank RNNT loss
+    computation, leveraging Numba for efficient GPU implementations. It is designed to
+    be used within PyTorch's autograd system.
+
+    The Multi-blank RNNT loss is an extension of the standard RNNT loss that incorporates
+    multiple blank symbols with different durations. This approach can improve the
+    performance of speech recognition systems, especially in streaming scenarios.
+
+    The class supports both standard Multi-blank RNNT loss and FastEmit regularization,
+    with options for different reduction methods, gradient clamping, and logit
+    under-normalization.
+
+    Note:
+        This is an internal class and should not be instantiated directly.
+        Instead, use the `multiblank_rnnt_loss` function or `MultiblankRNNTLossNumba` module.
+
+    Reference:
+        https://arxiv.org/pdf/2211.03541.pdf
     """
 
     @staticmethod
@@ -126,15 +194,38 @@ class _MultiblankRNNTNumba(Function):
         clamp,
         sigma,
     ):
-        """MultiblankRNNTNumba Forward.
+        """
+            Forward pass for the Multi-blank RNN Transducer loss computation.
 
-        big_blank_durations: list of durations for multi-blank transducer, e.g.
-            [2, 4, 8].
-        sigma: hyper-parameter for logit under-normalization method for training
-            multi-blank transducers. Recommended value 0.05.
-        Refer to https://arxiv.org/pdf/2211.03541 for detailed explanations for
-            the above parameters;
-        For other parameters for this class, refer to comment for class _RNNTNumba
+        This method computes the Multi-blank RNNT loss given the network outputs and labels.
+        It currently supports only GPU implementations.
+
+        Args:
+            ctx (object): Context object to save information for backward pass.
+            acts (torch.Tensor): A 4D tensor (batch x seqLength x labelLength x outputDim)
+                containing output from network.
+            labels (torch.Tensor): 2D tensor containing all the targets of the batch
+                with zero padded.
+            act_lens (torch.Tensor): 1D tensor of size (batch) containing size of each
+                output sequence from the network.
+            label_lens (torch.Tensor): 1D tensor of (batch) containing label length
+                of each example.
+            blank (int): The standard blank label index.
+            big_blank_durations (list): List of durations for multi-blank transducer.
+            reduction (str): Specifies the reduction to apply to the output.
+            fastemit_lambda (float): Scaling factor for FastEmit regularization.
+            clamp (float): Value for gradient clamping.
+            sigma (float): Hyper-parameter for logit under-normalization method.
+
+        Returns:
+            torch.Tensor: The computed Multi-blank RNNT loss.
+
+        Raises:
+            NotImplementedError: If attempting to use CPU implementation.
+
+        Note:
+            This method saves gradients in the context for use in the backward pass.
+            The actual loss computation is delegated to the GPU implementation.
         """
 
         is_cuda = acts.is_cuda
@@ -181,6 +272,28 @@ class _MultiblankRNNTNumba(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        """
+            Backward pass for the Multi-blank RNN Transducer loss computation.
+
+        This method computes the gradients of the Multi-blank RNNT loss with respect to the inputs.
+
+        Args:
+            ctx (object): Context object containing saved tensors from the forward pass.
+            grad_output (torch.Tensor): Gradient of the loss with respect to the output
+                of the forward pass.
+
+        Returns:
+            tuple: A tuple containing the gradients with respect to each input of the
+            forward function. The gradients for non-tensor inputs are None.
+
+        Note:
+            This method relies on the gradients computed and saved during the forward pass.
+            It scales the saved gradients by the incoming gradient and returns them.
+            The gradient computation is automatically handled by PyTorch's autograd system.
+
+            The returned tuple has 11 elements to match the number of inputs in the forward method,
+            with None values for inputs that don't require gradients.
+        """
         if grad_output is not None and ctx.grads is not None:
             grad_output = grad_output.view(-1, 1, 1, 1).to(ctx.grads)
             return (
@@ -208,21 +321,45 @@ def rnnt_loss(
     fastemit_lambda: float = 0.0,
     clamp: float = 0.0,
 ):
-    """RNN Transducer Loss (functional form)
+    """
+    Compute the RNN Transducer Loss.
+
+    This function calculates the RNN Transducer Loss, which is commonly used in
+    speech recognition tasks. It supports both CPU and GPU computations.
 
     Args:
-        acts: Tensor of (batch x seqLength x labelLength x outputDim)
-            containing output from network
-        labels: 2 dimensional Tensor containing all the targets of
-            the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each
-            output sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
-        blank (int, optional): blank label. Default: 0.
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'mean' | 'sum'. 'none': no reduction will be applied,
-            'mean': the output losses will be divided by the target lengths and
-            then the mean over the batch is taken. Default: 'mean'
+        acts (torch.Tensor): A 4D tensor of shape (batch, seqLength, labelLength, outputDim)
+            containing the output from the network.
+        labels (torch.Tensor): A 2D tensor containing all the targets of the batch
+            with zero padding.
+        act_lens (torch.Tensor): A 1D tensor of size (batch) containing the size of
+            each output sequence from the network.
+        label_lens (torch.Tensor): A 1D tensor of size (batch) containing the label
+            length of each example.
+        blank (int, optional): The blank label index. Defaults to 0.
+        reduction (str, optional): Specifies the reduction to apply to the output.
+            Options are 'none', 'mean', or 'sum'. Defaults to 'mean'.
+        fastemit_lambda (float, optional): Scaling factor for FastEmit regularization.
+            Defaults to 0.0.
+        clamp (float, optional): Value for gradient clamping. If positive, gradients
+            will be clamped to [-clamp, clamp]. Defaults to 0.0.
+
+    Returns:
+        torch.Tensor: The computed RNN Transducer Loss.
+
+    Raises:
+        ValueError: If `clamp` is negative.
+
+    Note:
+        For CPU computations, log_softmax is applied manually, while for GPU
+        computations, it's computed within the CUDA kernel.
+
+    Example:
+        >>> acts = torch.randn(2, 10, 5, 20)
+        >>> labels = torch.randint(0, 19, (2, 5))
+        >>> act_lens = torch.tensor([10, 8])
+        >>> label_lens = torch.tensor([5, 4])
+        >>> loss = rnnt_loss(acts, labels, act_lens, label_lens)
     """
 
     if not acts.is_cuda:
@@ -256,28 +393,52 @@ def multiblank_rnnt_loss(
     fastemit_lambda: float = 0.0,
     clamp: float = 0.0,
 ):
-    """Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)
+    """
+    Compute the Multi-blank RNN Transducer Loss.
 
-    Loss (functional form)
+    This function calculates the Multi-blank RNN Transducer Loss, which is an extension
+    of the standard RNN Transducer Loss that incorporates multiple blank symbols with
+    different durations. It is designed to improve the performance of speech recognition
+    systems, especially for streaming scenarios.
+
     Args:
-        acts: Tensor of (batch x seqLength x labelLength x outputDim) containing
-        output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with
-            zero padded
-        act_lens: Tensor of size (batch) containing size of each output
-            sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
-        blank (int): standard blank label.
-        big_blank_durations: list of durations for multi-blank transducer, e.g.
-            [2, 4, 8].
-        sigma: hyper-parameter for logit under-normalization method for training
-            multi-blank transducers. Recommended value 0.05.
-        Refer to https://arxiv.org/pdf/2211.03541 for detailed explanations for
-            the last two params.
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'mean' | 'sum'. 'none': no reduction will be applied,
-            'mean': the output losses will be divided by the target lengths and
-            then the mean over the batch is taken. Default: 'mean'
+        acts (torch.Tensor): A 4D tensor of shape (batch, seqLength, labelLength, outputDim)
+            containing the output from the network.
+        labels (torch.Tensor): A 2D tensor containing all the targets of the batch
+            with zero padding.
+        act_lens (torch.Tensor): A 1D tensor of size (batch) containing the size of
+            each output sequence from the network.
+        label_lens (torch.Tensor): A 1D tensor of size (batch) containing the label
+            length of each example.
+        blank (int): The standard blank label index.
+        big_blank_durations (list, optional): List of durations for multi-blank transducer,
+            e.g., [2, 4, 8]. Defaults to an empty list.
+        reduction (str, optional): Specifies the reduction to apply to the output.
+            Options are 'none', 'mean', or 'sum'. Defaults to 'mean'.
+        fastemit_lambda (float, optional): Scaling factor for FastEmit regularization.
+            Defaults to 0.0.
+        clamp (float, optional): Value for gradient clamping. If positive, gradients
+            will be clamped to [-clamp, clamp]. Defaults to 0.0.
+
+    Returns:
+        torch.Tensor: The computed Multi-blank RNN Transducer Loss.
+
+    Raises:
+        ValueError: If `clamp` is negative.
+        NotImplementedError: If trying to use CPU for computation (currently only GPU is supported).
+
+    Note:
+        This implementation is based on the paper "Multi-blank Transducers for Speech Recognition"
+        (https://arxiv.org/pdf/2211.03541.pdf). It's designed to work with CUDA-enabled devices.
+
+    Example:
+        >>> acts = torch.randn(2, 10, 5, 20).cuda()
+        >>> labels = torch.randint(0, 19, (2, 5)).cuda()
+        >>> act_lens = torch.tensor([10, 8]).cuda()
+        >>> label_lens = torch.tensor([5, 4]).cuda()
+        >>> blank = 0
+        >>> big_blank_durations = [2, 4]
+        >>> loss = multiblank_rnnt_loss(acts, labels, act_lens, label_lens, blank, big_blank_durations)
     """
 
     if not acts.is_cuda:
@@ -309,19 +470,28 @@ def multiblank_rnnt_loss(
 
 
 class RNNTLossNumba(Module):
-    """RNNT Loss Numba
+    """
+    A PyTorch module for computing RNN Transducer (RNNT) loss using Numba.
 
-    Parameters:
-        blank (int, optional): blank label. Default: 0.
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'mean' | 'sum'. 'none': no reduction will be applied,
-            'mean': the output losses will be divided by the target lengths and
-            then the mean over the batch is taken. Default: 'mean'
-        fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-            FastEmit: Low-latency Streaming ASR with Sequence-level
-            Emission Regularization.
-        clamp: Float value. When set to value >= 0.0, will clamp the
-            gradient to [-clamp, clamp].
+    This module provides an efficient implementation of the RNNT loss function,
+    leveraging Numba for improved performance. It supports both CPU and GPU
+    computations, with options for different reduction methods, FastEmit
+    regularization, and gradient clamping.
+
+    The RNNT loss is commonly used in speech recognition tasks, particularly
+    for training end-to-end models.
+
+    Attributes:
+        blank (int): The blank label index. Default is 0.
+        reduction (str): Specifies the reduction to apply to the output.
+            Can be 'none', 'mean', or 'sum'. Default is 'mean'.
+        fastemit_lambda (float): Scaling factor for FastEmit regularization.
+            Default is 0.0.
+        clamp (float): Value for gradient clamping. When set to a value >= 0.0,
+            will clamp the gradient to [-clamp, clamp]. Default is -1 (no clamping).
+
+    Note:
+        This module uses the `_RNNTNumba` function for the actual loss computation.
     """
 
     def __init__(
@@ -335,15 +505,30 @@ class RNNTLossNumba(Module):
         self.loss = _RNNTNumba.apply
 
     def forward(self, acts, labels, act_lens, label_lens):
-        """Forward RNNTLossNumba.
+        """
+            Forward pass for computing the RNN Transducer loss.
 
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
-            containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the
-            batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output
-            sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
+        This method calculates the RNNT loss given the network outputs and labels.
+        It handles both CPU and GPU implementations, applying necessary preprocessing
+        steps depending on the device.
+
+        Args:
+            acts (torch.Tensor): A 4D tensor of shape (batch x seqLength x labelLength x outputDim)
+                containing output from the network.
+            labels (torch.Tensor): A 2D tensor containing all the targets of the batch
+                with zero padding.
+            act_lens (torch.Tensor): A 1D tensor of size (batch) containing the size of each
+                output sequence from the network.
+            label_lens (torch.Tensor): A 1D tensor of size (batch) containing the label
+                length of each example.
+
+        Returns:
+            torch.Tensor: The computed RNNT loss.
+
+        Note:
+            For CPU computations, this method manually applies log_softmax and handles
+            gradient clamping if specified. For GPU computations, these operations are
+            performed within the CUDA kernel for efficiency.
         """
 
         if not acts.is_cuda:
@@ -374,25 +559,32 @@ class RNNTLossNumba(Module):
 
 
 class MultiblankRNNTLossNumba(Module):
-    """Multiblank RNNT Loss Numba
+    """
+    A PyTorch module for computing Multi-blank RNN Transducer (RNNT) loss using Numba.
 
-    Parameters:
-        blank (int): standard blank label.
-        big_blank_durations: list of durations for multi-blank transducer, e.g.
-            [2, 4, 8].
-        sigma: hyper-parameter for logit under-normalization method for training
-            multi-blank transducers. Recommended value 0.05.
-        Refer to https://arxiv.org/pdf/2211.03541 for detailed explanations for
-            the above parameters;
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'mean' | 'sum'. 'none': no reduction will be applied,
-            'mean': the output losses will be divided by the target lengths and
-            then the mean over the batch is taken. Default: 'mean'
-        fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-            FastEmit: Low-latency Streaming ASR with Sequence-level
-            Emission Regularization.
-        clamp: Float value. When set to value >= 0.0, will clamp the
-            gradient to [-clamp, clamp].
+    This module implements the Multi-blank RNNT loss function, which is an extension
+    of the standard RNNT loss that incorporates multiple blank symbols with different
+    durations. It is designed to improve the performance of speech recognition systems,
+    especially in streaming scenarios.
+
+    The implementation uses Numba for efficient computation and currently supports
+    GPU operations only.
+
+    Attributes:
+        blank (int): The standard blank label index.
+        big_blank_durations (list): List of durations for multi-blank transducer, e.g., [2, 4, 8].
+        reduction (str): Specifies the reduction to apply to the output.
+            Can be 'none', 'mean', or 'sum'. Default is 'mean'.
+        fastemit_lambda (float): Scaling factor for FastEmit regularization. Default is 0.0.
+        clamp (float): Value for gradient clamping. When set to a value >= 0.0,
+            will clamp the gradient to [-clamp, clamp]. Default is -1 (no clamping).
+        sigma (float): Hyper-parameter for logit under-normalization method. Default is 0.0.
+
+    Note:
+        This module uses the `_MultiblankRNNTNumba` function for the actual loss computation.
+
+    Reference:
+        https://arxiv.org/pdf/2211.03541.pdf
     """
 
     def __init__(
@@ -414,15 +606,33 @@ class MultiblankRNNTLossNumba(Module):
         self.sigma = sigma
 
     def forward(self, acts, labels, act_lens, label_lens):
-        """MultiblankRNNTLossNumba Forward.
+        """
+            Forward pass for computing the Multi-blank RNN Transducer loss.
 
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
-            containing output from network
-        labels: 2 dimensional Tensor containing all the targets of
-            the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output
-            sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
+        This method calculates the Multi-blank RNNT loss given the network outputs and labels.
+        It currently supports only GPU implementations, applying necessary preprocessing
+        steps before the loss computation.
+
+        Args:
+            acts (torch.Tensor): A 4D tensor of shape (batch x seqLength x labelLength x outputDim)
+                containing output from the network.
+            labels (torch.Tensor): A 2D tensor containing all the targets of the batch
+                with zero padding.
+            act_lens (torch.Tensor): A 1D tensor of size (batch) containing the size of each
+                output sequence from the network.
+            label_lens (torch.Tensor): A 1D tensor of size (batch) containing the label
+                length of each example.
+
+        Returns:
+            torch.Tensor: The computed Multi-blank RNNT loss.
+
+        Raises:
+            NotImplementedError: If attempting to use CPU for computation.
+
+        Note:
+            For GPU computations, this method manually applies log_softmax and handles
+            gradient clamping if specified. The actual loss computation is performed
+            within the CUDA kernel for efficiency.
         """
 
         if not acts.is_cuda:
@@ -455,23 +665,115 @@ class MultiblankRNNTLossNumba(Module):
 
 
 def check_type(var, t, name):
+    """
+    Check if a variable has the expected data type.
+
+    This function verifies whether the given variable has the specified data type.
+    If the variable's type doesn't match the expected type, it raises a TypeError.
+
+    Args:
+        var (Any): The variable to check.
+        t (type): The expected data type.
+        name (str): The name of the variable (used in the error message).
+
+    Raises:
+        TypeError: If the variable's type doesn't match the expected type.
+
+    Example:
+        >>> import torch
+        >>> tensor = torch.tensor([1, 2, 3])
+        >>> check_type(tensor, torch.Tensor, "tensor")
+        >>> check_type(tensor, torch.float32, "tensor")
+        TypeError: tensor must be torch.float32
+    """
     if var.dtype is not t:
         raise TypeError("{} must be {}".format(name, t))
 
 
 def check_contiguous(var, name):
+    """
+    Check if a tensor is contiguous in memory.
+
+    This function verifies whether the given tensor is contiguous in memory.
+    If the tensor is not contiguous, it raises a ValueError.
+
+    Args:
+        var (torch.Tensor): The tensor to check for contiguity.
+        name (str): The name of the tensor (used in the error message).
+
+    Raises:
+        ValueError: If the tensor is not contiguous in memory.
+
+    Example:
+        >>> import torch
+        >>> tensor = torch.tensor([[1, 2], [3, 4]])
+        >>> check_contiguous(tensor, "tensor")
+        >>> non_contiguous = tensor.t()
+        >>> check_contiguous(non_contiguous, "non_contiguous")
+        ValueError: non_contiguous must be contiguous
+    """
     if not var.is_contiguous():
         raise ValueError("{} must be contiguous".format(name))
 
 
 def check_dim(var, dim, name):
+    """
+    Check if a tensor has the expected number of dimensions.
+
+    This function verifies whether the given tensor has the specified number of dimensions.
+    If the tensor's dimensionality doesn't match the expected value, it raises a ValueError.
+
+    Args:
+        var (torch.Tensor): The tensor to check.
+        dim (int): The expected number of dimensions.
+        name (str): The name of the tensor (used in the error message).
+
+    Raises:
+        ValueError: If the tensor's number of dimensions doesn't match the expected value.
+
+    Example:
+        >>> import torch
+        >>> tensor_2d = torch.tensor([[1, 2], [3, 4]])
+        >>> check_dim(tensor_2d, 2, "tensor_2d")
+        >>> tensor_3d = torch.ones(2, 3, 4)
+        >>> check_dim(tensor_3d, 2, "tensor_3d")
+        ValueError: tensor_3d must be 2D
+    """
     if len(var.shape) != dim:
         raise ValueError("{} must be {}D".format(name, dim))
 
 
 def certify_inputs(log_probs, labels, lengths, label_lengths):
     # check_type(log_probs, torch.float32, "log_probs")
-    check_type(labels, torch.int32, "labels")
+    """
+    Certify that the input tensors meet the required specifications for RNNT loss computation.
+
+    This function performs a series of checks on the input tensors to ensure they meet
+    the necessary requirements for computing the RNNT loss. It verifies data types,
+    contiguity, dimensions, and shape consistency.
+
+    Args:
+        log_probs (torch.Tensor): A 4D tensor of log probabilities from the network output.
+        labels (torch.Tensor): A 2D tensor of label sequences.
+        lengths (torch.Tensor): A 1D tensor of input sequence lengths.
+        label_lengths (torch.Tensor): A 1D tensor of label sequence lengths.
+
+    Raises:
+        TypeError: If any tensor has an incorrect data type.
+        ValueError: If any tensor is not contiguous, has incorrect dimensions,
+                    or if there's a mismatch in batch sizes or sequence lengths.
+
+    Note:
+        This function is typically called internally by the RNNT loss function
+        to validate inputs before computation.
+
+    Example:
+        >>> log_probs = torch.randn(2, 10, 5, 20, dtype=torch.float32)
+        >>> labels = torch.randint(0, 19, (2, 5), dtype=torch.int32)
+        >>> lengths = torch.tensor([10, 8], dtype=torch.int32)
+        >>> label_lengths = torch.tensor([5, 4], dtype=torch.int32)
+        >>> certify_inputs(log_probs, labels, lengths, label_lengths)
+    """
     check_type(label_lengths, torch.int32, "label_lengths")
     check_type(lengths, torch.int32, "lengths")
     check_contiguous(log_probs, "log_probs")

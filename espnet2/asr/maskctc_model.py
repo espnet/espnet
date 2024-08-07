@@ -37,7 +37,53 @@ else:
 
 
 class MaskCTCModel(ESPnetASRModel):
-    """Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC)"""
+    """
+        Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC).
+
+    This class implements the Mask-CTC model, which combines Connectionist Temporal
+    Classification (CTC) and Masked Language Model (MLM) approaches for automatic
+    speech recognition (ASR).
+
+    The model consists of an encoder, a CTC branch, and an MLM decoder branch. It
+    supports various components such as frontend processing, spectrogram
+    augmentation, normalization, pre-encoding, post-encoding, and joint network
+    functionalities.
+
+    Attributes:
+        vocab_size (int): Size of the vocabulary, including the mask token.
+        token_list (List[str]): List of tokens in the vocabulary.
+        mask_token (int): Token ID for the mask token.
+        criterion_mlm (LabelSmoothingLoss): Loss function for the MLM branch.
+        error_calculator (ErrorCalculator): Calculator for CER and WER metrics.
+
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of tokens in the vocabulary.
+        frontend (Optional[AbsFrontend]): Frontend processing module.
+        specaug (Optional[AbsSpecAug]): Spectrogram augmentation module.
+        normalize (Optional[AbsNormalize]): Normalization module.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module.
+        encoder (AbsEncoder): Encoder module.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module.
+        decoder (MLMDecoder): Masked Language Model decoder.
+        ctc (CTC): Connectionist Temporal Classification module.
+        joint_network (Optional[torch.nn.Module]): Joint network module.
+        ctc_weight (float): Weight for the CTC loss (default: 0.5).
+        interctc_weight (float): Weight for intermediate CTC loss (default: 0.0).
+        ignore_id (int): ID to be ignored in loss computation (default: -1).
+        lsm_weight (float): Label smoothing weight (default: 0.0).
+        length_normalized_loss (bool): Whether to normalize loss by length (default: False).
+        report_cer (bool): Whether to report Character Error Rate (default: True).
+        report_wer (bool): Whether to report Word Error Rate (default: True).
+        sym_space (str): Space symbol (default: "<space>").
+        sym_blank (str): Blank symbol (default: "<blank>").
+        sym_mask (str): Mask symbol (default: "<mask>").
+        extract_feats_in_collect_stats (bool): Whether to extract features in collect_stats (default: True).
+
+    Note:
+        This model extends the ESPnetASRModel and modifies it to incorporate
+        the Mask-CTC approach, which combines CTC and MLM for improved ASR performance.
+    """
 
     @typechecked
     def __init__(
@@ -120,13 +166,41 @@ class MaskCTCModel(ESPnetASRModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+                Forward pass for the Mask-CTC model.
+
+        This method performs the forward pass through the entire model, including
+        frontend processing, encoding, CTC loss calculation, and MLM loss calculation.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
+            speech (torch.Tensor): Input speech tensor of shape (Batch, Length, ...).
+            speech_lengths (torch.Tensor): Tensor of input speech lengths of shape (Batch,).
+            text (torch.Tensor): Target text tensor of shape (Batch, Length).
+            text_lengths (torch.Tensor): Tensor of target text lengths of shape (Batch,).
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple containing:
+                - loss (torch.Tensor): The total loss for the forward pass.
+                - stats (Dict[str, torch.Tensor]): A dictionary of statistics including
+                  CTC loss, MLM loss, accuracies, and error rates.
+                - weight (torch.Tensor): The batch size as a weight for the loss.
+
+        Raises:
+            AssertionError: If the input tensors have inconsistent batch sizes or
+                            if text_lengths is not a 1D tensor.
+
+        Note:
+            This method calculates both CTC and MLM losses, combining them based on
+            the specified CTC weight. It also handles intermediate CTC loss if enabled.
+
+        Examples:
+            >>> speech = torch.randn(2, 1000, 80)
+            >>> speech_lengths = torch.tensor([1000, 800])
+            >>> text = torch.randint(0, 100, (2, 20))
+            >>> text_lengths = torch.tensor([20, 15])
+            >>> model = MaskCTCModel(...)
+            >>> loss, stats, weight = model.forward(speech, speech_lengths, text, text_lengths)
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -246,6 +320,28 @@ class MaskCTCModel(ESPnetASRModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
+        """
+                Calculate negative log-likelihood for the Mask-CTC model.
+
+        This method is not implemented for the Mask-CTC model and will raise a
+        NotImplementedError if called.
+
+        Args:
+            encoder_out (torch.Tensor): Output from the encoder.
+            encoder_out_lens (torch.Tensor): Lengths of encoder outputs.
+            ys_pad (torch.Tensor): Padded target sequences.
+            ys_pad_lens (torch.Tensor): Lengths of target sequences.
+
+        Returns:
+            torch.Tensor: This method does not return a value.
+
+        Raises:
+            NotImplementedError: This method is not implemented for the Mask-CTC model.
+
+        Note:
+            The negative log-likelihood calculation is not applicable to the Mask-CTC
+            model due to its hybrid nature combining CTC and MLM approaches.
+        """
         raise NotImplementedError
 
     def batchify_nll(
@@ -256,11 +352,63 @@ class MaskCTCModel(ESPnetASRModel):
         ys_pad_lens: torch.Tensor,
         batch_size: int = 100,
     ):
+        """
+                Batchify the calculation of negative log-likelihood for the Mask-CTC model.
+
+        This method is not implemented for the Mask-CTC model and will raise a
+        NotImplementedError if called.
+
+        Args:
+            encoder_out (torch.Tensor): Output from the encoder.
+            encoder_out_lens (torch.Tensor): Lengths of encoder outputs.
+            ys_pad (torch.Tensor): Padded target sequences.
+            ys_pad_lens (torch.Tensor): Lengths of target sequences.
+            batch_size (int): Size of each batch for processing (default: 100).
+
+        Returns:
+            This method does not return a value.
+
+        Raises:
+            NotImplementedError: This method is not implemented for the Mask-CTC model.
+
+        Note:
+            The batchified negative log-likelihood calculation is not applicable to the
+            Mask-CTC model due to its hybrid nature combining CTC and MLM approaches.
+            This method is included for compatibility with other ASR model interfaces
+            but is not functional in the Mask-CTC context.
+        """
         raise NotImplementedError
 
 
 class MaskCTCInference(torch.nn.Module):
-    """Mask-CTC-based non-autoregressive inference"""
+    """
+        Mask-CTC-based non-autoregressive inference for automatic speech recognition.
+
+    This class implements the inference process for the Mask-CTC model, which combines
+    Connectionist Temporal Classification (CTC) and Masked Language Model (MLM) approaches
+    for non-autoregressive speech recognition.
+
+    The inference process involves iterative decoding, where masked tokens are
+    progressively predicted based on CTC probabilities and MLM predictions.
+
+    Attributes:
+        ctc (CTC): The CTC module from the ASR model.
+        mlm (MLMDecoder): The MLM decoder from the ASR model.
+        mask_token (int): The token ID representing the mask.
+        n_iterations (int): Number of iterations for the decoding process.
+        threshold_probability (float): Probability threshold for masking tokens.
+        converter (TokenIDConverter): Converter for token IDs to text.
+
+    Args:
+        asr_model (MaskCTCModel): The trained Mask-CTC ASR model.
+        n_iterations (int): Number of iterations for the decoding process.
+        threshold_probability (float): Probability threshold for masking tokens.
+
+    Note:
+        This class is designed to work with the MaskCTCModel and provides a
+        non-autoregressive inference method that can potentially be faster than
+        traditional autoregressive decoding approaches.
+    """
 
     def __init__(
         self,
@@ -278,11 +426,62 @@ class MaskCTCInference(torch.nn.Module):
         self.converter = TokenIDConverter(token_list=asr_model.token_list)
 
     def ids2text(self, ids: List[int]):
+        """
+                Convert a list of token IDs to readable text.
+
+        This method converts a sequence of token IDs to a human-readable string,
+        replacing special tokens with their corresponding symbols.
+
+        Args:
+            ids (List[int]): A list of token IDs to be converted to text.
+
+        Returns:
+            str: The converted text string.
+
+        Note:
+            - The method replaces "<mask>" with "_" and "<space>" with a space character.
+            - This conversion is useful for visualizing the output during the inference process.
+
+        Example:
+            >>> inference = MaskCTCInference(...)
+            >>> ids = [1, 2, 3, 4, 5]  # Assuming these are valid token IDs
+            >>> text = inference.ids2text(ids)
+            >>> print(text)
+            'converted text'
+        """
         text = "".join(self.converter.ids2tokens(ids))
         return text.replace("<mask>", "_").replace("<space>", " ")
 
     def forward(self, enc_out: torch.Tensor) -> List[Hypothesis]:
-        """Perform Mask-CTC inference"""
+        """
+                Perform Mask-CTC inference on the given encoder output.
+
+        This method implements the non-autoregressive Mask-CTC inference algorithm,
+        which iteratively refines the output by predicting masked tokens.
+
+        Args:
+            enc_out (torch.Tensor): The encoder output tensor of shape (T, D),
+                where T is the sequence length and D is the feature dimension.
+
+        Returns:
+            List[Hypothesis]: A list containing a single Hypothesis object with the
+                predicted token sequence.
+
+        Note:
+            The inference process involves the following steps:
+            1. Generate initial CTC greedy outputs
+            2. Mask low-confidence tokens based on CTC probabilities
+            3. Iteratively predict masked tokens using the MLM decoder
+            4. Finalize the output by predicting any remaining masked tokens
+
+            The method logs intermediate results for debugging purposes.
+
+        Example:
+            >>> inference = MaskCTCInference(...)
+            >>> encoder_output = torch.randn(100, 256)  # (T, D)
+            >>> hypothesis = inference(encoder_output)
+            >>> predicted_tokens = hypothesis[0].yseq
+        """
         # greedy ctc outputs
         enc_out = enc_out.unsqueeze(0)
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(enc_out)).max(dim=-1)

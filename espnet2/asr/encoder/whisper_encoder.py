@@ -10,9 +10,46 @@ from espnet2.asr.specaug.specaug import SpecAug
 
 
 class OpenAIWhisperEncoder(AbsEncoder):
-    """Transformer-based Speech Encoder from OpenAI's Whisper Model:
+    """
+        OpenAI Whisper-based Speech Encoder for ASR tasks.
 
-    URL: https://github.com/openai/whisper
+    This class implements a speech encoder based on OpenAI's Whisper model,
+    designed for Automatic Speech Recognition (ASR) tasks. It uses a Transformer
+    architecture and can be initialized with various Whisper model sizes.
+
+    Attributes:
+        n_fft (int): Number of FFT points.
+        win_length (int): Window length for STFT.
+        hop_length (int): Hop length for STFT.
+        n_mels (int): Number of mel filterbanks.
+        mel_filters (function): Function to create mel filterbanks.
+        dropout (torch.nn.Dropout): Dropout layer.
+        encoders (whisper.model.Encoder): Whisper encoder layers.
+        specaug (SpecAug): SpecAugment layer for data augmentation.
+        do_pad_trim (bool): Whether to pad or trim input audio.
+        pad_samples (int): Number of samples to pad to.
+
+    Args:
+        input_size (int): Input feature size. Defaults to 1.
+        dropout_rate (float): Dropout rate. Defaults to 0.0.
+        whisper_model (str): Whisper model size to use. Defaults to "small".
+        download_dir (Optional[str]): Directory to download Whisper model. Defaults to None.
+        use_specaug (bool): Whether to use SpecAugment. Defaults to False.
+        specaug_conf (Union[dict, None]): SpecAugment configuration. Defaults to None.
+        do_pad_trim (bool): Whether to pad or trim input audio. Defaults to False.
+
+    Raises:
+        ImportError: If the whisper package is not properly installed.
+
+    Note:
+        This encoder requires the `whisper` package to be installed.
+        It can be installed using the provided installation script.
+
+    Example:
+        >>> encoder = OpenAIWhisperEncoder(whisper_model="base", use_specaug=True)
+        >>> input_tensor = torch.randn(1, 16000)
+        >>> input_lengths = torch.tensor([16000])
+        >>> output, output_lengths, _ = encoder(input_tensor, input_lengths)
     """
 
     @typechecked
@@ -67,6 +104,21 @@ class OpenAIWhisperEncoder(AbsEncoder):
         self.pad_samples = N_SAMPLES
 
     def output_size(self) -> int:
+        """
+                Returns the output size of the encoder.
+
+        This method returns the dimensionality of the encoder's output features.
+
+        Returns:
+            int: The size of the output feature vector, which corresponds to the
+                number of units in the final layer normalization of the encoder.
+
+        Example:
+            >>> encoder = OpenAIWhisperEncoder(whisper_model="base")
+            >>> output_dim = encoder.output_size()
+            >>> print(output_dim)
+            512  # This may vary depending on the Whisper model size
+        """
         return self.encoders.ln_post.normalized_shape[-1]
 
     def pad_or_trim(
@@ -75,9 +127,33 @@ class OpenAIWhisperEncoder(AbsEncoder):
         length: int,
         axis: int = -1,
     ) -> torch.Tensor:
-        """Pad or trim the audio array to N_SAMPLES.
+        """
+                Pad or trim the input tensor to a specified length along a given axis.
 
-        Used in zero-shot inference cases.
+        This method is used to ensure that the input tensor has a consistent length,
+        which is particularly useful for zero-shot inference cases.
+
+        Args:
+            array (torch.Tensor): The input tensor to be padded or trimmed.
+            length (int): The desired length of the tensor along the specified axis.
+            axis (int, optional): The axis along which to pad or trim. Defaults to -1 (last dimension).
+
+        Returns:
+            torch.Tensor: The padded or trimmed tensor with the specified length along the given axis.
+
+        Raises:
+            ValueError: If the input tensor has fewer dimensions than the specified axis.
+
+        Example:
+            >>> encoder = OpenAIWhisperEncoder()
+            >>> input_tensor = torch.randn(1, 12000)
+            >>> padded_tensor = encoder.pad_or_trim(input_tensor, length=16000)
+            >>> print(padded_tensor.shape)
+            torch.Size([1, 16000])
+
+        Note:
+            If the input tensor is longer than the specified length, it will be trimmed.
+            If it's shorter, it will be padded with zeros.
         """
         if array.shape[axis] > length:
             array = array.index_select(
@@ -96,7 +172,36 @@ class OpenAIWhisperEncoder(AbsEncoder):
         audio: torch.Tensor,
         ilens: torch.Tensor = None,
     ) -> torch.Tensor:
-        """Use log-mel spectrogram computation native to Whisper training"""
+        """
+                Compute the log-mel spectrogram of the input audio.
+
+        This method implements the log-mel spectrogram computation native to Whisper training.
+        It performs short-time Fourier transform (STFT) on the input audio, applies mel filters,
+        and computes the log of the resulting spectrogram.
+
+        Args:
+            audio (torch.Tensor): Input audio tensor of shape (batch_size, num_samples).
+            ilens (torch.Tensor, optional): Tensor containing the lengths of each audio in the batch.
+                Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - log_spec (torch.Tensor): Log-mel spectrogram of shape (batch_size, n_mels, time).
+                - olens (Optional[torch.Tensor]): Tensor containing the lengths of each spectrogram
+                  in the batch. Returns None if ilens is None.
+
+        Note:
+            - The method uses the Whisper-specific parameters for STFT and mel filterbank.
+            - The last frame of the STFT is discarded to match Whisper's behavior.
+            - The log spectrogram is clamped and normalized as per Whisper's preprocessing.
+
+        Example:
+            >>> encoder = OpenAIWhisperEncoder()
+            >>> audio = torch.randn(2, 16000)  # 2 audio samples of 1 second each at 16kHz
+            >>> log_spec, spec_lengths = encoder.log_mel_spectrogram(audio)
+            >>> print(log_spec.shape)
+            torch.Size([2, 80, 100])  # (batch_size, n_mels, time)
+        """
         window = torch.hann_window(self.win_length).to(audio.device)
         stft = torch.stft(
             audio, self.n_fft, self.hop_length, window=window, return_complex=True
@@ -128,6 +233,37 @@ class OpenAIWhisperEncoder(AbsEncoder):
         input: torch.Tensor,
         ilens: torch.Tensor = None,
     ) -> torch.Tensor:
+        """
+                Encode input features using the Whisper encoder.
+
+        This method applies the Whisper encoder to the input features, including
+        convolutional layers, positional embedding, and transformer blocks.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (batch_size, n_mels, time).
+            ilens (torch.Tensor, optional): Tensor containing the lengths of each input
+                in the batch. Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - x (torch.Tensor): Encoded output of shape (batch_size, time, d_model).
+                - olens (Optional[torch.Tensor]): Tensor containing the lengths of each
+                  encoded output in the batch. Returns None if ilens is None.
+
+        Note:
+            - The method applies two convolutional layers followed by transformer blocks.
+            - Positional embedding is added to the output of convolutional layers.
+            - Due to positional encoding limitations, audios longer than 30 seconds
+              may not be fully encoded.
+            - Dropout is applied between transformer blocks during training.
+
+        Example:
+            >>> encoder = OpenAIWhisperEncoder()
+            >>> input_features = torch.randn(2, 80, 100)  # (batch_size, n_mels, time)
+            >>> encoded_output, output_lengths = encoder.whisper_encode(input_features)
+            >>> print(encoded_output.shape)
+            torch.Size([2, 100, 512])  # (batch_size, time, d_model)
+        """
         x = F.gelu(self.encoders.conv1(input))
         x = F.gelu(self.encoders.conv2(x))
         x = x.permute(0, 2, 1)
@@ -171,6 +307,39 @@ class OpenAIWhisperEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """
+                Forward pass of the OpenAI Whisper Encoder.
+
+        This method processes the input audio through the entire encoder pipeline,
+        including optional padding/trimming, log-mel spectrogram computation,
+        optional SpecAugment, and Whisper encoding.
+
+        Args:
+            xs_pad (torch.Tensor): Padded input tensor of shape (batch_size, T).
+            ilens (torch.Tensor): Tensor of input lengths of shape (batch_size,).
+            prev_states (torch.Tensor, optional): Tensor containing previous states.
+                Not used in this implementation. Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - xs_pad (torch.Tensor): Encoded output of shape (batch_size, T', D).
+                - olens (torch.Tensor): Tensor of output lengths of shape (batch_size,).
+                - None: Placeholder for consistency with AbsEncoder interface.
+
+        Note:
+            - If `do_pad_trim` is True, input will be padded or trimmed to `pad_samples`.
+            - SpecAugment is applied during training if `specaug` is not None.
+            - The method handles the entire encoding process from raw audio to
+              final encoded representations.
+
+        Example:
+            >>> encoder = OpenAIWhisperEncoder(do_pad_trim=True, use_specaug=True)
+            >>> input_audio = torch.randn(2, 16000)  # 2 audio samples of 1 second each at 16kHz
+            >>> input_lengths = torch.tensor([16000, 16000])
+            >>> output, output_lengths, _ = encoder(input_audio, input_lengths)
+            >>> print(output.shape)
+            torch.Size([2, 100, 512])  # (batch_size, time, d_model)
+        """
         if self.do_pad_trim:
             xs_pad = self.pad_or_trim(xs_pad, self.pad_samples)
 

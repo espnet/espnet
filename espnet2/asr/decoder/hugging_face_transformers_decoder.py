@@ -27,11 +27,39 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
-    """Hugging Face Transformers Decoder.
+    """
+    A decoder class that utilizes Hugging Face Transformers models.
+
+    This class implements a decoder interface using pre-trained models from the
+    Hugging Face Transformers library. It supports both causal language models
+    and sequence-to-sequence models.
+
+    Attributes:
+        causal_lm (bool): Whether the model is a causal language model.
+        decoder (torch.nn.Module): The main decoder component from the Hugging Face model.
+        decoder_word_embeddings (torch.nn.Embedding): Word embeddings of the decoder.
+        decoder_pad_token_id (int): Padding token ID for the decoder.
+        tokenizer_padding_side (str): Padding side used by the tokenizer ('left' or 'right').
+        prefix (torch.Tensor): Embedded prefix tokens.
+        postfix (torch.Tensor): Embedded postfix tokens.
+        lm_head (torch.nn.Module): Language model head for output projection.
+        model_name_or_path (str): Name or path of the Hugging Face model.
+        linear_in (torch.nn.Module): Linear layer to match encoder output size to decoder input size.
 
     Args:
-        encoder_output_size: dimension of encoder attention
-        model_name_or_path: Hugging Face Transformers model name
+        vocab_size (int): Size of the vocabulary.
+        encoder_output_size (int): Dimension of the encoder output.
+        model_name_or_path (str): Name or path of the Hugging Face Transformers model.
+        causal_lm (bool, optional): Whether to use a causal language model. Defaults to False.
+        prefix (str, optional): Prefix to add to the input. Defaults to "".
+        postfix (str, optional): Postfix to add to the input. Defaults to "".
+
+    Raises:
+        ImportError: If the 'transformers' library is not installed.
+
+    Note:
+        This class requires the 'transformers' library to be installed.
+        It adapts Hugging Face models for use with the ESPnet framework.
     """
 
     @typechecked
@@ -117,19 +145,26 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward decoder.
+        """
+            Forward pass of the decoder.
+
+        This method processes the encoder output and generates decoder output scores.
 
         Args:
-            hs_pad: encoded memory, float32  (batch, maxlen_in, feat)
-            hlens: (batch)
-            ys_in_pad: input tensor (batch, maxlen_out, #mels)
-            ys_in_lens: (batch)
-        Returns:
-            (tuple): tuple containing:
+            hs_pad (torch.Tensor): Encoded memory, float32 tensor of shape (batch, maxlen_in, feat).
+            hlens (torch.Tensor): Lengths of the encoded sequences in the batch.
+            ys_in_pad (torch.Tensor): Input tensor of shape (batch, maxlen_out, #mels).
+            ys_in_lens (torch.Tensor): Lengths of the input sequences in the batch.
 
-            x: decoded token score before softmax (batch, maxlen_out, token)
-                if use_output_layer is True,
-            olens: (batch, )
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - x (torch.Tensor): Decoded token scores before softmax,
+                  of shape (batch, maxlen_out, token).
+                - ys_in_lens (torch.Tensor): Lengths of the input sequences.
+
+        Note:
+            The method handles both causal language models and sequence-to-sequence models.
+            For causal language models, it adds prefix and postfix to the input.
         """
         enc_out = self.linear_in(hs_pad)
 
@@ -184,7 +219,18 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         return x, ys_in_lens
 
     def reload_pretrained_parameters(self):
-        self.decoder.load_state_dict(self.decoder_pretrained_params)
+        """
+            Reloads the pretrained parameters for the decoder and language model head.
+
+        This method restores the original pretrained weights of the Hugging Face
+        Transformers model. It resets both the decoder and the language model head
+        to their initial pretrained states.
+
+        Note:
+            This method is useful for resetting the model to its pretrained state,
+            which can be beneficial in certain training or fine-tuning scenarios.
+            It logs a message upon successful reloading of the parameters.
+        """
 
         if self.lm_head_pretrained_params is not None:
             self.lm_head.load_state_dict(self.lm_head_pretrained_params)
@@ -192,6 +238,33 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         logging.info("Pretrained Transformers model parameters reloaded!")
 
     def add_prefix_postfix(self, enc_out, hlens, ys_in_pad, ys_in_lens):
+        """
+            Adds prefix and postfix to the encoder output for causal language models.
+
+        This method prepares the input for causal language models by adding
+        prefix and postfix embeddings to the encoder output. It also handles
+        padding and creates the appropriate attention mask.
+
+        Args:
+            enc_out (torch.Tensor): Encoder output tensor.
+            hlens (torch.Tensor): Lengths of the encoder outputs in the batch.
+            ys_in_pad (torch.Tensor): Input tensor (batch, maxlen_out, #mels).
+            ys_in_lens (torch.Tensor): Lengths of the input sequences in the batch.
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor], torch.Tensor]:
+                - args (Dict[str, torch.Tensor]): A dictionary containing:
+                    - 'inputs_embeds': Tensor with added prefix, postfix, and padding.
+                    - 'attention_mask': Attention mask for the inputs.
+                    - 'return_dict': Boolean set to True.
+                - no_loss_lengths (torch.Tensor): Lengths of the sequences excluding
+                  the parts that should not contribute to the loss calculation.
+
+        Note:
+            This method is specifically designed for use with causal language models
+            in the HuggingFaceTransformersDecoder class. It handles different padding
+            sides based on the tokenizer configuration.
+        """
         args = {}
 
         hlens_max = (hlens + ys_in_lens).max()
@@ -236,6 +309,28 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         return args, no_loss_lengths
 
     def score(self, ys, state, x, speech=None):
+        """
+            Computes the score for the next token given the current state and input.
+
+        This method generates the log probability scores for the next token in the sequence
+        using the Hugging Face model's generation process.
+
+        Args:
+            ys (torch.Tensor): Current token sequence.
+            state (Any): The current state (not used in this implementation).
+            x (torch.Tensor): The encoder output.
+            speech (torch.Tensor, optional): Speech input (not used in this implementation).
+
+        Returns:
+            Tuple[torch.Tensor, None]:
+                - next_token_scores (torch.Tensor): Log probability scores for the next token.
+                - None: Placeholder for the updated state (not used in this implementation).
+
+        Note:
+            This method is part of the BatchScorerInterface and is used in beam search
+            decoding. It prepares the input for the Hugging Face model, runs the forward
+            pass, and returns the log probabilities for the next token.
+        """
         model_kwargs = {
             "encoder_outputs": ModelOutput(
                 last_hidden_state=self.linear_in(x).unsqueeze(0)
@@ -264,6 +359,30 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         xs: torch.Tensor,
         speech: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
+        """
+            Computes scores for the next tokens in a batch of sequences.
+
+        This method generates log probability scores for the next tokens in multiple
+        sequences simultaneously using the Hugging Face model's generation process.
+
+        Args:
+            ys (torch.Tensor): Batch of current token sequences.
+            states (List[Any]): List of current states (not used in this implementation).
+            xs (torch.Tensor): Batch of encoder outputs.
+            speech (torch.Tensor, optional): Batch of speech inputs (not used in this implementation).
+
+        Returns:
+            Tuple[torch.Tensor, None]:
+                - next_token_scores (torch.Tensor): Log probability scores for the next tokens
+                  in the batch. Shape: (batch_size, vocab_size).
+                - None: Placeholder for the updated states (not used in this implementation).
+
+        Note:
+            This method is part of the BatchScorerInterface and is used for efficient
+            batch processing in beam search decoding. It prepares the input for the
+            Hugging Face model, runs the forward pass, and returns the log probabilities
+            for the next tokens in all sequences of the batch.
+        """
         # import pdb;pdb.set_trace()
         model_kwargs = {
             "encoder_outputs": ModelOutput(last_hidden_state=self.linear_in(xs)),
@@ -285,6 +404,33 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
 
 def get_hugging_face_model_network(model):
+    """
+    Retrieves the network component from a Hugging Face model.
+
+    This function attempts to extract the main network component from various
+    Hugging Face model architectures. It checks for common attribute names
+    used in different model implementations.
+
+    Args:
+        model: A Hugging Face model object.
+
+    Returns:
+        The network component of the model.
+
+    Raises:
+        Exception: If the network attribute cannot be found in the model.
+
+    Examples:
+        >>> from transformers import AutoModelForCausalLM
+        >>> model = AutoModelForCausalLM.from_pretrained("gpt2")
+        >>> network = get_hugging_face_model_network(model)
+        >>> print(type(network).__name__)
+        'GPT2Model'
+
+    Note:
+        This function supports models with 'transformer', 'gpt_neox', or 'model'
+        attributes. If none of these attributes are found, an exception is raised.
+    """
     if hasattr(model, "transformer"):
         network = model.transformer
     elif hasattr(model, "gpt_neox"):
@@ -298,6 +444,33 @@ def get_hugging_face_model_network(model):
 
 
 def get_hugging_face_model_lm_head(model):
+    """
+    Retrieves the language model head component from a Hugging Face model.
+
+    This function attempts to extract the language model head component from
+    various Hugging Face model architectures. It checks for common attribute
+    names used in different model implementations.
+
+    Args:
+        model: A Hugging Face model object.
+
+    Returns:
+        The language model head component of the model.
+
+    Raises:
+        Exception: If the LM head attribute cannot be found in the model.
+
+    Examples:
+        >>> from transformers import AutoModelForCausalLM
+        >>> model = AutoModelForCausalLM.from_pretrained("gpt2")
+        >>> lm_head = get_hugging_face_model_lm_head(model)
+        >>> print(type(lm_head).__name__)
+        'Linear'
+
+    Note:
+        This function supports models with 'lm_head' or 'embed_out' attributes.
+        If neither of these attributes are found, an exception is raised.
+    """
     if hasattr(model, "lm_head"):
         lm_head = model.lm_head
     elif hasattr(model, "embed_out"):

@@ -15,9 +15,49 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class DefaultFrontend(AbsFrontend):
-    """Conventional frontend structure for ASR.
+    """
+        Conventional frontend structure for ASR.
 
-    Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Log-Mel-Fbank
+    This class implements a standard frontend processing pipeline for Automatic Speech Recognition (ASR),
+    consisting of the following steps: STFT -> WPE -> MVDR-Beamformer -> Power-spectrum -> Log-Mel-Fbank.
+
+    Attributes:
+        stft (Stft): Short-time Fourier transform module.
+        frontend (Frontend): Speech enhancement frontend module.
+        logmel (LogMel): Log-Mel filterbank feature extraction module.
+        n_mels (int): Number of Mel filterbank channels.
+        frontend_type (str): Type of frontend, set to "default".
+        hop_length (int): Hop length for STFT.
+        apply_stft (bool): Flag to determine whether to apply STFT.
+
+    Args:
+        fs (Union[int, str]): Sampling frequency of the input audio. Defaults to 16000.
+        n_fft (int): FFT size. Defaults to 512.
+        win_length (Optional[int]): Window length for STFT. Defaults to None.
+        hop_length (int): Hop length for STFT. Defaults to 128.
+        window (Optional[str]): Window function type. Defaults to "hann".
+        center (bool): Whether to pad the input on both sides. Defaults to True.
+        normalized (bool): Whether to normalize the STFT. Defaults to False.
+        onesided (bool): Whether to return only one-sided spectrum. Defaults to True.
+        n_mels (int): Number of Mel filterbank channels. Defaults to 80.
+        fmin (Optional[int]): Minimum frequency for Mel filters. Defaults to None.
+        fmax (Optional[int]): Maximum frequency for Mel filters. Defaults to None.
+        htk (bool): Whether to use HTK formula for Mel scale. Defaults to False.
+        frontend_conf (Optional[dict]): Configuration for the Frontend module. Defaults to None.
+        apply_stft (bool): Whether to apply STFT. Defaults to True.
+
+    Note:
+        This class inherits from AbsFrontend and implements the conventional frontend structure
+        used in many ASR systems. It combines multiple processing steps to convert raw audio
+        input into features suitable for acoustic modeling.
+
+    Examples:
+        >>> frontend = DefaultFrontend(fs=16000, n_fft=512, n_mels=80)
+        >>> input_audio = torch.randn(1, 16000)
+        >>> input_lengths = torch.tensor([16000])
+        >>> features, feat_lengths = frontend(input_audio, input_lengths)
+        >>> features.shape
+        torch.Size([1, 126, 80])
     """
 
     @typechecked
@@ -77,11 +117,64 @@ class DefaultFrontend(AbsFrontend):
         self.frontend_type = "default"
 
     def output_size(self) -> int:
+        """
+                Returns the output size of the frontend.
+
+        Returns:
+            int: The number of Mel filterbank channels (n_mels) used in the frontend.
+
+        Note:
+            This method is used to determine the dimensionality of the feature vectors
+            produced by the frontend, which is essential for configuring subsequent
+            components in the ASR pipeline.
+
+        Examples:
+            >>> frontend = DefaultFrontend(n_mels=80)
+            >>> frontend.output_size()
+            80
+        """
         return self.n_mels
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+                Perform frontend processing on the input audio.
+
+        This method applies the complete frontend processing pipeline to the input audio,
+        including STFT, optional speech enhancement, channel selection, power spectrum
+        computation, and log-mel feature extraction.
+
+        Args:
+            input (torch.Tensor): Input audio tensor of shape (Batch, Time).
+            input_lengths (torch.Tensor): Tensor of input audio lengths of shape (Batch,).
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - input_feats (torch.Tensor): Processed features of shape (Batch, Length, Dim).
+                - feats_lens (torch.Tensor): Lengths of processed features of shape (Batch,).
+
+        Note:
+            The processing steps include:
+            1. Domain conversion (e.g., STFT)
+            2. Optional speech enhancement
+            3. Channel selection for multi-channel input
+            4. Power spectrum computation
+            5. Log-mel feature extraction
+
+            During training, a random channel is selected for multi-channel input.
+            During inference, the first channel is used.
+
+        Examples:
+            >>> frontend = DefaultFrontend(fs=16000, n_fft=512, n_mels=80)
+            >>> input_audio = torch.randn(2, 16000)  # 2 utterances of 1 second each
+            >>> input_lengths = torch.tensor([16000, 12000])  # Second utterance is shorter
+            >>> features, feat_lengths = frontend(input_audio, input_lengths)
+            >>> features.shape
+            torch.Size([2, 126, 80])
+            >>> feat_lengths
+            tensor([126,  95])
+        """
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
         if self.stft is not None:
             input_stft, feats_lens = self._compute_stft(input, input_lengths)

@@ -14,7 +14,24 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 
 class LengthAdaptorPostEncoder(AbsPostEncoder):
-    """Length Adaptor PostEncoder."""
+    """
+        Length Adaptor PostEncoder for adjusting the length of input sequences.
+
+    This class implements a Length Adaptor PostEncoder, which is designed to modify
+    the length of input sequences through a series of convolutional layers. It can
+    optionally include an initial linear layer for input embedding.
+
+    Attributes:
+        embed (torch.nn.Sequential or None): Optional input embedding layer.
+        length_adaptor (torch.nn.Sequential): Sequence of convolutional layers for length adaptation.
+        length_adaptor_ratio (int): The ratio by which the input length is reduced.
+        return_int_enc (bool): Flag to determine if intermediate encodings should be returned.
+        out_sz (int): The output size of the encoder.
+
+    Note:
+        This implementation is based on the Length Adaptor described in
+        https://aclanthology.org/2021.acl-long.68.pdf
+    """
 
     @typechecked
     def __init__(
@@ -59,7 +76,38 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward."""
+        """
+                Forward pass of the Length Adaptor PostEncoder.
+
+        This method processes the input tensor through the length adaptor layers,
+        adjusting its length according to the configured length_adaptor_ratio.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (batch_size, time_steps, features).
+            input_lengths (torch.Tensor): Tensor containing the lengths of each sequence in the batch.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - output tensor of shape (batch_size, adjusted_time_steps, features)
+                - tensor of adjusted input lengths
+
+        Raises:
+            TooShortUttError: If the input sequence is too short for the configured subsampling.
+
+        Examples:
+            >>> encoder = LengthAdaptorPostEncoder(input_size=256, length_adaptor_n_layers=2)
+            >>> input_tensor = torch.randn(32, 100, 256)
+            >>> input_lengths = torch.full((32,), 100)
+            >>> output, output_lengths = encoder(input_tensor, input_lengths)
+            >>> print(output.shape)
+            torch.Size([32, 25, 256])
+            >>> print(output_lengths)
+            tensor([25, 25, 25, ..., 25, 25, 25])
+
+        Note:
+            The input tensor is permuted before and after passing through the length adaptor
+            to match the expected input format of Conv1d layers.
+        """
         if input.size(1) < self.length_adaptor_ratio:
             raise TooShortUttError(
                 f"has {input.size(1)} frames and is too short for subsampling "
@@ -83,5 +131,25 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         return input, input_lengths
 
     def output_size(self) -> int:
-        """Get the output size."""
+        """
+                Get the output size of the Length Adaptor PostEncoder.
+
+        Returns:
+            int: The size of the output features.
+
+        Note:
+            This method returns the value stored in the `out_sz` attribute, which is set
+            during the initialization of the LengthAdaptorPostEncoder. It represents
+            either the original input size or the size after the optional linear embedding,
+            depending on the configuration.
+
+        Examples:
+            >>> encoder = LengthAdaptorPostEncoder(input_size=256, output_size=512)
+            >>> print(encoder.output_size())
+            512
+
+            >>> encoder = LengthAdaptorPostEncoder(input_size=256)
+            >>> print(encoder.output_size())
+            256
+        """
         return self.out_sz

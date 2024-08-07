@@ -13,17 +13,35 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 
 class SlidingWindow(AbsFrontend):
-    """Sliding Window.
+    """
+        Sliding Window for raw audio input data.
 
-    Provides a sliding window over a batched continuous raw audio tensor.
-    Optionally, provides padding (Currently not implemented).
-    Combine this module with a pre-encoder compatible with raw audio data,
-    for example Sinc convolutions.
+    This class implements a sliding window operation over batched continuous raw audio tensors.
+    It is designed to be used as a frontend in audio processing pipelines, particularly
+    in combination with pre-encoders compatible with raw audio data (e.g., Sinc convolutions).
 
-    Known issues:
-    Output length is calculated incorrectly if audio shorter than win_length.
-    WARNING: trailing values are discarded - padding not implemented yet.
-    There is currently no additional window function applied to input values.
+    The sliding window operation segments the input audio into overlapping frames,
+    which can be further processed by subsequent layers in the neural network.
+
+    Attributes:
+        win_length (int): Length of each window frame.
+        hop_length (int): Number of samples to advance between successive frames.
+        channels (int): Number of input audio channels.
+        padding (Optional[int]): Padding option (currently not implemented).
+        fs (Optional[int]): Sampling rate (placeholder for compatibility, not used).
+
+    Note:
+        - Output length is calculated incorrectly if audio is shorter than win_length.
+        - Trailing values are currently discarded as padding is not yet implemented.
+        - No additional window function is applied to input values.
+
+    Examples:
+        >>> sliding_window = SlidingWindow(win_length=400, hop_length=160, channels=1)
+        >>> input_tensor = torch.randn(32, 16000, 1)  # (batch_size, time_steps, channels)
+        >>> input_lengths = torch.full((32,), 16000)
+        >>> output, output_lengths = sliding_window(input_tensor, input_lengths)
+        >>> print(output.shape)
+        torch.Size([32, 98, 1, 400])
     """
 
     @typechecked
@@ -54,15 +72,38 @@ class SlidingWindow(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Apply a sliding window on the input.
+        """
+                Apply a sliding window on the input.
+
+        This method processes the input audio tensor by applying a sliding window,
+        segmenting the continuous audio into overlapping frames.
 
         Args:
-            input: Input (B, T, C*D) or (B, T*C*D), with D=C=1.
-            input_lengths: Input lengths within batch.
+            input (torch.Tensor): Input tensor of shape (B, T, C*D) or (B, T*C*D),
+                where B is batch size, T is time steps, C is channels, and D is 1.
+            input_lengths (torch.Tensor): Tensor containing the valid length of each
+                sample in the batch.
 
         Returns:
-            Tensor: Output with dimensions (B, T, C, D), with D=win_length.
-            Tensor: Output lengths within batch.
+            Tuple[torch.Tensor, torch.Tensor]:
+                - output (torch.Tensor): Windowed output of shape (B, T, C, D),
+                  where D is the window length (win_length).
+                - output_lengths (torch.Tensor): Tensor containing the valid length
+                  of each windowed sample in the batch.
+
+        Examples:
+            >>> sliding_window = SlidingWindow(win_length=400, hop_length=160, channels=1)
+            >>> input_tensor = torch.randn(32, 16000, 1)  # (batch_size, time_steps, channels)
+            >>> input_lengths = torch.full((32,), 16000)
+            >>> output, output_lengths = sliding_window.forward(input_tensor, input_lengths)
+            >>> print(output.shape)
+            torch.Size([32, 98, 1, 400])
+            >>> print(output_lengths)
+            tensor([98, 98, 98, ..., 98, 98, 98])
+
+        Note:
+            The output length is calculated as:
+            (input_length - win_length) // hop_length + 1
         """
         input_size = input.size()
         B = input_size[0]
@@ -84,5 +125,22 @@ class SlidingWindow(AbsFrontend):
         return output, output_lengths
 
     def output_size(self) -> int:
-        """Return output length of feature dimension D, i.e. the window length."""
+        """
+                Return the output size of the feature dimension.
+
+        This method returns the length of the window, which corresponds to the
+        size of the feature dimension (D) in the output tensor.
+
+        Returns:
+            int: The window length (win_length).
+
+        Examples:
+            >>> sliding_window = SlidingWindow(win_length=400, hop_length=160, channels=1)
+            >>> print(sliding_window.output_size())
+            400
+
+        Note:
+            This value is used to determine the size of the last dimension in the
+            output tensor returned by the forward method.
+        """
         return self.win_length
