@@ -35,7 +35,7 @@ valid_set=dev_phn
 test_sets="test_phn"
 g2p=none
 
-vocoder_file="vocoder/checkpoint-180000steps_cn.pkl" # vocoder/vocoder.pkl
+vocoder_file="vocoder/checkpoint-180000steps.pkl" # vocoder/vocoder.pkl
 
 ./tts2.sh \
     --lang zh \
@@ -54,9 +54,6 @@ vocoder_file="vocoder/checkpoint-180000steps_cn.pkl" # vocoder/vocoder.pkl
     --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     --use_spk_embed true \
-    --teacher_dumpdir exp/tts_train_teacher_raw_phn_none/decode_teacher_use_teacher_forcingtrue_train.loss.ave \
-    --tts2_stats_dir exp/tts_train_teacher_raw_phn_none/decode_teacher_use_teacher_forcingtrue_train.loss.ave/stats \
-    --tts2_exp exp/tts_train_teacher_raw_phn_none_cn_hubert \
     --vocoder_file ${vocoder_file} \
     ${opts} "$@"
 
