@@ -3,6 +3,7 @@ Source code from:
 https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py
 """
 
+from dataclasses import dataclass
 from operator import itemgetter
 
 import numpy
@@ -89,3 +90,14 @@ def ComputeMinDcf(fnrs, fprs, thresholds, p_target, c_miss, c_fa):
     c_def = min(c_miss * p_target, c_fa * (1 - p_target))
     min_dcf = min_c_det / c_def
     return min_dcf, min_c_det_threshold
+
+
+@dataclass
+class SASVCostModel:
+    "Class describing SASV-DCF's relevant costs"
+    Pspf: float = 0.05
+    Pnontrg: float = 0.0095
+    Ptrg: float = 0.9405
+    Cmiss: float = 1
+    Cfa_asv: float = 10
+    Cfa_cm: float = 10
