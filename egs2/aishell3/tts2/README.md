@@ -88,7 +88,7 @@ Calculate pitch and energy (still following ``tts1``), for fastspeech2.
     --write_collected_feats true
 ```
 
-### 4. Train discrete fastspeech2 
+### 4. Train discrete fastspeech2
 The datasets include text, durations, speech, discrete speech, pitch, energy, and spkembs. We use cn_hubert (pretrained on mandarin) here for discrete tts feature extraction.
 
 ```
@@ -123,9 +123,9 @@ We use [PWG repo](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs
   ```shell
   cat path/to/train_hubert.txt path/to/dev_hubert.txt path/to/test_hubert.txt > path/to/newfile_all.txt
   ```
-* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in kaldiio than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid. 
+* Modify the ``hubert_text`` in ./run.sh. Follow instructions in stage 0 to symlink the data(silence trimmed). ``wav`` format is better supported in kaldiio than ``flac``. Notice that aishell3 has unknown speakers, so we don't use sid.
 
-* Modify ``num_embs``(equals to the number of k-means clusters), ``batch_max_steps``(as the comment suggested) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``. 
+* Modify ``num_embs``(equals to the number of k-means clusters), ``batch_max_steps``(as the comment suggested) and custom parameters in the config file ``conf/hifigan_hubert_24k.v1.yaml``.
 
 * Start feature extraction and training from stage 1.
 
@@ -137,7 +137,7 @@ Run the inference stage in espnet2 recipe with your trained vocoder. Waveform wi
 ./run.sh --stage 9 --stop_stage 9 --tts2_exp exp/tts_fastspeech2_raw_phn_none_cn_hubert
 ```
 
-### 7. Evaluate model performance 
+### 7. Evaluate model performance
 Please follow [scripts here](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1#evaluation).
 
 

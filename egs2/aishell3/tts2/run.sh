@@ -56,5 +56,3 @@ vocoder_file="vocoder/checkpoint-180000steps.pkl" # vocoder/vocoder.pkl
     --use_spk_embed true \
     --vocoder_file ${vocoder_file} \
     ${opts} "$@"
-
-
