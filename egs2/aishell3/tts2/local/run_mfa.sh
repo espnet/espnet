@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 fs=24000
-n_shift=300
+n_shift=480
 
 ./scripts/utils/mfa.sh \
     --language pypinyin_phone  \
@@ -18,6 +18,7 @@ n_shift=300
     --samplerate ${fs} \
     --hop-size ${n_shift} \
     --clean_temp true \
+    --split_sets "train_no_dev dev test" \
     --stage 0 \
     --stop_stage 5 \
     "$@"

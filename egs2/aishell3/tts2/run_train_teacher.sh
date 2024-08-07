@@ -7,7 +7,7 @@ set -o pipefail
 
 fs=24000
 n_fft=2048
-n_shift=300
+n_shift=480
 win_length=1200
 
 opts=
@@ -33,7 +33,6 @@ inference_config=conf/decode_teacher.yaml
 # if you want to use officially provided phoneme text (better for the quality)
 train_set=train_no_dev_phn
 valid_set=dev_phn
-test_sets="dev_phn test_phn"
 g2p=none
 
 ./tts.sh \
@@ -50,12 +49,6 @@ g2p=none
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     --use_spk_embed true \
-    --stage 8 \
-    --stop_stage 8 \
-    --tts_exp exp/tts_train_teacher_raw_phn_none \
-    --test_sets "train_no_dev_phn dev_phn test_phn" \
-    --inference_args "--use_teacher_forcing true" \
     ${opts} "$@"

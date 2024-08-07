@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-fs=24000 # 44100 24000 yw change the default frequency
+fs=24000
 n_fft=2048
-n_shift=300
+n_shift=480
 win_length=1200
 
 opts=
@@ -59,7 +59,5 @@ vocoder_file="vocoder/checkpoint-180000steps_cn.pkl" # vocoder/vocoder.pkl
     --tts2_exp exp/tts_train_teacher_raw_phn_none_cn_hubert \
     --vocoder_file ${vocoder_file} \
     ${opts} "$@"
-
-# --inference_args "--use_teacher_forcing true" \
 
 
