@@ -45,3 +45,8 @@ if [ -n "${CUDA_HOME}" ]; then
     export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
     export PATH=${CUDA_HOME}/bin:${PATH}
 fi
+
+if [ -n "${CONDA_PREFIX-}" ]; then
+    export CFLAGS="-I${CONDA_PREFIX}/include"
+    export LDFLAGS="-L${CONDA_PREFIX}/lib"
+fi

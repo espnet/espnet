@@ -70,7 +70,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         if rej_seq is None or rej_seq_lengths is None:
             raise ValueError(f"The negative examples are not available")
         
-        prefix_len = kwargs.get("prefix_len")
+        prefix_len = kwargs.get("prefix_len").flatten()
         conti_feats = kwargs.get("conti_feats")
 
         n_positive, n_negative = len(dec_seq), len(rej_seq)
@@ -247,8 +247,3 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         return [
             ResidualAttentionBlock,  # Espnet built-in transformer layer.
         ]
-
-
-def printf(*string):
-    if torch.distributed.get_rank() == 0:
-        print(*string, flush=True)
