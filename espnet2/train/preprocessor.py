@@ -2451,7 +2451,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
     @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Union[np.ndarray, List]]:
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]

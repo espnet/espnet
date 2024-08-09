@@ -21,13 +21,13 @@ corelm_conf:
 # Dataloader
 batch_type: numel
 batch_bins: 500
-accum_grad: 100
-num_iters_per_epoch: 5000
+accum_grad: 200
+num_iters_per_epoch: 10000
 grad_clip: 50
 max_epoch: 8
 num_workers: 4
 drop_last_iter: true
-log_interval: 1000
+log_interval: 2000
 num_att_plot: 0
 
 # Criterion & Optimization; constant learning rate
