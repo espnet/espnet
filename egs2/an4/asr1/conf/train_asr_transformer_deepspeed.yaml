@@ -20,6 +20,9 @@
 # Based on model arch and cluster feature, advanced users are encouraged to tune the
 # config file following the official documents: https://deepspeed.readthedocs.io/en/latest/
 #
+# Note: the batch size-related setup is up to ESPnet dataloader settings rather than
+#       those specified in DeepSpeed config.
+#
 # Before training with DeepSpeed, make sure it has been installed.
 # DeepSpeed will compile some torch extensions when you use them for the first time. So make
 # sure you have ${CUDA_HOME} in your environment variables that contain a complete CUDA
