@@ -438,6 +438,10 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=
     kmeans_feature_conf="{type=mfcc}"
+elif [ ${kmeans_feature} != "espnet_hubert" ]; then
+    kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+    layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
+    kmeans_feature_conf=
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
@@ -752,7 +756,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     scripts/feats/perform_kmeans.sh \
-        --stage 1 --stop-stage 4 \
+        --stage 3 --stop-stage 3 \
         --train_set "${train_set}" \
         --dev_set "${_dev_set}" \
         --other_sets "${test_sets} ${train_sp_sets}" \
