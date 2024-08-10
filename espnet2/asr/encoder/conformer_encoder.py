@@ -116,7 +116,7 @@ class ConformerEncoder(AbsEncoder):
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
         qk_norm: bool = False,
-        use_flash_attn: bool = False,
+        use_flash_attn: bool = True,
     ):
         super().__init__()
         self._output_size = output_size
@@ -236,6 +236,15 @@ class ConformerEncoder(AbsEncoder):
             raise NotImplementedError("Support only linear or conv1d.")
 
         if selfattention_layer_type == "selfattn":
+            # Default to flash attention unless overrided by user
+            if use_flash_attn:
+                try:
+                    from espnet2.torch_utils.get_flash_attn_compatability import is_flash_attn_supported
+                    use_flash_attn = is_flash_attn_supported()
+                    import flash_attn
+                except:
+                    use_flash_attn = False
+
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
