@@ -245,7 +245,7 @@ class ConformerEncoder(AbsEncoder):
 
                     use_flash_attn = is_flash_attn_supported()
                     import flash_attn
-                except:
+                except Exception:
                     use_flash_attn = False
 
             encoder_selfattn_layer = MultiHeadedAttention

@@ -17,8 +17,8 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input, unpad_input
-except Exception:
-    logging.info("Failed to import Flash Attention, using ESPnet default.")
+except Exception as e:
+    logging.info(f"Failed to import Flash Attention, using ESPnet default: {e}")
 
 
 class MultiHeadedAttention(nn.Module):
