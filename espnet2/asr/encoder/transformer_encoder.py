@@ -154,12 +154,15 @@ class TransformerEncoder(AbsEncoder):
         # Default to flash attention unless overrided by user
         if use_flash_attn:
             try:
-                from espnet2.torch_utils.get_flash_attn_compatability import is_flash_attn_supported
+                from espnet2.torch_utils.get_flash_attn_compatability import (
+                    is_flash_attn_supported,
+                )
+
                 use_flash_attn = is_flash_attn_supported()
                 import flash_attn
             except:
                 use_flash_attn = False
-        print(use_flash_attn,  flush=True)
+        print(use_flash_attn, flush=True)
         self.encoders = repeat(
             num_blocks,
             lambda lnum: EncoderLayer(
