@@ -10,7 +10,7 @@ source /home/stan/miniconda3/envs/espnet_discrete/etc/profile.d/conda.sh
 conda activate /home/stan/miniconda3/envs/espnet_discrete
 export NCCL_P2P_DISABLE=1
 
-stage=1
+stage=15
 stop_stage=15
 nj=32
 inference_nj=4
@@ -81,7 +81,7 @@ tgt_case="ts"
     --inference_nj ${inference_nj} \
     --gpu_inference ${gpu_inference} \
     --lang ${lang} \
-    --inference_asr_model valid.loss.ave.pth \
+    --inference_asr_model valid.acc.ave.pth \
     --local_data_opts "${local_data_opts}" \
     --nlsyms_txt ${nlsyms_txt} \
     --use_lm false \
@@ -103,10 +103,11 @@ tgt_case="ts"
     --src_nbpe $src_nbpe \
     --tgt_token_type ${tgt_token_type} \
     --tgt_nbpe $tgt_nbpe \
-    --src_case ${src_case} \
-    --tgt_case ${tgt_case} \
+    --src_case "${src_case}" \
+    --tgt_case "${tgt_case}" \
+    --tgt_case "${tgt_case}" \
     --audio_format "flac.ark" \
     --src_bpe_train_text "dump/raw/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}"
-    --local_score_opts "${lid} ${only_lid} normal" 
+    --lm_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}" \
+    --local_score_opts "${lid} ${only_lid} normal"
