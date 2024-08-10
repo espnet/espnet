@@ -291,8 +291,6 @@ class BeamSearchTransducer:
 
         """
 
-        print('encoder out shape', enc_out.shape, len(enc_out))
-
         all_decoder_times = []
         all_joint_times = []
         beam_k = min(self.beam_size, (self.vocab_size - 1))

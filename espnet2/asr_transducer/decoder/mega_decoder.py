@@ -143,7 +143,6 @@ class MEGADecoder(AbsDecoder):
             out: Decoder output sequences. (B, U, D_dec)
 
         """
-        print('labels', labels)
         batch, length = labels.size()
 
         if 0 < self.chunk_size < length and length % self.chunk_size != 0:
@@ -186,7 +185,6 @@ class MEGADecoder(AbsDecoder):
         labels: torch.Tensor,
         states: List[Dict[str, torch.Tensor]],
     ) -> Tuple[torch.Tensor, List[Dict[str, torch.Tensor]]]:
-        print('labels', labels)
         """Encode source label sequences.
 
         Args:
