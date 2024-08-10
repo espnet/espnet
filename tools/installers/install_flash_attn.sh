@@ -6,7 +6,7 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-{ 
+{
     python3 -m pip install flash-attn --no-build-isolation
 } || {
     echo "Flash Attention failed to install, trying without building CUDA"
