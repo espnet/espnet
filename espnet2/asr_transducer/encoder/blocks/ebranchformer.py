@@ -78,10 +78,12 @@ class EBranchformer(torch.nn.Module):
             device: Device to use for cache tensor.
 
         """
+        dtype = self.self_att.linear_q.weight.dtype
         self.cache = [
             torch.zeros(
                 (1, left_context, self.block_size),
                 device=device,
+                dtype=dtype
             ),
             torch.zeros(
                 (
@@ -90,6 +92,7 @@ class EBranchformer(torch.nn.Module):
                     self.conv_mod.kernel_size - 1,
                 ),
                 device=device,
+                dtype=dtype
             ),
             torch.zeros(
                 (
@@ -98,6 +101,7 @@ class EBranchformer(torch.nn.Module):
                     self.depthwise_conv_mod.kernel_size - 1,
                 ),
                 device=device,
+                dtype=dtype
             ),
         ]
 

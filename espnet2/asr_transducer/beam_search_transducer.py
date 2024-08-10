@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import time
 
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
@@ -85,7 +86,7 @@ class BeamSearchTransducer:
         """Construct a BeamSearchTransducer object."""
         super().__init__()
 
-        self.decoder = decoder
+        self.decoder = torch.compile(decoder)
         self.joint_network = joint_network
 
         self.vocab_size = decoder.vocab_size
@@ -289,6 +290,9 @@ class BeamSearchTransducer:
             nbest_hyps: N-best hypothesis.
 
         """
+
+        all_decoder_times = []
+        all_joint_times = []
         beam_k = min(self.beam_size, (self.vocab_size - 1))
         max_t = len(enc_out)
 
@@ -311,16 +315,22 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
+                tt = time.time()
+
                 dec_out, state = self.decoder.score(
                     max_hyp.yseq,
                     max_hyp.dec_state,
                 )
+                all_decoder_times.append(time.time() - tt)
+                tt = time.time()
 
                 logp = torch.log_softmax(
                     self.joint_network(enc_out[t : t + 1, :], dec_out),
                     dim=-1,
                 ).squeeze(0)
                 top_k = logp[1:].topk(beam_k, dim=-1)
+
+                all_joint_times.append(time.time() - tt)
 
                 kept_hyps.append(
                     Hypothesis(
@@ -367,6 +377,9 @@ class BeamSearchTransducer:
                     kept_hyps = kept_most_prob
                     break
 
+
+        print('total decoder time', sum(all_decoder_times), 'num_decoder_calls', len(all_decoder_times))
+        print('total joint time', sum(all_joint_times), 'num joint calls', len(all_joint_times))
         return kept_hyps
 
     def align_length_sync_decoding(
