@@ -109,4 +109,4 @@ tgt_case="ts"
     --src_bpe_train_text "dump/raw/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}"
-    --local_score_opts "${lid} ${only_lid} normal" 
+    --local_score_opts "${lid} ${only_lid} normal"

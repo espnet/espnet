@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 if len(line) < 3:
                     continue  # a fix for seventh version
                 utt_id, _, text = line
-                
+
                 if process_text(text) == "":
                     continue
                 wav_details, sample_rate = sf.read(
