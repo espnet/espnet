@@ -101,12 +101,20 @@ codec_choice="EnCodec" # codec
 codec_checkpoint_path=null
 codec_config_path=null
 codec_hf_model_tag=null
-# (2) semantic
-semantic_choice="WavLM" # semantic
-semantic_opts=""
+codec_batch_size=3
+
+# (2) ssl
+ssl_choice="espnet_hubert" # currently only espnet_hubert
+ssl_checkpoint_path=null
+ssl_kmeans_path=null
+ssl_nlayer=16
+ssl_hf_model_tag=null
+ssl_batch_bins=4800000
+
 # (3) g2p
-g2p="g2p_en" # g2p
+g2p="g2p_en"
 cleaner=tacotron
+
 # (4) text bpe
 subword_choice=sentencepiece      # sentencepiece or huggingface
 subword_model=                    # external subword model path or huggingface model tag
@@ -116,9 +124,11 @@ nbpe=5000
 bpe_nlsyms=
 bpe_input_sentence_size=10000000 # Size of input sentence for sentencepiece.
 bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
+
 # (5) Text LM embeddings
 textlm_hf_model_tag=
 textlm_max_words=1000
+
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -266,7 +276,7 @@ if ! "${skip_data_prep}"; then
             for triplet in ${all_triplets}; do
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
 
-                if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
+                if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "codec_ssl" ]; then
                     
                     # Format audio
                     _opts=
@@ -324,10 +334,7 @@ if ! "${skip_data_prep}"; then
                     log "File ${data_audio}/${dset}/${_name} is missing. Exit" && exit 1;
                 fi
 
-                if [ ${_modality} == "ssl" ]; then
-                    log "ssl tokenization is not implemented" && exit 1;
-
-                elif [ ${_modality} == "text_emb" ]; then
+                if [ ${_modality} == "text_emb" ]; then
                     log "Offline Text LM inference for text embeddings"
                     scripts/feats/dump_textlm.sh \
                       --src_dir ${data_audio}/${dset} \
@@ -337,14 +344,59 @@ if ! "${skip_data_prep}"; then
                       --max_words ${textlm_max_words} \
                       --nj ${nj}
 
+                elif [ ${_modality} == "codec_ssl" ]; then
+                    # do both codec and SSL tokenization and then splice them in time-axis
+                    log "codec_ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+
+                    # ssl tokenization will additionally need utt2num_samples
+                    cp ${data_audio}/${dset}/utt2num_samples ${data_feats}/${dset}
+                    scripts/feats/codec_ssl_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --fs ${fs} \
+                        --nj ${nj} \
+                        --codec_choice ${codec_choice} \
+                        --codec_checkpoint_path ${codec_checkpoint_path} \
+                        --codec_config_path ${codec_config_path} \
+                        --codec_hf_model_tag ${codec_hf_model_tag} \
+                        --codec_batch_size ${codec_batch_size} \
+                        --codec_dump_audio false \
+                        --ssl_choice ${ssl_choice} \
+                        --ssl_checkpoint_path ${ssl_checkpoint_path} \
+                        --ssl_kmeans_path ${ssl_kmeans_path} \
+                        --ssl_nlayer ${ssl_nlayer} \
+                        --ssl_hf_model_tag ${ssl_hf_model_tag} \
+                        --ssl_batch_bins ${ssl_batch_bins}
+                    
+                elif [ ${_modality} == "ssl" ]; then
+                    
+                    log "ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+
+                    # ssl tokenization will additionally need utt2num_samples
+                    cp ${data_audio}/${dset}/utt2num_samples ${data_feats}/${dset}
+                    scripts/feats/ssl_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --fs ${fs} \
+                        --nj ${nj} \
+                        --batch_bins ${ssl_batch_bins} \
+                        --ssl_choice ${ssl_choice} \
+                        --checkpoint_path ${ssl_checkpoint_path} \
+                        --kmeans_path ${ssl_kmeans_path} \
+                        --nlayer ${ssl_nlayer} \
+                        --hf_model_tag ${ssl_hf_model_tag} \
+                        --use_gpu true
+
                 elif [ ${_modality} == "codec" ]; then
                     log "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/codec_tokenization.sh \
                         --src_dir ${data_audio}/${dset} \
                         --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
                         --codec_fs ${fs} \
                         --dump_audio false \
-                        --file_name ${_name} \
                         --nj ${nj} \
                         --codec_choice ${codec_choice} \
                         --checkpoint_path ${codec_checkpoint_path} \
@@ -377,7 +429,7 @@ if ! "${skip_data_prep}"; then
                             > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     else
                         if [ -f ${subword_model}.model ] && [ -f ${subword_model}.vocab ]; then
-                            log "Skip training subword model as it already exists"
+                            log "Skip training subword model as it already exists: ${subword_model}.model"
 
                         else
                             if [ -z ${subword_train_text} ]; then
@@ -406,8 +458,10 @@ if ! "${skip_data_prep}"; then
                                 ${_opts_spm}
                         fi
 
-                        < "${data_feats}/${dset}/token_lists/text_bpe.vocab" awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
-                        > ${data_feats}/${dset}/token_lists/text_bpe_token_list
+                        if [ "${dset}" == "${train_set}" ]; then
+                            < "${data_feats}/${dset}/token_lists/text_bpe.vocab" awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                            > ${data_feats}/${dset}/token_lists/text_bpe_token_list
+                        fi
                     fi
 
                     cp ${data_audio}/${dset}/${_name} ${data_feats}/${dset}/${_name}

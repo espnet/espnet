@@ -11,6 +11,8 @@ import kaldiio
 import torch
 import numpy as np
 
+from pathlib import Path
+
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool, str_or_none
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -31,7 +33,7 @@ def get_parser():
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
     parser.add_argument("--rank", type=int, default=1)
-    parser.add_argument("--vocab_file", type=str, required=True)
+    parser.add_argument("--vocab_file", type=Path, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
         "--bias",
@@ -161,12 +163,16 @@ def dump_codec(
 
             buffer, length_buffer, key_buffer = [], [], []
 
-    # (4) dump vocabulary file
+    # (4) dump vocabulary file and codec_code_per_frame file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")
         for codebook_idx in range(tokenizer.n_codebook):
             for code_idx in range(tokenizer.size_codebook):
                 vocab_writer.write(f"<codec_layer{codebook_idx}_code{code_idx}>\n")
+
+        n_codebook_file = vocab_file.parent / "codec_code_per_frame"
+        n_codebook_writer = open(n_codebook_file, 'w')
+        n_codebook_writer.write(f"{tokenizer.n_codebook}\n")
 
 
 if __name__ == "__main__":
