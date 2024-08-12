@@ -17,7 +17,7 @@ inference_config=conf/decode_espnet_codec.yaml
 cleaner=tacotron
 g2p=g2p_en_no_space # or g2p_en
 local_data_opts="--trim_all_silence true" # trim all silence in the audio
-codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"
 
 
 ./speechlm.sh \
