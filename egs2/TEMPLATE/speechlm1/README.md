@@ -571,17 +571,19 @@ When training with massive data, storing the whole dataset in each GPU process i
 
 ## Resources
 ### Tokenization Models
-`Codec`: As of Jul 30, 2024, we encourage the developers to use our open-sourced codec-model from Jiatong:
-  * https://huggingface.co/espnet/amuse_speech_soundstream_16k
-  * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k`
+`Codec`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from Jiatong:
+  * https://huggingface.co/espnet/owsmdata_soundstream_16k_200epoch
+  * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch`
 
-`ssl`: We will have a SSL + K-means tokenizer built on XEUS from William (Pending)
+`ssl`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
+  * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xues
+  * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xues`
 
 ### Pretrained Models:
 We provide pre-trained models for fine-tuning purpose. The models are of size of ~300M and is pre-trained on 55k hours of English Speech data using TTS task. The model currently accept `codec` and `g2p` modalities; users who work on other tasks/modalities can discard the pre-trained embedding layers and just use the transformer layers.
   * Vall-E Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_valle
-  * Delay Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_delay
-  * MultiScale Transformer Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_multiscale
+    * With the previous codec model: https://huggingface.co/espnet/amuse_speech_soundstream_16k
+  * A new pre-trained model based on the latest codec model is coming soon.
 
 ### Recipes：
   * `TTS` recipe for `LibriTTS`: `<espnet>/egs2/libritts/speechlm1/run.sh`
