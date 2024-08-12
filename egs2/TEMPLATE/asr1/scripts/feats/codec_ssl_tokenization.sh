@@ -113,7 +113,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     
     for n in `seq ${nj}`; do
         cat ${tgt_dir}/data/${file_name}_codec_ssl_${codec_choice}.${n}.scp
-    done > ${tgt_dir}/${file_name}
+    done > ${tgt_dir}/${file_name}.scp
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
