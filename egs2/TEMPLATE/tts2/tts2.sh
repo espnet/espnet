@@ -592,14 +592,14 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         log "Stage 6: Discrete TTS discrete unit extraction"
-        # (en hubert) 
+        # (en hubert)
         # s3prl_conf="{upstream=${s3prl_upstream_name}}"
         # kmeans_feature_type=s3prl
         # kmeans_feature_conf="{type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}"
-        # (zh hubert) 
+        # (zh hubert)
         s3prl_conf="{upstream=${s3prl_upstream_name},path_or_url=TencentGameMate/chinese-hubert-large}"
         kmeans_feature_type=s3prl
-        kmeans_feature_conf={type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}  
+        kmeans_feature_conf={type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}
         scripts/feats/perform_kmeans.sh \
             --stage ${discrete_stage} \
             --stop_stage ${discrete_stop_stage} \
