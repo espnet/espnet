@@ -366,7 +366,11 @@ class SelfAttention(torch.nn.Module):
             state[3][..., self.block_id] = att_state[1]
             state[4][..., self.block_id] = att_state[2]
         else:
-            wkv = WKVLinearAttention.apply(self.time_decay, self.time_first, key, value)
+            
+            wkv = WKVLinearAttention.apply(self.time_decay.float(), self.time_first.float(), key.float(), value.float())
+            if x.dtype==torch.float16:
+                wkv = wkv.half()
+                
 
         x = self.proj_output(receptance * wkv)
 
