@@ -28,7 +28,26 @@ else:
 
 
 class ESPnetDiscreteASRModel(ESPnetMTModel):
-    """Encoder-Decoder model"""
+    """
+        Encoder-Decoder model for Automatic Speech Recognition (ASR) with discrete units.
+
+    This class extends the ESPnetMTModel to incorporate ASR-specific components such as
+    CTC (Connectionist Temporal Classification) and SpecAugment. It combines encoder-decoder
+    architecture with CTC and attention-based decoding for improved ASR performance.
+
+    Attributes:
+        specaug (Optional[AbsSpecAug]): SpecAugment module for data augmentation.
+        blank_id (int): ID for the blank token in CTC.
+        ctc_weight (float): Weight of CTC loss in the total loss calculation.
+        interctc_weight (float): Weight of intermediate CTC loss.
+        ctc (Optional[CTC]): CTC module for ASR.
+        error_calculator (Optional[ASRErrorCalculator]): Calculator for ASR errors.
+
+    Note:
+        This model supports both regular and intermediate CTC losses, as well as
+        attention-based decoding. The final loss is a weighted combination of CTC
+        and attention decoder losses.
+    """
 
     @typechecked
     def __init__(
@@ -109,14 +128,26 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         src_text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+                Perform forward pass of the model: Frontend + Encoder + Decoder + Loss calculation.
 
         Args:
-            text: (Batch, Length)
-            text_lengths: (Batch,)
-            src_text: (Batch, length)
-            src_text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
+            text (torch.Tensor): Target text tensor. Shape: (Batch, Length)
+            text_lengths (torch.Tensor): Length of each sequence in the target text. Shape: (Batch,)
+            src_text (torch.Tensor): Source text tensor. Shape: (Batch, length)
+            src_text_lengths (torch.Tensor): Length of each sequence in the source text. Shape: (Batch,)
+            **kwargs: Additional keyword arguments. "utt_id" is expected among the inputs.
+
+        Returns:
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple containing:
+                - loss (torch.Tensor): The total loss of the model.
+                - stats (Dict[str, torch.Tensor]): A dictionary with various statistics and metrics.
+                - weight (torch.Tensor): The batch size as a weight for the loss.
+
+        Note:
+            This method handles the entire forward pass of the model, including CTC and
+            attention-based loss calculations. It also computes various metrics such as
+            Character Error Rate (CER) and Word Error Rate (WER) when not in training mode.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -201,11 +232,31 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
     def encode(
         self, src_text: torch.Tensor, src_text_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by mt_inference.py
+        """
+                Perform frontend processing and encoding of the input.
+
+        This method applies the frontend processing, optional SpecAugment, pre-encoding,
+        main encoding, and post-encoding steps to the input.
 
         Args:
-            src_text: (Batch, Length, ...)
-            src_text_lengths: (Batch, )
+            src_text (torch.Tensor): Source text tensor. Shape: (Batch, Length, ...)
+            src_text_lengths (torch.Tensor): Length of each sequence in the source text. Shape: (Batch,)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - encoder_out (torch.Tensor): The encoded output. Shape: (Batch, Length2, Dim2)
+                - encoder_out_lens (torch.Tensor): The length of each sequence in the encoded output.
+
+            If intermediate outputs are available:
+            Tuple[Tuple[torch.Tensor, List[Tuple[int, torch.Tensor]]], torch.Tensor]: A tuple containing:
+                - (encoder_out, intermediate_outs):
+                    - encoder_out (torch.Tensor): The final encoded output.
+                    - intermediate_outs (List[Tuple[int, torch.Tensor]]): Intermediate encoder outputs.
+                - encoder_out_lens (torch.Tensor): The length of each sequence in the encoded output.
+
+        Note:
+            This method is used by mt_inference.py and handles the entire encoding process,
+            including optional intermediate CTC outputs if the encoder supports it.
         """
         with autocast(False):
             # 1. Extract feats
