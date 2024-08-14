@@ -41,6 +41,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinxarg.ext",
     "sphinx_markdown_tables",
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -52,30 +53,11 @@ templates_path = ["_templates"]
 # source_suffix = '.rst'
 source_suffix = [".rst", ".md"]
 
-# enable to markdown
-from recommonmark.parser import CommonMarkParser
-
 source_parsers = {
-    ".md": CommonMarkParser,
+    ".md": 'markdown',
 }
 
-# AutoStructify setting ref: https://qiita.com/pashango2/items/d1b379b699af85b529ce
-from recommonmark.transform import AutoStructify
-
 github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
-
-
-def setup(app):
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            "url_resolver": lambda url: github_doc_root + url,
-            "auto_toc_tree_section": "Contents",
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)
-
 
 # The master toctree document.
 master_doc = "index"
