@@ -288,7 +288,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         if return_encoder_states:
             return_list.append(encoder_out)
 
-        if return_decoder_states(return_list.append(decoder_out))
+        if return_decoder_states:
+            return_list.append(decoder_out)
 
         return return_list
 
