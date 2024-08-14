@@ -164,6 +164,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        return_encoder_states: bool = False,
+        return_decoder_states: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Forward architecture and compute loss(es).
@@ -281,7 +283,14 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        return loss, stats, weight
+        return_list = [loss, stats, weight]
+
+        if return_encoder_states:
+            return_list.append(encoder_out)
+
+        if return_decoder_states(return_list.append(decoder_out))
+
+        return return_list
 
     def collect_feats(
         self,
