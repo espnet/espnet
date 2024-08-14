@@ -120,6 +120,7 @@ requirements = {
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
 requirements["test"].extend(requirements["train"])
+requirements["doc"].extend(requirements["all"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
