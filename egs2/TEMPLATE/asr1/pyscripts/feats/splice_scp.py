@@ -54,6 +54,7 @@ def main():
 
         if abs(len(ssl_value) - len(codec_value)) > args.tolerance:
             print(f"length mismatch: ssl: {len(ssl_value)} {len(codec_value)}")
+            continue
 
         min_len = min(len(ssl_value), len(codec_value))
         ssl_value = ssl_value[:min_len]

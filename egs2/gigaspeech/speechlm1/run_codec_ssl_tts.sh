@@ -20,7 +20,7 @@ bpe_opts="--subword_choice huggingface --subword_model google/gemma-2b-it"
     --data_name gigaspeech \
     --fs 16000 \
     --ngpu 1 \
-    --nj 16 \
+    --nj 32 \
     --train_config conf/train_foo.yaml \
     --audio_format "flac.ark" \
     --train_set "${train_set}" \

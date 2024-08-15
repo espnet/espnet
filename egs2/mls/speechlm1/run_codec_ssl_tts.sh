@@ -9,9 +9,9 @@ lang="en"
 data_split="full" # one of full 1h 10h
 local_data_opts="--lang ${lang} --data_split ${data_split}"
 
-train_set="mls_${lang}_train"
+train_set= # "mls_${lang}_train"
 valid_set="mls_${lang}_dev"
-test_sets=""
+test_sets="mls_en_test"
 
 ssl_opts="--ssl_checkpoint_path exp/kmeans_xues/38epoch.pth --ssl_kmeans_path exp/kmeans_xues/km_5000.mdl --ssl_nlayer 16"
 codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"

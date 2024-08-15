@@ -345,9 +345,15 @@ else
     exit 2
 fi
 
-if [ ${tokenization_choice} == "codec" ]; then
-    if [ ! ${src_token_type} == "null" ]; then
+if [ "${tokenization_choice}" == "codec" ]; then
+    if [ ! "${src_token_type}" == "null" ]; then
         echo "src_token_type should only be null if tokenization_choice is codec" && exit 1;
+    fi
+fi
+
+if [ "${src_token_type}" == "null" ]; then
+    if [ ! "${tokenization_choice}" == "codec" ]; then
+        echo "tokenization_choice should only be codec if src_token_type is null" && exit 1;
     fi
 fi
 

@@ -20,7 +20,7 @@ class TextBPETokenizer(AbsTokenizer):
     def forward(self, text):
         raise NotImplementedError
 
-    def detokenize(self, tokens):
+    def tokens2text(self, tokens):
         """
         tokens (torch.Tensor), token tensor, in size [B, T_text]
         """
