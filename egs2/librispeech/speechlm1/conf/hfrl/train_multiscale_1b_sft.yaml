@@ -1,0 +1,52 @@
+# Trained with Tesla 8xA100-SXM4-40GB. It takes about ? hours.
+# #Params: 1.15B
+
+corelm: multiscale
+corelm_conf:
+    share_emb: false
+    # global transformer
+    g_att_unit: 1600
+    g_head: 25
+    g_layer: 32
+    # local transformer
+    l_att_unit: 384
+    l_head: 6
+    l_layer: 6
+
+# Dataloader
+batch_type: numel
+batch_bins: 500
+accum_grad: 100
+grad_clip: 50
+max_epoch: 1
+num_workers: 4
+drop_last_iter: true
+log_interval: 3000
+num_att_plot: 0
+
+# Criterion & Optimization; constant learning rate
+optim: adamw
+optim_conf:
+    lr: 0.0000003
+    betas:
+        - 0.9
+        - 0.95
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - total_count
+    - max
+keep_nbest_models: 5
+nbest_averaging_interval: 5
+
+# Global settings
+use_amp: true
+use_tf32: false
+use_fsdp: false
+encoder_decoder_format: false
+codec_token_per_frame: 8 # encodec
+codec_token_in_use: 8
+speaker_prompt_length: 150 # 75fps, a.k.a., 3s

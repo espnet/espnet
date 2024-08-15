@@ -66,8 +66,9 @@ storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 gpu_kmeans=true             # Whether to use gpu for kmeans.
 codec_choice=ESPnet
-codec_checkpoint_path=      # path to codec checkpoint file
-codec_config_path=          # path to codec config file
+codec_hf_model_tag=null         # model_tag of Espnet huggingface codec models
+codec_checkpoint_path=null      # path to codec checkpoint file
+codec_config_path=null          # path to codec config file
 
 # Tokenization related
 tokenization_choice=ssl # ssl or codec
@@ -344,9 +345,15 @@ else
     exit 2
 fi
 
-if [ ${tokenization_choice} == "codec" ]; then
-    if [ ! ${src_token_type} == "null" ]; then
+if [ "${tokenization_choice}" == "codec" ]; then
+    if [ ! "${src_token_type}" == "null" ]; then
         echo "src_token_type should only be null if tokenization_choice is codec" && exit 1;
+    fi
+fi
+
+if [ "${src_token_type}" == "null" ]; then
+    if [ ! "${tokenization_choice}" == "codec" ]; then
+        echo "tokenization_choice should only be codec if src_token_type is null" && exit 1;
     fi
 fi
 
@@ -471,6 +478,10 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=
     kmeans_feature_conf="{type=mfcc}"
+elif [ ${kmeans_feature} != "espnet_hubert" ]; then
+    kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+    layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
+    kmeans_feature_conf=
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
@@ -776,7 +787,6 @@ fi
 
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
-    log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
 
     if "${eval_valid_set}"; then
         _dev_set="org/${valid_set}"
@@ -785,6 +795,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     if [ "${tokenization_choice}" == "ssl" ]; then
+        log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
         scripts/feats/perform_kmeans.sh \
             --stage 1 --stop-stage 4 \
             --train_set "${train_set}" \
@@ -887,6 +898,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
     elif [ "${tokenization_choice}" == "codec" ]; then
         for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+            log "Stage 5a: Perform codec tokenization with codec choice ${codec_choice} .. "
+
             # NOTE (Jinchuan) bias=2, reserve two slots for <blk> and <unk>
             scripts/feats/codec_tokenization.sh \
                 --src_dir ${data_audio}/${dset} \
@@ -898,7 +911,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                 --bias 2 \
                 --codec_choice ${codec_choice} \
                 --checkpoint_path ${codec_checkpoint_path} \
-                --config_path ${codec_config_path}
+                --config_path ${codec_config_path} \
+                --hf_model_tag ${codec_hf_model_tag}
 
                 cp ${data_feats}/${dset}/wav.scp ${data_feats}/${dset}/text.${src_case}.${src_lang}
                 cp ${data_audio}/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}

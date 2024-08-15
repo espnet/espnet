@@ -26,6 +26,7 @@ from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     RelPositionMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    ConvolutionalPositionalEmbedding,
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,
@@ -231,6 +232,8 @@ class EBranchformerEncoder(AbsEncoder):
 
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
+        elif pos_enc_layer_type == "conv":
+            pos_enc_class = ConvolutionalPositionalEmbedding
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
         elif pos_enc_layer_type == "rel_pos":
@@ -251,6 +254,11 @@ class EBranchformerEncoder(AbsEncoder):
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
+        elif input_layer == "wav2vec":
+            self.embed = torch.nn.Sequential(
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+                torch.nn.Dropout(dropout_rate),
             )
         elif input_layer == "conv1d1":
             self.embed = Conv1dSubsampling1(
@@ -318,7 +326,7 @@ class EBranchformerEncoder(AbsEncoder):
                 input_layer,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer is None:
+        elif input_layer == "none" or input_layer is None:
             if input_size == output_size:
                 self.embed = torch.nn.Sequential(
                     pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
@@ -425,8 +433,10 @@ class EBranchformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        masks: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -442,7 +452,10 @@ class EBranchformerEncoder(AbsEncoder):
             torch.Tensor: Not to be used now.
         """
 
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        if masks is None:
+            masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        else:
+            masks = ~masks[:, None, :]
 
         if (
             isinstance(self.embed, Conv2dSubsampling)
@@ -467,11 +480,20 @@ class EBranchformerEncoder(AbsEncoder):
             xs_pad = self.embed(xs_pad)
 
         intermediate_outs = []
-        if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None and 0 <= max_layer < len(self.encoders):
+        if return_all_hs or len(self.interctc_layer_idx) == 0:
+            if (
+                return_all_hs
+                or max_layer is not None
+                and 0 <= max_layer < len(self.encoders)
+            ):
                 for layer_idx, encoder_layer in enumerate(self.encoders):
                     xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= max_layer:
+                    if return_all_hs:
+                        if isinstance(xs_pad, tuple):
+                            intermediate_outs.append(xs_pad[0])
+                        else:
+                            intermediate_outs.append(xs_pad)
+                    if max_layer is not None and layer_idx >= max_layer:
                         break
             else:
                 xs_pad, masks = self.encoders(xs_pad, masks)

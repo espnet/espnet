@@ -27,7 +27,7 @@ SECONDS=0
 
 # General configuration
 stage=1
-stop_stage=2
+stop_stage=3
 nj=8
 inference_nj=8
 gpu_inference=false
@@ -45,6 +45,7 @@ whisper_dir=""
 # Inference option related configuration
 inference_config=""
 inference_args=""
+
 ## change the language id according to your dataset
 decode_options="{task: transcribe, language: en, beam_size: 1}"
 
@@ -54,6 +55,7 @@ nlsyms_txt=none
 cleaner=none
 hyp_cleaner=none
 gt_text=""
+scoring_metrics="cer wer ter"
 
 help_message=$(cat << EOF
 Usage: $0 [Options] <wav.scp> <outdir>
@@ -136,7 +138,6 @@ if ${gpu_inference}; then
     # shellcheck disable=SC2154
     _cmd="${cuda_cmd}"
     _ngpu=1
-    inference_nj=1
 else
     # shellcheck disable=SC2154
     _cmd="${decode_cmd}"
@@ -201,6 +202,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
             python3 pyscripts/utils/evaluate_whisper_inference.py \
                 --ngpu "${_ngpu}" \
+                --rank JOB \
                 --data_path_and_name_and_type "${wavscp}" \
                 --key_file "${logdir}"/keys.JOB.scp \
                 --model_tag ${whisper_tag} \
@@ -230,7 +232,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Scoring"
-    for _type in cer wer ter; do
+    for _type in ${scoring_metrics}; do
         [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
 
         _scoredir="${outdir}/score_${_type}"

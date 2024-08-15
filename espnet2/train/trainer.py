@@ -3,6 +3,7 @@
 import argparse
 import dataclasses
 import logging
+import shutil
 import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
@@ -43,12 +44,11 @@ autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
 
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
-    ):
-        autocast_args = dict(dtype=torch.bfloat16)
+    if V(torch.__version__) >= V("1.10.0") and torch.cuda.is_available():
+        if torch.cuda.is_bf16_supported():
+            autocast_args = dict(dtype=torch.bfloat16)
+        else:
+            autocast_args = dict(dtype=torch.float16)
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -72,6 +72,18 @@ try:
 except Exception:
     s3prl = None
 
+if V(torch.__version__) >= V("2.0.1"):
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
+    from espnet2.torch_utils.fsdp import (
+        get_model_and_optimizer_state_dict_fsdp,
+        prepare_for_resume_fsdp,
+    )
+else:
+    FSDP = None
+    ShardedGradScaler = None
+
 
 @dataclasses.dataclass
 class TrainerOptions:
@@ -81,6 +93,7 @@ class TrainerOptions:
     train_dtype: str
     grad_noise: bool
     accum_grad: int
+    max_loss_scale: float
     grad_clip: float
     grad_clip_type: float
     log_interval: Optional[int]
@@ -158,6 +171,9 @@ class Trainer:
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
         )
+        if isinstance(model, FSDP):
+            states = prepare_for_resume_fsdp(states, model, optimizers)
+
         model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
         for optimizer, state in zip(optimizers, states["optimizers"]):
@@ -177,7 +193,7 @@ class Trainer:
     @typechecked
     def run(
         cls,
-        model: AbsESPnetModel,
+        model: Union[AbsESPnetModel, FSDP],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
@@ -212,6 +228,8 @@ class Trainer:
                         "Requiring fairscale. Do 'pip install fairscale'"
                     )
                 scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
+            elif isinstance(model, FSDP):
+                scaler = ShardedGradScaler()
             else:
                 scaler = GradScaler()
         else:
@@ -252,6 +270,10 @@ class Trainer:
                     module=model,
                     sharded_optimizer=optimizers,
                 )
+
+            elif isinstance(model, FSDP):  # already warpped in FSDP
+                dp_model = model
+
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
                     model,
@@ -269,6 +291,7 @@ class Trainer:
                     ),
                     find_unused_parameters=trainer_options.unused_parameters,
                 )
+
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
@@ -372,7 +395,13 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
-                model_state_dict = model.state_dict()
+                if isinstance(model, FSDP):
+                    model_state_dict, optim_state_dict = (
+                        get_model_and_optimizer_state_dict_fsdp(model, optimizers)
+                    )
+                else:
+                    model_state_dict = model.state_dict()
+                    optim_state_dict = [o.state_dict() for o in optimizers]
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
@@ -396,7 +425,7 @@ class Trainer:
                     {
                         "model": model_state_dict,
                         "reporter": reporter.state_dict(),
-                        "optimizers": [o.state_dict() for o in optimizers],
+                        "optimizers": optim_state_dict,
                         "schedulers": [
                             s.state_dict() if s is not None else None
                             for s in schedulers
@@ -404,6 +433,11 @@ class Trainer:
                         "scaler": scaler.state_dict() if scaler is not None else None,
                     },
                     output_dir / "checkpoint.pth",
+                )
+                # for large model, we can use this to resume the training.
+                shutil.copy(
+                    output_dir / "checkpoint.pth",
+                    output_dir / f"checkpoint_{iepoch}.pth",
                 )
 
                 # 5. Save and log the model and update the link to the best model
@@ -485,6 +519,11 @@ class Trainer:
                         _removed.append(str(p))
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
+            else:
+                # NOTE (Jinchuan): call this on each rank, as we need allreduce to
+                # collect the state_dict from all ranks when using FSDP.
+                if isinstance(model, FSDP):
+                    _ = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
@@ -523,7 +562,7 @@ class Trainer:
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
-        scaler: Optional[GradScaler],
+        scaler: Optional[Union[GradScaler, ShardedGradScaler]],
         reporter: SubReporter,
         summary_writer,
         options: TrainerOptions,
@@ -606,10 +645,7 @@ class Trainer:
                         )
                 del _model
 
-            with autocast(
-                scaler is not None,
-                **autocast_args,
-            ):
+            with autocast(options.use_amp, **autocast_args):
                 with reporter.measure_time("forward_time"):
                     retval = model(**batch)
 
@@ -697,11 +733,16 @@ class Trainer:
                     )
 
                 # compute the gradient norm to check if it is normal or not
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(),
-                    max_norm=grad_clip,
-                    norm_type=grad_clip_type,
-                )
+                if isinstance(model, FSDP):
+                    grad_norm = model.clip_grad_norm_(
+                        max_norm=grad_clip, norm_type=grad_clip_type
+                    )
+                else:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(),
+                        max_norm=grad_clip,
+                        norm_type=grad_clip_type,
+                    )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
                     grad_norm = torch.tensor(grad_norm)
@@ -722,7 +763,10 @@ class Trainer:
                             if optim_idx is not None and iopt != optim_idx:
                                 continue
                             scaler.step(optimizer)
-                            scaler.update()
+                            if scaler.get_scale() > options.max_loss_scale:
+                                scaler.update(options.max_loss_scale)
+                            else:
+                                scaler.update()
 
                 else:
                     reporter.register(
@@ -748,7 +792,10 @@ class Trainer:
                                 # the optimizer's assigned params.
                                 scaler.step(optimizer)
                                 # Updates the scale for next iteration.
-                                scaler.update()
+                                if scaler.get_scale() > options.max_loss_scale:
+                                    scaler.update(options.max_loss_scale)
+                                else:
+                                    scaler.update()
                             else:
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
@@ -756,7 +803,9 @@ class Trainer:
                 for iopt, optimizer in enumerate(optimizers):
                     if optim_idx is not None and iopt != optim_idx:
                         continue
-                    optimizer.zero_grad()
+                    # Note(Jinchuan): set_to_none reduces memory operations.
+                    # https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
+                    optimizer.zero_grad(set_to_none=True)
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
@@ -821,7 +870,11 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            retval = model(**batch)
+            # NOTE (Jinchuan): autocast should also be enabled in validation stage
+            # if both amp and FSDP are enabled, as the warpped model is only compatible
+            # with the specified dtype.
+            with autocast(options.use_amp and isinstance(model, FSDP), **autocast_args):
+                retval = model(**batch)
             if isinstance(retval, dict):
                 stats = retval["stats"]
                 weight = retval["weight"]

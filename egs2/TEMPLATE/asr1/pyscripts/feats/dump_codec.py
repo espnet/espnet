@@ -7,13 +7,14 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
 
 import kaldiio
 import numpy as np
 import torch
 
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
-from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2bool, str_or_none
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig(
@@ -32,7 +33,7 @@ def get_parser():
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
     parser.add_argument("--rank", type=int, default=1)
-    parser.add_argument("--vocab_file", type=str, required=True)
+    parser.add_argument("--vocab_file", type=Path, required=True)
     parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
         "--bias",
@@ -42,15 +43,21 @@ def get_parser():
     )
     parser.add_argument(
         "--checkpoint_path",
-        type=str,
+        type=str_or_none,
         default=None,
         help="checkpoint path for Espnet (and potentially other) codec model",
     )
     parser.add_argument(
         "--config_path",
-        type=str,
+        type=str_or_none,
         default=None,
         help="config path for Espnet (and potentially other) codec model",
+    )
+    parser.add_argument(
+        "--hf_model_tag",
+        type=str_or_none,
+        default=None,
+        help="huggingface model card for Espnet codec model",
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
@@ -75,6 +82,7 @@ def dump_codec(
     rank: int,
     checkpoint_path: str = None,
     config_path: str = None,
+    hf_model_tag: str = None,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -98,6 +106,7 @@ def dump_codec(
         dump_audio,
         checkpoint_path,
         config_path,
+        hf_model_tag,
     )
 
     # (3) Tokenizer loop
@@ -118,6 +127,10 @@ def dump_codec(
 
         if wav.ndim != 1:
             raise ValueError("Multi-Channel audio is not supported so far")
+
+        if np.issubdtype(wav.dtype, np.integer):
+            max_val = np.iinfo(wav.dtype).max
+            wav = wav.astype(np.float32) / max_val
 
         wav = torch.from_numpy(wav)
         buffer.append(wav)
@@ -150,12 +163,16 @@ def dump_codec(
 
             buffer, length_buffer, key_buffer = [], [], []
 
-    # (4) dump vocabulary file
+    # (4) dump vocabulary file and codec_code_per_frame file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")
         for codebook_idx in range(tokenizer.n_codebook):
             for code_idx in range(tokenizer.size_codebook):
                 vocab_writer.write(f"<codec_layer{codebook_idx}_code{code_idx}>\n")
+
+        n_codebook_file = vocab_file.parent / "codec_code_per_frame"
+        n_codebook_writer = open(n_codebook_file, "w")
+        n_codebook_writer.write(f"{tokenizer.n_codebook}\n")
 
 
 if __name__ == "__main__":

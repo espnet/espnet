@@ -1,11 +1,13 @@
+#!/usr/bin/env python3
+
+# Copyright 2024 Jinchuan Tian
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 from typing import Optional
 
 from torch import Tensor, nn
 
-from espnet2.speechlm.module.transformer import (
-    ResidualAttentionBlock,
-    TransformerDecoder,
-)
+from espnet2.speechlm.module.builtin import ResidualAttentionBlock, TransformerDecoder
 
 
 class AdaLN(nn.Module):
@@ -27,17 +29,27 @@ class AdaLN(nn.Module):
         return x
 
 
-class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
-    def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
-        super(ResidualAttentionBlockAdaLM, self).__init__(
+class ResidualAttentionBlockAdaLN(ResidualAttentionBlock):
+    def __init__(
+        self,
+        n_state: int,
+        n_head: int,
+        cross_attention: bool = False,
+        causal: bool = False,
+        qk_norm: bool = False,
+        dropout: float = 0.0,
+    ):
+        super(ResidualAttentionBlockAdaLN, self).__init__(
             n_state=n_state,
             n_head=n_head,
             cross_attention=cross_attention,
+            causal=causal,
+            qk_norm=qk_norm,
+            dropout=dropout,
         )
 
-        for name, module in self.named_modules():
-            if isinstance(module, nn.LayerNorm):
-                setattr(self, name, AdaLN(n_state))
+        self.attn_ln = AdaLN(n_state)
+        self.mlp_ln = AdaLN(n_state)
 
     def forward(
         self,
@@ -47,15 +59,14 @@ class ResidualAttentionBlockAdaLM(ResidualAttentionBlock):
         mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
     ):
-        x = x + self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)[0]
+        x = x + self.attn_dropout(
+            self.attn(self.attn_ln(x, level), mask=mask, kv_cache=kv_cache)
+        )
         if self.cross_attn:
-            x = (
-                x
-                + self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)[
-                    0
-                ]
+            x = x + self.cross_attn_dropout(
+                self.cross_attn(self.cross_attn_ln(x, level), xa, kv_cache=kv_cache)
             )
-        x = x + self.mlp(self.mlp_ln(x, level))
+        x = x + self.mlp_dropout(self.mlp(self.mlp_ln(x, level)))
         return x
 
 
@@ -67,29 +78,43 @@ class ValleNARDecoder(TransformerDecoder):
         n_state: int,
         n_head: int,
         n_layer: int,
-        causal: bool = True,
-        layer_class=ResidualAttentionBlockAdaLM,
+        causal: bool = False,
+        qk_norm: bool = False,
+        dropout: float = 0.0,
+        layer_class=ResidualAttentionBlockAdaLN,
     ):
+
         super(ValleNARDecoder, self).__init__(
             n_ctx=n_ctx,
             n_state=n_state,
             n_head=n_head,
             n_layer=n_layer,
             causal=causal,
+            qk_norm=qk_norm,
+            dropout=dropout,
             layer_class=layer_class,
         )
 
         self.level_emb = nn.Embedding(n_level, n_state)
         self.ln = AdaLN(n_state)
 
-    def forward(self, x: Tensor, level: Tensor, kv_cache: Optional[dict] = None):
+    def forward(
+        self,
+        x: Tensor,
+        level: Tensor,
+        mask: Tensor = None,
+        kv_cache: Optional[dict] = None,
+    ):
+        if self.causal and mask is not None:
+            raise ValueError("mask is not allowed when causal")
+
         level = self.level_emb(level)
 
         offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
         x = x + self.pos_emb.weight[offset : offset + x.shape[1]].unsqueeze(0)
 
         for block in self.blocks:
-            x = block(x, level=level, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, level=level, mask=mask, kv_cache=kv_cache)
 
         x = self.ln(x, level)
         return x

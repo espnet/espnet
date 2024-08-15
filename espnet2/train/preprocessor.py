@@ -469,6 +469,8 @@ class CommonPreprocessor(AbsPreprocessor):
                     speech = np.mean(speech, axis=1, keepdims=False)
                 data[self.speech_name] = speech
 
+                if ma != 0:
+                    data[self.speech_name] = speech * self.speech_volume_normalize / ma
         return data
 
     def _text_process(
@@ -2361,31 +2363,38 @@ class S2TPreprocessor(CommonPreprocessor):
 class SpeechLMPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for SpeechLM models"""
 
+    @typechecked
     def __init__(
         self,
         token_list: List,
         token_bias: Dict,
-        encoder_decoder_format: bool = False,
+        encoder_decoder_format: Optional[bool] = False,
         # codec related:
         codec_token_per_frame: int = 1,
-        codec_token_in_use: int = None,
+        codec_token_in_use: Optional[int] = None,
         # tokenizer related: Phone & BPE
-        unk_symbol: str = "<unk>",
-        space_symbol: str = "<space>",
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
-        g2p_type: str = None,
-        bpemodel: Union[Path, str, Iterable[str]] = None,
-        bpe_encode_kwargs: Dict = None,
-        text_cleaner: str = None,
+        unk_symbol: Optional[str] = "<unk>",
+        space_symbol: Optional[str] = "<space>",
+        non_linguistic_symbols: Optional[Union[Path, str, Iterable[str]]] = None,
+        g2p_type: Optional[str] = None,
+        subword_model: Optional[Union[Path, str, Iterable[str]]] = None,
+        subword_model_type: str = "sentencepiece",
+        bpe_encode_kwargs: Optional[Dict] = None,
+        text_cleaner: Optional[str] = None,
         # speaker prompt
-        speaker_prompt_length: int = 1800,
+        speaker_prompt_length: int = 500,
+        pad_speaker_prompt: bool = True,
+        # others
+        extra_names_and_modalities=[
+            "sampled.scp,codec",
+        ],
     ):
         self.token_list = token_list
         self.token_bias = token_bias
         self.encoder_decoder_format = encoder_decoder_format
 
-        self.modalities = speechlm_definitions.modalities
-        self.tasks = speechlm_definitions.tasks
+        self.modalities = speechlm_definitions.MODALITIES
+        self.tasks = speechlm_definitions.SPEECHLM_TASKS
 
         self.converter = TokenIDConverter(
             token_list=token_list,
@@ -2396,14 +2405,20 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # Modality-specific utilities
 
         # Text BPE (text_bpe):
-        if bpemodel is not None:
+        if subword_model is not None:
             if bpe_encode_kwargs is None:
-                bpe_encode_kwargs = Dict()
-            self.bpe = build_tokenizer(
-                token_type="bpe",
-                bpemodel=bpemodel,
-                encode_kwargs=bpe_encode_kwargs,
-            )
+                bpe_encode_kwargs = dict()
+            if subword_model_type == "sentencepiece":
+                self.bpe = build_tokenizer(
+                    token_type="bpe",
+                    bpemodel=subword_model + ".model",
+                    encode_kwargs=bpe_encode_kwargs,
+                )
+            else:
+                self.bpe = build_tokenizer(
+                    token_type="hugging_face",
+                    bpemodel=subword_model,
+                )
         else:
             self.bpe = None
 
@@ -2427,30 +2442,32 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
+        self.pad_speaker_prompt = pad_speaker_prompt
 
+        # extra entries
+        self.extra_names_and_modalities = [
+            tup.split(",") for tup in extra_names_and_modalities
+        ]
+
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
-    ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
+    ) -> Dict[str, Union[np.ndarray, List]]:
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        # (Jinchuan): Temp code
-        for e in task.encoder_entries + task.decoder_entries:
-            if not self.modalities[e[1]].discrete:
-                raise ValueError("Continuous feature is not supported yet.")
-
-        # (2) encoder & decoder sequence
+        # (2) get exact tokenised value based on all data triplets
         seqs, conti_feats = [], []
-        n_enc_entries = len(task.encoder_entries)
-        for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
-            for entry in entries:
-                name, modality, _ = entry
+        for triplet in task.data_triplets:
+            name, modality, _ = triplet
+            value, conti_feat = self.modality_specific_processing(data[name], modality)
+            seqs.append(value)
 
-                value, _ = self.modality_specific_processing(data[name], modality)
-                seqs.append(value)
+            if triplet in task.targets and conti_feat is not None:
+                raise ValueError("Continuous feats can only be the condition")
+            conti_feats.append(conti_feat)
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2461,23 +2478,73 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_identifier = self.special_token(task_identifier)
 
         new_data = {}
+        n_conditions = len(task.conditions)
         if self.encoder_decoder_format:
             new_data["enc_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
+                [sos_eos] + [task_identifier] + seqs[:n_conditions] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
             new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
+                [sos_eos] + seqs[n_conditions:] + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
         else:
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)
 
-        prefix_len = (
-            len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
-        )
+        prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
+        prefix_len = prefix_len // self.codec_token_in_use + 2
         new_data["prefix_len"] = np.array([prefix_len])
+
+        # (4) continuous features
+        new_conti_feats = []
+        for idx, conti_feat in enumerate(conti_feats, 1):
+            if conti_feat is None:
+                continue
+
+            if self.encoder_decoder_format:
+                if idx <= n_conditions:
+                    prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
+                    part = "enc"
+                else:
+                    prev_segs = [sos_eos] + seqs[n_conditions : idx - 1]
+                    part = "dec"
+            else:
+                prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
+                part = "dec"
+
+            bias = sum(len(seg) for seg in prev_segs) // self.codec_token_in_use
+            conti_emb, start, end = conti_feat
+            new_conti_feats.append((conti_emb, start + bias, end + bias, part))
+
+        new_data["conti_feats"] = new_conti_feats
+
+        # (5) entries that are not included in sequences
+        for name, modality in self.extra_names_and_modalities:
+            if name not in data:
+                continue
+            value = self.modality_specific_processing(data[name], modality)[0]
+            new_data = self.process_extra_entries(new_data, value, name)
+
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
+
+        return new_data
+
+    def process_extra_entries(self, new_data, value, name):
+        if name == "sampled.scp":
+            prefix_len = new_data["prefix_len"]
+            prefix = new_data["dec_seq"][: prefix_len.item()]
+            sampled_seq = np.concatenate(
+                [
+                    prefix.flatten(),
+                    value,
+                    self.special_token("<sos/eos>"),
+                ]
+            ).reshape(-1, self.codec_token_in_use)
+
+            max_len = int(len(new_data["dec_seq"]) * 1.3)  # to avoid overly long seq
+            new_data["sampled_seq"] = sampled_seq[:max_len]
+        else:
+            raise NotImplementedError
 
         return new_data
 
@@ -2487,22 +2554,21 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return token_idx
 
     def modality_specific_processing(self, value, modality):
-
         if modality in ["codec", "spk"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
             value = value + self.token_bias["codec"]
 
             if modality == "spk":
-                if len(value) <= self.speaker_prompt_length:
-                    pad_len = self.speaker_prompt_length - len(value)
-                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                    value = np.concatenate([value, pad])
-                else:
+                if len(value) > self.speaker_prompt_length:
                     start = random.randint(
                         0, len(value) - self.speaker_prompt_length - 1
                     )
                     value = value[start : start + self.speaker_prompt_length]
+                elif self.pad_speaker_prompt:
+                    pad_len = self.speaker_prompt_length - len(value)
+                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                    value = np.concatenate([value, pad], axis=0)
 
             value = value.flatten()
             conti_feat = None
@@ -2523,7 +2589,26 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value.repeat(self.codec_token_in_use, axis=0)
             conti_feat = None
 
-        # TODO(Jinchuan): Support continuous modalities
+        elif modality in ["text_emb"]:
+            if value.ndim != 2:
+                raise ValueError(f"Text embedding should have size of [T, D]")
+
+            conti_emb = value.copy()
+
+            value = self.special_token(f"<pad>")
+            # add extra paddings of (self.codec_token_in_use - 1) so there
+            # is no overlap between tokens and continuous embeddings when using
+            # delay interleave.
+            value_len = conti_emb.shape[0] + self.codec_token_in_use - 1
+            value = np.tile(value, value_len)
+
+            # embedidngs, start, end
+            conti_feat = (
+                conti_emb,
+                self.codec_token_in_use,
+                self.codec_token_in_use + conti_emb.shape[0],
+            )
+
         else:
             raise NotImplementedError
 
@@ -2536,9 +2621,16 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         """Only for debug"""
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
+        sampled_seq = data.get("sampled_seq", None)
+        prefix_len = data.get("prefix_len")
 
         logging.warning(f"Diagnose in preprocessor ...")
-        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
+        logging.warning(f"Prefix length: {prefix_len}")
+        for name, seq in [
+            ("encoder", enc_seq),
+            ("decoder", dec_seq),
+            ("sampled_seq", sampled_seq),
+        ]:
             if seq is None:
                 continue
             logging.warning(f"{name} ...")
@@ -2546,3 +2638,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
+
+        conti_feats = data.get("conti_feats")
+        for idx, conti_feat in enumerate(conti_feats):
+            conti_emb, start, end, part = conti_feat
+            assert len(conti_emb) == end - start
+            logging.warning(f"{idx}-th conti feats on {part}, range [{start}, {end})")
+
+        raise ValueError("End of Diagnose")

@@ -453,7 +453,7 @@ class ResidualVectorQuantization(nn.Module):
         all_indices = []
         n_q = n_q or len(self.layers)
         st = st or 0
-        for layer in self.layers[st:n_q]:  # 设置解码的起止layer
+        for layer in self.layers[st:n_q]:
             indices = layer.encode(residual)
             quantized = layer.decode(indices)
             residual = residual - quantized

@@ -43,10 +43,12 @@ from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupL
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.fsdp import warp_fsdp
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.torch_utils.synchronize_batches import synchronize_sharded_batches
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import (
@@ -63,10 +65,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
-    IterableESPnetDataset,
-    SplicedIterableESPnetDataset,
-)
+from espnet2.train.iterable_dataset import IterableESPnetDataset
 from espnet2.train.trainer import Trainer
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
@@ -449,6 +448,30 @@ class AbsTask(ABC):
             type=str2bool,
             help="Enable sharded training provided by fairscale",
         )
+        group.add_argument(
+            "--use_fsdp",
+            default=False,
+            type=str2bool,
+            help="if true, use pytorch builtin FullyShardedDataParallel",
+        )
+        group.add_argument(
+            "--min_num_params_fsdp",
+            default=30 * 1e6,
+            type=int,
+            help="The minimum #params for a nn.Module to be warpped by FSDP",
+        )
+        group.add_argument(
+            "--use_deepspeed",
+            default=False,
+            type=str2bool,
+            help="Enable deepspeed for training",
+        )
+        group.add_argument(
+            "--deepspeed_config",
+            default=None,
+            type=str,
+            help="deepspeed training config",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -599,6 +622,12 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
+        )
+        group.add_argument(
+            "--max_loss_scale",
+            type=float,
+            default=1e10,
+            help="The maximum loss scale when using amp",
         )
         group.add_argument(
             "--log_interval",
@@ -912,6 +941,15 @@ class AbsTask(ABC):
             help="If true, input data is organized by json file. "
             "This is usually used for multi-task training, like SpeechLM task"
             "e.g., --train_data_path_and_name_and_type foo.json,foo_task,json",
+        )
+        group.add_argument(
+            "--sharded_dataset",
+            type=str2bool,
+            default=False,
+            help="If true, the dataset only contain the data shard of current process "
+            "So that the dataset object doesn't take much CPU memory. This is "
+            "useful when the overall dataset if large. This is an alternative "
+            "method of data_split & multiple_iterator method ",
         )
         group.add_argument(
             "--allow_variable_data_keys",
@@ -1341,6 +1379,35 @@ class AbsTask(ABC):
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
 
+            # 2. Loads pre-trained model
+            # NOTE(Jinchuan): should load --init_param before FSDP warpper
+            for p in args.init_param:
+                logging.info(f"Loading pretrained params from {p}")
+                load_pretrained_model(
+                    model=model,
+                    init_param=p,
+                    ignore_init_mismatch=args.ignore_init_mismatch,
+                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                    #   in PyTorch<=1.4
+                    map_location=(
+                        f"cuda:{torch.cuda.current_device()}"
+                        if args.ngpu > 0
+                        else "cpu"
+                    ),
+                )
+
+            # Note(Jinchuan): have to warp FSDP before building optimizers
+            if (
+                args.use_fsdp
+                and not args.collect_stats
+                and torch.distributed.is_initialized()
+            ):
+                model = warp_fsdp(
+                    model,
+                    use_amp=args.use_amp,
+                    min_num_params=args.min_num_params_fsdp,
+                )
+
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)
 
@@ -1362,6 +1429,7 @@ class AbsTask(ABC):
 
                 schedulers.append(scheduler)
 
+            # NOTE(Jinchuan) printed #param will be devided by #GPU when using FSDP
             logging.info(pytorch_cudnn_version())
             logging.info(model_summary(model))
             for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
@@ -1412,7 +1480,7 @@ class AbsTask(ABC):
                     key_file=train_key_file,
                     batch_size=args.batch_size,
                     dtype=args.train_dtype,
-                    num_workers=args.num_workers,
+                    num_workers=0,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -1425,7 +1493,7 @@ class AbsTask(ABC):
                     key_file=valid_key_file,
                     batch_size=args.valid_batch_size,
                     dtype=args.train_dtype,
-                    num_workers=args.num_workers,
+                    num_workers=0,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -1439,23 +1507,34 @@ class AbsTask(ABC):
                 write_collected_feats=args.write_collected_feats,
             )
         else:
-            # 6. Loads pre-trained model
-            for p in args.init_param:
-                logging.info(f"Loading pretrained params from {p}")
-                load_pretrained_model(
-                    model=model,
-                    init_param=p,
-                    ignore_init_mismatch=args.ignore_init_mismatch,
-                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                    #   in PyTorch<=1.4
-                    map_location=(
-                        f"cuda:{torch.cuda.current_device()}"
-                        if args.ngpu > 0
-                        else "cpu"
-                    ),
-                )
 
-            # 7. Build iterator factories
+            # 6. Build iterator factories
+            if args.sharded_dataset:  # recursively replace "JOB" to global rank.
+                if distributed_option.distributed:
+                    rank = distributed_option.dist_rank
+                else:
+                    rank = 0
+
+                def recursive_replace(attr):
+                    if isinstance(attr, str):
+                        return attr.replace("JOB", f"{rank + 1}")
+                    elif isinstance(attr, list):
+                        return list(recursive_replace(a) for a in attr)
+                    elif isinstance(attr, tuple):
+                        return tuple(recursive_replace(a) for a in attr)
+                    else:
+                        raise ValueError(attr)
+
+                for attr_name in [
+                    "train_data_path_and_name_and_type",
+                    "valid_data_path_and_name_and_type",
+                    "train_shape_file",
+                    "valid_shape_file",
+                ]:
+                    setattr(
+                        args, attr_name, recursive_replace(getattr(args, attr_name))
+                    )
+
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
                     args=args,
@@ -1486,7 +1565,7 @@ class AbsTask(ABC):
             else:
                 plot_attention_iter_factory = None
 
-            # 8. Start training
+            # 7. Start training
             if args.use_wandb:
                 if wandb is None:
                     raise RuntimeError("Please install wandb")
@@ -1526,6 +1605,15 @@ class AbsTask(ABC):
                     # but we only logs aggregated data,
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
+
+            if args.use_deepspeed:
+                if cls.trainer != Trainer:
+                    raise ValueError(
+                        "only default trainer is compatible with deepspeed"
+                    )
+                from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+
+                cls.trainer = DeepSpeedTrainer
 
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
@@ -1742,6 +1830,10 @@ class AbsTask(ABC):
         else:
             utt2category_file = None
 
+        if iter_options.distributed and not args.sharded_dataset:
+            min_batch_size = torch.distributed.get_world_size()
+        else:
+            min_batch_size = 1
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
@@ -1751,9 +1843,7 @@ class AbsTask(ABC):
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
             drop_last=args.drop_last_iter,
-            min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
-            ),
+            min_batch_size=min_batch_size,
             utt2category_file=utt2category_file,
         )
 
@@ -1771,15 +1861,18 @@ class AbsTask(ABC):
         )
 
         if iter_options.distributed:
-            world_size = torch.distributed.get_world_size()
-            rank = torch.distributed.get_rank()
-            for batch in batches:
-                if len(batch) < world_size:
-                    raise RuntimeError(
-                        f"The batch-size must be equal or more than world_size: "
-                        f"{len(batch)} < {world_size}"
-                    )
-            batches = [batch[rank::world_size] for batch in batches]
+            if args.sharded_dataset:
+                batches = synchronize_sharded_batches(batches)
+            else:
+                world_size = torch.distributed.get_world_size()
+                rank = torch.distributed.get_rank()
+                for batch in batches:
+                    if len(batch) < world_size:
+                        raise RuntimeError(
+                            f"The batch-size must be equal or more than world_size: "
+                            f"{len(batch)} < {world_size}"
+                        )
+                batches = [batch[rank::world_size] for batch in batches]
 
         return SequenceIterFactory(
             dataset=dataset,

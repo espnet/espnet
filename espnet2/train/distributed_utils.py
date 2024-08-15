@@ -24,6 +24,8 @@ class DistributedOption:
     dist_master_port: Optional[int] = None
     dist_launcher: Optional[str] = None
     multiprocessing_distributed: bool = True
+    use_deepspeed: bool = False
+    deepspeed_config: Optional[str] = None
 
     def init_options(self):
         if self.distributed:
@@ -107,6 +109,26 @@ class DistributedOption:
             #    => Distributed with 1-Process and n-GPU
             if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
+
+            if self.use_deepspeed:
+                try:
+                    import deepspeed
+                except ImportError:
+                    raise
+
+                # NOTE(Jinchuan): init torch distributed backend first. Then
+                # deepspeed will find that backend automatically.
+                os.environ["LOCAL_RANK"] = str(self.local_rank)
+                os.environ["WORLD_SIZE"] = str(self.dist_world_size)
+                deepspeed.init_distributed()
+
+                if int(os.environ["OMP_NUM_THREADS"]) == 1:
+                    raise ValueError(
+                        "By default, ESPnet will set OMP_NUM_THREADS=1"
+                        "As deepspeed will have heavy cpu-gpu communication, "
+                        "Please raise this number in `path.sh` so that cpu-side"
+                        "will not be the performance bottleneck. "
+                    )
 
 
 def resolve_distributed_mode(args):

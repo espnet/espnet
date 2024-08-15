@@ -94,6 +94,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            cp data/train_fisher/text data/train_fisher/text.backup
            sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
            cat data/train_fisher/text data/train_nodup/text > data/lm_train.txt
+
+           # Note(Jinchuan): Combine train_nodup and train_fisher
+           utils/combine_data.sh data/train_swbd data/train_nodup data/train_fisher
      fi
+
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -383,3 +383,71 @@ class StreamPositionalEncoding(torch.nn.Module):
         self.extend_pe(x.size(1) + start_idx, x.device, x.dtype)
         x = x * self.xscale + self.pe[:, start_idx : start_idx + x.size(1)]
         return self.dropout(x)
+
+
+class ConvolutionalPositionalEmbedding(torch.nn.Module):
+    """Convolutional positional embedding.
+       Used in wav2vec2/HuBERT SSL models.
+       https://arxiv.org/abs/1904.11660
+
+    Args:
+        embed_dim (int): Feature dimension of the input Tensor.
+        dropout (float): unused
+        max_len (int): unused
+        kernel_size (int): The number of frames to be use.
+        groups (int): The number of groups in feature dimensions.
+    """
+
+    def __init__(
+        self,
+        embed_dim: int,
+        dropout: float,
+        max_len: int = 5000,
+        kernel_size: int = 128,
+        groups: int = 16,
+    ):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.kernel_size = kernel_size
+        self.conv = torch.nn.Conv1d(
+            in_channels=embed_dim,
+            out_channels=embed_dim,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2,
+            groups=groups,
+        )
+
+        self.conv = torch.nn.utils.weight_norm(self.conv, name="weight", dim=2)
+        self.dropout = torch.nn.Dropout(p=dropout)
+        self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
+
+    def __prepare_scriptable__(self):
+        for hook in self.conv._forward_pre_hooks.values():
+            # The hook we want to remove is an instance of WeightNorm class, so
+            # normally we would do `if isinstance(...)` but this class is not accessible
+            # because of shadowing, so we check the module name directly.
+            # https://github.com/pytorch/pytorch/blob/be0ca00c5ce260eb5bcec3237357f7a30cc08983/torch/nn/utils/__init__.py#L3
+            if (
+                hook.__module__ == "torch.nn.utils.weight_norm"
+                and hook.__class__.__name__ == "WeightNorm"
+            ):
+                _LG.warning("Removing weight_norm from %s", self.__class__.__name__)
+                torch.nn.utils.remove_weight_norm(self.conv)
+        return self
+
+    def forward(self, x):
+        """
+        Args:
+            x (Tensor): shape ``[batch, frame, feature]``.
+
+        Returns:
+            Tensor: The resulting feature. Shape ``[batch, frame, feature]``.
+        """
+        x = x.transpose(-2, -1)
+        x = self.conv(x)
+        if self.num_remove > 0:
+            x = x[..., : -self.num_remove]
+        x = torch.nn.functional.gelu(x)
+        x = x.transpose(-2, -1)
+        x = self.dropout(x)
+        return x

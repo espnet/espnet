@@ -29,6 +29,7 @@ from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
+from espnet2.fileio.multicol_kaldi_ark import MultiColKaldiArkReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
@@ -244,6 +245,10 @@ def rand_int_loader(filepath, loader_type):
     return IntRandomGenerateDataset(filepath, low, high)
 
 
+def multicol_kaldi_ark_loader(filepath):
+    return MultiColKaldiArkReader(filepath)
+
+
 DATA_TYPES = {
     "sound": dict(
         func=sound_loader,
@@ -262,6 +267,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_a a.wav a2.wav\n"
         "   utterance_id_b b.wav b2.wav\n"
+        "   ...",
+    ),
+    "multicol_kaldi_ark": dict(
+        func=multicol_kaldi_ark_loader,
+        kwargs=[],
+        help="Enable multi columns wav.scp with kaldi ark format"
+        "The following text file can be loaded as a list"
+        "\n\n"
+        "   utterance_id_a foo1.ark:123 foo2.ark:234\n"
+        "   utterance_id_b foo3.ark:345 foo4.ark:456 foo5.ark:567\n"
         "   ...",
     ),
     "variable_columns_sound": dict(
@@ -457,6 +472,7 @@ class ESPnetDataset(AbsDataset):
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
+        structured_items: Collection[str] = [],
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(
@@ -471,6 +487,7 @@ class ESPnetDataset(AbsDataset):
         self.max_cache_fd = max_cache_fd
         # allow audios to have different sampling rates
         self.allow_multi_rates = allow_multi_rates
+        self.structured_items = structured_items
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -482,7 +499,7 @@ class ESPnetDataset(AbsDataset):
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
-                raise RuntimeError(f"{path} has no samples")
+                logging.warning(f"{path} has no samples")
 
             # TODO(kamo): Should check consistency of each utt-keys?
 
@@ -553,7 +570,9 @@ class ESPnetDataset(AbsDataset):
         return _mes
 
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def __getitem__(
+        self, uid: Union[str, int]
+    ) -> Tuple[str, Dict[str, Union[np.ndarray, list]]]:
 
         # Change integer-id to string-id
         if isinstance(uid, int):
@@ -595,8 +614,8 @@ class ESPnetDataset(AbsDataset):
             data[name] = value
 
         # 2. [Option] Apply preprocessing
-        if getattr(self, "install_speaker_prompt", None) is not None:
-            self.install_speaker_prompt(uid, data)
+        if getattr(self, "dataset_level_operation", None) is not None:
+            self.dataset_level_operation(uid, data)
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
             key_prefix = self.task + " " if hasattr(self, "task") else ""
@@ -604,6 +623,10 @@ class ESPnetDataset(AbsDataset):
 
         # 3. Force data-precision
         for name in data:
+            # For structured items, skip type and precision check
+            if name in self.structured_items:
+                continue
+
             value = data[name]
             if not isinstance(value, np.ndarray):
                 raise RuntimeError(
@@ -643,7 +666,9 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map
-        if "utt2spk" in self.loader_dict:
+        if "utt2spk" in self.loader_dict and isinstance(
+            self.loader_dict["utt2spk"], Dict
+        ):
             self.spk2utt = {}
             for k, v in self.loader_dict["utt2spk"].items():
                 if v not in self.spk2utt:
@@ -651,6 +676,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 self.spk2utt[v].append(k)
 
         # (2) keep example_list and clean some non-iterable loaders
+        self.example_list = example_list
         example_dict = {k: None for k in example_list}  # hash for faster query
         for key in self.loader_dict.keys():
             loader = self.loader_dict[key]
@@ -661,24 +687,22 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         # (3) keep task
         self.task = task
 
-    def install_speaker_prompt(self, uid: str, data: Dict):
-        """Assume the names are utt2spk and wav.scp. Hard code here."""
+    def dataset_level_operation(self, uid: str, data: Dict):
+        # (1) select speaker prompt randomly
         if "utt2spk" in self.loader_dict:
             spk = self.loader_dict["utt2spk"][uid]
-            utts = self.spk2utt[spk]
+            if isinstance(spk, str):
+                prompt_uids = self.spk2utt[spk]
 
-            if len(utts) == 1:  # at least itself
-                utt = utts[0]
-            else:
-                while True:
-                    utt = random.sample(utts, 1)[0]
-                    if uid != utt:
-                        break
+                if len(prompt_uids) == 1:  # at least itself
+                    prompt_uid = prompt_uids[0]
+                else:
+                    while True:
+                        prompt_uid = random.sample(prompt_uids, 1)[0]
+                        if uid != prompt_uid:
+                            break
 
-            if "wav.scp" not in self.loader_dict:
-                raise ValueError("speaker prompt is sampled from wav.scp loader")
-
-            data["utt2spk"] = self.loader_dict["wav.scp"][utt]
+                data["utt2spk"] = self.loader_dict["wav.scp"][prompt_uid]
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
@@ -723,7 +747,8 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 )
 
             # example_list is for sub_dataest -> no task prefix
-            example_list = [line.strip().split()[0] for line in open(path)]
+            example_list = json_dict["data_files"][0].strip().split(",")[0]
+            example_list = [line.strip().split()[0] for line in open(example_list)]
             if self.key_dict is not None:
                 example_list = [
                     e
@@ -735,6 +760,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 path_name_type_list=this_path_name_type_list,
                 example_list=example_list,
                 task=json_dict["task"],
+                structured_items=["conti_feats"],
                 **kwargs,
             )
             self.datasets.append(dataset)
@@ -752,7 +778,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
         iterator = self.iterator_map[uid]
-        uid_without_prefix = uid.lstrip(iterator.task + "_")
+        uid_without_prefix = uid.removeprefix(iterator.task + "_")
         uid, data = iterator[uid_without_prefix]
         uid = iterator.task + "_" + uid
         return uid, data

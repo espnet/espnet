@@ -5,7 +5,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -17,11 +17,12 @@ class SpeechLMInferenceOptions:
     nbest: int = 1
     sampling_temperature: float = 1.0
     top_k: int = 20
+    top_p: float = 0.8
     maxlenratio: float = 0.0
     minlenratio: float = 0.0
     eos: int = 5
     start: int = 1
-    masks: torch.Tensor = None
+    masks: Dict[str, torch.Tensor] = None
     nq: int = None
 
 
@@ -61,6 +62,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Model forward
 
@@ -72,6 +74,7 @@ class AbsCoreLM(torch.nn.Module, ABC):
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            compute_loss (bool): whether to compute loss or just logits.
         """
         raise NotImplementedError
 

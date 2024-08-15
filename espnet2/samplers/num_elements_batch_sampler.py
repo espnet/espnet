@@ -1,6 +1,7 @@
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
+import torch
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text
@@ -66,6 +67,7 @@ class NumElementsBatchSampler(AbsSampler):
         current_batch_keys = []
         for key in keys:
             current_batch_keys.append(key)
+
             # shape: (Length, dim1, dim2, ...)
             if padding:
                 for d, s in zip(utt2shapes, shape_files):
@@ -84,8 +86,10 @@ class NumElementsBatchSampler(AbsSampler):
                 )
 
             if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
-                batch_sizes.append(len(current_batch_keys))
-                current_batch_keys = []
+                # NOTE (Jinchuan): exclude the last sample so that the batch size
+                # is strictly smaller than the specified batch_bins
+                batch_sizes.append(len(current_batch_keys) - 1)
+                current_batch_keys = current_batch_keys[-1:]
         else:
             if len(current_batch_keys) != 0 and (
                 not self.drop_last or len(batch_sizes) == 0
@@ -97,7 +101,9 @@ class NumElementsBatchSampler(AbsSampler):
             raise RuntimeError("0 batches")
 
         # If the last batch-size is smaller than minimum batch_size,
-        # the samples are redistributed to the other mini-batches
+        # the samples are redistributed to the other mini-batches.
+        # NOTE(Jinchuan): recommend to use "drop_last", as this operation
+        # may lead to one extremely large mini-batch that can lead OOM.
         if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
             for i in range(batch_sizes.pop(-1)):
                 batch_sizes[-(i % len(batch_sizes)) - 1] += 1
