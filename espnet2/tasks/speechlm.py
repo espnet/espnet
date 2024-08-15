@@ -225,9 +225,7 @@ class SpeechLMTask(AbsTask):
             encoder_decoder_format=args.encoder_decoder_format,
             bpemodel=args.bpemodel,
             bpemodel_type=(
-                "builtin"
-                if args.corelm_conf.get("hf_model_tag", None) is None
-                else "hugging_face"
+                "hugging_face"
             ),
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,

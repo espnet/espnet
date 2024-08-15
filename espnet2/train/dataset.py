@@ -761,7 +761,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
         iterator = self.iterator_map[uid]
-        uid_without_prefix = uid.lstrip(iterator.task + "_")
+        uid_without_prefix = uid.removeprefix(iterator.task + "_")
         uid, data = iterator[uid_without_prefix]
         uid = iterator.task + "_" + uid
         return uid, data
