@@ -48,7 +48,9 @@ mkdir espnet2_bin
 mv espnet2_bin ./doc/_gen/tools
 
 build_and_convert "utils/*.sh" utils
-build_and_convert "tools/sentencepiece_commands/spm_*" spm
+build_and_convert "tools/sentencepiece_commands/spm_decode" spm
+build_and_convert "tools/sentencepiece_commands/spm_encode" spm
+# There seems no help prepared for spm_train command.
 
 ./doc/notebook2rst.sh > ./doc/notebooks.md
 
