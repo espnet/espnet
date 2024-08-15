@@ -19,6 +19,7 @@ stage=1
 stop_stage=100000
 
 lang=$1
+task=$2
 
 log "$0 $*"
 
@@ -36,7 +37,7 @@ if ! command -v tokenizer.perl > /dev/null; then
 fi
 
 if [ $# -ne 1 ]; then
-    log "Error: lang argument is required."
+    log "Error: ang argument is required."
     exit 2
 fi
 
@@ -49,7 +50,12 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/data_prep.sh ${MUST_C} ${lang} "v2"
     for set in train dev tst-COMMON tst-HE; do
-        cp data/${set}.en-${lang}/text.lc.rm.en data/${set}.en-${lang}/text
+        if [ ${task} == "mt" ] ; then
+            cp data/${set}.en-${lang}/text.tc.en data/${set}.en-${lang}/src_text
+        else
+            cp data/${set}.en-${lang}/text.lc.rm.en data/${set}.en-${lang}/src_text
+        fi
+        cp data/${set}.en-${lang}/text.tc.de data/${set}.en-${lang}/text
     done
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"

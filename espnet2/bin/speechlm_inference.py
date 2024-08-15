@@ -186,7 +186,7 @@ class SpeechLM:
         for start, end in zip(segment_starts[:-1], segment_starts[1:]):
             modality_id = sequence[start, 0].int().item()
             modality = self.token_list[modality_id]
-            modality = modality.lstrip("<").rstrip("_start/end>")
+            modality = modality.lstrip("<").removesuffix("_start/end>")
 
             segment = sequence[start + 1: end]
             segment = segment[segment[:, 0] != self.pad]
@@ -196,8 +196,8 @@ class SpeechLM:
                 detokenized = self.codec_tokenizer.detokenize(segment.clone())
 
             elif modality in ["text_bpe"]:
-                segment = segment[:, 0].cpu().tolist()
-                detokenized = self.text_bpe_tokenizer.detokenize([
+                segment = segment[:, 0]
+                detokenized = self.text_bpe_tokenizer.tokens2text([
                     self.token_list[tok] for tok in segment
                 ])
 
@@ -330,7 +330,7 @@ def inference(
         (output_dir / name).mkdir(parents=True, exist_ok=True)
         file_name = str(output_dir / name / ("token_" + name))
         token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
-        if modality in ["spk", "codec", "text"]:
+        if modality in ["spk", "codec", "text_bpe"]:
             file_name = str(output_dir / name / name)
             writers[name] = open(file_name, 'w')
 
@@ -361,7 +361,7 @@ def inference(
                 if generated:
                     example_name = f"{key}_sample{idx}"
                 else:
-                    example_name = key.lstrip(f"{task_name}_")
+                    example_name = key.removeprefix(f"{task_name}_")
 
                 # 5.2 save token
                 token_writers[name][example_name] = token.int().cpu().numpy()
