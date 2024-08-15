@@ -55,6 +55,8 @@ python=python3
 log "$0 $*"
 . utils/parse_options.sh
 
+mkdir -p ${gen_dir}/scoring
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if ${eval_wer}; then
         # Use ESPnet builtin script
@@ -164,7 +166,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         metrics+="spk_similarity "
     fi
 
-    if ${eval_spk}; then
+    if ${eval_mos}; then
         all_eval_results+="${gen_dir}/scoring/eval_mos/utt_result.txt "
         metrics+="utmos "
     fi

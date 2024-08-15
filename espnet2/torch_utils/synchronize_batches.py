@@ -19,7 +19,10 @@ def synchronize_sharded_batches(batches):
 
     n_batches = len(batches)
     n_batches_tensor = torch.Tensor([n_batches]).long().cuda()
-    n_batches_list = [n_batches_tensor for _ in range(dist.get_world_size())]
+    n_batches_list = [
+        torch.Tensor([0]).long().cuda() 
+        for _ in range(dist.get_world_size())
+    ]
     dist.all_gather(n_batches_list, n_batches_tensor)
     tgt_n_batches = max([t.cpu().item() for t in n_batches_list])
 

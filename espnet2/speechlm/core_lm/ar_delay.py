@@ -26,6 +26,7 @@ class ARDelayLM(ARParallelLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        conti_feats: Tuple = None,
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
@@ -55,6 +56,7 @@ class ARDelayLM(ARParallelLM):
             enc_seq=enc_seq,
             enc_seq_lengths=enc_seq_lengths,
             prefix_len=prefix_len,
+            conti_feats=conti_feats,
             compute_loss=compute_loss,
         )
 

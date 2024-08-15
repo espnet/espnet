@@ -159,7 +159,14 @@ class SpeechLMTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
-            "--bpemodel",
+            "--subword_choice",
+            type=str_or_none,
+            default="sentencepiece",
+            choices=["sentencepiece", "huggingface"],
+            help="subword model from sentencepiece or HuggingFace",
+        )
+        group.add_argument(
+            "--subword_model",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece or HF model tag",
@@ -210,7 +217,11 @@ class SpeechLMTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         int_pad = args.token_list.index("<pad>")
-        return CommonCollateFn(int_pad_value=int_pad)
+        return CommonCollateFn(
+            int_pad_value=int_pad,
+            not_process=["conti_feats"],
+            not_sequence=["prefix_len"],
+        )
 
     @classmethod
     @typechecked
@@ -223,10 +234,8 @@ class SpeechLMTask(AbsTask):
             token_list=args.token_list,
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
-            bpemodel=args.bpemodel,
-            bpemodel_type=(
-                "hugging_face"
-            ),
+            subword_model=args.subword_model,
+            subword_model_type=args.subword_choice,
             non_linguistic_symbols=args.non_linguistic_symbols,
             text_cleaner=args.cleaner,
             g2p_type=args.g2p,

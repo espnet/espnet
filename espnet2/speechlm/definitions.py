@@ -16,12 +16,12 @@ MODALITIES = {}
 # Discrete
 MODALITIES["codec"] = Modality()
 MODALITIES["ssl"] = Modality()
+MODALITIES["codec_ssl"] = Modality()
 MODALITIES["text_bpe"] = Modality()
 MODALITIES["g2p"] = Modality()
 MODALITIES["spk"] = Modality()
 MODALITIES["class"] = Modality()
 
-# Continuous (currently not in use)
 MODALITIES["wav"] = Modality(discrete=False)
 MODALITIES["text_emb"] = Modality(discrete=False)
 MODALITIES["ssl_feat"] = Modality(discrete=False)
@@ -78,14 +78,45 @@ SPEECHLM_TASKS["tts"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["bpe_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
 SPEECHLM_TASKS["asr"] = SpeechLMTaskTemplate(
     conditions=[("wav.scp", "codec", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["ssl_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "ssl", "kaldi_ark")],
     targets=[("text", "text_bpe", "text")],
 )
 
 SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
     conditions=[("src_text", "text_bpe", "text")],
     targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_emb", "kaldi_ark")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+# codec_ssl tasks:
+SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
 ############### END OF TASK DEFINITION ###############

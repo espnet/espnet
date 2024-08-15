@@ -18,6 +18,7 @@ from espnet2.speechlm.net_utils import (
     length_mask,
     logits_to_tokens,
     modality_index_to_mask,
+    install_continuous_features,
 )
 
 
@@ -82,6 +83,8 @@ class ValleLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
 
+        self.ar_decoder.init_embeddings(self.emb, self.lm_head)
+
     def forward(
         self,
         dec_seq: torch.Tensor,
@@ -89,6 +92,7 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        conti_feats: Tuple = None,
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """Vall-E forward for training
@@ -108,6 +112,7 @@ class ValleLM(AbsCoreLM):
 
         batch_size = dec_seq.size(0)
         dec_seq_emb = self.emb(dec_seq)  # [B, T, nq, D]
+        dec_seq_emb, _ = install_continuous_features(dec_seq_emb, None, conti_feats)
 
         # Auto-Regressive part
         input_ar_emb = self.prepare_input(dec_seq_emb, prefix_len, 1)[

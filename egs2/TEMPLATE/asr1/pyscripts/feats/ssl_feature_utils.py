@@ -223,7 +223,7 @@ class HubertFeatureReader(BaseFeatureReader):
         return feats, feats_lens
 
 
-class ESPnetHubertFeatureReader(BaseFeatureReader):
+class TorchaudioHubertFeatureReader(BaseFeatureReader):
     def __init__(
         self,
         hubert_model_path,
@@ -267,6 +267,49 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
             feats = feats[-1].cpu()  # (batchsize, time, feat_dim)
         return feats, feats_lens
 
+class ESPnetHubertFeatureReader(BaseFeatureReader):
+    def __init__(
+        self,
+        hubert_model_path,
+        layer,
+        sample_rate=16000,
+        max_chunk=1600000,
+        use_gpu=True,
+    ):
+        self.sample_rate = sample_rate
+
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        from espnet2.tasks.ssl import SSLTask
+
+        hubert_model, hubert_train_args = SSLTask.build_model_from_file(
+            None,
+            hubert_model_path,
+            self.device,
+        )
+
+        self.model = hubert_model
+        self.model.eval()
+        self.layer = layer
+        self.max_chunk = max_chunk
+        logger.info(f" max_chunk = {self.max_chunk}")
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.inference_mode():
+            if len(data.shape) > 2:
+                data = (data[:, :, 0] + data[:, :, 1]) / 2
+            x, x_lens = self.preprocess_data(data, data_lens)
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
+
+            with torch.no_grad():
+                feats, mask_info, pen = self.model.encode(x, x_lens, use_mask=False)
+            feats = feats[self.layer].cpu()  # (batchsize, time, feat_dim)
+        return feats, x_lens // 320
 
 class S3PRLFeatureReader(BaseFeatureReader):
     def __init__(

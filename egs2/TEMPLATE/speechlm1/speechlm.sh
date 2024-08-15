@@ -101,20 +101,34 @@ codec_choice="EnCodec" # codec
 codec_checkpoint_path=null
 codec_config_path=null
 codec_hf_model_tag=null
-# (2) semantic
-semantic_choice="WavLM" # semantic
-semantic_opts=""
+codec_batch_size=3
+
+# (2) ssl
+ssl_choice="espnet_hubert" # currently only espnet_hubert
+ssl_checkpoint_path=null
+ssl_kmeans_path=null
+ssl_nlayer=16
+ssl_hf_model_tag=null
+ssl_batch_bins=4800000
+
 # (3) g2p
-g2p="g2p_en" # g2p
+g2p="g2p_en"
 cleaner=tacotron
+
 # (4) text bpe
-bpemode=unigram    # unigram or huggingface
-bpemodel=          # external BPE model, use it if given; or Huggingface model tag
-bpe_train_text=    # text used to train BPE, if given
+subword_choice=sentencepiece      # sentencepiece or huggingface
+subword_model=                    # external subword model path or huggingface model tag
+sentencepiece_choice=bpe          # bpe, unigram etc.
+subword_train_text=               # text used to train subword model, if given
 nbpe=5000
 bpe_nlsyms=
-bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_char_cover=1.0  # character coverage when modeling BPE
+bpe_input_sentence_size=10000000 # Size of input sentence for sentencepiece.
+bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
+
+# (5) Text LM embeddings
+textlm_hf_model_tag=
+textlm_max_words=1000
+
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -181,19 +195,19 @@ if [ -z "${speechlm_stats_dir}" ]; then
     speechlm_stats_dir="${expdir}/speechlm_stats_${data_combo_name}"
 fi
 
-if [ "${bpemode}" == "unigram" ]; then
-    if  [ ! -z "${bpemodel}" ]; then
-        if [ ! -f "${bpemodel}".model ]; then
-            log "bpemodel is specified but not exist ... " && exit 1;
+if [ "${subword_choice}" == "sentencepiece" ]; then
+    if  [ ! -z "${subword_model}" ]; then
+        if [ ! -f "${subword_model}".model ]; then
+            log "subword_model is specified but not exist ... " && exit 1;
         fi
     else
         if ! "${skip_data_prep}"; then
-            bpemodel=${data_feats}/${train_set}/token_lists/text_bpe
+            subword_model=${data_feats}/${train_set}/token_lists/text_bpe
         fi
     fi
 else
-    if [ -z "${bpemodel}" ]; then
-        log "To use HF tokenizer, you should specify the bpemodel by the model tag" && exit 1;
+    if [ -z "${subword_model}" ]; then
+        log "To use HF tokenizer, you should specify the subword_model by the model tag" && exit 1;
     fi
 fi
 
@@ -262,7 +276,7 @@ if ! "${skip_data_prep}"; then
             for triplet in ${all_triplets}; do
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
 
-                if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "wav" ]; then
+                if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "codec_ssl" ]; then
                     
                     # Format audio
                     _opts=
@@ -320,17 +334,69 @@ if ! "${skip_data_prep}"; then
                     log "File ${data_audio}/${dset}/${_name} is missing. Exit" && exit 1;
                 fi
 
-                if [ ${_modality} == "ssl" ]; then
-                    log "ssl tokenization is not implemented" && exit 1;
+                if [ ${_modality} == "text_emb" ]; then
+                    log "Offline Text LM inference for text embeddings"
+                    scripts/feats/dump_textlm.sh \
+                      --src_dir ${data_audio}/${dset} \
+                      --tgt_dir ${data_feats}/${dset} \
+                      --file_name ${_name} \
+                      --hf_model_tag ${textlm_hf_model_tag} \
+                      --max_words ${textlm_max_words} \
+                      --nj ${nj}
+
+                elif [ ${_modality} == "codec_ssl" ]; then
+                    # do both codec and SSL tokenization and then splice them in time-axis
+                    log "codec_ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+
+                    # ssl tokenization will additionally need utt2num_samples
+                    cp ${data_audio}/${dset}/utt2num_samples ${data_feats}/${dset}
+                    scripts/feats/codec_ssl_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --fs ${fs} \
+                        --nj ${nj} \
+                        --codec_choice ${codec_choice} \
+                        --codec_checkpoint_path ${codec_checkpoint_path} \
+                        --codec_config_path ${codec_config_path} \
+                        --codec_hf_model_tag ${codec_hf_model_tag} \
+                        --codec_batch_size ${codec_batch_size} \
+                        --codec_dump_audio false \
+                        --ssl_choice ${ssl_choice} \
+                        --ssl_checkpoint_path ${ssl_checkpoint_path} \
+                        --ssl_kmeans_path ${ssl_kmeans_path} \
+                        --ssl_nlayer ${ssl_nlayer} \
+                        --ssl_hf_model_tag ${ssl_hf_model_tag} \
+                        --ssl_batch_bins ${ssl_batch_bins}
+                    
+                elif [ ${_modality} == "ssl" ]; then
+                    
+                    log "ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+
+                    # ssl tokenization will additionally need utt2num_samples
+                    cp ${data_audio}/${dset}/utt2num_samples ${data_feats}/${dset}
+                    scripts/feats/ssl_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --fs ${fs} \
+                        --nj ${nj} \
+                        --batch_bins ${ssl_batch_bins} \
+                        --ssl_choice ${ssl_choice} \
+                        --checkpoint_path ${ssl_checkpoint_path} \
+                        --kmeans_path ${ssl_kmeans_path} \
+                        --nlayer ${ssl_nlayer} \
+                        --hf_model_tag ${ssl_hf_model_tag} \
+                        --use_gpu true
 
                 elif [ ${_modality} == "codec" ]; then
                     log "Codec Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/codec_tokenization.sh \
                         --src_dir ${data_audio}/${dset} \
                         --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
                         --codec_fs ${fs} \
                         --dump_audio false \
-                        --file_name ${_name} \
                         --nj ${nj} \
                         --codec_choice ${codec_choice} \
                         --checkpoint_path ${codec_checkpoint_path} \
@@ -354,26 +420,21 @@ if ! "${skip_data_prep}"; then
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
                 
                 elif [ ${_modality} == "text_bpe" ]; then
-                    if [ "${bpemode}" == "huggingface" ]; then
-                        if [ -z ${bpemodel} ]; then
+                    if [ "${subword_choice}" == "huggingface" ]; then
+                        if [ -z ${subword_model} ]; then
                             log "Specify hf_tokenizer to use HuggingFace pre-trained tokenizer" && exit 1;
                         fi
 
-                        ${python} pyscripts/utils/build_hf_vocab.py --model_tag ${bpemodel} \
+                        ${python} pyscripts/utils/build_hf_vocab.py --model_tag ${subword_model} \
                             > ${data_feats}/${dset}/token_lists/text_bpe_token_list
                     else
-                        if [ -f ${bpemodel}.model ] && [ -f ${bpemodel}.vocab ]; then
-                            log "Skip training BPE model as it already exists"
+                        if [ -f ${subword_model}.model ] && [ -f ${subword_model}.vocab ]; then
+                            log "Skip training subword model as it already exists: ${subword_model}.model"
 
                         else
-                            if [ -z ${bpe_train_text} ]; then
-                                bpe_train_text=${data_audio}/${dset}/${_name}
+                            if [ -z ${subword_train_text} ]; then
+                                subword_train_text=${data_audio}/${dset}/${_name}
                             fi
-                            log "Training BPE model with ${bpe_train_text}"
-                            nutt=$(min "100000" "$(wc -l < ${bpe_train_text})")
-                            cat ${bpe_train_text} | shuf | head -n ${nutt} \
-                            | cut -d ' ' -f 2- \
-                            > ${bpe_train_text}.text_bpe_train && echo ""
                             
                             if [ -n "${bpe_nlsyms}" ]; then
                                 if test -f "${bpe_nlsyms}"; then
@@ -387,17 +448,20 @@ if ! "${skip_data_prep}"; then
                             fi
 
                             spm_train \
-                                --input="${data_audio}"/${dset}/${_name}.text_bpe_train \
+                                --input=${subword_train_text} \
                                 --vocab_size="${nbpe}" \
-                                --model_type="${bpemode}" \
-                                --model_prefix="${bpemodel}" \
+                                --model_type="${sentencepiece_choice}" \
+                                --model_prefix="${data_feats}/${dset}/token_lists/text_bpe" \
                                 --character_coverage=${bpe_char_cover} \
                                 --input_sentence_size="${bpe_input_sentence_size}" \
+                                --shuffle_input_sentence \
                                 ${_opts_spm}
                         fi
 
-                        < "${bpemodel}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
-                        > ${data_feats}/${dset}/token_lists/text_bpe_token_list
+                        if [ "${dset}" == "${train_set}" ]; then
+                            < "${data_feats}/${dset}/token_lists/text_bpe.vocab" awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }' \
+                            > ${data_feats}/${dset}/token_lists/text_bpe_token_list
+                        fi
                     fi
 
                     cp ${data_audio}/${dset}/${_name} ${data_feats}/${dset}/${_name}
@@ -416,7 +480,7 @@ if ! "${skip_data_prep}"; then
                 fi
             done
 
-            # The metadata for this dataset/task is saved in a yaml file
+            # The metadata for this dataset/task is saved in a json file
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
@@ -491,7 +555,8 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemodel "${bpemodel}" \
+                --subword_choice ${subword_choice} \
+                --subword_model "${subword_model}" \
                 --multi_task_dataset true \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${_data_opts} ${train_args} \
@@ -594,7 +659,8 @@ if ! ${skip_train}; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --bpemodel "${bpemodel}" \
+                --subword_choice ${subword_choice} \
+                --subword_model "${subword_model}" \
                 --multi_task_dataset true \
                 --sharded_dataset true \
                 --resume true \

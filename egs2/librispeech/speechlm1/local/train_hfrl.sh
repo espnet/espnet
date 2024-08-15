@@ -37,22 +37,22 @@ codec_hf_model_tag=null
 tag=
 data_combo_name=
 task="tts"
-pretrain_checkpoint=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/valid.total_count.ave_5best.till100epoch.pth
+pretrain_checkpoint=exp/speechlm_ls_giga_mlsen_train_multiscale_1b/revised_valid.total_count.ave_5best.till100epoch.pth
 select_metrics="spk_similarity"
 
 # SFT options
 use_sft=false
 sft_train_args=
-sft_config=conf/train_multiscale_1b_sft.yaml
+sft_config=conf/hfrl/train_multiscale_1b_sft.yaml
 
 # HFRL options
 hfrl_train_args=
-hfrl_config=conf/train_multiscale_1b_dpo.yaml
+hfrl_config=conf/hfrl/train_multiscale_1b_dpo.yaml
 use_reflm=true
 
 # Other options
-nj=16
-ngpu=8
+nj=32
+ngpu=4
 g2p="g2p_en_no_space"
 cleaner="tacotron"
 stage=1
