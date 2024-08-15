@@ -95,6 +95,16 @@ class MultiScaleLM(AbsCoreLM):
             torch.randn(l_att_unit, requires_grad=True)
         )
 
+<<<<<<< HEAD
+=======
+        # later shouls allow the local dimension to be smaller than the global
+        # dimension for efficient local modeling
+        if g_att_unit != l_att_unit:
+            raise ValueError(
+                "currently attention size for global and local size should be the same"
+            )
+
+>>>>>>> b1046403ec7a20469594cb9f6ad3cbe58a7e6c81
         self.nq = nq
         self.n_ctx = n_ctx
 
@@ -115,8 +125,8 @@ class MultiScaleLM(AbsCoreLM):
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
             dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
-                may not be used.
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep
+                the interface, may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).

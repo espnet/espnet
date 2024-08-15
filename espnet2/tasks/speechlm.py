@@ -90,6 +90,7 @@ class SpeechLMTask(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")

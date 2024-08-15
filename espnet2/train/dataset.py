@@ -6,6 +6,7 @@ import logging
 import numbers
 import random
 import re
+import types
 from abc import ABC, abstractmethod
 from typing import (
     Any,
@@ -47,8 +48,12 @@ from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    @typechecked
-    def __init__(self, loader, dtype=None, allow_multi_rates=False):
+    def __init__(
+        self,
+        loader,
+        dtype: Union[None, str] = None,
+        allow_multi_rates: bool = False,
+    ):
         self.loader = loader
         self.dtype = dtype
         self.rate = None
@@ -103,6 +108,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 
 
 class H5FileWrapper:
+    @typechecked
     def __init__(self, path: str):
         self.path = path
         self.h5_file = h5py.File(path, "r")
@@ -122,7 +128,6 @@ class H5FileWrapper:
 
 
 class AdapterForSingingScoreScpReader(collections.abc.Mapping):
-    @typechecked
     def __init__(self, loader):
         self.loader = loader
 
@@ -149,7 +154,7 @@ class AdapterForSingingScoreScpReader(collections.abc.Mapping):
 
 class AdapterForLabelScpReader(collections.abc.Mapping):
     @typechecked
-    def __init__(self, loader):
+    def __init__(self, loader: Dict[str, List[List[Union[str, float, int]]]]):
         self.loader = loader
 
     def keys(self):
@@ -643,9 +648,13 @@ class ESPnetDataset(AbsDataset):
         return retval
 
 
-# (Jinchuan) Nearly the same as ESPnetDataset, but with added features
-# specifically designed to SpeechLM.
 class EspnetSpeechLMDataset(ESPnetDataset):
+    """
+    Dataset object that is specifically designed for SpeechLM. It will allows
+    dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is
+    task-specific and can be queried by ESPnetMultiTaskDataset.
+    """
+
     def __init__(
         self,
         example_list: List,
@@ -695,15 +704,14 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
-    """Pytorch Dataset class for ESPNet
-       Warp multiple EspnetSpeechLMDataset objects for multi-tasking
-
-    Examples:
-        >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
-        ...                          ('token_int', 'output', 'text_int')],
-        ...                         )
-        ... uttid, data = dataset['uttid']
-        {'input': per_utt_array, 'output': per_utt_array}
+    """
+    The top-level Dataset object that can manage multiple EspnetSpeechLMDataset
+    objects, each of which serves a specific task and dataset.
+    This object will query all these EspnetSpeechLMDataset and combine examples
+    from different tasks for multi-task training. Typically, this dataset is
+    used in ESPnet SpeechLM models
+    See details in:
+    <espnet>/egs2/TEMPLATE/speechlm1#data-loading-and-preprocessing
     """
 
     def __init__(

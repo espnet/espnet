@@ -28,8 +28,6 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstre
     --nj 16 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
-    --inference_nj 1 \
-    --gpu_inference true \
     --local_data_opts "${local_data_opts}" \
     --audio_format "flac.ark" \
     --train_config ${train_config} \

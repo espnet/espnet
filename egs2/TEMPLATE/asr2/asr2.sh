@@ -830,7 +830,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
         _suf=
         if [ -n "${layer}" ]; then
-            _suf="layer${layer}/"
+            _suf="layer${layer}"
         fi
 
         if [ "${src_case}" = ts ]; then
@@ -845,8 +845,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                         }
                         print($1,out);
                     }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "${data_extract}/${kmeans_feature_type}/${_suf}${dset}"/text.${src_case}.${src_lang}
+                    "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/pseudo_labels_km${nclusters}.txt" \
+                    > "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"/text.${src_case}.${src_lang}
             done
         elif [ "${src_case}" = rm ]; then
             echo "remove repetitions in the discrete token sequence"
@@ -860,24 +860,24 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
                         }
                         print($1,out);
                     }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text.${src_case}.${src_lang}"
+                    "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/pseudo_labels_km${nclusters}.txt" \
+                    > "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text.${src_case}.${src_lang}"
             done
         else
             echo "Unrecognized src_case ${src_case}" && exit 1;
         fi
 
         for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
-            cp ${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text \
-                ${data_extract}/${kmeans_feature_type}/${_suf}${dset}/text.${tgt_case}.${tgt_lang}
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text \
+                ${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text.${tgt_case}.${tgt_lang}
         done
 
         if ${eval_valid_set}; then
             utils/copy_data_dir.sh --validate_opts --non-print ${data_audio}/org/${valid_set} \
                 ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
-            cp ${data_extract}/${kmeans_feature_type}/${_suf}org/${valid_set}/text.${src_case}.${src_lang} \
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/org/${valid_set}/text.${src_case}.${src_lang} \
                 ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
-            cp ${data_extract}/${kmeans_feature_type}/${_suf}org/${valid_set}/text.${tgt_case}.${tgt_lang} \
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/org/${valid_set}/text.${tgt_case}.${tgt_lang} \
                 ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
 
             utils/fix_data_dir.sh --utt_extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
@@ -885,15 +885,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         fi
 
         if [ -n "${speed_perturb_factors}" ]; then
-            _dirs="${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set} "
+            _dirs="${data_extract}/${kmeans_feature_type}/${_suf}/${train_set} "
             for factor in ${speed_perturb_factors}; do
                 if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
-                    _dirs+="${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set}_sp${factor} "
+                    _dirs+="${data_extract}/${kmeans_feature_type}/${_suf}/${train_set}_sp${factor} "
                 fi
             done
             utils/combine_data.sh \
                 --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
-                "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/${train_set}_sp" ${_dirs}
+                "${data_extract}/${kmeans_feature_type}/${_suf}/${train_set}_sp" ${_dirs}
         fi
 
     elif [ "${tokenization_choice}" == "codec" ]; then
@@ -965,7 +965,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
 
         _suf=
         if [ -n "${layer}" ]; then
-            _suf="layer${layer}/"
+            _suf="layer${layer}"
         fi
 
         for dset in ${_dsets}; do
@@ -973,7 +973,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
 
             for extra_file in ${utt_extra_files}; do
                 # with regex to suuport multi-references
-                for single_file in "${data_extract}/${kmeans_feature_type}/${_suf}${dset}"/*; do
+                for single_file in "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"/*; do
                     base=$(basename "${single_file}")
                     [ "${base}" = "${extra_file}" ] && cp ${single_file} "${data_feats}/${dset}"
                 done

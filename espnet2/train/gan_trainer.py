@@ -163,13 +163,8 @@ class GANTrainer(Trainer):
                     else:
                         skip_disc = torch.rand(1)
                     if skip_disc.item() < skip_discriminator_prob:
-                        try:
-                            if isinstance(model, DDP):
-                                model.module.codec._cache = None
-                            elif isinstance(model, torch.nn.Module):
-                                model.codec._cache = None
-                        except:
-                            pass
+                        if hasattr(model.codec, "_cache"):
+                            model.codec._cache = None
                         continue
 
                 with autocast(scaler is not None):
