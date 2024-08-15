@@ -100,9 +100,9 @@ packaging.done: setuptools.done
 
 numpy.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && python3 -m pip install "numpy<1.24"
+	. ./activate_python.sh && python3 -m pip install numpy
 else
-	. ./activate_python.sh && conda install -y "numpy<1.24"
+	. ./activate_python.sh && conda install -y numpy
 endif
 
 numba.done: numpy.done
