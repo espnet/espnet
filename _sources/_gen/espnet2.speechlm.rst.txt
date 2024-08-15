@@ -4,6 +4,17 @@ espnet2.speechlm package
 
 
 
+.. _espnet2.speechlm.definitions:
+
+espnet2.speechlm.definitions
+----------------------------
+
+.. automodule:: espnet2.speechlm.definitions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.speechlm.__init__:
 
 espnet2.speechlm.__init__
@@ -26,17 +37,6 @@ espnet2.speechlm.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.speechlm.definitions:
-
-espnet2.speechlm.definitions
-----------------------------
-
-.. automodule:: espnet2.speechlm.definitions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.speechlm.net_utils:
 
 espnet2.speechlm.net_utils
@@ -48,12 +48,56 @@ espnet2.speechlm.net_utils
     :show-inheritance:
 
 
-.. _espnet2.speechlm.tokenizer.abs_tokenizer:
+.. _espnet2.speechlm.core_lm.valle:
 
-espnet2.speechlm.tokenizer.abs_tokenizer
-----------------------------------------
+espnet2.speechlm.core_lm.valle
+------------------------------
 
-.. automodule:: espnet2.speechlm.tokenizer.abs_tokenizer
+.. automodule:: espnet2.speechlm.core_lm.valle
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.speechlm.core_lm.__init__:
+
+espnet2.speechlm.core_lm.__init__
+---------------------------------
+
+.. automodule:: espnet2.speechlm.core_lm.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.speechlm.core_lm.ar_multiscale:
+
+espnet2.speechlm.core_lm.ar_multiscale
+--------------------------------------
+
+.. automodule:: espnet2.speechlm.core_lm.ar_multiscale
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.speechlm.core_lm.abs_core_lm:
+
+espnet2.speechlm.core_lm.abs_core_lm
+------------------------------------
+
+.. automodule:: espnet2.speechlm.core_lm.abs_core_lm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.speechlm.tokenizer.codec_tokenizer:
+
+espnet2.speechlm.tokenizer.codec_tokenizer
+------------------------------------------
+
+.. automodule:: espnet2.speechlm.tokenizer.codec_tokenizer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,12 +114,12 @@ espnet2.speechlm.tokenizer.__init__
     :show-inheritance:
 
 
-.. _espnet2.speechlm.tokenizer.codec_tokenizer:
+.. _espnet2.speechlm.tokenizer.abs_tokenizer:
 
-espnet2.speechlm.tokenizer.codec_tokenizer
-------------------------------------------
+espnet2.speechlm.tokenizer.abs_tokenizer
+----------------------------------------
 
-.. automodule:: espnet2.speechlm.tokenizer.codec_tokenizer
+.. automodule:: espnet2.speechlm.tokenizer.abs_tokenizer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -109,50 +153,6 @@ espnet2.speechlm.module.transformer
 -----------------------------------
 
 .. automodule:: espnet2.speechlm.module.transformer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.speechlm.core_lm.valle:
-
-espnet2.speechlm.core_lm.valle
-------------------------------
-
-.. automodule:: espnet2.speechlm.core_lm.valle
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.speechlm.core_lm.ar_multiscale:
-
-espnet2.speechlm.core_lm.ar_multiscale
---------------------------------------
-
-.. automodule:: espnet2.speechlm.core_lm.ar_multiscale
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.speechlm.core_lm.__init__:
-
-espnet2.speechlm.core_lm.__init__
----------------------------------
-
-.. automodule:: espnet2.speechlm.core_lm.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.speechlm.core_lm.abs_core_lm:
-
-espnet2.speechlm.core_lm.abs_core_lm
-------------------------------------
-
-.. automodule:: espnet2.speechlm.core_lm.abs_core_lm
     :members:
     :undoc-members:
     :show-inheritance:
