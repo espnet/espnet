@@ -15,7 +15,7 @@ Jupyter notebooks for course demos and tutorials.
 
 cd notebook
 documents=`for i in $(ls -d */); do echo ${i%%/}; done`
-for document in "${documents[@]}"; do
+for document in ${documents[@]}; do
     echo "## ${document}\n"
     find ./${document} \
         -type f \
