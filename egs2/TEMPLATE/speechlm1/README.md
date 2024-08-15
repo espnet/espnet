@@ -353,6 +353,17 @@ Similar to other ESPnet modules, SpeechLM models can also be released by Hugging
 ### Stage 13: Dataset Sharing
 Besides sharing the model, developers can also share their data, specifically the tokenized data described by `data.json`. As described in [Multi-Task Training and Multi-Task Dataset](#multi-task-training-and-multi-task-dataset), a team can easily build a data mixture for multi-task training once its members share their data for each task and each dataset.
 
+To share the dataset, make sure you already have the huggingface account and then login:
+  * `huggingface-cli login`
+
+Then create a dataset repository with your `data_name` as:
+  * `huggingface-cli repo create -y ${data_name} --type dataset`
+
+Upload your data to dataset. Typically we would like to requeest you to upload the ${data_feats} folder that contains all tokenized results:
+  * `huggingface-cli upload --repo-type dataset ${data_name} ${data_feats} ${data_feats}`
+  * `${data_feats}` folder is in the format of `data_feats="${dumpdir}/raw_${task}_${data_name}"`. E.g., `dump/raw_tts_libritts`
+
+
 ## Miscellaneous
 ### Entry Name Rules
 The names of the entries are usually flexible, but still with some constraints:

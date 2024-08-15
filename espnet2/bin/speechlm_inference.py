@@ -186,7 +186,7 @@ class SpeechLM:
         for start, end in zip(segment_starts[:-1], segment_starts[1:]):
             modality_id = sequence[start, 0].int().item()
             modality = self.token_list[modality_id]
-            modality = modality.lstrip("<").removesuffix("_start/end>")
+            modality = modality.removeprefix("<").removesuffix("_start/end>")
 
             segment = sequence[start + 1: end]
             segment = segment[segment[:, 0] != self.pad]
