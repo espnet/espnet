@@ -12,6 +12,7 @@ from typing import List, Tuple
 class Modality:
     discrete: bool = True
 
+
 MODALITIES = {}
 # Discrete
 MODALITIES["codec"] = Modality()
@@ -28,38 +29,40 @@ MODALITIES["ssl_feat"] = Modality(discrete=False)
 
 # END OF MODALITY DEFINITION #
 
+
 # (2) Task Definition
 @dataclass
 class SpeechLMTaskTemplate:
     conditions: List[Tuple[str, str, str]]
     targets: List[Tuple[str, str, str]]
     use_task_identifier: bool = True
-    
+
     @property
     def data_triplets(self):
         all_entries = self.conditions + self.targets
         return all_entries
-    
+
     @property
     def data_triplets_string(self):
         ans = ""
         for entry in self.data_triplets:
             ans = ans + ",".join(entry) + " "
         return ans
-    
+
     @property
     def condition_string(self):
         ans = ""
         for entry in self.conditions:
             ans = ans + ",".join(entry) + " "
         return ans
-    
+
     @property
     def target_string(self):
         ans = ""
         for entry in self.targets:
             ans = ans + ",".join(entry) + " "
         return ans
+
 
 SPEECHLM_TASKS = dict()
 

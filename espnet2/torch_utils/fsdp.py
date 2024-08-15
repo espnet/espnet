@@ -20,15 +20,13 @@
 # Please raise an issue in https://github.com/espnet/espnet if this code doesn't work
 # on specific torch version above 2.0.1
 
-import torch
 import functools
+
+import torch
 from packaging.version import parse as V
-from torch.distributed.fsdp import (
-    FullyShardedDataParallel as FSDP,
-    MixedPrecision,
-    StateDictType,
-    FullStateDictConfig,
-)
+from torch.distributed.fsdp import FullStateDictConfig
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import MixedPrecision, StateDictType
 
 try:
     from torch.distributed.fsdp import FullOptimStateDictConfig

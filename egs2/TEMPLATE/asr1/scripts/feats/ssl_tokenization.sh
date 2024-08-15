@@ -3,7 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Speech tokenization by SSL model. This is a simplified version. For the version with 
+# Speech tokenization by SSL model. This is a simplified version. For the version with
 # K-means model training, also check: scripts/feats/perform_kmeans.sh
 
 # Set bash to 'debug' mode, it will exit on :

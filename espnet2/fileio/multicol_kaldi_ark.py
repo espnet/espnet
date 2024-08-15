@@ -1,5 +1,6 @@
-import kaldiio
 import random
+
+import kaldiio
 
 
 class MultiColKaldiArkReader:

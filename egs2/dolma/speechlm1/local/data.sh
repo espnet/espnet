@@ -52,5 +52,5 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     rm -f data/train/text
     for file in `ls ${DATA_DIR} | grep -v json.gz`; do
         cat ${DATA_DIR}/${file} >> data/train/text
-    done 
+    done
 fi

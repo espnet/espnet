@@ -15,10 +15,10 @@ from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.net_utils import (
     ce_loss,
+    install_continuous_features,
     length_mask,
     logits_to_tokens,
     modality_index_to_mask,
-    install_continuous_features,
 )
 
 
@@ -242,10 +242,10 @@ class ValleLM(AbsCoreLM):
                 prev_tok = suffix[:, step : step + 1, 0]
             else:
                 prev_tok = gen_tok  # [B, 1]
-            
+
             # (3.3) detect modality swtich
             mask_cache.append(mask.clone())
-            modality_change_mask =  torch.logical_and(
+            modality_change_mask = torch.logical_and(
                 prev_tok[:, 0] >= 32,
                 prev_tok[:, 0] < 64,
             )
@@ -257,7 +257,7 @@ class ValleLM(AbsCoreLM):
                 )
                 mask = modality_index_to_mask(modality_index, opts)
                 logging.warning(f"Step {step}: change modality index {modality_index}")
-            
+
             # (3.4) detect ended hypotheses.
             finish_idx = torch.where(
                 torch.logical_and(prev_tok[:, 0] == opts.eos, finish_idx == -1),

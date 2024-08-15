@@ -187,7 +187,7 @@ else
             data_combo_name=${task}_${data_name}
         fi
     else
-        log "No data from external resources or prepared locally. Cannot proceed..." && exit 1; 
+        log "No data from external resources or prepared locally. Cannot proceed..." && exit 1;
     fi
 fi
 
@@ -222,7 +222,7 @@ if [ -z "${tag}" ]; then
     else
         echo "No training configuration found ..." && exit 1;
     fi
-    
+
     # Add overwritten arg's info
     if [ -n "${train_args}" ]; then
         tag+="$(echo "${train_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
@@ -269,7 +269,7 @@ if ! "${skip_data_prep}"; then
         else
             _dsets="${train_set} ${valid_set} ${test_sets}"
         fi
-        
+
         for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
 
@@ -277,7 +277,7 @@ if ! "${skip_data_prep}"; then
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
 
                 if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "codec_ssl" ]; then
-                    
+
                     # Format audio
                     _opts=
                     if [ -e data/"${dset}"/segments ]; then
@@ -368,9 +368,9 @@ if ! "${skip_data_prep}"; then
                         --ssl_nlayer ${ssl_nlayer} \
                         --ssl_hf_model_tag ${ssl_hf_model_tag} \
                         --ssl_batch_bins ${ssl_batch_bins}
-                    
+
                 elif [ ${_modality} == "ssl" ]; then
-                    
+
                     log "ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
 
                     # ssl tokenization will additionally need utt2num_samples
@@ -418,7 +418,7 @@ if ! "${skip_data_prep}"; then
                         --g2p "${g2p}" \
                         --write_vocabulary true
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
-                
+
                 elif [ ${_modality} == "text_bpe" ]; then
                     if [ "${subword_choice}" == "huggingface" ]; then
                         if [ -z ${subword_model} ]; then
@@ -435,7 +435,7 @@ if ! "${skip_data_prep}"; then
                             if [ -z ${subword_train_text} ]; then
                                 subword_train_text=${data_audio}/${dset}/${_name}
                             fi
-                            
+
                             if [ -n "${bpe_nlsyms}" ]; then
                                 if test -f "${bpe_nlsyms}"; then
                                     bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
@@ -486,7 +486,7 @@ if ! "${skip_data_prep}"; then
                 --output_json ${data_feats}/${dset}/data.json \
                 ${opts}
         done
-        
+
     fi
 
 else
@@ -528,7 +528,7 @@ if ! ${skip_train}; then
             --json_files ${valid_jsons} \
             --nj ${nj} \
             --output_dir ${_logdir}/valid
-        
+
         _data_opts=""
         for dset in `ls -d ${_logdir}/train/*/`; do
             _data_opts+="--train_data_path_and_name_and_type ${dset}/split${nj}/JOB/data.JOB.json,_,dataset_json "
@@ -764,9 +764,9 @@ if ! "${skip_eval}"; then
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
             _src_dir="$(dirname "${test_json}")"
             _dset="$(basename ${_src_dir})"
-            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"; 
+            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}";
             mkdir -p ${_dir}/eval_cache
-            
+
             target_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].target_string)")
             target_files=$(echo ${target_triplets} | tr ' ' '\n' | awk -F ',' '{print $1}')
 
@@ -794,7 +794,7 @@ if ! "${skip_eval}"; then
             for file in ${target_files}; do
                 all_ref_files+="${_src_dir}/index_files/${file} "
             done
-            
+
             if [ "${task}" == "tts" ]; then
                 all_ref_files+="${_src_dir}/index_files/text "
             fi
@@ -803,7 +803,7 @@ if ! "${skip_eval}"; then
                 name=$(basename ${file})
                 awk -v N=${nbest} -v Task=${task} '{{name=$1}for(i=0; i<N; i++){$1=Task "_" name "_sample" i; print $0}}' \
                     ${file} > ${_dir}/eval_cache/${name}
-                
+
                 utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/eval_cache/${name} \
                     > ${_dir}/eval_cache/${name}.tmp
                 mv ${_dir}/eval_cache/${name}.tmp ${_dir}/eval_cache/${name}
@@ -814,7 +814,7 @@ if ! "${skip_eval}"; then
                 awk -v prefix="${task}" '{print prefix "_" $1}' ${_src_dir}/index_files/${file}
             done | sort | uniq > ${_dir}/eval_cache/key_file
 
-            # (3) Task-specific evaluation 
+            # (3) Task-specific evaluation
             ./scripts/utils/speechlm_eval/eval_${task}.sh \
                 --gen_dir ${_dir} \
                 --ref_dir ${_dir}/eval_cache \

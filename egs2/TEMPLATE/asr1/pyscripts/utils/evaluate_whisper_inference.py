@@ -105,7 +105,9 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for key, audio_file in info_list:
             # N-best list of (text, token, token_int, hyp_object)
-            logging.info(f"decoding {key} ...", )
+            logging.info(
+                f"decoding {key} ...",
+            )
             results = speech2text(os.path.abspath(audio_file.strip()), **decode_options)
 
             # Normal ASR

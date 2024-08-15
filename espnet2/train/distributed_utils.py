@@ -109,7 +109,7 @@ class DistributedOption:
             #    => Distributed with 1-Process and n-GPU
             if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
-            
+
             if self.use_deepspeed:
                 try:
                     import deepspeed

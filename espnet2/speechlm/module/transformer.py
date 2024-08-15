@@ -3,23 +3,22 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
 from typing import Optional
 
 import torch
-import logging
-
-from espnet2.speechlm.net_utils import install_kv_cache_hook
-
 from transformers import (
-    GPTNeoXModel,
-    GPTNeoXForCausalLM,
     AutoModel,
     AutoModelForCausalLM,
+    GPTNeoXForCausalLM,
+    GPTNeoXModel,
 )
 from transformers.utils import (
     is_flash_attn_2_available,
     is_flash_attn_greater_or_equal_2_10,
 )
+
+from espnet2.speechlm.net_utils import install_kv_cache_hook
 
 HF_OBJ = {
     "EleutherAI/pythia": [GPTNeoXModel, GPTNeoXForCausalLM],
@@ -236,12 +235,12 @@ class TransformerDecoder(nn.Module):
             pass
 
         return kv_cache
-    
+
     def reset(self, kv_cache):
         if self.model_type == "builtin":
             for hook in self.hooks:
                 hook.remove()
-            
+
             kv_cache.clear()
 
         else:

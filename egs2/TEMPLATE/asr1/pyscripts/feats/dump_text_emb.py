@@ -7,11 +7,11 @@ import argparse
 import logging
 import os
 import sys
-import kaldiio
-import torch
-import numpy as np
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import kaldiio
+import numpy as np
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -20,6 +20,7 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger("get text embeddings")
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -32,6 +33,7 @@ def get_parser():
     )
 
     return parser
+
 
 def dump_text_emb(
     input_file: str,
@@ -70,9 +72,9 @@ def dump_text_emb(
         if idx % batch_size == 0 or idx == len(lines):
 
             inputs = tokenizer(
-                contents, 
-                return_tensors='pt', 
-                padding=True, 
+                contents,
+                return_tensors="pt",
+                padding=True,
                 truncation=True,
             )
             inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -92,6 +94,7 @@ def dump_text_emb(
             example_ids, contents = [], []
 
             logging.info(f"processed {idx} lines")
+
 
 if __name__ == "__main__":
     parser = get_parser()

@@ -7,11 +7,11 @@ import argparse
 import logging
 import os
 import sys
-import kaldiio
-import torch
-import numpy as np
-
 from pathlib import Path
+
+import kaldiio
+import numpy as np
+import torch
 
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.utils.types import str2bool, str_or_none
@@ -127,7 +127,7 @@ def dump_codec(
 
         if wav.ndim != 1:
             raise ValueError("Multi-Channel audio is not supported so far")
-        
+
         if np.issubdtype(wav.dtype, np.integer):
             max_val = np.iinfo(wav.dtype).max
             wav = wav.astype(np.float32) / max_val
@@ -171,7 +171,7 @@ def dump_codec(
                 vocab_writer.write(f"<codec_layer{codebook_idx}_code{code_idx}>\n")
 
         n_codebook_file = vocab_file.parent / "codec_code_per_frame"
-        n_codebook_writer = open(n_codebook_file, 'w')
+        n_codebook_writer = open(n_codebook_file, "w")
         n_codebook_writer.write(f"{tokenizer.n_codebook}\n")
 
 

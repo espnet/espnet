@@ -326,7 +326,7 @@ class EBranchformerEncoder(AbsEncoder):
                 input_layer,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == 'none' or input_layer is None:
+        elif input_layer == "none" or input_layer is None:
             if input_size == output_size:
                 self.embed = torch.nn.Sequential(
                     pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
@@ -481,7 +481,11 @@ class EBranchformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if return_all_hs or len(self.interctc_layer_idx) == 0:
-            if return_all_hs or max_layer is not None and 0 <= max_layer < len(self.encoders):
+            if (
+                return_all_hs
+                or max_layer is not None
+                and 0 <= max_layer < len(self.encoders)
+            ):
                 for layer_idx, encoder_layer in enumerate(self.encoders):
                     xs_pad, masks = encoder_layer(xs_pad, masks)
                     if return_all_hs:

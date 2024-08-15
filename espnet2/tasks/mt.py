@@ -38,7 +38,7 @@ from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.mt.espnet_model import ESPnetMTModel
-from espnet2.mt.frontend.embedding import Embedding, PatchEmbedding, CodecEmbedding
+from espnet2.mt.frontend.embedding import CodecEmbedding, Embedding, PatchEmbedding
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize

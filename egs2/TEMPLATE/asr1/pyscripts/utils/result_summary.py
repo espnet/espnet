@@ -3,9 +3,9 @@
 import argparse
 import json
 import logging
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
@@ -71,7 +71,7 @@ def main(args):
             line = json.loads(line)
             example_name = line.pop("key")
             utt_name = example_name.split("_sample")[0]
-            
+
             if "weight" in line:
                 weight = line["weight"]
                 line.pop("weight")
@@ -85,7 +85,7 @@ def main(args):
                 if example_name not in stats_dict[utt_name]:
                     stats_dict[utt_name][example_name] = {}
                 stats_dict[utt_name][example_name][key] = (value, weight)
-    
+
     for line in open(args.key_file):
         utt_name = line.strip().split()[0]
         if utt_name not in stats_dict:
@@ -136,9 +136,9 @@ def main(args):
             args.draw_picture,
             args.output_dir,
         )
-    
+
     # (4) a select list based on overall_score
-    writer = open(args.output_dir / "selected_examples", 'w')
+    writer = open(args.output_dir / "selected_examples", "w")
     for utt_dict in stats_dict.values():
         name_and_scores = [
             (key, utt_dict[key]["overall_score"]) for key in utt_dict.keys()
@@ -146,6 +146,7 @@ def main(args):
         name_and_scores.sort(key=lambda x: x[1])
         best_name = name_and_scores[0][0]
         writer.write(f"{best_name}\n")
+
 
 def analyze_one_metric(
     stats_dict,
@@ -230,12 +231,13 @@ def sort_reverse(metric):
 
     elif metric == "wer":
         return False
-    
+
     elif metric == "overall_score":
         return False
 
     else:
         raise NotImplementedError(f"{metric}")
+
 
 def draw_line_chart(lists, title="", xlabel="", ylabel="", path=None):
     for i, data in enumerate(lists):
@@ -261,9 +263,10 @@ def add_overall_score(utt_dict):
 
         for score, (name, _) in enumerate(name_values):
             scores[name] += score
-    
+
     for name, score in scores.items():
-        utt_dict[name]["overall_score"] = (score, 1.0) # add weight
+        utt_dict[name]["overall_score"] = (score, 1.0)  # add weight
+
 
 if __name__ == "__main__":
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"

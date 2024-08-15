@@ -3,11 +3,11 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
+import json
+import logging
 import os
 import sys
-import json
-import argparse
-import logging
 from pathlib import Path
 
 logging.basicConfig(
@@ -16,6 +16,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -38,18 +39,19 @@ def get_parser():
         "--path_name_types",
         type=str,
         default=[],
-        action='append',
+        action="append",
         help="path_name_file of the new entry file",
     )
     parser.add_argument(
         "--extra_path_name_types",
         type=str,
         default=[],
-        action='append',
+        action="append",
         help="path_name_file of the new entry file",
     )
 
     return parser
+
 
 def main():
     parser = get_parser()
@@ -72,17 +74,15 @@ def main():
 
     if len(args.extra_path_name_types) > 0:
         json_dict["extra_data_files"] = args.extra_path_name_types
-    
-    writer = open(args.output_json, 'wb')
+
+    writer = open(args.output_json, "wb")
     writer.write(
-        json.dumps(
-            json_dict, 
-            indent=4, 
-            ensure_ascii=False, 
-            sort_keys=False)
-            .encode("utf_8")
+        json.dumps(json_dict, indent=4, ensure_ascii=False, sort_keys=False).encode(
+            "utf_8"
+        )
     )
     logging.info(f"saving new data.json in {args.output_json}")
+
 
 if __name__ == "__main__":
     main()

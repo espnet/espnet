@@ -12,9 +12,9 @@ from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.module.builtin import ResidualAttentionBlock
+from espnet2.speechlm.net_utils import length_mask, pad_and_concat
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.speechlm.net_utils import length_mask, pad_and_concat
 
 
 class ESPnetSpeechLMRLModel(AbsESPnetModel):
@@ -69,7 +69,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         rej_seq_lengths = kwargs.get("sampled_seq_lengths", None)
         if rej_seq is None or rej_seq_lengths is None:
             raise ValueError(f"The negative examples are not available")
-        
+
         prefix_len = kwargs.get("prefix_len").flatten()
         conti_feats = kwargs.get("conti_feats")
 
@@ -84,7 +84,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         all_prefix_lengths = torch.cat(
             [prefix_len, torch.repeat_interleave(prefix_len, np_ratio)],
             dim=0,
-        )  
+        )
         all_conti_feats = conti_feats + [
             conti_feats[i // np_ratio] for i in range(n_negative)
         ]

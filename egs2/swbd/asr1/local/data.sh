@@ -98,6 +98,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            # Note(Jinchuan): Combine train_nodup and train_fisher
            utils/combine_data.sh data/train_swbd data/train_nodup data/train_fisher
      fi
-     
+
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"

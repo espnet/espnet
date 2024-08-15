@@ -15,12 +15,12 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.wav2vec_cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.wav2vec_cnn import CNNFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
@@ -72,9 +72,7 @@ normalize_choices = ClassChoices(
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(
-        sinc=LightweightSincConvs, linear=LinearProjection
-    ),
+    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection),
     type_check=AbsPreEncoder,
     default="linear",
     optional=True,
@@ -82,9 +80,10 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        transformer=TransformerEncoder, 
+        transformer=TransformerEncoder,
         conformer=ConformerEncoder,
-        e_branchformer=EBranchformerEncoder),
+        e_branchformer=EBranchformerEncoder,
+    ),
     type_check=AbsEncoder,
     default="transformer",
 )
@@ -485,8 +484,8 @@ class SSLTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        del args.encoder_conf['use_flash_attn'] # temp until flash-attn pr merged
-        del args.encoder_conf['activation_ckpt']
+        del args.encoder_conf["use_flash_attn"]  # temp until flash-attn pr merged
+        del args.encoder_conf["activation_ckpt"]
         encoder = encoder_class(
             input_size=input_size,
             **args.encoder_conf,

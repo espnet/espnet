@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import sys
-
 from pathlib import Path
 
 logging.basicConfig(
@@ -17,6 +16,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -32,19 +32,15 @@ def get_parser():
         nargs="+",
         help="Append token_list e.g. --token_list <json1> <json2>",
     )
-    parser.add_argument(
-        "--nj",
-        type=int,
-        default=1,
-        help="number of splits"
-    )
+    parser.add_argument("--nj", type=int, default=1, help="number of splits")
     return parser
+
 
 def split_one_data_json(json_file, nj, output_dir):
     # (1) load json file
     json_dict = json.load(open(json_file))
     data_files = json_dict["data_files"].copy()
-    task = json_dict['task']
+    task = json_dict["task"]
 
     # (2) load all data files
     all_file_dict = {}
@@ -79,7 +75,7 @@ def split_one_data_json(json_file, nj, output_dir):
             all_file_dict[(path, name, _type)],
             nj,
         )
-    
+
     # (4) write to the disk
     (output_dir / f"split{nj}").mkdir(parents=True, exist_ok=True)
     for j in range(1, nj + 1):
@@ -94,7 +90,7 @@ def split_one_data_json(json_file, nj, output_dir):
             file_name = Path(path).name
             new_file_name = str(sub_dir / file_name)
             data_files.append(f"{new_file_name},{name},{_type}")
-            writer = open(new_file_name, 'w')
+            writer = open(new_file_name, "w")
             for utt in this_split:
                 writer.write(f"{utt} {data_dict[utt]}\n")
             writer.close()
@@ -107,22 +103,17 @@ def split_one_data_json(json_file, nj, output_dir):
 
         writer = open(sub_dir / f"data.{j}.json", "wb")
         writer.write(
-            json.dumps(
-                this_json, 
-                indent=4, 
-                ensure_ascii=False, 
-                sort_keys=False)
-                .encode("utf_8")
+            json.dumps(this_json, indent=4, ensure_ascii=False, sort_keys=False).encode(
+                "utf_8"
+            )
         )
-    
+
     task = json_dict["task"]
     # To merge multiple dataset, add task as the prefix
-    splits = [
-        [task + "_" + utt for utt in split]
-        for split in splits
-    ]
-    
+    splits = [[task + "_" + utt for utt in split] for split in splits]
+
     return splits
+
 
 def split_by_default(data_dict, nj):
     retval = [[] for _ in range(nj)]
@@ -130,13 +121,14 @@ def split_by_default(data_dict, nj):
         retval[idx % nj].append(key)
     return retval
 
+
 def split_by_utt2spk(data_dict, nj):
     spk2utt = {}
     for utt, spk in data_dict.items():
         if spk not in spk2utt:
             spk2utt[spk] = []
         spk2utt[spk].append(utt)
-    
+
     # always find the job with minimum number of examples
     retval = [[] for _ in range(nj)]
     for utt_list in spk2utt.values():
@@ -144,7 +136,8 @@ def split_by_utt2spk(data_dict, nj):
         argmin = lengths.index(min(lengths))
         retval[argmin].extend(utt_list)
     return retval
-        
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
@@ -161,11 +154,12 @@ def main():
 
         for idx, split in enumerate(example_splits):
             example_list[idx].extend(split)
-    
+
     for j in range(1, args.nj + 1):
-        writer = open(args.output_dir / f"example_list.{j}", 'w')
+        writer = open(args.output_dir / f"example_list.{j}", "w")
         for utt in example_list[j - 1]:
             writer.write(f"{utt}\n")
+
 
 if __name__ == "__main__":
     main()

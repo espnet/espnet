@@ -7,10 +7,7 @@ from typing import Optional
 
 from torch import Tensor, nn
 
-from espnet2.speechlm.module.builtin import (
-    ResidualAttentionBlock,
-    TransformerDecoder,
-)
+from espnet2.speechlm.module.builtin import ResidualAttentionBlock, TransformerDecoder
 
 
 class AdaLN(nn.Module):

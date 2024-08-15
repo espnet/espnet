@@ -11,6 +11,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.mt.frontend.embedding import CodecEmbedding, PatchEmbedding
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
@@ -19,7 +20,6 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
-from espnet2.mt.frontend.embedding import PatchEmbedding, CodecEmbedding
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -243,7 +243,9 @@ class ESPnetMTModel(AbsESPnetModel):
         # NOTE(Jinchuan): add_sos_eos in the encoder side may not be necessary
         # and will impact some choices of the frontend choice. Disable it.
         if not isinstance(self.frontend, (PatchEmbedding, CodecEmbedding)):
-            src_text, _ = add_sos_eos(src_text, self.src_sos, self.src_eos, self.ignore_id)
+            src_text, _ = add_sos_eos(
+                src_text, self.src_sos, self.src_eos, self.ignore_id
+            )
             src_text_lengths = src_text_lengths + 1
 
         if self.frontend is not None:

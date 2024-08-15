@@ -3,12 +3,13 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
+import json
+import logging
 import os
 import sys
-import json
-import argparse
-import logging
 from pathlib import Path
+
 from espnet2.speechlm.definitions import SPEECHLM_TASKS
 
 logging.basicConfig(
@@ -90,7 +91,7 @@ def main():
     # (1) load data files
     if len(task_def.targets) > 1:
         raise ValueError(f"Currently, we only support tasks with one target triplet.")
-    
+
     all_triplets = task_def.data_triplets
     all_names = [e[0] for e in all_triplets]
     if len(all_triplets) != len(args.path_modality_types):

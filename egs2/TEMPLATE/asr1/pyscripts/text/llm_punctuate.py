@@ -5,23 +5,28 @@
 
 import argparse
 import logging
-
 import sys
+
 print(sys.executable)
 
 import pkg_resources
 
 installed_packages = pkg_resources.working_set
-installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
+installed_packages_list = sorted(
+    ["%s==%s" % (i.key, i.version) for i in installed_packages]
+)
 
 for package in installed_packages_list:
     print(package)
 
 from pathlib import Path
+
 from vllm import LLM, SamplingParams
 
 eng_prompt = "For the given English sentence, restore the upper-case characters (if applicable) and add punctuation WITHOUT CHANGING ANY WORDS. Answer in English without any explanation. \nHere is the sentence: {}\nHere is the output:"
-zho_prompt = "为以下中文句子添加标点符号，但不能改变文字本身。以中文回答：{}\n这是回答："
+zho_prompt = (
+    "为以下中文句子添加标点符号，但不能改变文字本身。以中文回答：{}\n这是回答："
+)
 deu_prompt = "Stellen Sie für den gegebenen deutschen Satz die Zeichen der Oberklasse wieder her (falls zutreffend) und fügen Sie Satzzeichen hinzu, OHNE JEGLICHE WÖRTER ZU ÄNDERN. Antwort auf Deutsch ohne Erklärung. \nHier ist der Satz: {}\nHier ist die Ausgabe:"
 fra_prompt = "Pour la phrase française donnée, restaurez les caractères de classe supérieure (le cas échéant) et ajoutez de la ponctuation SANS CHANGER AUCUN MOT. Réponse en français sans aucune explication.\nVoici la phrase: {}\nVoici le résultat:"
 spa_prompt = "Para la oración en español dada, restaure los caracteres de clase alta (si corresponde) y agregue puntuación SIN CAMBIAR NINGUNA PALABRA. Responde en español sin ninguna explicación. \nAquí está la oración: {}\nAquí está el resultado:"
@@ -44,6 +49,7 @@ prompt_map = {
     "pol": pol_prompt,
 }
 
+
 class MixtralPunctuator(object):
     def __init__(self):
 
@@ -52,15 +58,14 @@ class MixtralPunctuator(object):
 
     def process_batch(self, batch):
         # batch format: [uttid, lang_id, content]
-        prompts = [
-            prompt_map[lang_id].format(content) for _, lang_id, content in batch
-        ]
+        prompts = [prompt_map[lang_id].format(content) for _, lang_id, content in batch]
         outputs = self.model.generate(prompts, self.config)
 
-        ans = [output.outputs[0].text.replace("\n","") for output in outputs]
+        ans = [output.outputs[0].text.replace("\n", "") for output in outputs]
         ans = [(uttid, text) for (uttid, _, _), text in zip(batch, ans)]
 
         return ans
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -74,10 +79,7 @@ def main():
         "help the engine to better coordinate the resources",
     )
     parser.add_argument(
-        "--lang",
-        default='eng',
-        choices=list(prompt_map.keys()),
-        help="input language"
+        "--lang", default="eng", choices=list(prompt_map.keys()), help="input language"
     )
     args = parser.parse_args()
 
@@ -95,7 +97,7 @@ def main():
 
     # (4) Init Punctuator
     punctuator = MixtralPunctuator()
-    
+
     # (5) Start the job
     writer = open(args.output, "w", encoding="utf-8")
     data = [(k, args.lang, v) for k, v in data.items()]
@@ -108,8 +110,9 @@ def main():
         for uttid, content in results:
             writer.write(f"{uttid} {content}\n")
         writer.flush()
-        
+
         bidx += 1
+
 
 if __name__ == "__main__":
     main()

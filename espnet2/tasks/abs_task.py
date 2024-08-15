@@ -43,6 +43,7 @@ from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupL
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.torch_utils.fsdp import warp_fsdp
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -64,15 +65,12 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
-    IterableESPnetDataset,
-)
+from espnet2.train.iterable_dataset import IterableESPnetDataset
 from espnet2.train.trainer import Trainer
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.torch_utils.fsdp import warp_fsdp
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,
@@ -1566,7 +1564,7 @@ class AbsTask(ABC):
                 )
             else:
                 plot_attention_iter_factory = None
-            
+
             # 7. Start training
             if args.use_wandb:
                 if wandb is None:
@@ -1607,7 +1605,7 @@ class AbsTask(ABC):
                     # but we only logs aggregated data,
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
-            
+
             if args.use_deepspeed:
                 if cls.trainer != Trainer:
                     raise ValueError(
@@ -1795,7 +1793,7 @@ class AbsTask(ABC):
             )
         else:
             raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
-        
+
     @classmethod
     @typechecked
     def build_sequence_iter_factory(

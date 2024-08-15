@@ -22,8 +22,8 @@ file_name=
 batch_size=5
 stage=1
 stop_stage=100
-nj=4                
-python=python3      
+nj=4
+python=python3
 hf_model_tag=null
 max_words=1000
 

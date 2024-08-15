@@ -29,6 +29,7 @@ from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
+from espnet2.fileio.multicol_kaldi_ark import MultiColKaldiArkReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
@@ -43,7 +44,6 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.multicol_kaldi_ark import MultiColKaldiArkReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -570,7 +570,9 @@ class ESPnetDataset(AbsDataset):
         return _mes
 
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, Union[np.ndarray, list]]]:
+    def __getitem__(
+        self, uid: Union[str, int]
+    ) -> Tuple[str, Dict[str, Union[np.ndarray, list]]]:
 
         # Change integer-id to string-id
         if isinstance(uid, int):
