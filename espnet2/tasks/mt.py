@@ -38,7 +38,7 @@ from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.mt.espnet_model import ESPnetMTModel
-from espnet2.mt.frontend.embedding import Embedding
+from espnet2.mt.frontend.embedding import Embedding, PatchEmbedding
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -55,6 +55,7 @@ frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
         embed=Embedding,
+        patch=PatchEmbedding,
     ),
     type_check=AbsFrontend,
     default="embed",
@@ -210,14 +211,14 @@ class MTTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", None],
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
             "--src_token_type",
-            type=str,
+            type=str_or_none,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", None],
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
