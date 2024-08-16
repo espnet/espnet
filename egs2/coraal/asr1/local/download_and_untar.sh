@@ -90,6 +90,9 @@ if [ ! -f $data/$part.tgz ]; then
       exit 1;
     fi
 
+    # remove files starting with "._", such as ._DTA_se1_ag4_f_01_1.wav
+    rm ._*
+
     if $remove_archive; then
       echo "$0: removing $file since --remove-archive option was supplied."
       rm $file
