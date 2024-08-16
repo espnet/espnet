@@ -65,6 +65,9 @@ if [ ! -f $data/coraal_download_list.txt ]; then
     echo "$0: error executing wget $download_list_url"
     exit 1;
   fi
+
+  sed -i 's|http://lingtools.uoregon.edu/coraal/les/2021.07/LES_metadata_2018.10.06.txt|http://lingtools.uoregon.edu/coraal/les/2021.07/LES_metadata_2021.07.txt|g' coraal_download_list.txt
+  sed -i 's|http://lingtools.uoregon.edu/coraal/vld/2021.07/VLD_metadata_2018.10.06.txt|http://lingtools.uoregon.edu/coraal/vld/2021.07/VLD_metadata_2021.07.txt|g' coraal_download_list.txt
 fi
 
 # TODO: change the condition (wc -l $data == NUMBER)
