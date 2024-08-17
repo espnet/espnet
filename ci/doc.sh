@@ -59,9 +59,6 @@ python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espne
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
 
-# generate package doc
-./doc/module2rst.py --root espnet espnet2 --dst ./doc --exclude espnet.bin
-
 # build markdown
 cp ./doc/index.rst ./doc/_gen/index.rst
 cp ./doc/conf.py ./doc/_gen/
