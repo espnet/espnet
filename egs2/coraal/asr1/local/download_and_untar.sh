@@ -63,7 +63,6 @@ if [ $? -ne 0 ]; then
 
   echo "$0: downloading and untarring data using $download_list_url. Please be patient."
 
-  cd $data || exit 1
   cat coraal_download_list.txt | while read file_url
   do
     if ! wget --no-check-certificate $file_url; then
@@ -80,7 +79,8 @@ if [ $? -ne 0 ]; then
     # remove files starting with "._", such as ._DTA_se1_ag4_f_01_1.wav
     rm ._*
 
-    if $remove_archive; then
+    # don't remove the metadata files
+    if $remove_archive && [[ "$file" == *.tar.gz ]] ; then
       echo "$0: removing $file since --remove-archive option was supplied."
       rm $file
     fi
@@ -89,6 +89,6 @@ fi
 
 echo "$0: Successfully downloaded and untarred CORAAL."
 
-touch $data/.complete
+touch .complete
 
 exit 0;
