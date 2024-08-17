@@ -21,3 +21,6 @@ for metadata_file in glob.glob(f"{data_path}/*_metadata*.txt"):
 
 print("Expected:", expected_count)
 print("Missing:", missing_count)
+
+if expected_count == 0 or missing_count > 0:
+    sys.exit(1)

@@ -37,22 +37,6 @@ if [ -f $data/.complete ]; then
   exit 0;
 fi
 
-# TODO: update or remove
-# sizes of the archive files in bytes.
-sizes="15582913665 1246920"
-if [ -f $data/$part.tgz ]; then
-  size=$(/bin/ls -l $data/$part.tgz | awk '{print $5}')
-  size_ok=false
-  for s in $sizes; do if [ $s == $size ]; then size_ok=true; fi; done
-  if ! $size_ok; then
-    echo "$0: removing existing file $data/$part.tgz because its size in bytes $size"
-    echo "does not equal the size of one of the archives."
-    rm $data/$part.tgz
-  else
-    echo "$data/$part.tgz exists and appears to be complete."
-  fi
-fi
-
 if [ ! -f $data/coraal_download_list.txt ]; then
   if ! command -v wget >/dev/null; then
     echo "$0: wget is not installed."
@@ -70,8 +54,8 @@ if [ ! -f $data/coraal_download_list.txt ]; then
   sed -i 's|http://lingtools.uoregon.edu/coraal/vld/2021.07/VLD_metadata_2018.10.06.txt|http://lingtools.uoregon.edu/coraal/vld/2021.07/VLD_metadata_2021.07.txt|g' coraal_download_list.txt
 fi
 
-# TODO: change the condition (wc -l $data == NUMBER)
-if [ ! -f $data/$part.tgz ]; then
+python ../local/verify_dataset.py $data
+if [ $? -ne 0 ]; then
   if ! command -v wget >/dev/null; then
     echo "$0: wget is not installed."
     exit 1;
