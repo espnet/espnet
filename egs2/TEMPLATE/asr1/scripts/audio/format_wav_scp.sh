@@ -109,6 +109,7 @@ if [ -n "${segments}" ]; then
         pyscripts/audio/format_wav_scp.py \
             ${opts} \
             --fs ${fs} \
+            --name ${out_filename} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
             --multi-columns-input "${multi_columns_input}" \
@@ -130,6 +131,7 @@ else
         pyscripts/audio/format_wav_scp.py \
         ${opts} \
         --fs "${fs}" \
+        --name ${out_filename} \
         --audio-format "${audio_format}" \
         --multi-columns-input "${multi_columns_input}" \
         --multi-columns-output "${multi_columns_output}" \

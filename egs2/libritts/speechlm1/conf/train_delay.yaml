@@ -43,6 +43,7 @@ nbest_averaging_interval: 5
 use_amp: true
 use_tf32: false
 use_fsdp: false
+num_att_plot: 0
 encoder_decoder_format: false
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8

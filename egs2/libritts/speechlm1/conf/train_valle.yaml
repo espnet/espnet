@@ -44,6 +44,7 @@ use_amp: true
 use_tf32: false
 use_fsdp: false
 encoder_decoder_format: false
+num_att_plot: 0
 codec_token_per_frame: 8 # encodec
 codec_token_in_use: 8
 speaker_prompt_length: 500 # 50fps, a.k.a., 10s

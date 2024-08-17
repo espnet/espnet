@@ -95,8 +95,6 @@ class MultiScaleLM(AbsCoreLM):
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-<<<<<<< HEAD
-=======
         # later shouls allow the local dimension to be smaller than the global
         # dimension for efficient local modeling
         if g_att_unit != l_att_unit:
@@ -104,7 +102,6 @@ class MultiScaleLM(AbsCoreLM):
                 "currently attention size for global and local size should be the same"
             )
 
->>>>>>> b1046403ec7a20469594cb9f6ad3cbe58a7e6c81
         self.nq = nq
         self.n_ctx = n_ctx
 
@@ -286,7 +283,7 @@ class MultiScaleLM(AbsCoreLM):
                 )
 
             # (3.6) detect modality switch
-            modality_change_mask =  torch.logical_and(
+            modality_change_mask = torch.logical_and(
                 g_prev_tok[:, 0, 0] >= 32,
                 g_prev_tok[:, 0, 0] < 64,
             )
@@ -300,7 +297,6 @@ class MultiScaleLM(AbsCoreLM):
                 logging.warning(
                     f"Step {g_step}: change modality index {modality_index}"
                 )
-
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 

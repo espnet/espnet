@@ -122,6 +122,11 @@ SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["codec_ssl_denoise"] = SpeechLMTaskTemplate(
+    conditions=[("noisy.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
 # END OF TASK DEFINITION #
 
 # (3) Special token definition
