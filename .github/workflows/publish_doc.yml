@@ -47,7 +47,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc
+          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: 3.8

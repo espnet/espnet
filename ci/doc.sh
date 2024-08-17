@@ -111,18 +111,6 @@ python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/tools/
 cd ./doc/vuepress
 python create_menu.py --root ./src
 
-# check if node is installed
-if which node > /dev/null
-then
-    echo "node is installed, skipping..."
-else
-    apt install -y nodejs npm
-    npm install n -g
-    n stable
-    apt purge -y nodejs npm
-    apt autoremove -y
-fi
-
 npm i
 # npm run docs:dev
 npm run docs:build
