@@ -47,7 +47,7 @@ log "$0 $*"
 
 for file in  text utt2spk; do
     if [ ! -f ${src}/${file} ]; then
-        echo "cannot find ${src}/${file}. EXIT!" && exit 1; 
+        echo "cannot find ${src}/${file}. EXIT!" && exit 1;
     fi
 done
 

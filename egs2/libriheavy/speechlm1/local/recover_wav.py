@@ -1,5 +1,6 @@
-import kaldiio
 import sys
+
+import kaldiio
 import soundfile
 
 uttid = sys.argv[1]

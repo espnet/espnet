@@ -373,7 +373,7 @@ def common_collate_fn(
         if key in not_process:
             output[key] = tuple(d[key] for d in data)
             continue
-        
+
         # NOTE(kamo):
         # Each models, which accepts these values finally, are responsible
         # to repaint the pad_value to the desired value for each tasks.

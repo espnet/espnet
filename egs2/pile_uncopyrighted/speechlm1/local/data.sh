@@ -58,7 +58,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     cp ./data/local/pile_uncopyrighted/val ./data/val/text
     cp ./data/local/pile_uncopyrighted/test ./data/test/text
     rm -f ./data/train/text
-    for file in `ls ./data/local/pile_uncopyrighted/train | grep -v .jsonl.zst`; do 
+    for file in `ls ./data/local/pile_uncopyrighted/train | grep -v .jsonl.zst`; do
         cat ./data/local/pile_uncopyrighted/train/${file} >> ./data/train/text
     done
 fi

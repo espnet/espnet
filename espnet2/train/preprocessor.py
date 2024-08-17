@@ -2503,18 +2503,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             if self.encoder_decoder_format:
                 if idx <= n_conditions:
-                    prev_segs = [sos_eos] + [task_identifier] + seqs[:idx - 1]
+                    prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
                     part = "enc"
                 else:
-                    prev_segs = [sos_eos] + seqs[n_conditions: idx - 1]
+                    prev_segs = [sos_eos] + seqs[n_conditions : idx - 1]
                     part = "dec"
             else:
-                prev_segs = [sos_eos] + [task_identifier] + seqs[:idx - 1]
+                prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
                 part = "dec"
-            
+
             bias = sum(len(seg) for seg in prev_segs) // self.codec_token_in_use
             conti_emb, start, end = conti_feat
-            new_conti_feats.append((conti_emb, start + bias , end + bias, part))
+            new_conti_feats.append((conti_emb, start + bias, end + bias, part))
 
         new_data["conti_feats"] = new_conti_feats
 
@@ -2541,7 +2541,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 ]
             ).reshape(-1, self.codec_token_in_use)
 
-            max_len = int(len(new_data["dec_seq"]) * 1.3) # to avoid overly long seq
+            max_len = int(len(new_data["dec_seq"]) * 1.3)  # to avoid overly long seq
             new_data["sampled_seq"] = sampled_seq[:max_len]
         else:
             raise NotImplementedError
@@ -2592,7 +2592,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         elif modality in ["text_emb"]:
             if value.ndim != 2:
                 raise ValueError(f"Text embedding should have size of [T, D]")
-            
+
             conti_emb = value.copy()
 
             value = self.special_token(f"<pad>")
@@ -2604,8 +2604,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             # embedidngs, start, end
             conti_feat = (
-                conti_emb, 
-                self.codec_token_in_use, 
+                conti_emb,
+                self.codec_token_in_use,
                 self.codec_token_in_use + conti_emb.shape[0],
             )
 
@@ -2638,7 +2638,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
-        
+
         conti_feats = data.get("conti_feats")
         for idx, conti_feat in enumerate(conti_feats):
             conti_emb, start, end, part = conti_feat

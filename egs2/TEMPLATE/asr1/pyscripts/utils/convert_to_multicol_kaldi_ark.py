@@ -6,6 +6,7 @@
 import argparse
 from pathlib import Path
 
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description="Add a new data entry to data json",
@@ -31,6 +32,7 @@ def get_parser():
 
     return parser
 
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
@@ -44,12 +46,13 @@ def main():
         if name not in data_dict:
             data_dict[name] = []
         data_dict[name].append(content)
-    
-    writer = open(args.output_scp, 'w')
+
+    writer = open(args.output_scp, "w")
     for key, contents in data_dict.items():
         string = [key] + contents
         string = " ".join(string)
         writer.write(f"{string}\n")
+
 
 if __name__ == "__main__":
     main()

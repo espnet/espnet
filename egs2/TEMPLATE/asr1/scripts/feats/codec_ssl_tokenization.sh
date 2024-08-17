@@ -3,7 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Do both Codec tokenization and SSL tokenization. Then splice the two kinds of 
+# Do both Codec tokenization and SSL tokenization. Then splice the two kinds of
 # discrete tokens together.
 
 # Set bash to 'debug' mode, it will exit on :
@@ -66,8 +66,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       --checkpoint_path ${codec_checkpoint_path} \
       --config_path ${codec_config_path} \
       --hf_model_tag ${codec_hf_model_tag}
-    
-    mv ${tgt_dir}/${file_name} ${tgt_dir}/codec_${file_name} 
+
+    mv ${tgt_dir}/${file_name} ${tgt_dir}/codec_${file_name}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -84,13 +84,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --kmeans_path ${ssl_kmeans_path} \
       --nlayer ${ssl_nlayer} \
       --hf_model_tag ${ssl_hf_model_tag}
-    
-    mv ${tgt_dir}/${file_name} ${tgt_dir}/ssl_${file_name} 
+
+    mv ${tgt_dir}/${file_name} ${tgt_dir}/ssl_${file_name}
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Splice SSL and codec codes"
-    
+
     file_name=${file_name%.scp}
 
     prefix=${tgt_dir}/data/${file_name}_codec_ssl_${codec_choice}.JOB
@@ -109,7 +109,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --tolerance ${tolerance} \
         --ssl_vocab_size ${ssl_vocab_size} \
         --codec_code_per_frame ${codec_code_per_frame}
-    
+
     for n in `seq ${nj}`; do
         cat ${tgt_dir}/data/${file_name}_codec_ssl_${codec_choice}.${n}.scp
     done > ${tgt_dir}/${file_name}.scp

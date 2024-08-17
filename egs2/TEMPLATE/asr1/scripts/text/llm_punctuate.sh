@@ -26,7 +26,7 @@ stage=1
 stop_stage=1
 input_dir=
 nj=1
-ngpu_per_nj=1 
+ngpu_per_nj=1
 python=$(which python3)
 
 log "$0 $*"
@@ -38,7 +38,7 @@ log "$0 $*"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p ${input_dir}/punctuate
-    
+
     key_file=${input_dir}/text
     _nj=$(min "${nj}" "$(<${key_file} wc -l)")
 
@@ -61,16 +61,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
           -l ${input_dir}/punctuate/logs/text.punctuate.JOB \
           -o ${input_dir}/punctuate/logs/text.punctuate.JOB.replaced\
           || exit 1;
-    
+
     (for n in `seq ${nj}`; do
         cat ${input_dir}/punctuate/logs/text.punctuate.${n}.replaced
     done) | sort >  ${input_dir}/text.punctuate
 fi
 
 log "Done! with ${SECONDS} seconds"
-
-
-
-
-
-

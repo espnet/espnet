@@ -70,7 +70,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --gt_text ${ref_dir}/text \
             --gpu_inference ${gpu_inference} \
             ${gen_dir}/wav.scp ${gen_dir}/scoring/eval_wer
-        
+
         # convert to result json file
         ./pyscripts/utils/speechlm_convert_asr_result.py \
             --ref_file ${gen_dir}/scoring/eval_wer/score_wer/ref.trn \
@@ -101,7 +101,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 score_config=${spk_config}
                 gt_file=${ref_dir}/utt2spk
             fi
-            
+
             # (3) split
             _nj=$(min "${inference_nj}" "$(<${pred_file} wc -l)" )
 
@@ -137,7 +137,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                     --output_file ${eval_dir}/result.JOB.txt \
                     --io soundfile \
                     ${opts} || exit 1;
-            
+
             # (5) aggregate
             pyscripts/utils/aggregate_eval.py \
                 --logdir ${eval_dir} \
@@ -181,7 +181,3 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
-
-
-

@@ -12,10 +12,7 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
-from espnet2.speechlm.net_utils import (
-    logits_to_tokens,
-    modality_index_to_mask,
-)
+from espnet2.speechlm.net_utils import logits_to_tokens, modality_index_to_mask
 
 
 class ARDelayLM(ARParallelLM):
@@ -133,7 +130,7 @@ class ARDelayLM(ARParallelLM):
             torch.cat([prefix, start, suffix], dim=1), pad=self.sos_eos
         )
         prefix = full_seq_delay[:, : prefix.size(1)]
-        suffix = full_seq_delay[:, prefix.size(1):]
+        suffix = full_seq_delay[:, prefix.size(1) :]
         prefix_emb = self.emb(prefix).sum(dim=2)  # [B, T, D]
         _ = self.decoders(prefix_emb, kv_cache=cache)
 
@@ -180,7 +177,7 @@ class ARDelayLM(ARParallelLM):
                 prev_tok = suffix[:, step + 1 : step + 2]
             else:
                 prev_tok = gen_tok
-            
+
             generated["token"].append(gen_tok)
             generated["score"].append(gen_score)
 
@@ -200,9 +197,9 @@ class ARDelayLM(ARParallelLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
-            
+
             # (3.4) detect modality swtich
-            modality_change_mask =  torch.logical_and(
+            modality_change_mask = torch.logical_and(
                 prev_tok[:, 0, 0] >= 32,
                 prev_tok[:, 0, 0] < 64,
             )
@@ -214,7 +211,7 @@ class ARDelayLM(ARParallelLM):
                 )
                 mask = modality_index_to_mask(modality_index, opts)
                 logging.warning(f"Step {step}: change modality index {modality_index}")
-                
+
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses

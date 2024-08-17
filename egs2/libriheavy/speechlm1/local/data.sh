@@ -69,7 +69,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cp data/local/${subset}/upper_no_punc/kaldi/${subset}/{text,segments} data/${subset}
         cat data/local/${subset}/upper_no_punc/kaldi/${subset}/wav.scp |\
             sed "s|download/librilight|${LIBRILIGHT}|" > data/${subset}/wav.scp
-        
+
         # utt2spk, spk2utt
         cat data/${subset}/segments | awk '{print $1, $2}' > data/${subset}/utt2spk
         ./utils/fix_data_dir.sh data/${subset}

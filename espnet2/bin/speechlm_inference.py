@@ -5,7 +5,6 @@
 
 import argparse
 import json
-import yaml
 import logging
 import sys
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torchaudio
+import yaml
 from kaldiio import WriteHelper
 from packaging.version import parse as V
 from typeguard import typechecked
@@ -25,10 +25,10 @@ from espnet2.tasks.speechlm import SpeechLMTask, tokenizer_choices
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str2triple_str, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class SpeechLM:
@@ -78,7 +78,7 @@ class SpeechLM:
         predict_masks = dict()
         all_boundaries = list(self.token_bias.values()) + [len(self.token_list)]
         for modality in set(self.modalities):
-            if modality == "spk": # never predict "spk" modality
+            if modality == "spk":  # never predict "spk" modality
                 continue
 
             mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
@@ -87,13 +87,13 @@ class SpeechLM:
             if modality in ["codec", "spk"]:
                 inc = (end - start) // train_args.codec_token_per_frame
                 for n in range(self.inference_nq):
-                    mask[n, start + n * inc: start + (n+1) * inc] = False
+                    mask[n, start + n * inc : start + (n + 1) * inc] = False
             else:
-                mask[:, start: end] = False
+                mask[:, start:end] = False
 
             # When more than one target, allow modality switch
             if len(self.task.targets) > 1:
-                mask[0, 32: 64] = False
+                mask[0, 32:64] = False
 
             modality = modality = f"<{modality}_start/end>"
             modality_idx = self.token_list.index(modality)
@@ -119,26 +119,25 @@ class SpeechLM:
         # (4) Only a limited number of modalities support detokenization
         # (4.1) offline tokenizers should be resumed from external config
         if "codec" in self.modalities or "spk" in self.modalities:
-            self.codec_tokenizer = tokenizer_choices.get_class('codec')(**codec_conf)
+            self.codec_tokenizer = tokenizer_choices.get_class("codec")(**codec_conf)
             self.codec_tokenizer.to(self.device)
         else:
             self.codec_tokenizer = None
-        
+
         # (4.2) online tokenizers should be from preprocessor
         if "text_bpe" in self.modalities:
             self.text_bpe_tokenizer = self.preprocessor.bpe
         else:
             self.text_bpe_tokenizer = None
 
-
     @typechecked
     @torch.no_grad()
     def __call__(self, data: Dict) -> List:
-        """ Run SpeechLM inference """
+        """Run SpeechLM inference"""
 
         if not "dec_seq" in data:
             data = self.preprocessor(data)
-        
+
         dec_seq = data.get("dec_seq")
         prefix_len = data.get("prefix_len").squeeze(1)
 
@@ -147,7 +146,7 @@ class SpeechLM:
             prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
             enc_seq=None,
-            suffix=dec_seq[:, prefix_len + 1:],
+            suffix=dec_seq[:, prefix_len + 1 :],
         )
 
         # (2) record the prefix segments
@@ -157,10 +156,10 @@ class SpeechLM:
         segments = self.parse_sequence(prefix)
         if len(segments) != len(self.task.conditions):
             raise ValueError("Invalid Condition segments")
-        
+
         for idx, segment in enumerate(segments):
             retval[idx].append(segment)
-        
+
         # (3) record the generated segments
         start = self.inference_opts.start
         start = torch.Tensor([start] * self.inference_nq).view(1, -1).to(self.device)
@@ -174,7 +173,7 @@ class SpeechLM:
 
             for idx2, segment in enumerate(segments, start=len(self.task.conditions)):
                 retval[idx2].append(segment)
-        
+
         return retval
 
     def parse_sequence(self, sequence):
@@ -188,25 +187,25 @@ class SpeechLM:
             modality = self.token_list[modality_id]
             modality = modality.removeprefix("<").removesuffix("_start/end>")
 
-            segment = sequence[start + 1: end]
+            segment = sequence[start + 1 : end]
             segment = segment[segment[:, 0] != self.pad]
 
             if modality in ["codec", "spk"]:
-                segment = segment.view(-1) - self.token_bias['codec']
+                segment = segment.view(-1) - self.token_bias["codec"]
                 detokenized = self.codec_tokenizer.detokenize(segment.clone())
 
             elif modality in ["text_bpe"]:
                 segment = segment[:, 0]
-                detokenized = self.text_bpe_tokenizer.tokens2text([
-                    self.token_list[tok] for tok in segment
-                ])
+                detokenized = self.text_bpe_tokenizer.tokens2text(
+                    [self.token_list[tok] for tok in segment]
+                )
 
             else:
                 segment = segment[:, 0] - self.token_bias[modality]
                 detokenized = None
-            
+
             retval.append((modality, segment, detokenized))
-        
+
         return retval
 
     @staticmethod
@@ -230,12 +229,12 @@ class SpeechLM:
             if "inference_config" in hf_args:
                 infer_args = yaml.safe_load(open(hf_args.pop("inference_config")))
                 hf_args.update(infer_args)
-            
+
             # NOTE(Jinchuan): do not override the external arguments
             for key, value in hf_args.items():
                 if key not in kwargs:
                     kwargs[key] = value
-            
+
         if "task" not in kwargs:
             raise ValueError("Please specify the task")
 
@@ -332,7 +331,7 @@ def inference(
         token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
         if modality in ["spk", "codec", "text_bpe"]:
             file_name = str(output_dir / name / name)
-            writers[name] = open(file_name, 'w')
+            writers[name] = open(file_name, "w")
 
     # 5. inference loop
     for _, (keys, batch) in enumerate(loader, 1):
@@ -379,15 +378,16 @@ def inference(
                         )
                         writers[name].write(f"{example_name} {audio_path}\n")
                         logging.info(f"Save audio: {audio_path}")
-                    
+
                     elif modality in ["text_bpe"]:
                         writers[name].write(f"{example_name} {detokenized}")
                         logging.info(f"Save text: {detokenized}")
-                    
+
                     else:
                         raise ValueError(
                             f"Modality {modality} is tokenized but no method to save."
                         )
+
 
 def get_parser():
     """Get argument parser."""
@@ -524,7 +524,7 @@ def get_parser():
         help="nq in inference stage",
     )
 
-    # Offline tokenizer configurations. The offline tokenizers are not used during 
+    # Offline tokenizer configurations. The offline tokenizers are not used during
     # training and thus should be specified externally.
     for tokenizer in ["codec"]:
         tokenizer_class = tokenizer_choices.get_class(tokenizer)

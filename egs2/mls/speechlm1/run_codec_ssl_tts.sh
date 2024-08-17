@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang="en" 
+lang="en"
 data_split="full" # one of full 1h 10h
 local_data_opts="--lang ${lang} --data_split ${data_split}"
 

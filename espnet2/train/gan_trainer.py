@@ -11,8 +11,8 @@ from contextlib import contextmanager
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
 from packaging.version import parse as V
+from torch.nn.parallel import DistributedDataParallel as DDP
 from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler

@@ -133,7 +133,9 @@ class HuBERTLossCrossEntropy(AbsLoss):
             if self.masked_loss_weight != 0.0:
 
                 loss_m = (
-                    F.cross_entropy(hs_m, targets_m.long(), reduction="sum", ignore_index=-1)
+                    F.cross_entropy(
+                        hs_m, targets_m.long(), reduction="sum", ignore_index=-1
+                    )
                     * self.masked_loss_weight
                     * self.layer_weights[i]
                 )
@@ -144,7 +146,9 @@ class HuBERTLossCrossEntropy(AbsLoss):
             if self.unmasked_loss_weight != 0.0:
 
                 loss_u = (
-                    F.cross_entropy(hs_u, targets_u.long(), reduction="sum", ignore_index=-1)
+                    F.cross_entropy(
+                        hs_u, targets_u.long(), reduction="sum", ignore_index=-1
+                    )
                     * self.unmasked_loss_weight
                     * self.layer_weights[i]
                 )

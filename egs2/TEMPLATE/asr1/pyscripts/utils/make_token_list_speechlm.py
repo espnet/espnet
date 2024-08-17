@@ -8,8 +8,8 @@ import json
 import logging
 from pathlib import Path
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.speechlm.definitions import MODALITIES, special_tokens
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser():
@@ -38,7 +38,7 @@ def main():
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=logfmt)
     logging.info(get_commandline_args())
-    
+
     parser = get_parser()
     args = parser.parse_args()
 

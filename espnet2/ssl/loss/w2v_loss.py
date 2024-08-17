@@ -1,17 +1,20 @@
 # https://github.com/pytorch/audio/blob/main/examples/self_supervised_learning/losses/_wav2vec2_loss.py
 
-import torch
-from torch import nn, Tensor
-from torch.nn import functional as F
 from typing import Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+
 from espnet2.ssl.loss.abs_loss import AbsLoss
+
 
 class Wav2vec2Loss(AbsLoss):
     def __init__(
         self,
         encoder_embed_dim: int,
         final_dim: int,
-        layers = [-1],
+        layers=[-1],
     ):
         super().__init__()
         self.layers = layers
@@ -41,12 +44,19 @@ class Wav2vec2Loss(AbsLoss):
             The computed contrastive loss and sample size
         """
 
-        x = x[mask_indices].view(x.size(0), -1, x.size(-1)).unsqueeze(0).expand(targets.shape)
+        x = (
+            x[mask_indices]
+            .view(x.size(0), -1, x.size(-1))
+            .unsqueeze(0)
+            .expand(targets.shape)
+        )
         logits = torch.cosine_similarity(x.float(), targets.float(), dim=-1).float()
         logits /= logit_temp
         if neg_is_pos.any():
             logits[1:][neg_is_pos] = float("-inf")
-        target = logits.new_zeros(logits.size(1) * logits.size(2), dtype=torch.long, device=logits.device)
+        target = logits.new_zeros(
+            logits.size(1) * logits.size(2), dtype=torch.long, device=logits.device
+        )
         logits = logits.transpose(0, 2)
         logits = logits.reshape(-1, logits.size(-1))
         loss = F.cross_entropy(
@@ -57,21 +67,21 @@ class Wav2vec2Loss(AbsLoss):
         sample_size = target.numel()
         return loss, sample_size
 
-    def forward(self, 
+    def forward(
+        self,
         xs_pad: torch.Tensor,
         ys_pad: torch.Tensor,
         mask_info,
         feature_penalty,
-        feature_weight = 10,
+        feature_weight=10,
     ):
-        '''
+        """
         mask_info:
             - positives -> (batch_size, masked_sequence_length, hidden_size)
             - negatives -> (batch_size, masked_sequence_length, hidden_size)
             - mask_indices -> (batch_size, sequence_length)
-        '''
+        """
 
         neg_is_pos = (positives == negatives).all(-1)
         positives = positives.unsqueeze(0)
         targets = torch.cat([positives, negatives], dim=0)
-

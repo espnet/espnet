@@ -74,6 +74,7 @@ class CodecPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
+
 class SpeechLMPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config", "inference_config"]

@@ -3,8 +3,8 @@
 import argparse
 import dataclasses
 import logging
-import time
 import shutil
+import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
@@ -75,6 +75,7 @@ except Exception:
 if V(torch.__version__) >= V("2.0.1"):
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
     from espnet2.torch_utils.fsdp import (
         get_model_and_optimizer_state_dict_fsdp,
         prepare_for_resume_fsdp,

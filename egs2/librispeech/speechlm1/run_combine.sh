@@ -26,7 +26,7 @@ test_use_mls_en=false
 generate_train_clean_100=false
 generate_train_clean_360=false
 
-# download any data repository with: 
+# download any data repository with:
 #  huggingface-cli download <repo-id> --repo-type dataset --local-dir .
 
 if ${use_ls}; then # <repo-id>: JinchuanTian/tts_librispeech

@@ -267,6 +267,7 @@ class TorchaudioHubertFeatureReader(BaseFeatureReader):
             feats = feats[-1].cpu()  # (batchsize, time, feat_dim)
         return feats, feats_lens
 
+
 class ESPnetHubertFeatureReader(BaseFeatureReader):
     def __init__(
         self,
@@ -310,6 +311,7 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
                 feats, mask_info, pen = self.model.encode(x, x_lens, use_mask=False)
             feats = feats[self.layer].cpu()  # (batchsize, time, feat_dim)
         return feats, x_lens // 320
+
 
 class S3PRLFeatureReader(BaseFeatureReader):
     def __init__(

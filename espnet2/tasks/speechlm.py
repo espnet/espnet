@@ -10,14 +10,10 @@ from typeguard import typechecked
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARLM
-from espnet2.speechlm.core_lm.valle import ValleLM
-from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
-
-# ESPnet Models
-
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
+from espnet2.speechlm.core_lm.valle import ValleLM
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 
@@ -25,18 +21,25 @@ from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
-
-# Preprocessor
-from espnet2.train.preprocessor import SpeechLMPreprocessor
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
+from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Others
 from espnet2.train.class_choices import ClassChoices
-from espnet2.tasks.abs_task import AbsTask
+from espnet2.train.collate_fn import CommonCollateFn
+
+# Preprocessor
+from espnet2.train.preprocessor import SpeechLMPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-from espnet2.torch_utils.initialize import initialize
+
+# ESPnet Models
+
+
+
+
 
 corelm_choices = ClassChoices(
     "corelm",

@@ -3,7 +3,7 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -167,7 +167,7 @@ def logits_to_tokens(
     # (1) Apply mask
     if nq_level is not None:
         mask = mask[:, :, nq_level : nq_level + 1]
-    
+
     if allow_eos:
         mask = mask.clone()
         mask[:, :, 0, opts.eos] = False
@@ -210,17 +210,21 @@ def logits_to_tokens(
 
     return gen_token_idx, gen_token_score
 
+
 def modality_index_to_mask(
-    modality_index: torch.Tensor, 
+    modality_index: torch.Tensor,
     inference_opts: SpeechLMInferenceOptions,
 ):
     assert modality_index.dim() == 1
     modality_index = modality_index.cpu().tolist()
-    mask = torch.stack([
-        inference_opts.masks[idx] for idx in modality_index
-    ], dim=0).unsqueeze(1) # [B, 1, nq, V]
+    mask = torch.stack(
+        [inference_opts.masks[idx] for idx in modality_index], dim=0
+    ).unsqueeze(
+        1
+    )  # [B, 1, nq, V]
 
     return mask
+
 
 @torch.no_grad()
 def install_continuous_features(
@@ -230,19 +234,18 @@ def install_continuous_features(
 ):
     if conti_feats is None:
         return dec_emb, enc_emb
-    
+
     assert dec_emb.size(0) == len(conti_feats)
     if enc_emb is not None:
         assert enc_emb.size(0) == len(conti_feats)
-    
+
     for b, conti_feat in enumerate(conti_feats):
         for conti_emb, start, end, part in conti_feat:
             if part == "dec":
                 assert conti_emb.size(1) == dec_emb.size(2)
-                dec_emb[b, start: end] = conti_emb
+                dec_emb[b, start:end] = conti_emb
             else:
                 assert conti_emb.size(1) == enc_emb.size(2)
-                enc_emb[b, start: end] = conti_emb
-        
+                enc_emb[b, start:end] = conti_emb
+
     return dec_emb, enc_emb
-    

@@ -1,8 +1,7 @@
-import torch
-
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
+import torch
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text
@@ -100,7 +99,7 @@ class NumElementsBatchSampler(AbsSampler):
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
             raise RuntimeError("0 batches")
-        
+
         # If the last batch-size is smaller than minimum batch_size,
         # the samples are redistributed to the other mini-batches.
         # NOTE(Jinchuan): recommend to use "drop_last", as this operation
@@ -147,7 +146,7 @@ class NumElementsBatchSampler(AbsSampler):
             raise ValueError(
                 f"sort_batch must be ascending or descending: {sort_batch}"
             )
-        
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("

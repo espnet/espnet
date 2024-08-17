@@ -55,7 +55,7 @@ git clone https://github.com/ftshijt/speech_evaluation.git
 cd speech_evaluation
 pip install .
 ```
-VISQOL dependency may have some issue. If you don't need that, comment [this line](#https://github.com/ftshijt/speech_evaluation/blob/50419bda43c27a0c3c484e96214bf5e02dbed089/setup.py#L54) and then install 
+VISQOL dependency may have some issue. If you don't need that, comment [this line](#https://github.com/ftshijt/speech_evaluation/blob/50419bda43c27a0c3c484e96214bf5e02dbed089/setup.py#L54) and then install
 
 TODO: Build DeepSpeed environment
 
@@ -70,7 +70,7 @@ We provide a check list for developers who want to work on a new task with ESPne
   * Evaluation Script
     * Make sure what metrics are needed in your task
     * Check [Stage 10: Evaluation](#stage-10-evaluation) and [Build a Evaluation Script](#build-a-evaluation-script)
-  
+
 Ideally, stages like tokenization, data statistics collection, training and inference are all handled automatically. However, it is usually beneficial if you can also inspect the following items:
   * In [Stage 5: Tokenization](#stage-5-tokenization), check if `data.json` is properly built and all files listed in it exist.
   * In [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary), check if the joint vocabulary is built as expected.
@@ -101,9 +101,9 @@ The LM is then trained on these spliced sequences, specifically with cross-entro
   * i.e., Input data -> Tokenize -> Input Tokens -> LM Modeling -> Output Tokens -> Detokenize -> Output Data
 
 ### Define Task as a Sequence Template
-The key philosophy of ESPnet SpeechLM toolkit is to define each task as a sequence template. By doing so, one can quickly extend our code to an unseen task and train an LM with their own data. 
+The key philosophy of ESPnet SpeechLM toolkit is to define each task as a sequence template. By doing so, one can quickly extend our code to an unseen task and train an LM with their own data.
 
-Typically, a sequence template consists of several ordered `entries`. Each `entry` represents a specific kind of information used in this task. `Entries` for `condition` will come first then followed by those for `target`.   
+Typically, a sequence template consists of several ordered `entries`. Each `entry` represents a specific kind of information used in this task. `Entries` for `condition` will come first then followed by those for `target`.
   * E.g., For ASR task:
     * The first `entry` is speech, and is a `condition` entry;
     * The second `entry` is text, and is a `target` entry.
@@ -113,7 +113,7 @@ Typically, a sequence template consists of several ordered `entries`. Each `entr
     * The third `entry` is speech, and is a `target` entry.
 
 For each `entry`, the user should define three factors: `name`, `modality` and `type`.
-  * `name`: each `entry` should have a unique name in that template, so that different entries in the same modality can be distinguished from each other. This is also used as the file name for that `entry` during data preparation stage. 
+  * `name`: each `entry` should have a unique name in that template, so that different entries in the same modality can be distinguished from each other. This is also used as the file name for that `entry` during data preparation stage.
   * `modality`: ESPnet SpeechLM is naturally multi-modal and will have modality-specific operations in many scenarios, for which the modality definition for each `entry` needs to be specified. Primarily, we support text and speech. However, both text and speech can be converted into discrete tokens by multiple methods, and these tokens generated from different tokenization methods will be considered as different modalities. (E.g., speech tokenized by codec and self-supervised model will be considered as in different modalities).
   * `type`: this will define how our dataloader can parse the data for this `entry`. Some data can be simply parsed as plain text, while others may need other parsing methods.
 
@@ -175,7 +175,7 @@ example_id2 transcript2
 ```
 The user will need to prepare data for train / valid / test. Thus, the data folder is of the structure:
 ```
-data 
+data
   |--train
   |   |--text
   |   |--wav.scp
@@ -189,7 +189,7 @@ data
 
 Then, the user can call the `speechlm.sh` for all remained stages, with the provided training and inference configuration files.
   * Remember to specify the `--task` option
-  * Also get a name for you dataset using `--data_name` 
+  * Also get a name for you dataset using `--data_name`
 ```
 ./speechlm.sh \
     --task "asr" \
@@ -202,10 +202,10 @@ Then, the user can call the `speechlm.sh` for all remained stages, with the prov
 ```
 
 ## Recipe Flow
-ESPnet SpeechLM recipe consists of 12 stages. 
+ESPnet SpeechLM recipe consists of 12 stages.
 
-  * Before we proceed, we should assume the users already have defined the task in `<espnet>/espnet2/speechlm/definitions.py` (see [Guidance](#define-sequence-template-for-a-new-task)). 
-  * We will also assume you are in the directory of `<espnet>/egs2/<dataset_name>/speechlm1`. 
+  * Before we proceed, we should assume the users already have defined the task in `<espnet>/espnet2/speechlm/definitions.py` (see [Guidance](#define-sequence-template-for-a-new-task)).
+  * We will also assume you are in the directory of `<espnet>/egs2/<dataset_name>/speechlm1`.
     * If that directory doesn't exist, build it with `<espnet>/egs2/TEMPLATE/speechlm1/setup.sh`
   * We demonstrate the workflow of ASR task. Users working on other tasks should have the similar procedure.
   * All workflow is in `speechlm.sh`. We create a `run.sh` to call it with the options that are specific to our task and dataset. We shall add `--task` and `--data_name` argument when calling `speechlm.sh`
@@ -221,7 +221,7 @@ ESPnet SpeechLM recipe consists of 12 stages.
 ### Stage 1: Data Preparation
 The data preparation stage is totally customized according to different task and dataset. Users are responsible to make a shell script `local/data.sh` to handle all data preparation process that is specific to your recipe. This script will be called automatically by `speechlm.sh` in this stage.
 
-The data preparation stage is totally flexible to users as long as the final outcome follows the format as described in [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template). The prepared files should be placed in `./data` folder. 
+The data preparation stage is totally flexible to users as long as the final outcome follows the format as described in [Build Model with a Defined Sequence Template](#build-model-with-a-defined-sequence-template). The prepared files should be placed in `./data` folder.
 
 Remember to specify the train / valid / test dataset names to proceed:
 ```
@@ -235,7 +235,7 @@ Remember to specify the train / valid / test dataset names to proceed:
 
 ### Stage 2: Audio Formatting
 Many audio files are with different configurations (file format, sampling rate etc.). In this stage, we will standardize all audios for follow-up processing. Based on the sequence template, `entries` that represents audio will all experience this process (i.e., `modality={ssl, codec}`).
-Besides audio, the files from other non-audio `entries` will also be inspected so that lines with empty content (i.e., #filed <=1) will be excluded. 
+Besides audio, the files from other non-audio `entries` will also be inspected so that lines with empty content (i.e., #filed <=1) will be excluded.
   * The results are in `${dump}/audio_raw_${task}_${data_name}`
   * The results of this stage usually takes large space on disk. Users can safely remove it after [tokenization (Stage 5)](#stage-5-tokenization).
 
@@ -253,7 +253,7 @@ The tokenization process is applied to the index file of each `entry` and is mai
 Different `entries` can come from different modalities. Regardless of the online/offline tokenization, a modality-specific vocabulary will be generated and used in [stage 6](#stage-6-build-joint-vocabulary)
 
 #### Make data.json
-After all tokenization is done and all modality-specific vocabularies are built, we will build a `data.json` file by script `pyscripts/utils/make_speechlm_json.py`. This will organize all resources and meta-info for this task and this dataset. 
+After all tokenization is done and all modality-specific vocabularies are built, we will build a `data.json` file by script `pyscripts/utils/make_speechlm_json.py`. This will organize all resources and meta-info for this task and this dataset.
   * During training and inference, dataloader can be directly built based on `data.json`.
     * See [Data Loading and Preprocessing](#data-loading-and-preprocessing).
   * Sanity Check: we also exclude the examples that fail to have all `entries` in the provided index files.
@@ -291,7 +291,7 @@ Spliced normal tokens from each modality. E.g., in ASR
   [256-8447]: `codec` tokens
   [8448-13447]: `text_bpe` tokens
 ```
-  * Usually, users will not need to add new special tokens manually. 
+  * Usually, users will not need to add new special tokens manually.
   * Add your special tokens to interval [0, 31] if you indeed need them.
 
 We still need to record the boundary (starting point) of each modality within the merged vocabulary, which is saved as the `token_bias.json`. This file will help to conduct modality-specific operations during the training and inference.
@@ -302,7 +302,7 @@ We still need to record the boundary (starting point) of each modality within th
     "text_bpe": 8448
 }
 ```
-    
+
 ### Stage 7: Collect Statistics
 This stage will collect the statistics of each example, typically the sequence length. The length statistics will be later used in batchfying the training examples.
 The statistics will be kept in the folder `exp/speechlm_stats_<task>_<data_name>`. E.g., `exp/speechlm_stats_tts_librispeech`.
@@ -316,7 +316,7 @@ asr_100-121669-0002 891
   * A task prefix `asr_` is added to each `<example_id>`. See [Multi-Task Training and Multi-Task Dataset](#multi-task-training-and-multi-task-dataset)
 
 ### Stage 8: Training
-The training process is to train the LM using the spliced token sequences and compute the cross-entropy loss over the `target entry` segments. 
+The training process is to train the LM using the spliced token sequences and compute the cross-entropy loss over the `target entry` segments.
   * The top-level model is in `espnet2/speechlm/espnet_model.py`, which is a warpper for the real SpeechLM implementation `corelm`.
     * `corelm` refer to a SpeechLM architecture and are in `<espnet>/wse3espnet2/speechlm/corelm`
   * Regardless what `corelm` you choose, its input interface for forward are the same:
@@ -329,7 +329,7 @@ The training process is to train the LM using the spliced token sequences and co
       * T: length in time-axis, i.e., number of frames
       * N: number of codes per frame
     * Unlike standard LMs that work on input format `[B, T]`, all SpeechLM will assume there are `N` tokens for each modeling units. See [List of Supported Modality](#list-of-supported-modalities).
-  
+
   * Optimizer, scheduler, scaler, checkpoint saving / resume etc. follow standard ESPnet2
   * Also see:
     * [Supported SpeechLM Model Architecture](#supported-speechlm-model-architecture)
@@ -338,7 +338,7 @@ The training process is to train the LM using the spliced token sequences and co
     * [Distributed Training, Automatic Precision Training and Numerical Stability](#distributed-training-automatic-precision-training-and-numerical-stability)
 
 ### Stage 9: Inference
-During the inference, the basic idea is to generate `target` based on `condition`. For SpeechLM, this is to generate `target` sequence based on the `condition` sequence. 
+During the inference, the basic idea is to generate `target` based on `condition`. For SpeechLM, this is to generate `target` sequence based on the `condition` sequence.
   * For each `corelm` architecture, there is a `inference` implementation.
   * For the search algorithms, we currently support:
     * Top-k sampling
@@ -419,8 +419,8 @@ So that, a complete sequence for ASR task (`N=3`) can look like:
 ```
 
 ### List of Supported Task
-Below is a list of task we currently support. 
-  * Each triplet stands for an `entry` and consists of `name`, `modality` and `type`. 
+Below is a list of task we currently support.
+  * Each triplet stands for an `entry` and consists of `name`, `modality` and `type`.
   * The real task list in use is in `<espnet>/espnet2/speechlm/definitions.py`.
 
 | Task Name | Task Full Name                  | Condition Triplet                       | Target Triplet                  |
@@ -428,7 +428,7 @@ Below is a list of task we currently support.
 | `textlm`    | Text Language Model | - | (text,text_bpe,text)
 | `audiolm` | Audio Language Model | - | (wav.scp,codec,kaldi_ark)
 | `asr`       | Automatic Speech Recognition    | (wav.scp, codec, kaldi_ark)      | (text, text_bpe, text)   |
-| `mt` | Machine Translation | (src_text,text_bpe,text) | (text,text_bpe,text) 
+| `mt` | Machine Translation | (src_text,text_bpe,text) | (text,text_bpe,text)
 `tts` | Text-to-Speech | (text,g2p,text), (utt2spk,spk,text) | (wav.scp,codec,kaldi_ark)
 `se` | Speech Enhancement | (noisy.scp,codec,kaldi_ark) | (wav.scp,codec,kaldi_ark)
 `st` | Speech Translation<br>(with source language) | (wav.scp,codec,kaldi_ark) | (src_text,text_bpe,text), (text,text_bpe,text)
@@ -448,7 +448,7 @@ Note: Vall-E cannot be used when data in `codec` modality doesn't exist or `N=1`
 We provide a unified interface for ESPnet built-in Transformer and HuggingFace Transformer models.
   * Check the warpper module in `<espnet>/epsnet2/speechlm/module/transformer.py`
   * When `hf_model_tag` is not set, ESPnet builtin Transformer is used;
-  * When `hf_model_tag` is set, the corresponidng HuggingFace Transformer model and its weight is loaded, the `text_bpe` part of the embedding table and lm_head will be overrided. 
+  * When `hf_model_tag` is set, the corresponidng HuggingFace Transformer model and its weight is loaded, the `text_bpe` part of the embedding table and lm_head will be overrided.
     * If use Huggingface model, make sure you set the consistent BPE model. Check the `--bpemode` and `--bpemodel` argument in `speechlm.sh`
   * The unified Transformer interface only takes care of stacked Transformer layers and positional embeddings; the token embedding and hidden-to-logits process is kept in each `corelm` implementation.
 
@@ -477,16 +477,16 @@ Developers are highly recommend to use [VERSA](https://github.com/ftshijt/speech
   * F0-RMSE
   * F0-CORR
   * STOI
-  * PESQ 
+  * PESQ
   * CI-SDR
-  * D-BLEU 
-  * D-Distance 
+  * D-BLEU
+  * D-Distance
   * S-BERT
   * VISQOL
-  * UTMOS 
-  * PLCMOS 
-  * DNSMOS 
-  * WER 
+  * UTMOS
+  * PLCMOS
+  * DNSMOS
+  * WER
   * SPK-S
 
 ### Data Loading and Preprocessing
@@ -535,13 +535,13 @@ For each entry in the sequence template:
   * Fianlly, splice all these `value`s together following the original sequence template definition
     * Will also add some special tokens
     * For ASR, as in [example sequence](#example-sequence)
-  
+
 Dataset-Level Preprocessing: The input to the preprocessor is the example dict, which only contains the data items of that exmaple. However, some on-the-fly preprocessing may leverage other examples, which raises the needs of dataset-level preprocessing.
 
 One of the additional feature for `EspnetSpeechLMDataset` is to support this dataset-level operation. An example is to support the speaker prompt (`modality=spk`). When initialize the dataset, we first initialize the `spk2utt` dictionalry based on the `utt2spk` input file. When queried by an example_id, we find the speaker of it and then randomly find another example from that speaker to get the speaker prompt.
 
 #### Multi-Task Training and Multi-Task Dataset
-Conceptually, a multi-task SpeechLM can be built by training it with example sequences from various tasks. E.g., having sequences for ASR, TTS, etc. in the same training batch. 
+Conceptually, a multi-task SpeechLM can be built by training it with example sequences from various tasks. E.g., having sequences for ASR, TTS, etc. in the same training batch.
 
 ESPnet SpeechLM can easily support multi-task training by simply input multiple `data.json` files during training. The users can use the stage 1-5 of `speechlm.sh` to prepare the `data.json` for each of the single task and different dataset. From stage 6 and later, instead of specifying `train_set`, `valid_set` and `test_set` as before, the users can directly work with a list of `data.json` files. E.g.,
 ```

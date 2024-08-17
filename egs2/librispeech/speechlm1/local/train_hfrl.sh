@@ -87,10 +87,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for part in valid train; do
         src_dir=${part}_dir
         src_dir=${!src_dir}
-        
+
         tgt_dir=${src_dir}_hfrl_${data_combo_name}
         mkdir -p ${tgt_dir}
-        
+
         sampling_dir=${part}_sampling_dir
         sampling_dir=${!sampling_dir}
 
@@ -124,7 +124,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    
+
 
     if ${use_sft}; then
         # the checkpoint is used to initialize both corelm and reflm
