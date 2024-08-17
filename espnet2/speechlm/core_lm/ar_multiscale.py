@@ -283,7 +283,7 @@ class MultiScaleLM(AbsCoreLM):
                 )
 
             # (3.6) detect modality switch
-            modality_change_mask =  torch.logical_and(
+            modality_change_mask = torch.logical_and(
                 g_prev_tok[:, 0, 0] >= 32,
                 g_prev_tok[:, 0, 0] < 64,
             )
@@ -297,7 +297,6 @@ class MultiScaleLM(AbsCoreLM):
                 logging.warning(
                     f"Step {g_step}: change modality index {modality_index}"
                 )
-
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
