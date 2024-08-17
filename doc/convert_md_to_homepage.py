@@ -23,7 +23,7 @@ def small_bracket(text):
     # forward_core(nnet_output, ys, hlens, ylens)
     # -> forward_core<span class='small-bracket'>(nnet_output, ys, hlens, ylens)</span>"
     text = text.replace("<", "&lt;").replace(">", "&gt;")
-    brackets = re.findall(r'\(([^)]+)\)', text)
+    brackets = re.findall(r'\((.*)\)', text)
     if len(brackets) > 0:
         text = text.replace(
             f"({brackets[0]})",

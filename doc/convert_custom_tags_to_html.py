@@ -147,7 +147,7 @@ def get_parser():
 
 def replace_custom_tags(content):
     # Regex to find tags and their content
-    tag_pattern = re.compile(r'<(?!\/)(?!\!!-!-)(.+?)(?!\/)>')
+    tag_pattern = re.compile(r'<(?!!--)([^>]+)>')
     def replace_tag(match):
         tag_name = match.group(1)
         if len(tag_name) > 50:

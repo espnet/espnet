@@ -80,6 +80,8 @@ os.makedirs(args.output_dir, exist_ok=True)
 for m in modinfo:
     cmd = m.path.name
     sep = "~" * len(cmd)
+    mname = m.name if m.name.startswith("espnet") \
+        else ".".join(m.name.split(".")[1:])
     with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer: # remove .py
         writer.write(
         f""".. _{cmd}
@@ -87,7 +89,7 @@ for m in modinfo:
 {sep}
 
 .. argparse::
-   :module: {m.name}
+   :module: {mname}
    :func: get_parser
    :prog: {cmd}
 
