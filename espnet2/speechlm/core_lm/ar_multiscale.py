@@ -95,8 +95,6 @@ class MultiScaleLM(AbsCoreLM):
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-<<<<<<< HEAD
-=======
         # later shouls allow the local dimension to be smaller than the global
         # dimension for efficient local modeling
         if g_att_unit != l_att_unit:
@@ -104,7 +102,6 @@ class MultiScaleLM(AbsCoreLM):
                 "currently attention size for global and local size should be the same"
             )
 
->>>>>>> b1046403ec7a20469594cb9f6ad3cbe58a7e6c81
         self.nq = nq
         self.n_ctx = n_ctx
 

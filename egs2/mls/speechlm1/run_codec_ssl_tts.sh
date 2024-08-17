@@ -9,7 +9,7 @@ lang="en"
 data_split="full" # one of full 1h 10h
 local_data_opts="--lang ${lang} --data_split ${data_split}"
 
-train_set= # "mls_${lang}_train"
+train_set="mls_${lang}_train"
 valid_set="mls_${lang}_dev"
 test_sets="mls_en_test"
 
