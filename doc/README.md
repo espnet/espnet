@@ -7,7 +7,7 @@ We use [sphinx](https://www.sphinx-doc.org) to generate HTML documentation.
 ```sh
 # Clean conda env for docs
 $ cd <espnet_root>
-$ conda create -p ./envs python=3.9
+$ conda create -p ./envs python=3.8
 $ conda activate ./envs
 
 # Requirements
@@ -56,13 +56,12 @@ DO NOT ADD NEW FILES TO THIS BLACK LIST!
 
 ## Generate HTML
 
-You can generate local HTML manually using sphinx Makefile.
+You can generate and test the webpage using sphinx Makefile.
 ```sh
 $ cd <espnet_root>
 $ ./ci/doc.sh
+$ npm run docs:dev
 ```
-
-open `doc/build/index.html`
 
 ## Deploy
 
