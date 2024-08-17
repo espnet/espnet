@@ -13,6 +13,7 @@ $ conda activate ./envs
 # Requirements
 $ pip install -e ".[doc]"
 $ conda install conda-forge::ffmpeg
+$ conda install conda-forge::nodejs
 
 # (Optional requirement) To use flake8-docstrings
 $ pip install -U flake8-docstrings

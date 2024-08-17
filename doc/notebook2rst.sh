@@ -8,14 +8,14 @@ if [ ! -d notebook ]; then
     git clone https://github.com/espnet/notebook --depth 1
 fi
 
-echo "#  Notebook
+echo "# Notebook
 
 Jupyter notebooks for course demos and tutorials.
 "
 
 cd notebook
 for basedir in */; do
-    echo "## ${basedir}\n"
+    printf "## ${basedir}\n"
     find ${basedir} \
         -type f \
         -name '*.ipynb' \
@@ -27,7 +27,7 @@ for basedir in */; do
 
     for md_file in `find ${basedir} -name "*.md"`; do
         filename=`basename ${md_file}`
-        echo "* [${filename}](./${md_file:((${#basedir}+1)):100})"
+        echo "* [${filename}](./${md_file:((${#basedir})):100})"
     done
     for ipynb_file in `find ${basedir} -name "*.ipynb"`; do
         rm ${ipynb_file}
@@ -37,7 +37,7 @@ for basedir in */; do
     echo "# ${basedir} Demo" > ${basedir}README.md
     for md_file in `find ${basedir} -name "*.md"`; do
         filename=`basename ${md_file}`
-        echo "* [${filename}](./${md_file:((${#basedir}+1)):100})" >> ${basedir}README.md
+        echo "* [${filename}](./${md_file:((${#basedir})):100})" >> ${basedir}README.md
     done
     echo ""
 done
