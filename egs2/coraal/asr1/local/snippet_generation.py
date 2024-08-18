@@ -7,24 +7,30 @@ import pandas as pd
 import numpy as np
 from pydub import AudioSegment
 
+
 def load_coraal_text(project_path):
-    # Load CORAAL transcripts where the project path for each location contains that location's metadata file,
-    # as well as subdirectories 'audio' and 'transcripts' (containing all .wav and .txt files, respectively)
-    file_pattern = os.path.join(project_path, '*/*metadata*.txt')
-    filenames = glob.glob(file_pattern, recursive=True)
-    print(filenames)
+    # Load CORAAL transcripts and metadata files, which are assumed to be in project_path without nesting
+    file_pattern = os.path.join(project_path, '*metadata*.txt')
+    filenames = glob.glob(file_pattern)
+    print('metadata files', filenames)
     metadata = pd.concat([pd.read_csv(filename, sep='\t') for filename in filenames], sort=False)
-    
+
     rows = []
-    
     for sub, file in metadata[['CORAAL.Sub', 'CORAAL.File']].drop_duplicates().values:
-        subpath = os.path.join(project_path, sub.lower())
-        text_filename = os.path.join(subpath, 'transcripts', file + '.txt')
+        if file == "VLD_se0_ag2_f_01_2":
+            # this file is missing from VLD/2021.07 (2023.06 release)
+            continue
+
+        text_filename = os.path.join(project_path,  file + '.txt')
 
         text = pd.read_csv(text_filename, sep='\t')
+        # columns: Line, Spkr, StTime, Content, EnTime
+        # each row tends to be short
+
+        # filter out rows with pauses
         text['pause'] = text.Content.str.contains('(pause \d+(\.\d{1,2})?)')
         text = text[~text.pause]
-        
+
         for spkr, sttime, content, entime in text[['Spkr', 'StTime', 'Content', 'EnTime']].values:
             row = {
                 'name': spkr,
@@ -39,7 +45,7 @@ def load_coraal_text(project_path):
                 'interviewee': spkr in file
             }
             rows.append(row)
-        
+
     df = pd.DataFrame(rows)
     df = df.sort_values(by=['basefile', 'start_time'])
     df['line'] = np.arange(len(df))
@@ -62,8 +68,8 @@ def find_snippet(snippets, basefile, start_time, end_time):
 
 def segment_filename(basefilename, start_time, end_time, buffer_val):
     # Generate new filename for snippet subsets of .wav files (including start and end times)
-    start_time = int((start_time-buffer_val)*1000)
-    end_time = int((end_time+buffer_val)*1000)
+    start_time = int((start_time-buffer_val)*1000) # ms
+    end_time = int((end_time+buffer_val)*1000) # ms
     filename = "{}_{}_{}.wav".format(basefilename, start_time, end_time)
     return filename
 
@@ -74,20 +80,18 @@ def create_segment(src_file, dst_dir, basefilename, start_time, end_time, buffer
     if not os.path.isfile(src_file):
         print("Error: Source file {} not found".format(src_file))
         return
-    
-    if not os.path.exists(dst_dir):
-        os.makedirs(dst_dir)
+
     audio = AudioSegment.from_wav(src_file)
-    start_time = int((start_time-buffer_val)*1000)
-    end_time = int((end_time+buffer_val)*1000)
+    start_time = int((start_time-buffer_val)*1000) # ms
+    end_time = int((end_time+buffer_val)*1000) # ms
     clip = audio[start_time:end_time]
     clip.export(segment_file, format="wav")
     return segment_file
 
 def create_coraal_snippets(transcripts):
-    # Make dataframe of snippets from transcripts 
+    # Make dataframe of snippets from transcripts, applying filters
     snippets = []
-    
+
     for basefile in transcripts.basefile.unique():
         df = transcripts[transcripts.basefile == basefile][['line', 'start_time', 'end_time', 'interviewee', 'content',
                                                            'Gender', 'Age']]
@@ -103,14 +107,17 @@ def create_coraal_snippets(transcripts):
         snippet = []
         for i in range(len(values)):
             line, use = values[i]
+            # start a new snippet
             if use:
                 snippet.append(line)
-            elif snippet: # if shouldn't use this line, but snippet exists
+            elif snippet:
+                # if shouldn't use this line, but snippet exists
+                # save previous snippet, start a new snippet
                 snippets.append(snippet)
                 snippet = []
         if snippet:
             snippets.append(snippet)
-            
+
     basefiles = transcripts.basefile.values
     start_times = transcripts.start_time.values
     end_times = transcripts.end_time.values
@@ -134,11 +141,12 @@ def create_coraal_snippets(transcripts):
     return snippets
 
 if __name__ == '__main__':
+    if len(sys.argv) != 5:
+        print("Help: python local/snippet_generation.py <input_folder> <output_tsv> <min_duration> <max_duration>")
+        print("ex: python local/snippet_generation.py downloads downloads/transcript.tsv 5 30")
+        print("Note: This script assumes all files (metadata and wav) are in <input_folder> with no nested folders")
+        exit(1)
 
-    if len(sys.argv) != 3:
-        print("Command example: python3 snippet_generation.py <input_folder> <output_tsv>")
-        exit(1)    
-        
     base_folder = sys.argv[1]
 
     # Create CORAAL snippets
@@ -170,20 +178,21 @@ if __name__ == '__main__':
             assert 0
 
         # Generate .wav files for each snippet from larger audio clips
-        if basefile[0:3] == 'DCB':
-            dst_dir = base_folder + '/dcb/audio_segments/'
-        elif basefile[0:3] == 'PRV':
-            dst_dir = base_folder + '/prv/audio_segments/'
-        elif basefile[0:3] == 'ROC':
-            dst_dir = base_folder + 'roc/audio_segments/'        
-        src_file = base_folder + basefile[0:3].lower() + '/audio/' + basefile + '.wav'
+        region = basefile[0:3]
+        if region in {'ATL', 'DCA', 'DCB', 'DTA', 'LES', 'PRV', 'ROC', 'VLD'}:
+            dst_dir = base_folder + f'/{region.lower()}/audio_segments/'
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+
+        src_file = f'{base_folder}/{basefile}.wav'
         create_segment(src_file, dst_dir, basefile, start_time, end_time, 0)
 
-    # Restrict to only 5-50 second snippets
-    min_duration = 5 # in seconds
-    max_duration = 50 # in seconds
+
+    # Restrict to only specified second snippets (e.g. 5 - 30s)
+    MIN_DURATION = int(sys.argv[3]) # in seconds
+    MAX_DURATION = int(sys.argv[4]) # in seconds
     coraal_snippets = coraal_snippets[(min_duration <= coraal_snippets.duration) & (coraal_snippets.duration <= max_duration)]
     print(coraal_snippets.duration.describe())
 
-    output_loc = sys.argv[2] #base_folder + 'input/coraal_snippets.tsv'
+    output_loc = sys.argv[2] # ex: 'downloads/transcript.tsv'
     coraal_snippets.to_csv(output_loc, sep = '\t', index = False)
