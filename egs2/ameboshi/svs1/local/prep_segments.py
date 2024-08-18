@@ -4,6 +4,9 @@ import math
 import os
 import sys
 
+from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
+from espnet2.text.build_tokenizer import build_tokenizer
+
 """Generate segments according to label."""
 
 
@@ -86,23 +89,9 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
             continue
         # add pause (split)
         if (
-            (
-                "turkey_in_the_straw" in file_id
-                and label.label_id == "s"
-                and labels[i + 1].label_id == "e"
-                and labels[i + 2].label_id == "N"
-            )
-            or (
-                "yuki" in file_id
-                and label.label_id == "w"
-                and labels[i + 1].label_id == "a"
-                and labels[i + 2].label_id == "t"
-            )
-            or (
-                "alps_ichimanjaku" in file_id
-                and label.label_id == "a"
-                and labels[i - 1].label_id == "e"
-            )
+            "yuki" in file_id
+            and label.label_id == "w"
+            and labels[i - 1].label_id == "o"
         ):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
@@ -148,6 +137,8 @@ if __name__ == "__main__":
         for i in range(len(phn_info) // 3):
             if phn_info[i * 3 + 2] == "U":
                 phn_info[i * 3 + 2] = "u"
+            if phn_info[i * 3 + 2] == "O":
+                phn_info[i * 3 + 2] = "o"
             temp_info.append(
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )

@@ -82,27 +82,6 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
     for i in range(len(notes)):
         # Divide songs by 'P' (pause) or 'B' (breath) or GlottalStop
         note = notes[i]
-        # fix errors in dataset
-        # remove rest note
-        # if (
-        #     (
-        #         "i_vow_to_thee_my_country" in file_id
-        #         and note.lyric in sil
-        #         and notes[i + 1].lyric == "ろ"
-        #     )
-        #     or (
-        #         "shabondama" in file_id
-        #         and note.lyric in sil
-        #         and notes[i + 1].lyric == "だ"
-        #     )
-        #     or (
-        #         "kusakeiba" in file_id
-        #         and note.lyric in sil
-        #         and notes[i - 3].lyric == "’い"
-        #     )
-        # ):
-        #     notes[i + 1].st = note.st
-        #     continue
         if note.lyric in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -113,6 +92,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
             (note.lyric is not None and note.lyric[0] in ["・", "’"])
             or ("hana" in file_id and notes[i].lyric == "’う" and notes[i - 1].lyric == "の")
             or ("yuki" in file_id and notes[i].lyric == "わ" and notes[i - 1].lyric == "も")
+            or ("yuki" in file_id and notes[i].lyric == "わ" and notes[i - 1].lyric == "こ")
         ):
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -150,9 +130,9 @@ if __name__ == "__main__":
         ustline = ust_line.strip().split(" ")
         recording_id = ustline[0]
         path = ustline[1]
-        tempo, temp_info = reader[recording_id]
+        tempo, note_info = reader[recording_id]
         segments.append(
-            make_segment(recording_id, tempo, temp_info, args.threshold, args.silence)
+            make_segment(recording_id, tempo, note_info, args.threshold, args.silence)
         )
     writer = SingingScoreWriter(
         args.score_dump, os.path.join(args.scp, "score.scp.tmp")
