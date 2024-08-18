@@ -40,7 +40,7 @@ jobs:
           key: pip-${{ hashFiles('**/setup.py') }}
       - uses: actions/setup-python@v1
         with:
-          python-version: 3.8
+          python-version: 3.10
           architecture: "x64"
       - name: check OS
         run: cat /etc/os-release
@@ -50,7 +50,7 @@ jobs:
           sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc
       - name: install espnet
         env:
-          ESPNET_PYTHON_VERSION: 3.8
+          ESPNET_PYTHON_VERSION: 3.10
           TH_VERSION: 2.0.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
