@@ -5,7 +5,6 @@ import glob
 import sys
 import pandas as pd
 import numpy as np
-from pydub import AudioSegment
 
 
 def load_coraal_text(project_path):
@@ -72,21 +71,6 @@ def segment_filename(basefilename, start_time, end_time, buffer_val):
     end_time = int((end_time+buffer_val)*1000) # ms
     filename = "{}_{}_{}.wav".format(basefilename, start_time, end_time)
     return filename
-
-def create_segment(src_file, dst_dir, basefilename, start_time, end_time, buffer_val):
-    # Construct snippet segmentation of .wav files
-    segment_basename = segment_filename(basefilename, start_time, end_time, buffer_val)
-    segment_file = os.path.join(dst_dir, segment_basename)
-    if not os.path.isfile(src_file):
-        print("Error: Source file {} not found".format(src_file))
-        return
-
-    audio = AudioSegment.from_wav(src_file)
-    start_time = int((start_time-buffer_val)*1000) # ms
-    end_time = int((end_time+buffer_val)*1000) # ms
-    clip = audio[start_time:end_time]
-    clip.export(segment_file, format="wav")
-    return segment_file
 
 def create_coraal_snippets(transcripts):
     # Make dataframe of snippets from transcripts, applying filters
@@ -195,16 +179,12 @@ if __name__ == '__main__':
             print(basefile, start_time, end_time)
             assert 0
 
-        # Generate .wav files for each snippet from larger audio clips
-        region = basefile[0:3]
-        if region in {'ATL', 'DCA', 'DCB', 'DTA', 'LES', 'PRV', 'ROC', 'VLD'}:
-            dst_dir = base_folder + f'/{region.lower()}/audio_segments/'
-            if not os.path.exists(dst_dir):
-                os.makedirs(dst_dir)
 
-        src_file = f'{base_folder}/{basefile}.wav'
-        create_segment(src_file, dst_dir, basefile, start_time, end_time, 0)
+        # TODO: segment the file if it's too long
+            # if it's too short; combine(?)
+        # see https://github.com/cmu-llab/s3m-aave/blob/main/data/nsp/segment.py
 
+        # TODO: segments file <utterance_id> <wav_id> <start_time> <end_time>
 
     # Restrict to only specified second snippets (e.g. 5 - 30s)
     MIN_DURATION = int(sys.argv[3]) # in seconds
