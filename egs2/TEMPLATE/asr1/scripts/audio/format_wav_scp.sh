@@ -143,7 +143,7 @@ ls ${outdir}/format.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat "${outdir}/format${suffix}.${n}/wav.scp" || exit 1;
+    cat "${outdir}/format${suffix}.${n}/${out_filename}.scp" || exit 1;
 done > "${dir}/${out_filename}" || exit 1
 
 if "${write_utt2num_samples}"; then
