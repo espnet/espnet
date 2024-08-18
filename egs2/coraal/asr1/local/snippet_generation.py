@@ -99,10 +99,21 @@ def create_coraal_snippets(transcripts):
         backward_check = np.insert(backward_check, 0, True)
         forward_check = df['end_time'].values[:-1] <= df['start_time'].values[1:]
         forward_check = np.insert(forward_check, len(forward_check), True)
+        # filter out
+        #   interviewer lines
+        #   overlapping speech []
+        #   non-linguistic content <>
+        #   dysfluencies, redacted speech, inaudible speech //
+        #   line-level notes ()
         df['use'] = backward_check & forward_check & df.interviewee \
             & ~df.content.str.contains('\[') \
-            & ~df.content.str.contains(']')
-        
+            & ~df.content.str.contains(']') \
+            & ~df.content.str.contains('<') \
+            & ~df.content.str.contains('>') \
+            & ~df.content.str.contains('/') \
+            & ~df.content.str.contains('\(') \
+            & ~df.content.str.contains('\)')
+
         values = df[['line', 'use']].values
         snippet = []
         for i in range(len(values)):
@@ -154,7 +165,6 @@ if __name__ == '__main__':
     coraal_snippets = create_coraal_snippets(coraal_transcripts)
 
     # These snippets should exist, run these pre-filtering on duration
-    assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 8.9467, 12.4571)) > 0
     assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 364.6292, 382.2063)) > 0
     assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 17.0216, 19.5291)) > 0
     assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 875.0084, 876.5177)) > 0
@@ -162,7 +172,15 @@ if __name__ == '__main__':
     assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 890.9707, 894.35)) > 0
     assert len(find_snippet(coraal_snippets, 'DCB_se1_ag1_f_01_1', 895.9076, 910.211)) > 0
 
-    assert len(coraal_snippets[(coraal_snippets.content.str.contains('\[')) | (coraal_snippets.content.str.contains('\]'))]) == 0
+    # ensure no annotations left
+    assert len(coraal_snippets[(coraal_snippets.content.str.contains('\['))
+        | (coraal_snippets.content.str.contains('\]'))
+        | (coraal_snippets.content.str.contains('<'))
+        | (coraal_snippets.content.str.contains('>'))
+        | (coraal_snippets.content.str.contains('/'))
+        | (coraal_snippets.content.str.contains('\('))
+        | (coraal_snippets.content.str.contains('\)'))
+    ]) == 0
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
     # Check for non-overlapping snippets
