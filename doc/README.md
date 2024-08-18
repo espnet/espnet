@@ -5,9 +5,26 @@
 We use [sphinx](https://www.sphinx-doc.org) to generate HTML documentation.
 
 ```sh
+# Clean conda env for docs
 $ cd <espnet_root>
+$ conda create -p ./envs python=3.8
+$ conda activate ./envs
+
+# Requirements
 $ pip install -e ".[doc]"
+$ conda install conda-forge::ffmpeg
+$ conda install conda-forge::nodejs
+
+# (Optional requirement) To use flake8-docstrings
 $ pip install -U flake8-docstrings
+```
+
+If you used the above clean conda environment, you have write your own `. tools/activate_python.sh`.
+The example will be:
+```sh
+#!/usr/bin/env bash
+
+. <conda_root>/miniconda/etc/profile.d/conda.sh && conda activate <espnet_root>/envs
 ```
 
 ## Style check using flake8-docstrings
@@ -39,14 +56,12 @@ DO NOT ADD NEW FILES TO THIS BLACK LIST!
 
 ## Generate HTML
 
-You can generate local HTML manually using sphinx Makefile
-
+You can generate and test the webpage using sphinx Makefile.
 ```sh
 $ cd <espnet_root>
 $ ./ci/doc.sh
+$ npm run docs:dev
 ```
-
-open `doc/build/index.html`
 
 ## Deploy
 

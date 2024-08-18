@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 . tools/activate_python.sh
+
+clean_outputs() {
+    rm -rf dist
+    rm -rf espnet_bin
+    rm -rf espnet2_bin
+    rm -rf utils_py
+
+    rm -rf doc/_gen
+    rm -rf doc/build
+
+    rm -rf doc/vuepress/src/*.md
+    rm -rf doc/vuepress/src/notebook
+    rm -rf doc/vuepress/src/*
+    rm -rf doc/vuepress/src/.vuepress/.temp
+    rm -rf doc/vuepress/src/.vuepress/.cache
+}
 
 build_and_convert () {
     # $1: path
@@ -16,6 +34,9 @@ build_and_convert () {
 if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
+
+# clean previous build
+clean_outputs
 
 # build sphinx document under doc/
 mkdir -p doc/_gen
@@ -89,18 +110,6 @@ python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/tools/
 # Create navbar and sidebar.
 cd ./doc/vuepress
 python create_menu.py --root ./src
-
-# check if node is installed
-if which node > /dev/null
-then
-    echo "node is installed, skipping..."
-else
-    apt install -y nodejs npm
-    npm install n -g
-    n stable
-    apt purge -y nodejs npm
-    apt autoremove -y
-fi
 
 npm i
 # npm run docs:dev

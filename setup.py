@@ -44,10 +44,6 @@ requirements = {
         "asteroid_filterbanks==0.4.0",
         # UASR
         "editdistance",
-        # fix CI error due to the use of deprecated functions
-        # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
-        # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
-        "importlib-metadata<5.0",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -107,20 +103,21 @@ requirements = {
     ],
     "doc": [
         "Jinja2<3.1",
-        "Sphinx<9.0.0",
+        "sphinx<9.0.0",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
         "commonmark==0.8.1",
-        # "recommonmark>=0.4.0",
         "myst-parser",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
         "jupyter",
         "sphinx-markdown-builder",
+        "importlib-metadata",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
 requirements["test"].extend(requirements["train"])
+requirements["doc"].extend(requirements["all"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
