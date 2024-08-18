@@ -27,8 +27,9 @@ HF_OBJ = {
     "meta-llama/Meta-Llama-3.1": [AutoModel, AutoModelForCausalLM],
 }
 
+
 class TransformerDecoder(torch.nn.Module):
-    """ Unified interface of ESPnet Transformer and HuggingFace Transformer """
+    """Unified interface of ESPnet Transformer and HuggingFace Transformer"""
 
     def __init__(
         self,
@@ -68,6 +69,7 @@ class TransformerDecoder(torch.nn.Module):
             logging.info(f"Building Transformer Decoder with HF model: {hf_model_tag}")
 
             import transformers
+
             if not (is_flash_attn_2_available(), is_flash_attn_greater_or_equal_2_10):
                 logging.warning("Flash Attention is not properly used")
 
@@ -122,9 +124,9 @@ class TransformerDecoder(torch.nn.Module):
     def init_embeddings(self, emb, lm_head):
         """When using HF pretrained model, inherit the embeddings and lm_head"""
         if (
-            self.model_type == "builtin" or
-            "text_bpe" not in self.token_bias or
-            (self.emb is None or self.lm_head is None)
+            self.model_type == "builtin"
+            or "text_bpe" not in self.token_bias
+            or (self.emb is None or self.lm_head is None)
         ):
             del self.lm_head, self.emb
             return
