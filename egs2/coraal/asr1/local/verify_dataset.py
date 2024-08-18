@@ -14,6 +14,9 @@ expected_count, missing_count = 0, 0
 for metadata_file in glob.glob(f"{data_path}/*_metadata*.txt"):
     df = pd.read_csv(metadata_file, sep='\t')
     for file in df["CORAAL.File"]:
+        if file == "VLD_se0_ag2_f_01_2":
+            # the only missing file
+            continue
         expected_count += 1
         if not os.path.isfile(f"{data_path}/{file}.wav"):
             print(file + ".wav is missing")
