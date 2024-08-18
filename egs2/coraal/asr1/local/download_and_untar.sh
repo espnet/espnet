@@ -85,10 +85,15 @@ if [ $? -ne 0 ]; then
       rm $file
     fi
   done
+
+  python ../local/verify_dataset.py $data
+  if [ $? -eq 0 ]; then
+    echo "$0: Successfully downloaded and untarred CORAAL."
+    touch .complete
+  else
+    echo "$0: Failed to download or untar CORAAL fully. Missing some files."
+    exit 1
+  fi
 fi
-
-echo "$0: Successfully downloaded and untarred CORAAL."
-
-touch .complete
 
 exit 0;
