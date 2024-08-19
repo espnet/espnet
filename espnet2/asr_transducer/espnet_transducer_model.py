@@ -3,7 +3,6 @@
 import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
-from speechbrain.nnet.losses import transducer_loss
 from torchaudio.functional import rnnt_loss
 import torch
 from packaging.version import parse as V
