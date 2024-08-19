@@ -69,3 +69,24 @@ log "Data Preparation"
 log "Generate segments and transcript"
 echo python3 local/snippet_generation.py "${CORAAL}" "${CORAAL}" 0.1 30
 python3 local/snippet_generation.py "${CORAAL}" "${CORAAL}" 0.1 30
+
+
+log "Generate train/dev/test splits"
+echo python3 local/train_dev_test_split.py downloads/transcript.tsv downloads/train downloads/dev downloads/test 0.8 0.1 0.1
+python3 local/train_dev_test_split.py downloads/transcript.tsv downloads/train downloads/dev downloads/test 0.8 0.1 0.1
+
+train_dir=data/local/train
+dev_dir=data/local/dev
+test_dir=data/local/test
+
+mkdir -p $train_dir
+mkdir -p $dev_dir
+mkdir -p $test_dir
+
+n=$(find $coraal_audio_dir -iname "*.wav" | wc -l)
+[ $n -ne 271 ] && \
+  log Warning: expected 271 data data files, found $n
+
+cp downloads/train $train_dir/wav.flist
+cp downloads/dev $dev_dir/wav.flist
+cp downloads/test $test_dir/wav.flist
