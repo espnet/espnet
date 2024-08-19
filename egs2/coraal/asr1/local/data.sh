@@ -73,6 +73,10 @@ log "Generate segments and transcript"
 echo python3 local/snippet_generation.py "${CORAAL}" "${CORAAL}" 0.1 30
 python3 local/snippet_generation.py "${CORAAL}" "${CORAAL}" 0.1 30
 
+log "Text normalization"
+mv "${coraal_text}" "${coraal_text}".bak
+echo python3 local/text_normalization.py "${coraal_text}".bak "${coraal_text}"
+python3 local/text_normalization.py "${coraal_text}".bak "${coraal_text}"
 
 log "Generate train/dev/test splits"
 echo python3 local/train_dev_test_split.py downloads/transcript.tsv downloads/train downloads/dev downloads/test 0.8 0.1 0.1
