@@ -534,6 +534,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 rnnt_type=loss_type,
                 reduction=reduction,
                 return_grad=True,
+                delay_penalty = self.fastemit_lambda
             )
 
         ranges = k2.get_rnnt_prune_ranges(
@@ -560,6 +561,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 boundary,
                 rnnt_type=loss_type,
                 reduction=reduction,
+                delay_penalty=self.fastemit_lambda
             )
 
         loss_transducer = (
