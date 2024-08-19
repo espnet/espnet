@@ -77,8 +77,7 @@ def create_coraal_snippets(transcripts):
     snippets = []
 
     for basefile in transcripts.basefile.unique():
-        df = transcripts[transcripts.basefile == basefile][['line', 'start_time', 'end_time', 'interviewee', 'content',
-                                                           'Gender', 'Age', 'Age.Group', 'Social.Class', 'Edu.Group', 'CORAAL.Spkr']]
+        df = transcripts[transcripts.basefile == basefile][['line', 'start_time', 'end_time', 'interviewee', 'content']]
         backward_check = df['start_time'].values[1:] >= df['end_time'].values[:-1]
         backward_check = np.insert(backward_check, 0, True)
         forward_check = df['end_time'].values[:-1] <= df['start_time'].values[1:]
@@ -126,6 +125,7 @@ def create_coraal_snippets(transcripts):
     socioeconomic_group = transcripts['Social.Class'].values
     education_group = transcripts['Edu.Group'].values
     speaker_id = transcripts['CORAAL.Spkr'].values
+    location = transcripts['location'].values
 
     rows = []
     for indices in snippets:
@@ -139,9 +139,10 @@ def create_coraal_snippets(transcripts):
             'age_group': age_group[indices[0]],
             'socioeconomic_group': socioeconomic_group[indices[0]],
             'education_group': education_group[indices[0]],
-            'speaker_id': speaker_id[indices[0]]
+            'speaker_id': speaker_id[indices[0]],
+            'location': location[indices[0]]
         })
-    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender', 'age_group', 'socioeconomic_group', 'education_group', 'speaker_id']]
+    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender', 'age_group', 'socioeconomic_group', 'education_group', 'speaker_id', 'location']]
     snippets = snippets.sort_values(['basefile', 'start_time'])
     snippets['duration'] = snippets.end_time - snippets.start_time  # seconds
     snippets['segment_filename'] = [segment_filename(b, s, e, buffer_val=0) for b, s, e in snippets[['basefile', 'start_time', 'end_time']].values]
@@ -183,16 +184,16 @@ if __name__ == '__main__':
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
     # Check for non-overlapping snippets
-    # for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
-    #     xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
-    #                       & (coraal_transcripts.start_time >= start_time)
-    #                       & (coraal_transcripts.end_time <= end_time)].speaker.unique()
-    #     if len(xscript_speakers) < 1:
-    #         print(basefile, start_time, end_time, "not enough speakers")
-    #         assert 0
-    #     if not (len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]):
-    #         print(basefile, start_time, end_time, "interviewee missing")
-    #         assert 0
+    for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
+        xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
+                          & (coraal_transcripts.start_time >= start_time)
+                          & (coraal_transcripts.end_time <= end_time)].speaker.unique()
+        if len(xscript_speakers) < 1:
+            print(basefile, start_time, end_time, "not enough speakers")
+            assert 0
+        if not (len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]):
+            print(basefile, start_time, end_time, "interviewee missing")
+            assert 0
 
     # Restrict to only snippets of specified duration range (e.g. 0.1 - 30s)
     coraal_snippets = coraal_snippets[(MIN_DURATION <= coraal_snippets.duration) & (coraal_snippets.duration <= MAX_DURATION)]
