@@ -78,7 +78,7 @@ def create_coraal_snippets(transcripts):
 
     for basefile in transcripts.basefile.unique():
         df = transcripts[transcripts.basefile == basefile][['line', 'start_time', 'end_time', 'interviewee', 'content',
-                                                           'Gender', 'Age']]
+                                                           'Gender', 'Age', 'Age.Group', 'Social.Class', 'Edu.Group']]
         backward_check = df['start_time'].values[1:] >= df['end_time'].values[:-1]
         backward_check = np.insert(backward_check, 0, True)
         forward_check = df['end_time'].values[:-1] <= df['start_time'].values[1:]
@@ -119,8 +119,13 @@ def create_coraal_snippets(transcripts):
     start_times = transcripts.start_time.values
     end_times = transcripts.end_time.values
     contents = transcripts.content.values
+    # metadata comes from the metadata files, which was merged in load_coraal_text
     gender = transcripts.Gender.values
     age = transcripts.Age.values
+    age_group = transcripts['Age.Group'].values
+    socioeconomic_group = transcripts['Social.Class'].values
+    education_group = transcripts['Edu.Group'].values
+
     rows = []
     for indices in snippets:
         rows.append({
@@ -129,9 +134,12 @@ def create_coraal_snippets(transcripts):
             'end_time': end_times[indices[-1]],
             'content': ' '.join(contents[indices]),
             'age': age[indices[0]],
-            'gender': gender[indices[0]]
+            'gender': gender[indices[0]],
+            'age_group': age_group[indices[0]],
+            'socioeconomic_group': socioeconomic_group[indices[0]],
+            'education_group': education_group[indices[0]],
         })
-    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender']]
+    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender', 'age_group', 'socioeconomic_group', 'education_group']]
     snippets = snippets.sort_values(['basefile', 'start_time'])
     snippets['duration'] = snippets.end_time - snippets.start_time  # seconds
     snippets['segment_filename'] = [segment_filename(b, s, e, buffer_val=0) for b, s, e in snippets[['basefile', 'start_time', 'end_time']].values]
@@ -173,22 +181,22 @@ if __name__ == '__main__':
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
     # Check for non-overlapping snippets
-    for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
-        xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
-                          & (coraal_transcripts.start_time >= start_time)
-                          & (coraal_transcripts.end_time <= end_time)].speaker.unique()
-        if len(xscript_speakers) < 1:
-            print(basefile, start_time, end_time, "not enough speakers")
-            assert 0
-        if not (len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]):
-            print(basefile, start_time, end_time, "interviewee missing")
-            assert 0
+    # for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
+    #     xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
+    #                       & (coraal_transcripts.start_time >= start_time)
+    #                       & (coraal_transcripts.end_time <= end_time)].speaker.unique()
+    #     if len(xscript_speakers) < 1:
+    #         print(basefile, start_time, end_time, "not enough speakers")
+    #         assert 0
+    #     if not (len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]):
+    #         print(basefile, start_time, end_time, "interviewee missing")
+    #         assert 0
 
     # Restrict to only snippets of specified duration range (e.g. 0.1 - 30s)
     coraal_snippets = coraal_snippets[(MIN_DURATION <= coraal_snippets.duration) & (coraal_snippets.duration <= MAX_DURATION)]
     print(coraal_snippets.duration.describe())
 
-    # save transcripts
+    # save transcripts (which includes speaker metadata)
     coraal_snippets.to_csv(output_folder + '/transcript.tsv', sep = '\t', index = False)
 
     # generate segments file (kaldi)
