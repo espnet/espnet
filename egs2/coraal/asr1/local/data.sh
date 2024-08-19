@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+# adapted from egs2/aishell/asr1/local/data.sh
 set -e
 set -u
 set -o pipefail
@@ -49,6 +50,8 @@ if [ -z "${CORAAL}" ]; then
   exit 2
 fi
 
+log "Download requirements"
+pip3 install -r local/requirements.txt
 
 log "Download data to ${CORAAL}"
 if [ ! -d "${CORAAL}" ]; then
