@@ -122,7 +122,7 @@ def create_coraal_snippets(transcripts):
     gender = transcripts.Gender.values
     age = transcripts.Age.values
     age_group = transcripts['Age.Group'].values
-    socioeconomic_group = transcripts['Social.Class'].values
+    socioeconomic_group = transcripts['CORAAL.SEC.Group'].values
     education_group = transcripts['Edu.Group'].values
     speaker_id = transcripts['CORAAL.Spkr'].values
     location = transcripts['location'].values
