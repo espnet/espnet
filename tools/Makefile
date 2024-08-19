@@ -124,6 +124,7 @@ espnet.done: pytorch.done conda_packages.done
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
+	. ./activate_python.sh && python -m nltk.downloader averaged_perceptron_tagger_eng
 	touch espnet.done
 
 sounfile_test: espnet.done
