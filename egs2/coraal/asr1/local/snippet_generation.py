@@ -78,7 +78,7 @@ def create_coraal_snippets(transcripts):
 
     for basefile in transcripts.basefile.unique():
         df = transcripts[transcripts.basefile == basefile][['line', 'start_time', 'end_time', 'interviewee', 'content',
-                                                           'Gender', 'Age', 'Age.Group', 'Social.Class', 'Edu.Group']]
+                                                           'Gender', 'Age', 'Age.Group', 'Social.Class', 'Edu.Group', 'CORAAL.Spkr']]
         backward_check = df['start_time'].values[1:] >= df['end_time'].values[:-1]
         backward_check = np.insert(backward_check, 0, True)
         forward_check = df['end_time'].values[:-1] <= df['start_time'].values[1:]
@@ -125,6 +125,7 @@ def create_coraal_snippets(transcripts):
     age_group = transcripts['Age.Group'].values
     socioeconomic_group = transcripts['Social.Class'].values
     education_group = transcripts['Edu.Group'].values
+    speaker_id = transcripts['CORAAL.Spkr'].values
 
     rows = []
     for indices in snippets:
@@ -138,8 +139,9 @@ def create_coraal_snippets(transcripts):
             'age_group': age_group[indices[0]],
             'socioeconomic_group': socioeconomic_group[indices[0]],
             'education_group': education_group[indices[0]],
+            'speaker_id': speaker_id[indices[0]]
         })
-    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender', 'age_group', 'socioeconomic_group', 'education_group']]
+    snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender', 'age_group', 'socioeconomic_group', 'education_group', 'speaker_id']]
     snippets = snippets.sort_values(['basefile', 'start_time'])
     snippets['duration'] = snippets.end_time - snippets.start_time  # seconds
     snippets['segment_filename'] = [segment_filename(b, s, e, buffer_val=0) for b, s, e in snippets[['basefile', 'start_time', 'end_time']].values]
