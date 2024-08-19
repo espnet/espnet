@@ -5,6 +5,7 @@ import glob
 import sys
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 def load_coraal_text(project_path):
@@ -69,8 +70,7 @@ def segment_filename(basefilename, start_time, end_time, buffer_val):
     # Generate new filename for snippet subsets of .wav files (including start and end times)
     start_time = int((start_time-buffer_val)*1000) # ms
     end_time = int((end_time+buffer_val)*1000) # ms
-    filename = "{}_{}_{}.wav".format(basefilename, start_time, end_time)
-    return filename
+    return f"{basefilename}_{start_time:012d}_{end_time:012d}"
 
 def create_coraal_snippets(transcripts):
     # Make dataframe of snippets from transcripts, applying filters
@@ -110,6 +110,8 @@ def create_coraal_snippets(transcripts):
                 # save previous snippet, start a new snippet
                 snippets.append(snippet)
                 snippet = []
+            # TODO: segment the file if it's too long
+            # see https://github.com/cmu-llab/s3m-aave/blob/main/data/nsp/segment.py
         if snippet:
             snippets.append(snippet)
 
@@ -131,18 +133,21 @@ def create_coraal_snippets(transcripts):
         })
     snippets = pd.DataFrame(rows)[['basefile', 'start_time', 'end_time', 'content', 'age', 'gender']]
     snippets = snippets.sort_values(['basefile', 'start_time'])
-    snippets['duration'] = snippets.end_time - snippets.start_time
+    snippets['duration'] = snippets.end_time - snippets.start_time  # seconds
     snippets['segment_filename'] = [segment_filename(b, s, e, buffer_val=0) for b, s, e in snippets[['basefile', 'start_time', 'end_time']].values]
     return snippets
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print("Help: python local/snippet_generation.py <input_folder> <output_tsv> <min_duration> <max_duration>")
-        print("ex: python local/snippet_generation.py downloads downloads/transcript.tsv 5 30")
+        print("Help: python local/snippet_generation.py <input_folder> <output_folder> <min_duration> <max_duration>")
+        print("ex: python local/snippet_generation.py downloads downloads 0.1 30")
         print("Note: This script assumes all files (metadata and wav) are in <input_folder> with no nested folders")
         exit(1)
-
     base_folder = sys.argv[1]
+    MIN_DURATION = float(sys.argv[3]) # in seconds
+    MAX_DURATION = float(sys.argv[4]) # in seconds
+    output_folder = sys.argv[2] # ex: 'downloads'
+    start_time = datetime.now()
 
     # Create CORAAL snippets
     coraal_transcripts = load_coraal_text(base_folder)
@@ -168,29 +173,26 @@ if __name__ == '__main__':
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
     # Check for non-overlapping snippets
-    for basefile, start_time, end_time in (coraal_snippets[['basefile', 'start_time', 'end_time']].values):
+    for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
         xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
                           & (coraal_transcripts.start_time >= start_time)
                           & (coraal_transcripts.end_time <= end_time)].speaker.unique()
         if len(xscript_speakers) < 1:
-            print(basefile, start_time, end_time)
+            print(basefile, start_time, end_time, "not enough speakers")
             assert 0
         if not (len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]):
-            print(basefile, start_time, end_time)
+            print(basefile, start_time, end_time, "interviewee missing")
             assert 0
 
-
-        # TODO: segment the file if it's too long
-            # if it's too short; combine(?)
-        # see https://github.com/cmu-llab/s3m-aave/blob/main/data/nsp/segment.py
-
-        # TODO: segments file <utterance_id> <wav_id> <start_time> <end_time>
-
-    # Restrict to only specified second snippets (e.g. 5 - 30s)
-    MIN_DURATION = int(sys.argv[3]) # in seconds
-    MAX_DURATION = int(sys.argv[4]) # in seconds
-    coraal_snippets = coraal_snippets[(min_duration <= coraal_snippets.duration) & (coraal_snippets.duration <= max_duration)]
+    # Restrict to only snippets of specified duration range (e.g. 0.1 - 30s)
+    coraal_snippets = coraal_snippets[(MIN_DURATION <= coraal_snippets.duration) & (coraal_snippets.duration <= MAX_DURATION)]
     print(coraal_snippets.duration.describe())
 
-    output_loc = sys.argv[2] # ex: 'downloads/transcript.tsv'
-    coraal_snippets.to_csv(output_loc, sep = '\t', index = False)
+    # save transcripts
+    coraal_snippets.to_csv(output_folder + '/transcript.tsv', sep = '\t', index = False)
+
+    # generate segments file (kaldi)
+    # <utterance_id> <wav_id> <start_time> <end_time>
+    coraal_snippets[['segment_filename', 'basefile', 'start_time', 'end_time']].to_csv(output_folder + '/segments', sep = ' ', header=False, index=False)
+
+    print("finished in", datetime.now() - start_time)
