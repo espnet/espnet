@@ -101,8 +101,10 @@ class BaseFeatureReader(object):
         # assert sr == self.sample_rate, sr
         if sr != self.sample_rate:
             logging.warning(
-                "sampling rate mismatch between the requirements of feature extractor {} "
-                "and source wav {}, conduct resampling".format(self.sample_rate, sr)
+                "sampling rate mismatch between "
+                "the requirements of feature extractor {} "
+                "and source wav {},"
+                "conduct resampling".format(self.sample_rate, sr)
             )
             wav = librosa.resample(wav, sr, self.sample_rate, scale=True)
         if wav.ndim == 2:
