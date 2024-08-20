@@ -268,9 +268,9 @@ class Text2Speech:
         return Text2Speech(**kwargs)
 
 
-# @typechecked NOTE(yiwen) --output_dir "${_logdir}"/output.JOB \    format like this cannot pass typecheck, but it is str
+@typechecked
 def inference(
-    output_dir: str,
+    output_dir: Union[Path, str],
     batch_size: int,
     dtype: str,
     ngpu: int,

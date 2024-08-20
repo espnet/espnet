@@ -70,7 +70,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         scripts/audio/trim_silence.sh \
              --cmd "${train_cmd}" \
              --nj "${nj}" \
-             --fs 24000 \
+             --fs 44100 \
              --win_length 2048 \
              --shift_length 512 \
              --threshold "${threshold}" \
