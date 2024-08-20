@@ -442,6 +442,8 @@ class FastSpeech2Discrete(AbsTTS2):
                 use_cnn_module=use_cnn_in_conformer,
                 cnn_module_kernel=conformer_dec_kernel_size,
             )
+            # define final projection
+            self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
         else:
             raise ValueError(f"{decoder_type} is not supported.")
 
