@@ -31,15 +31,25 @@ def split_speakers(transcripts, train_ratio, dev_ratio, test_ratio):
 
 
 def split_files(transcripts, spk_train, spk_dev, spk_test):
-    train_utt = set(transcripts[transcripts['speaker_id'].isin(spk_train)]['basefile'])
-    dev_utt = set(transcripts[transcripts['speaker_id'].isin(spk_dev)]['basefile'])
-    test_utt = set(transcripts[transcripts['speaker_id'].isin(spk_test)]['basefile'])
+    train_rows = transcripts[transcripts['speaker_id'].isin(spk_train)]
+    dev_rows = transcripts[transcripts['speaker_id'].isin(spk_dev)]
+    test_rows = transcripts[transcripts['speaker_id'].isin(spk_test)]
 
+    train_wav = set(train_rows['basefile'])
+    dev_wav = set(dev_rows['basefile'])
+    test_wav = set(test_rows['basefile'])
+    assert len(train_wav & dev_wav) == 0
+    assert len(train_wav & test_wav) == 0
+    assert len(dev_wav & test_wav) == 0
+
+    train_utt = set(train_rows['segment_filename'])
+    dev_utt = set(dev_rows['segment_filename'])
+    test_utt = set(test_rows['segment_filename'])
     assert len(train_utt & dev_utt) == 0
     assert len(train_utt & test_utt) == 0
     assert len(dev_utt & test_utt) == 0
 
-    return train_utt, dev_utt, test_utt
+    return (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt)
 
 
 if __name__ == '__main__':
@@ -62,16 +72,26 @@ if __name__ == '__main__':
     num_spk = len(spk_train | spk_dev | spk_test)
     print('spk distribution: train/dev/test', len(spk_train) / num_spk, len(spk_dev) / num_spk, len(spk_test) / num_spk)
 
-    train_utt, dev_utt, test_utt = split_files(transcripts, spk_train, spk_dev, spk_test)
-    with open(train_file, 'w') as f:
+    (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt) = split_files(transcripts, spk_train, spk_dev, spk_test)
+    with open(train_file + '_utt.list', 'w') as f:
         for utt in train_utt:
             f.write(utt + '\n')
-    with open(dev_file, 'w') as f:
+    with open(dev_file + '_utt.list', 'w') as f:
         for utt in dev_utt:
             f.write(utt + '\n')
-    with open(test_file, 'w') as f:
+    with open(test_file + '_utt.list', 'w') as f:
         for utt in test_utt:
             f.write(utt + '\n')
+    with open(train_file + '_wav.list', 'w') as f:
+        for utt in train_wav:
+            f.write(utt + '\n')
+    with open(dev_file + '_wav.list', 'w') as f:
+        for utt in dev_wav:
+            f.write(utt + '\n')
+    with open(test_file + '_wav.list', 'w') as f:
+        for utt in test_wav:
+            f.write(utt + '\n')
+
 
 # http://lingtools.uoregon.edu/coraal/userguide/CORAALUserGuide_current.pdf
 # DCA_se2_ag1_m_05_1
