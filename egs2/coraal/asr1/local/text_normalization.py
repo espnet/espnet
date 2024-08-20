@@ -259,5 +259,4 @@ if __name__ == '__main__':
     # at this point, all non-linguistic markers should have been removed
     transcripts = pd.read_csv(path_to_transcript, sep='\t')
     transcripts["normalized_text"] = transcripts["content"].apply(normalize_text)
-    transcripts = transcripts.drop(["content"], axis=1)
-    transcripts.to_csv(output_path, index=None)
+    transcripts.to_csv(output_path, sep='\t', index=None)
