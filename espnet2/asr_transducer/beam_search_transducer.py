@@ -152,6 +152,7 @@ class BeamSearchTransducer:
         self,
         enc_out: torch.Tensor,
         is_final: bool = True,
+        **kwargs
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -165,7 +166,7 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        hyps = self.search_algorithm(enc_out)
+        hyps = self.search_algorithm(enc_out, **kwargs)
 
         if is_final:
             self.reset_cache()
@@ -474,7 +475,7 @@ class BeamSearchTransducer:
 
         return B
 
-    def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+    def time_sync_decoding(self, enc_out: torch.Tensor, extra_start_token: int = None) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -489,6 +490,10 @@ class BeamSearchTransducer:
         if self.search_cache is not None:
             B = self.search_cache
         else:
+            start_toks = [0]
+            if extra_start_token is not None:
+                yseq.append(extra_start_token)
+                
             B = [
                 Hypothesis(
                     yseq=[0],
