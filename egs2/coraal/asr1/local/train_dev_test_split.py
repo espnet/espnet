@@ -71,10 +71,6 @@ def generate_text(split_file_path, rows):
     rows[['segment_filename', 'normalized_text']].to_csv(split_file_path + '.text', sep=' ', index=False, header=None)
     # note: need to use sed to remove quotes later
 
-def generate_wav_scp(split_file_path, rows):
-    # wav.scp (<wav_id> <utt_path>)
-    rows[['basefile', 'segment_filename']].to_csv(split_file_path + '.wav.scp', sep=' ', index=False, header=None)
-
 def generate_segments(split_file_path, rows):
     # segments (<utterance_id> <wav_id> <start_time> <end_time>)
     rows[['segment_filename', 'basefile', 'start_time', 'end_time']].to_csv(split_file_path + '.segments', sep = ' ', header=False, index=False)
@@ -118,10 +114,6 @@ if __name__ == '__main__':
     generate_text(train_file, train_rows)
     generate_text(dev_file, dev_rows)
     generate_text(test_file, test_rows)
-    # wav.scp
-    generate_wav_scp(train_file, train_rows)
-    generate_wav_scp(dev_file, dev_rows)
-    generate_wav_scp(test_file, test_rows)
     # segments
     generate_segments(train_file, train_rows)
     generate_segments(dev_file, dev_rows)
