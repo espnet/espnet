@@ -4,8 +4,16 @@ import importlib
 import os
 import ast
 import sys
+import subprocess
 
 import configargparse
+
+
+def get_git_revision_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+
+GIT_HASH = get_git_revision_hash()
 
 
 def to_module(path_name):
@@ -31,19 +39,27 @@ def parse_ast(filename):
         return ast.parse(file.read(), filename=filename)
 
 
-def gen_func_rst(func_name, writer):
+def gen_func_rst(func_name, writer, filepath, lineno):
+    sourceurl = f"https://github.com/espnet/espnet/blob/" \
+        + GIT_HASH + filepath + f":L{lineno}"
     writer.write(f""".. _{func_name}
 {func_name}
 {"~" * len(func_name)}
+
+`source <{sourceurl}>`_
 
 .. autofunction:: {func_name}
 """)
 
 
-def gen_class_rst(class_name, writer):
+def gen_class_rst(class_name, writer, filepath, lineno):
+    sourceurl = f"https://github.com/espnet/espnet/blob/" \
+        + GIT_HASH + filepath + f":L{lineno}"
     writer.write(f""".. _{class_name}
 {class_name}
 {"~" * len(class_name)}
+
+`source <{sourceurl}>`_
 
 .. autoclass:: {class_name}
     :members:
@@ -89,7 +105,7 @@ for p in glob(args.root + "/**", recursive=True):
             print(f"[INFO] generating {func.name} in {module_name}")
             # 1.2 generate RST
             with open(f"{gendir}/{args.root}/{submodule_name}/{function_name}.rst", "w") as f_rst:
-                gen_func_rst(f"{module_name}.{function_name}", f_rst)
+                gen_func_rst(f"{module_name}.{function_name}", f_rst, p, func.lineno)
 
         # 2 get classes
         for clz in top_level_classes(parse_ast(p).body):
@@ -97,4 +113,4 @@ for p in glob(args.root + "/**", recursive=True):
             print(f"[INFO] generating {clz.name} in {module_name}")
             # 1.2 generate RST
             with open(f"{gendir}/{args.root}/{submodule_name}/{class_name}.rst", "w") as f_rst:
-                gen_class_rst(f"{module_name}.{class_name}", f_rst)
+                gen_class_rst(f"{module_name}.{class_name}", f_rst, p, clz.lineno)

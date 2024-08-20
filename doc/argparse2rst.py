@@ -4,8 +4,14 @@ import logging
 import pathlib
 import re
 import os
+import subprocess
 
 import configargparse
+
+
+
+def get_git_revision_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 
 class ModuleInfo:
@@ -79,6 +85,8 @@ os.makedirs(args.output_dir, exist_ok=True)
 # print argparse to each files
 for m in modinfo:
     cmd = m.path.name
+    sourceurl = f"https://github.com/espnet/espnet/blob/" \
+        + get_git_revision_hash() + str(m.path.parent / m.path.stem) + ".py"
     sep = "~" * len(cmd)
     mname = m.name if m.name.startswith("espnet") \
         else ".".join(m.name.split(".")[1:])
@@ -87,6 +95,8 @@ for m in modinfo:
         f""".. _{cmd}
 {cmd}
 {sep}
+
+`source <{sourceurl}>`_
 
 .. argparse::
    :module: {mname}
