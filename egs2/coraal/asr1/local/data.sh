@@ -60,8 +60,8 @@ fi
 # To absolute path
 CORAAL=$(cd ${CORAAL}; pwd)
 
-echo local/download_and_untar.sh ${download_opt} "${CORAAL}" "${data_url}"
-local/download_and_untar.sh ${download_opt} "${CORAAL}" "${data_url}"
+# echo local/download_and_untar.sh ${download_opt} "${CORAAL}" "${data_url}"
+# local/download_and_untar.sh ${download_opt} "${CORAAL}" "${data_url}"
 
 coraal_audio_dir=${CORAAL}
 coraal_text=${CORAAL}/transcript.tsv
