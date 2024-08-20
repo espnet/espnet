@@ -95,11 +95,7 @@ cp -r ./doc/image ./doc/vuepress/src/
 
 # Document generation has finished.
 # From the following point we modify files for VuePress.
-# Replace language tags to supported language tags
-find ./doc/vuepress/src/ -name "*.md" -exec sed -i 's/```default/```text/g' {} \;
-find ./doc/vuepress/src/ -name "*.md" -exec sed -i 's/```pycon/```python/g' {} \;
-find ./doc/vuepress/src/ -name "*.md" -exec sed -i 's/```cd/```text/g' {} \;
-
+# replace language tags which is not supported by VuePress
 # And convert custom tags to &lt; and &gt;, as <custom tag> can be recognized a html tag.
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/
 

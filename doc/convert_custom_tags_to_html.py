@@ -131,6 +131,12 @@ ALL_HTML_TAGS = [
     "wbr",
 ]
 
+LANGUAGE_TAG_SET = [
+    ("default", "text"),
+    ("pycon", "python"),
+    ("cd", "text"),
+]
+
 def get_parser():
     parser = configargparse.ArgumentParser(
         description="Convert custom tags to markdown",
@@ -198,6 +204,13 @@ def replace_string_tags(content):
     return tag_pattern.sub(replace_tag, content)
 
 
+def replace_language_tags(content):
+    for (label, lang) in LANGUAGE_TAG_SET:
+        content = content.replace(f"```{label}", f"```{lang}")
+    
+    return content
+
+
 # parser
 args = get_parser().parse_args()
 
@@ -209,6 +222,7 @@ for md in glob.glob(f"{args.root}/*.md", recursive=True):
     # if the tag is not in ALL_HTML_TAGS and does not have its end tag
     # we need to apply this two functions because
     # there are custom tags like: "<custom-tag a='<type>' b='<value>' />"
+    content = replace_language_tags(content)
     content = replace_string_tags(content)
     content = replace_custom_tags(content)
 
@@ -222,6 +236,7 @@ for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
 
     # Replace the "" and "" with "&lt;" and "&gt;", respectively
     # if the tag is not in ALL_HTML_TAGS
+    content = replace_language_tags(content)
     content = replace_string_tags(content)
     content = replace_custom_tags(content)
 
