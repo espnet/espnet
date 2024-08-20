@@ -49,7 +49,35 @@ def split_files(transcripts, spk_train, spk_dev, spk_test):
     assert len(train_utt & test_utt) == 0
     assert len(dev_utt & test_utt) == 0
 
-    return (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt)
+    return (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt), (train_rows, dev_rows, test_rows)
+
+
+def generate_utt_list(split_file_path, split_utt):
+    with open(split_file_path + '_utt.list', 'w') as f:
+        for utt in split_utt:
+            f.write(utt + '\n')
+
+def generate_wav_list(split_file_path, split_wav):
+    with open(split_file_path + '_wav.list', 'w') as f:
+        for utt in split_wav:
+            f.write(utt + '\n')
+
+def generate_utt2spk(split_file_path, rows):
+    # utt2spk (<utterance_id> <speaker_id>)
+    rows[['segment_filename', 'speaker_id']].to_csv(split_file_path + '.utt2spk', sep=' ', index=False, header=None)
+
+def generate_text(split_file_path, rows):
+    # text (<utterance_id> <transcription>)
+    rows[['segment_filename', 'normalized_text']].to_csv(split_file_path + '.text', sep=' ', index=False, header=None)
+    # note: need to use sed to remove quotes later
+
+def generate_wav_scp(split_file_path, rows):
+    # wav.scp (<wav_id> <utt_path>)
+    rows[['basefile', 'segment_filename']].to_csv(split_file_path + '.wav.scp', sep=' ', index=False, header=None)
+
+def generate_segments(split_file_path, rows):
+    # segments (<utterance_id> <wav_id> <start_time> <end_time>)
+    rows[['segment_filename', 'basefile', 'start_time', 'end_time']].to_csv(split_file_path + '.segments', sep = ' ', header=False, index=False)
 
 
 if __name__ == '__main__':
@@ -72,25 +100,32 @@ if __name__ == '__main__':
     num_spk = len(spk_train | spk_dev | spk_test)
     print('spk distribution: train/dev/test', len(spk_train) / num_spk, len(spk_dev) / num_spk, len(spk_test) / num_spk)
 
-    (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt) = split_files(transcripts, spk_train, spk_dev, spk_test)
-    with open(train_file + '_utt.list', 'w') as f:
-        for utt in train_utt:
-            f.write(utt + '\n')
-    with open(dev_file + '_utt.list', 'w') as f:
-        for utt in dev_utt:
-            f.write(utt + '\n')
-    with open(test_file + '_utt.list', 'w') as f:
-        for utt in test_utt:
-            f.write(utt + '\n')
-    with open(train_file + '_wav.list', 'w') as f:
-        for utt in train_wav:
-            f.write(utt + '\n')
-    with open(dev_file + '_wav.list', 'w') as f:
-        for utt in dev_wav:
-            f.write(utt + '\n')
-    with open(test_file + '_wav.list', 'w') as f:
-        for utt in test_wav:
-            f.write(utt + '\n')
+    (train_wav, dev_wav, test_wav), (train_utt, dev_utt, test_utt), (train_rows, dev_rows, test_rows) = \
+        split_files(transcripts, spk_train, spk_dev, spk_test)
+    # utt, wav lists
+    generate_utt_list(train_file, train_utt)
+    generate_utt_list(dev_file, dev_utt)
+    generate_utt_list(test_file, test_utt)
+    generate_wav_list(train_file, train_wav)
+    generate_wav_list(dev_file, dev_wav)
+    generate_wav_list(test_file, test_wav)
+
+    # utt2spk
+    generate_utt2spk(train_file, train_rows)
+    generate_utt2spk(dev_file, dev_rows)
+    generate_utt2spk(test_file, test_rows)
+    # text
+    generate_text(train_file, train_rows)
+    generate_text(dev_file, dev_rows)
+    generate_text(test_file, test_rows)
+    # wav.scp
+    generate_wav_scp(train_file, train_rows)
+    generate_wav_scp(dev_file, dev_rows)
+    generate_wav_scp(test_file, test_rows)
+    # segments
+    generate_segments(train_file, train_rows)
+    generate_segments(dev_file, dev_rows)
+    generate_segments(test_file, test_rows)
 
 
 # http://lingtools.uoregon.edu/coraal/userguide/CORAALUserGuide_current.pdf
