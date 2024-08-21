@@ -492,11 +492,11 @@ class BeamSearchTransducer:
         else:
             start_toks = [0]
             if extra_start_token is not None:
-                yseq.append(extra_start_token)
+                start_toks.append(extra_start_token)
                 
             B = [
                 Hypothesis(
-                    yseq=[0],
+                    yseq=start_toks,
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
@@ -573,6 +573,7 @@ class BeamSearchTransducer:
     def modified_adaptive_expansion_search(
         self,
         enc_out: torch.Tensor,
+        extra_start_token: int = None,
     ) -> List[ExtendedHypothesis]:
         """Modified version of Adaptive Expansion Search (mAES).
 
@@ -589,9 +590,12 @@ class BeamSearchTransducer:
         if self.search_cache is not None:
             kept_hyps = self.search_cache
         else:
+            start_toks = [0]
+            if extra_start_token is not None:
+                start_toks.append(extra_start_token)
             init_tokens = [
                 ExtendedHypothesis(
-                    yseq=[0],
+                    yseq=start_toks,
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
