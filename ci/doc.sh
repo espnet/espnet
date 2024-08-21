@@ -97,7 +97,7 @@ cp -r ./doc/image ./doc/vuepress/src/
 # From the following point we modify files for VuePress.
 # replace language tags which is not supported by VuePress
 # And convert custom tags to &lt; and &gt;, as <custom tag> can be recognized a html tag.
-python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/
+python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/guide
 
 # Convert API document to specific html tags to display sphinx style
 python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/guide/
