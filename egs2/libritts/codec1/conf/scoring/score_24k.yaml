@@ -13,7 +13,7 @@
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 0.1
   power_threshold: -20
-  dtw: false
+  dtw: True
 
 # signal related metrics
 # -- sir: signal to interference ratio

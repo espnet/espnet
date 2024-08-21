@@ -6,9 +6,19 @@
 # Derived from OpenAI Whisper model file:
 # https://github.com/openai/whisper/blob/main/whisper/model.py
 
-from typing import Iterable, Optional
+# (1) A concise implementation of Transformer Decoder-Only Architecture.
+# (2) This is the built-in implementation from ESPnet. Users can also
+# adopt HuggingFace transformer models besides this.
+# (3) We intentionally keep this implementation simple and will not keep
+# many configuration choices for it.
+# (4) Similar to HuggingFace models, this module contains stacked Transformer
+# layers and positional embeddings, but no embedding table and lm_head.
+# (5) Attention is based on Pytorch built-in flash attention. Please use
+# compatible Pytorch versions.
 
-import numpy as np
+
+from typing import Optional
+
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -29,13 +39,18 @@ class Linear(nn.Linear):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, n_state: int, n_head: int):
+    def __init__(self, n_state: int, n_head: int, causal: bool = False):
         super().__init__()
+        assert n_state % n_head == 0
         self.n_head = n_head
         self.query = Linear(n_state, n_state)
         self.key = Linear(n_state, n_state, bias=False)
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
+        self.causal = causal
+
+        if not hasattr(F, "scaled_dot_product_attention"):
+            raise ValueError("Install torch 2.0.1+ to support Flash Attention")
 
     def forward(
         self,
@@ -47,41 +62,57 @@ class MultiHeadAttention(nn.Module):
         q = self.query(x)
 
         if kv_cache is None or xa is None or self.key not in kv_cache:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
+            # hooks, if installed (i.e. kv_cache is not None)
+            #   will prepend the cached kv tensors;
+            # otherwise, perform key/value projections
+            #   for self- or cross-attention as usual.
             k = self.key(x if xa is None else xa)
             v = self.value(x if xa is None else xa)
         else:
-            # for cross-attention, calculate keys and values once and reuse in subsequent calls.
+            # for cross-attention, calculate keys and values once
+            # then reuse in subsequent calls.
             k = kv_cache[self.key]
             v = kv_cache[self.value]
 
-        wv, qk = self.qkv_attention(q, k, v, mask)
-        return self.out(wv), qk
+        wv = self.qkv_attention(q, k, v, mask)
+
+        return self.out(wv)
 
     def qkv_attention(
         self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None
     ):
-        n_batch, n_ctx, n_state = q.shape
-        scale = (n_state // self.n_head) ** -0.25
-        q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3) * scale
-        k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 3, 1) * scale
+        if self.causal and mask is not None:
+            raise ValueError("mask is not allowed when the attention is causal")
+
+        if self.causal and q.size(1) == k.size(1):
+            causal = True
+        else:
+            causal = False
+
+        q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
+        k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
-        qk = q @ k
-        if mask is not None:
-            qk = qk + mask[:n_ctx, :n_ctx]
-        qk = qk.float()
+        wv = (
+            F.scaled_dot_product_attention(q, k, v, mask, is_causal=causal)
+            .permute(0, 2, 1, 3)
+            .flatten(start_dim=2)
+        )
 
-        w = F.softmax(qk, dim=-1).to(q.dtype)
-        return (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2), qk.detach()
+        return wv
 
 
 class ResidualAttentionBlock(nn.Module):
-    def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
+    def __init__(
+        self,
+        n_state: int,
+        n_head: int,
+        cross_attention: bool = False,
+        causal: bool = False,
+    ):
         super().__init__()
 
-        self.attn = MultiHeadAttention(n_state, n_head)
+        self.attn = MultiHeadAttention(n_state, n_head, causal=causal)
         self.attn_ln = LayerNorm(n_state)
 
         self.cross_attn = (
@@ -102,9 +133,9 @@ class ResidualAttentionBlock(nn.Module):
         mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
     ):
-        x = x + self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)[0]
+        x = x + self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)
         if self.cross_attn:
-            x = x + self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)[0]
+            x = x + self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)
         x = x + self.mlp(self.mlp_ln(x))
         return x
 
@@ -124,29 +155,23 @@ class TransformerDecoder(nn.Module):
         self.pos_emb = nn.Embedding(n_ctx, n_state)
 
         self.blocks = nn.ModuleList(
-            [
-                layer_class(n_state, n_head, cross_attention=False)
-                for _ in range(n_layer)
-            ]
+            [layer_class(n_state, n_head, False, causal) for _ in range(n_layer)]
         )
         self.ln = LayerNorm(n_state)
 
-        mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
-        if causal:
-            self.register_buffer("mask", mask, persistent=False)
-        else:
-            self.mask = None
+        self.causal = causal
 
-    def forward(self, x: Tensor, kv_cache: Optional[dict] = None):
-        """
-        x : torch.LongTensor, shape = (batch_size, <= n_ctx)
-            the text tokens
-        """
+    def forward(
+        self, x: Tensor, mask: torch.Tensor = None, kv_cache: Optional[dict] = None
+    ):
+        if self.causal and mask is not None:
+            raise ValueError("Causal Transformer dones't allow mask")
+
         offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
         x = x + self.pos_emb.weight[offset : offset + x.shape[1]].unsqueeze(0)
 
         for block in self.blocks:
-            x = block(x, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, mask=mask, kv_cache=kv_cache)
 
         x = self.ln(x)
         return x

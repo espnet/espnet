@@ -93,21 +93,21 @@ codec_conf:
         log_base: null      # null represent natural log
     lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
-    lambda_reconstruct: 0.0 # loss scaling coefficient for speech reconstruction loss [CHANGED]
+    lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
     lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0        # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
-    cache_generator_outputs: false # whether to cache generator outputs in the training [CHANGED]
+    cache_generator_outputs: true # whether to cache generator outputs in the training
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
-optim: adamw
+optim: adam # [CHANGED]
 optim_conf:
-    lr: 3.0e-4
+    lr: 2.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -115,9 +115,9 @@ scheduler: exponentiallr
 scheduler_conf:
     gamma: 0.999875
 # optimizer setting for discriminator
-optim2: adamw
+optim2: adam
 optim2_conf:
-    lr: 3.0e-4
+    lr: 2.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -133,12 +133,11 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 5000 # number of iterations per epoch
 max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 4
+batch_size: 8             # CHANGED
 batch_type: unsorted      # how to make batch
 
-
 iterator_type: chunk
-chunk_length: 61440
+chunk_length: 24000 # CHANGED
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm

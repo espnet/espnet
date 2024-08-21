@@ -30,3 +30,13 @@
 # stoi related metrics
 # -- stoi: short-time objective intelligibility
 - name: stoi
+
+# visqol metric
+# -- visqol: visual quality of speech
+- name: visqol
+  model: speech
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+- name: speaker
+  model_tag: default

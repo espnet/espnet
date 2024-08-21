@@ -36,7 +36,7 @@ modalities["wav"] = Modality(discrete=False)
 modalities["text_emb"] = Modality(discrete=False)
 modalities["ssl_feat"] = Modality(discrete=False)
 
-############### END OF MODALITY DEFINITION ###############
+# END OF MODALITY DEFINITION #
 
 
 # (2) Task Definition
@@ -84,7 +84,7 @@ tasks["plain_tts"] = SpeechLMTask(
     target_entries=[("wav.scp", "codec", "kaldi_ark")],
 )
 
-############### END OF TASK DEFINITION ###############
+# END OF TASK DEFINITION #
 
 # (3) Special token definition
 # a. always reserve 256 slots for special tokens
@@ -127,4 +127,4 @@ special_tokens = pad_until(special_tokens, 128)
 
 special_tokens = pad_until(special_tokens, 256)
 
-############### END OF SPECIAL TOKEN DEFINITION ###############
+# END OF SPECIAL TOKEN DEFINITION #

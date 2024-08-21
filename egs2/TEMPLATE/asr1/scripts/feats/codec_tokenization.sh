@@ -30,11 +30,13 @@ src_dir=
 tgt_dir=
 checkpoint_path=null
 config_path=null
+cuda_cmd=utils/run.pl
 
 log "$0 $*"
 . utils/parse_options.sh
 
-. ./path.sh
+. ./path.sh || exit 1
+. ./cmd.sh || exit 1
 
 if [ $# -ne 0 ]; then
     echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp --codec_choice DAC"

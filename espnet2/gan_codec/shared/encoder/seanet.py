@@ -1,5 +1,10 @@
-# Adapted from https://github.com/facebookresearch/encodec
+# Adapted from https://github.com/facebookresearch/encodec by Jiatong Shi
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
@@ -39,7 +44,8 @@ CONV_NORMALIZATIONS = frozenset(
 class ConvLayerNorm(nn.LayerNorm):
     """
     Convolution-friendly LayerNorm that moves channels to last dimensions
-    before running the normalization and moves them back to original position right after.
+    before running the normalization and moves them back to
+    original position right after.
     """
 
     def __init__(self, normalized_shape: Union[int, List[int], torch.Size], **kwargs):
@@ -67,8 +73,9 @@ def apply_parametrization_norm(module: nn.Module, norm: str = "none") -> nn.Modu
 def get_norm_module(
     module: nn.Module, causal: bool = False, norm: str = "none", **norm_kwargs
 ) -> nn.Module:
-    """Return the proper normalization module. If causal is True, this will ensure the returned
-    module is causal, or return an error if the normalization doesn't support causal evaluation.
+    """Return the proper normalization module. If causal is True, this will
+    ensure the returned module is causal, or return an error if the
+    normalization doesn't support causal evaluation.
     """
     assert norm in CONV_NORMALIZATIONS
     if norm == "layer_norm":
@@ -92,10 +99,10 @@ def get_extra_padding_for_conv1d(
     an output of the same length, as otherwise, even with padding, some time steps
     might get removed.
     For instance, with total padding = 4, kernel size = 4, stride = 2:
-        0 0 1 2 3 4 5 0 0   # (0s are padding)
-        1   2   3           # (output frames of a convolution, last 0 is never used)
-        0 0 1 2 3 4 5 0     # (output of tr. conv., but pos. 5 is going to get removed as padding)
-            1 2 3 4         # once you removed padding, we are missing one time step !
+        0 0 1 2 3 4 5 0 0 # (0s are padding)
+        1   2   3         # (out-frames of a convolution, last 0 is never used)
+        0 0 1 2 3 4 5 0   # (out-tr.conv., but pos.5 will get removed as padding)
+            1 2 3 4       # once you removed padding, we are missing one time step !
     """
     length = x.shape[-1]
     n_frames = (length - kernel_size + padding_total) / stride + 1
@@ -107,7 +114,8 @@ def pad1d(
     x: torch.Tensor, paddings: Tuple[int, int], mode: str = "zero", value: float = 0.0
 ):
     """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
-    If this is the case, we insert extra 0 padding to the right before the reflection happen.
+    If this is the case, we insert extra 0 padding to the right before
+    the reflection happen.
     """
     length = x.shape[-1]
     padding_left, padding_right = paddings
@@ -244,11 +252,13 @@ class SEANetResnetBlock(nn.Module):
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization used along with the convolution.
+        norm_params (dict): Parameters to provide to the underlying normalization
+            used along with the convolution.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3)
-        true_skip (bool): Whether to use true skip connection or a simple convolution as the skip connection.
+        true_skip (bool): Whether to use true skip connection or a simple convolution
+            as the skip connection.
     """
 
     def __init__(
@@ -318,21 +328,23 @@ class SEANetEncoder(nn.Module):
         dimension (int): Intermediate representation dimension.
         n_filters (int): Base width for the model.
         n_residual_layers (int): nb of residual layers.
-        ratios (Sequence[int]): kernel size and stride ratios. The encoder uses downsampling ratios instead of
-            upsampling ratios, hence it will use the ratios in the reverse order to the ones specified here
-            that must match the decoder order
+        ratios (Sequence[int]): kernel size and stride ratios. The encoder
+            uses downsampling ratios instead of upsampling ratios, hence
+            it will use the ratios in the reverse order to the ones specified
+            here that must match the decoder order
         activation (str): Activation function.
         activation_params (dict): Parameters to provide to the activation function
         norm (str): Normalization method.
-        norm_params (dict): Parameters to provide to the underlying normalization used along with the convolution.
+        norm_params (dict): Parameters to provide to the underlying normalization
+            used along with the convolution.
         kernel_size (int): Kernel size for the initial convolution.
         last_kernel_size (int): Kernel size for the initial convolution.
         residual_kernel_size (int): Kernel size for the residual layers.
         dilation_base (int): How much to increase the dilation with each layer.
         causal (bool): Whether to use fully causal convolution.
         pad_mode (str): Padding mode for the convolutions.
-        true_skip (bool): Whether to use true skip connection or a simple
-            (streamable) convolution as the skip connection in the residual network blocks.
+        true_skip (bool): Whether to use true skip connection or a simple (streamable)
+            convolution as the skip connection in the residual network blocks.
         compress (int): Reduced dimensionality in residual branches (from Demucs v3).
         lstm (int): Number of LSTM layers at the end of the encoder.
     """

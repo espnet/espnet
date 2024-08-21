@@ -2393,7 +2393,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        ### Modality-specific utilities
+        # Modality-specific utilities
+
         # Text BPE (text_bpe):
         if bpemodel is not None:
             if bpe_encode_kwargs is None:
