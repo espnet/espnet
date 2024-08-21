@@ -596,7 +596,7 @@ if ! "${skip_data_prep}"; then
         s3prl_conf="{upstream=${s3prl_upstream_name}}"
         kmeans_feature_type=s3prl
         kmeans_feature_conf="{type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}"
-        # (zh hubert), the arguments we used on aishell3 
+        # (zh hubert), the arguments we used on aishell3
         # s3prl_conf="{upstream=${s3prl_upstream_name},path_or_url=TencentGameMate/chinese-hubert-large}"
         # kmeans_feature_type=s3prl
         # kmeans_feature_conf={type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}
