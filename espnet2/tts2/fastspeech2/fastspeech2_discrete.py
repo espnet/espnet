@@ -518,6 +518,7 @@ class FastSpeech2Discrete(AbsTTS2):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
         discrete_feats = discrete_feats[
             :, : discrete_feats_lengths.max()
         ]  # for data-parallel

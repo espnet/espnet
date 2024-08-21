@@ -581,13 +581,6 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
 
-        # NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
-        #   We may include more control token here to imporve it.
-        mkdir -p "${km_dir}"
-        mkdir -p "${km_dir}"
-        (for n in `seq 1 ${feature_num_clusters}`; do
-            echo "<auido_token_${n}>"
-        done) > ${tgt_token_list}
     fi
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -606,6 +599,7 @@ if ! "${skip_data_prep}"; then
             --datadir "${dumpdir}/raw" \
             --featdir "${feature_dir}" \
             --audio_format "${audio_format}" \
+            --audio_sample_rate "${fs}" \
             --feature_type ${kmeans_feature_type} \
             --layer "${feature_layer}" \
             --feature_conf "${kmeans_feature_conf}" \
@@ -619,6 +613,12 @@ if ! "${skip_data_prep}"; then
             --cpu_cmd "${train_cmd}" \
             --cuda_cmd "${cuda_cmd}"
 
+        # NOTE(Jinchuan): also build the tgt_vocab even though this is quite naive.
+        # We may include more control token here to imporve it.
+        (for n in `seq 1 ${feature_num_clusters}`; do
+            echo "<auido_token_${n}>"
+        done) > ${tgt_token_list}
+
             # Copy generated pseudo labels to original dump dir
             for dset in ${train_set} ${valid_set} ${test_sets}; do
                 _out_dir=${feature_dir}/${kmeans_feature_type}/layer${feature_layer}/${dset}
@@ -629,6 +629,8 @@ if ! "${skip_data_prep}"; then
             # NOTE(jiatong): use the pseudo label without unique to train the vocoder
             log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
             log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}"
+
+
 
     fi
 else
@@ -703,9 +705,9 @@ if ! "${skip_train}"; then
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_valid_dir}/${_scp} wc -l)")
+        _nj=$(min "${nj}" "$(<${_train_dir}/text.km.${km_tag} wc -l)" "$(<${_valid_dir}/text.km.${km_tag} wc -l)")
 
-        key_file="${_train_dir}/${_scp}"
+        key_file="${_train_dir}/text.km.${km_tag}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/train.${n}.scp"
@@ -713,7 +715,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        key_file="${_valid_dir}/${_scp}"
+        key_file="${_valid_dir}/text.km.${km_tag}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -805,7 +807,7 @@ if ! "${skip_train}"; then
                     ${python} -m espnet2.bin.split_scps \
                       --scps \
                           "${_train_dir}/text" \
-                          "${_train_dir}/${_scp}" \
+                          "${_train_dir}/text.km.${km_tag}" \
                           "${tts2_stats_dir}/train/speech_shape" \
                           "${tts2_stats_dir}/train/text_shape.${src_token_type}" \
                       --num_splits "${num_splits}" \

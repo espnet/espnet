@@ -111,7 +111,7 @@ def get_parser() -> argparse.Namespace:
     )
     parser.add_argument(
         "--batchsize",
-        default=4,
+        default=1,
         type=int,
         help="Number of batches.",
     )
