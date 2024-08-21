@@ -151,7 +151,7 @@ class MfccFeatureReader(BaseFeatureReader):
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
             self.resample = torchaudio.transforms.Resample(
-                orig_freq=audio_sample_rate, new_freq=fs
+                orig_freq=audio_sample_rate, new_freq=sample_rate
             )
         else:
             self.resample = None
@@ -202,12 +202,12 @@ class HubertFeatureReader(BaseFeatureReader):
         max_chunk=1600000,
         use_gpu=True,
     ):
-        self.sample_rate = sample_rate
+        self.sample_rate = int(sample_rate)
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
             self.resample = torchaudio.transforms.Resample(
-                orig_freq=audio_sample_rate, new_freq=fs
+                orig_freq=audio_sample_rate, new_freq=self.sample_rate
             )
         else:
             self.resample = None
@@ -266,12 +266,12 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
         max_chunk=1600000,
         use_gpu=True,
     ):
-        self.sample_rate = sample_rate
+        self.sample_rate = int(sample_rate) # str->int
         self.audio_sample_rate = audio_sample_rate
         if self.sample_rate != self.audio_sample_rate:
             logging.warning("The audio sample rate is different from feat extractor")
             self.resample = torchaudio.transforms.Resample(
-                orig_freq=audio_sample_rate, new_freq=fs
+                orig_freq=audio_sample_rate, new_freq=self.sample_rate
             )
         else:
             self.resample = None

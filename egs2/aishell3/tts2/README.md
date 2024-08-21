@@ -99,6 +99,7 @@ The datasets include text, durations, speech, discrete speech, pitch, energy, an
 ```
 
 ```
+# It is recommended to modify tts2.sh, switching the English hubert to Chinese hubert, for aishell3 customization.
 ./run.sh --stage 5 --stop_stage 6 --s3prl_upstream_name hf_hubert_custom --feature_layer 17
 
 ./run.sh --stage 8 --stop_stage 8 --s3prl_upstream_name hf_hubert_custom --feature_layer 17 \
