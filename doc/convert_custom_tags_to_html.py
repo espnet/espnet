@@ -207,7 +207,7 @@ def replace_string_tags(content):
 def replace_language_tags(content):
     for (label, lang) in LANGUAGE_TAG_SET:
         content = content.replace(f"```{label}", f"```{lang}")
-    
+
     return content
 
 
