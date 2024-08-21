@@ -343,6 +343,7 @@
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># adjust this in collate_fn (default -1)</span>
+        <span class="n">discrete_token_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.</span>
 
@@ -441,6 +442,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_pitch_predictor</span> <span class="o">=</span> <span class="n">stop_gradient_from_pitch_predictor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_energy_predictor</span> <span class="o">=</span> <span class="n">stop_gradient_from_energy_predictor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span> <span class="o">=</span> <span class="n">use_scaled_pos_enc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">=</span> <span class="n">discrete_token_layers</span>
 
         <span class="c1"># use idx 0 as padding idx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span> <span class="o">=</span> <span class="mi">0</span>
@@ -487,8 +489,8 @@
                 <span class="n">num_blocks</span><span class="o">=</span><span class="n">elayers</span><span class="p">,</span>
                 <span class="n">input_layer</span><span class="o">=</span><span class="n">encoder_input_layer</span><span class="p">,</span>
                 <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_dropout_rate</span><span class="p">,</span>
-                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">,</span>
-                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_attn_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="p">(</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">),</span>
+                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="p">(</span><span class="n">transformer_enc_attn_dropout_rate</span><span class="p">),</span>
                 <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
                 <span class="n">normalize_before</span><span class="o">=</span><span class="n">encoder_normalize_before</span><span class="p">,</span>
                 <span class="n">concat_after</span><span class="o">=</span><span class="n">encoder_concat_after</span><span class="p">,</span>
@@ -504,7 +506,7 @@
                 <span class="n">num_blocks</span><span class="o">=</span><span class="n">elayers</span><span class="p">,</span>
                 <span class="n">input_layer</span><span class="o">=</span><span class="n">encoder_input_layer</span><span class="p">,</span>
                 <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_dropout_rate</span><span class="p">,</span>
-                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">,</span>
+                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="p">(</span><span class="n">transformer_enc_positional_dropout_rate</span><span class="p">),</span>
                 <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_enc_attn_dropout_rate</span><span class="p">,</span>
                 <span class="n">normalize_before</span><span class="o">=</span><span class="n">encoder_normalize_before</span><span class="p">,</span>
                 <span class="n">concat_after</span><span class="o">=</span><span class="n">encoder_concat_after</span><span class="p">,</span>
@@ -596,22 +598,58 @@
         <span class="c1"># NOTE: we use encoder as decoder</span>
         <span class="c1"># because fastspeech&#39;s decoder is the same as encoder</span>
         <span class="k">if</span> <span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
-                <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
-                <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
-                <span class="n">linear_units</span><span class="o">=</span><span class="n">dunits</span><span class="p">,</span>
-                <span class="n">num_blocks</span><span class="o">=</span><span class="n">dlayers</span><span class="p">,</span>
-                <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_dropout_rate</span><span class="p">,</span>
-                <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_positional_dropout_rate</span><span class="p">,</span>
-                <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_attn_dropout_rate</span><span class="p">,</span>
-                <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
-                <span class="n">normalize_before</span><span class="o">=</span><span class="n">decoder_normalize_before</span><span class="p">,</span>
-                <span class="n">concat_after</span><span class="o">=</span><span class="n">decoder_concat_after</span><span class="p">,</span>
-                <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
-                <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">TransformerEncoder</span><span class="p">(</span>
+                            <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                            <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                            <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                            <span class="n">linear_units</span><span class="o">=</span><span class="n">dunits</span><span class="p">,</span>
+                            <span class="n">num_blocks</span><span class="o">=</span><span class="n">dlayers</span><span class="p">,</span>
+                            <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_dropout_rate</span><span class="p">,</span>
+                            <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="p">(</span>
+                                <span class="n">transformer_dec_positional_dropout_rate</span>
+                            <span class="p">),</span>
+                            <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="p">(</span><span class="n">transformer_dec_attn_dropout_rate</span><span class="p">),</span>
+                            <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
+                            <span class="n">normalize_before</span><span class="o">=</span><span class="n">decoder_normalize_before</span><span class="p">,</span>
+                            <span class="n">concat_after</span><span class="o">=</span><span class="n">decoder_concat_after</span><span class="p">,</span>
+                            <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                            <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="c1"># define final projection</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                            <span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">*</span> <span class="n">reduction_factor</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
+                    <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="n">attention_dim</span><span class="o">=</span><span class="n">adim</span><span class="p">,</span>
+                    <span class="n">attention_heads</span><span class="o">=</span><span class="n">aheads</span><span class="p">,</span>
+                    <span class="n">linear_units</span><span class="o">=</span><span class="n">dunits</span><span class="p">,</span>
+                    <span class="n">num_blocks</span><span class="o">=</span><span class="n">dlayers</span><span class="p">,</span>
+                    <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_dropout_rate</span><span class="p">,</span>
+                    <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_positional_dropout_rate</span><span class="p">,</span>
+                    <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">transformer_dec_attn_dropout_rate</span><span class="p">,</span>
+                    <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
+                    <span class="n">normalize_before</span><span class="o">=</span><span class="n">decoder_normalize_before</span><span class="p">,</span>
+                    <span class="n">concat_after</span><span class="o">=</span><span class="n">decoder_concat_after</span><span class="p">,</span>
+                    <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
+                    <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="c1"># define final projection</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;conformer&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">ConformerEncoder</span><span class="p">(</span>
                 <span class="n">idim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -634,11 +672,10 @@
                 <span class="n">use_cnn_module</span><span class="o">=</span><span class="n">use_cnn_in_conformer</span><span class="p">,</span>
                 <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">conformer_dec_kernel_size</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="c1"># define final projection</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">decoder_type</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
-
-        <span class="c1"># define final projection</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">)</span>
 
         <span class="c1"># define postnet</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="p">(</span>
@@ -727,7 +764,23 @@
         <span class="n">ilens</span> <span class="o">=</span> <span class="n">text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">discrete_feats</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
-        <span class="n">olens</span> <span class="o">=</span> <span class="n">discrete_feats_lengths</span>
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">discrete_feats_lengths</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ys_mask</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">discrete_feats</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">discrete_feats</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">discrete_feats</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span> <span class="o">-</span> <span class="n">shift</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span> <span class="o">*</span> <span class="n">ys_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># forward propagation</span>
         <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
@@ -795,9 +848,19 @@
                 <span class="n">encoder_alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
-            <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="n">decoder_alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">decoder_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">):</span>
+                    <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="sa">f</span><span class="s2">&quot;decoder_alpha_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">decoder_layer</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span>
+                                <span class="o">-</span><span class="mi">1</span>
+                            <span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">decoder_alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">joint_training</span><span class="p">:</span>
             <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
@@ -886,10 +949,22 @@
             <span class="n">h_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">olens_in</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">h_masks</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
-        <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-            <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
-        <span class="p">)</span>  <span class="c1"># (B, T_feats, odim)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">before_outs_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">):</span>
+                <span class="c1"># print(&quot;hs.shape&quot;,hs.shape) # hs (#batch, time, idim)</span>
+                <span class="n">before_outs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># [B,T,hidden]</span>
+                <span class="n">before_outs_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">before_outs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">before_outs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span>
+                <span class="p">)</span>
+                <span class="n">before_outs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">before_outs_</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">before_outs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">before_outs_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
+            <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
+            <span class="p">)</span>  <span class="c1"># (B, T_feats, odim)</span>
 
         <span class="c1"># postnet -&gt; (B, T_feats//r * r, odim)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -971,6 +1046,14 @@
                 <span class="n">is_inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
             <span class="p">)</span>  <span class="c1"># (1, T_feats, odim)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span>
+            <span class="p">)</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">outs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="n">outs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">)</span> <span class="o">+</span> <span class="n">shift</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="n">outs</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -1037,7 +1120,11 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_enc_alpha</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span></div>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discrete_token_layers</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
