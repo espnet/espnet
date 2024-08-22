@@ -113,4 +113,4 @@ npm i
 npm run docs:build
 mv src/.vuepress/dist ../../
 
-touch dist/.nojekyll
+touch ../../dist/.nojekyll
