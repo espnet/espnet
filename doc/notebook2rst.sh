@@ -15,29 +15,23 @@ Jupyter notebooks for course demos and tutorials.
 
 cd notebook
 for basedir in */; do
-    printf "## ${basedir}\n"
+    printf "## %s\n" "${basedir}"
     find ${basedir} \
         -type f \
         -name '*.ipynb' \
-        -exec bash -c ". ../../tools/activate_python.sh;jupyter nbconvert --clear-output \"{}\"" \;
+        -exec bash -c '. ../../tools/activate_python.sh;jupyter nbconvert --clear-output "$1"' shell {} \;
     find ./${basedir} \
         -type f \
         -name '*.ipynb' \
-        -exec bash -c ". ../../tools/activate_python.sh;jupyter nbconvert --to markdown \"{}\"" \;
-
-    for md_file in `find ${basedir} -name "*.md"`; do
-        filename=`basename ${md_file}`
-        echo "* [${filename}](./${md_file:((${#basedir})):100})"
-    done
-    for ipynb_file in `find ${basedir} -name "*.ipynb"`; do
-        rm ${ipynb_file}
-    done
+        -exec bash -c '. ../../tools/activate_python.sh;jupyter nbconvert --to markdown "$1"' shell {} \;
 
     # generate README.md
     echo "# ${basedir} Demo" > ${basedir}README.md
-    for md_file in `find ${basedir} -name "*.md"`; do
+    find "$basedir" -type f -name "*.md" | while read -r md_file; do
         filename=`basename ${md_file}`
-        echo "* [${filename}](./${md_file:((${#basedir})):100})" >> ${basedir}README.md
+        line="- [${filename}](.${md_file:((${#basedir})):100})"
+        echo $line
+        echo $line >> ${basedir}README.md
     done
     echo ""
 done
