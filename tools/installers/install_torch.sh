@@ -154,7 +154,7 @@ fi
 if $(pytorch_plus 2.4.1); then
     log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
-    
+
 elif $(pytorch_plus 2.4.0); then
     check_python_version 3.13  # Error if python>=<number>
     if ! check_cuda_version 12.4 12.1 11.8; then
