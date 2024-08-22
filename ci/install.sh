@@ -36,7 +36,7 @@ python3 -c "import matplotlib.pyplot"
 cat >> constraints.txt << EOF
 torch==${TH_VERSION}
 EOF
-python3 -m pip install -c constraints.txt onnxruntime onnx2torch
+python3 -m pip install -c constraints.txt onnxruntime onnx2torch --extra-index-url https://download.pytorch.org/whl/cpu
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707
