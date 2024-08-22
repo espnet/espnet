@@ -423,6 +423,9 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># feature extraction</span>
+        <span class="n">discrete_feats</span><span class="p">,</span> <span class="n">discrete_feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discrete_feats_extract</span><span class="p">(</span>
+            <span class="n">discrete_speech</span><span class="p">,</span> <span class="n">discrete_speech_lengths</span>
+        <span class="p">)</span>
         <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
