@@ -50,6 +50,7 @@ jobs:
           sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
         env:
+          ESPNET_PYTHON_VERSION: 3.10
           TH_VERSION: 2.0.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
@@ -61,4 +62,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: doc/build
+          publish_dir: ./dist
