@@ -6,9 +6,15 @@ set -u
 set -o pipefail
 
 
+train_set="train"
+valid_set="dev"
+test_sets="test"
+
+encoder=transformer
 frontend=wavlm
-asr_config=conf/tuning/train_asr_${frontend}.yaml
+asr_config=conf/tuning/train_asr_${frontend}_${encoder}.yaml
 inference_config=conf/decode_asr.yaml
+
 token_type=bpe
 nbpe=5000
 bpemode=unigram
@@ -16,13 +22,19 @@ bpemode=unigram
 ./asr.sh \
     --lang en \
     --stage 1 \
-    --gpu_inference true \
     --ngpu 1 \
+    --nj 16 \
+    --gpu_inference true \
+    --inference_nj 2 \
     --nbpe "${nbpe}" \
-    --use_lm false \
     --max_wav_duration 30 \
+    --speed_perturb_factors "0.9 1.0 1.1" \
+    --use_lm false \
     --feats_normalize utt_mvn \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
-    --inference_asr_model "valid.loss.ave.pth" \
+    --train_set "${train_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --bpe_train_text "data/${train_set}/text" \
     "$@"
