@@ -15,7 +15,6 @@ frontend=wavlm
 asr_config=conf/tuning/train_asr_${frontend}_${encoder}.yaml
 inference_config=conf/decode_asr.yaml
 
-token_type=bpe
 nbpe=5000
 bpemode=unigram
 
@@ -26,11 +25,14 @@ bpemode=unigram
     --nj 16 \
     --gpu_inference true \
     --inference_nj 2 \
+    --token_type bpe \
+    --bpemode "${bpemode}" \
     --nbpe "${nbpe}" \
     --max_wav_duration 30 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --use_lm false \
     --feats_normalize utt_mvn \
+    --feats_type extracted \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
