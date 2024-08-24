@@ -74,7 +74,6 @@ oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
 sos_eos="<sos/eos>" # sos and eos symbols.
 
-# Training related
 train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.

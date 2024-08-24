@@ -57,18 +57,18 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
         name = item[:-4]
         if not check_func(name):
             continue
-        utt_id = "{}{}".format(UTT_PREFIX, pack_zero(name))
+        utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(name))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, "wav", name),
             fs,
-            os.path.join(wav_dump, name),
+            os.path.join(wav_dump, utt_id),
         )
         os.system(cmd)
 
         wavscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(name))
+                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(utt_id))
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))

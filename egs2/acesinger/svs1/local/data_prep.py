@@ -104,10 +104,10 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
         phns = phns.split(" ")
         duration = duration.split(" ")
         pitches = pitches.split(" ")
-        while phns[-1] == "AP" or phns[-1] == "SP":
+        while phns[-1] == "<AP>" or phns[-1] == "<SP>":
             phns = phns[:-1]
             duration = duration[:-1]
-        if phns[0] == "SP" or phns[0] == "AP":
+        if phns[0] == "<SP>" or phns[0] == "<AP>":
             phns = phns[1:]
             duration = duration[1:]
             pitches = pitches[1:]
@@ -241,10 +241,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -262,8 +258,9 @@ def create_score(uid, phns, midis, syb_dur, keep):
         ):
             syb.append(phns[index_phn])
             index_phn += 1
+        lyrics_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+        note_info.extend([st, lyrics_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -300,6 +297,17 @@ def process_utterance(
     phn_dur = phn_dur.split(" ")
     keep = keep.split(" ")
 
+     # unify format of slience phonemes
+    new_phns = []
+    for phn in phns:
+        if phn == "AP":
+            new_phns.append("<AP>")
+        elif phn == "SP":
+            new_phns.append("<SP>")
+        else:
+            new_phns.append(phn)
+    phns = new_phns
+
     # load tempo from midi
     id = int(uid[0:4])
     tempo = tempos[id]
@@ -324,7 +332,7 @@ def process_utterance(
             continue
 
         text.write("acesinger_{}#{} {}\n".format(i_str, uid, " ".join(phns)))
-        utt2spk.write("acesinger_{}#{} {}\n".format(i_str, uid, i_str))
+        utt2spk.write("acesinger_{}#{} ace-{}\n".format(i_str, uid, i_str))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/acesinger_{}#{}.wav".format(
             os.path.join(audio_dir, dataset, "segments", i_str + "#" + uid),

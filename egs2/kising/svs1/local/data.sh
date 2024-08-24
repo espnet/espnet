@@ -55,22 +55,26 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/data_prep.py ${KISING}/KISING --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
-        --g2p ${g2p}\
+        --g2p ${g2p} \
         --dataset ${dataset}
-    for src_data in train_${dataset} test_${dataset}; do
-        utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
+    for src_data in train test; do
+        utils/utt2spk_to_spk2utt.pl < data/${src_data}_${dataset}/utt2spk > data/${src_data}_${dataset}/spk2utt
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}_${dataset}
     done
+    if [ -e "data/eval" ]; then
+        rm -r "data/eval"
+    fi
+    mv data/test_${dataset} data/eval
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Held out validation set"
 
-    utils/copy_data_dir.sh data/train data/${train_set}
-    utils/copy_data_dir.sh data/train data/${train_dev}
+    utils/copy_data_dir.sh data/train_${dataset} data/${train_set}
+    utils/copy_data_dir.sh data/train_${dataset} data/${train_dev}
     for dset in ${train_set} ${train_dev}; do
         for extra_file in label score.scp; do
-            cp data/train/${extra_file} data/${dset}
+            cp data/train_${dataset}/${extra_file} data/${dset}
         done
     done
     tail -n 50 data/train_${dataset}/wav.scp > data/${train_dev}/wav.scp

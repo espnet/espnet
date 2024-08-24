@@ -35,6 +35,7 @@ from espnet2.fileio.score_scp import SingingScoreWriter
 
 
 TEST_SET = [425, 434, 435]
+PREFIX = "kising"
 
 
 def makedir(data_url):
@@ -324,15 +325,22 @@ def get_info_from_partitions(
     return text, phonemes, pitches, note_durations, phn_durations, is_slur
 
 
+def check_split_ace(uid, phns, index):
+    if index > 0 and (
+        ("422_027" in uid and phns[index] == "sh" and phns[index - 1] == "i")   
+        or ("423_017" in uid and phns[index] == "x" and phns[index - 1] == "iii")   
+        or ("423_017" in uid  and phns[index] == "b" and phns[index - 1] == "ai")   
+        or ("430_035" in uid and phns[index] == "b" and phns[index - 1] == "ai")   
+    ):
+        return True
+    return False
+
+
 def create_score(uid, phns, midis, syb_dur, keep):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -347,11 +355,13 @@ def create_score(uid, phns, midis, syb_dur, keep):
             and syb_dur[index_phn] == syb_dur[index_phn - 1]
             and midis[index_phn] == midis[index_phn - 1]
             and keep[index_phn] == 0
+            and check_split_ace(uid, phns, index_phn) is False
         ):
             syb.append(phns[index_phn])
             index_phn += 1
+        lyrics_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+        note_info.extend([st, lyrics_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -393,6 +403,7 @@ def process_utterance(
     song, piece, singer = uid.split("_")
     original_uid = uid
     uid = "_".join([singer, song, piece])
+    uid = PREFIX + "_" + uid
     # type convert
     phn_dur = [float(dur) for dur in phn_dur]
     syb_dur = [float(syb) for syb in syb_dur]
@@ -400,7 +411,7 @@ def process_utterance(
     note_list = create_score(uid, phns, midis, syb_dur, keep)
 
     text.write("{} {}\n".format(uid, " ".join(phns)))
-    utt2spk.write("{} {}\n".format(uid, uid.split("_")[0]))
+    utt2spk.write("{} kising_{}\n".format(uid, uid.split("_")[1]))
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
     cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/{}.wav".format(
@@ -621,13 +632,13 @@ if __name__ == "__main__":
                         real_subdir = os.path.realpath(
                             os.path.join(args.src_data, subdir)
                         )
-                        cmd = "sox {} -c 1 --bits 16 {}".format(
-                            os.path.join(real_subdir, file),
-                            os.path.join(
-                                args.src_data, "tmp", number, number + "-original.wav"
-                            ),
-                        )
-                        os.system(cmd)
+                        # cmd = "sox {} -c 1 --bits 16 {}".format(
+                        #     os.path.join(real_subdir, file),
+                        #     os.path.join(
+                        #         args.src_data, "tmp", number, number + "-original.wav"
+                        #     ),
+                        # )
+                        # os.system(cmd)
                         # symlink the midi file in subdir/number to tmp/number
                         # find the midi file name
                         for file in os.listdir(os.path.join(args.src_data, number)):

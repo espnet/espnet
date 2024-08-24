@@ -77,7 +77,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, folder, folder),
             fs,
-            os.path.join(wav_dump, folder),
+            os.path.join(wav_dump, UTT_PREFIX + "_" + folder),
         )
         os.system(cmd)
 

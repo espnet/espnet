@@ -6,12 +6,20 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=44100
-fmin=0
-fmax=22050
-n_fft=2048
-n_shift=512
-win_length=2048
+fs=24000
+if [ ${fs} -eq 24000 ];then
+    fmin=0
+    fmax=22050
+    n_fft=2048
+    n_shift=300
+    win_length=1200
+elif [ ${fs} -eq 44100 ]; then
+    fmin=80
+    fmax=22050
+    n_fft=2048
+    n_shift=512
+    win_length=2048
+fi
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -19,7 +27,7 @@ opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev test"
+test_sets="dev eval"
 dataset='all'
 
 # training and inference configuration

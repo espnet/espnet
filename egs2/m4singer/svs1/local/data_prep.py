@@ -34,15 +34,58 @@ def load_midi(args, uid, song_name):
     return tempo
 
 
+def check_split(phns, index_phn):
+    # NOTE(Yuxun): fix single syllabel
+    if (phns[index_phn - 1] == "i"
+        or (phns[index_phn - 1] == "ia") 
+        or (phns[index_phn - 1] == "ian")
+        or (phns[index_phn - 1] == "iang")
+        or (phns[index_phn - 1] == "iao")
+        or (phns[index_phn - 1] == "ie")
+        or (phns[index_phn - 1] == "in")
+        or (phns[index_phn - 1] == "ing") 
+        or (phns[index_phn - 1] == "io")
+        or (phns[index_phn - 1] == "iou")
+        or (phns[index_phn - 1] == "iong")
+        or (phns[index_phn - 1] == "iu")
+        or (phns[index_phn - 1] == "iuan")
+        or (phns[index_phn - 1] == "iue")
+        or (phns[index_phn - 1] == "iun")
+        or (phns[index_phn - 1] == "v")
+        or (phns[index_phn - 1] == "ve")
+        or (phns[index_phn - 1] == "van")
+        or (phns[index_phn - 1] == "vn")
+        or (phns[index_phn - 1] == "o")
+        or (phns[index_phn - 1] == "ou")
+        or (phns[index_phn - 1] == "a")
+        or (phns[index_phn - 1] == "an")
+        or (phns[index_phn - 1] == "ao")
+        or (phns[index_phn - 1] == "ai")
+        or (phns[index_phn - 1] == "e")
+        or (phns[index_phn - 1] == "en")
+        or (phns[index_phn - 1] == "ei")
+        or (phns[index_phn - 1] == "er")
+        or (phns[index_phn - 1] == "u")
+        or (phns[index_phn - 1] == "ua")
+        or (phns[index_phn - 1] == "uo")
+        or (phns[index_phn - 1] == "uan")
+        or (phns[index_phn - 1] == "uai")
+        or (phns[index_phn - 1] == "uang")
+        or (phns[index_phn - 1] == "uen")
+        or (phns[index_phn - 1] == "ueng")
+        or (phns[index_phn - 1] == "uei")
+        or (phns[index_phn - 1] == "uan")
+        or (phns[index_phn - 1] == "uang")
+    ):
+        return True
+    return False
+
+
 def create_score(uid, phns, midis, syb_dur, keep):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -55,13 +98,30 @@ def create_score(uid, phns, midis, syb_dur, keep):
         if (
             index_phn < len(phns)
             and midis[index_phn] == midis[index_phn - 1]
+            and midis[index_phn] != 0
             and keep[index_phn] == 0
+            and check_split(phns, index_phn) is False
         ):
             syb.append(phns[index_phn])
             st += syb_dur[index_phn]
             index_phn += 1
+        lyric_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+
+        # NOTE(Yuxun): fix phns error
+        if uid == "Alto-5##U4fee#U70bc#U7231#U60c5#0016":
+            if syb == "x_ang":
+                lyric_pinyin = "zhang"
+                syb = "zh_ang"
+            if syb == "l_e":
+                lyric_pinyin = "lian"
+                syb = "l_ian"
+        if uid == "Alto-5##U660e#U660e#U5c31#0010":
+            if syb == "j_ong":
+                lyric_pinyin = "zhong"
+                syb = "zh_ong"
+
+        note_info.extend([st, lyric_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -99,11 +159,13 @@ def process_utterance(
 
     # load tempo from midi
     uid = name.encode("unicode_escape").decode().replace("\\u", "#U")
-    song_name = uid[: uid.rindex("#")]
+    # NOTE(Yuxun): Please check directory name in m4singer
+    song_name = name[: name.rindex("#")] # zh case
+    # song_name = uid[: uid.rindex("#")] # unicode case
     uid = uid.replace(" ", "+")
 
     text.write("m4singer_{} {}\n".format(uid, " ".join(phns)))
-    utt2spk.write("m4singer_{} {}\n".format(uid, spk))
+    utt2spk.write("m4singer_{} m4singer_{}\n".format(uid, spk))
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
     cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/m4singer_{}.wav".format(
@@ -192,7 +254,6 @@ def split_subset(args, meta):
     train_names = item_names[valid_num + test_num :]
 
     data = {"tr_no_dev": [], "dev": [], "eval": []}
-    print(test_names)
 
     for key in overall_data.keys():
         if key in test_names:

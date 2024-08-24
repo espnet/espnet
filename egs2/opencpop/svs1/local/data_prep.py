@@ -51,10 +51,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -72,8 +68,9 @@ def create_score(uid, phns, midis, syb_dur, keep):
         ):
             syb.append(phns[index_phn])
             index_phn += 1
+        lyrics_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+        note_info.extend([st, lyrics_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -109,6 +106,17 @@ def process_utterance(
     phn_dur = phn_dur.split(" ")
     keep = keep.split(" ")
 
+    # unify format of slience phonemes
+    new_phns = []
+    for phn in phns:
+        if phn == "AP":
+            new_phns.append("<AP>")
+        elif phn == "SP":
+            new_phns.append("<SP>")
+        else:
+            new_phns.append(phn)
+    phns = new_phns
+
     # load tempo from midi
     id = int(uid[0:4])
     tempo = tempos[id]
@@ -126,13 +134,13 @@ def process_utterance(
     utt2spk.write("opencpop_{} {}\n".format(uid, "opencpop"))
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
-    cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/opencpop_{}.wav".format(
-        os.path.join(audio_dir, uid),
-        tgt_sr,
-        wav_dumpdir,
-        uid,
-    )
-    os.system(cmd)
+    # cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/opencpop_{}.wav".format(
+    #     os.path.join(audio_dir, uid),
+    #     tgt_sr,
+    #     wav_dumpdir,
+    #     uid,
+    # )
+    # os.system(cmd)
 
     wavscp.write("opencpop_{} {}/opencpop_{}.wav\n".format(uid, wav_dumpdir, uid))
 

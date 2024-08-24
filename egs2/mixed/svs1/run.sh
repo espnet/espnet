@@ -33,13 +33,29 @@ pitch_extract=dio
 ying_extract=None
 
 combine_path=""
-combine_path+="$(realpath ../../ameboshi/svs1/dump/raw/)"
-combine_path+=" $(realpath ../../opencpop/svs1/dump/raw/)"
+combine_path+="$(realpath ../../itako/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../opencpop/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../acesinger/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../kising/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../m4singer/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../ameboshi/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../itako/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../oniku_kurumi_utagoe_db/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../ofuton_p_utagoe_db/svs1/dump/raw/)"
+
+use_sid=true
+use_lid=true
+
+min_wav_duration=2.0
 
 ./svs.sh \
-    --lang mix \
-    --local_data_opts "${combine_path} --stage 2" \
+    --lang zh_jp \
+    --svs_task gan_svs \
+    --local_data_opts "--combine_path ${combine_path} --stage 1" \
     --feats_type raw \
+    --use_sid ${use_sid} \
+    --use_lid ${use_lid} \
     --pitch_extract "${pitch_extract}" \
     --ying_extract "${ying_extract}" \
     --fs "${fs}" \
@@ -51,6 +67,7 @@ combine_path+=" $(realpath ../../opencpop/svs1/dump/raw/)"
     --token_type phn \
     --g2p ${g2p} \
     --cleaner ${cleaner} \
+    --min_wav_duration ${min_wav_duration} \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
@@ -58,4 +75,5 @@ combine_path+=" $(realpath ../../opencpop/svs1/dump/raw/)"
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
+    --write_collected_feats true \
     ${opts} "$@"

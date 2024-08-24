@@ -77,13 +77,13 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, folder, folder),
             fs,
-            os.path.join(wav_dump, folder),
+            os.path.join(wav_dump, "{}_{}".format(UTT_PREFIX, folder)),
         )
         os.system(cmd)
 
         wavscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(folder))
+                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format("{}_{}".format(UTT_PREFIX, folder)))
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))
