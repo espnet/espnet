@@ -199,7 +199,7 @@ if __name__ == '__main__':
     ]) == 0
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
-    Check for non-overlapping snippets
+    # Check for non-overlapping snippets
     for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
         xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
                           & (coraal_transcripts.start_time >= start_time)
