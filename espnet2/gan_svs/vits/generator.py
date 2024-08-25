@@ -22,6 +22,8 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+import logging
+
 from espnet2.gan_svs.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen
@@ -447,12 +449,12 @@ class VISingerGenerator(torch.nn.Module):
         if spk_embed_dim is not None and spk_embed_dim > 0:
             assert global_channels > 0
             self.spk_embed_dim = spk_embed_dim
-            self.spemb_proj = torch.nn.Linear(spk_embed_dim, global_channels)
+            self.spemb_proj = torch.nn.Linear(spk_embed_dim + 1, global_channels)
         self.langs = None
         if langs is not None and langs > 1:
             assert global_channels > 0
             self.langs = langs
-            self.lang_emb = torch.nn.Embedding(langs, global_channels)
+            self.lang_emb = torch.nn.Embedding(langs + 1, global_channels)
 
         self.vocoder_generator_type = vocoder_generator_type
         self.dropout = torch.nn.Dropout(0.2)
