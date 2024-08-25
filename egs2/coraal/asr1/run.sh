@@ -32,7 +32,7 @@ bpemode=unigram
     --speed_perturb_factors "0.9 1.0 1.1" \
     --use_lm false \
     --feats_normalize utt_mvn \
-    --feats_type extracted \
+    --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
