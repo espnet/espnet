@@ -6,6 +6,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from pydub import AudioSegment
 
 
 def load_coraal_text(project_path):
@@ -148,6 +149,21 @@ def create_coraal_snippets(transcripts):
     snippets['segment_filename'] = [segment_filename(b, s, e, buffer_val=0) for b, s, e in snippets[['basefile', 'start_time', 'end_time']].values]
     return snippets
 
+
+def get_nonexistent_snippets(input_folder, snippets):
+    nonexistent_snippets = set()
+    for group_key, group_df in snippets.groupby(['basefile']):
+        (basefile,) = group_key
+        audio = AudioSegment.from_file(f"{input_folder}/{basefile}.wav")
+        for _, snippet in group_df.iterrows():
+            start_time, end_time, segment_filename = snippet['start_time'], snippet['end_time'], snippet['segment_filename']
+
+            if audio[int(start_time * 1000):int(end_time * 1000)].duration_seconds == 0.0:
+                nonexistent_snippets.add(segment_filename)
+
+    return nonexistent_snippets
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 5:
         print("Help: python local/snippet_generation.py <input_folder> <output_folder> <min_duration> <max_duration>")
@@ -183,7 +199,7 @@ if __name__ == '__main__':
     ]) == 0
     interviewees = {b: s for b, s in coraal_transcripts[coraal_transcripts.interviewee][['basefile', 'speaker']].drop_duplicates().values}
 
-    # Check for non-overlapping snippets
+    Check for non-overlapping snippets
     for basefile, start_time, end_time in coraal_snippets[['basefile', 'start_time', 'end_time']].values:
         xscript_speakers = coraal_transcripts[(coraal_transcripts.basefile == basefile)
                           & (coraal_transcripts.start_time >= start_time)
@@ -197,9 +213,13 @@ if __name__ == '__main__':
 
     # Restrict to only snippets of specified duration range (e.g. 0.1 - 30s)
     coraal_snippets = coraal_snippets[(MIN_DURATION <= coraal_snippets.duration) & (coraal_snippets.duration <= MAX_DURATION)]
-    print(coraal_snippets.duration.describe())
+
+    nonexistent_snippets = get_nonexistent_snippets(base_folder, coraal_snippets)
+    print(nonexistent_snippets)
+    coraal_snippets = coraal_snippets[~coraal_snippets['segment_filename'].isin(nonexistent_snippets)]
 
     # save transcripts (which includes speaker metadata)
+    print(coraal_snippets.duration.describe())
     coraal_snippets.to_csv(output_folder + '/transcript.tsv', sep = '\t', index = False)
 
     # generate segments file (kaldi)
