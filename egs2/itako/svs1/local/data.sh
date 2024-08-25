@@ -76,4 +76,22 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
 fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Check labels annotation"
+    # We align music info at phone level if both annotation (label) and music score are used.
+    for x in ${train_set} ${train_dev} ${recog_set}; do
+        src_data=data/${x}
+        python local/check.py ${src_data}
+        mv ${src_data}/text.tmp ${src_data}/text
+        mv ${src_data}/label.tmp ${src_data}/label
+        mv ${src_data}/score.scp.tmp ${src_data}/score.scp
+        mv ${src_data}/wav.scp.tmp ${src_data}/wav.scp
+        mv ${src_data}/utt2spk.tmp ${src_data}/utt2spk
+        utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
+    done
+fi
+
+
 log "Successfully finished. [elapsed=${SECONDS}s]"

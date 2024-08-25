@@ -17,8 +17,8 @@ svs_conf:
     vocoder_generator_type: visinger2 # hifigan, avocodo, uhifigan, visinger2
     generator_params:
         hidden_channels: 192
-        spks: -1
-        global_channels: -1
+        spks: 31
+        global_channels: 256
         segment_size: 20
         text_encoder_attention_heads: 2
         text_encoder_ffn_expand: 4
@@ -172,7 +172,7 @@ optim2_conf:
 scheduler2: exponentiallr
 scheduler2_conf:
     gamma: 0.998
-generator_first: false # whether to start updating generator first
+generator_first: true # whether to start updating generator first
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
@@ -186,11 +186,11 @@ grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
-num_workers: 4            # number of workers of data loader
+num_workers: 0            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
 log_interval: 50          # log interval in iterations
 keep_nbest_models: 10     # number of models to keep
-num_att_plot: 3           # number of attention figures to be saved in every check
+num_att_plot: 0          # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case
