@@ -8,6 +8,8 @@ if [ ! -d notebook ]; then
     git clone https://github.com/espnet/notebook --depth 1
 fi
 
+. ../tools/activate_python.sh
+
 echo "# Notebook
 
 Jupyter notebooks for course demos and tutorials.
@@ -15,29 +17,30 @@ Jupyter notebooks for course demos and tutorials.
 
 cd notebook
 for basedir in */; do
-    printf "## ${basedir}\n"
+    printf '## %s\n' "$basedir"
     find ${basedir} \
         -type f \
         -name '*.ipynb' \
-        -exec bash -c ". ../../tools/activate_python.sh;jupyter nbconvert --clear-output \"{}\"" \;
+        -exec bash -c 'jupyter nbconvert --clear-output "$1"' shell {} \;
     find ./${basedir} \
         -type f \
         -name '*.ipynb' \
-        -exec bash -c ". ../../tools/activate_python.sh;jupyter nbconvert --to markdown \"{}\"" \;
+        -exec bash -c 'jupyter nbconvert --to markdown "$1"' shell {} \;
 
-    for md_file in `find ${basedir} -name "*.md"`; do
-        filename=`basename ${md_file}`
+    while IFS= read -r -d '' md_file; do
+        filename=$(basename ${md_file})
         echo "* [${filename}](./${md_file:((${#basedir})):100})"
-    done
-    for ipynb_file in `find ${basedir} -name "*.ipynb"`; do
+    done <   <(find ${basedir} -name "*.md" -print0)
+
+    while IFS= read -r -d '' ipynb_file; do
         rm ${ipynb_file}
-    done
+    done <   <(find ${basedir} -name "*.ipynb" -print0)
 
     # generate README.md
     echo "# ${basedir} Demo" > ${basedir}README.md
-    for md_file in `find ${basedir} -name "*.md"`; do
-        filename=`basename ${md_file}`
+    while IFS= read -r -d '' md_file; do
+        filename=$(basename ${md_file})
         echo "* [${filename}](./${md_file:((${#basedir})):100})" >> ${basedir}README.md
-    done
+    done <   <(find ${basedir} -name "*.md" -print0)
     echo ""
 done
