@@ -519,7 +519,6 @@
 <div class="viewcode-block" id="AbsTask.get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.get_parser">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@typechecked</span>
     <span class="k">def</span> <span class="nf">get_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">config_argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-
         <span class="k">class</span> <span class="nc">ArgumentDefaultsRawTextHelpFormatter</span><span class="p">(</span>
             <span class="n">argparse</span><span class="o">.</span><span class="n">RawTextHelpFormatter</span><span class="p">,</span>
             <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
@@ -678,6 +677,18 @@
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable sharded training provided by fairscale&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--use_deepspeed&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable deepspeed for training&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--deepspeed_config&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;deepspeed training config&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;cudnn mode related&quot;</span><span class="p">)</span>
@@ -1759,6 +1770,23 @@
 
             <span class="c1"># Don&#39;t give args to trainer.run() directly!!!</span>
             <span class="c1"># Instead of it, define &quot;Options&quot; object and build here.</span>
+
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_deepspeed</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;DeepSpeed is for distributed training. E.g., --ngpu &gt; 1 &quot;</span>
+                        <span class="s2">&quot;Switch back to the normal trainer.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">cls</span><span class="o">.</span><span class="n">trainer</span> <span class="o">!=</span> <span class="n">Trainer</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;only default trainer is compatible with deepspeed&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="kn">from</span> <span class="nn">espnet2.train.deepspeed_trainer</span> <span class="kn">import</span> <span class="n">DeepSpeedTrainer</span>
+
+                    <span class="bp">cls</span><span class="o">.</span><span class="n">trainer</span> <span class="o">=</span> <span class="n">DeepSpeedTrainer</span>
+                    <span class="n">distributed_option</span><span class="o">.</span><span class="n">init_deepspeed</span><span class="p">()</span>
+
             <span class="n">trainer_options</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">build_options</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>

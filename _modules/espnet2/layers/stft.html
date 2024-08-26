@@ -331,8 +331,9 @@
                 <span class="n">onesided</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onesided</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">stft_kwargs</span><span class="p">[</span><span class="s2">&quot;return_complex&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">**</span><span class="n">stft_kwargs</span><span class="p">)</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="c1"># NOTE(Jinchuan) CuFFT is not compatible with bfloat16</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="o">**</span><span class="n">stft_kwargs</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>

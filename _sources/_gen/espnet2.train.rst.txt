@@ -114,6 +114,17 @@ espnet2.train.spk_trainer
     :show-inheritance:
 
 
+.. _espnet2.train.deepspeed_trainer:
+
+espnet2.train.deepspeed_trainer
+-------------------------------
+
+.. automodule:: espnet2.train.deepspeed_trainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.train.distributed_utils:
 
 espnet2.train.distributed_utils

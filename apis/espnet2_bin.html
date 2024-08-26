@@ -496,6 +496,8 @@ Text converter related:
                     [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                     [--unused_parameters UNUSED_PARAMETERS]
                     [--sharded_ddp SHARDED_DDP]
+                    [--use_deepspeed USE_DEEPSPEED]
+                    [--deepspeed_config DEEPSPEED_CONFIG]
                     [--cudnn_enabled CUDNN_ENABLED]
                     [--cudnn_benchmark CUDNN_BENCHMARK]
                     [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -648,6 +650,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -1209,6 +1215,8 @@ Text converter related:
                                [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                                [--unused_parameters UNUSED_PARAMETERS]
                                [--sharded_ddp SHARDED_DDP]
+                               [--use_deepspeed USE_DEEPSPEED]
+                               [--deepspeed_config DEEPSPEED_CONFIG]
                                [--cudnn_enabled CUDNN_ENABLED]
                                [--cudnn_benchmark CUDNN_BENCHMARK]
                                [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -1356,6 +1364,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -1863,6 +1875,8 @@ Enh + Diar related:
                      [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                      [--unused_parameters UNUSED_PARAMETERS]
                      [--sharded_ddp SHARDED_DDP]
+                     [--use_deepspeed USE_DEEPSPEED]
+                     [--deepspeed_config DEEPSPEED_CONFIG]
                      [--cudnn_enabled CUDNN_ENABLED]
                      [--cudnn_benchmark CUDNN_BENCHMARK]
                      [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -1992,6 +2006,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -2567,6 +2585,8 @@ SeparateSpeech related:
                         [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                         [--unused_parameters UNUSED_PARAMETERS]
                         [--sharded_ddp SHARDED_DDP]
+                        [--use_deepspeed USE_DEEPSPEED]
+                        [--deepspeed_config DEEPSPEED_CONFIG]
                         [--cudnn_enabled CUDNN_ENABLED]
                         [--cudnn_benchmark CUDNN_BENCHMARK]
                         [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -2753,6 +2773,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -3329,6 +3353,8 @@ PESQ related:
                     [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                     [--unused_parameters UNUSED_PARAMETERS]
                     [--sharded_ddp SHARDED_DDP]
+                    [--use_deepspeed USE_DEEPSPEED]
+                    [--deepspeed_config DEEPSPEED_CONFIG]
                     [--cudnn_enabled CUDNN_ENABLED]
                     [--cudnn_benchmark CUDNN_BENCHMARK]
                     [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -3472,6 +3498,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -4003,6 +4033,8 @@ SeparateSpeech related:
                         [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                         [--unused_parameters UNUSED_PARAMETERS]
                         [--sharded_ddp SHARDED_DDP]
+                        [--use_deepspeed USE_DEEPSPEED]
+                        [--deepspeed_config DEEPSPEED_CONFIG]
                         [--cudnn_enabled CUDNN_ENABLED]
                         [--cudnn_benchmark CUDNN_BENCHMARK]
                         [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -4147,6 +4179,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -4585,6 +4621,8 @@ Optimizer related:
                         [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                         [--unused_parameters UNUSED_PARAMETERS]
                         [--sharded_ddp SHARDED_DDP]
+                        [--use_deepspeed USE_DEEPSPEED]
+                        [--deepspeed_config DEEPSPEED_CONFIG]
                         [--cudnn_enabled CUDNN_ENABLED]
                         [--cudnn_benchmark CUDNN_BENCHMARK]
                         [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -4745,6 +4783,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -5179,6 +5221,8 @@ Optimizer related:
                         [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                         [--unused_parameters UNUSED_PARAMETERS]
                         [--sharded_ddp SHARDED_DDP]
+                        [--use_deepspeed USE_DEEPSPEED]
+                        [--deepspeed_config DEEPSPEED_CONFIG]
                         [--cudnn_enabled CUDNN_ENABLED]
                         [--cudnn_benchmark CUDNN_BENCHMARK]
                         [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -5332,6 +5376,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -5752,6 +5800,8 @@ Optimizer related:
                        [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                        [--unused_parameters UNUSED_PARAMETERS]
                        [--sharded_ddp SHARDED_DDP]
+                       [--use_deepspeed USE_DEEPSPEED]
+                       [--deepspeed_config DEEPSPEED_CONFIG]
                        [--cudnn_enabled CUDNN_ENABLED]
                        [--cudnn_benchmark CUDNN_BENCHMARK]
                        [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -5903,6 +5953,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -6452,7 +6506,9 @@ The model configuration related:
                    [--dist_launcher {slurm,mpi,None}]
                    [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                    [--unused_parameters UNUSED_PARAMETERS]
-                   [--sharded_ddp SHARDED_DDP] [--cudnn_enabled CUDNN_ENABLED]
+                   [--sharded_ddp SHARDED_DDP] [--use_deepspeed USE_DEEPSPEED]
+                   [--deepspeed_config DEEPSPEED_CONFIG]
+                   [--cudnn_enabled CUDNN_ENABLED]
                    [--cudnn_benchmark CUDNN_BENCHMARK]
                    [--cudnn_deterministic CUDNN_DETERMINISTIC]
                    [--use_tf32 USE_TF32] [--collect_stats COLLECT_STATS]
@@ -6581,6 +6637,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -7068,7 +7128,9 @@ Text converter related:
                    [--dist_launcher {slurm,mpi,None}]
                    [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                    [--unused_parameters UNUSED_PARAMETERS]
-                   [--sharded_ddp SHARDED_DDP] [--cudnn_enabled CUDNN_ENABLED]
+                   [--sharded_ddp SHARDED_DDP] [--use_deepspeed USE_DEEPSPEED]
+                   [--deepspeed_config DEEPSPEED_CONFIG]
+                   [--cudnn_enabled CUDNN_ENABLED]
                    [--cudnn_benchmark CUDNN_BENCHMARK]
                    [--cudnn_deterministic CUDNN_DETERMINISTIC]
                    [--use_tf32 USE_TF32] [--collect_stats COLLECT_STATS]
@@ -7215,6 +7277,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -7772,6 +7838,8 @@ Text converter related:
                      [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                      [--unused_parameters UNUSED_PARAMETERS]
                      [--sharded_ddp SHARDED_DDP]
+                     [--use_deepspeed USE_DEEPSPEED]
+                     [--deepspeed_config DEEPSPEED_CONFIG]
                      [--cudnn_enabled CUDNN_ENABLED]
                      [--cudnn_benchmark CUDNN_BENCHMARK]
                      [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -7938,6 +8006,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -8423,6 +8495,8 @@ Optimizer related:
                     [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                     [--unused_parameters UNUSED_PARAMETERS]
                     [--sharded_ddp SHARDED_DDP]
+                    [--use_deepspeed USE_DEEPSPEED]
+                    [--deepspeed_config DEEPSPEED_CONFIG]
                     [--cudnn_enabled CUDNN_ENABLED]
                     [--cudnn_benchmark CUDNN_BENCHMARK]
                     [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -8569,6 +8643,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -9007,6 +9085,8 @@ Optimizer related:
                          [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                          [--unused_parameters UNUSED_PARAMETERS]
                          [--sharded_ddp SHARDED_DDP]
+                         [--use_deepspeed USE_DEEPSPEED]
+                         [--deepspeed_config DEEPSPEED_CONFIG]
                          [--cudnn_enabled CUDNN_ENABLED]
                          [--cudnn_benchmark CUDNN_BENCHMARK]
                          [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -9146,6 +9226,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -9890,6 +9974,8 @@ The model configuration related:
                     [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                     [--unused_parameters UNUSED_PARAMETERS]
                     [--sharded_ddp SHARDED_DDP]
+                    [--use_deepspeed USE_DEEPSPEED]
+                    [--deepspeed_config DEEPSPEED_CONFIG]
                     [--cudnn_enabled CUDNN_ENABLED]
                     [--cudnn_benchmark CUDNN_BENCHMARK]
                     [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -10026,6 +10112,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -10632,7 +10722,9 @@ Text converter related:
                    [--dist_launcher {slurm,mpi,None}]
                    [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                    [--unused_parameters UNUSED_PARAMETERS]
-                   [--sharded_ddp SHARDED_DDP] [--cudnn_enabled CUDNN_ENABLED]
+                   [--sharded_ddp SHARDED_DDP] [--use_deepspeed USE_DEEPSPEED]
+                   [--deepspeed_config DEEPSPEED_CONFIG]
+                   [--cudnn_enabled CUDNN_ENABLED]
                    [--cudnn_benchmark CUDNN_BENCHMARK]
                    [--cudnn_deterministic CUDNN_DETERMINISTIC]
                    [--use_tf32 USE_TF32] [--collect_stats COLLECT_STATS]
@@ -10791,6 +10883,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -11363,6 +11459,8 @@ Vocoder related:
                      [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                      [--unused_parameters UNUSED_PARAMETERS]
                      [--sharded_ddp SHARDED_DDP]
+                     [--use_deepspeed USE_DEEPSPEED]
+                     [--deepspeed_config DEEPSPEED_CONFIG]
                      [--cudnn_enabled CUDNN_ENABLED]
                      [--cudnn_benchmark CUDNN_BENCHMARK]
                      [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -11503,6 +11601,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED
@@ -12011,6 +12113,8 @@ Vocoder related:
                     [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
                     [--unused_parameters UNUSED_PARAMETERS]
                     [--sharded_ddp SHARDED_DDP]
+                    [--use_deepspeed USE_DEEPSPEED]
+                    [--deepspeed_config DEEPSPEED_CONFIG]
                     [--cudnn_enabled CUDNN_ENABLED]
                     [--cudnn_benchmark CUDNN_BENCHMARK]
                     [--cudnn_deterministic CUDNN_DETERMINISTIC]
@@ -12151,6 +12255,10 @@ distributed training related:
                         Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
   --sharded_ddp SHARDED_DDP
                         Enable sharded training provided by fairscale (default: False)
+  --use_deepspeed USE_DEEPSPEED
+                        Enable deepspeed for training (default: False)
+  --deepspeed_config DEEPSPEED_CONFIG
+                        deepspeed training config (default: None)
 
 cudnn mode related:
   --cudnn_enabled CUDNN_ENABLED

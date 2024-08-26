@@ -157,6 +157,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-espnet-model-1">espnet2.train.abs_espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-reporter-1">espnet2.train.reporter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-spk-trainer-1">espnet2.train.spk_trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-deepspeed-trainer-1">espnet2.train.deepspeed_trainer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-distributed-utils-1">espnet2.train.distributed_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-iterable-dataset-1">espnet2.train.iterable_dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-collate-fn-1">espnet2.train.collate_fn</a></li>
@@ -1068,6 +1069,54 @@ Validation will be open set EER calculation.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-train-deepspeed-trainer-1">
+<span id="espnet2-train-deepspeed-trainer"></span><h2>espnet2.train.deepspeed_trainer<a class="headerlink" href="#espnet2-train-deepspeed-trainer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.deepspeed_trainer"></span><p>DeepSpeed Trainer Module</p>
+<dl class="class">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.deepspeed_trainer.</code><code class="sig-name descname">DeepSpeedTrainer</code><a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.build_options">
+<em class="property">classmethod </em><code class="sig-name descname">build_options</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions<a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.build_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.build_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build options consumed by train(), eval(), and plot_attention()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.resume">
+<em class="property">static </em><code class="sig-name descname">resume</code><span class="sig-paren">(</span><em class="sig-param">model: None</em>, <em class="sig-param">reporter: espnet2.train.reporter.Reporter</em>, <em class="sig-param">output_dir: pathlib.Path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.resume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.resume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.run">
+<em class="property">classmethod </em><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">model: Optional[espnet2.train.abs_espnet_model.AbsESPnetModel], train_iter_factory: espnet2.iterators.abs_iter_factory.AbsIterFactory, valid_iter_factory: espnet2.iterators.abs_iter_factory.AbsIterFactory, trainer_options: espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions, **kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform training. This method performs the main process of training.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.setup_data_dtype">
+<em class="property">classmethod </em><code class="sig-name descname">setup_data_dtype</code><span class="sig-paren">(</span><em class="sig-param">deepspeed_config: Dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.setup_data_dtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.setup_data_dtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.train_one_epoch">
+<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainer.valid_one_epoch">
+<em class="property">classmethod </em><code class="sig-name descname">valid_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainer.valid_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.valid_one_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.deepspeed_trainer.</code><code class="sig-name descname">DeepSpeedTrainerOptions</code><span class="sig-paren">(</span><em class="sig-param">resume: bool, seed: int, train_dtype: Union[str, torch.dtype], log_interval: Union[int, NoneType], output_dir: Union[pathlib.Path, str], max_epoch: int, deepspeed_config: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/deepspeed_trainer.html#DeepSpeedTrainerOptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+</section>
 <section id="espnet2-train-distributed-utils-1">
 <span id="espnet2-train-distributed-utils"></span><h2>espnet2.train.distributed_utils<a class="headerlink" href="#espnet2-train-distributed-utils-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.distributed_utils"></span><dl class="class">
@@ -1112,6 +1161,11 @@ Validation will be open set EER calculation.</p>
 <dl class="attribute">
 <dt id="espnet2.train.distributed_utils.DistributedOption.distributed">
 <code class="sig-name descname">distributed</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.distributed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.train.distributed_utils.DistributedOption.init_deepspeed">
+<code class="sig-name descname">init_deepspeed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#DistributedOption.init_deepspeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption.init_deepspeed" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

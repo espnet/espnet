@@ -229,6 +229,7 @@
              
   <h1>Source code for espnet2.train.distributed_utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
@@ -336,7 +337,35 @@
             <span class="c1"># if self.local_rank is None and ngpu &gt;= 1</span>
             <span class="c1">#    =&gt; Distributed with 1-Process and n-GPU</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span><span class="p">)</span></div></div>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedOption.init_deepspeed"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption.init_deepspeed">[docs]</a>    <span class="k">def</span> <span class="nf">init_deepspeed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">deepspeed</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Should initailize torch distributed before initializing deepspeed&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># NOTE(Jinchuan): init torch distributed backend first. Then</span>
+        <span class="c1"># deepspeed will find that backend automatically.</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;LOCAL_RANK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RANK&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_rank</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;WORLD_SIZE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_world_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;OMP_NUM_THREADS&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=================================================================</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Found OMP_NUM_THREADS=1 in environment variables. &quot;</span>
+                <span class="s2">&quot;With some advanced features, DeepSpeed may have heavy cpu workload &quot;</span>
+                <span class="s2">&quot;so that OMP_NUM_THREADS=1 is not sufficient. &quot;</span>
+                <span class="s2">&quot;Try to increase it in your path.sh </span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;=================================================================&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">deepspeed</span><span class="o">.</span><span class="n">init_distributed</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="resolve_distributed_mode"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.distributed_utils.resolve_distributed_mode">[docs]</a><span class="k">def</span> <span class="nf">resolve_distributed_mode</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>

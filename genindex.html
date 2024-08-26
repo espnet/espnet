@@ -1376,9 +1376,11 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.uasr.UASRTask.build_optimizers">(espnet2.tasks.uasr.UASRTask class method)</a>
 </li>
       </ul></li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.gan_trainer.GANTrainer.build_options">build_options() (espnet2.train.gan_trainer.GANTrainer class method)</a>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.build_options">build_options() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer class method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.gan_trainer.GANTrainer.build_options">(espnet2.train.gan_trainer.GANTrainer class method)</a>
+</li>
         <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.build_options">(espnet2.train.trainer.Trainer class method)</a>
 </li>
         <li><a href="_gen/espnet2.train.html#espnet2.train.uasr_trainer.UASRTrainer.build_options">(espnet2.train.uasr_trainer.UASRTrainer class method)</a>
@@ -2585,6 +2587,10 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.augmentation.deemphasis">deemphasis() (in module espnet2.layers.augmentation)</a>
+</li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer">DeepSpeedTrainer (class in espnet2.train.deepspeed_trainer)</a>
+</li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainerOptions">DeepSpeedTrainerOptions (class in espnet2.train.deepspeed_trainer)</a>
 </li>
       <li><a href="_gen/espnet2.gan_codec.html#espnet2.gan_codec.shared.quantizer.modules.core_vq.default">default() (in module espnet2.gan_codec.shared.quantizer.modules.core_vq)</a>
 </li>
@@ -4052,10 +4058,10 @@
 </li>
       <li><a href="_gen/espnet2.diar.html#module-espnet2.diar.separator.tcn_separator_nomask">espnet2.diar.separator.tcn_separator_nomask (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.__init__">espnet2.enh.__init__ (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.abs_enh">espnet2.enh.abs_enh (module)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.decoder.__init__">espnet2.enh.decoder.__init__ (module)</a>
@@ -4879,6 +4885,8 @@
       <li><a href="_gen/espnet2.train.html#module-espnet2.train.collate_fn">espnet2.train.collate_fn (module)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#module-espnet2.train.dataset">espnet2.train.dataset (module)</a>
+</li>
+      <li><a href="_gen/espnet2.train.html#module-espnet2.train.deepspeed_trainer">espnet2.train.deepspeed_trainer (module)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#module-espnet2.train.distributed_utils">espnet2.train.distributed_utils (module)</a>
 </li>
@@ -8292,6 +8300,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">inherite_attributes() (espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel method)</a>
 </li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption.init_deepspeed">init_deepspeed() (espnet2.train.distributed_utils.DistributedOption method)</a>
+</li>
       <li><a href="_gen/espnet2.gan_codec.html#espnet2.gan_codec.shared.quantizer.modules.core_vq.EuclideanCodebook.init_embed_">init_embed_() (espnet2.gan_codec.shared.quantizer.modules.core_vq.EuclideanCodebook method)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.init_filters">init_filters() (espnet2.layers.sinc_conv.SincConv method)</a>
@@ -10846,8 +10856,12 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.restore_snapshot">restore_snapshot() (in module espnet.asr.asr_utils)</a>
 </li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.resume">resume() (espnet2.train.trainer.Trainer static method)</a>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.resume">resume() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer static method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.resume">(espnet2.train.trainer.Trainer static method)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.diffusion.sdes.SDE.reverse">reverse() (espnet2.enh.diffusion.sdes.SDE method)</a>
 
       <ul>
@@ -10938,8 +10952,12 @@
 </li>
       <li><a href="_gen/espnet2.fileio.html#espnet2.fileio.rttm.RttmReader">RttmReader (class in espnet2.fileio.rttm)</a>
 </li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.run">run() (espnet2.train.trainer.Trainer class method)</a>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.run">run() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer class method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.run">(espnet2.train.trainer.Trainer class method)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.blocks.rwkv.RWKV">RWKV (class in espnet2.asr_transducer.decoder.blocks.rwkv)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rwkv_decoder.RWKVDecoder">RWKVDecoder (class in espnet2.asr_transducer.decoder.rwkv_decoder)</a>
@@ -11360,6 +11378,8 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.set_target">set_target() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.setup_data_dtype">setup_data_dtype() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer class method)</a>
+</li>
       <li><a href="_gen/espnet.bin.html#espnet.bin.asr_train.setup_logging">setup_logging() (in module espnet.bin.asr_train)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata.setup_probs">setup_probs() (espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata method)</a>
@@ -11408,10 +11428,10 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.svs_inference.SingingGenerate">SingingGenerate (class in espnet2.bin.svs_inference)</a>
 </li>
-      <li><a href="_gen/espnet2.fileio.html#espnet2.fileio.score_scp.SingingScoreReader">SingingScoreReader (class in espnet2.fileio.score_scp)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.fileio.html#espnet2.fileio.score_scp.SingingScoreReader">SingingScoreReader (class in espnet2.fileio.score_scp)</a>
+</li>
       <li><a href="_gen/espnet2.fileio.html#espnet2.fileio.score_scp.SingingScoreWriter">SingingScoreWriter (class in espnet2.fileio.score_scp)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.SingleRNN">SingleRNN (class in espnet2.enh.layers.dprnn)</a>
@@ -12148,9 +12168,11 @@
         <li><a href="_gen/espnet.vc.html#espnet.vc.pytorch_backend.vc.train">(in module espnet.vc.pytorch_backend.vc)</a>
 </li>
       </ul></li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.gan_trainer.GANTrainer.train_one_epoch">train_one_epoch() (espnet2.train.gan_trainer.GANTrainer class method)</a>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.train_one_epoch">train_one_epoch() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer class method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.gan_trainer.GANTrainer.train_one_epoch">(espnet2.train.gan_trainer.GANTrainer class method)</a>
+</li>
         <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.train_one_epoch">(espnet2.train.trainer.Trainer class method)</a>
 </li>
         <li><a href="_gen/espnet2.train.html#espnet2.train.uasr_trainer.UASRTrainer.train_one_epoch">(espnet2.train.uasr_trainer.UASRTrainer class method)</a>
@@ -12572,6 +12594,8 @@
 </li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.Jaso.VALID_CHARS">VALID_CHARS (espnet2.text.phoneme_tokenizer.Jaso attribute)</a>
 </li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.deepspeed_trainer.DeepSpeedTrainer.valid_one_epoch">valid_one_epoch() (espnet2.train.deepspeed_trainer.DeepSpeedTrainer class method)</a>
+</li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.validation.validate_architecture">validate_architecture() (in module espnet2.asr_transducer.encoder.validation)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.validation.validate_block_arguments">validate_block_arguments() (in module espnet2.asr_transducer.encoder.validation)</a>
@@ -12602,10 +12626,10 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.ncsnpp_utils.normalization.VarianceNorm2d">VarianceNorm2d (class in espnet2.enh.layers.ncsnpp_utils.normalization)</a>
 </li>
-      <li><a href="_gen/espnet2.tts.html#espnet2.tts.fastspeech2.variance_predictor.VariancePredictor">VariancePredictor (class in espnet2.tts.fastspeech2.variance_predictor)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.tts.html#espnet2.tts.fastspeech2.variance_predictor.VariancePredictor">VariancePredictor (class in espnet2.tts.fastspeech2.variance_predictor)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.VaswaniRule">VaswaniRule (class in espnet.nets.chainer_backend.transformer.training)</a>
 </li>
       <li><a href="_gen/espnet2.gan_codec.html#espnet2.gan_codec.shared.quantizer.modules.core_vq.VectorQuantization">VectorQuantization (class in espnet2.gan_codec.shared.quantizer.modules.core_vq)</a>
