@@ -44,14 +44,16 @@ def check_argument(
 
     Examples:
         # Example of valid usage with dump files
-        check_argument('/path/to/train_dump', '/path/to/valid_dump', None, None, None, None)
+        check_argument('/path/to/train_dump', '/path/to/valid_dump', None, None, None,
+            None)
 
         # Example of valid usage with datasets
         check_argument(None, None, train_dataset, valid_dataset, None, None)
 
         # Example of invalid usage - mix of dump files and datasets
         check_argument('/path/to/train_dump', None, train_dataset, None, None, None)
-        # Raises ValueError: If you try to use dump file, dataset or dataloader should be None.
+        # Raises ValueError: If you try to use dump file, dataset or dataloader should
+            be None.
 
     Note:
         Ensure to specify at least one of the arguments: dump directories,
@@ -124,9 +126,11 @@ class Trainer:
     consistent and valid before starting the training process.
 
     Attributes:
-        train_config (Namespace): Configuration for training, can be a dictionary or Namespace object.
+        train_config (Namespace): Configuration for training, can be a dictionary or
+            Namespace object.
         task_class (Task): Task class instantiated from the provided task identifier.
-        stats_dir (str): Directory where statistics for training and validation will be stored.
+        stats_dir (str): Directory where statistics for training and validation will be
+            stored.
         output_dir (str): Directory where model outputs will be saved.
 
     Args:
@@ -291,7 +295,8 @@ class Trainer:
 
         Examples:
             >>> trainer = Trainer(task='example_task', train_config=some_config,
-            ...                   output_dir='/path/to/output', stats_dir='/path/to/stats')
+            ...                   output_dir='/path/to/output',
+            ...                   stats_dir='/path/to/stats')
             >>> trainer.collect_stats()
 
         Note:

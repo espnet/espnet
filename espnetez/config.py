@@ -5,7 +5,7 @@ from espnetez.task import get_ez_task
 
 def convert_none_to_None(dic):
     """
-    Recursively convert string representations of 'none' in a dictionary to Python's None.
+    Recursively convert string representations of 'none' in a dictionary to None.
 
     This function traverses a dictionary and replaces any occurrences of the string
     "none" with the actual Python None type. If a value in the dictionary is another
@@ -20,7 +20,8 @@ def convert_none_to_None(dic):
         by None.
 
     Examples:
-        >>> sample_dict = {'key1': 'none', 'key2': {'subkey1': 'none', 'subkey2': 'value'}}
+        >>> sample_dict = {'key1': 'none', 'key2': {'subkey1': 'none', 
+            'subkey2': 'value'}}
         >>> convert_none_to_None(sample_dict)
         {'key1': None, 'key2': {'subkey1': None, 'subkey2': 'value'}}
 
@@ -43,11 +44,11 @@ def convert_none_to_None(dic):
 
 def from_yaml(task, path):
     """
-    Load configuration from a YAML file and merge it with the default task configuration.
+    Load configuration from a YAML file and merge it with the default configuration.
 
     This function reads a YAML configuration file from the specified path and merges
     its contents with the default configuration for the specified task. If there are any
-    keys in the YAML file that have the string value "none", they are converted to Python's
+    keys in the YAML file that have the string value "none", they are converted to 
     `None` type. The resulting configuration dictionary is returned.
 
     Args:
@@ -99,12 +100,14 @@ def update_finetune_config(task, pretrain_config, path):
 
     Args:
         task (str): The name of the task for which the configuration is being updated.
-        pretrain_config (dict): The existing pre-training configuration dictionary to be updated.
-        path (str): The file path to the YAML file containing the fine-tuning configuration.
+        pretrain_config (dict): The existing pre-training configuration dictionary 
+            to be updated.
+        path (str): The file path to the YAML file containing the fine-tuning 
+            configuration.
 
     Returns:
-        dict: The updated pre-training configuration dictionary after merging with the fine-tuning
-              configuration and defaults from the specified task.
+        dict: The updated pre-training configuration dictionary after merging with the 
+            fine-tuning configuration and defaults from the specified task.
 
     Examples:
         >>> pretrain_cfg = {
@@ -112,7 +115,8 @@ def update_finetune_config(task, pretrain_config, path):
         ...     "batch_size": 32,
         ...     "dist_backend": "nccl"
         ... }
-        >>> updated_cfg = update_finetune_config("asr", pretrain_cfg, "finetune_config.yaml")
+        >>> updated_cfg = update_finetune_config("asr", pretrain_cfg,
+            "finetune_config.yaml")
         >>> print(updated_cfg)
         {
             "learning_rate": 0.0001,  # updated from finetune_config.yaml
@@ -126,8 +130,8 @@ def update_finetune_config(task, pretrain_config, path):
         yaml.YAMLError: If the YAML file is improperly formatted.
 
     Note:
-        The function assumes that the task class provides a method `get_default_config()`
-        which returns the default configuration as a dictionary.
+        The function assumes that the task class provides a method 
+        `get_default_config()` which returns the default configuration as a dictionary.
     """
     with open(path, "r") as f:
         finetune_config = yaml.load(f, Loader=yaml.Loader)

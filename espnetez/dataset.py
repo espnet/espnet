@@ -30,7 +30,10 @@ class ESPnetEZDataset(AbsDataset):
         __len__() -> int: Returns the total number of entries in the dataset.
 
     Examples:
-        >>> dataset = [("audio1.wav", "transcription1"), ("audio2.wav", "transcription2")]
+        >>> dataset = [
+            ("audio1.wav", "transcription1"),
+            ("audio2.wav", "transcription2")
+        ]
         >>> data_info = {
         ...     "audio": lambda x: x[0],
         ...     "transcription": lambda x: x[1]
@@ -69,7 +72,8 @@ class ESPnetEZDataset(AbsDataset):
             bool: True if the name exists in the data information; False otherwise.
 
         Examples:
-            >>> dataset = ESPnetEZDataset(dataset=[...], data_info={'feature1': ..., 'feature2': ...})
+            >>> dataset = ESPnetEZDataset(dataset=[...],
+                data_info={'feature1': ..., 'feature2': ...})
             >>> dataset.has_name('feature1')
             True
             >>> dataset.has_name('feature3')
@@ -90,15 +94,15 @@ class ESPnetEZDataset(AbsDataset):
         metadata, allowing for efficient data access and manipulation.
 
         Attributes:
-            dataset (Union[list, tuple]): The underlying dataset that contains the data entries.
-            data_info (Dict[str, callable]): A dictionary mapping names to functions that process
-                each data entry in the dataset.
+            dataset (Union[list, tuple]): The underlying dataset that contains the data.
+            data_info (Dict[str, callable]): A dictionary mapping names to functions
+                that process each data entry in the dataset.
 
         Args:
             dataset (Union[list, tuple]): The dataset to be wrapped.
-            data_info (Dict[str, callable]): A dictionary where keys are the names of the data
-                attributes and values are functions that extract or transform the data from the
-                dataset.
+            data_info (Dict[str, callable]): A dictionary where keys are the names of
+                the data attributes and values are functions that extract or transform
+                the data from the dataset.
 
         Methods:
             has_name(name: str) -> bool:
@@ -114,8 +118,8 @@ class ESPnetEZDataset(AbsDataset):
                 Returns the number of entries in the dataset.
 
         Examples:
-            >>> dataset = ESPnetEZDataset(dataset=[...], data_info={'feature': lambda x: x.feature,
-            ...                                                        'label': lambda x: x.label})
+            >>> dataset = ESPnetEZDataset(dataset=[...],
+                data_info={'feature': lambda x: x.feature, 'label': lambda x: x.label})
             >>> dataset.has_name('feature')
             True
             >>> dataset.names()
@@ -127,8 +131,8 @@ class ESPnetEZDataset(AbsDataset):
             100
 
         Note:
-            The functions provided in the data_info should be callable and should accept a single
-            argument corresponding to an entry from the dataset.
+            The functions provided in the data_info should be callable and should
+            accept a single argument corresponding to an entry from the dataset.
         """
         return tuple(self.data_info.keys())
 

@@ -138,7 +138,8 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                           in the ESPnet framework, such as 'asr', 'tts', etc.
 
     Returns:
-        AbsTask: A subclass of AbsTask that supports custom datasets for the specified task.
+        AbsTask: A subclass of AbsTask that supports custom datasets for the
+            specified task.
 
     Examples:
         >>> from espnetez.task import get_ez_task_with_dataset
@@ -146,7 +147,8 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
         >>> custom_asr_task.train_dataset = my_custom_train_dataset
         >>> custom_asr_task.valid_dataset = my_custom_valid_dataset
         >>> model = custom_asr_task.build_model(args)
-        >>> iterator = custom_asr_task.build_iter_factory(args, distributed_option, mode='train')
+        >>> iterator = custom_asr_task.build_iter_factory(args, distributed_option,
+            mode='train')
 
     Note:
         Ensure that the specified task name is valid and that the corresponding
