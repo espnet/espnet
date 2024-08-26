@@ -106,6 +106,11 @@ SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["svs"] = SpeechLMTaskTemplate(
+    conditions=[("label", "g2p", "text")], # condition entries: score (in triplet format): (duration, phn, midi)/repeats*(phn, midi) NOTE(yiwen) only contains phn level info, not sure about word level info
+    targets=[("wav.scp", "codec", "kaldi_ark")], # target entry: sound(singing)
+)
+
 # codec_ssl tasks:
 SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(
     conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
