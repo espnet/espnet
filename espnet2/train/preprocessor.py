@@ -2,6 +2,8 @@ import json
 import logging
 import random
 import re
+import io
+import kaldiio
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
@@ -278,7 +280,10 @@ class CommonPreprocessor(AbsPreprocessor):
         rir_path = np.random.choice(rirs)
         rir = None
         if rir_path is not None:
-            rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+            if ":" in rir_path and rir_path.split(":")[1].isdigit():
+                fs, rir = kaldiio.load_mat(rir_path)
+            else:
+                rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
 
             if single_channel:
                 num_ch = rir.shape[1]
@@ -320,6 +325,15 @@ class CommonPreprocessor(AbsPreprocessor):
         noise = None
         if noise_path is not None:
             noise_db = np.random.uniform(noise_db_low, noise_db_high)
+
+            # to load kaldi.ark style noise_path, load it into a memory buffer
+            # and treat it as a virtual path
+            if ":" in noise_path and noise_path.split(":")[1].isdigit():
+                fs, wav = kaldiio.load_mat(noise_path)
+                noise_path = io.BytesIO()
+                soundfile.write(noise_path, wav, fs, format='WAV')
+                noise_path.seek(0)
+
             with soundfile.SoundFile(noise_path) as f:
                 fs = f.samplerate
                 if tgt_fs and fs != tgt_fs:

@@ -117,15 +117,25 @@ SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["codec_ssl_plain_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
 SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
     conditions=[],
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
 SPEECHLM_TASKS["codec_ssl_denoise"] = SpeechLMTaskTemplate(
-    conditions=[("noisy.scp", "codec_ssl", "kaldi_ark")],
-    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("spk1.scp", "codec_ssl", "kaldi_ark")],
 )
+
+# SPEECHLM_TASKS["codec_ssl_denoise"] = SpeechLMTaskTemplate(
+#     conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+#     targets=[],
+# )
 
 # END OF TASK DEFINITION #
 
