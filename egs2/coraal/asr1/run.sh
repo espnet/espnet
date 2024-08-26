@@ -21,7 +21,7 @@ bpemode=unigram
 ./asr.sh \
     --lang en \
     --stage 1 \
-    --ngpu 1 \
+    --ngpu 2 \
     --nj 16 \
     --gpu_inference true \
     --inference_nj 2 \
