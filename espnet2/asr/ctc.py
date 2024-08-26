@@ -140,7 +140,7 @@ class CTC(torch.nn.Module):
             >>> loss = ctc.loss_fn(pred, target, input_length, target_length)
         """
         if self.ctc_type == "builtin" or self.ctc_type == "brctc":
-            th_pred = th_pred.log_softmax(2)
+            th_pred = th_pred.log_softmax(2).float()
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             if self.ctc_type == "builtin":
                 size = th_pred.size(1)
@@ -157,7 +157,7 @@ class CTC(torch.nn.Module):
         # builtin2 ignores nan losses using the logic below, while
         # builtin relies on the zero_infinity flag in pytorch CTC
         elif self.ctc_type == "builtin2":
-            th_pred = th_pred.log_softmax(2)
+            th_pred = th_pred.log_softmax(2).float()
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
 
             if loss.requires_grad and self.ignore_nan_grad:

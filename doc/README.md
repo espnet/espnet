@@ -7,13 +7,13 @@ We use [sphinx](https://www.sphinx-doc.org) to generate HTML documentation.
 ```sh
 # Clean conda env for docs
 $ cd <espnet_root>
-$ conda create -p ./envs python=3.8
+$ conda create -p ./envs python=3.10
 $ conda activate ./envs
 
 # Requirements
 $ pip install -e ".[doc]"
 $ conda install conda-forge::ffmpeg
-$ conda install conda-forge::nodejs
+$ conda install conda-forge::nodejs==22.6.0
 
 # (Optional requirement) To use flake8-docstrings
 $ pip install -U flake8-docstrings
@@ -24,6 +24,7 @@ The example will be:
 ```sh
 #!/usr/bin/env bash
 
+# You might check $CONDA_EXE to find the <conda_root>
 . <conda_root>/miniconda/etc/profile.d/conda.sh && conda activate <espnet_root>/envs
 ```
 

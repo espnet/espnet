@@ -37,3 +37,16 @@ export PATH="${TOOL_DIR}"/ffmpeg-release:"${PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/lib:"${TOOL_DIR}"/lib64:"${LD_LIBRARY_PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/espeak-ng/lib:"${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="${TOOL_DIR}"/RawNet/python/RawNet3:"${TOOL_DIR}"/RawNet/python/RawNet3/models:"${PYTHONPATH:-}"
+
+# DeepSpeed related. Users should set CUDA_HOME by themselves.
+CUDA_HOME=
+if [ -n "${CUDA_HOME}" ]; then
+    export LIBRARY_PATH=${CUDA_HOME}/lib64:${LIBRARY_PATH}
+    export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+    export PATH=${CUDA_HOME}/bin:${PATH}
+fi
+
+if [ -n "${CONDA_PREFIX-}" ]; then
+    export CFLAGS="-I${CONDA_PREFIX}/include"
+    export LDFLAGS="-L${CONDA_PREFIX}/lib"
+fi
