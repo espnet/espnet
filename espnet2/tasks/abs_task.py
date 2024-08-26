@@ -25,6 +25,7 @@ from typeguard import typechecked
 from espnet import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
+from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -53,6 +54,7 @@ from espnet2.train.dataset import (
     DATA_TYPES,
     AbsDataset,
     ESPnetDataset,
+    ESPnetCategoricalDataset,
     ESPnetMultiTaskDataset,
 )
 from espnet2.train.distributed_utils import (
@@ -1697,6 +1699,12 @@ class AbsTask(ABC):
                 iter_options=iter_options,
                 mode=mode,
             )
+        elif iterator_type == "category_chunk":
+            return cls.build_category_chunk_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
         elif iterator_type == "task":
             return cls.build_task_iter_factory(
                 args=args,
@@ -1953,6 +1961,84 @@ class AbsTask(ABC):
             chunk_max_abs_length=args.chunk_max_abs_length,
             discard_short_samples=args.chunk_discard_short_samples,
         )
+
+    @classmethod
+    @typechecked
+    def build_category_chunk_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+
+        dataset = ESPnetCategoricalDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
+        )
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
+
+        if len(iter_options.shape_files) == 0:
+            key_file = iter_options.data_path_and_name_and_type[0][0]
+        else:
+            key_file = iter_options.shape_files[0]
+
+        batch_sampler = UnsortedBatchSampler(batch_size=1, key_file=key_file)
+        batches = list(batch_sampler)
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+
+        if iter_options.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            if len(batches) < world_size:
+                raise RuntimeError("Number of samples is smaller than world_size")
+            if iter_options.batch_size < world_size:
+                raise RuntimeError("batch_size must be equal or more than world_size")
+
+            if rank < iter_options.batch_size % world_size:
+                batch_size = iter_options.batch_size // world_size + 1
+            else:
+                batch_size = iter_options.batch_size // world_size
+            num_cache_chunks = args.num_cache_chunks // world_size
+            # NOTE(kamo): Split whole corpus by sample numbers without considering
+            #   each of the lengths, therefore the number of iteration counts are not
+            #   always equal to each other and the iterations are limitted
+            #   by the fewest iterations.
+            #   i.e. the samples over the counts are discarded.
+            batches = batches[rank::world_size]
+        else:
+            batch_size = iter_options.batch_size
+            num_cache_chunks = args.num_cache_chunks
+
+        return CategoryChunkIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            batch_size=batch_size,
+            # For chunk iterator,
+            # --num_iters_per_epoch doesn't indicate the number of iterations,
+            # but indicates the number of samples.
+            num_samples_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+            chunk_length=args.chunk_length,
+            chunk_shift_ratio=args.chunk_shift_ratio,
+            num_cache_chunks=num_cache_chunks,
+            excluded_key_prefixes=args.chunk_excluded_key_prefixes,
+            default_fs=args.chunk_default_fs,
+            chunk_max_abs_length=args.chunk_max_abs_length,
+            discard_short_samples=args.chunk_discard_short_samples,
+        )
+
 
     # NOTE(kamo): Not abstract class
     @classmethod
