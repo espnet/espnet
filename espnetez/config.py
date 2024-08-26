@@ -20,7 +20,7 @@ def convert_none_to_None(dic):
         by None.
 
     Examples:
-        >>> sample_dict = {'key1': 'none', 'key2': {'subkey1': 'none', 
+        >>> sample_dict = {'key1': 'none', 'key2': {'subkey1': 'none',
             'subkey2': 'value'}}
         >>> convert_none_to_None(sample_dict)
         {'key1': None, 'key2': {'subkey1': None, 'subkey2': 'value'}}
@@ -48,7 +48,7 @@ def from_yaml(task, path):
 
     This function reads a YAML configuration file from the specified path and merges
     its contents with the default configuration for the specified task. If there are any
-    keys in the YAML file that have the string value "none", they are converted to 
+    keys in the YAML file that have the string value "none", they are converted to
     `None` type. The resulting configuration dictionary is returned.
 
     Args:
@@ -100,13 +100,13 @@ def update_finetune_config(task, pretrain_config, path):
 
     Args:
         task (str): The name of the task for which the configuration is being updated.
-        pretrain_config (dict): The existing pre-training configuration dictionary 
+        pretrain_config (dict): The existing pre-training configuration dictionary
             to be updated.
-        path (str): The file path to the YAML file containing the fine-tuning 
+        path (str): The file path to the YAML file containing the fine-tuning
             configuration.
 
     Returns:
-        dict: The updated pre-training configuration dictionary after merging with the 
+        dict: The updated pre-training configuration dictionary after merging with the
             fine-tuning configuration and defaults from the specified task.
 
     Examples:
@@ -130,7 +130,7 @@ def update_finetune_config(task, pretrain_config, path):
         yaml.YAMLError: If the YAML file is improperly formatted.
 
     Note:
-        The function assumes that the task class provides a method 
+        The function assumes that the task class provides a method
         `get_default_config()` which returns the default configuration as a dictionary.
     """
     with open(path, "r") as f:
