@@ -24,28 +24,10 @@ contract_expression = oe.contract_expression
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-    """
-    Decorator to make a function or method run only on the main process in distributed training.
+    """Decorator function from PyTorch Lightning.
 
-    This decorator is useful for operations that should only be performed once
-    across all processes, such as logging or saving checkpoints.
-
-    Args:
-        fn (Callable): The function to be decorated.
-
-    Returns:
-        Callable: A wrapped version of the input function that will only execute
-            when the global rank is 0.
-
-    Example:
-        @rank_zero_only
-        def log_something():
-            print("This will only be printed on the main process")
-
-    Note:
-        This function assumes that the global rank can be determined from
-        environment variables. It checks for 'RANK', 'LOCAL_RANK',
-        'SLURM_PROCID', and 'JSM_NAMESPACE_RANK' in that order.
+    Function that can be used as a decorator
+    to enable a function/method being called only on global rank 0.
     """
 
     @wraps(fn)
@@ -74,31 +56,7 @@ rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
 def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
-    """
-    Initialize a multi-GPU-friendly Python logger.
-
-    This function creates a logger that is aware of distributed training environments.
-    It decorates all logging methods with the rank_zero_only decorator to ensure
-    that log messages are only printed once in multi-GPU setups.
-
-    Args:
-        name (str, optional): The name of the logger. Defaults to the name of the
-            current module.
-        level (int, optional): The logging level. Defaults to logging.INFO.
-
-    Returns:
-        logging.Logger: A configured logger instance with rank-zero-only decorated
-            logging methods.
-
-    Example:
-        logger = get_logger("my_module")
-        logger.info("This message will only be logged once in multi-GPU training")
-
-    Note:
-        This function modifies the behavior of the standard logging methods
-        (debug, info, warning, error, exception, fatal, critical) to only execute
-        on the main process (rank zero) in distributed environments.
-    """
+    """Initialize multi-GPU-friendly python logger."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -302,33 +260,10 @@ else:
 
 
 def power(L, A, v=None):
-    """
-    Compute A^L and the scan sum_i A^i v_i.
+    """Compute A^L and the scan sum_i A^i v_i.
 
-    This function calculates the matrix power A^L and optionally computes
-    the sum of A^i * v_i for i from 0 to L-1, where v_i is the i-th column of v.
-
-    Args:
-        L (int): The power to raise A to.
-        A (torch.Tensor): Square matrix of shape (..., N, N).
-        v (torch.Tensor, optional): Tensor of shape (..., N, L). If provided,
-            the function also computes the scan sum. Defaults to None.
-
-    Returns:
-        torch.Tensor or Tuple[torch.Tensor, torch.Tensor]:
-            If v is None, returns A^L of shape (..., N, N).
-            If v is provided, returns a tuple (A^L, sum_i A^i v_i) where
-            sum_i A^i v_i has shape (..., N).
-
-    Note:
-        This function uses a divide-and-conquer strategy to compute the
-        matrix power efficiently. It's particularly useful for large L values.
-
-    Example:
-        A = torch.randn(3, 3)
-        v = torch.randn(3, 5)
-        result = power(5, A, v)
-        # result is a tuple (A^5, sum of A^i * v_i for i from 0 to 4)
+    A: (..., N, N)
+    v: (..., N, L)
     """
     E = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device)
 
@@ -374,37 +309,7 @@ def power(L, A, v=None):
 
 
 def transition(measure, N):
-    """
-    Compute the A and B transition matrices for different measures.
-
-    This function generates the A and B matrices used in state space models
-    for various types of measures or basis functions.
-
-    Args:
-        measure (str): The type of measure to use. Options include:
-            'legt' (Legendre (translated)),
-            'legs' (Legendre (scaled)),
-            'legsd' (Scaled Legendre with diagonal correction),
-            'fourier_diag' or 'foud' (Fourier diagonal),
-            'fourier' or 'fout' (Fourier).
-        N (int): The size of the state space (number of basis functions).
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: A tuple containing:
-            - A (np.ndarray): The transition matrix of shape (N, N).
-            - B (np.ndarray): The input matrix of shape (N, 1).
-
-    Raises:
-        NotImplementedError: If an unsupported measure is specified.
-
-    Note:
-        The matrices are returned as NumPy arrays and may need to be
-        converted to PyTorch tensors for use in neural network modules.
-
-    Example:
-        A, B = transition('legt', 64)
-        # A is a (64, 64) matrix, B is a (64, 1) matrix
-    """
+    """A, B transition matrices for different measures."""
     # Legendre (translated)
     if measure == "legt":
         Q = np.arange(N, dtype=np.float64)
@@ -470,37 +375,7 @@ def transition(measure, N):
 
 
 def rank_correction(measure, N, rank=1, dtype=torch.float):
-    """
-    Return a low-rank matrix L such that A + L is normal.
-
-    This function computes a low-rank correction matrix for different types of
-    measures used in state space models. The correction ensures that A + L
-    has the desired normality properties.
-
-    Args:
-        measure (str): The type of measure. Options include:
-            'legs' (Legendre scaled),
-            'legt' (Legendre translated),
-            'fourier' or 'fout' (Fourier),
-            'fourier_diag', 'foud', or 'legsd' (Diagonal corrections).
-        N (int): The size of the state space.
-        rank (int, optional): The rank of the correction matrix. Defaults to 1.
-        dtype (torch.dtype, optional): The data type of the output. Defaults to torch.float.
-
-    Returns:
-        torch.Tensor: A low-rank correction matrix of shape (rank, N).
-
-    Raises:
-        NotImplementedError: If an unsupported measure is specified.
-
-    Note:
-        The returned matrix P is such that PP^* is the desired low-rank
-        correction. The actual correction is applied as A + PP^*.
-
-    Example:
-        P = rank_correction('legs', 64, rank=2)
-        # P is a (2, 64) matrix
-    """
+    """Return low-rank matrix L such that A + L is normal."""
     if measure == "legs":
         assert rank >= 1
         P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)  # (1 N)
@@ -532,39 +407,11 @@ def rank_correction(measure, N, rank=1, dtype=torch.float):
 
 
 def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
-    """
-    Decompose the HiPPO matrix into Normal Plus Low-Rank (NPLR) form.
+    """Decompose as Normal Plus Low-Rank (NPLR).
 
-    This function computes the NPLR decomposition of the HiPPO matrix for a given measure.
-    The decomposition is of the form A = V[w - p q^*]V^*, B = V B, where w is diagonal.
-
-    Args:
-        measure (str): The type of HiPPO measure (e.g., 'legs', 'legt', 'fourier').
-        N (int): The size of the state space.
-        rank (int, optional): The rank of the low-rank correction. Defaults to 1.
-        dtype (torch.dtype, optional): The data type for the computations. Defaults to torch.float.
-        diagonalize_precision (bool, optional): Whether to use higher precision for diagonalization. Defaults to True.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-            - w (torch.Tensor): The diagonal part of the decomposition.
-            - P (torch.Tensor): The low-rank factor p.
-            - B (torch.Tensor): The transformed input matrix.
-            - V (torch.Tensor): The transformation matrix.
-
-    Raises:
-        NotImplementedError: If the specified measure is not implemented.
-
-    Note:
-        This function is crucial for the efficient implementation of the S4 model.
-        The returned matrices satisfy the relation A = V[w - p q^*]V^*, B = V B.
-
-    Example:
-        w, P, B, V = nplr('legs', 64, rank=2)
-        # w is a complex vector of length 32
-        # P is a (2, 64) matrix
-        # B is a vector of length 64
-        # V is a (64, 64) unitary matrix
+    Return w, p, q, V, B such that
+    (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
+    i.e. A = V[w - p q^*]V^*, B = V B
     """
     assert dtype == torch.float or torch.double
     cdtype = torch.cfloat if dtype == torch.float else torch.cdouble
@@ -645,44 +492,6 @@ def dplr(
     diagonal=True,
     random_B=False,
 ):
-    """
-    Generate parameters for the Diagonal Plus Low-Rank (DPLR) parameterization of SSMs.
-
-    This function creates the parameters needed for the DPLR version of the S4 model,
-    which uses a diagonal matrix plus a low-rank correction.
-
-    Args:
-        scaling (str): The type of scaling to use for the imaginary part ('random', 'real', 'linear', 'inverse', 'inverse2', 'quadratic', 'legs', 'hippo').
-        N (int): Size of the state space (half the size due to complex conjugacy).
-        rank (int, optional): Rank of the low-rank component. Defaults to 1.
-        H (int, optional): Number of independent SSM copies. Defaults to 1.
-        dtype (torch.dtype, optional): Data type of the generated tensors. Defaults to torch.float.
-        real_scale (float, optional): Scaling factor for the real part. Defaults to 1.0.
-        imag_scale (float, optional): Scaling factor for the imaginary part. Defaults to 1.0.
-        random_real (bool, optional): Whether to use random initialization for the real part. Defaults to False.
-        random_imag (bool, optional): Whether to use random initialization for the imaginary part. Defaults to False.
-        normalize (bool, optional): Whether to normalize the B vector. Defaults to False.
-        diagonal (bool, optional): Whether to use a diagonal matrix for P. Defaults to True.
-        random_B (bool, optional): Whether to use random initialization for B. Defaults to False.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-            - w (torch.Tensor): Complex diagonal coefficients of shape (H, N).
-            - P (torch.Tensor): Low-rank term of shape (rank, H, N).
-            - B (torch.Tensor): Input projection vector of shape (H, N).
-            - V (torch.Tensor): Transformation matrix of shape (H, N, N).
-
-    Note:
-        This function is used to initialize the S4D model, which is a simplification
-        of the full S4 model using diagonal state matrices.
-
-    Example:
-        w, P, B, V = dplr('linear', 64, rank=2, H=4)
-        # w is a complex tensor of shape (4, 32)
-        # P is a complex tensor of shape (2, 4, 32)
-        # B is a complex tensor of shape (4, 32)
-        # V is a complex tensor of shape (4, 64, 64)
-    """
     assert dtype == torch.float or torch.double
     dtype = torch.cfloat if dtype == torch.float else torch.cdouble
 
@@ -747,41 +556,11 @@ def dplr(
 
 
 def ssm(measure, N, R, H, **ssm_args):
-    """
-    Create a single State Space Model (SSM) initialization.
+    """Dispatcher to create single SSM initialization.
 
-    This function serves as a dispatcher to create SSM parameters based on the
-    specified measure. It supports both NPLR (Normal Plus Low-Rank) and DPLR
-    (Diagonal Plus Low-Rank) parameterizations.
-
-    Args:
-        measure (str): The type of measure to use for initialization. Special
-            values include 'dplr' for Diagonal Plus Low-Rank and 'diag-*' for
-            various diagonal initializations.
-        N (int): State size.
-        R (int): Rank for the low-rank component (used in DPLR parameterization).
-        H (int): Number of independent SSM copies.
-        **ssm_args: Additional keyword arguments passed to the specific
-            initialization functions.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-            - w (torch.Tensor): Diagonal coefficients, shape (H, N).
-            - P (torch.Tensor): Low-rank term, shape (R, H, N).
-            - B (torch.Tensor): Input projection, shape (H, N).
-            - V (torch.Tensor): Transformation matrix, shape (H, N, N).
-
-    Raises:
-        NotImplementedError: If an unsupported measure is specified.
-
-    Note:
-        For 'dplr' and 'diag-*' measures, the function calls `dplr()`.
-        For other measures, it calls `nplr()`.
-
-    Example:
-        w, P, B, V = ssm('legs', 64, 2, 4)
-        # Initializes SSM parameters for Legendre measure with
-        # state size 64, rank 2, and 4 independent copies
+    N: state size
+    R: rank (for DPLR parameterization)
+    H: number of independent SSM copies
     """
     if measure == "dplr":
         w, P, B, V = dplr(N=N, rank=R, H=H, **ssm_args)
@@ -807,41 +586,6 @@ combinations = {
 
 
 def combination(measures, N, R, S, **ssm_args):
-    """
-    Create a combination of multiple State Space Model (SSM) initializations.
-
-    This function allows for the creation of SSM parameters using multiple measures,
-    effectively combining different types of SSMs into a single set of parameters.
-
-    Args:
-        measures (str or list): Either a string specifying a predefined combination
-            ('hippo', 'diag', 'all') or a list of measure names.
-        N (int): State size for each SSM.
-        R (int): Rank for the low-rank component in each SSM.
-        S (int): Total number of independent trainable SSM copies.
-        **ssm_args: Additional keyword arguments passed to the ssm() function.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-            - w (torch.Tensor): Combined diagonal coefficients, shape (S, N).
-            - P (torch.Tensor): Combined low-rank terms, shape (R, S, N).
-            - B (torch.Tensor): Combined input projections, shape (S, N).
-            - V (torch.Tensor): Combined transformation matrices, shape (S, N, N).
-
-    Raises:
-        AssertionError: If S is not divisible by the number of measures.
-
-    Note:
-        Predefined combinations:
-        - 'hippo': Combines 'legs' and 'fourier' measures.
-        - 'diag': Combines 'diag-inv' and 'diag-lin' measures.
-        - 'all': Combines 'legs', 'fourier', 'diag-inv', and 'diag-lin' measures.
-
-    Example:
-        w, P, B, V = combination('hippo', 64, 2, 8)
-        # Creates a combination of Legendre and Fourier SSMs
-        # with state size 64, rank 2, and 8 total copies (4 of each type)
-    """
     if isinstance(measures, str):
         measures = combinations[measures] if measures in combinations else [measures]
 
@@ -860,42 +604,10 @@ def combination(measures, N, R, S, **ssm_args):
 
 
 class OptimModule(nn.Module):
-    """
-    A module that allows registering buffers/parameters with configurable optimizer hyperparameters.
-
-    This class extends nn.Module to provide a custom registration method for tensors,
-    allowing them to be registered as either buffers or parameters with specific
-    learning rates and weight decay settings.
-
-    The main feature is the ability to set per-parameter learning rates,
-    which can be useful for fine-tuning specific parts of a model or
-    implementing more complex optimization strategies.
-    """
+    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters. # noqa"""
 
     def register(self, name, tensor, lr=None):
-        """
-            Register a tensor as a buffer or parameter with configurable learning rate.
-
-        This method allows for flexible registration of tensors within the module,
-        with the option to specify a custom learning rate for parameters.
-
-        Args:
-            name (str): The name under which the tensor will be registered.
-            tensor (torch.Tensor): The tensor to be registered.
-            lr (float, optional): The learning rate for the tensor if registered as a parameter.
-                If None, uses the default learning rate. If 0.0, registers as a buffer.
-
-        Note:
-            - If lr is 0.0, the tensor is registered as a buffer (non-learnable).
-            - If lr is not None and not 0.0, the tensor is registered as a parameter
-              with the specified learning rate and zero weight decay.
-            - The learning rate is stored in the '_optim' attribute of the parameter,
-              which can be used by custom optimizers.
-
-        Example:
-            self.register('my_tensor', torch.randn(10), lr=0.01)
-            # Registers 'my_tensor' as a parameter with learning rate 0.01
-        """
+        """Register a tensor with a configurable learning rate and 0 weight decay."""
         if lr == 0.0:
             self.register_buffer(name, tensor)
         else:
@@ -908,18 +620,10 @@ class OptimModule(nn.Module):
 
 
 class SSKernelNPLR(OptimModule):
-    """
-    Stores a representation of and computes the SSKernel function K_L(A^dt, B^dt, C).
+    """Stores a representation of and computes the SSKernel function.
 
-    This class implements the Normal Plus Low-Rank (NPLR) parameterization of the
-    SSM (State Space Model) kernel. It provides methods to compute the kernel function
-    and its state space realization for the discretized state space model.
-
-    The kernel is represented as K_L(A^dt, B^dt, C) where A is parameterized
-    as A = w - PP^*, w is complex diagonal, and P is low rank.
-
-    This implementation includes various optimizations and caching mechanisms
-    to improve computational efficiency, especially for long sequence lengths.
+    K_L(A^dt, B^dt, C) corresponding to a discretized state space,
+    where A is Normal + Low Rank (NPLR)
     """
 
     @torch.no_grad()
@@ -1091,33 +795,15 @@ class SSKernelNPLR(OptimModule):
         return w
 
     def forward(self, state=None, rate=1.0, L=None):
-        """
-            Compute the SSKernel function for the given parameters.
+        """Forward pass.
 
-        This method calculates the convolution kernel and optionally the output
-        from an initial state.
+        state: (B, H, N) initial state
+        rate: sampling rate factor
+        L: target length
 
-        Args:
-            state (torch.Tensor, optional): Initial state of shape (B, H, N).
-                If provided, the method also computes the output from this state.
-            rate (float, optional): Sampling rate factor. Defaults to 1.0.
-            L (int, optional): Target length of the kernel. If None, uses the
-                internal length self.L.
-
-        Returns:
-            Tuple[torch.Tensor, Optional[torch.Tensor]]:
-                - The computed convolution kernel of shape (C, H, L).
-                - If state is provided, also returns the output from the initial
-                  state of shape (B, H, L).
-
-        Note:
-            - The method automatically handles length adjustment and caching.
-            - It supports various discretization methods specified in self.disc.
-            - The computation leverages FFT for efficiency in long sequence computations.
-
-        Example:
-            kernel, _ = sskernel.forward(L=1024)
-            # Computes the kernel for a sequence of length 1024
+        returns:
+        (C, H, L) convolution kernel (generally C=1)
+        (B, H, L) output from initial state
         """
         # Initialize C~
         # if necessary (done in forward pass so it's on the correct device)
@@ -1426,30 +1112,6 @@ class SSKernelNPLR(OptimModule):
             )
 
     def default_state(self, *batch_shape):
-        """
-            Create a default initial state for the SSM.
-
-        This method generates a zero-initialized state tensor with the appropriate
-        shape and data type for the SSM.
-
-        Args:
-            *batch_shape: Variable length argument to specify the batch dimensions
-                          of the state tensor.
-
-        Returns:
-            torch.Tensor: A zero-initialized state tensor of shape (*batch_shape, H, N),
-                          where H is the number of independent SSM copies and N is the state size.
-
-        Note:
-            - The state tensor is created on the same device as the model parameters.
-            - The data type of the state matches that of the model's parameters.
-            - This method is useful for initializing the state when starting a new sequence.
-
-        Example:
-            state = sskernel.default_state(32, 10)
-            # Creates a state tensor of shape (32, 10, H, N) for a batch of 32 sequences,
-            # each with 10 independent dimensions.
-        """
         C = _r2c(self.C)
         N = C.size(-1)
         H = C.size(-2)
@@ -1491,33 +1153,10 @@ class SSKernelNPLR(OptimModule):
         return state
 
     def step(self, u, state):
-        """
-            Perform a single step update of the SSM.
+        """Step one time step as a recurrent model.
 
-        This method applies one step of the state space model update, computing
-        the new state and output given an input and the current state.
-
-        Args:
-            u (torch.Tensor): Input tensor of shape (B, H), where B is the batch size
-                              and H is the number of independent SSM copies.
-            state (torch.Tensor): Current state tensor of shape (B, H, N), where N
-                                  is the state size.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - y (torch.Tensor): Output tensor of shape (B, C, H), where C is the
-                                    number of output channels.
-                - next_state (torch.Tensor): Updated state tensor of shape (B, H, N).
-
-        Note:
-            - This method is intended for use during inference or validation.
-            - It assumes that self._setup_step() has been called to prepare the
-              necessary matrices for stepping.
-            - The computation uses the discretized state space matrices (dA, dB, dC).
-
-        Example:
-            y, next_state = sskernel.step(u, state)
-            # Computes the output and next state for a single time step
+        Must have called self._setup_step()
+        and created state with self.default_state() before calling this
         """
         if self._step_mode == "linear":
             new_state = self._step_state_linear(u, state)
@@ -1528,21 +1167,7 @@ class SSKernelNPLR(OptimModule):
 
 
 class SSKernelDiag(OptimModule):
-    """
-    Implements the SSKernel using a diagonal state matrix (S4D).
-
-    This class represents a simplified version of the SSKernel where the state
-    matrix A is diagonal, leading to more efficient computations. It's part of
-    the S4D (Simplified State Space Sequence Model) architecture.
-
-    The diagonal parameterization allows for faster forward and backward passes,
-    making it suitable for longer sequence modeling tasks. This implementation
-    supports various initialization schemes and discretization methods for the
-    state space model.
-
-    The kernel is parameterized by diagonal matrices A and B, and a general C matrix,
-    allowing for efficient computation of the SSM kernel function.
-    """
+    """Version using (complex) diagonal state matrix (S4D)."""
 
     def __init__(
         self,
@@ -1621,34 +1246,15 @@ class SSKernelDiag(OptimModule):
         return A
 
     def forward(self, L, state=None, rate=1.0, u=None):
-        """
-            Compute the SSKernel (S4D) function for the given parameters.
+        """Forward pass.
 
-        This method calculates the convolution kernel and optionally the output
-        from an initial state for the diagonal SSM (S4D) model.
+        state: (B, H, N) initial state
+        rate: sampling rate factor
+        L: target length
 
-        Args:
-            L (int): Target length of the kernel.
-            state (torch.Tensor, optional): Initial state of shape (B, H, N).
-                If provided, the method also computes the output from this state.
-            rate (float, optional): Sampling rate factor. Defaults to 1.0.
-            u (torch.Tensor, optional): Input sequence. Not used in the current implementation.
-
-        Returns:
-            Tuple[torch.Tensor, Optional[torch.Tensor]]:
-                - The computed convolution kernel of shape (C, H, L).
-                - If state is provided, also returns the output from the initial
-                  state of shape (B, C, H, L).
-
-        Note:
-            - The method supports different discretization methods (zoh, bilinear, dss)
-              specified in self.disc.
-            - It uses efficient computations leveraging the diagonal structure of A.
-            - The method handles rate adjustment and supports optional bandlimiting.
-
-        Example:
-            kernel, _ = sskernel_diag.forward(L=1024, rate=0.5)
-            # Computes the kernel for a sequence of length 1024 at half the original rate
+        returns:
+        (C, H, L) convolution kernel (generally C=1)
+        (B, H, L) output from initial state
         """
         dt = torch.exp(self.log_dt) * rate  # (H)
         C = _r2c(self.C)  # (C H N)
@@ -1738,31 +1344,6 @@ class SSKernelDiag(OptimModule):
             )  # or * dtA / A
 
     def default_state(self, *batch_shape):
-        """
-            Create a default initial state for the SSM with diagonal state matrix.
-
-        This method generates a zero-initialized state tensor with the appropriate
-        shape and data type for the S4D (Simplified State Space Sequence) model.
-
-        Args:
-            *batch_shape: Variable length argument to specify the batch dimensions
-                          of the state tensor.
-
-        Returns:
-            torch.Tensor: A zero-initialized state tensor of shape (*batch_shape, H, N),
-                          where H is the number of independent SSM copies and N is the state size.
-
-        Note:
-            - The state tensor is created on the same device as the model parameters.
-            - The data type of the state matches that of the model's C parameter.
-            - This method is useful for initializing the state when starting a new sequence
-              or batch of sequences.
-
-        Example:
-            state = sskernel_diag.default_state(32, 10)
-            # Creates a state tensor of shape (32, 10, H, N) for a batch of 32 sequences,
-            # each with 10 independent dimensions.
-        """
         C = _r2c(self.C)
         state = torch.zeros(
             *batch_shape, self.H, self.N, dtype=C.dtype, device=C.device
@@ -1770,36 +1351,6 @@ class SSKernelDiag(OptimModule):
         return state
 
     def step(self, u, state):
-        """
-            Perform a single step update of the SSM with diagonal state matrix.
-
-        This method applies one step of the state space model update for the S4D model,
-        computing the new state and output given an input and the current state.
-
-        Args:
-            u (torch.Tensor): Input tensor of shape (B, H), where B is the batch size
-                              and H is the number of independent SSM copies.
-            state (torch.Tensor): Current state tensor of shape (B, H, N), where N
-                                  is the state size.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - y (torch.Tensor): Output tensor of shape (B, C, H), where C is the
-                                    number of output channels.
-                - next_state (torch.Tensor): Updated state tensor of shape (B, H, N).
-
-        Note:
-            - This method is optimized for the diagonal structure of the state matrix.
-            - It assumes that self._setup_step() has been called to prepare the
-              necessary matrices for stepping.
-            - The computation uses the discretized state space matrices (dA, dB, dC).
-            - The output is real-valued, obtained by taking twice the real part of
-              the complex computation.
-
-        Example:
-            y, next_state = sskernel_diag.step(u, state)
-            # Computes the output and next state for a single time step in the S4D model
-        """
         next_state = contract("h n, b h n -> b h n", self.dA, state) + contract(
             "h n, b h -> b h n", self.dB, u
         )
@@ -1807,33 +1358,7 @@ class SSKernelDiag(OptimModule):
         return 2 * y.real, next_state
 
     def forward_state(self, u, state):
-        """
-            Compute the next state of the SSM given an input sequence.
-
-        This method calculates the final state after processing an entire input sequence
-        using the S4D (Simplified State Space Sequence) model with a diagonal state matrix.
-
-        Args:
-            u (torch.Tensor): Input sequence tensor of shape (B, H, L), where B is the
-                              batch size, H is the number of independent SSM copies,
-                              and L is the sequence length.
-            state (torch.Tensor): Initial state tensor of shape (B, H, N), where N
-                                  is the state size.
-
-        Returns:
-            torch.Tensor: The final state after processing the entire input sequence,
-                          with shape (B, H, N).
-
-        Note:
-            - This method is more efficient than repeatedly calling step() for each
-              time step, as it computes the state transition for the entire sequence at once.
-            - It uses the log_vandermonde_transpose function for efficient computation.
-            - The method automatically sets up the step matrices if not already done.
-
-        Example:
-            final_state = sskernel_diag.forward_state(input_sequence, initial_state)
-            # Computes the final state after processing the entire input_sequence
-        """
+        self._setup_step()
         AL = self.dA ** u.size(-1)
         u = u.flip(-1).to(self.dA).contiguous()  # (B H L)
         v = log_vandermonde_transpose(u, self.dB, self.dA.log(), u.size(-1))
@@ -1842,18 +1367,13 @@ class SSKernelDiag(OptimModule):
 
 
 class SSKernel(nn.Module):
-    """
-    Wrapper class for different State Space Kernel parameterizations.
+    """Wrapper around SSKernel parameterizations.
 
-    This class serves as a unified interface for various implementations of
-    State Space Kernels, including NPLR (Normal Plus Low-Rank) and Diagonal
-    parameterizations. It provides a common API for initializing and using
-    different SSM (State Space Model) kernels, making it easier to experiment
-    with and switch between different kernel types.
-
-    The SSKernel supports various initialization schemes, measures, and
-    configuration options, allowing for flexible and powerful sequence modeling.
-    It can be used as a core component in S4 (Structured State Space Sequence) models.
+    The SSKernel is expected to support the interface
+    forward()
+    default_state()
+    _setup_step()
+    step()
     """
 
     def __init__(
@@ -1990,66 +1510,18 @@ class SSKernel(nn.Module):
             raise NotImplementedError(f"mode={mode} is not valid")
 
     def forward(self, state=None, L=None, rate=None):
-        """
-            Compute the SSKernel function for the given parameters.
-
-        This method is a wrapper around the underlying kernel's forward method,
-        providing a unified interface for different kernel implementations.
-
-        Args:
-            state (torch.Tensor, optional): Initial state. Shape depends on the
-                specific kernel implementation.
-            L (int, optional): Target length of the kernel. If None, uses the
-                default length specified in the kernel.
-            rate (float, optional): Sampling rate factor. Defaults to None.
-
-        Returns:
-            The return type and shape depend on the specific kernel implementation,
-            but typically includes:
-            - The computed convolution kernel
-            - Optionally, the output from the initial state if provided
-
-        Note:
-            This method directly calls the forward method of the underlying
-            kernel (either SSKernelNPLR or SSKernelDiag), passing through all
-            provided arguments.
-
-        Example:
-            kernel, state_output = sskernel(state=initial_state, L=1024, rate=0.5)
-            # Computes the kernel and state output for a sequence of length 1024
-            # at half the original rate
-        """
         return self.kernel(state=state, L=L, rate=rate)
 
     @torch.no_grad()
     def forward_state(self, u, state):
-        """
-            Compute the next state of the SSM given an input sequence.
+        """Forward the state through a sequence.
 
-        This method forwards the state through a sequence using the underlying
-        kernel's state transition logic.
+        i.e. computes the state after passing chunk through SSM
 
-        Args:
-            u (torch.Tensor): Input sequence tensor. The shape should be
-                compatible with the underlying kernel, typically (B, H, L),
-                where B is batch size, H is the number of independent SSM copies,
-                and L is the sequence length.
-            state (torch.Tensor): Initial state tensor. The shape should match
-                the state representation of the underlying kernel.
+        state: (B, H, N)
+        u: (B, H, L)
 
-        Returns:
-            torch.Tensor: The final state after processing the entire input sequence.
-                The shape will match the input state shape.
-
-        Note:
-            - This method is particularly useful for tracking the state evolution
-              over a sequence without computing the full convolution output.
-            - If the underlying kernel doesn't have a `forward_state` method,
-              this function falls back to a manual state update using `_setup_state`.
-
-        Example:
-            final_state = sskernel.forward_state(input_sequence, initial_state)
-            # Computes the final state after processing the entire input_sequence
+        Returns: (B, H, N)
         """
         if hasattr(self.kernel, "forward_state"):
             return self.kernel.forward_state(u, state)
@@ -2081,91 +1553,14 @@ class SSKernel(nn.Module):
         self.kernel._setup_step(**kwargs)
 
     def step(self, u, state, **kwargs):
-        """
-            Perform a single step update of the SSM.
-
-        This method applies one step of the state space model update, computing
-        the new state and output given an input and the current state. It delegates
-        the computation to the underlying kernel's step method.
-
-        Args:
-            u (torch.Tensor): Input tensor for the current step. The shape should be
-                compatible with the underlying kernel, typically (B, H) where B is
-                the batch size and H is the number of independent SSM copies.
-            state (torch.Tensor): Current state tensor. The shape should match the
-                state representation of the underlying kernel.
-            **kwargs: Additional keyword arguments that will be passed to the
-                underlying kernel's step method.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - y (torch.Tensor): Output tensor for the current step.
-                - next_state (torch.Tensor): Updated state tensor.
-
-        Note:
-            - This method is intended for use during inference or validation, allowing
-              for step-by-step processing of a sequence.
-            - It assumes that the underlying kernel has been properly initialized and
-              its `_setup_step` method has been called if necessary.
-
-        Example:
-            output, new_state = sskernel.step(input, current_state)
-            # Computes the output and next state for a single time step
-        """
         y, state = self.kernel.step(u, state, **kwargs)
         return y, state
 
     def default_state(self, *args, **kwargs):
-        """
-            Create a default initial state for the SSM.
-
-        This method generates a default state tensor appropriate for the underlying
-        kernel implementation. It serves as a convenience wrapper around the
-        kernel's own default_state method.
-
-        Args:
-            *args: Variable length argument list that will be passed to the
-                   underlying kernel's default_state method.
-            **kwargs: Arbitrary keyword arguments that will be passed to the
-                      underlying kernel's default_state method.
-
-        Returns:
-            torch.Tensor: A default state tensor. The shape and content of this
-                          tensor depend on the specific implementation of the
-                          underlying kernel.
-
-        Note:
-            - The returned state is typically a zero-initialized tensor with
-              appropriate dimensions for the SSM.
-            - This method is useful for initializing the state when starting
-              a new sequence or when no prior state information is available.
-
-        Example:
-            initial_state = sskernel.default_state(32, 10)
-            # Creates a default state tensor for a batch of 32 sequences,
-            # potentially with 10 independent dimensions (depending on the kernel)
-        """
         return self.kernel.default_state(*args, **kwargs)
 
 
 class S4(nn.Module):
-    """
-    Structured State Space Sequence (S4) model.
-
-    This class implements the S4 model, which combines a State Space Model (SSM)
-    with position-wise feedforward layers. S4 is designed for efficient and
-    effective modeling of long sequences.
-
-    The S4 module includes:
-    - An SSM kernel for sequence modeling
-    - Optional gating and bottleneck mechanisms
-    - Position-wise feedforward layers with various activation functions
-    - Support for bidirectional processing
-
-    The model can be configured with different SSM kernels (e.g., NPLR or diagonal)
-    and allows for extensive customization of its components and hyperparameters.
-    """
-
     def __init__(
         self,
         d_model,
@@ -2296,35 +1691,12 @@ class S4(nn.Module):
         )
 
     def forward(self, u, state=None, rate=1.0, lengths=None, **kwargs):
-        """
-            Forward pass of the S4 model.
+        """Forward pass.
 
-        This method applies the S4 transformation to the input sequence, including
-        the SSM convolution and feedforward layers.
+        u: (B H L) if self.transposed else (B L H)
+        state: (H N) never needed unless you know what you're doing
 
-        Args:
-            u (torch.Tensor): Input tensor of shape (B, H, L) if self.transposed else (B, L, H),
-                              where B is batch size, H is hidden size, and L is sequence length.
-            state (torch.Tensor, optional): Initial state for the SSM. Shape depends on the SSM configuration.
-            rate (float, optional): Sampling rate factor for the SSM. Defaults to 1.0.
-            lengths (torch.Tensor or int, optional): Actual lengths of sequences in the batch.
-                                                     Used for masking padded elements.
-            **kwargs: Additional keyword arguments passed to the SSM kernel.
-
-        Returns:
-            Tuple[torch.Tensor, Optional[torch.Tensor]]:
-                - Output tensor of the same shape as the input.
-                - Next state of the SSM if state argument was provided, else None.
-
-        Note:
-            - The method handles different axis orderings based on self.transposed.
-            - It applies sequence masking if lengths are provided.
-            - The SSM convolution is combined with skip connections and feedforward layers.
-            - Supports optional gating and bottleneck mechanisms if configured.
-
-        Example:
-            output, next_state = s4_model(input_sequence, state=initial_state, rate=0.5)
-            # Processes the input_sequence and returns the output along with the next state
+        Returns: same shape as u
         """
         if not self.transposed:
             u = u.transpose(-1, -2)
@@ -2407,58 +1779,16 @@ class S4(nn.Module):
         return y, next_state
 
     def setup_step(self, **kwargs):
-        """
-        Set up the S4 model for step-by-step inference.
-
-        This method prepares the S4 model for sequential processing, typically used
-        during inference or generation tasks. It initializes the underlying SSM kernel
-        for step-wise computation.
-
-        Args:
-            **kwargs: Arbitrary keyword arguments that will be passed to the
-                      SSM kernel's _setup_step method.
-
-        Note:
-            - This method should be called before using the step() method for
-              sequential processing.
-            - It configures the internal state of the SSM kernel for efficient
-              step-by-step computation.
-            - The exact behavior depends on the specific SSM kernel implementation.
-
-        Example:
-            s4_model.setup_step()
-            # Prepares the model for subsequent calls to s4_model.step()
-        """
+        self.kernel._setup_step(**kwargs)
 
     def step(self, u, state, **kwargs):
-        """
-            Perform a single step update of the S4 model.
+        """Step one time step as a recurrent model.
 
-        This method processes a single time step input, updating the model's state
-        and producing an output. It's designed for use in sequential processing
-        scenarios, typically during inference or generation.
+        Intended to be used during validation.
 
-        Args:
-            u (torch.Tensor): Input tensor for the current step. Shape should be (B, H)
-                              where B is the batch size and H is the hidden size.
-            state (torch.Tensor): Current state of the model. The shape depends on
-                                  the specific SSM kernel configuration.
-            **kwargs: Additional keyword arguments passed to the SSM kernel's step method.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - y (torch.Tensor): Output tensor for the current step, shape (B, H).
-                - next_state (torch.Tensor): Updated state tensor for use in the next step.
-
-        Note:
-            - This method assumes that setup_step() has been called beforehand.
-            - It applies the SSM kernel step, followed by activation and the output linear layer.
-            - The method is not intended for training, but for inference or generation.
-            - If configured, it applies gating mechanism to the output.
-
-        Example:
-            output, new_state = s4_model.step(input_step, current_state)
-            # Processes a single time step and returns the output and updated state
+        u: (B H)
+        state: (B H N)
+        Returns: output (B H), state (B H N)
         """
         assert not self.training
         y, next_state = self.kernel.step(u, state)  # (B C H)
@@ -2472,57 +1802,10 @@ class S4(nn.Module):
         return y, next_state
 
     def default_state(self, *batch_shape, device=None):
-        """
-            Create a default initial state for the S4 model.
-
-        This method generates a default state tensor appropriate for the S4 model's
-        SSM kernel. It's typically used to initialize the state at the beginning of
-        a sequence processing task.
-
-        Args:
-            *batch_shape: Variable length argument list specifying the batch dimensions
-                          of the state tensor.
-            device (torch.device, optional): The device on which to create the state tensor.
-                                             If None, uses the device of the model's parameters.
-
-        Returns:
-            torch.Tensor: A default state tensor. The shape and content of this tensor
-                          depend on the specific implementation of the underlying SSM kernel.
-
-        Note:
-            - The returned state is typically a zero-initialized tensor with dimensions
-              that match the SSM kernel's requirements.
-            - This method is useful when starting sequence processing without any prior state,
-              or when resetting the model's state.
-            - The device of the returned tensor will match the model's parameters if not specified.
-
-        Example:
-            initial_state = s4_model.default_state(32)
-            # Creates a default state tensor for a batch of 32 sequences
-        """
         # kernel is not a SequenceModule so it doesn't need to adhere to same interface
         # the kernel will know the device of its own parameters
         return self.kernel.default_state(*batch_shape)
 
     @property
     def d_output(self):
-        """
-            Get the output dimension of the S4 model.
-
-        This property returns the dimension of the output produced by the S4 model
-        for each time step.
-
-        Returns:
-            int: The output dimension, which is equal to the model's hidden dimension (d_model).
-
-        Note:
-            - This is typically used to determine the size of the model's output
-              for downstream tasks or for connecting to other layers.
-            - The output dimension is the same as the input dimension (d_model) in the
-              standard S4 configuration, maintaining the sequence's channel size.
-
-        Example:
-            output_size = s4_model.d_output
-            # Retrieves the output dimension of the S4 model
-        """
         return self.d_model

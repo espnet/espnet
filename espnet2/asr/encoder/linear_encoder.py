@@ -22,43 +22,16 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class LinearEncoder(AbsEncoder):
-    """
-        Linear encoder module for processing input sequences.
-
-    This class implements a linear encoder that can be used in various sequence processing tasks,
-    such as speech recognition or natural language processing. It supports different types of
-    input layers and can apply normalization and dropout to the input.
-
-    Attributes:
-        embed: The input embedding layer, which can be one of several types (linear, conv2d, etc.).
-        normalize_before: A boolean indicating whether to apply layer normalization before processing.
-        after_norm: A LayerNorm layer applied after processing if normalize_before is True.
+    """Linear encoder module.
 
     Args:
-        input_size (int): The dimensionality of the input features.
-        output_size (int, optional): The dimensionality of the output features. Defaults to 256.
-        dropout_rate (float, optional): The dropout rate to apply. Defaults to 0.1.
-        input_layer (str, optional): The type of input layer to use. Can be 'linear', 'conv2d',
-            'conv2d2', 'conv2d6', 'conv2d8', 'embed', or None. Defaults to 'conv2d'.
-        normalize_before (bool, optional): Whether to apply layer normalization before processing.
-            Defaults to True.
-        padding_idx (int, optional): The index used for padding in the embedding layer.
-            Only used when input_layer is 'embed'. Defaults to -1.
-
-    Raises:
-        ValueError: If an unknown input_layer type is specified.
-
-    Examples:
-        >>> encoder = LinearEncoder(input_size=80, output_size=256, input_layer='conv2d')
-        >>> input_tensor = torch.randn(32, 1000, 80)  # (batch_size, time_steps, features)
-        >>> input_lengths = torch.full((32,), 1000)
-        >>> output, output_lengths, _ = encoder(input_tensor, input_lengths)
-        >>> print(output.shape)
-        torch.Size([32, 250, 256])  # Time dimension is reduced due to conv2d subsampling
-
-    Note:
-        The actual behavior of the encoder depends on the chosen input_layer type.
-        Some input layers (like conv2d variants) may modify the sequence length.
+        input_size: input dim
+        output_size: dimension of attention
+        linear_units: the number of units of position-wise feed forward
+        dropout_rate: dropout rate
+        input_layer: input layer type
+        normalize_before: whether to use layer_norm before the first block
+        padding_idx: padding_idx for input_layer=embed
     """
 
     @typechecked
@@ -106,17 +79,6 @@ class LinearEncoder(AbsEncoder):
             self.after_norm = LayerNorm(output_size)
 
     def output_size(self) -> int:
-        """
-                Get the output size of the encoder.
-
-        Returns:
-            int: The dimensionality of the output features.
-
-        Example:
-            >>> encoder = LinearEncoder(input_size=80, output_size=256)
-            >>> print(encoder.output_size())
-            256
-        """
         return self._output_size
 
     def forward(
@@ -125,40 +87,14 @@ class LinearEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Forward pass of the LinearEncoder.
-
-        This method processes the input tensor through the encoder, applying the specified
-        input layer, normalization, and any other transformations defined in the encoder.
+        """Embed positions in tensor.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is the batch size,
-                L is the sequence length, and D is the input feature dimension.
-            ilens (torch.Tensor): Input lengths of each sequence in the batch, shape (B,).
-            prev_states (torch.Tensor, optional): Not used in this implementation. Defaults to None.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - xs_pad (torch.Tensor): Encoded output tensor of shape (B, L', D'),
-                  where L' is the potentially modified sequence length and D' is the output dimension.
-                - olens (torch.Tensor): Output lengths of each sequence in the batch, shape (B,).
-                - None: Placeholder for consistency with other encoder implementations.
-
-        Raises:
-            TooShortUttError: If the input sequence is too short for subsampling operations
-                when using certain input layers (e.g., Conv2dSubsampling variants).
-
-        Examples:
-            >>> encoder = LinearEncoder(input_size=80, output_size=256)
-            >>> xs_pad = torch.randn(32, 1000, 80)  # (batch_size, time_steps, features)
-            >>> ilens = torch.full((32,), 1000)
-            >>> output, olens, _ = encoder(xs_pad, ilens)
-            >>> print(output.shape, olens.shape)
-            torch.Size([32, 1000, 256]) torch.Size([32])
-
-        Note:
-            The actual output shape may vary depending on the input_layer type used in the encoder.
-            Some input layers (like conv2d variants) may reduce the sequence length.
+            position embedded tensor and mask
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

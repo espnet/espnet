@@ -51,40 +51,16 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class EBranchformerEncoderLayer(torch.nn.Module):
-    """
-        E-Branchformer encoder layer module.
-
-    This class implements a single layer of the E-Branchformer encoder, which combines
-    self-attention and convolutional gating MLP branches.
+    """E-Branchformer encoder layer module.
 
     Args:
-        size (int): Model dimension.
-        attn (torch.nn.Module): Self-attention module.
-        cgmlp (torch.nn.Module): Convolutional Gating MLP module.
-        feed_forward (Optional[torch.nn.Module]): Feed-forward module.
-        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style feed-forward module.
-        dropout_rate (float): Dropout probability.
-        merge_conv_kernel (int): Kernel size of the depth-wise conv in merge module. Defaults to 3.
-
-    Attributes:
-        size (int): Model dimension.
-        attn (torch.nn.Module): Self-attention module.
-        cgmlp (torch.nn.Module): Convolutional Gating MLP module.
-        feed_forward (Optional[torch.nn.Module]): Feed-forward module.
-        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style feed-forward module.
-        ff_scale (float): Scaling factor for feed-forward modules.
-        norm_ff (LayerNorm): Layer normalization for feed-forward module.
-        norm_ff_macaron (LayerNorm): Layer normalization for macaron-style feed-forward module.
-        norm_mha (LayerNorm): Layer normalization for multi-head attention module.
-        norm_mlp (LayerNorm): Layer normalization for MLP module.
-        norm_final (LayerNorm): Final layer normalization.
-        dropout (torch.nn.Dropout): Dropout layer.
-        depthwise_conv_fusion (torch.nn.Conv1d): Depth-wise convolution for branch fusion.
-        merge_proj (torch.nn.Linear): Linear projection for branch merging.
-
-    Note:
-        This implementation is based on the paper "E-Branchformer: Branchformer with
-        Enhanced merging for speech recognition" by Kim et al.
+        size (int): model dimension
+        attn: standard self-attention or efficient attention
+        cgmlp: ConvolutionalGatingMLP
+        feed_forward: feed-forward module, optional
+        feed_forward: macaron-style feed-forward module, optional
+        dropout_rate (float): dropout probability
+        merge_conv_kernel (int): kernel size of the depth-wise conv in merge module
     """
 
     def __init__(
@@ -130,31 +106,17 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         self.merge_proj = torch.nn.Linear(size + size, size)
 
     def forward(self, x_input, mask, cache=None):
-        """
-                Compute encoded features.
-
-        This method processes the input through the E-Branchformer encoder layer,
-        including self-attention and convolutional gating MLP branches.
+        """Compute encoded features.
 
         Args:
-            x_input (Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]): Input tensor w/ or w/o positional embedding.
+            x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
                 - w/o pos emb: Tensor (#batch, time, size).
             mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
-            cache (Optional[torch.Tensor]): Cache tensor of the input (#batch, time - 1, size). Defaults to None.
-
+            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
         Returns:
-            Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]: Output tensor or tuple of tensors.
-                - If input includes positional embedding: ((#batch, time, size), (1, time, size)).
-                - If input doesn't include positional embedding: (#batch, time, size).
-            torch.Tensor: Updated mask tensor (#batch, time).
-
-        Raises:
-            NotImplementedError: If cache is not None, which is currently not supported.
-
-        Note:
-            The method applies various transformations including feed-forward layers,
-            self-attention, convolutional gating MLP, and branch merging.
+            torch.Tensor: Output tensor (#batch, time, size).
+            torch.Tensor: Mask tensor (#batch, time).
         """
 
         if cache is not None:
@@ -220,53 +182,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
 
 class EBranchformerEncoder(AbsEncoder):
-    """
-        E-Branchformer encoder module.
-
-    This class implements the E-Branchformer encoder, which combines self-attention
-    and convolutional gating MLP in a branched structure for speech recognition tasks.
-
-    Args:
-        input_size (int): Dimension of input features.
-        output_size (int): Dimension of output features. Defaults to 256.
-        attention_heads (int): Number of attention heads. Defaults to 4.
-        attention_layer_type (str): Type of attention layer. Defaults to "rel_selfattn".
-        pos_enc_layer_type (str): Type of positional encoding layer. Defaults to "rel_pos".
-        rel_pos_type (str): Type of relative positional encoding. Defaults to "latest".
-        cgmlp_linear_units (int): Number of units in CGMLP linear layer. Defaults to 2048.
-        cgmlp_conv_kernel (int): Kernel size for CGMLP convolution. Defaults to 31.
-        use_linear_after_conv (bool): Whether to use linear layer after convolution. Defaults to False.
-        gate_activation (str): Activation function for the gate. Defaults to "identity".
-        num_blocks (int): Number of encoder blocks. Defaults to 12.
-        dropout_rate (float): Dropout rate. Defaults to 0.1.
-        positional_dropout_rate (float): Dropout rate for positional encoding. Defaults to 0.1.
-        attention_dropout_rate (float): Dropout rate for attention. Defaults to 0.0.
-        input_layer (Optional[str]): Type of input layer. Defaults to "conv2d".
-        zero_triu (bool): Whether to zero out the upper triangular part of attention matrix. Defaults to False.
-        padding_idx (int): Padding index for embedding layer. Defaults to -1.
-        layer_drop_rate (float): Layer dropout rate. Defaults to 0.0.
-        max_pos_emb_len (int): Maximum length for positional embedding. Defaults to 5000.
-        use_ffn (bool): Whether to use feed-forward network. Defaults to False.
-        macaron_ffn (bool): Whether to use macaron-style feed-forward network. Defaults to False.
-        ffn_activation_type (str): Activation function for feed-forward network. Defaults to "swish".
-        linear_units (int): Number of units in feed-forward network. Defaults to 2048.
-        positionwise_layer_type (str): Type of position-wise layer. Defaults to "linear".
-        merge_conv_kernel (int): Kernel size for merge convolution. Defaults to 3.
-        interctc_layer_idx (Optional[List[int]]): Indices of layers to apply intermediate CTC. Defaults to None.
-        interctc_use_conditioning (bool): Whether to use intermediate CTC for conditioning. Defaults to False.
-
-    Attributes:
-        embed (torch.nn.Module): Input embedding layer.
-        encoders (torch.nn.Module): Sequence of encoder layers.
-        after_norm (LayerNorm): Layer normalization after the encoder layers.
-        interctc_layer_idx (List[int]): Indices of layers to apply intermediate CTC.
-        interctc_use_conditioning (bool): Whether to use intermediate CTC for conditioning.
-        conditioning_layer (Optional[torch.nn.Module]): Conditioning layer for intermediate CTC.
-
-    Note:
-        This implementation is based on the paper "E-Branchformer: Branchformer with
-        Enhanced merging for speech recognition" by Kim et al.
-    """
+    """E-Branchformer encoder module."""
 
     @typechecked
     def __init__(
@@ -502,12 +418,6 @@ class EBranchformerEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
-        """
-                Get the output size of the encoder.
-
-        Returns:
-            int: The dimension of the encoder output.
-        """
         return self._output_size
 
     def forward(
@@ -518,30 +428,18 @@ class EBranchformerEncoder(AbsEncoder):
         ctc: CTC = None,
         max_layer: int = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Calculate forward propagation.
+        """Calculate forward propagation.
 
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not used in current implementation. Defaults to None.
-            ctc (CTC): Intermediate CTC module. Defaults to None.
-            max_layer (int): Maximum number of layers to process. Defaults to None.
-
+            prev_states (torch.Tensor): Not to be used now.
+            ctc (CTC): Intermediate CTC module.
+            max_layer (int): Layer depth below which InterCTC is applied.
         Returns:
-            Tuple[Union[torch.Tensor, Tuple[torch.Tensor, List[Tuple[int, torch.Tensor]]]], torch.Tensor, Optional[torch.Tensor]]:
-                - Output tensor (#batch, L, output_size) or tuple of output tensor and intermediate CTC outputs.
-                - Output length (#batch).
-                - None (placeholder for future use).
-
-        Raises:
-            TooShortUttError: If the input is too short for subsampling.
-
-        Note:
-            - If intermediate CTC is used, the output will be a tuple containing the final output
-              and a list of intermediate outputs with their corresponding layer indices.
-            - The third return value (None) is a placeholder for consistency with other encoders
-              and may be used in future implementations.
+            torch.Tensor: Output tensor (#batch, L, output_size).
+            torch.Tensor: Output length (#batch).
+            torch.Tensor: Not to be used now.
         """
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

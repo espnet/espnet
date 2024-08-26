@@ -16,38 +16,18 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 
 class AsteroidFrontend(AbsFrontend):
-    """
-        Asteroid Filterbank Frontend for audio feature extraction.
+    """Asteroid Filterbank Frontend.
 
-    This class implements a Sinc-convolutional-based audio feature extractor using the
-    Asteroid filterbank. It provides functionality similar to using a sliding window
-    frontend with a sinc preencoder.
+    Provides a Sinc-convolutional-based audio feature extractor. The same
+    function can be achieved by using `sliding_winodw frontend +
+    sinc preencoder`.
 
-    The frontend applies preemphasis, normalization, and frame-wise feature extraction
-    using parameterized analytic filterbanks as described in Pariente et al. (2020).
+    NOTE(jiatong): this function is used in sentence-level classification
+    tasks (e.g., spk). Other usages are not fully investigated.
 
-    Attributes:
-        sinc_filters (int): Number of filters for the sinc convolution.
-        sinc_kernel_size (int): Kernel size for the sinc convolution.
-        sinc_stride (int): Stride size for the first sinc-conv layer, determining
-            the compression rate (Hz).
-        output_dim (int): Output dimension of the feature extraction.
-
-    Note:
-        This frontend is primarily used in sentence-level classification tasks
-        (e.g., speaker recognition). Its effectiveness in other applications
-        has not been fully investigated.
-
-    Example:
-        >>> frontend = AsteroidFrontend(sinc_filters=256, sinc_kernel_size=251, sinc_stride=16)
-        >>> input_tensor = torch.randn(32, 16000)  # (batch_size, time)
-        >>> input_lengths = torch.full((32,), 16000)
-        >>> output, output_lengths = frontend(input_tensor, input_lengths)
-        >>> print(output.shape)  # (batch_size, time', features)
-
-    References:
-        M. Pariente, S. Cornell, A. Deleforge and E. Vincent,
-        "Filterbank design for end-to-end speech separation," in Proc. ICASSP, 2020
+    NOTE(jeeweon): this function implements the parameterized analytic
+    filterbank layer in M. Pariente, S. Cornell, A. Deleforge and E. Vincent,
+    "Filterbank design for end-to-end speech separation," in Proc. ICASSP, 2020
     """
 
     @typechecked
@@ -92,38 +72,14 @@ class AsteroidFrontend(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_length: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-                Apply the Asteroid filterbank frontend to the input audio.
-
-        This method processes the input audio through the Asteroid filterbank,
-        applying preemphasis, normalization, and frame-wise feature extraction.
+        """Apply the Asteroid filterbank frontend to the input.
 
         Args:
-            input (torch.Tensor): Input audio tensor of shape (B, T), where B is
-                the batch size and T is the number of time steps.
-            input_length (torch.Tensor): Tensor of shape (B,) containing the
-                original lengths of each sequence in the batch.
+            input: Input (B, T).
+            input_length: Input length (B,).
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - Frame-wise output features of shape (B, T', D), where T' is the
-                  number of frames and D is the number of features per frame.
-                - Updated input lengths after processing, of shape (B,).
-
-        Raises:
-            AssertionError: If the input tensor does not have exactly 2 dimensions.
-
-        Note:
-            The forward pass temporarily disables automatic mixed precision to
-            ensure consistent results.
-
-        Example:
-            >>> frontend = AsteroidFrontend(sinc_filters=256, sinc_kernel_size=251, sinc_stride=16)
-            >>> input_tensor = torch.randn(32, 16000)  # (batch_size, time)
-            >>> input_lengths = torch.full((32,), 16000)
-            >>> output, output_lengths = frontend.forward(input_tensor, input_lengths)
-            >>> print(output.shape)  # (batch_size, time', features)
-            >>> print(output_lengths.shape)  # (batch_size,)
+            Tensor: Frame-wise output (B, T', D).
         """
         # input check
         assert (
@@ -150,20 +106,5 @@ class AsteroidFrontend(AbsFrontend):
         return x.permute(0, 2, 1), input_length
 
     def output_size(self) -> int:
-        """
-                Return the output size of the feature dimension.
-
-        This method returns the number of features in the output of the
-        Asteroid filterbank frontend, which is equal to the number of
-        sinc filters used in the convolutional layer.
-
-        Returns:
-            int: The number of features in the output, corresponding to
-            the number of sinc filters.
-
-        Example:
-            >>> frontend = AsteroidFrontend(sinc_filters=256)
-            >>> output_dim = frontend.output_size()
-            >>> print(output_dim)  # 256
-        """
+        """Return output length of feature dimension D."""
         return self.sinc_filters

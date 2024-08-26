@@ -35,35 +35,7 @@ else:
 
 
 class ESPnetASRModel(AbsESPnetModel):
-    """
-        CTC-attention hybrid Encoder-Decoder model for Automatic Speech Recognition (ASR).
-
-    This class implements a hybrid model that combines CTC (Connectionist Temporal Classification)
-    and attention-based approaches for ASR. It supports both regular attention decoder and
-    transducer decoder architectures.
-
-    The model consists of several components:
-    - Frontend processing (optional)
-    - SpecAugment for data augmentation (optional)
-    - Normalization (optional)
-    - Pre-encoder (optional)
-    - Encoder
-    - Post-encoder (optional)
-    - Decoder (attention-based or transducer-based)
-    - CTC module
-    - Joint network (for transducer architecture)
-
-    It can be used for various ASR tasks and supports features such as:
-    - CTC/Attention multi-task learning
-    - Intermediate CTC
-    - Transducer decoding
-    - Multi-blank transducer
-    - Auxiliary CTC tasks
-    - Multilingual ASR with language token
-
-    The model calculates losses for CTC, attention, and/or transducer components,
-    and provides error rates (CER/WER) during evaluation.
-    """
+    """CTC-attention hybrid Encoder-Decoder model"""
 
     @typechecked
     def __init__(
@@ -237,33 +209,14 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """
-                Frontend + Encoder + Decoder + Calc loss
+        """Frontend + Encoder + Decoder + Calc loss
 
         Args:
-            speech (torch.Tensor): Input speech tensor (Batch, Length, ...).
-            speech_lengths (torch.Tensor): Speech length tensor (Batch, ).
-            text (torch.Tensor): Text tensor (Batch, Length).
-            text_lengths (torch.Tensor): Text length tensor (Batch,).
-            kwargs: Additional keyword arguments. "utt_id" is among the input.
-
-        Returns:
-            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-                - Loss tensor
-                - Dictionary containing various statistics and metrics:
-                    - loss_ctc: CTC loss (if applicable)
-                    - loss_att: Attention loss (if applicable)
-                    - loss_transducer: Transducer loss (if applicable)
-                    - acc: Attention accuracy
-                    - cer: Character Error Rate
-                    - wer: Word Error Rate
-                    - loss: Total loss
-                - Batch size as a weight tensor
-
-        Note:
-            The method expects input tensors to have consistent batch sizes across all inputs.
-            It supports CTC, attention, and transducer-based loss calculations depending on the model configuration.
-            Intermediate CTC loss is also calculated if the interctc_weight is non-zero.
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch, )
+            text: (Batch, Length)
+            text_lengths: (Batch,)
+            kwargs: "utt_id" is among the input.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -408,56 +361,17 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """
-                Collect features for the input speech.
-
-        This method extracts features from the input speech using the model's feature extractor.
-
-        Args:
-            speech (torch.Tensor): Input speech tensor (Batch, Length, ...).
-            speech_lengths (torch.Tensor): Speech length tensor (Batch, ).
-            text (torch.Tensor): Text tensor (Batch, Length).
-            text_lengths (torch.Tensor): Text length tensor (Batch,).
-            kwargs: Additional keyword arguments.
-
-        Returns:
-            Dict[str, torch.Tensor]: A dictionary containing:
-                - "feats": Extracted features tensor.
-                - "feats_lengths": Lengths of the extracted features.
-
-        Note:
-            This method is typically used for feature extraction during data preparation or analysis.
-            It does not perform any encoding or decoding operations.
-        """
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-                Encode speech features into a latent representation.
-
-        This method performs the following steps:
-        1. Extract features from the input speech
-        2. Apply data augmentation (if SpecAugment is enabled and in training mode)
-        3. Normalize the features (if normalization is enabled)
-        4. Apply pre-encoding (if a pre-encoder is defined)
-        5. Encode the features using the main encoder
-        6. Apply post-encoding (if a post-encoder is defined)
+        """Frontend + Encoder. Note that this method is used by asr_inference.py
 
         Args:
-            speech (torch.Tensor): Input speech tensor (Batch, Length, ...).
-            speech_lengths (torch.Tensor): Speech length tensor (Batch, ).
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - Encoded speech tensor (Batch, Length2, Dim2).
-                - Encoded speech lengths tensor (Batch, ).
-
-        Note:
-            This method is used by asr_inference.py and is a key component of the ASR pipeline.
-            It handles the entire encoding process from raw input to encoder output.
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch, )
         """
         with autocast(False):
             # 1. Extract feats
@@ -541,25 +455,15 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
-        """
-                Compute negative log likelihood (nll) from transformer-decoder.
+        """Compute negative log likelihood(nll) from transformer-decoder
 
-        This method calculates the negative log likelihood for the given encoder output
-        and target sequences using the transformer decoder.
+        Normally, this function is called in batchify_nll.
 
         Args:
-            encoder_out (torch.Tensor): Encoder output tensor (Batch, Length, Dim).
-            encoder_out_lens (torch.Tensor): Encoder output length tensor (Batch,).
-            ys_pad (torch.Tensor): Padded target sequence tensor (Batch, Length).
-            ys_pad_lens (torch.Tensor): Target sequence length tensor (Batch,).
-
-        Returns:
-            torch.Tensor: Negative log likelihood tensor (Batch,).
-
-        Note:
-            This function is typically called within the batchify_nll method.
-            It adds start-of-sequence (sos) and end-of-sequence (eos) tokens to the target sequence,
-            forwards the input through the decoder, and computes the cross-entropy loss.
+            encoder_out: (Batch, Length, Dim)
+            encoder_out_lens: (Batch,)
+            ys_pad: (Batch, Length)
+            ys_pad_lens: (Batch,)
         """
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
@@ -590,27 +494,18 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
         batch_size: int = 100,
     ):
-        """
-                Compute negative log likelihood (nll) from transformer-decoder in batches.
+        """Compute negative log likelihood(nll) from transformer-decoder
 
-        This method calculates the negative log likelihood for the given encoder output
-        and target sequences using the transformer decoder, processing the input in batches
-        to avoid potential out-of-memory (OOM) issues.
-
+        To avoid OOM, this fuction seperate the input into batches.
+        Then call nll for each batch and combine and return results.
         Args:
-            encoder_out (torch.Tensor): Encoder output tensor (Batch, Length, Dim).
-            encoder_out_lens (torch.Tensor): Encoder output length tensor (Batch,).
-            ys_pad (torch.Tensor): Padded target sequence tensor (Batch, Length).
-            ys_pad_lens (torch.Tensor): Target sequence length tensor (Batch,).
-            batch_size (int, optional): Number of samples to process in each batch. Defaults to 100.
-
-        Returns:
-            torch.Tensor: Negative log likelihood tensor (Batch,).
-
-        Note:
-            This method is designed to handle large inputs by splitting them into smaller batches.
-            It calls the nll method for each batch and combines the results.
-            Adjust the batch_size parameter to optimize memory usage and processing speed.
+            encoder_out: (Batch, Length, Dim)
+            encoder_out_lens: (Batch,)
+            ys_pad: (Batch, Length)
+            ys_pad_lens: (Batch,)
+            batch_size: int, samples each batch contain when computing nll,
+                        you may change this to avoid OOM or increase
+                        GPU memory usage
         """
         total_num = encoder_out.size(0)
         if total_num <= batch_size:

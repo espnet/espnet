@@ -12,40 +12,7 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlFrontend(AbsFrontend):
-    """
-        Speech Pretrained Representation frontend structure for ASR.
-
-    This class implements a frontend for Automatic Speech Recognition (ASR) using
-    pretrained speech representations from the S3PRL toolkit. It supports various
-    upstream models and allows for flexible configuration of the frontend.
-
-    Attributes:
-        frontend_type (str): Type of the frontend, set to "s3prl".
-        hop_length (int): The hop length (downsampling rate) of the featurizer.
-        tile_factor (int): Factor by which to tile the output representations.
-        multilayer_feature (bool): Whether to use multilayer features or not.
-        layer (int): Specific layer to use from the upstream model (-1 for last layer).
-
-    Args:
-        fs (Union[int, str]): Sampling frequency of the input audio. Defaults to 16000.
-        frontend_conf (Optional[dict]): Configuration for the frontend. Defaults to None.
-        download_dir (Optional[str]): Directory to download S3PRL models. Defaults to None.
-        multilayer_feature (bool): Whether to use multilayer features. Defaults to False.
-        layer (int): Specific layer to use from the upstream model. Defaults to -1.
-
-    Raises:
-        Exception: If S3PRL is not properly installed.
-
-    Note:
-        - All upstream models in S3PRL currently only support 16 kHz audio.
-        - When a specific layer is selected, multilayer_feature will be deactivated.
-
-    Examples:
-        >>> frontend = S3prlFrontend(fs=16000, frontend_conf={'upstream': 'wav2vec2'})
-        >>> input_tensor = torch.randn(1, 16000)
-        >>> input_lengths = torch.tensor([16000])
-        >>> feats, feats_lens = frontend(input_tensor, input_lengths)
-    """
+    """Speech Pretrained Representation frontend structure for ASR."""
 
     @typechecked
     def __init__(
@@ -124,53 +91,11 @@ class S3prlFrontend(AbsFrontend):
         return tiled_feature
 
     def output_size(self) -> int:
-        """
-                Returns the output size of the frontend.
-
-        This method provides the dimensionality of the feature vectors produced by the frontend.
-
-        Returns:
-            int: The size of the output feature vectors.
-
-        Example:
-            >>> frontend = S3prlFrontend(fs=16000, frontend_conf={'upstream': 'wav2vec2'})
-            >>> output_dim = frontend.output_size()
-            >>> print(output_dim)
-            768  # Example output, actual value may vary depending on the upstream model
-        """
         return self.featurizer.output_size
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-                Processes the input audio and returns the extracted features.
-
-        This method takes the input audio tensor and its corresponding lengths, passes it through
-        the S3PRL upstream model and featurizer, and returns the extracted features.
-
-        Args:
-            input (torch.Tensor): Input audio tensor of shape (batch_size, num_samples).
-            input_lengths (torch.Tensor): Lengths of each audio in the batch of shape (batch_size,).
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - feats (torch.Tensor): Extracted features of shape (batch_size, num_frames, feature_dim).
-                - feats_lens (torch.Tensor): Lengths of each feature sequence in the batch of shape (batch_size,).
-
-        Note:
-            - If a specific layer is selected (self.layer != -1), only features from that layer are returned.
-            - If multilayer_feature is True, features from multiple layers are combined.
-            - If tile_factor is not 1, the output features are tiled accordingly.
-
-        Example:
-            >>> frontend = S3prlFrontend(fs=16000, frontend_conf={'upstream': 'wav2vec2'})
-            >>> input_tensor = torch.randn(2, 16000)  # 2 audio samples of 1 second each
-            >>> input_lengths = torch.tensor([16000, 16000])
-            >>> feats, feats_lens = frontend(input_tensor, input_lengths)
-            >>> print(feats.shape)
-            torch.Size([2, 50, 768])  # Example output, actual shape may vary
-        """
         feats, feats_lens = self.upstream(input, input_lengths)
         if self.layer != -1:
             layer = self.layer
@@ -188,20 +113,5 @@ class S3prlFrontend(AbsFrontend):
         return feats, feats_lens
 
     def reload_pretrained_parameters(self):
-        """
-                Reloads the pretrained parameters of the S3PRL frontend model.
-
-        This method restores the original pretrained parameters of the upstream S3PRL model,
-        effectively resetting any fine-tuning or modifications made to the model weights.
-
-        Note:
-            This method is useful when you want to reset the model to its initial pretrained state,
-            for example, after fine-tuning or experimenting with the model parameters.
-
-        Example:
-            >>> frontend = S3prlFrontend(fs=16000, frontend_conf={'upstream': 'wav2vec2'})
-            >>> # After some operations or fine-tuning
-            >>> frontend.reload_pretrained_parameters()
-            >>> print("Pretrained S3PRL frontend model parameters reloaded!")
-        """
+        self.upstream.load_state_dict(self.pretrained_params)
         logging.info("Pretrained S3PRL frontend model parameters reloaded!")

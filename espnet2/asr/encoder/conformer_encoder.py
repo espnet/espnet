@@ -50,31 +50,38 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class ConformerEncoder(AbsEncoder):
-    """
-        Conformer encoder module.
+    """Conformer encoder module.
 
-    This class implements the Conformer encoder, which combines self-attention and
-    convolution to model both global and local dependencies of an input sequence.
-    It is designed for speech recognition tasks and can be used as a powerful
-    feature extractor in various speech processing applications.
+    Args:
+        input_size (int): Input dimension.
+        output_size (int): Dimension of attention.
+        attention_heads (int): The number of heads of multi head attention.
+        linear_units (int): The number of units of position-wise feed forward.
+        num_blocks (int): The number of decoder blocks.
+        dropout_rate (float): Dropout rate.
+        attention_dropout_rate (float): Dropout rate in attention.
+        positional_dropout_rate (float): Dropout rate after adding positional encoding.
+        input_layer (Union[str, torch.nn.Module]): Input layer type.
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            If True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            If False, no additional linear will be applied. i.e. x -> x + att(x)
+        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
+        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
+        rel_pos_type (str): Whether to use the latest relative positional encoding or
+            the legacy one. The legacy relative positional encoding will be deprecated
+            in the future. More Details can be found in
+            https://github.com/espnet/espnet/pull/2816.
+        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
+        encoder_attn_layer_type (str): Encoder attention layer type.
+        activation_type (str): Encoder activation function type.
+        macaron_style (bool): Whether to use macaron style for positionwise layer.
+        use_cnn_module (bool): Whether to use convolution module.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
+        cnn_module_kernel (int): Kernerl size of convolution module.
+        padding_idx (int): Padding idx for input_layer=embed.
 
-    The Conformer architecture integrates components from Transformers and
-    Convolutional Neural Networks (CNNs) to capture both long-range and local
-    dependencies in the input signal. It includes multi-headed self-attention
-    mechanisms, convolution modules, and feed-forward layers, along with
-    various normalization and regularization techniques.
-
-    Key features of the ConformerEncoder include:
-    - Flexible input layer options (linear, conv2d, embed)
-    - Configurable number of encoder blocks
-    - Support for relative or absolute positional encodings
-    - Macaron-style feed-forward layers
-    - Optional convolution module in each block
-    - Stochastic depth and layer drop for regularization
-    - Intermediate CTC (Connectionist Temporal Classification) integration
-
-    The encoder can be customized through numerous parameters to adapt to
-    different input sizes, model capacities, and specific task requirements.
     """
 
     @typechecked
@@ -294,16 +301,6 @@ class ConformerEncoder(AbsEncoder):
         self.ctc_trim = ctc_trim
 
     def output_size(self) -> int:
-        """
-                Returns the output size of the encoder.
-
-        Returns:
-            int: The dimension of the encoder output.
-
-        Note:
-            This method returns the value of the internal `_output_size` attribute,
-            which is typically set during the initialization of the encoder.
-        """
         return self._output_size
 
     def forward(
@@ -314,34 +311,20 @@ class ConformerEncoder(AbsEncoder):
         ctc: CTC = None,
         return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Calculate forward propagation.
+        """Calculate forward propagation.
 
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor, optional): Not used in current implementation.
-            ctc (CTC, optional): CTC module for intermediate CTC loss.
-            return_all_hs (bool, optional): Whether to return all hidden states.
+            prev_states (torch.Tensor): Not to be used now.
+            ctc (CTC): ctc module for intermediate CTC loss
+            return_all_hs (bool): whether to return all hidden states
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - torch.Tensor: Output tensor (#batch, L, output_size).
-                - torch.Tensor: Output length (#batch).
-                - Optional[torch.Tensor]: Not used in current implementation.
+            torch.Tensor: Output tensor (#batch, L, output_size).
+            torch.Tensor: Output length (#batch).
+            torch.Tensor: Not to be used now.
 
-        Raises:
-            TooShortUttError: If the input is too short for subsampling.
-
-        Note:
-            If intermediate CTC is used, the output tensor will be a tuple containing
-            the final output and a list of intermediate outputs.
-
-        Examples:
-            >>> encoder = ConformerEncoder(input_size=80, output_size=256)
-            >>> x = torch.randn(2, 100, 80)
-            >>> ilens = torch.tensor([100, 80])
-            >>> output, out_lens, _ = encoder(x, ilens)
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

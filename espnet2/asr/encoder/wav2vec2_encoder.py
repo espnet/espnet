@@ -18,38 +18,16 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class FairSeqWav2Vec2Encoder(AbsEncoder):
-    """
-    FairSeq Wav2Vec2 encoder module.
-
-    This class implements an encoder based on the Wav2Vec2.0 model from FairSeq.
-    It can load pre-trained Wav2Vec2.0 models and use them as feature extractors
-    for speech recognition tasks. The encoder allows for fine-tuning of the
-    Wav2Vec2.0 model and provides options for output dimensionality adjustment.
-
-    Attributes:
-        encoders (fairseq.models.wav2vec.wav2vec2.Wav2Vec2Model): The Wav2Vec2 model.
-        output_layer (torch.nn.Sequential): Optional layer for output dimension adjustment.
-        after_norm (espnet.nets.pytorch_backend.transformer.layer_norm.LayerNorm): Optional layer normalization.
+    """FairSeq Wav2Vec2 encoder module.
 
     Args:
-        input_size (int): Input dimension (not used in the current implementation).
-        w2v_url (str): URL to the Wav2Vec2.0 pretrained model.
-        w2v_dir_path (str, optional): Directory to download the Wav2Vec2.0 pretrained model. Defaults to "./".
-        output_size (int, optional): Dimension of the output. Defaults to 256.
-        normalize_before (bool, optional): Whether to use layer normalization before the first block. Defaults to False.
-        freeze_finetune_updates (int, optional): Number of updates to freeze the model before fine-tuning. Defaults to 0.
-
-    Note:
-        This class requires FairSeq to be installed. If not installed, it will raise an ImportError
-        with instructions on how to install FairSeq.
-
-    Examples:
-        >>> encoder = FairSeqWav2Vec2Encoder(input_size=80, w2v_url="https://example.com/wav2vec_model.pt")
-        >>> input_tensor = torch.randn(32, 1000, 80)  # (batch_size, time_steps, features)
-        >>> input_lengths = torch.full((32,), 1000)
-        >>> output, output_lengths, _ = encoder(input_tensor, input_lengths)
-        >>> print(output.shape)
-        torch.Size([32, 1000, 256])
+        input_size: input dim
+        output_size: dimension of attention
+        w2v_url: url to Wav2Vec2.0 pretrained model
+        w2v_dir_path: directory to download the Wav2Vec2.0 pretrained model.
+        normalize_before: whether to use layer_norm before the first block
+        finetune_last_n_layers: last n layers to be finetuned in Wav2Vec2.0
+                                0 means to finetune every layer if freeze_w2v=False.
     """
 
     @typechecked
@@ -115,21 +93,6 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         self.register_buffer("num_updates", torch.LongTensor([0]))
 
     def output_size(self) -> int:
-        """
-            Get the output size of the encoder.
-
-        Returns:
-            int: The size of the output tensor along the feature dimension.
-
-        Note:
-            This method returns the value of the `_output_size` attribute,
-            which is set during the initialization of the encoder.
-
-        Examples:
-            >>> encoder = FairSeqWav2Vec2Encoder(input_size=80, w2v_url="https://example.com/wav2vec_model.pt", output_size=512)
-            >>> print(encoder.output_size())
-            512
-        """
         return self._output_size
 
     def forward(
@@ -138,38 +101,14 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-            Forward pass of the FairSeqWav2Vec2 Encoder.
-
-        This method processes the input tensor through the Wav2Vec2 model and optional output layer.
+        """Forward FairSeqWav2Vec2 Encoder.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is the batch size,
-                                   L is the sequence length, and D is the input dimension.
-            ilens (torch.Tensor): Input lengths of shape (B,) representing the valid length
-                                  of each sequence in the batch.
-            prev_states (torch.Tensor, optional): Not used in the current implementation. Defaults to None.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - torch.Tensor: Output tensor of shape (B, T, C), where T is the output sequence length
-                                and C is the output dimension.
-                - torch.Tensor: Output lengths of shape (B,) representing the valid length of each
-                                output sequence in the batch.
-                - Optional[torch.Tensor]: Always None in the current implementation.
-
-        Note:
-            - The method handles the freezing and unfreezing of parameters based on the
-              `freeze_finetune_updates` attribute.
-            - If `normalize_before` is True, layer normalization is applied to the output.
-
-        Examples:
-            >>> encoder = FairSeqWav2Vec2Encoder(input_size=80, w2v_url="https://example.com/wav2vec_model.pt")
-            >>> input_tensor = torch.randn(32, 1000, 80)  # (batch_size, time_steps, features)
-            >>> input_lengths = torch.full((32,), 1000)
-            >>> output, output_lengths, _ = encoder(input_tensor, input_lengths)
-            >>> print(output.shape, output_lengths.shape)
-            torch.Size([32, 1000, 256]) torch.Size([32])
+            position embedded tensor and mask
         """
         masks = make_pad_mask(ilens).to(xs_pad.device)
 
@@ -205,56 +144,12 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         return xs_pad, olens, None
 
     def reload_pretrained_parameters(self):
-        """
-            Reload the pretrained parameters of the Wav2Vec model.
-
-        This method resets the encoder's parameters to their original pretrained values.
-        It's useful when you want to start from the initial pretrained state after
-        fine-tuning or other modifications to the model.
-
-        Note:
-            This method uses the `pretrained_params` attribute, which is a deep copy
-            of the initial model state dictionary created during the encoder's initialization.
-
-        Examples:
-            >>> encoder = FairSeqWav2Vec2Encoder(input_size=80, w2v_url="https://example.com/wav2vec_model.pt")
-            >>> # After some fine-tuning or parameter updates
-            >>> encoder.reload_pretrained_parameters()
-            >>> print("Pretrained Wav2Vec model parameters reloaded!")
-        """
+        self.encoders.load_state_dict(self.pretrained_params)
         logging.info("Pretrained Wav2Vec model parameters reloaded!")
 
 
 def download_w2v(model_url, dir_path):
-    """
-    Download the Wav2Vec model and its dictionary.
-
-    This function downloads the Wav2Vec model and its corresponding dictionary
-    if they don't already exist in the specified directory. It uses FileLock
-    to ensure thread-safe downloads.
-
-    Args:
-        model_url (str): The URL of the Wav2Vec model to download.
-        dir_path (str): The directory path where the model and dictionary
-            should be saved.
-
-    Returns:
-        str: The local file path of the downloaded Wav2Vec model.
-
-    Raises:
-        OSError: If there are issues creating the directory or downloading files.
-
-    Examples:
-        >>> model_url = "https://example.com/wav2vec_model.pt"
-        >>> dir_path = "./models"
-        >>> local_model_path = download_w2v(model_url, dir_path)
-        >>> print(local_model_path)
-        './models/wav2vec_model.pt'
-
-    Note:
-        This function also downloads a dictionary file from a hardcoded URL:
-        'https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt'
-    """
+    os.makedirs(dir_path, exist_ok=True)
 
     model_name = model_url.split("/")[-1]
     model_path = os.path.join(dir_path, model_name)

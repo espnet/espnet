@@ -30,17 +30,36 @@ from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
 
 
 class ContextualBlockTransformerEncoder(AbsEncoder):
-    """
-        Contextual Block Transformer encoder module.
+    """Contextual Block Transformer encoder module.
 
-    This class implements the Contextual Block Transformer encoder as described in
-    Tsunoo et al. "Transformer ASR with contextual block processing"
-    (https://arxiv.org/abs/1910.07204). It processes input in blocks for efficient
-    streaming ASR and long-form audio processing.
+    Details in Tsunoo et al. "Transformer ASR with contextual block processing"
+    (https://arxiv.org/abs/1910.07204)
 
-    The encoder uses a combination of self-attention mechanisms and feed-forward
-    networks, with the addition of contextual block processing to handle long
-    sequences efficiently.
+    Args:
+        input_size: input dim
+        output_size: dimension of attention
+        attention_heads: the number of heads of multi head attention
+        linear_units: the number of units of position-wise feed forward
+        num_blocks: the number of encoder blocks
+        dropout_rate: dropout rate
+        attention_dropout_rate: dropout rate in attention
+        positional_dropout_rate: dropout rate after adding positional encoding
+        input_layer: input layer type
+        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+        normalize_before: whether to use layer_norm before the first block
+        concat_after: whether to concat attention layer's input and output
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied.
+            i.e. x -> x + att(x)
+        positionwise_layer_type: linear of conv1d
+        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
+        padding_idx: padding_idx for input_layer=embed
+        block_size: block size for contextual block processing
+        hop_Size: hop size for block processing
+        look_ahead: look-ahead size for block_processing
+        init_average: whether to use average as initial context (otherwise max values)
+        ctx_pos_enc: whether to use positional encoding to the context vectors
     """
 
     @typechecked
@@ -160,12 +179,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         self.ctx_pos_enc = ctx_pos_enc
 
     def output_size(self) -> int:
-        """
-                Return the output size of the encoder.
-
-        Returns:
-            int: The dimension of the output features.
-        """
         return self._output_size
 
     def forward(
@@ -176,24 +189,17 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         is_final=True,
         infer_mode=False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Process the input tensor and return the encoded output.
-
-        This method handles both training and inference modes. For inference,
-        it uses block processing to handle streaming input efficiently.
+        """Embed positions in tensor.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, L, D)
-            ilens (torch.Tensor): Input length (B)
-            prev_states (torch.Tensor, optional): Previous states for streaming inference. Defaults to None.
-            is_final (bool, optional): Whether this is the final block in streaming inference. Defaults to True.
-            infer_mode (bool, optional): Whether to use inference mode. Defaults to False.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
+            infer_mode: whether to be used for inference. This is used to
+                distinguish between forward_train (train and validate) and
+                forward_infer (decode).
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - Encoded output tensor
-                - Output lengths
-                - Optional next states for streaming inference
+            position embedded tensor and mask
         """
         if self.training or not infer_mode:
             return self.forward_train(xs_pad, ilens, prev_states)
@@ -206,22 +212,14 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Process the input tensor for training or validation.
-
-        This method applies the full contextual block transformer encoding process
-        to the input, suitable for training and validation phases.
+        """Embed positions in tensor.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, L, D)
-            ilens (torch.Tensor): Input length (B)
-            prev_states (torch.Tensor, optional): Not used in training mode. Defaults to None.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - Encoded output tensor
-                - Output lengths
-                - None (no states are returned in training mode)
+            position embedded tensor and mask
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
@@ -369,24 +367,14 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         is_final: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Process the input tensor for inference in streaming mode.
-
-        This method applies the contextual block transformer encoding process
-        to the input, optimized for streaming inference. It handles partial inputs
-        and maintains state between calls for continuous processing.
+        """Embed positions in tensor.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, L, D)
-            ilens (torch.Tensor): Input length (B)
-            prev_states (torch.Tensor, optional): Previous states from the last call. Defaults to None.
-            is_final (bool, optional): Whether this is the final block in the stream. Defaults to True.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - Encoded output tensor
-                - None (output lengths are not computed in inference mode)
-                - Next states to be used in the subsequent call, or None if is_final is True
+            position embedded tensor and mask
         """
         if prev_states is None:
             prev_addin = None

@@ -35,53 +35,46 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class LongformerEncoder(ConformerEncoder):
-    """
-        Longformer SA Conformer encoder module.
-
-    This class implements a Longformer Self-Attention Conformer encoder, which extends the
-    ConformerEncoder to handle longer sequences efficiently using the Longformer attention mechanism.
+    """Longformer SA Conformer encoder module.
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimension of attention. Defaults to 256.
-        attention_heads (int): The number of heads of multi head attention. Defaults to 4.
-        linear_units (int): The number of units of position-wise feed forward. Defaults to 2048.
-        num_blocks (int): The number of encoder blocks. Defaults to 6.
-        dropout_rate (float): Dropout rate. Defaults to 0.1.
-        positional_dropout_rate (float): Dropout rate after adding positional encoding. Defaults to 0.1.
-        attention_dropout_rate (float): Dropout rate in attention. Defaults to 0.0.
-        input_layer (str): Input layer type. Defaults to "conv2d".
-        normalize_before (bool): Whether to use layer_norm before the first block. Defaults to True.
-        concat_after (bool): Whether to concat attention layer's input and output. Defaults to False.
-        positionwise_layer_type (str): Type of positionwise layer. Defaults to "linear".
-        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer. Defaults to 3.
-        macaron_style (bool): Whether to use macaron style for positionwise layer. Defaults to False.
-        rel_pos_type (str): Type of relative positional encoding. Defaults to "legacy".
-        pos_enc_layer_type (str): Encoder positional encoding layer type. Defaults to "abs_pos".
-        selfattention_layer_type (str): Encoder attention layer type. Defaults to "lf_selfattn".
-        activation_type (str): Encoder activation function type. Defaults to "swish".
-        use_cnn_module (bool): Whether to use convolution module. Defaults to True.
-        zero_triu (bool): Whether to zero the upper triangular part of attention matrix. Defaults to False.
-        cnn_module_kernel (int): Kernel size of convolution module. Defaults to 31.
-        padding_idx (int): Padding idx for input_layer=embed. Defaults to -1.
-        interctc_layer_idx (List[int]): Layer indices for intermediate CTC. Defaults to [].
-        interctc_use_conditioning (bool): Whether to use intermediate CTC predictions for conditioning. Defaults to False.
-        attention_windows (list): Layer-wise attention window sizes for longformer self-attn. Defaults to [100, 100, 100, 100, 100, 100].
-        attention_dilation (list): Layer-wise attention dilation sizes for longformer self-attn. Defaults to [1, 1, 1, 1, 1, 1].
-        attention_mode (str): Implementation for longformer self-attn. Defaults to "sliding_chunks".
+        output_size (int): Dimension of attention.
+        attention_heads (int): The number of heads of multi head attention.
+        linear_units (int): The number of units of position-wise feed forward.
+        num_blocks (int): The number of decoder blocks.
+        dropout_rate (float): Dropout rate.
+        attention_dropout_rate (float): Dropout rate in attention.
+        positional_dropout_rate (float): Dropout rate after adding positional encoding.
+        input_layer (Union[str, torch.nn.Module]): Input layer type.
+        normalize_before (bool): Whether to use layer_norm before the first block.
+        concat_after (bool): Whether to concat attention layer's input and output.
+            If True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            If False, no additional linear will be applied. i.e. x -> x + att(x)
+        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
+        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
+        rel_pos_type (str): Whether to use the latest relative positional encoding or
+            the legacy one. The legacy relative positional encoding will be deprecated
+            in the future. More Details can be found in
+            https://github.com/espnet/espnet/pull/2816.
+        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
+        encoder_attn_layer_type (str): Encoder attention layer type.
+        activation_type (str): Encoder activation function type.
+        macaron_style (bool): Whether to use macaron style for positionwise layer.
+        use_cnn_module (bool): Whether to use convolution module.
+        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
+        cnn_module_kernel (int): Kernerl size of convolution module.
+        padding_idx (int): Padding idx for input_layer=embed.
+        attention_windows (list): Layer-wise attention window sizes
+            for longformer self-attn
+        attention_dilation(list): Layer-wise attention dilation sizes
+            for longformer self-attn
+        attention_mode(str): Implementation for longformer self-attn.
+            Default="sliding_chunks"
+            Choose 'n2', 'tvm' or 'sliding_chunks'. More details in
+            https://github.com/allenai/longformer
 
-    Attributes:
-        embed (torch.nn.Module): Input embedding layer.
-        encoders (torch.nn.Module): Encoder layers.
-        after_norm (torch.nn.Module): Layer normalization applied after the encoder layers.
-        interctc_layer_idx (List[int]): Layer indices for intermediate CTC.
-        interctc_use_conditioning (bool): Whether to use intermediate CTC predictions for conditioning.
-        conditioning_layer (torch.nn.Module): Conditioning layer for intermediate CTC.
-
-    Note:
-        The Longformer attention mechanism allows for efficient processing of long sequences
-        by using a combination of local and global attention patterns. This implementation
-        supports different attention modes, window sizes, and dilation rates for each layer.
     """
 
     @typechecked
@@ -293,12 +286,6 @@ class LongformerEncoder(ConformerEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
-        """
-                Returns the output size of the encoder.
-
-        Returns:
-            int: The dimension of the encoder output.
-        """
         return self._output_size
 
     def forward(
@@ -309,30 +296,20 @@ class LongformerEncoder(ConformerEncoder):
         ctc: CTC = None,
         return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Calculate forward propagation.
+        """Calculate forward propagation.
 
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor, optional): Not used in current implementation. Defaults to None.
-            ctc (CTC, optional): CTC module for intermediate CTC loss. Defaults to None.
-            return_all_hs (bool, optional): Whether to return all hidden states. Defaults to False.
+            prev_states (torch.Tensor): Not to be used now.
+            ctc (CTC): ctc module for intermediate CTC loss
+            return_all_hs (bool): whether to return all hidden states
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - torch.Tensor: Output tensor (#batch, L, output_size).
-                - torch.Tensor: Output length (#batch).
-                - torch.Tensor: Not used in current implementation (always None).
+            torch.Tensor: Output tensor (#batch, L, output_size).
+            torch.Tensor: Output length (#batch).
+            torch.Tensor: Not to be used now.
 
-        Raises:
-            TooShortUttError: If the input is too short for subsampling.
-
-        Note:
-            This method applies the Longformer encoder to the input tensor, handling
-            padding, subsampling, and intermediate CTC calculations if specified.
-            It supports returning intermediate outputs for all encoder layers when
-            return_all_hs is True.
         """
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

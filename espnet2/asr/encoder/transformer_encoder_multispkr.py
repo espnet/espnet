@@ -33,59 +33,30 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class TransformerEncoder(AbsEncoder):
-    """
-        Transformer encoder module for speech recognition tasks.
-
-    This class implements a Transformer-based encoder that can be used in various
-    speech recognition models. It supports different input layer types, positional
-    encodings, and customizable encoder architectures.
-
-    Attributes:
-        _output_size (int): The output dimension of the encoder.
-        embed (torch.nn.Module): The input embedding layer.
-        normalize_before (bool): Whether to apply layer normalization before each block.
-        encoders (torch.nn.Module): The main encoder layers.
-        after_norm (torch.nn.Module): The final layer normalization (if normalize_before is True).
-        num_inf (int): The number of inference outputs.
-        encoders_sd (torch.nn.ModuleList): Speaker-dependent encoder layers.
+    """Transformer encoder module.
 
     Args:
-        input_size (int): Dimension of the input features.
-        output_size (int, optional): Dimension of the encoder output and attention.
-            Defaults to 256.
-        attention_heads (int, optional): Number of attention heads. Defaults to 4.
-        linear_units (int, optional): Number of units in position-wise feed-forward layers.
-            Defaults to 2048.
-        num_blocks (int, optional): Number of encoder blocks. Defaults to 6.
-        num_blocks_sd (int, optional): Number of speaker-dependent encoder blocks.
-            Defaults to 6.
-        dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
-        positional_dropout_rate (float, optional): Dropout rate for positional encoding.
-            Defaults to 0.1.
-        attention_dropout_rate (float, optional): Dropout rate in attention layers.
-            Defaults to 0.0.
-        input_layer (str, optional): Type of input layer. Can be "conv2d", "linear",
-            "conv2d1", "conv2d2", "conv2d6", "conv2d8", "embed", or None. Defaults to "conv2d".
-        pos_enc_class (type, optional): Positional encoding class.
-            Defaults to PositionalEncoding.
-        normalize_before (bool, optional): Whether to use layer normalization before
-            each block. Defaults to True.
-        concat_after (bool, optional): Whether to concatenate attention layer's input
-            and output. Defaults to False.
-        positionwise_layer_type (str, optional): Type of position-wise layer.
-            Can be "linear", "conv1d", or "conv1d-linear". Defaults to "linear".
-        positionwise_conv_kernel_size (int, optional): Kernel size of position-wise
-            conv1d layer. Defaults to 1.
-        padding_idx (int, optional): Padding index for input_layer="embed". Defaults to -1.
-        num_inf (int, optional): Number of inference outputs. Defaults to 1.
-
-    Raises:
-        ValueError: If an unknown input_layer type is specified.
-        NotImplementedError: If an unsupported positionwise_layer_type is specified.
-
-    Note:
-        This implementation is based on the paper "Attention Is All You Need"
-        by Vaswani et al. (2017) and adapted for speech recognition tasks.
+        input_size: input dim
+        output_size: dimension of attention
+        attention_heads: the number of heads of multi head attention
+        linear_units: the number of units of position-wise feed forward
+        num_blocks: the number of recognition encoder blocks
+        num_blocks_sd: the number of speaker dependent encoder blocks
+        dropout_rate: dropout rate
+        attention_dropout_rate: dropout rate in attention
+        positional_dropout_rate: dropout rate after adding positional encoding
+        input_layer: input layer type
+        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+        normalize_before: whether to use layer_norm before the first block
+        concat_after: whether to concat attention layer's input and output
+            if True, additional linear will be applied.
+            i.e. x -> x + linear(concat(x, att(x)))
+            if False, no additional linear will be applied.
+            i.e. x -> x + att(x)
+        positionwise_layer_type: linear of conv1d
+        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
+        padding_idx: padding_idx for input_layer=embed
+        num_inf: number of inference output
     """
 
     @typechecked
@@ -204,12 +175,6 @@ class TransformerEncoder(AbsEncoder):
         )
 
     def output_size(self) -> int:
-        """
-                Get the output size of the encoder.
-
-        Returns:
-            int: The output dimension of the encoder.
-        """
         return self._output_size
 
     def forward(
@@ -218,35 +183,14 @@ class TransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """
-                Forward pass of the Transformer encoder.
-
-        This method processes the input tensor through the encoder layers, applying
-        positional encoding, attention mechanisms, and feed-forward networks.
+        """Embed positions in tensor.
 
         Args:
-            xs_pad (torch.Tensor): Padded input tensor of shape (B, L, D), where B is
-                the batch size, L is the sequence length, and D is the input dimension.
-            ilens (torch.Tensor): Input lengths of each sequence in the batch, shape (B,).
-            prev_states (torch.Tensor, optional): Not used in the current implementation.
-                Defaults to None.
-
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - torch.Tensor: Encoded output tensor of shape (B, num_inf, L', D'),
-                  where L' is the encoded sequence length and D' is the output dimension.
-                - torch.Tensor: Output lengths of each sequence in the batch after
-                  encoding, shape (B, num_inf).
-                - None: Placeholder for future use, currently always None.
-
-        Raises:
-            TooShortUttError: If the input sequence is too short for subsampling in
-                certain input layer types (Conv2dSubsampling variants).
-
-        Note:
-            The method handles different input layer types and applies the appropriate
-            embedding and subsampling techniques before passing the data through the
-            encoder layers.
+            position embedded tensor and mask
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
