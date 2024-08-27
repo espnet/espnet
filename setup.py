@@ -85,7 +85,7 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "transformers",
-        "gtn==0.0.0",
+        "gtn==0.0.1",
         "evaluate",
     ],
     "setup": [
