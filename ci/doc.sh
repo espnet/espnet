@@ -24,8 +24,8 @@ build_and_convert () {
     # $1: path
     # $2: output
     mkdir -p ./doc/_gen/tools/$2
-    for filename in `find $1`; do
-        bn=`basename ${filename}`
+    for filename in $1; do
+        bn=$(basename ${filename})
         echo "Converting ${filename} to rst..."
         ./doc/usage2rst.sh ${filename} > ./doc/_gen/tools/$2/${bn}.rst
     done
