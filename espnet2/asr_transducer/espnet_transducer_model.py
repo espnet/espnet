@@ -3,9 +3,10 @@
 import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
-from torchaudio.functional import rnnt_loss
+
 import torch
 from packaging.version import parse as V
+from torchaudio.functional import rnnt_loss
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -440,7 +441,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 t_len,
                 u_len,
             )
-            
+
         return loss_transducer
 
     def _calc_k2_transducer_pruned_loss(
@@ -533,7 +534,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 rnnt_type=loss_type,
                 reduction=reduction,
                 return_grad=True,
-                delay_penalty = self.fastemit_lambda
+                delay_penalty=self.fastemit_lambda,
             )
 
         ranges = k2.get_rnnt_prune_ranges(
@@ -560,7 +561,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 boundary,
                 rnnt_type=loss_type,
                 reduction=reduction,
-                delay_penalty=self.fastemit_lambda
+                delay_penalty=self.fastemit_lambda,
             )
 
         loss_transducer = (

@@ -1,11 +1,11 @@
 """Search algorithms for Transducer models."""
 
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-import time
 
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
@@ -149,10 +149,7 @@ class BeamSearchTransducer:
         self.reset_cache()
 
     def __call__(
-        self,
-        enc_out: torch.Tensor,
-        is_final: bool = True,
-        **kwargs
+        self, enc_out: torch.Tensor, is_final: bool = True, **kwargs
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -378,9 +375,18 @@ class BeamSearchTransducer:
                     kept_hyps = kept_most_prob
                     break
 
-
-        print('total decoder time', sum(all_decoder_times), 'num_decoder_calls', len(all_decoder_times))
-        print('total joint time', sum(all_joint_times), 'num joint calls', len(all_joint_times))
+        print(
+            "total decoder time",
+            sum(all_decoder_times),
+            "num_decoder_calls",
+            len(all_decoder_times),
+        )
+        print(
+            "total joint time",
+            sum(all_joint_times),
+            "num joint calls",
+            len(all_joint_times),
+        )
         return kept_hyps
 
     def align_length_sync_decoding(
@@ -475,7 +481,9 @@ class BeamSearchTransducer:
 
         return B
 
-    def time_sync_decoding(self, enc_out: torch.Tensor, extra_start_token: int = None) -> List[Hypothesis]:
+    def time_sync_decoding(
+        self, enc_out: torch.Tensor, extra_start_token: int = None
+    ) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -493,7 +501,7 @@ class BeamSearchTransducer:
             start_toks = [0]
             if extra_start_token is not None:
                 start_toks.append(extra_start_token)
-                
+
             B = [
                 Hypothesis(
                     yseq=start_toks,
