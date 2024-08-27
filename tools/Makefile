@@ -28,7 +28,7 @@ WITH_OMP=ON
 
 all: showenv python conda_packages.done ffmpeg.done sctk check_install
 
-python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
+python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done flash_attn.done
 extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
 
 activate_python.sh:
@@ -239,6 +239,10 @@ parallel-wavegan.done: espnet.done
 longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
+
+flash_attn.done: espnet.done
+	. ./activate_python.sh && ./installers/install_flash_attn.sh
+	touch flash_attn.done
 
 muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
