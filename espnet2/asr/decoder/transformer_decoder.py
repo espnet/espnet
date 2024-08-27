@@ -28,7 +28,9 @@ from espnet.nets.scorer_interface import (
 )
 
 
-class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
+class BaseTransformerDecoder(
+    AbsDecoder, BatchScorerInterface, MaskParallelScorerInterface
+):
     """Base class of Transfomer decoder module.
 
     Args:
