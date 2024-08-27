@@ -116,7 +116,6 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
         "jupyter",
         "sphinx-markdown-builder",
-        "importlib-metadata",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
