@@ -114,7 +114,7 @@ requirements = {
         "myst-parser",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
-        "jupyterlab=4.2.4",
+        "jupyterlab==4.2.4",
         "sphinx-markdown-builder",
     ],
 }
