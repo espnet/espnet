@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 
 requirements = {
     "install": [
-        "setuptools>=38.5.1,<60.0",
+        "setuptools>=38.5.1",
         "packaging",
         "configargparse>=1.2.1",
         "typeguard",
