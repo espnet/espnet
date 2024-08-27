@@ -236,10 +236,19 @@
 
 <span class="sd">&quot;&quot;&quot;Multi-Head Attention layer definition.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">flash_attn</span> <span class="kn">import</span> <span class="n">flash_attn_func</span><span class="p">,</span> <span class="n">flash_attn_varlen_func</span>
+    <span class="kn">from</span> <span class="nn">flash_attn.bert_padding</span> <span class="kn">import</span> <span class="n">pad_input</span><span class="p">,</span> <span class="n">unpad_input</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to import Flash Attention, using ESPnet default: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -249,10 +258,23 @@
 <span class="sd">        n_head (int): The number of heads.</span>
 <span class="sd">        n_feat (int): The number of features.</span>
 <span class="sd">        dropout_rate (float): Dropout rate.</span>
+<span class="sd">        qk_norm (bool): Normalize q and k before dot product.</span>
+<span class="sd">        use_flash_attn (bool): Use flash_attn implementation.</span>
+<span class="sd">        causal (bool): Apply causal attention.</span>
+<span class="sd">        cross_attn (bool): Cross attention instead of self attention.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_head</span><span class="p">,</span>
+        <span class="n">n_feat</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="p">,</span>
+        <span class="n">qk_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_flash_attn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">cross_attn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an MultiHeadedAttention object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">n_feat</span> <span class="o">%</span> <span class="n">n_head</span> <span class="o">==</span> <span class="mi">0</span>
@@ -264,7 +286,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear_v</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_feat</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">linear_out</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_feat</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">use_flash_attn</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
+
+        <span class="c1"># LayerNorm for q and k</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span> <span class="k">if</span> <span class="n">qk_norm</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span> <span class="k">if</span> <span class="n">qk_norm</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_flash_attn</span> <span class="o">=</span> <span class="n">use_flash_attn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal</span> <span class="o">=</span> <span class="n">causal</span>  <span class="c1"># only used with flash_attn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_attn</span> <span class="o">=</span> <span class="n">cross_attn</span>  <span class="c1"># only used with flash_attn</span>
 
 <div class="viewcode-block" id="MultiHeadedAttention.forward_qkv"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv">[docs]</a>    <span class="k">def</span> <span class="nf">forward_qkv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expand_kv</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform query, key and value.</span>
@@ -304,6 +337,9 @@
         <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># (batch, head, time1, d_k)</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># (batch, head, time2, d_k)</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># (batch, head, time2, d_k)</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_norm</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span></div>
 
@@ -359,6 +395,75 @@
 <span class="sd">            torch.Tensor: Output tensor (#batch, time1, d_model).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_flash_attn</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># In the causal case, the last row will be the key mask</span>
+                <span class="n">key_nonpad_mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># (#batch, time2)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_attn</span><span class="p">:</span>
+                    <span class="c1"># For cross attention, we do not know the query padding</span>
+                    <span class="n">query_nonpad_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                        <span class="n">size</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">device</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">query_nonpad_mask</span> <span class="o">=</span> <span class="n">key_nonpad_mask</span>
+
+                <span class="k">if</span> <span class="n">key_nonpad_mask</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">q</span><span class="p">,</span> <span class="n">indices_q</span><span class="p">,</span> <span class="n">cu_seqlens_q</span><span class="p">,</span> <span class="n">max_seqlen_q</span> <span class="o">=</span> <span class="n">unpad_input</span><span class="p">(</span>
+                        <span class="n">query</span><span class="p">,</span> <span class="n">query_nonpad_mask</span>
+                    <span class="p">)</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="n">indices_k</span><span class="p">,</span> <span class="n">cu_seqlens_k</span><span class="p">,</span> <span class="n">max_seqlen_k</span> <span class="o">=</span> <span class="n">unpad_input</span><span class="p">(</span>
+                        <span class="n">key</span><span class="p">,</span> <span class="n">key_nonpad_mask</span>
+                    <span class="p">)</span>
+                    <span class="n">v</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">unpad_input</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">key_nonpad_mask</span><span class="p">)</span>
+
+                    <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_q</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_k</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_v</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+
+                    <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_norm</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_norm</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">flash_attn_varlen_func</span><span class="p">(</span>
+                        <span class="n">q</span><span class="p">,</span>
+                        <span class="n">k</span><span class="p">,</span>
+                        <span class="n">v</span><span class="p">,</span>
+                        <span class="n">cu_seqlens_q</span><span class="p">,</span>
+                        <span class="n">cu_seqlens_k</span><span class="p">,</span>
+                        <span class="n">max_seqlen_q</span><span class="p">,</span>
+                        <span class="n">max_seqlen_k</span><span class="p">,</span>
+                        <span class="n">dropout_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                        <span class="n">causal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">causal</span><span class="p">,</span>
+                    <span class="p">)</span>  <span class="c1"># (total, nheads, headdim)</span>
+
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_out</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">pad_input</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">indices_q</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">return</span> <span class="n">out</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">key_nonpad_mask</span>
+                    <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_qkv</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                    <span class="k">del</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span>
+
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">flash_attn_func</span><span class="p">(</span>
+                        <span class="n">q</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                        <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                        <span class="n">dropout_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                        <span class="n">causal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">causal</span><span class="p">,</span>
+                    <span class="p">)</span>  <span class="c1"># (batch_size, seqlen, nheads, headdim)</span>
+                    <span class="k">del</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span>
+
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_out</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">out</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                    <span class="kn">import</span> <span class="nn">logging</span>
+
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flash attn has exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">pass</span>
         <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_qkv</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expand_kv</span><span class="p">)</span>
         <span class="n">scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_attention</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span></div></div>

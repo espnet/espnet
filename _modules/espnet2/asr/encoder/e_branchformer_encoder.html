@@ -444,6 +444,8 @@
         <span class="n">merge_conv_kernel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">interctc_layer_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">interctc_use_conditioning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">qk_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_flash_attn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">output_size</span>
@@ -573,11 +575,27 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Support only linear.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">attention_layer_type</span> <span class="o">==</span> <span class="s2">&quot;selfattn&quot;</span><span class="p">:</span>
+            <span class="c1"># Default to flash attention unless overrided by user</span>
+            <span class="k">if</span> <span class="n">use_flash_attn</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">from</span> <span class="nn">espnet2.torch_utils.get_flash_attn_compatability</span> <span class="kn">import</span> <span class="p">(</span>
+                        <span class="n">is_flash_attn_supported</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="n">use_flash_attn</span> <span class="o">=</span> <span class="n">is_flash_attn_supported</span><span class="p">()</span>
+                    <span class="kn">import</span> <span class="nn">flash_attn</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">use_flash_attn</span> <span class="o">=</span> <span class="kc">False</span>
+
             <span class="n">encoder_selfattn_layer</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span>
             <span class="n">encoder_selfattn_layer_args</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">attention_heads</span><span class="p">,</span>
                 <span class="n">output_size</span><span class="p">,</span>
                 <span class="n">attention_dropout_rate</span><span class="p">,</span>
+                <span class="n">qk_norm</span><span class="p">,</span>
+                <span class="n">use_flash_attn</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">attention_layer_type</span> <span class="o">==</span> <span class="s2">&quot;legacy_rel_selfattn&quot;</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">pos_enc_layer_type</span> <span class="o">==</span> <span class="s2">&quot;legacy_rel_pos&quot;</span>

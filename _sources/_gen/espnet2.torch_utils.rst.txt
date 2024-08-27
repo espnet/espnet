@@ -26,6 +26,17 @@ espnet2.torch_utils.forward_adaptor
     :show-inheritance:
 
 
+.. _espnet2.torch_utils.get_flash_attn_compatability:
+
+espnet2.torch_utils.get_flash_attn_compatability
+------------------------------------------------
+
+.. automodule:: espnet2.torch_utils.get_flash_attn_compatability
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.torch_utils.recursive_op:
 
 espnet2.torch_utils.recursive_op

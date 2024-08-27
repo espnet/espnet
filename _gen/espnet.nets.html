@@ -13255,7 +13255,7 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.attention.</code><code class="sig-name descname">MultiHeadedAttention</code><span class="sig-paren">(</span><em class="sig-param">n_head</em>, <em class="sig-param">n_feat</em>, <em class="sig-param">dropout_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.attention.</code><code class="sig-name descname">MultiHeadedAttention</code><span class="sig-paren">(</span><em class="sig-param">n_head</em>, <em class="sig-param">n_feat</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">qk_norm=False</em>, <em class="sig-param">use_flash_attn=False</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">cross_attn=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/attention.html#MultiHeadedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Multi-Head Attention layer.</p>
 <dl class="field-list simple">
@@ -13264,6 +13264,10 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 <li><p><strong>n_head</strong> (<em>int</em>) – The number of heads.</p></li>
 <li><p><strong>n_feat</strong> (<em>int</em>) – The number of features.</p></li>
 <li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>qk_norm</strong> (<em>bool</em>) – Normalize q and k before dot product.</p></li>
+<li><p><strong>use_flash_attn</strong> (<em>bool</em>) – Use flash_attn implementation.</p></li>
+<li><p><strong>causal</strong> (<em>bool</em>) – Apply causal attention.</p></li>
+<li><p><strong>cross_attn</strong> (<em>bool</em>) – Cross attention instead of self attention.</p></li>
 </ul>
 </dd>
 </dl>

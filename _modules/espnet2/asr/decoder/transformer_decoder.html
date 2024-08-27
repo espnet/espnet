@@ -617,6 +617,8 @@
         <span class="n">normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">layer_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">qk_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_flash_attn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
@@ -629,16 +631,39 @@
             <span class="n">normalize_before</span><span class="o">=</span><span class="n">normalize_before</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">use_flash_attn</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">espnet2.torch_utils.get_flash_attn_compatability</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">is_flash_attn_supported</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">use_flash_attn</span> <span class="o">=</span> <span class="n">is_flash_attn_supported</span><span class="p">()</span>
+                <span class="kn">import</span> <span class="nn">flash_attn</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">use_flash_attn</span> <span class="o">=</span> <span class="kc">False</span>
+
         <span class="n">attention_dim</span> <span class="o">=</span> <span class="n">encoder_output_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span>
             <span class="n">num_blocks</span><span class="p">,</span>
             <span class="k">lambda</span> <span class="n">lnum</span><span class="p">:</span> <span class="n">DecoderLayer</span><span class="p">(</span>
                 <span class="n">attention_dim</span><span class="p">,</span>
                 <span class="n">MultiHeadedAttention</span><span class="p">(</span>
-                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">self_attention_dropout_rate</span>
+                    <span class="n">attention_heads</span><span class="p">,</span>
+                    <span class="n">attention_dim</span><span class="p">,</span>
+                    <span class="n">self_attention_dropout_rate</span><span class="p">,</span>
+                    <span class="n">qk_norm</span><span class="p">,</span>
+                    <span class="n">use_flash_attn</span><span class="p">,</span>
+                    <span class="kc">True</span><span class="p">,</span>
+                    <span class="kc">False</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">MultiHeadedAttention</span><span class="p">(</span>
-                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">src_attention_dropout_rate</span>
+                    <span class="n">attention_heads</span><span class="p">,</span>
+                    <span class="n">attention_dim</span><span class="p">,</span>
+                    <span class="n">src_attention_dropout_rate</span><span class="p">,</span>
+                    <span class="n">qk_norm</span><span class="p">,</span>
+                    <span class="n">use_flash_attn</span><span class="p">,</span>
+                    <span class="kc">False</span><span class="p">,</span>
+                    <span class="kc">True</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">PositionwiseFeedForward</span><span class="p">(</span><span class="n">attention_dim</span><span class="p">,</span> <span class="n">linear_units</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">),</span>
                 <span class="n">dropout_rate</span><span class="p">,</span>
