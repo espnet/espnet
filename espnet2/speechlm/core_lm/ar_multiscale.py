@@ -13,10 +13,10 @@ import torch
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.net_utils import (
-    ce_loss,
-    install_continuous_features,
+    ce_loss, 
     logits_to_tokens,
     modality_index_to_mask,
+    install_continuous_features,
 )
 
 
@@ -95,13 +95,6 @@ class MultiScaleLM(AbsCoreLM):
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-        # later shouls allow the local dimension to be smaller than the global
-        # dimension for efficient local modeling
-        if g_att_unit != l_att_unit:
-            raise ValueError(
-                "currently attention size for global and local size should be the same"
-            )
-
         self.nq = nq
         self.n_ctx = n_ctx
 
@@ -122,8 +115,8 @@ class MultiScaleLM(AbsCoreLM):
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
             dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep
-                the interface, may not be used.
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
+                may not be used.
             enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
                 keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
@@ -281,9 +274,9 @@ class MultiScaleLM(AbsCoreLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
-
+            
             # (3.6) detect modality switch
-            modality_change_mask = torch.logical_and(
+            modality_change_mask =  torch.logical_and(
                 g_prev_tok[:, 0, 0] >= 32,
                 g_prev_tok[:, 0, 0] < 64,
             )
@@ -297,6 +290,7 @@ class MultiScaleLM(AbsCoreLM):
                 logging.warning(
                     f"Step {g_step}: change modality index {modality_index}"
                 )
+
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
