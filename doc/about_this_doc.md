@@ -64,24 +64,3 @@ This document outlines the process of automatically generating the ESPnet homepa
 
 10. **Finalize the Build**:
     Install Node.js and the necessary dependencies, then build the homepage. To preview the page, comment out the `docs:build` line and uncomment the `docs:dev` line in the script.
-
-11. **Create a `clean.sh` Script for Development**:
-    If you need to clear the build cache during development, you can use the following script:
-    ```bash
-    #!/bin/bash
-
-    rm -r dist
-    rm -r espnet_bin
-    rm -r espnet2_bin
-    rm -r utils_py
-
-    rm -r doc/_gen
-    rm -r doc/build
-
-    rm -r doc/vuepress/src/*.md
-    find doc/vuepress/src/notebook -type f -exec chmod 777 {} \;
-    rm -r doc/vuepress/src/notebook
-    rm -r doc/vuepress/src/*
-    rm -r doc/vuepress/src/.vuepress/.temp
-    rm -r doc/vuepress/src/.vuepress/.cache
-    ```
