@@ -1,759 +1,163 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+<!doctype html>
+<html lang="en-US" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="generator" content="VuePress 2.0.0-rc.14" />
+    <meta name="theme" content="VuePress Theme Hope 2.0.0-rc.51" />
+    <style>
+      html {
+        background: var(--bg-color, #fff);
+      }
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Change the configuration for training &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Converting audio file formats using format_wav_scp.py" href="espnet2_format_wav_scp.html" />
-    <link rel="prev" title="ESPnet2" href="espnet2_tutorial.html" /> 
-</head>
+      html[data-theme="dark"] {
+        background: var(--bg-color, #1d1e1f);
+      }
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+      body {
+        background: var(--bg-color);
+      }
+    </style>
+    <script>
+      const userMode = localStorage.getItem("vuepress-theme-hope-scheme");
+      const systemDarkMode =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-          
-          
-          <a href="index.html" class="icon icon-home">
-            ESPnet
-          </a>
-              <div class="version">
-                202402
-              </div>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p><span class="caption-text">Tutorial:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Common usages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
-</ul>
-<p><span class="caption-text">ESPnet1:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="espnet1_tutorial.html">Usage</a></li>
-</ul>
-<p><span class="caption-text">ESPnet2:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Change the configuration for training</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#show-usage">Show usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#change-the-configuration-for-dict-type-value">Change the configuration for dict type value</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#resume-training-process">Resume training process</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#transfer-learning-fine-tuning-using-pretrained-model">Transfer learning / Fine tuning using pretrained model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#freeze-parameters">Freeze parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#change-logging-interval">Change logging interval</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#change-the-number-of-iterations-in-each-epoch">Change the number of iterations in each epoch</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#weights-biases-integration">Weights &amp; Biases integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#multi-gpus">Multi GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#the-relation-between-mini-batch-size-and-number-of-gpus">The relation between mini-batch size and number of GPUs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#change-mini-batch-type">Change mini-batch type</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-unsorted"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">unsorted</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-sorted"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-folded"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-length"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-numel"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#batch-type-catbel"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#gradient-accumulating">Gradient accumulating</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#automatic-mixed-precision-training">Automatic Mixed Precision training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#reproducibility-and-determinization">Reproducibility and determinization</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
-</ul>
-<p><span class="caption-text">Notebook:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/pretrained.html">Pretrained Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
-</ul>
-<p><span class="caption-text">Package Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.distributed.html">espnet.distributed package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_codec.html">espnet2.gan_codec package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.spk.html">espnet2.spk package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.speechlm.html">espnet2.speechlm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.slu.html">espnet2.slu package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fst.html">espnet2.fst package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
-</ul>
-<p><span class="caption-text">Tool Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
-</ul>
-
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">ESPnet</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Change the configuration for training</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/espnet2_training_option.md.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="change-the-configuration-for-training">
-<h1>Change the configuration for training<a class="headerlink" href="#change-the-configuration-for-training" title="Permalink to this headline">¶</a></h1>
-<section id="show-usage">
-<h2>Show usage<a class="headerlink" href="#show-usage" title="Permalink to this headline">¶</a></h2>
-<p>There are two ways to show the command line options: <code class="docutils literal notranslate"><span class="pre">--help</span></code> and <code class="docutils literal notranslate"><span class="pre">--print_config</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show the command line option</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--help
-<span class="c1"># Show the all configuration in yaml format</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--print_config
-</pre></div>
-</div>
-<p>In this section, we use <code class="docutils literal notranslate"><span class="pre">espnet2.bin.asr_train</span></code> for an example,
-but the other training tools based on <code class="docutils literal notranslate"><span class="pre">Task</span></code> class have the same interface,
-so you can replace it to another command.</p>
-<p>Note that ESPnet2 always selects<code class="docutils literal notranslate"><span class="pre">_</span></code> instead of <code class="docutils literal notranslate"><span class="pre">-</span></code> for the separation
-for the option name to avoid confusion.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Bad</span>
-<span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span>
-<span class="c1"># Good</span>
-<span class="o">--</span><span class="n">batch_size</span>
-</pre></div>
-</div>
-<p>A notable feature of <code class="docutils literal notranslate"><span class="pre">--print_config</span></code> is that
-it shows the configuration parsing with the given arguments dynamically:
-You can look up the parameters for a <strong>changeable</strong> class.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span><span class="c1"># Show parameters of Adam optimizer</span>
-%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim<span class="w"> </span>adam<span class="w"> </span>--print_config
-...
-optim:<span class="w"> </span>adam
-optim_conf:
-<span class="w">    </span>lr:<span class="w"> </span><span class="m">0</span>.001
-<span class="w">    </span>betas:
-<span class="w">    </span>-<span class="w"> </span><span class="m">0</span>.9
-<span class="w">    </span>-<span class="w"> </span><span class="m">0</span>.999
-<span class="w">    </span>eps:<span class="w"> </span><span class="m">1</span>.0e-08
-<span class="w">    </span>weight_decay:<span class="w"> </span><span class="m">0</span>
-<span class="w">    </span>amsgrad:<span class="w"> </span><span class="nb">false</span>
-...
-%<span class="w"> </span><span class="c1"># Show parameters of ReduceLROnPlateau scheduler</span>
-%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--scheduler<span class="w"> </span>ReduceLROnPlateau<span class="w"> </span>--print_config
-...
-scheduler:<span class="w"> </span>reducelronplateau
-scheduler_conf:
-<span class="w">    </span>mode:<span class="w"> </span>min
-<span class="w">    </span>factor:<span class="w"> </span><span class="m">0</span>.1
-<span class="w">    </span>patience:<span class="w"> </span><span class="m">10</span>
-<span class="w">    </span>verbose:<span class="w"> </span><span class="nb">false</span>
-<span class="w">    </span>threshold:<span class="w"> </span><span class="m">0</span>.0001
-<span class="w">    </span>threshold_mode:<span class="w"> </span>rel
-<span class="w">    </span>cooldown:<span class="w"> </span><span class="m">0</span>
-<span class="w">    </span>min_lr:<span class="w"> </span><span class="m">0</span>
-<span class="w">    </span>eps:<span class="w"> </span><span class="m">1</span>.0e-08
-...
-</pre></div>
-</div>
-</section>
-<section id="configuration-file">
-<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h2>
-<p>You can find the configuration files for DNN training in <code class="docutils literal notranslate"><span class="pre">conf/train_*.yaml</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span>conf/
-</pre></div>
-</div>
-<p>We adopt <a class="reference external" href="https://github.com/bw2/ConfigArgParse">ConfigArgParse</a> for this configuration system.
-The configuration in YAML format has an equivalent effect to the command line argument.
-e.g. The following two are equivalent:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span>
-<span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-<span class="nt">bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
-</pre></div>
-</div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--config<span class="w"> </span>conf/config.yaml
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--foo<span class="w"> </span><span class="m">3</span><span class="w"> </span>--bar<span class="w"> </span><span class="m">4</span>
-</pre></div>
-</div>
-</section>
-<section id="change-the-configuration-for-dict-type-value">
-<h2>Change the configuration for dict type value<a class="headerlink" href="#change-the-configuration-for-dict-type-value" title="Permalink to this headline">¶</a></h2>
-<p>Some parameters are named as <code class="docutils literal notranslate"><span class="pre">*_conf</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">optim_conf</span></code>, <code class="docutils literal notranslate"><span class="pre">decoder_conf</span></code> and they has the <code class="docutils literal notranslate"><span class="pre">dict</span></code> type value. We also provide a way to configure the nested value in such a dict object.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. Change parameters one by one</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim_conf<span class="w"> </span><span class="nv">lr</span><span class="o">=</span><span class="m">0</span>.1<span class="w"> </span>--optim_conf<span class="w"> </span><span class="nv">rho</span><span class="o">=</span><span class="m">0</span>.8
-<span class="c1"># e.g. Give the parameters in yaml format</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim_conf<span class="w"> </span><span class="s2">&quot;{lr: 0.1, rho: 0.8}&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="resume-training-process">
-<h2>Resume training process<a class="headerlink" href="#resume-training-process" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--resume<span class="w"> </span><span class="nb">true</span>
-</pre></div>
-</div>
-<p>The state of the training process is saved at the end of every epoch as <code class="docutils literal notranslate"><span class="pre">checkpoint.pth</span></code> and
-the training process can be resumed from the start of the next epoch.
-Checkpoint includes the following states.</p>
-<ul class="simple">
-<li><p>Model state</p></li>
-<li><p>Optimizer states</p></li>
-<li><p>Scheduler states</p></li>
-<li><p>Reporter state</p></li>
-<li><p>torch.cuda.amp state (from torch=1.6)</p></li>
-</ul>
-</section>
-<section id="transfer-learning-fine-tuning-using-pretrained-model">
-<h2>Transfer learning / Fine tuning using pretrained model<a class="headerlink" href="#transfer-learning-fine-tuning-using-pretrained-model" title="Permalink to this headline">¶</a></h2>
-<p>Use <code class="docutils literal notranslate"><span class="pre">--init_param</span> <span class="pre">&lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_keys&gt;</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load all parameters</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth
-<span class="c1"># Load only the parameters starting with &quot;decoder&quot;</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:decoder
-<span class="c1"># Load only the parameters starting with &quot;decoder&quot; and set it to model.decoder</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:decoder:decoder
-<span class="c1"># Set parameters to model.decoder</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>decoder.pth::decoder
-<span class="c1"># Load all parameters excluding &quot;decoder.embed&quot;</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:::decoder.embed
-<span class="c1"># Load all parameters excluding &quot;encoder&quot; and &quot;decoder.embed&quot;</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:::encoder,decoder.embed
-</pre></div>
-</div>
-</section>
-<section id="freeze-parameters">
-<h2>Freeze parameters<a class="headerlink" href="#freeze-parameters" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--freeze_param<span class="w"> </span>encoder.enc<span class="w"> </span>encoder.decoder
-</pre></div>
-</div>
-</section>
-<section id="change-logging-interval">
-<h2>Change logging interval<a class="headerlink" href="#change-logging-interval" title="Permalink to this headline">¶</a></h2>
-<p>The result in the middle state of the training will be shown by the specified number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--log_interval<span class="w"> </span><span class="m">100</span>
-</pre></div>
-</div>
-</section>
-<section id="change-the-number-of-iterations-in-each-epoch">
-<h2>Change the number of iterations in each epoch<a class="headerlink" href="#change-the-number-of-iterations-in-each-epoch" title="Permalink to this headline">¶</a></h2>
-<p>By default, an <code class="docutils literal notranslate"><span class="pre">epoch</span></code> indicates using up whole data in the training corpus and
-the following steps will also run after training for every epoch:</p>
-<ul class="simple">
-<li><p>Validation</p></li>
-<li><p>Saving model and checkpoint</p></li>
-<li><p>Show result in the epoch</p></li>
-</ul>
-<p>Sometimes the validation after training with a whole corpus is too coarse
-if using large corpus.
-For that case, <code class="docutils literal notranslate"><span class="pre">--num_iters_per_epoch</span></code> can restrict the number of iteration of each epoch.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--num_iters_per_epoch<span class="w"> </span><span class="m">1000</span>
-</pre></div>
-</div>
-<p>Note that the training process can’t be resumed at the middle of an epoch
-because data iterators are stateless, but don’t worry it!
-Our iterator is built at the start of each epoch
-and the random seed is fixed by the epoch number, just like:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">epoch_iter_factory</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="n">build_epoch_iter_factory</span><span class="p">()</span>
-<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_epoch</span><span class="p">):</span>
-  <span class="n">iterator</span> <span class="o">=</span> <span class="n">epoch_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Therefore, the training can be resumed at the start of the epoch.</p>
-</section>
-<section id="weights-biases-integration">
-<h2>Weights &amp; Biases integration<a class="headerlink" href="#weights-biases-integration" title="Permalink to this headline">¶</a></h2>
-<p>About Weights &amp; Biases: https://docs.wandb.com/</p>
-<ol>
-<li><p>Installation and setup</p>
-<p>See: https://docs.wandb.com/quickstart</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>wandb<span class="w"> </span>login
-</pre></div>
-</div>
-</li>
-<li><p>Enable wandb</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--use_wandb<span class="w"> </span><span class="nb">true</span>
-</pre></div>
-</div>
-<p>and go to the shown URL.</p>
-</li>
-<li><p>[Option] To use HTTPS PROXY</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">HTTPS_PROXY</span><span class="o">=</span>...your<span class="w"> </span>proxy
-<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>your.pem
-<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span><span class="w">   </span><span class="c1"># Disable SSL certificate verification</span>
-</pre></div>
-</div>
-</li>
-</ol>
-</section>
-<section id="multi-gpus">
-<h2>Multi GPUs<a class="headerlink" href="#multi-gpus" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
-</pre></div>
-</div>
-<p>Just using <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> to specify the device number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
-</pre></div>
-</div>
-<p>About distributed training, see <a class="reference internal" href="espnet2_distributed.html"><span class="doc">Distributed training</span></a>.</p>
-</section>
-<section id="the-relation-between-mini-batch-size-and-number-of-gpus">
-<h2>The relation between mini-batch size and number of GPUs<a class="headerlink" href="#the-relation-between-mini-batch-size-and-number-of-gpus" title="Permalink to this headline">¶</a></h2>
-<p>The batch-size can be changed as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change both of the batch_size for training and validation</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">20</span>
-<span class="c1"># Change the batch_size for validation</span>
-python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--valid_batch_size<span class="w"> </span><span class="m">200</span>
-</pre></div>
-</div>
-<p>The behavior for batch-size during multi-GPU training is <strong>different from that of ESPNet1</strong>.</p>
-<ul>
-<li><p>ESPNet1: The batch-size will be multiplied by the number of GPUs.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c1"># Actual batch_size is 20 and each GPU devices are assigned to 10</span>
-</pre></div>
-</div>
-</li>
-<li><p>ESPnet2: The batch-size is not changed regardless of the number of GPUs.</p>
-<ul class="simple">
-<li><p>Therefore, you should set a more number of batch-size than that of GPUs.</p></li>
-</ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c1"># Actual batch_size is 10 and each GPU devices are assigned to 5</span>
-</pre></div>
-</div>
-</li>
-</ul>
-</section>
-<section id="change-mini-batch-type">
-<h2>Change mini-batch type<a class="headerlink" href="#change-mini-batch-type" title="Permalink to this headline">¶</a></h2>
-<p>We adopt variable mini-batch size with considering the dimension of the input features
-to make the best use of the GPU memory.</p>
-<p>There are 6 types:</p>
-<table border="1" class="docutils">
-<thead>
-<tr>
-<th>batch_type</th>
-<th>Option to change batch-size</th>
-<th>Variable batch-size</th>
-<th>Requirement</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>unsorted</td>
-<td>--batch_size</td>
-<td>No</td>
-<td>-</td>
-</tr>
-<tr>
-<td>sorted</td>
-<td>--batch_size</td>
-<td>No</td>
-<td>Length information of features</td>
-</tr>
-<tr>
-<td>folded</td>
-<td>--batch_size</td>
-<td>Yes</td>
-<td>Length information of features</td>
-</tr>
-<tr>
-<td>length</td>
-<td>--batch_bins</td>
-<td>Yes</td>
-<td>Length information of features</td>
-</tr>
-<tr>
-<td>numel</td>
-<td>--batch_bins</td>
-<td>Yes</td>
-<td>Shape information of features</td>
-</tr>
-<tr>
-<td>catbel</td>
-<td>--batch_size</td>
-<td>No</td>
-<td>-</td>
-</tr>
-</tbody>
-</table><p>Note that <strong>–batch_size is ignored if –batch_type=length or –batch_type=numel</strong>.</p>
-<section id="batch-type-unsorted">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">unsorted</span></code><a class="headerlink" href="#batch-type-unsorted" title="Permalink to this headline">¶</a></h3>
-<p>This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order.
-If you intend to use ESPnet as <strong>not</strong> Seq2Seq task, this type may be suitable.</p>
-<p>Unlike the other mode, this mode doesn’t require the information of the feature dimension.
-In other words, it’s not mandatory to prepare <code class="docutils literal notranslate"><span class="pre">shape_file</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--batch_type<span class="w"> </span>unsorted<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train.scp&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid.scp&quot;</span>
-</pre></div>
-</div>
-<p>This system might seem strange and you might also feel <code class="docutils literal notranslate"><span class="pre">--*_shape_file</span></code> is verbose
-because the training corpus can be described totally only using <code class="docutils literal notranslate"><span class="pre">--*_data_path_and_name_and_type</span></code>.</p>
-<p>From the viewpoint of the implementation,
-we separate the data source for the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> and <code class="docutils literal notranslate"><span class="pre">BatchSampler</span></code> in the term of PyTorch
-and  <code class="docutils literal notranslate"><span class="pre">--*_data_path_and_name_and_type</span></code> and <code class="docutils literal notranslate"><span class="pre">--*_shape_file</span></code> correspond to them respectively.
-From the viewpoint of the training strategy,
-because variable batch-size is supported according to the length/dimension of each feature,
-thus we need to prepare the shape information before training.</p>
-</section>
-<section id="batch-type-sorted">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code><a class="headerlink" href="#batch-type-sorted" title="Permalink to this headline">¶</a></h3>
-<p>This mode creates constant-size mini-batches with sorting by the length order.
-This mode requires the information of the length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--batch_type<span class="w"> </span>sorted<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span>
-</pre></div>
-</div>
-<p>e.g. length.txt</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sample_id1</span> <span class="mi">1230</span>
-<span class="n">sample_id2</span> <span class="mi">156</span>
-<span class="n">sample_id3</span> <span class="mi">890</span>
-<span class="o">...</span>
-</pre></div>
-</div>
-<p>Where the fist column indicates the sample id and the second is the length of the corresponding feature.
-You can see that <code class="docutils literal notranslate"><span class="pre">shape</span> <span class="pre">file</span></code> is input instead in our recipes.</p>
-<p>e.g. shape.txt</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sample_id1</span> <span class="mi">1230</span><span class="p">,</span><span class="mi">80</span>
-<span class="n">sample_id2</span> <span class="mi">156</span><span class="p">,</span><span class="mi">80</span>
-<span class="n">sample_id3</span> <span class="mi">890</span><span class="p">,</span><span class="mi">80</span>
-<span class="o">...</span>
-</pre></div>
-</div>
-<p>This file describes the full information of the feature shape;
-The first number is the length of the sequence and
-the second or later are the dimension of feature: <code class="docutils literal notranslate"><span class="pre">Length,Dim1,Dim2,...</span></code>.</p>
-<p>Only the first number is referred for
-<code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code>, <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code> and <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code>,
-and the shape information is required only when <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code>.</p>
-</section>
-<section id="batch-type-folded">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code><a class="headerlink" href="#batch-type-folded" title="Permalink to this headline">¶</a></h3>
-<p><strong>In ESPnet1, this mode is referred as seq.</strong></p>
-<p>This mode creates mini-batch which has the size of <code class="docutils literal notranslate"><span class="pre">base_batch_size</span> <span class="pre">//</span> <span class="pre">max_i(1</span> <span class="pre">+</span> <span class="pre">L_i</span> <span class="pre">//</span> <span class="pre">f_i)</span></code>.
-Where <code class="docutils literal notranslate"><span class="pre">L_i</span></code> is the maximum length in the mini-batch for <code class="docutils literal notranslate"><span class="pre">i</span></code>th feature and
-<code class="docutils literal notranslate"><span class="pre">f_i</span></code> is the <code class="docutils literal notranslate"><span class="pre">--fold</span> <span class="pre">length</span></code> corresponding to the feature.
-This mode requires the information of length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">20</span><span class="w"> </span>--batch_type<span class="w"> </span>folded<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.scp&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length2.scp&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.scp&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length2.scp&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">300</span>
-</pre></div>
-</div>
-<p>Note that the repeat number of <code class="docutils literal notranslate"><span class="pre">*_shape_file</span></code> must equal to the number of <code class="docutils literal notranslate"><span class="pre">--fold_length</span></code>, but
-<strong>you don’t need to input same number of shape files as the number of data file</strong>.
-i.e. You can give it as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">20</span><span class="w"> </span>--batch_type<span class="w"> </span>folded<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">5000</span>
-</pre></div>
-</div>
-<p>In this example, the length of the first feature is considered while the second can be ignored.
-This technique can be also applied for <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code> and <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code>.</p>
-</section>
-<section id="batch-type-length">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code><a class="headerlink" href="#batch-type-length" title="Permalink to this headline">¶</a></h3>
-<p><strong>In ESPnet1, this mode is referred as frame.</strong></p>
-<p>You need to specify <code class="docutils literal notranslate"><span class="pre">--batch_bins</span></code> to determine the mini-batch size instead of <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>.
-Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch;
-i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(len(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>.
-This mode requires the information of length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--batch_type<span class="w"> </span>length<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-</pre></div>
-</div>
-</section>
-<section id="batch-type-numel">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code><a class="headerlink" href="#batch-type-numel" title="Permalink to this headline">¶</a></h3>
-<p><strong>In ESPnet1, this mode is referred as bins.</strong></p>
-<p>You need to specify <code class="docutils literal notranslate"><span class="pre">--batch_bins</span></code> to determine the mini-batch size instead of <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>.
-Each mini-batches has equal number of bins as possible
-counting by the total number of elements;
-i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(numel(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>,
-where <code class="docutils literal notranslate"><span class="pre">numel</span></code> returns the infinite product of the shape of each feature;
-<code class="docutils literal notranslate"><span class="pre">shape[0]</span> <span class="pre">*</span> <span class="pre">shape[1]</span> <span class="pre">*</span> <span class="pre">...</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">200000</span><span class="w"> </span>--batch_type<span class="w"> </span>numel<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape2.txt&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="batch-type-catbel">
-<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code><a class="headerlink" href="#batch-type-catbel" title="Permalink to this headline">¶</a></h3>
-<p>This type of batch_type focuses on the case of classification tasks.
-It guarantees that within each mini-batch, all samples belong to different classes.
-<code class="docutils literal notranslate"><span class="pre">--batch_size</span></code> is used to determine the mini-batch size.
-This batch type does not go along with the default <code class="docutils literal notranslate"><span class="pre">sequence</span></code> iterator_type.
-It is instead designed to be used with <code class="docutils literal notranslate"><span class="pre">category</span></code> iterator_type.
-Therefore, instead of explicitely giving <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code>, it is more recommended
-to give <code class="docutils literal notranslate"><span class="pre">--iterator_type</span> <span class="pre">category</span></code> which will automatically set <code class="docutils literal notranslate"><span class="pre">batch_type</span></code> to <code class="docutils literal notranslate"><span class="pre">catbel</span></code>.
-It is also important to use a preprocessor that adjusts the sample duration to enable
-mini-batch construction. One example would be <code class="docutils literal notranslate"><span class="pre">espnet2/train/preprocessor/SpkPreprocessor</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.spk_train<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">256</span><span class="w"> </span>--iterator_type<span class="w"> </span>category<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="gradient-accumulating">
-<h2>Gradient accumulating<a class="headerlink" href="#gradient-accumulating" title="Permalink to this headline">¶</a></h2>
-<p>There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.</p>
-<ul class="simple">
-<li><p>Using a larger number of GPUs</p></li>
-<li><p>Using a half decision tensor</p></li>
-<li><p>Using <a class="reference external" href="https://pytorch.org/docs/stable/checkpoint.html">torch.utils.checkpoint</a></p></li>
-<li><p>Gradient accumulating</p></li>
-</ul>
-<p>Gradient accumulating is a technique to handle larger mini-batch than available size.</p>
-<p>Split a mini-batch into several numbers and forward and backward for each piece and accumulate the gradients ony by one,
-while optimizer’s updating is invoked every the number of forwarding just like following:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># accum_grad is the number of pieces</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iterator</span><span class="p">):</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">loss</span> <span class="o">/</span> <span class="n">accum_grad</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span> <span class="c1"># Gradients are accumulated</span>
-    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="n">accum_grad</span><span class="p">:</span>
-        <span class="n">optim</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
-        <span class="n">optim</span><span class="o">.</span><span class="n">zero_grads</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Give <code class="docutils literal notranslate"><span class="pre">--accum_grad</span> <span class="pre">&lt;int&gt;</span></code> to use this option.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--accum_grad<span class="w"> </span><span class="m">2</span>
-</pre></div>
-</div>
-<p>The effective batch_size becomes <strong>almost</strong> same as <code class="docutils literal notranslate"><span class="pre">accum_grad</span> <span class="pre">*</span> <span class="pre">batch_size</span></code> except for:</p>
-<ul class="simple">
-<li><p>The random state</p></li>
-<li><p>Some statistical layers based on mini-batch e.g. BatchNormalization</p></li>
-<li><p>The case that the batch_size is not unified for each iteration.</p></li>
-</ul>
-</section>
-<section id="automatic-mixed-precision-training">
-<h2>Automatic Mixed Precision training<a class="headerlink" href="#automatic-mixed-precision-training" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--use_amp<span class="w"> </span><span class="nb">true</span>
-</pre></div>
-</div>
-</section>
-<section id="reproducibility-and-determinization">
-<h2>Reproducibility and determinization<a class="headerlink" href="#reproducibility-and-determinization" title="Permalink to this headline">¶</a></h2>
-<p>There are some possibilities to make training non-reproducible.</p>
-<ul class="simple">
-<li><p>Initialization of parameters that come from PyTorch/ESPnet version difference.</p></li>
-<li><p>Reducing order for float values during multi GPUs training.</p>
-<ul>
-<li><p>I don’t know whether NCCL is deterministic or not.</p></li>
-</ul>
-</li>
-<li><p>Random seed difference</p>
-<ul>
-<li><p>We fixed the random seed for each epoch.</p></li>
-</ul>
-</li>
-<li><p>CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html</p></li>
-</ul>
-<p>By default, CuDNN performs deterministic mode in our training and it can be turned off by:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--cudnn_deterministic<span class="w"> </span><span class="nb">false</span>
-</pre></div>
-</div>
-</section>
-</section>
-
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="espnet2_tutorial.html" class="btn btn-neutral float-left" title="ESPnet2" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="espnet2_format_wav_scp.html" class="btn btn-neutral float-right" title="Converting audio file formats using format_wav_scp.py" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+      if (userMode === "dark" || (userMode !== "light" && systemDarkMode)) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    </script>
+    <link rel="icon" href="/espnet/assets/image/espnet.png"><title>Change the configuration for training</title><meta name="description" content="A documentation for ESPnet">
+    <link rel="preload" href="/espnet/assets/style-CiXYLHjk.css" as="style"><link rel="stylesheet" href="/espnet/assets/style-CiXYLHjk.css">
+    <link rel="modulepreload" href="/espnet/assets/app-BaN_VLbp.js">
+    
+  </head>
+  <body>
+    <div id="app"><!--[--><!--[--><!--[--><span tabindex="-1"></span><a href="#main-content" class="vp-skip-link sr-only">Skip to main content</a><!--]--><!--[--><div class="theme-container external-link-icon"><!--[--><header id="navbar" class="vp-navbar"><div class="vp-navbar-start"><button type="button" class="vp-toggle-sidebar-button" title="Toggle Sidebar"><span class="icon"></span></button><!----><!--[--><a class="route-link vp-brand" href="/espnet/"><img class="vp-nav-logo" src="/espnet/assets/image/espnet_logo1.png" alt><!----><!----></a><!--]--><!----></div><div class="vp-navbar-center"><!----><!--[--><nav class="vp-nav-links"><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Guide"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span>Guide<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/" aria-label="Espnet2"><!---->Espnet2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr_transducer/" aria-label="Asr Transducer"><!---->Asr Transducer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asvspoof/" aria-label="Asvspoof"><!---->Asvspoof<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/diar/" aria-label="Diar"><!---->Diar<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/enh/" aria-label="Enh"><!---->Enh<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fileio/" aria-label="Fileio"><!---->Fileio<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fst/" aria-label="Fst"><!---->Fst<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_codec/" aria-label="Gan Codec"><!---->Gan Codec<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_svs/" aria-label="Gan Svs"><!---->Gan Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_tts/" aria-label="Gan Tts"><!---->Gan Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/hubert/" aria-label="Hubert"><!---->Hubert<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/iterators/" aria-label="Iterators"><!---->Iterators<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/layers/" aria-label="Layers"><!---->Layers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/main_funcs/" aria-label="Main Funcs"><!---->Main Funcs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/optimizers/" aria-label="Optimizers"><!---->Optimizers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2st/" aria-label="S2st"><!---->S2st<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2t/" aria-label="S2t"><!---->S2t<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/samplers/" aria-label="Samplers"><!---->Samplers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/schedulers/" aria-label="Schedulers"><!---->Schedulers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/slu/" aria-label="Slu"><!---->Slu<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/speechlm/" aria-label="Speechlm"><!---->Speechlm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/spk/" aria-label="Spk"><!---->Spk<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/svs/" aria-label="Svs"><!---->Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tasks/" aria-label="Tasks"><!---->Tasks<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/text/" aria-label="Text"><!---->Text<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/torch_utils/" aria-label="Torch Utils"><!---->Torch Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/train/" aria-label="Train"><!---->Train<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts2/" aria-label="Tts2"><!---->Tts2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/uasr/" aria-label="Uasr"><!---->Uasr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/" aria-label="Espnet"><!---->Espnet<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/distributed/" aria-label="Distributed"><!---->Distributed<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/nets/" aria-label="Nets"><!---->Nets<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/optimizer/" aria-label="Optimizer"><!---->Optimizer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/scheduler/" aria-label="Scheduler"><!---->Scheduler<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/transform/" aria-label="Transform"><!---->Transform<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/utils/" aria-label="Utils"><!---->Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/vc/" aria-label="Vc"><!---->Vc<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnetez</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/" aria-label="Espnetez"><!---->Espnetez<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/config/" aria-label="Config"><!---->Config<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/data/" aria-label="Data"><!---->Data<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataloader/" aria-label="Dataloader"><!---->Dataloader<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataset/" aria-label="Dataset"><!---->Dataset<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/preprocess/" aria-label="Preprocess"><!---->Preprocess<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/task/" aria-label="Task"><!---->Task<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/trainer/" aria-label="Trainer"><!---->Trainer<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Tools"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span>Tools<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet2_bin/" aria-label="Espnet2 Bin"><!---->Espnet2 Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet_bin/" aria-label="Espnet Bin"><!---->Espnet Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">spm</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/spm/" aria-label="Spm"><!---->Spm<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils_py</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils_py/" aria-label="Utils Py"><!---->Utils Py<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Demo"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span>Demo<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet1</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/notebook/ESPnet1/" aria-label="ESPnet1/ Demo"><!---->ESPnet1/ Demo<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/notebook/ESPnet2/" aria-label="ESPnet2/ Demo"><!---->ESPnet2/ Demo<!----></a></li></ul></li></ul></button></div></div></nav><!--]--><!----></div><div class="vp-navbar-end"><!----><!--[--><!----><div class="vp-nav-item vp-action"><a class="vp-action-link" href="https://github.com/espnet/espnet" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="icon github-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="github icon" name="github" style="width:1.25rem;height:1.25rem;vertical-align:middle;"><path d="M511.957 21.333C241.024 21.333 21.333 240.981 21.333 512c0 216.832 140.544 400.725 335.574 465.664 24.49 4.395 32.256-10.07 32.256-23.083 0-11.69.256-44.245 0-85.205-136.448 29.61-164.736-64.64-164.736-64.64-22.315-56.704-54.4-71.765-54.4-71.765-44.587-30.464 3.285-29.824 3.285-29.824 49.195 3.413 75.179 50.517 75.179 50.517 43.776 75.008 114.816 53.333 142.762 40.79 4.523-31.66 17.152-53.377 31.19-65.537-108.971-12.458-223.488-54.485-223.488-242.602 0-53.547 19.114-97.323 50.517-131.67-5.035-12.33-21.93-62.293 4.779-129.834 0 0 41.258-13.184 134.912 50.346a469.803 469.803 0 0 1 122.88-16.554c41.642.213 83.626 5.632 122.88 16.554 93.653-63.488 134.784-50.346 134.784-50.346 26.752 67.541 9.898 117.504 4.864 129.834 31.402 34.347 50.474 78.123 50.474 131.67 0 188.586-114.73 230.016-224.042 242.09 17.578 15.232 33.578 44.672 33.578 90.454v135.85c0 13.142 7.936 27.606 32.854 22.87C862.25 912.597 1002.667 728.747 1002.667 512c0-271.019-219.648-490.667-490.71-490.667z"></path></svg></a></div><div class="vp-nav-item hide-in-mobile"><button type="button" class="vp-color-mode-switch" id="color-mode-switch"><svg xmlns="http://www.w3.org/2000/svg" class="icon auto-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="auto icon" name="auto" style="display:block;"><path d="M512 992C246.92 992 32 777.08 32 512S246.92 32 512 32s480 214.92 480 480-214.92 480-480 480zm0-840c-198.78 0-360 161.22-360 360 0 198.84 161.22 360 360 360s360-161.16 360-360c0-198.78-161.22-360-360-360zm0 660V212c165.72 0 300 134.34 300 300 0 165.72-134.28 300-300 300z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon dark-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="dark icon" name="dark" style="display:none;"><path d="M524.8 938.667h-4.267a439.893 439.893 0 0 1-313.173-134.4 446.293 446.293 0 0 1-11.093-597.334A432.213 432.213 0 0 1 366.933 90.027a42.667 42.667 0 0 1 45.227 9.386 42.667 42.667 0 0 1 10.24 42.667 358.4 358.4 0 0 0 82.773 375.893 361.387 361.387 0 0 0 376.747 82.774 42.667 42.667 0 0 1 54.187 55.04 433.493 433.493 0 0 1-99.84 154.88 438.613 438.613 0 0 1-311.467 128z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon light-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="light icon" name="light" style="display:none;"><path d="M952 552h-80a40 40 0 0 1 0-80h80a40 40 0 0 1 0 80zM801.88 280.08a41 41 0 0 1-57.96-57.96l57.96-58a41.04 41.04 0 0 1 58 58l-58 57.96zM512 752a240 240 0 1 1 0-480 240 240 0 0 1 0 480zm0-560a40 40 0 0 1-40-40V72a40 40 0 0 1 80 0v80a40 40 0 0 1-40 40zm-289.88 88.08-58-57.96a41.04 41.04 0 0 1 58-58l57.96 58a41 41 0 0 1-57.96 57.96zM192 512a40 40 0 0 1-40 40H72a40 40 0 0 1 0-80h80a40 40 0 0 1 40 40zm30.12 231.92a41 41 0 0 1 57.96 57.96l-57.96 58a41.04 41.04 0 0 1-58-58l58-57.96zM512 832a40 40 0 0 1 40 40v80a40 40 0 0 1-80 0v-80a40 40 0 0 1 40-40zm289.88-88.08 58 57.96a41.04 41.04 0 0 1-58 58l-57.96-58a41 41 0 0 1 57.96-57.96z"></path></svg></button></div><!--[--><button type="button" class="search-pro-button" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" class="icon search-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="search icon" name="search"><path d="M192 480a256 256 0 1 1 512 0 256 256 0 0 1-512 0m631.776 362.496-143.2-143.168A318.464 318.464 0 0 0 768 480c0-176.736-143.264-320-320-320S128 303.264 128 480s143.264 320 320 320a318.016 318.016 0 0 0 184.16-58.592l146.336 146.368c12.512 12.48 32.768 12.48 45.28 0 12.48-12.512 12.48-32.768 0-45.28"></path></svg><div class="search-pro-placeholder">Search</div><div class="search-pro-key-hints"><kbd class="search-pro-key">Ctrl</kbd><kbd class="search-pro-key">K</kbd></div></button><!--]--><!--]--><!----><button type="button" class="vp-toggle-navbar-button" aria-label="Toggle Navbar" aria-expanded="false" aria-controls="nav-screen"><span><span class="vp-top"></span><span class="vp-middle"></span><span class="vp-bottom"></span></span></button></div></header><!----><!--]--><!----><div class="toggle-sidebar-wrapper"><span class="arrow start"></span></div><aside id="sidebar" class="vp-sidebar"><!----><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span><span class="vp-sidebar-title">Guide</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnetez</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span><span class="vp-sidebar-title">Tools</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2 Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Spm</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils Py</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span><span class="vp-sidebar-title">Demo</span><!----></p><ul class="vp-sidebar-links"><li><a class="route-link auto-link vp-sidebar-link" href="/espnet/notebook/" aria-label="ESPnet Notebook Information"><!---->ESPnet Notebook Information<!----></a></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">ESPnet1/ Demo</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">ESPnet2/ Demo</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li></ul><!----></aside><!--[--><main id="main-content" class="vp-page"><!--[--><!----><!----><nav class="vp-breadcrumb disable"></nav><div class="vp-page-title"><h1><!---->Change the configuration for training</h1><div class="page-info"><!----><!----><!----><!----><span class="page-reading-time-info" aria-label="Reading Time⌛" data-balloon-pos="up"><svg xmlns="http://www.w3.org/2000/svg" class="icon timer-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="timer icon" name="timer"><path d="M799.387 122.15c4.402-2.978 7.38-7.897 7.38-13.463v-1.165c0-8.933-7.38-16.312-16.312-16.312H256.33c-8.933 0-16.311 7.38-16.311 16.312v1.165c0 5.825 2.977 10.874 7.637 13.592 4.143 194.44 97.22 354.963 220.201 392.763-122.204 37.542-214.893 196.511-220.2 389.397-4.661 5.049-7.638 11.651-7.638 19.03v5.825h566.49v-5.825c0-7.379-2.849-13.981-7.509-18.9-5.049-193.016-97.867-351.985-220.2-389.527 123.24-37.67 216.446-198.453 220.588-392.892zM531.16 450.445v352.632c117.674 1.553 211.787 40.778 211.787 88.676H304.097c0-48.286 95.149-87.382 213.728-88.676V450.445c-93.077-3.107-167.901-81.297-167.901-177.093 0-8.803 6.99-15.793 15.793-15.793 8.803 0 15.794 6.99 15.794 15.793 0 80.261 63.69 145.635 142.01 145.635s142.011-65.374 142.011-145.635c0-8.803 6.99-15.793 15.794-15.793s15.793 6.99 15.793 15.793c0 95.019-73.789 172.82-165.96 177.093z"></path></svg><span>About 7 min</span><meta property="timeRequired" content="PT7M"></span><!----><!----></div><hr></div><!----><!----><div class="theme-hope-content"><h1 id="change-the-configuration-for-training" tabindex="-1"><a class="header-anchor" href="#change-the-configuration-for-training"><span>Change the configuration for training</span></a></h1><h2 id="show-usage" tabindex="-1"><a class="header-anchor" href="#show-usage"><span>Show usage</span></a></h2><p>There are two ways to show the command line options: <code>--help</code> and <code>--print_config</code></p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Show the command line option</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --help</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Show the all configuration in yaml format</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --print_config</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>In this section, we use <code>espnet2.bin.asr_train</code> for an example, but the other training tools based on <code>Task</code> class have the same interface, so you can replace it to another command.</p><p>Note that ESPnet2 always selects<code>_</code> instead of <code>-</code> for the separation for the option name to avoid confusion.</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span># Bad</span></span>
+<span class="line"><span>--batch-size</span></span>
+<span class="line"><span># Good</span></span>
+<span class="line"><span>--batch_size</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>A notable feature of <code>--print_config</code> is that it shows the configuration parsing with the given arguments dynamically: You can look up the parameters for a <strong>changeable</strong> class.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">%</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"> # Show parameters of Adam optimizer</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">%</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --optim</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> adam</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --print_config</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">...</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">optim:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> adam</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">optim_conf:</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    lr:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0.001</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    betas:</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    -</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0.9</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    -</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0.999</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    eps:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> 1.0e-08</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    weight_decay:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    amsgrad:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> false</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">...</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">%</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"> # Show parameters of ReduceLROnPlateau scheduler</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">%</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --scheduler</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ReduceLROnPlateau</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --print_config</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">...</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">scheduler:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> reducelronplateau</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">scheduler_conf:</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    mode:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> min</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    factor:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0.1</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    patience:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    verbose:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> false</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    threshold:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0.0001</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    threshold_mode:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> rel</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    cooldown:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    min_lr:</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">    eps:</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> 1.0e-08</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">...</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="configuration-file" tabindex="-1"><a class="header-anchor" href="#configuration-file"><span>Configuration file</span></a></h2><p>You can find the configuration files for DNN training in <code>conf/train_*.yaml</code>.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">ls</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> conf/</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>We adopt <a href="https://github.com/bw2/ConfigArgParse" target="_blank" rel="noopener noreferrer">ConfigArgParse</a> for this configuration system. The configuration in YAML format has an equivalent effect to the command line argument. e.g. The following two are equivalent:</p><div class="language-yaml line-numbers-mode" data-highlighter="shiki" data-ext="yaml" data-title="yaml" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># config.yaml</span></span>
+<span class="line"><span style="--shiki-light:#22863A;--shiki-dark:#E06C75;">foo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3</span></span>
+<span class="line"><span style="--shiki-light:#22863A;--shiki-dark:#E06C75;">bar</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">4</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --config</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> conf/config.yaml</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --foo</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 3</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --bar</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 4</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="change-the-configuration-for-dict-type-value" tabindex="-1"><a class="header-anchor" href="#change-the-configuration-for-dict-type-value"><span>Change the configuration for dict type value</span></a></h2><p>Some parameters are named as <code>*_conf</code>, e.g. <code>optim_conf</code>, <code>decoder_conf</code> and they has the <code>dict</code> type value. We also provide a way to configure the nested value in such a dict object.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># e.g. Change parameters one by one</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --optim_conf</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> lr=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">0.1</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --optim_conf</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> rho=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">0.8</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># e.g. Give the parameters in yaml format</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --optim_conf</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;{lr: 0.1, rho: 0.8}&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="resume-training-process" tabindex="-1"><a class="header-anchor" href="#resume-training-process"><span>Resume training process</span></a></h2><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --resume</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> true</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>The state of the training process is saved at the end of every epoch as <code>checkpoint.pth</code> and the training process can be resumed from the start of the next epoch. Checkpoint includes the following states.</p><ul><li>Model state</li><li>Optimizer states</li><li>Scheduler states</li><li>Reporter state</li><li>torch.cuda.amp state (from torch=1.6)</li></ul><h2 id="transfer-learning-fine-tuning-using-pretrained-model" tabindex="-1"><a class="header-anchor" href="#transfer-learning-fine-tuning-using-pretrained-model"><span>Transfer learning / Fine tuning using pretrained model</span></a></h2><p>Use <code>--init_param &lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_keys&gt;</code></p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load all parameters</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> model.pth</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load only the parameters starting with &quot;decoder&quot;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> model.pth:decoder</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load only the parameters starting with &quot;decoder&quot; and set it to model.decoder</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> model.pth:decoder:decoder</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Set parameters to model.decoder</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> decoder.pth::decoder</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load all parameters excluding &quot;decoder.embed&quot;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> model.pth:::decoder.embed</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load all parameters excluding &quot;encoder&quot; and &quot;decoder.embed&quot;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --init_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> model.pth:::encoder,decoder.embed</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="freeze-parameters" tabindex="-1"><a class="header-anchor" href="#freeze-parameters"><span>Freeze parameters</span></a></h2><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --freeze_param</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> encoder.enc</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> encoder.decoder</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><h2 id="change-logging-interval" tabindex="-1"><a class="header-anchor" href="#change-logging-interval"><span>Change logging interval</span></a></h2><p>The result in the middle state of the training will be shown by the specified number:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --log_interval</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 100</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><h2 id="change-the-number-of-iterations-in-each-epoch" tabindex="-1"><a class="header-anchor" href="#change-the-number-of-iterations-in-each-epoch"><span>Change the number of iterations in each epoch</span></a></h2><p>By default, an <code>epoch</code> indicates using up whole data in the training corpus and the following steps will also run after training for every epoch:</p><ul><li>Validation</li><li>Saving model and checkpoint</li><li>Show result in the epoch</li></ul><p>Sometimes the validation after training with a whole corpus is too coarse if using large corpus. For that case, <code>--num_iters_per_epoch</code> can restrict the number of iteration of each epoch.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --num_iters_per_epoch</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 1000</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>Note that the training process can&#39;t be resumed at the middle of an epoch because data iterators are stateless, but don&#39;t worry it! Our iterator is built at the start of each epoch and the random seed is fixed by the epoch number, just like:</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">epoch_iter_factory </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> Task.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">build_epoch_iter_factory</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">for</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> epoch </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">in</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> range</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(max_epoch):</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">  iterator </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> epoch_iter_factory.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">build_iter</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(epoch)</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>Therefore, the training can be resumed at the start of the epoch.</p><h2 id="weights-biases-integration" tabindex="-1"><a class="header-anchor" href="#weights-biases-integration"><span>Weights &amp; Biases integration</span></a></h2><p>About Weights &amp; Biases: https://docs.wandb.com/</p><ol><li><p>Installation and setup</p><p>See: https://docs.wandb.com/quickstart</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">wandb</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> login</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div></li><li><p>Enable wandb</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --use_wandb</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> true</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>and go to the shown URL.</p></li><li><p>[Option] To use HTTPS PROXY</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">export</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> HTTPS_PROXY</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">...</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">your</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> proxy</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">export</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> CURL_CA_BUNDLE</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">your</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">pem</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">export</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> CURL_CA_BUNDLE</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">   # Disable SSL certificate verification</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li></ol><h2 id="multi-gpus" tabindex="-1"><a class="header-anchor" href="#multi-gpus"><span>Multi GPUs</span></a></h2><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --ngpu</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 2</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>Just using <code>CUDA_VISIBLE_DEVICES</code> to specify the device number:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">CUDA_VISIBLE_DEVICES</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">2,3</span><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;"> python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --ngpu</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 2</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>About distributed training, see <a class="route-link" href="/espnet/espnet2_distributed.html">Distributed training</a>.</p><h2 id="the-relation-between-mini-batch-size-and-number-of-gpus" tabindex="-1"><a class="header-anchor" href="#the-relation-between-mini-batch-size-and-number-of-gpus"><span>The relation between mini-batch size and number of GPUs</span></a></h2><p>The batch-size can be changed as follows:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Change both of the batch_size for training and validation</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 20</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Change the batch_size for validation</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet2.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --valid_batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 200</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>The behavior for batch-size during multi-GPU training is <strong>different from that of ESPNet1</strong>.</p><ul><li>ESPNet1: The batch-size will be multiplied by the number of GPUs.<div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --ngpu</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 2</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"> # Actual batch_size is 20 and each GPU devices are assigned to 10</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div></li><li>ESPnet2: The batch-size is not changed regardless of the number of GPUs. <ul><li>Therefore, you should set a more number of batch-size than that of GPUs.</li></ul><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --ngpu</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 2</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"> # Actual batch_size is 10 and each GPU devices are assigned to 5</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div></li></ul><h2 id="change-mini-batch-type" tabindex="-1"><a class="header-anchor" href="#change-mini-batch-type"><span>Change mini-batch type</span></a></h2><p>We adopt variable mini-batch size with considering the dimension of the input features to make the best use of the GPU memory.</p><p>There are 6 types:</p><table><thead><tr><th>batch_type</th><th>Option to change batch-size</th><th>Variable batch-size</th><th>Requirement</th></tr></thead><tbody><tr><td>unsorted</td><td>--batch_size</td><td>No</td><td>-</td></tr><tr><td>sorted</td><td>--batch_size</td><td>No</td><td>Length information of features</td></tr><tr><td>folded</td><td>--batch_size</td><td>Yes</td><td>Length information of features</td></tr><tr><td>length</td><td>--batch_bins</td><td>Yes</td><td>Length information of features</td></tr><tr><td>numel</td><td>--batch_bins</td><td>Yes</td><td>Shape information of features</td></tr><tr><td>catbel</td><td>--batch_size</td><td>No</td><td>-</td></tr></tbody></table><p>Note that <strong>--batch_size is ignored if --batch_type=length or --batch_type=numel</strong>.</p><h3 id="batch-type-unsorted" tabindex="-1"><a class="header-anchor" href="#batch-type-unsorted"><span><code>--batch_type unsorted</code></span></a></h3><p>This mode has nothing special feature and just creates constant-size mini-batches without any sorting by the length order. If you intend to use ESPnet as <strong>not</strong> Seq2Seq task, this type may be suitable.</p><p>Unlike the other mode, this mode doesn&#39;t require the information of the feature dimension. In other words, it&#39;s not mandatory to prepare <code>shape_file</code>:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> unsorted</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>This system might seem strange and you might also feel <code>--*_shape_file</code> is verbose because the training corpus can be described totally only using <code>--*_data_path_and_name_and_type</code>.</p><p>From the viewpoint of the implementation, we separate the data source for the <code>Dataset</code> and <code>BatchSampler</code> in the term of PyTorch and <code>--*_data_path_and_name_and_type</code> and <code>--*_shape_file</code> correspond to them respectively. From the viewpoint of the training strategy, because variable batch-size is supported according to the length/dimension of each feature, thus we need to prepare the shape information before training.</p><h3 id="batch-type-sorted" tabindex="-1"><a class="header-anchor" href="#batch-type-sorted"><span><code>--batch_type sorted</code></span></a></h3><p>This mode creates constant-size mini-batches with sorting by the length order. This mode requires the information of the length.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sorted</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length.txt&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>e.g. length.txt</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>sample_id1 1230</span></span>
+<span class="line"><span>sample_id2 156</span></span>
+<span class="line"><span>sample_id3 890</span></span>
+<span class="line"><span>...</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>Where the fist column indicates the sample id and the second is the length of the corresponding feature. You can see that <code>shape file</code> is input instead in our recipes.</p><p>e.g. shape.txt</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>sample_id1 1230,80</span></span>
+<span class="line"><span>sample_id2 156,80</span></span>
+<span class="line"><span>sample_id3 890,80</span></span>
+<span class="line"><span>...</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>This file describes the full information of the feature shape; The first number is the length of the sequence and the second or later are the dimension of feature: <code>Length,Dim1,Dim2,...</code>.</p><p>Only the first number is referred for <code>--batch_type sorted</code>, <code>--batch_type folded</code> and <code>--batch_type length</code>, and the shape information is required only when <code>--batch_type numel</code>.</p><h3 id="batch-type-folded" tabindex="-1"><a class="header-anchor" href="#batch-type-folded"><span><code>--batch_type folded</code></span></a></h3><p><strong>In ESPnet1, this mode is referred as seq.</strong></p><p>This mode creates mini-batch which has the size of <code>base_batch_size // max_i(1 + L_i // f_i)</code>. Where <code>L_i</code> is the maximum length in the mini-batch for <code>i</code>th feature and <code>f_i</code> is the <code>--fold length</code> corresponding to the feature. This mode requires the information of length.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 20</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> folded</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length.scp&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length2.scp&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length.scp&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length2.scp&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --fold_length</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 5000</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --fold_length</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 300</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>Note that the repeat number of <code>*_shape_file</code> must equal to the number of <code>--fold_length</code>, but <strong>you don&#39;t need to input same number of shape files as the number of data file</strong>. i.e. You can give it as follows:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_size</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 20</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> folded</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --fold_length</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 5000</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>In this example, the length of the first feature is considered while the second can be ignored. This technique can be also applied for <code>--batch_type length</code> and <code>--batch_type numel</code>.</p><h3 id="batch-type-length" tabindex="-1"><a class="header-anchor" href="#batch-type-length"><span><code>--batch_type length</code></span></a></h3><p><strong>In ESPnet1, this mode is referred as frame.</strong></p><p>You need to specify <code>--batch_bins</code> to determine the mini-batch size instead of <code>--batch_size</code>. Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch; i.e. <code>bins = sum(len(feat) for feats in batch for feat in feats)</code>. This mode requires the information of length.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_bins</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 10000</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> length</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_length2.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_length2.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="batch-type-numel" tabindex="-1"><a class="header-anchor" href="#batch-type-numel"><span><code>--batch_type numel</code></span></a></h3><p><strong>In ESPnet1, this mode is referred as bins.</strong></p><p>You need to specify <code>--batch_bins</code> to determine the mini-batch size instead of <code>--batch_size</code>. Each mini-batches has equal number of bins as possible counting by the total number of elements; i.e. <code>bins = sum(numel(feat) for feats in batch for feat in feats)</code>, where <code>numel</code> returns the infinite product of the shape of each feature; <code>shape[0] * shape[1] * ...</code></p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_bins</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 200000</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --batch_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> numel</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">  &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">  &quot;valid2.scp,feats2,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_shape.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_shape2.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_shape.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_shape2.txt&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="batch-type-catbel" tabindex="-1"><a class="header-anchor" href="#batch-type-catbel"><span><code>--batch_type catbel</code></span></a></h3><p>This type of batch_type focuses on the case of classification tasks. It guarantees that within each mini-batch, all samples belong to different classes. <code>--batch_size</code> is used to determine the mini-batch size. This batch type does not go along with the default <code>sequence</code> iterator_type. It is instead designed to be used with <code>category</code> iterator_type. Therefore, instead of explicitely giving <code>--batch_type catbel</code>, it is more recommended to give <code>--iterator_type category</code> which will automatically set <code>batch_type</code> to <code>catbel</code>. It is also important to use a preprocessor that adjusts the sample duration to enable mini-batch construction. One example would be <code>espnet2/train/preprocessor/SpkPreprocessor</code>.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.spk_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --batch_bins</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 256</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --iterator_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> category</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_data_path_and_name_and_type</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">  &quot;valid.scp,feats,npy&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --train_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;train_shape.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">  --valid_shape_file</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;valid_shape.txt&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> \</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="gradient-accumulating" tabindex="-1"><a class="header-anchor" href="#gradient-accumulating"><span>Gradient accumulating</span></a></h2><p>There are several ways to deal with larger model architectures than the capacity of your GPU device memory during training.</p><ul><li>Using a larger number of GPUs</li><li>Using a half decision tensor</li><li>Using <a href="https://pytorch.org/docs/stable/checkpoint.html" target="_blank" rel="noopener noreferrer">torch.utils.checkpoint</a></li><li>Gradient accumulating</li></ul><p>Gradient accumulating is a technique to handle larger mini-batch than available size.</p><p>Split a mini-batch into several numbers and forward and backward for each piece and accumulate the gradients ony by one, while optimizer&#39;s updating is invoked every the number of forwarding just like following:</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># accum_grad is the number of pieces</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">for</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> i, batch </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">in</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;"> enumerate</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(iterator):</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">    loss </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;"> net</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(batch)</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">    (loss </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> accum_grad).</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">backward</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">() </span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Gradients are accumulated</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> i </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> accum_grad:</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">        optim.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">update</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">        optim.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">zero_grads</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>Give <code>--accum_grad &lt;int&gt;</code> to use this option.</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --accum_grad</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 2</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>The effective batch_size becomes <strong>almost</strong> same as <code>accum_grad * batch_size</code> except for:</p><ul><li>The random state</li><li>Some statistical layers based on mini-batch e.g. BatchNormalization</li><li>The case that the batch_size is not unified for each iteration.</li></ul><h2 id="automatic-mixed-precision-training" tabindex="-1"><a class="header-anchor" href="#automatic-mixed-precision-training"><span>Automatic Mixed Precision training</span></a></h2><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --use_amp</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> true</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><h2 id="reproducibility-and-determinization" tabindex="-1"><a class="header-anchor" href="#reproducibility-and-determinization"><span>Reproducibility and determinization</span></a></h2><p>There are some possibilities to make training non-reproducible.</p><ul><li>Initialization of parameters that come from PyTorch/ESPnet version difference.</li><li>Reducing order for float values during multi GPUs training. <ul><li>I don&#39;t know whether NCCL is deterministic or not.</li></ul></li><li>Random seed difference <ul><li>We fixed the random seed for each epoch.</li></ul></li><li>CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html</li></ul><p>By default, CuDNN performs deterministic mode in our training and it can be turned off by:</p><div class="language-bash line-numbers-mode" data-highlighter="shiki" data-ext="bash" data-title="bash" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">python</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -m</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet.bin.asr_train</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --cudnn_deterministic</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> false</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div></div><!----><footer class="vp-page-meta"><div class="vp-meta-item edit-link"><a class="auto-link external-link vp-meta-label" href="https://github.com/espnet/espnet/edit/main/src/espnet2_training_option.md" aria-label="Edit this page" rel="noopener noreferrer" target="_blank"><!--[--><svg xmlns="http://www.w3.org/2000/svg" class="icon edit-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="edit icon" name="edit"><path d="M430.818 653.65a60.46 60.46 0 0 1-50.96-93.281l71.69-114.012 7.773-10.365L816.038 80.138A60.46 60.46 0 0 1 859.225 62a60.46 60.46 0 0 1 43.186 18.138l43.186 43.186a60.46 60.46 0 0 1 0 86.373L588.879 565.55l-8.637 8.637-117.466 68.234a60.46 60.46 0 0 1-31.958 11.229z"></path><path d="M728.802 962H252.891A190.883 190.883 0 0 1 62.008 771.98V296.934a190.883 190.883 0 0 1 190.883-192.61h267.754a60.46 60.46 0 0 1 0 120.92H252.891a69.962 69.962 0 0 0-69.098 69.099V771.98a69.962 69.962 0 0 0 69.098 69.098h475.911A69.962 69.962 0 0 0 797.9 771.98V503.363a60.46 60.46 0 1 1 120.922 0V771.98A190.883 190.883 0 0 1 728.802 962z"></path></svg><!--]-->Edit this page<!----></a></div><div class="vp-meta-item git-info"><!----><!----></div></footer><!----><!----><!----><!--]--></main><!--]--><footer class="vp-footer-wrapper"><div class="vp-footer">Copyright © 2024 ESPnet Community. All rights reserved.</div><!----></footer></div><!--]--><!--]--><!--[--><!----><!----><!--]--><!--]--></div>
+    <script type="module" src="/espnet/assets/app-BaN_VLbp.js" defer></script>
+  </body>
 </html>

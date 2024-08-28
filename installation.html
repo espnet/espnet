@@ -1,500 +1,81 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+<!doctype html>
+<html lang="en-US" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="generator" content="VuePress 2.0.0-rc.14" />
+    <meta name="theme" content="VuePress Theme Hope 2.0.0-rc.51" />
+    <style>
+      html {
+        background: var(--bg-color, #fff);
+      }
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Common usages" href="tutorial.html" />
-    <link rel="prev" title="ESPnet: end-to-end speech processing toolkit" href="index.html" /> 
-</head>
+      html[data-theme="dark"] {
+        background: var(--bg-color, #1d1e1f);
+      }
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+      body {
+        background: var(--bg-color);
+      }
+    </style>
+    <script>
+      const userMode = localStorage.getItem("vuepress-theme-hope-scheme");
+      const systemDarkMode =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-          
-          
-          <a href="index.html" class="icon icon-home">
-            ESPnet
-          </a>
-              <div class="version">
-                202402
-              </div>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p><span class="caption-text">Tutorial:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#supported-linux-distributions-and-other-requirements">Supported Linux distributions and other requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#step-1-optional-install-kaldi">Step 1) [Optional] Install Kaldi</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#step-2-installation-espnet">Step 2) Installation ESPnet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#step-3-optional-custom-tool-installation">Step 3) [Optional] Custom tool installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#check-installation">Check installation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Common usages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
-</ul>
-<p><span class="caption-text">ESPnet1:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="espnet1_tutorial.html">Usage</a></li>
-</ul>
-<p><span class="caption-text">ESPnet2:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
-</ul>
-<p><span class="caption-text">Notebook:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html#Additional-resources">Additional resources</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment7_se.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet2/Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/pretrained.html">Pretrained Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook/ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
-</ul>
-<p><span class="caption-text">Package Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.distributed.html">espnet.distributed package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_codec.html">espnet2.gan_codec package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.spk.html">espnet2.spk package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.speechlm.html">espnet2.speechlm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.slu.html">espnet2.slu package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fst.html">espnet2.fst package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
-</ul>
-<p><span class="caption-text">Tool Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
-</ul>
-
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">ESPnet</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Installation</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/installation.md.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<section id="requirements">
-<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><p>Python 3.7+</p></li>
-<li><p>gcc 4.9+ for PyTorch1.10.2+</p></li>
-</ul>
-<p>(If you’ll use an anaconda environment at the installation step2,
-the following packages are installed using conda, so you can skip them.)</p>
-<ul>
-<li><p>cmake3 for some extensions</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>cmake
-</pre></div>
-</div>
-</li>
-<li><p>sox</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>sox
-<span class="c1"># For CentOS</span>
-$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>sox
-</pre></div>
-</div>
-</li>
-<li><p>flac (This is not required when installing, but used in some recipes)</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>flac
-<span class="c1"># For CentOS</span>
-$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>flac
-</pre></div>
-</div>
-</li>
-</ul>
-</section>
-<section id="supported-linux-distributions-and-other-requirements">
-<h2>Supported Linux distributions and other requirements<a class="headerlink" href="#supported-linux-distributions-and-other-requirements" title="Permalink to this headline">¶</a></h2>
-<p>We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our <a class="reference external" href="https://github.com/espnet/espnet/tree/master/.github/workflows">CI configurations</a>
-to prepare the appropriate environments.</p>
-<ul class="simple">
-<li><p>ubuntu18</p></li>
-<li><p>centos7</p></li>
-<li><p>debian11</p></li>
-<li><p>Windows10 (installation only)</p>
-<ul>
-<li><p>We can conduct complete experiments based on WSL-2 (Ubuntu 20.04). See the <a class="reference external" href="https://github.com/espnet/espnet/files/10780845/Instructions.txt">link</a> and <a class="reference external" href="https://github.com/espnet/espnet/discussions/4909">#4909</a> for details (Thanks, <a class="reference external" href="https://github.com/Bereket-Desbele">&#64;Bereket-Desbele</a>!)</p></li>
-</ul>
-</li>
-<li><p>MacOS12 (installation only)</p></li>
-</ul>
-</section>
-<section id="step-1-optional-install-kaldi">
-<h2>Step 1) [Optional] Install Kaldi<a class="headerlink" href="#step-1-optional-install-kaldi" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><p>If you use ESPnet1 (under egs/), you must compile Kaldi.</p></li>
-<li><p>If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.</p></li>
-</ul>
-<details><summary>Click to compile Kaldi...</summary><div><p>Related links:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://github.com/kaldi-asr/kaldi">Kaldi Github</a></p></li>
-<li><p><a class="reference external" href="https://kaldi-asr.org/">Kaldi Documentation</a></p>
-<ul>
-<li><p><a class="reference external" href="https://kaldi-asr.org/doc/install.html">Downloading and installing Kaldi</a></p></li>
-<li><p><a class="reference external" href="https://kaldi-asr.org/doc/build_setup.html">The build process (how Kaldi is compiled)</a></p></li>
-</ul>
-</li>
-<li><p><a class="reference external" href="https://github.com/kaldi-asr/kaldi/blob/master/INSTALL">Kaldi INSTALL</a></p></li>
-</ul>
-<p>Kaldi’s requirements:</p>
-<ul class="simple">
-<li><p>OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.</p></li>
-<li><p>GCC &gt;= 4.7</p></li>
-</ul>
-<ol>
-<li><p>Git clone Kaldi</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;any-place&gt;
-$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/kaldi-asr/kaldi
-</pre></div>
-</div>
-</li>
-<li><p>Install tools</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
-$<span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>&lt;NUM-CPU&gt;
-</pre></div>
-</div>
-<ol class="simple">
-<li><p>Select BLAS library from ATLAS, OpenBLAS, or MKL</p></li>
-</ol>
-<ul class="simple">
-<li><p>OpenBLAS</p></li>
-</ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
-$<span class="w"> </span>./extras/install_openblas.sh
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>MKL (You need sudo privilege)</p></li>
-</ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
-$<span class="w"> </span>sudo<span class="w"> </span>./extras/install_mkl.sh
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>ATLAS (You need sudo privilege)</p></li>
-</ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libatlas-base-dev
-</pre></div>
-</div>
-</li>
-<li><p>Compile Kaldi &amp; install</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/src
-<span class="c1"># [By default MKL is used] ESPnet uses only a feature extractor, so you can disable CUDA</span>
-$<span class="w"> </span>./configure<span class="w"> </span>--use-cuda<span class="o">=</span>no
-<span class="c1"># [With OpenBLAS]</span>
-<span class="c1"># $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no</span>
-<span class="c1"># If you&#39;ll use CUDA</span>
-<span class="c1"># ./configure --cudatk-dir=/usr/local/cuda-10.0</span>
-$<span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>clean<span class="w"> </span>depend<span class="p">;</span><span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>&lt;NUM-CPU&gt;
-</pre></div>
-</div>
-</li>
-</ol>
-<p>We also have <a class="reference external" href="https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh">prebuilt Kaldi binaries</a>.</p>
-</div></details></section>
-<section id="step-2-installation-espnet">
-<h2>Step 2) Installation ESPnet<a class="headerlink" href="#step-2-installation-espnet" title="Permalink to this headline">¶</a></h2>
-<ol>
-<li><p>Git clone ESPnet</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;any-place&gt;
-$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/espnet/espnet
-</pre></div>
-</div>
-</li>
-<li><p>[Optional] Put compiled Kaldi under espnet/tools</p>
-<p>If you have compiled Kaldi at Step 1, put it under <code class="docutils literal notranslate"><span class="pre">tools</span></code>.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>&lt;kaldi-root&gt;<span class="w"> </span>.
-</pre></div>
-</div>
-</li>
-<li><p>Setup Python environment</p>
-<p>You must create <code class="docutils literal notranslate"><span class="pre">&lt;espnet-root&gt;/tools/activate_python.sh</span></code> to specify the Python interpreter used in espnet recipes.
-(To understand how ESPnet specifies Python, see <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh">path.sh</a> for example.)</p>
-<p>We also have some scripts to generate <code class="docutils literal notranslate"><span class="pre">tools/activate_python.sh</span></code>.</p>
-<ul>
-<li><p>Option A) Setup conda environment</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="o">[</span>output-dir-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>venv<span class="o">]</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>root<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="p">|</span><span class="nv">default</span><span class="o">=</span>none<span class="o">]</span>
-<span class="c1"># e.g.</span>
-$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span>miniconda<span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
-</pre></div>
-</div>
-<p>This script tries to create a new miniconda if the output directory doesn’t exist.
-If you already have conda and you’ll use it, then,</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span><span class="nv">CONDA_ROOT</span><span class="o">=</span><span class="si">${${</span><span class="nv">CONDA_PREFIX</span><span class="si">}</span><span class="p">/../..  # CONDA_PREFIX is an environment variable set by </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="p">/etc/profile.d/conda.sh</span>
-$<span class="p"> ./setup_anaconda.sh </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="p"> [conda-env-name] [python-version]</span>
-<span class="p"># e.g.</span>
-$<span class="p"> ./setup_anaconda.sh </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="p"> espnet 3.8</span>
-</pre></div>
-</div>
-</li>
-<li><p>Option B) Setup venv from the system Python</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>./setup_venv.sh<span class="w"> </span><span class="k">$(</span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>python3<span class="k">)</span>
-</pre></div>
-</div>
-</li>
-<li><p>Option C) Setup system Python environment</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k">$(</span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>python3<span class="k">)</span>
-</pre></div>
-</div>
-</li>
-<li><p>Option D) Without setting the Python environment</p>
-<p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost the same. This option might be suitable for Google colab.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
-</pre></div>
-</div>
-</li>
-</ul>
-</li>
-<li><p>Install ESPnet</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>make
-</pre></div>
-</div>
-<p>The Makefile tries to install ESPnet and all dependencies, including PyTorch.
-You can also specify the PyTorch version, for example:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>make<span class="w"> </span><span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1
-</pre></div>
-</div>
-<p>Note that the CUDA version is derived from <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command. If you’d like to specify the other CUDA version, you need to give <code class="docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>make<span class="w"> </span><span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1<span class="w"> </span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.3
-</pre></div>
-</div>
-<p>If you don’t have <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command, packages are installed for CPU mode by default.
-If you’ll turn it on manually, give <code class="docutils literal notranslate"><span class="pre">CPU_ONLY</span></code> option.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>make<span class="w"> </span><span class="nv">CPU_ONLY</span><span class="o">=</span><span class="m">0</span>
-</pre></div>
-</div>
-</li>
-</ol>
-</section>
-<section id="step-3-optional-custom-tool-installation">
-<h2>Step 3) [Optional] Custom tool installation<a class="headerlink" href="#step-3-optional-custom-tool-installation" title="Permalink to this headline">¶</a></h2>
-<p>Some packages used only for specific tasks, e.g., Transducer ASR, Japanese TTS, etc. are not installed by default,
-so if you meet some installation error when running these recipes, you need to install them optionally.</p>
-<p>e.g.</p>
-<ul>
-<li><p>To install Warp Transducer</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-<span class="nv">cuda_root</span><span class="o">=</span>&lt;cuda-root&gt;<span class="w">  </span><span class="c1"># e.g. &lt;cuda-root&gt; = /usr/local/cuda</span>
-bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; . ./setup_cuda_env.sh </span><span class="nv">$cuda_root</span><span class="s2">; ./installers/install_warp-transducer.sh&quot;</span>
-</pre></div>
-</div>
-</li>
-<li><p>To install PyOpenJTalk</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; ./installers/install_pyopenjtalk.sh&quot;</span>
-</pre></div>
-</div>
-</li>
-<li><p>To install a module using pip: e.g. to install ipython</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; pip install ipython&quot;</span>
-</pre></div>
-</div>
-<p>In addition to the python libraries, you can also install several non-python libraries in the conda
-environment, e.g.,</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; conda install -c anaconda cmake&quot;</span>
-</pre></div>
-</div>
-</li>
-</ul>
-</section>
-<section id="check-installation">
-<h2>Check installation<a class="headerlink" href="#check-installation" title="Permalink to this headline">¶</a></h2>
-<p>You can check whether your installation is successfully finished by</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py&quot;</span>
-</pre></div>
-</div>
-<p>Note that this check is always called in the last stage of the above installation.</p>
-</section>
-</section>
-
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="ESPnet: end-to-end speech processing toolkit" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="tutorial.html" class="btn btn-neutral float-right" title="Common usages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+      if (userMode === "dark" || (userMode !== "light" && systemDarkMode)) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    </script>
+    <link rel="icon" href="/espnet/assets/image/espnet.png"><title></title><meta name="description" content="A documentation for ESPnet">
+    <link rel="preload" href="/espnet/assets/style-CiXYLHjk.css" as="style"><link rel="stylesheet" href="/espnet/assets/style-CiXYLHjk.css">
+    <link rel="modulepreload" href="/espnet/assets/app-BaN_VLbp.js">
+    
+  </head>
+  <body>
+    <div id="app"><!--[--><!--[--><!--[--><span tabindex="-1"></span><a href="#main-content" class="vp-skip-link sr-only">Skip to main content</a><!--]--><!--[--><div class="theme-container external-link-icon"><!--[--><header id="navbar" class="vp-navbar"><div class="vp-navbar-start"><button type="button" class="vp-toggle-sidebar-button" title="Toggle Sidebar"><span class="icon"></span></button><!----><!--[--><a class="route-link vp-brand" href="/espnet/"><img class="vp-nav-logo" src="/espnet/assets/image/espnet_logo1.png" alt><!----><!----></a><!--]--><!----></div><div class="vp-navbar-center"><!----><!--[--><nav class="vp-nav-links"><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Guide"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span>Guide<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/" aria-label="Espnet2"><!---->Espnet2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr_transducer/" aria-label="Asr Transducer"><!---->Asr Transducer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asvspoof/" aria-label="Asvspoof"><!---->Asvspoof<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/diar/" aria-label="Diar"><!---->Diar<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/enh/" aria-label="Enh"><!---->Enh<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fileio/" aria-label="Fileio"><!---->Fileio<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fst/" aria-label="Fst"><!---->Fst<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_codec/" aria-label="Gan Codec"><!---->Gan Codec<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_svs/" aria-label="Gan Svs"><!---->Gan Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_tts/" aria-label="Gan Tts"><!---->Gan Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/hubert/" aria-label="Hubert"><!---->Hubert<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/iterators/" aria-label="Iterators"><!---->Iterators<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/layers/" aria-label="Layers"><!---->Layers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/main_funcs/" aria-label="Main Funcs"><!---->Main Funcs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/optimizers/" aria-label="Optimizers"><!---->Optimizers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2st/" aria-label="S2st"><!---->S2st<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2t/" aria-label="S2t"><!---->S2t<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/samplers/" aria-label="Samplers"><!---->Samplers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/schedulers/" aria-label="Schedulers"><!---->Schedulers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/slu/" aria-label="Slu"><!---->Slu<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/speechlm/" aria-label="Speechlm"><!---->Speechlm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/spk/" aria-label="Spk"><!---->Spk<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/svs/" aria-label="Svs"><!---->Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tasks/" aria-label="Tasks"><!---->Tasks<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/text/" aria-label="Text"><!---->Text<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/torch_utils/" aria-label="Torch Utils"><!---->Torch Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/train/" aria-label="Train"><!---->Train<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts2/" aria-label="Tts2"><!---->Tts2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/uasr/" aria-label="Uasr"><!---->Uasr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/" aria-label="Espnet"><!---->Espnet<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/distributed/" aria-label="Distributed"><!---->Distributed<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/nets/" aria-label="Nets"><!---->Nets<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/optimizer/" aria-label="Optimizer"><!---->Optimizer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/scheduler/" aria-label="Scheduler"><!---->Scheduler<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/transform/" aria-label="Transform"><!---->Transform<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/utils/" aria-label="Utils"><!---->Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/vc/" aria-label="Vc"><!---->Vc<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnetez</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/" aria-label="Espnetez"><!---->Espnetez<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/config/" aria-label="Config"><!---->Config<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/data/" aria-label="Data"><!---->Data<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataloader/" aria-label="Dataloader"><!---->Dataloader<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataset/" aria-label="Dataset"><!---->Dataset<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/preprocess/" aria-label="Preprocess"><!---->Preprocess<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/task/" aria-label="Task"><!---->Task<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/trainer/" aria-label="Trainer"><!---->Trainer<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Tools"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span>Tools<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet2_bin/" aria-label="Espnet2 Bin"><!---->Espnet2 Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet_bin/" aria-label="Espnet Bin"><!---->Espnet Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">spm</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/spm/" aria-label="Spm"><!---->Spm<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils_py</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils_py/" aria-label="Utils Py"><!---->Utils Py<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Demo"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span>Demo<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet1</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/notebook/ESPnet1/" aria-label="ESPnet1/ Demo"><!---->ESPnet1/ Demo<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/notebook/ESPnet2/" aria-label="ESPnet2/ Demo"><!---->ESPnet2/ Demo<!----></a></li></ul></li></ul></button></div></div></nav><!--]--><!----></div><div class="vp-navbar-end"><!----><!--[--><!----><div class="vp-nav-item vp-action"><a class="vp-action-link" href="https://github.com/espnet/espnet" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="icon github-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="github icon" name="github" style="width:1.25rem;height:1.25rem;vertical-align:middle;"><path d="M511.957 21.333C241.024 21.333 21.333 240.981 21.333 512c0 216.832 140.544 400.725 335.574 465.664 24.49 4.395 32.256-10.07 32.256-23.083 0-11.69.256-44.245 0-85.205-136.448 29.61-164.736-64.64-164.736-64.64-22.315-56.704-54.4-71.765-54.4-71.765-44.587-30.464 3.285-29.824 3.285-29.824 49.195 3.413 75.179 50.517 75.179 50.517 43.776 75.008 114.816 53.333 142.762 40.79 4.523-31.66 17.152-53.377 31.19-65.537-108.971-12.458-223.488-54.485-223.488-242.602 0-53.547 19.114-97.323 50.517-131.67-5.035-12.33-21.93-62.293 4.779-129.834 0 0 41.258-13.184 134.912 50.346a469.803 469.803 0 0 1 122.88-16.554c41.642.213 83.626 5.632 122.88 16.554 93.653-63.488 134.784-50.346 134.784-50.346 26.752 67.541 9.898 117.504 4.864 129.834 31.402 34.347 50.474 78.123 50.474 131.67 0 188.586-114.73 230.016-224.042 242.09 17.578 15.232 33.578 44.672 33.578 90.454v135.85c0 13.142 7.936 27.606 32.854 22.87C862.25 912.597 1002.667 728.747 1002.667 512c0-271.019-219.648-490.667-490.71-490.667z"></path></svg></a></div><div class="vp-nav-item hide-in-mobile"><button type="button" class="vp-color-mode-switch" id="color-mode-switch"><svg xmlns="http://www.w3.org/2000/svg" class="icon auto-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="auto icon" name="auto" style="display:block;"><path d="M512 992C246.92 992 32 777.08 32 512S246.92 32 512 32s480 214.92 480 480-214.92 480-480 480zm0-840c-198.78 0-360 161.22-360 360 0 198.84 161.22 360 360 360s360-161.16 360-360c0-198.78-161.22-360-360-360zm0 660V212c165.72 0 300 134.34 300 300 0 165.72-134.28 300-300 300z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon dark-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="dark icon" name="dark" style="display:none;"><path d="M524.8 938.667h-4.267a439.893 439.893 0 0 1-313.173-134.4 446.293 446.293 0 0 1-11.093-597.334A432.213 432.213 0 0 1 366.933 90.027a42.667 42.667 0 0 1 45.227 9.386 42.667 42.667 0 0 1 10.24 42.667 358.4 358.4 0 0 0 82.773 375.893 361.387 361.387 0 0 0 376.747 82.774 42.667 42.667 0 0 1 54.187 55.04 433.493 433.493 0 0 1-99.84 154.88 438.613 438.613 0 0 1-311.467 128z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon light-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="light icon" name="light" style="display:none;"><path d="M952 552h-80a40 40 0 0 1 0-80h80a40 40 0 0 1 0 80zM801.88 280.08a41 41 0 0 1-57.96-57.96l57.96-58a41.04 41.04 0 0 1 58 58l-58 57.96zM512 752a240 240 0 1 1 0-480 240 240 0 0 1 0 480zm0-560a40 40 0 0 1-40-40V72a40 40 0 0 1 80 0v80a40 40 0 0 1-40 40zm-289.88 88.08-58-57.96a41.04 41.04 0 0 1 58-58l57.96 58a41 41 0 0 1-57.96 57.96zM192 512a40 40 0 0 1-40 40H72a40 40 0 0 1 0-80h80a40 40 0 0 1 40 40zm30.12 231.92a41 41 0 0 1 57.96 57.96l-57.96 58a41.04 41.04 0 0 1-58-58l58-57.96zM512 832a40 40 0 0 1 40 40v80a40 40 0 0 1-80 0v-80a40 40 0 0 1 40-40zm289.88-88.08 58 57.96a41.04 41.04 0 0 1-58 58l-57.96-58a41 41 0 0 1 57.96-57.96z"></path></svg></button></div><!--[--><button type="button" class="search-pro-button" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" class="icon search-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="search icon" name="search"><path d="M192 480a256 256 0 1 1 512 0 256 256 0 0 1-512 0m631.776 362.496-143.2-143.168A318.464 318.464 0 0 0 768 480c0-176.736-143.264-320-320-320S128 303.264 128 480s143.264 320 320 320a318.016 318.016 0 0 0 184.16-58.592l146.336 146.368c12.512 12.48 32.768 12.48 45.28 0 12.48-12.512 12.48-32.768 0-45.28"></path></svg><div class="search-pro-placeholder">Search</div><div class="search-pro-key-hints"><kbd class="search-pro-key">Ctrl</kbd><kbd class="search-pro-key">K</kbd></div></button><!--]--><!--]--><!----><button type="button" class="vp-toggle-navbar-button" aria-label="Toggle Navbar" aria-expanded="false" aria-controls="nav-screen"><span><span class="vp-top"></span><span class="vp-middle"></span><span class="vp-bottom"></span></span></button></div></header><!----><!--]--><!----><div class="toggle-sidebar-wrapper"><span class="arrow start"></span></div><aside id="sidebar" class="vp-sidebar"><!----><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span><span class="vp-sidebar-title">Guide</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnetez</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span><span class="vp-sidebar-title">Tools</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2 Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Spm</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils Py</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span><span class="vp-sidebar-title">Demo</span><!----></p><ul class="vp-sidebar-links"><li><a class="route-link auto-link vp-sidebar-link" href="/espnet/notebook/" aria-label="ESPnet Notebook Information"><!---->ESPnet Notebook Information<!----></a></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">ESPnet1/ Demo</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">ESPnet2/ Demo</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li></ul><!----></aside><!--[--><main id="main-content" class="vp-page"><!--[--><!----><!----><nav class="vp-breadcrumb disable"></nav><div class="vp-page-title"><h1><!----></h1><div class="page-info"><!----><!----><!----><!----><span class="page-reading-time-info" aria-label="Reading Time⌛" data-balloon-pos="up"><svg xmlns="http://www.w3.org/2000/svg" class="icon timer-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="timer icon" name="timer"><path d="M799.387 122.15c4.402-2.978 7.38-7.897 7.38-13.463v-1.165c0-8.933-7.38-16.312-16.312-16.312H256.33c-8.933 0-16.311 7.38-16.311 16.312v1.165c0 5.825 2.977 10.874 7.637 13.592 4.143 194.44 97.22 354.963 220.201 392.763-122.204 37.542-214.893 196.511-220.2 389.397-4.661 5.049-7.638 11.651-7.638 19.03v5.825h566.49v-5.825c0-7.379-2.849-13.981-7.509-18.9-5.049-193.016-97.867-351.985-220.2-389.527 123.24-37.67 216.446-198.453 220.588-392.892zM531.16 450.445v352.632c117.674 1.553 211.787 40.778 211.787 88.676H304.097c0-48.286 95.149-87.382 213.728-88.676V450.445c-93.077-3.107-167.901-81.297-167.901-177.093 0-8.803 6.99-15.793 15.793-15.793 8.803 0 15.794 6.99 15.794 15.793 0 80.261 63.69 145.635 142.01 145.635s142.011-65.374 142.011-145.635c0-8.803 6.99-15.793 15.794-15.793s15.793 6.99 15.793 15.793c0 95.019-73.789 172.82-165.96 177.093z"></path></svg><span>About 3 min</span><meta property="timeRequired" content="PT3M"></span><!----><!----></div><hr></div><!----><!----><div class="theme-hope-content"><h2 id="installation" tabindex="-1"><a class="header-anchor" href="#installation"><span>Installation</span></a></h2><h3 id="requirements" tabindex="-1"><a class="header-anchor" href="#requirements"><span>Requirements</span></a></h3><ul><li>Python 3.7+</li><li>gcc 4.9+ for PyTorch1.10.2+</li></ul><p>(If you&#39;ll use an anaconda environment at the installation step2, the following packages are installed using conda, so you can skip them.)</p><ul><li>cmake3 for some extensions<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># For Ubuntu</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> apt-get</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cmake</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li>sox<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># For Ubuntu</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> apt-get</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sox</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># For CentOS</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> yum</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sox</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li><li>flac (This is not required when installing, but used in some recipes)<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># For Ubuntu</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> apt-get</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> flac</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># For CentOS</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> yum</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> flac</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li></ul><h3 id="supported-linux-distributions-and-other-requirements" tabindex="-1"><a class="header-anchor" href="#supported-linux-distributions-and-other-requirements"><span>Supported Linux distributions and other requirements</span></a></h3><p>We support the following Linux distributions with CI. If you want to build your own Linux by yourself, please also check our <a href="https://github.com/espnet/espnet/tree/master/.github/workflows" target="_blank" rel="noopener noreferrer">CI configurations</a> to prepare the appropriate environments.</p><ul><li>ubuntu18</li><li>centos7</li><li>debian11</li><li>Windows10 (installation only) <ul><li>We can conduct complete experiments based on WSL-2 (Ubuntu 20.04). See the <a href="https://github.com/espnet/espnet/files/10780845/Instructions.txt" target="_blank" rel="noopener noreferrer">link</a> and <a href="https://github.com/espnet/espnet/discussions/4909" target="_blank" rel="noopener noreferrer">#4909</a> for details (Thanks, <a href="https://github.com/Bereket-Desbele" target="_blank" rel="noopener noreferrer">@Bereket-Desbele</a>!)</li></ul></li><li>MacOS12 (installation only)</li></ul><h3 id="step-1-optional-install-kaldi" tabindex="-1"><a class="header-anchor" href="#step-1-optional-install-kaldi"><span>Step 1) [Optional] Install Kaldi</span></a></h3><ul><li>If you use ESPnet1 (under egs/), you must compile Kaldi.</li><li>If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.</li></ul><details><summary>Click to compile Kaldi...</summary><div><p>Related links:</p><ul><li><a href="https://github.com/kaldi-asr/kaldi" target="_blank" rel="noopener noreferrer">Kaldi Github</a></li><li><a href="https://kaldi-asr.org/" target="_blank" rel="noopener noreferrer">Kaldi Documentation</a><ul><li><a href="https://kaldi-asr.org/doc/install.html" target="_blank" rel="noopener noreferrer">Downloading and installing Kaldi</a></li><li><a href="https://kaldi-asr.org/doc/build_setup.html" target="_blank" rel="noopener noreferrer">The build process (how Kaldi is compiled)</a></li></ul></li><li><a href="https://github.com/kaldi-asr/kaldi/blob/master/INSTALL" target="_blank" rel="noopener noreferrer">Kaldi INSTALL</a></li></ul><p>Kaldi&#39;s requirements:</p><ul><li>OS: Ubuntu, CentOS, MacOSX, Windows, Cygwin, etc.</li><li>GCC &gt;= 4.7</li></ul><ol><li><p>Git clone Kaldi</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">any-plac</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">e</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> git</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> clone</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> https://github.com/kaldi-asr/kaldi</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Install tools</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">kaldi-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -j</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">NUM-CP</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">U</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><ol><li>Select BLAS library from ATLAS, OpenBLAS, or MKL</li></ol><ul><li>OpenBLAS</li></ul><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">kaldi-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./extras/install_openblas.sh</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><ul><li>MKL (You need sudo privilege)</li></ul><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">kaldi-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./extras/install_mkl.sh</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><ul><li>ATLAS (You need sudo privilege)</li></ul><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Ubuntu</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> apt-get</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> libatlas-base-dev</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Compile Kaldi &amp; install</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">kaldi-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/src</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># [By default MKL is used] ESPnet uses only a feature extractor, so you can disable CUDA</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./configure</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> --use-cuda=no</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># [With OpenBLAS]</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># If you&#39;ll use CUDA</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># ./configure --cudatk-dir=/usr/local/cuda-10.0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -j</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> clean</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> depend</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">; </span><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">make</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -j</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">NUM-CP</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">U</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li></ol><p>We also have <a href="https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh" target="_blank" rel="noopener noreferrer">prebuilt Kaldi binaries</a>.</p></div></details><h3 id="step-2-installation-espnet" tabindex="-1"><a class="header-anchor" href="#step-2-installation-espnet"><span>Step 2) Installation ESPnet</span></a></h3><ol><li><p>Git clone ESPnet</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">any-plac</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">e</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> git</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> clone</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> https://github.com/espnet/espnet</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>[Optional] Put compiled Kaldi under espnet/tools</p><p>If you have compiled Kaldi at Step 1, put it under <code>tools</code>.</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ln</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -s</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">kaldi-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> .</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Setup Python environment</p><p>You must create <code>&lt;espnet-root&gt;/tools/activate_python.sh</code> to specify the Python interpreter used in espnet recipes. (To understand how ESPnet specifies Python, see <a href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh" target="_blank" rel="noopener noreferrer">path.sh</a> for example.)</p><p>We also have some scripts to generate <code>tools/activate_python.sh</code>.</p><ul><li><p>Option A) Setup conda environment</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./setup_anaconda.sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> [output-dir-name</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">default</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">venv</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">] [conda-env-name</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">default</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">root] [python-version</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">default</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">none]</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># e.g.</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./setup_anaconda.sh</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> miniconda</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> espnet</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 3.8</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>This script tries to create a new miniconda if the output directory doesn&#39;t exist. If you already have conda and you&#39;ll use it, then,</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> CONDA_ROOT=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">${${</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">CONDA_PREFIX</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">}</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">..</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">..  </span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">#</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> CONDA_PREFIX</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> is</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> an</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> environment</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> variable</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> set</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> by</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> ${</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">CONDA_ROOT</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">}</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">etc</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">profile</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">d</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">conda</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">sh</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">$ .</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">setup_anaconda</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> ${</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">CONDA_ROOT</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">} [conda-env-name] [python-version]</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">#</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> e</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">g</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">$ .</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">setup_anaconda</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> ${</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">CONDA_ROOT</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">} </span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">espnet</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;"> 3</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.</span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">8</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Option B) Setup venv from the system Python</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./setup_venv.sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> $(</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">command</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -v</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> python3</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Option C) Setup system Python environment</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> ./setup_python.sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> $(</span><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">command</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -v</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> python3</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li><p>Option D) Without setting the Python environment</p><p><code>Option C</code> and <code>Option D</code> are almost the same. This option might be suitable for Google colab.</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> rm</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -f</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> activate_python.sh</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> &amp;&amp; </span><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">touch</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> activate_python.sh</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li></ul></li><li><p>Install ESPnet</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><p>The Makefile tries to install ESPnet and all dependencies, including PyTorch. You can also specify the PyTorch version, for example:</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> TH_VERSION=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">1.10.1</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><p>Note that the CUDA version is derived from <code>nvcc</code> command. If you&#39;d like to specify the other CUDA version, you need to give <code>CUDA_VERSION</code>.</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> TH_VERSION=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">1.10.1</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> CUDA_VERSION=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">11.3</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><p>If you don&#39;t have <code>nvcc</code> command, packages are installed for CPU mode by default. If you&#39;ll turn it on manually, give <code>CPU_ONLY</code> option.</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">$</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> make</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> CPU_ONLY=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">0</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li></ol><h3 id="step-3-optional-custom-tool-installation" tabindex="-1"><a class="header-anchor" href="#step-3-optional-custom-tool-installation"><span>Step 3) [Optional] Custom tool installation</span></a></h3><p>Some packages used only for specific tasks, e.g., Transducer ASR, Japanese TTS, etc. are not installed by default, so if you meet some installation error when running these recipes, you need to install them optionally.</p><p>e.g.</p><ul><li>To install Warp Transducer<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">cuda_root</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">cuda-root</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">  # e.g. &lt;cuda-root&gt; = /usr/local/cuda</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;. activate_python.sh; . ./setup_cuda_env.sh </span><span style="--shiki-light:#24292E;--shiki-dark:#E06C75;">$cuda_root</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">; ./installers/install_warp-transducer.sh&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></li><li>To install PyOpenJTalk<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;. activate_python.sh; ./installers/install_pyopenjtalk.sh&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li><li>To install a module using pip: e.g. to install ipython<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;. activate_python.sh; pip install ipython&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div>In addition to the python libraries, you can also install several non-python libraries in the conda environment, e.g.,<div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;. activate_python.sh; conda install -c anaconda cmake&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div></li></ul><h3 id="check-installation" tabindex="-1"><a class="header-anchor" href="#check-installation"><span>Check installation</span></a></h3><p>You can check whether your installation is successfully finished by</p><div class="language-sh line-numbers-mode" data-highlighter="shiki" data-ext="sh" data-title="sh" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">cd</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;"> &lt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">espnet-roo</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">t</span><span style="--shiki-light:#D73A49;--shiki-dark:#ABB2BF;">&gt;</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/tools</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;">bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;"> &quot;. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><p>Note that this check is always called in the last stage of the above installation.</p></div><!----><footer class="vp-page-meta"><div class="vp-meta-item edit-link"><a class="auto-link external-link vp-meta-label" href="https://github.com/espnet/espnet/edit/main/src/installation.md" aria-label="Edit this page" rel="noopener noreferrer" target="_blank"><!--[--><svg xmlns="http://www.w3.org/2000/svg" class="icon edit-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="edit icon" name="edit"><path d="M430.818 653.65a60.46 60.46 0 0 1-50.96-93.281l71.69-114.012 7.773-10.365L816.038 80.138A60.46 60.46 0 0 1 859.225 62a60.46 60.46 0 0 1 43.186 18.138l43.186 43.186a60.46 60.46 0 0 1 0 86.373L588.879 565.55l-8.637 8.637-117.466 68.234a60.46 60.46 0 0 1-31.958 11.229z"></path><path d="M728.802 962H252.891A190.883 190.883 0 0 1 62.008 771.98V296.934a190.883 190.883 0 0 1 190.883-192.61h267.754a60.46 60.46 0 0 1 0 120.92H252.891a69.962 69.962 0 0 0-69.098 69.099V771.98a69.962 69.962 0 0 0 69.098 69.098h475.911A69.962 69.962 0 0 0 797.9 771.98V503.363a60.46 60.46 0 1 1 120.922 0V771.98A190.883 190.883 0 0 1 728.802 962z"></path></svg><!--]-->Edit this page<!----></a></div><div class="vp-meta-item git-info"><!----><!----></div></footer><!----><!----><!----><!--]--></main><!--]--><footer class="vp-footer-wrapper"><div class="vp-footer">Copyright © 2024 ESPnet Community. All rights reserved.</div><!----></footer></div><!--]--><!--]--><!--[--><!----><!----><!--]--><!--]--></div>
+    <script type="module" src="/espnet/assets/app-BaN_VLbp.js" defer></script>
+  </body>
 </html>

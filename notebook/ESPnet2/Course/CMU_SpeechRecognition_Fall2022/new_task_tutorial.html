@@ -1,618 +1,134 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+<!doctype html>
+<html lang="en-US" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="generator" content="VuePress 2.0.0-rc.14" />
+    <meta name="theme" content="VuePress Theme Hope 2.0.0-rc.51" />
+    <style>
+      html {
+        background: var(--bg-color, #fff);
+      }
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task) &mdash; ESPnet 202402 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-      <link rel="stylesheet" href="../../../../_static/nbsphinx-code-cells.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../../../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
-    <script src="../../../../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../../search.html" />
-    <link rel="next" title="CMU 11492/11692 Spring 2023: Speech Enhancement" href="../CMU_SpeechProcessing_Spring2023/assignment7_se.html" />
-    <link rel="prev" title="CMU 11751/18781 Fall 2022: ESPnet Tutorial" href="recipe_tutorial.html" /> 
-</head>
+      html[data-theme="dark"] {
+        background: var(--bg-color, #1d1e1f);
+      }
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+      body {
+        background: var(--bg-color);
+      }
+    </style>
+    <script>
+      const userMode = localStorage.getItem("vuepress-theme-hope-scheme");
+      const systemDarkMode =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-          
-          
-          <a href="../../../../index.html" class="icon icon-home">
-            ESPnet
-          </a>
-              <div class="version">
-                202402
-              </div>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p><span class="caption-text">Tutorial:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Common usages</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using job scheduling system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
-</ul>
-<p><span class="caption-text">ESPnet1:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet1_tutorial.html">Usage</a></li>
-</ul>
-<p><span class="caption-text">ESPnet2:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
-</ul>
-<p><span class="caption-text">Notebook:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="recipe_tutorial.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_tutorial.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_tutorial.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_tutorial.html#Make-a-new-recipe">Make a new recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_tutorial.html#Additional-resources">Additional resources</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#❗Important-Notes❗">❗Important Notes❗</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Useful-links">Useful links</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Objectives">Objectives</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Function-to-print-date-and-time">Function to print date and time</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Download-ESPnet">Download ESPnet</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Setup-Python-environment-based-on-anaconda-+-Install-ESPnet">Setup Python environment based on anaconda + Install ESPnet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#ASVSpoof-data-preparation">ASVSpoof data preparation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Download-dataset">Download dataset</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Prepare-data-(Stage1-&amp;-Stage2)">Prepare data (Stage1 &amp; Stage2)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ASVSpoof-collect-stats-(✅-Checkpint-1-(1-point))">ASVSpoof collect stats (✅ Checkpint 1 (1 point))</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#ASVSpoof-Model">ASVSpoof Model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Encoder-(✅-Checkpint-2-(1-point))">Encoder (✅ Checkpint 2 (1 point))</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Decoder-(✅-Checkpint-3-(1-point))">Decoder (✅ Checkpint 3 (1 point))</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#Model-Inference">Model Inference</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#(✅-Checkpint-4-(1-point))">(✅ Checkpint 4 (1 point))</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#Scoring">Scoring</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#(✅-Checkpint-5-(1-point))">(✅ Checkpint 5 (1 point))</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#📗-Exercise-1-(1-point-bonus)">📗 Exercise 1 (1 point bonus)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#📗-Exercise-2-(1-point-bonus)">📗 Exercise 2 (1 point bonus)</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment7_se.html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment7_se.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment6_slu.html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/s2st_demo.html">ESPnet-S2ST realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment0_data-prep.html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment3_spk.html">CMU 11492/11692 Spring 2023: Speaker Recognition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment5_st.html">CMU 11492/11692 Spring 2023: Speech Translation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html">CMU 11492/11692 Spring 2023: ESPnet Tutorial2 (New task)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment1_espnet-tutorial.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment8_tts.html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment4_ssl.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Install-ESPnet">Install ESPnet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechProcessing_Spring2023/assignment4_ssl.html#Run-an-existing-recipe">Run an existing recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-an-inference-example">Run an inference example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Full-installation">Full installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../CMU_SpeechRecognition_Fall2021/general_tutorial.html#Run-a-recipe-example">Run a recipe example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SLU/2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/ASR/streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/Others/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#Contents">Contents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/SE/se_demo_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Demo/TTS/tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/pretrained.html">Pretrained Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/tts_recipe.html">Text-to-Speech (Recipe)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_library.html">Speech Recognition (Library)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ESPnet1/asr_recipe.html">Speech Recognition (Recipe)</a></li>
-</ul>
-<p><span class="caption-text">Package Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_codec.html">espnet2.gan_codec package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts2.html">espnet2.tts2 package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.speechlm.html">espnet2.speechlm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
-</ul>
-<p><span class="caption-text">Tool Reference:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
-</ul>
-
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">ESPnet</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="../../../../_sources/notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.ipynb.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <section id="CMU-11751/18781-Fall-2022:-ESPnet-Tutorial2-(New-task)">
-<h1>CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)<a class="headerlink" href="#CMU-11751/18781-Fall-2022:-ESPnet-Tutorial2-(New-task)" title="Permalink to this headline">¶</a></h1>
-<p><a class="reference external" href="https://github.com/espnet/espnet">ESPnet</a> is a widely-used end-to-end speech processing toolkit. It has supported various speech processing tasks. ESPnet uses PyTorch as a main deep learning engine, and also follows Kaldi style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.</p>
-<p>Main references: - <a class="reference external" href="https://github.com/espnet/espnet">ESPnet repository</a> - <a class="reference external" href="https://espnet.github.io/espnet/">ESPnet documentation</a> - <a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb">ESPnet tutorial in Speech Recognition and Understanding (Fall 2021)</a> - <a class="reference external" href="https://colab.research.google.com/drive/1tY6PxF_M5Nx5n488x0DrpujJOyqW-ATi?usp=sharing">Recitation in Multilingual NLP (Spring 2022)</a> - <a class="reference external" href="https://colab.research.google.com/drive/1d3yMY3xv_hpr2mznskZpF2Cj-bEooDv-?usp=sharing">ESPnet tutorial1 in Speech
-Recognition and Understanding (Fall 2022)</a></p>
-<p>Author: Jiatong Shi (<a class="reference external" href="mailto:jiatongs&#37;&#52;&#48;andrew&#46;cmu&#46;edu">jiatongs<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
-<p>We would like to thank You (Neil) Zhang for kindly helping the hands-on tutorial and sharing his knowledge on the task.</p>
-<section id="❗Important-Notes❗">
-<h2>❗Important Notes❗<a class="headerlink" href="#❗Important-Notes❗" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><p>We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU time, you may not be able to use GPU for some time.</p></li>
-<li><p>There are multiple in-class checkpoints ✅ throughout this tutorial. There will also be some after-class excersices 📗 after the tutorial. <strong>Your participation points are based on these tasks.</strong> Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.</p></li>
-<li><p>Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Print</span></code> in the menu bar.</p></li>
-<li><p>This tutorial covers some advanced usage of ESPnet, which is the extension of the first tutorial.</p></li>
-</ul>
-</section>
-<section id="Useful-links">
-<h2>Useful links<a class="headerlink" href="#Useful-links" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><p>Installation <a class="reference external" href="https://espnet.github.io/espnet/installation.html">https://espnet.github.io/espnet/installation.html</a></p></li>
-<li><p>Usage <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html">https://espnet.github.io/espnet/espnet2_tutorial.html</a></p></li>
-<li><p>Reference of task class in ESPnet <a class="reference external" href="https://espnet.github.io/espnet/espnet2_task.html">https://espnet.github.io/espnet/espnet2_task.html</a></p></li>
-</ul>
-</section>
-<section id="Objectives">
-<h2>Objectives<a class="headerlink" href="#Objectives" title="Permalink to this headline">¶</a></h2>
-<p>After this tutorial, you are expected to know: - How to add new task in ESPnet2 - How to add new models in ESPnet2 - How to create a new recipe (and template) of a new task from scratch</p>
-</section>
-<section id="Function-to-print-date-and-time">
-<h2>Function to print date and time<a class="headerlink" href="#Function-to-print-date-and-time" title="Permalink to this headline">¶</a></h2>
-<p>We first define a function to print the current date and time, which will be used in multiple places below.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">print_date_and_time</span><span class="p">():</span>
-  <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-  <span class="kn">import</span> <span class="nn">pytz</span>
-
-  <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;America/New_York&quot;</span><span class="p">))</span>
-  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-  <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39; Current date and time: </span><span class="si">{</span><span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y %H:%M:%S&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-
-<span class="c1"># example output</span>
-<span class="n">print_date_and_time</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">
-<h1>Install ESPnet (Almost same procedure as your first tutorial)<a class="headerlink" href="#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)" title="Permalink to this headline">¶</a></h1>
-<section id="Download-ESPnet">
-<h2>Download ESPnet<a class="headerlink" href="#Download-ESPnet" title="Permalink to this headline">¶</a></h2>
-<p>We use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> to download the source code of ESPnet and then go to a specific commit.</p>
-<p><strong>Important:</strong> In other versions of ESPnet, you may encounter errors related to imcompatible package versions (<code class="docutils literal notranslate"><span class="pre">numba</span></code>). Please use the same commit to avoid such issues.</p>
-<p>Note that we are using another branch <code class="docutils literal notranslate"><span class="pre">espnet_tutorial_asvspoof</span></code> instead of “master”. You can also use your own fork to proceed the following sections if you want to use Github to save your code.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes a few seconds
-!git clone --depth 5 -b 2022fall_new_task_tutorial https://github.com/espnet/espnet
-
-# We use a specific commit just for reproducibility.
-%cd /content/espnet
-!git checkout 9cff98a78ceaa4d85843be0a50b369ec826b27f6
-</pre></div>
-</div>
-</div>
-</section>
-<section id="Setup-Python-environment-based-on-anaconda-+-Install-ESPnet">
-<h2>Setup Python environment based on anaconda + Install ESPnet<a class="headerlink" href="#Setup-Python-environment-based-on-anaconda-+-Install-ESPnet" title="Permalink to this headline">¶</a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 30 seconds
-%cd /content/espnet/tools
-!./setup_anaconda.sh anaconda espnet 3.9
-
-# It may take 12 minutes
-%cd /content/espnet/tools
-!make TH_VERSION=1.12.1 CUDA_VERSION=11.6
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="What-we-provide-you-and-what-you-need-to-proceed">
-<h1>What we provide you and what you need to proceed<a class="headerlink" href="#What-we-provide-you-and-what-you-need-to-proceed" title="Permalink to this headline">¶</a></h1>
-<p>We have provide you most of the files needed for ASVSpoof recipe. So you do not need to add any additional files. However, noted that some of the files are not complete and need your completion to proceed. For a quick overview of the whole layout of the new task, please refer to <a class="reference external" href="https://github.com/espnet/espnet/compare/master...2022fall_new_task_tutorial">https://github.com/espnet/espnet/compare/master…2022fall_new_task_tutorial</a></p>
-<p>As elaborated in the warming-up, we have shown that there are two core components for a new task in ESPnet: a <strong>task library</strong> and correponding <strong>recipe setups</strong>. For the following of the section, we will briefly show the overall layout of adding the ASVSpoof task in ESPnet. The listed files are almost the minimum requirements to add a new task in ESPnet.</p>
-<p><strong>Task library for ASVSpoof</strong></p>
-<p>Followings are a list of files adding to ESPnet for ASVSpoof (files in “” are ones that need modifications)</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- espnet2
-  - bin
-    - asvspoof_train.py # Major entry point for asvspoof
-    - &quot;asvspoof_inference.py&quot; (Checkpoint 4) # Inference scripts for asvspoof
-  - asvspoof
-    - decoder
-      - __init__.py
-      - abs_decoder.py # abstract class for decoder in ASVSpoof
-      - &quot;linear_decoder.py&quot; (Checkpoint 3) # simple linear decoder for ASVSpoof
-    - loss
-      - __init__.py
-      - abs_loss.py # abstract class for loss in ASVSpoof
-      - binary_loss.py # naive binary class loss for ASVSpoof
-      - am_softmax.py
-      - &quot;oc_softmax.py&quot; (Bouns)
-    - __init__.py
-    - &quot;espnet_model.py&quot; (Bouns)
-  - tasks
-    - &quot;asvspoof.py&quot; (Checkpoint 2)
-</pre></div>
-</div>
-<p>To help you understand more, we would recommend you to check the layout of other tasks (e.g., ASR, TTS, ST, etc.) to understand how the codebase is functioning.</p>
-<p><strong>Recipe for ASVSpoof</strong></p>
-<p>Followings are a list of files adding to ESPnet for ASVSpoof (files in boldface are ones that need modifications)</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- egs2
-  - TEMPLATE
-    - asvspoof1
-      - &quot;asvspoof.sh&quot; (Checkpoint 1)
-      - others
-  - espnet_tutorial
-    - asvspoof11
-      - conf
-      - &quot;asvspoof.sh” (Checkpoint 1)
-      - local
-        - &quot;data_prep.py&quot; (Bouns)
-        - &quot;data.sh&quot; (Bouns)
-      - &quot;run.sh&quot; (Checkpoint 5)
-      - scripts
-      - pyscripts
-      - utils
-      - steps
-      - path.sh
-      - db.sh
-      - cmd.sh
-</pre></div>
-</div>
-<p>Noted that because of the <a class="reference external" href="https://www.freecodecamp.org/news/symlink-tutorial-in-linux-how-to-create-and-remove-a-symbolic-link/">symlink</a>, the <code class="docutils literal notranslate"><span class="pre">asvspoof.sh</span></code> is essentially the same for checkpoint 1.</p>
-<section id="ASVSpoof-data-preparation">
-<h2>ASVSpoof data preparation<a class="headerlink" href="#ASVSpoof-data-preparation" title="Permalink to this headline">¶</a></h2>
-<p>As discussed in the warm-up session, ASVSpoof aims to conduct a binary classfication. As the task layout is a bit different from the ASR task we touched on the first tutorial, so we need to use a different format to formulate the data. For here, to keep the simplicity, we stil use the exact same file as the first tutorial:</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>wav.scp text utt2spk spk2utt
-</pre></div>
-</div>
-<p>But on the other hand, we change the format of text into</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>utt_id1 0
-utt_id2 1
-utt_id3 0
-</pre></div>
-</div>
-<p>where 0 represents real speech and 1 stands for fake speech.</p>
-<section id="Download-dataset">
-<h3>Download dataset<a class="headerlink" href="#Download-dataset" title="Permalink to this headline">¶</a></h3>
-<p>We first download the data from google drive. Noted that the data is a subset of the ASVSpoof2019 Challenge.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># a few seconds
-%cd /content/espnet/egs2/espnet_tutorial/asvspoof1/
-!gdown 1HRdjjmGXBTXOqOq9iijuXPCA4y_46OzP
-!unzip espnet_tutorial_asvspoof.zip
-</pre></div>
-</div>
-</div>
-</section>
-<section id="Prepare-data-(Stage1-&amp;-Stage2)">
-<h3>Prepare data (Stage1 &amp; Stage2)<a class="headerlink" href="#Prepare-data-(Stage1-&-Stage2)" title="Permalink to this headline">¶</a></h3>
-<p>This time, we make the task template to be as simple as possible. The data preparation will be only two stages, including basic data preparation and wave format.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It may take around 6 minutes
-!./asvspoof.sh --stage 1 --stop_stage 2 --train_set train --valid_set dev --test_sets &quot;eval&quot;
-</pre></div>
-</div>
-</div>
-</section>
-<section id="ASVSpoof-collect-stats-(✅-Checkpint-1-(1-point))">
-<h3>ASVSpoof collect stats (✅ Checkpint 1 (1 point))<a class="headerlink" href="#ASVSpoof-collect-stats-(✅-Checkpint-1-(1-point))" title="Permalink to this headline">¶</a></h3>
-<p>Similar to the previous tutorial, we collect the statisitcs for the data.</p>
-<p>In the process, the data will be passed into a iterable loader. However, remember that the <code class="docutils literal notranslate"><span class="pre">text</span></code> file is no longer the format as the ASR recipe. Therefore, we will need to use another data loader to load the corresponding information.</p>
-<p>Fortunately, we have a wide range of data loaders for choices, which is listing in <a class="reference external" href="https://github.com/espnet/espnet/blob/a7bd6522b32ec6472c13f6a2289dcdff4a846c12/espnet2/train/dataset.py#L130-L249">here</a>. Please choose the correct file format and replace the <code class="docutils literal notranslate"><span class="pre">[REPLACE_ME]</span></code> token in <code class="docutils literal notranslate"><span class="pre">asvspoof.sh</span></code></p>
-<p>After the replacement, you should be able to run the following blocks</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes less than 2 minutes
-!./asvspoof.sh --stage 3 --stop_stage 3 --train_set train --valid_set dev --test_sets &quot;dev eval&quot; --asvspoof_config conf/checkpoint1_dummy.yaml
-
-# NOTE: Checkpoint 1
-print_date_and_time()
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="ASVSpoof-Model">
-<h2>ASVSpoof Model<a class="headerlink" href="#ASVSpoof-Model" title="Permalink to this headline">¶</a></h2>
-<p>In this section, we will define the ASVSpoof model and use the model to conduct the training of ASVSpoof task. For easier understanding, we first use an <code class="docutils literal notranslate"><span class="pre">encoder</span></code> to convert speech features into hidden representations and then use a <code class="docutils literal notranslate"><span class="pre">decoder</span></code> to conduct the classification.</p>
-<section id="Encoder-(✅-Checkpint-2-(1-point))">
-<h3>Encoder (✅ Checkpint 2 (1 point))<a class="headerlink" href="#Encoder-(✅-Checkpint-2-(1-point))" title="Permalink to this headline">¶</a></h3>
-<p>First, we are going to focus on the encoder part. There has been a long history over the discussion of the speech encoder in our community. Given the sequential perspective, people firstly investigated recurrent neural networks. More recently, we are focusing on <a class="reference external" href="https://arxiv.org/abs/2010.13956">conformer block</a>, which is an extension to the transformer block. In the previous settings, we used a transformer block to collect stats. However, we would want to switch to conformer.</p>
-<p>Code-reusibility is one of the major benefits of using ESPnet as a toolkit for speech tasks. As ESPnet already support conformer block in ASR, it is easy to import into this new task.</p>
-<p>In ESPnet, adding modules that we already have can be as simple as two-line codes. Please add lines into <code class="docutils literal notranslate"><span class="pre">/content/espnet/espnet2/tasks/asvspoof.py</span></code>. We have marked <code class="docutils literal notranslate"><span class="pre">TODO</span></code> in the scripts for your convenience.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes less than 2 minutes
-!./asvspoof.sh --stage 3 --stop_stage 3 --train_set train --valid_set dev --test_sets &quot;dev eval&quot; --asvspoof_config conf/checkpoint2.yaml
-
-# NOTE: Checkpoint 2
-print_date_and_time()
-</pre></div>
-</div>
-</div>
-</section>
-<section id="Decoder-(✅-Checkpint-3-(1-point))">
-<h3>Decoder (✅ Checkpint 3 (1 point))<a class="headerlink" href="#Decoder-(✅-Checkpint-3-(1-point))" title="Permalink to this headline">¶</a></h3>
-<p>In this stage, we will finally start the training. As the previous tutorial, we can use the Tensorboard to monitor the process.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the TensorBoard notebook extension</span>
-<span class="o">%</span><span class="n">reload_ext</span> <span class="n">tensorboard</span>
-
-<span class="c1"># Launch tensorboard before training</span>
-<span class="o">%</span><span class="n">tensorboard</span> <span class="o">--</span><span class="n">logdir</span> <span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">espnet</span><span class="o">/</span><span class="n">egs2</span><span class="o">/</span><span class="n">espnet_tutorial</span><span class="o">/</span><span class="n">asvspoof1</span><span class="o">/</span><span class="n">exp</span>
-</pre></div>
-</div>
-</div>
-<p>After we finished the encoder, we also need to create a decoder to conduct the prediciton. As the encoder will generate hidden representations, we want to have a simple decoder to conduct mean-pooling to all the hidden representation at the time-axis. There should be another linear layer to conclude the models into binary classification. Please fill the missing part in <code class="docutils literal notranslate"><span class="pre">/conent/espnet/espnet2/asvspoof/decoder/linear_decoder.py</span></code> to finally start the training. For people who are not familiar
-with Pytorch, please refer the related resources for details.</p>
-<p>Related resources that could be helpful for this checkpoint: - <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.mean.html">https://pytorch.org/docs/stable/generated/torch.mean.html</a> - <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html">https://pytorch.org/docs/stable/generated/torch.nn.Linear.html</a> - <a class="reference external" href="https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html">https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html</a></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!nvidia-smi
-
-# Training takes around 2 minutes
-!./asvspoof.sh --stage 4 --stop_stage 4 --train_set train --valid_set dev --test_sets &quot;dev eval&quot; --asvspoof_config conf/checkpoint2.yaml --inference_config conf/decode_asvspoof.yaml
-
-# NOTE: Checkpoint 3
-print_date_and_time()
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="Model-Inference">
-<h2>Model Inference<a class="headerlink" href="#Model-Inference" title="Permalink to this headline">¶</a></h2>
-<section id="(✅-Checkpint-4-(1-point))">
-<h3>(✅ Checkpint 4 (1 point))<a class="headerlink" href="#(✅-Checkpint-4-(1-point))" title="Permalink to this headline">¶</a></h3>
-<p>As the training is finished, we expect to conduct ASVSpoof on the test set. To approach that, we first have to finish the inference codebase. For our task specifically, we need the log-probability of the prediction to compute <a class="reference external" href="https://www.igi-global.com/dictionary/equal-error-rate-eer/35389">equal error rate (EER)</a>. Therefore the output should be a float number for each utterance.</p>
-<p>Please fill the missing parts with <code class="docutils literal notranslate"><span class="pre">TODO</span></code>s in <code class="docutils literal notranslate"><span class="pre">/content/espnet/espnet2/bin/asvspoof_inference.py</span></code></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asvspoof.sh --stage 5 --stop_stage 5 --train_set train --valid_set dev --test_sets &quot;eval&quot; --asvspoof_config conf/checkpoint2.yaml --inference_nj 1 --gpu_inference true
-
-# NOTE: Checkpoint 4
-print_date_and_time()
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="Scoring">
-<h2>Scoring<a class="headerlink" href="#Scoring" title="Permalink to this headline">¶</a></h2>
-<section id="(✅-Checkpint-5-(1-point))">
-<h3>(✅ Checkpint 5 (1 point))<a class="headerlink" href="#(✅-Checkpint-5-(1-point))" title="Permalink to this headline">¶</a></h3>
-<p>We have prepred the scoring script for you. We can get the EER by the following code-block</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asvspoof.sh --stage 6 --stop_stage 6 --train_set train --valid_set dev --test_sets &quot;eval&quot; --asvspoof_config conf/checkpoint2.yaml
-!chmod +x scripts/utils/show_asvspoof_result.sh
-# NOTE: Checkpoint 5
-print_date_and_time()
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-<section id="📗-Exercise-1-(1-point-bonus)">
-<h2>📗 Exercise 1 (1 point bonus)<a class="headerlink" href="#📗-Exercise-1-(1-point-bonus)" title="Permalink to this headline">¶</a></h2>
-<p>In the data you just downloaded, we have some extra data for training (<code class="docutils literal notranslate"><span class="pre">/content/espnet/egs2/espnet_tutorial/asvspoof1/espnet_asvspoof_tutorial/extend_train</span></code>). Please try to combine them with the training set and then conduct experiments the augmented set. You are also encouraged to change the model configuration. <strong>If you achieve a better equal error rate (EER) than the previous experiments, you can get a bonus point.</strong></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
-
-<span class="c1"># NOTE: Exercise 1</span>
-<span class="n">print_date_and_time</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</section>
-<section id="📗-Exercise-2-(1-point-bonus)">
-<h2>📗 Exercise 2 (1 point bonus)<a class="headerlink" href="#📗-Exercise-2-(1-point-bonus)" title="Permalink to this headline">¶</a></h2>
-<p>One main issue of speech anti-spoofing research is the generalization to unseen attacks, i.e., synthesis methods not seen in training the anti-spoofing models. In fact, the test set in our scenario is exact in the same case. Recently, there is a <a class="reference external" href="https://arxiv.org/pdf/2010.13995.pdf">one-class learning method</a> that compacts the natural speech representations and separate them from the fake speech with a certain margin in the embedding space.</p>
-<p>We have implemented the AM softmax method located in <code class="docutils literal notranslate"><span class="pre">/content/espnet/espnet2/asvspoof/loss/am_softmax_loss.py</span></code> and also prepared the template <code class="docutils literal notranslate"><span class="pre">/content/espnet/espnet2/asvspoof/loss/oc_softmax_loss.py</span></code> for your implementation. You can follow the TODOs to implement the methods (note that the inference/train_config should change accordingly).</p>
-<p><strong>If you successfully implement the OC-softmax and get similar/better EER, you can get a bouns point</strong></p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># TODO</span>
-
-<span class="c1"># NOTE: Exercise 2</span>
-<span class="n">print_date_and_time</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</section>
-</section>
-
-
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="recipe_tutorial.html" class="btn btn-neutral float-left" title="CMU 11751/18781 Fall 2022: ESPnet Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../CMU_SpeechProcessing_Spring2023/assignment7_se.html" class="btn btn-neutral float-right" title="CMU 11492/11692 Spring 2023: Speech Enhancement" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+      if (userMode === "dark" || (userMode !== "light" && systemDarkMode)) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    </script>
+    <link rel="icon" href="/espnet/assets/image/espnet.png"><title>CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</title><meta name="description" content="A documentation for ESPnet">
+    <link rel="preload" href="/espnet/assets/style-CiXYLHjk.css" as="style"><link rel="stylesheet" href="/espnet/assets/style-CiXYLHjk.css">
+    <link rel="modulepreload" href="/espnet/assets/app-BaN_VLbp.js">
+    
+  </head>
+  <body>
+    <div id="app"><!--[--><!--[--><!--[--><span tabindex="-1"></span><a href="#main-content" class="vp-skip-link sr-only">Skip to main content</a><!--]--><!--[--><div class="theme-container external-link-icon"><!--[--><header id="navbar" class="vp-navbar"><div class="vp-navbar-start"><button type="button" class="vp-toggle-sidebar-button" title="Toggle Sidebar"><span class="icon"></span></button><!----><!--[--><a class="route-link vp-brand" href="/espnet/"><img class="vp-nav-logo" src="/espnet/assets/image/espnet_logo1.png" alt><!----><!----></a><!--]--><!----></div><div class="vp-navbar-center"><!----><!--[--><nav class="vp-nav-links"><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Guide"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span>Guide<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/" aria-label="Espnet2"><!---->Espnet2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asr_transducer/" aria-label="Asr Transducer"><!---->Asr Transducer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/asvspoof/" aria-label="Asvspoof"><!---->Asvspoof<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/diar/" aria-label="Diar"><!---->Diar<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/enh/" aria-label="Enh"><!---->Enh<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fileio/" aria-label="Fileio"><!---->Fileio<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/fst/" aria-label="Fst"><!---->Fst<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_codec/" aria-label="Gan Codec"><!---->Gan Codec<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_svs/" aria-label="Gan Svs"><!---->Gan Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/gan_tts/" aria-label="Gan Tts"><!---->Gan Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/hubert/" aria-label="Hubert"><!---->Hubert<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/iterators/" aria-label="Iterators"><!---->Iterators<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/layers/" aria-label="Layers"><!---->Layers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/main_funcs/" aria-label="Main Funcs"><!---->Main Funcs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/optimizers/" aria-label="Optimizers"><!---->Optimizers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2st/" aria-label="S2st"><!---->S2st<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/s2t/" aria-label="S2t"><!---->S2t<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/samplers/" aria-label="Samplers"><!---->Samplers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/schedulers/" aria-label="Schedulers"><!---->Schedulers<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/slu/" aria-label="Slu"><!---->Slu<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/speechlm/" aria-label="Speechlm"><!---->Speechlm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/spk/" aria-label="Spk"><!---->Spk<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/svs/" aria-label="Svs"><!---->Svs<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tasks/" aria-label="Tasks"><!---->Tasks<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/text/" aria-label="Text"><!---->Text<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/torch_utils/" aria-label="Torch Utils"><!---->Torch Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/train/" aria-label="Train"><!---->Train<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/tts2/" aria-label="Tts2"><!---->Tts2<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/uasr/" aria-label="Uasr"><!---->Uasr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet2/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/" aria-label="Espnet"><!---->Espnet<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/asr/" aria-label="Asr"><!---->Asr<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/distributed/" aria-label="Distributed"><!---->Distributed<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/lm/" aria-label="Lm"><!---->Lm<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/mt/" aria-label="Mt"><!---->Mt<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/nets/" aria-label="Nets"><!---->Nets<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/optimizer/" aria-label="Optimizer"><!---->Optimizer<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/scheduler/" aria-label="Scheduler"><!---->Scheduler<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/st/" aria-label="St"><!---->St<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/transform/" aria-label="Transform"><!---->Transform<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/tts/" aria-label="Tts"><!---->Tts<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/utils/" aria-label="Utils"><!---->Utils<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnet/vc/" aria-label="Vc"><!---->Vc<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnetez</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/" aria-label="Espnetez"><!---->Espnetez<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/config/" aria-label="Config"><!---->Config<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/data/" aria-label="Data"><!---->Data<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataloader/" aria-label="Dataloader"><!---->Dataloader<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/dataset/" aria-label="Dataset"><!---->Dataset<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/preprocess/" aria-label="Preprocess"><!---->Preprocess<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/task/" aria-label="Task"><!---->Task<!----></a></li><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/guide/espnetez/trainer/" aria-label="Trainer"><!---->Trainer<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Tools"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span>Tools<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet2_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet2_bin/" aria-label="Espnet2 Bin"><!---->Espnet2 Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">espnet_bin</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/espnet_bin/" aria-label="Espnet Bin"><!---->Espnet Bin<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">spm</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/spm/" aria-label="Spm"><!---->Spm<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils/" aria-label="Utils"><!---->Utils<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">utils_py</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/tools/utils_py/" aria-label="Utils Py"><!---->Utils Py<!----></a></li></ul></li></ul></button></div></div><div class="vp-nav-item hide-in-mobile"><div class="vp-dropdown-wrapper"><button type="button" class="vp-dropdown-title" aria-label="Demo"><!--[--><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span>Demo<!--]--><span class="arrow"></span><ul class="vp-dropdown"><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet1</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link auto-link" href="/espnet/notebook/ESPnet1/" aria-label="ESPnet1/ Demo"><!---->ESPnet1/ Demo<!----></a></li></ul></li><li class="vp-dropdown-item"><h4 class="vp-dropdown-subtitle">ESPnet2</h4><ul class="vp-dropdown-subitems"><li class="vp-dropdown-subitem"><a class="route-link route-link-active auto-link" href="/espnet/notebook/ESPnet2/" aria-label="ESPnet2/ Demo"><!---->ESPnet2/ Demo<!----></a></li></ul></li></ul></button></div></div></nav><!--]--><!----></div><div class="vp-navbar-end"><!----><!--[--><!----><div class="vp-nav-item vp-action"><a class="vp-action-link" href="https://github.com/espnet/espnet" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="icon github-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="github icon" name="github" style="width:1.25rem;height:1.25rem;vertical-align:middle;"><path d="M511.957 21.333C241.024 21.333 21.333 240.981 21.333 512c0 216.832 140.544 400.725 335.574 465.664 24.49 4.395 32.256-10.07 32.256-23.083 0-11.69.256-44.245 0-85.205-136.448 29.61-164.736-64.64-164.736-64.64-22.315-56.704-54.4-71.765-54.4-71.765-44.587-30.464 3.285-29.824 3.285-29.824 49.195 3.413 75.179 50.517 75.179 50.517 43.776 75.008 114.816 53.333 142.762 40.79 4.523-31.66 17.152-53.377 31.19-65.537-108.971-12.458-223.488-54.485-223.488-242.602 0-53.547 19.114-97.323 50.517-131.67-5.035-12.33-21.93-62.293 4.779-129.834 0 0 41.258-13.184 134.912 50.346a469.803 469.803 0 0 1 122.88-16.554c41.642.213 83.626 5.632 122.88 16.554 93.653-63.488 134.784-50.346 134.784-50.346 26.752 67.541 9.898 117.504 4.864 129.834 31.402 34.347 50.474 78.123 50.474 131.67 0 188.586-114.73 230.016-224.042 242.09 17.578 15.232 33.578 44.672 33.578 90.454v135.85c0 13.142 7.936 27.606 32.854 22.87C862.25 912.597 1002.667 728.747 1002.667 512c0-271.019-219.648-490.667-490.71-490.667z"></path></svg></a></div><div class="vp-nav-item hide-in-mobile"><button type="button" class="vp-color-mode-switch" id="color-mode-switch"><svg xmlns="http://www.w3.org/2000/svg" class="icon auto-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="auto icon" name="auto" style="display:block;"><path d="M512 992C246.92 992 32 777.08 32 512S246.92 32 512 32s480 214.92 480 480-214.92 480-480 480zm0-840c-198.78 0-360 161.22-360 360 0 198.84 161.22 360 360 360s360-161.16 360-360c0-198.78-161.22-360-360-360zm0 660V212c165.72 0 300 134.34 300 300 0 165.72-134.28 300-300 300z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon dark-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="dark icon" name="dark" style="display:none;"><path d="M524.8 938.667h-4.267a439.893 439.893 0 0 1-313.173-134.4 446.293 446.293 0 0 1-11.093-597.334A432.213 432.213 0 0 1 366.933 90.027a42.667 42.667 0 0 1 45.227 9.386 42.667 42.667 0 0 1 10.24 42.667 358.4 358.4 0 0 0 82.773 375.893 361.387 361.387 0 0 0 376.747 82.774 42.667 42.667 0 0 1 54.187 55.04 433.493 433.493 0 0 1-99.84 154.88 438.613 438.613 0 0 1-311.467 128z"></path></svg><svg xmlns="http://www.w3.org/2000/svg" class="icon light-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="light icon" name="light" style="display:none;"><path d="M952 552h-80a40 40 0 0 1 0-80h80a40 40 0 0 1 0 80zM801.88 280.08a41 41 0 0 1-57.96-57.96l57.96-58a41.04 41.04 0 0 1 58 58l-58 57.96zM512 752a240 240 0 1 1 0-480 240 240 0 0 1 0 480zm0-560a40 40 0 0 1-40-40V72a40 40 0 0 1 80 0v80a40 40 0 0 1-40 40zm-289.88 88.08-58-57.96a41.04 41.04 0 0 1 58-58l57.96 58a41 41 0 0 1-57.96 57.96zM192 512a40 40 0 0 1-40 40H72a40 40 0 0 1 0-80h80a40 40 0 0 1 40 40zm30.12 231.92a41 41 0 0 1 57.96 57.96l-57.96 58a41.04 41.04 0 0 1-58-58l58-57.96zM512 832a40 40 0 0 1 40 40v80a40 40 0 0 1-80 0v-80a40 40 0 0 1 40-40zm289.88-88.08 58 57.96a41.04 41.04 0 0 1-58 58l-57.96-58a41 41 0 0 1 57.96-57.96z"></path></svg></button></div><!--[--><button type="button" class="search-pro-button" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" class="icon search-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="search icon" name="search"><path d="M192 480a256 256 0 1 1 512 0 256 256 0 0 1-512 0m631.776 362.496-143.2-143.168A318.464 318.464 0 0 0 768 480c0-176.736-143.264-320-320-320S128 303.264 128 480s143.264 320 320 320a318.016 318.016 0 0 0 184.16-58.592l146.336 146.368c12.512 12.48 32.768 12.48 45.28 0 12.48-12.512 12.48-32.768 0-45.28"></path></svg><div class="search-pro-placeholder">Search</div><div class="search-pro-key-hints"><kbd class="search-pro-key">Ctrl</kbd><kbd class="search-pro-key">K</kbd></div></button><!--]--><!--]--><!----><button type="button" class="vp-toggle-navbar-button" aria-label="Toggle Navbar" aria-expanded="false" aria-controls="nav-screen"><span><span class="vp-top"></span><span class="vp-middle"></span><span class="vp-bottom"></span></span></button></div></header><!----><!--]--><!----><div class="toggle-sidebar-wrapper"><span class="arrow start"></span></div><aside id="sidebar" class="vp-sidebar"><!----><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-book" style=""></span><span class="vp-sidebar-title">Guide</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnetez</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header"><span class="font-icon icon fa-fw fa-sm fas fa-wrench" style=""></span><span class="vp-sidebar-title">Tools</span><!----></p><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Espnet2 Bin</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Spm</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Utils Py</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li><li><section class="vp-sidebar-group"><p class="vp-sidebar-header active"><span class="font-icon icon fa-fw fa-sm fas fa-laptop-code" style=""></span><span class="vp-sidebar-title">Demo</span><!----></p><ul class="vp-sidebar-links"><li><a class="route-link auto-link vp-sidebar-link" href="/espnet/notebook/" aria-label="ESPnet Notebook Information"><!---->ESPnet Notebook Information<!----></a></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">ESPnet1/ Demo</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable active" type="button"><!----><span class="vp-sidebar-title">ESPnet2/ Demo</span><span class="vp-arrow down"></span></button><ul class="vp-sidebar-links"><li><a class="route-link auto-link vp-sidebar-link" href="/espnet/notebook/ESPnet2/" aria-label="ESPnet2/ Demo"><!---->ESPnet2/ Demo<!----></a></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable active" type="button"><!----><span class="vp-sidebar-title">Course</span><span class="vp-arrow down"></span></button><ul class="vp-sidebar-links"><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">CMU Speech Processing Spring2023</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">CMU Speech Recognition Fall2021</span><span class="vp-arrow end"></span></button><!----></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable active" type="button"><!----><span class="vp-sidebar-title">CMU Speech Recognition Fall2022</span><span class="vp-arrow down"></span></button><ul class="vp-sidebar-links"><li><a class="route-link auto-link vp-sidebar-link" href="/espnet/notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html" aria-label="CMU 11751/18781 Fall 2022: ESPnet Tutorial"><!---->CMU 11751/18781 Fall 2022: ESPnet Tutorial<!----></a></li><li><a class="route-link route-link-active auto-link vp-sidebar-link active" href="/espnet/notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.html" aria-label="CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)"><!---->CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)<!----></a></li></ul></section></li></ul></section></li><li><section class="vp-sidebar-group"><button class="vp-sidebar-header clickable" type="button"><!----><span class="vp-sidebar-title">Demo</span><span class="vp-arrow end"></span></button><!----></section></li></ul></section></li></ul></section></li></ul><!----></aside><!--[--><main id="main-content" class="vp-page"><!--[--><!----><!----><nav class="vp-breadcrumb disable"></nav><div class="vp-page-title"><h1><!---->CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</h1><div class="page-info"><!----><!----><!----><!----><span class="page-reading-time-info" aria-label="Reading Time⌛" data-balloon-pos="up"><svg xmlns="http://www.w3.org/2000/svg" class="icon timer-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="timer icon" name="timer"><path d="M799.387 122.15c4.402-2.978 7.38-7.897 7.38-13.463v-1.165c0-8.933-7.38-16.312-16.312-16.312H256.33c-8.933 0-16.311 7.38-16.311 16.312v1.165c0 5.825 2.977 10.874 7.637 13.592 4.143 194.44 97.22 354.963 220.201 392.763-122.204 37.542-214.893 196.511-220.2 389.397-4.661 5.049-7.638 11.651-7.638 19.03v5.825h566.49v-5.825c0-7.379-2.849-13.981-7.509-18.9-5.049-193.016-97.867-351.985-220.2-389.527 123.24-37.67 216.446-198.453 220.588-392.892zM531.16 450.445v352.632c117.674 1.553 211.787 40.778 211.787 88.676H304.097c0-48.286 95.149-87.382 213.728-88.676V450.445c-93.077-3.107-167.901-81.297-167.901-177.093 0-8.803 6.99-15.793 15.793-15.793 8.803 0 15.794 6.99 15.794 15.793 0 80.261 63.69 145.635 142.01 145.635s142.011-65.374 142.011-145.635c0-8.803 6.99-15.793 15.794-15.793s15.793 6.99 15.793 15.793c0 95.019-73.789 172.82-165.96 177.093z"></path></svg><span>About 6 min</span><meta property="timeRequired" content="PT6M"></span><!----><!----></div><hr></div><!----><!----><div class="theme-hope-content"><h1 id="cmu-11751-18781-fall-2022-espnet-tutorial2-new-task" tabindex="-1"><a class="header-anchor" href="#cmu-11751-18781-fall-2022-espnet-tutorial2-new-task"><span>CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</span></a></h1><p><a href="https://github.com/espnet/espnet" target="_blank" rel="noopener noreferrer">ESPnet</a> is a widely-used end-to-end speech processing toolkit. It has supported various speech processing tasks. ESPnet uses PyTorch as a main deep learning engine, and also follows Kaldi style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.</p><p>Main references:</p><ul><li><a href="https://github.com/espnet/espnet" target="_blank" rel="noopener noreferrer">ESPnet repository</a></li><li><a href="https://espnet.github.io/espnet/" target="_blank" rel="noopener noreferrer">ESPnet documentation</a></li><li><a href="https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb" target="_blank" rel="noopener noreferrer">ESPnet tutorial in Speech Recognition and Understanding (Fall 2021)</a></li><li><a href="https://colab.research.google.com/drive/1tY6PxF_M5Nx5n488x0DrpujJOyqW-ATi?usp=sharing" target="_blank" rel="noopener noreferrer">Recitation in Multilingual NLP (Spring 2022)</a></li><li><a href="https://colab.research.google.com/drive/1d3yMY3xv_hpr2mznskZpF2Cj-bEooDv-?usp=sharing" target="_blank" rel="noopener noreferrer">ESPnet tutorial1 in Speech Recognition and Understanding (Fall 2022)</a></li></ul><p>Author: Jiatong Shi (jiatongs@andrew.cmu.edu)</p><p>We would like to thank You (Neil) Zhang for kindly helping the hands-on tutorial and sharing his knowledge on the task.</p><h2 id="❗important-notes❗" tabindex="-1"><a class="header-anchor" href="#❗important-notes❗"><span>❗Important Notes❗</span></a></h2><ul><li>We are using Colab to show the demo. However, Colab has some constraints on the total GPU runtime. If you use too much GPU time, you may not be able to use GPU for some time.</li><li>There are multiple in-class checkpoints ✅ throughout this tutorial. There will also be some after-class excersices 📗 after the tutorial. <strong>Your participation points are based on these tasks.</strong> Please try your best to follow all the steps! If you encounter issues, please notify the TAs as soon as possible so that we can make an adjustment for you.</li><li>Please submit PDF files of your completed notebooks to Gradescope. You can print the notebook using <code>File -&gt; Print</code> in the menu bar.</li><li>This tutorial covers some advanced usage of ESPnet, which is the extension of the first tutorial.</li></ul><h2 id="useful-links" tabindex="-1"><a class="header-anchor" href="#useful-links"><span>Useful links</span></a></h2><ul><li>Installation https://espnet.github.io/espnet/installation.html</li><li>Usage https://espnet.github.io/espnet/espnet2_tutorial.html</li><li>Reference of task class in ESPnet https://espnet.github.io/espnet/espnet2_task.html</li></ul><h2 id="objectives" tabindex="-1"><a class="header-anchor" href="#objectives"><span>Objectives</span></a></h2><p>After this tutorial, you are expected to know:</p><ul><li>How to add new task in ESPnet2</li><li>How to add new models in ESPnet2</li><li>How to create a new recipe (and template) of a new task from scratch</li></ul><h2 id="function-to-print-date-and-time" tabindex="-1"><a class="header-anchor" href="#function-to-print-date-and-time"><span>Function to print date and time</span></a></h2><p>We first define a function to print the current date and time, which will be used in multiple places below.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">def</span><span style="--shiki-light:#6F42C1;--shiki-dark:#61AFEF;"> print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">():</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">  from</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> datetime </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">import</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> datetime</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">  import</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> pytz</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">  now </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> datetime.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">now</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(pytz.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">timezone</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;America/New_York&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">))</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">  print</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;=&quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;"> *</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 60</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">  print</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(</span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;">f</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&#39; Current date and time: </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">{</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">now.</span><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">strftime</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;%m/</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">%d</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">/%Y %H:%M:%S&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">}</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&#39;</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#56B6C2;">  print</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;=&quot;</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;"> *</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;"> 60</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># example output</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h1 id="install-espnet-almost-same-procedure-as-your-first-tutorial" tabindex="-1"><a class="header-anchor" href="#install-espnet-almost-same-procedure-as-your-first-tutorial"><span>Install ESPnet (Almost same procedure as your first tutorial)</span></a></h1><h2 id="download-espnet" tabindex="-1"><a class="header-anchor" href="#download-espnet"><span>Download ESPnet</span></a></h2><p>We use <code>git clone</code> to download the source code of ESPnet and then go to a specific commit.</p><p><strong>Important:</strong> In other versions of ESPnet, you may encounter errors related to imcompatible package versions (<code>numba</code>). Please use the same commit to avoid such issues.</p><p>Note that we are using another branch <code>espnet_tutorial_asvspoof</code> instead of &quot;master&quot;. You can also use your own fork to proceed the following sections if you want to use Github to save your code.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It takes a few seconds</span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">git clone </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">depth </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">5</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;"> -</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">b </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">2022fall_new_task_tutorial</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;"> https:</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">//</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">github.com</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># We use a specific commit just for reproducibility.</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">cd </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">content</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">git checkout </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">9cff98a78ceaa4d85843be0a50b369ec826b27f6</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="setup-python-environment-based-on-anaconda-install-espnet" tabindex="-1"><a class="header-anchor" href="#setup-python-environment-based-on-anaconda-install-espnet"><span>Setup Python environment based on anaconda + Install ESPnet</span></a></h2><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It takes 30 seconds</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">cd </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">content</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">tools</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">setup_anaconda.sh anaconda espnet </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3.9</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It may take 12 minutes</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">cd </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">content</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">tools</span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">make </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">TH_VERSION</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">1.12</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">.1 </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">CUDA_VERSION</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">11.6</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h1 id="what-we-provide-you-and-what-you-need-to-proceed" tabindex="-1"><a class="header-anchor" href="#what-we-provide-you-and-what-you-need-to-proceed"><span>What we provide you and what you need to proceed</span></a></h1><p>We have provide you most of the files needed for ASVSpoof recipe. So you do not need to add any additional files. However, noted that some of the files are not complete and need your completion to proceed. For a quick overview of the whole layout of the new task, please refer to https://github.com/espnet/espnet/compare/master...2022fall_new_task_tutorial</p><p>As elaborated in the warming-up, we have shown that there are two core components for a new task in ESPnet: a <strong>task library</strong> and correponding <strong>recipe setups</strong>. For the following of the section, we will briefly show the overall layout of adding the ASVSpoof task in ESPnet. The listed files are almost the minimum requirements to add a new task in ESPnet.</p><p><strong>Task library for ASVSpoof</strong></p><p>Followings are a list of files adding to ESPnet for ASVSpoof (files in &quot;&quot; are ones that need modifications)</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>- espnet2</span></span>
+<span class="line"><span>  - bin</span></span>
+<span class="line"><span>    - asvspoof_train.py # Major entry point for asvspoof</span></span>
+<span class="line"><span>    - &quot;asvspoof_inference.py&quot; (Checkpoint 4) # Inference scripts for asvspoof</span></span>
+<span class="line"><span>  - asvspoof</span></span>
+<span class="line"><span>    - decoder</span></span>
+<span class="line"><span>      - __init__.py</span></span>
+<span class="line"><span>      - abs_decoder.py # abstract class for decoder in ASVSpoof</span></span>
+<span class="line"><span>      - &quot;linear_decoder.py&quot; (Checkpoint 3) # simple linear decoder for ASVSpoof</span></span>
+<span class="line"><span>    - loss</span></span>
+<span class="line"><span>      - __init__.py</span></span>
+<span class="line"><span>      - abs_loss.py # abstract class for loss in ASVSpoof</span></span>
+<span class="line"><span>      - binary_loss.py # naive binary class loss for ASVSpoof</span></span>
+<span class="line"><span>      - am_softmax.py</span></span>
+<span class="line"><span>      - &quot;oc_softmax.py&quot; (Bouns)</span></span>
+<span class="line"><span>    - __init__.py</span></span>
+<span class="line"><span>    - &quot;espnet_model.py&quot; (Bouns)</span></span>
+<span class="line"><span>  - tasks</span></span>
+<span class="line"><span>    - &quot;asvspoof.py&quot; (Checkpoint 2)</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>To help you understand more, we would recommend you to check the layout of other tasks (e.g., ASR, TTS, ST, etc.) to understand how the codebase is functioning.</p><p><strong>Recipe for ASVSpoof</strong></p><p>Followings are a list of files adding to ESPnet for ASVSpoof (files in boldface are ones that need modifications)</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>- egs2</span></span>
+<span class="line"><span>  - TEMPLATE</span></span>
+<span class="line"><span>    - asvspoof1</span></span>
+<span class="line"><span>      - &quot;asvspoof.sh&quot; (Checkpoint 1)</span></span>
+<span class="line"><span>      - others</span></span>
+<span class="line"><span>  - espnet_tutorial</span></span>
+<span class="line"><span>    - asvspoof11</span></span>
+<span class="line"><span>      - conf</span></span>
+<span class="line"><span>      - &quot;asvspoof.sh” (Checkpoint 1)</span></span>
+<span class="line"><span>      - local</span></span>
+<span class="line"><span>        - &quot;data_prep.py&quot; (Bouns)</span></span>
+<span class="line"><span>        - &quot;data.sh&quot; (Bouns)</span></span>
+<span class="line"><span>      - &quot;run.sh&quot; (Checkpoint 5)</span></span>
+<span class="line"><span>      - scripts</span></span>
+<span class="line"><span>      - pyscripts</span></span>
+<span class="line"><span>      - utils</span></span>
+<span class="line"><span>      - steps</span></span>
+<span class="line"><span>      - path.sh</span></span>
+<span class="line"><span>      - db.sh</span></span>
+<span class="line"><span>      - cmd.sh</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>Noted that because of the <a href="https://www.freecodecamp.org/news/symlink-tutorial-in-linux-how-to-create-and-remove-a-symbolic-link/" target="_blank" rel="noopener noreferrer">symlink</a>, the <code>asvspoof.sh</code> is essentially the same for checkpoint 1.</p><h2 id="asvspoof-data-preparation" tabindex="-1"><a class="header-anchor" href="#asvspoof-data-preparation"><span>ASVSpoof data preparation</span></a></h2><p>As discussed in the warm-up session, ASVSpoof aims to conduct a binary classfication. As the task layout is a bit different from the ASR task we touched on the first tutorial, so we need to use a different format to formulate the data. For here, to keep the simplicity, we stil use the exact same file as the first tutorial:</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>wav.scp text utt2spk spk2utt</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div></div></div><p>But on the other hand, we change the format of text into</p><div class="language- line-numbers-mode" data-highlighter="shiki" data-ext="" data-title="" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span>utt_id1 0</span></span>
+<span class="line"><span>utt_id2 1</span></span>
+<span class="line"><span>utt_id3 0</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>where 0 represents real speech and 1 stands for fake speech.</p><h3 id="download-dataset" tabindex="-1"><a class="header-anchor" href="#download-dataset"><span>Download dataset</span></a></h3><p>We first download the data from google drive. Noted that the data is a subset of the ASVSpoof2019 Challenge.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># a few seconds</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">cd </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">content</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">egs2</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet_tutorial</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof1</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">gdown </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">1HRdjjmGXBTXOqOq9iijuXPCA4y_46OzP</span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">unzip espnet_tutorial_asvspoof.zip</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="prepare-data-stage1-stage2" tabindex="-1"><a class="header-anchor" href="#prepare-data-stage1-stage2"><span>Prepare data (Stage1 &amp; Stage2)</span></a></h3><p>This time, we make the task template to be as simple as possible. The data preparation will be only two stages, including basic data preparation and wave format.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It may take around 6 minutes</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">1</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">2</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;eval&quot;</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="asvspoof-collect-stats-✅-checkpint-1-1-point" tabindex="-1"><a class="header-anchor" href="#asvspoof-collect-stats-✅-checkpint-1-1-point"><span>ASVSpoof collect stats (✅ Checkpint 1 (1 point))</span></a></h3><p>Similar to the previous tutorial, we collect the statisitcs for the data.</p><p>In the process, the data will be passed into a iterable loader. However, remember that the <code>text</code> file is no longer the format as the ASR recipe. Therefore, we will need to use another data loader to load the corresponding information.</p><p>Fortunately, we have a wide range of data loaders for choices, which is listing in <a href="https://github.com/espnet/espnet/blob/a7bd6522b32ec6472c13f6a2289dcdff4a846c12/espnet2/train/dataset.py#L130-L249" target="_blank" rel="noopener noreferrer">here</a>. Please choose the correct file format and replace the <code>[REPLACE_ME]</code> token in <code>asvspoof.sh</code></p><p>After the replacement, you should be able to run the following blocks</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It takes less than 2 minutes</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;dev eval&quot;</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">checkpoint1_dummy.yaml</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Checkpoint 1</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="asvspoof-model" tabindex="-1"><a class="header-anchor" href="#asvspoof-model"><span>ASVSpoof Model</span></a></h2><p>In this section, we will define the ASVSpoof model and use the model to conduct the training of ASVSpoof task. For easier understanding, we first use an <code>encoder</code> to convert speech features into hidden representations and then use a <code>decoder</code> to conduct the classification.</p><h3 id="encoder-✅-checkpint-2-1-point" tabindex="-1"><a class="header-anchor" href="#encoder-✅-checkpint-2-1-point"><span>Encoder (✅ Checkpint 2 (1 point))</span></a></h3><p>First, we are going to focus on the encoder part. There has been a long history over the discussion of the speech encoder in our community. Given the sequential perspective, people firstly investigated recurrent neural networks. More recently, we are focusing on <a href="https://arxiv.org/abs/2010.13956" target="_blank" rel="noopener noreferrer">conformer block</a>, which is an extension to the transformer block. In the previous settings, we used a transformer block to collect stats. However, we would want to switch to conformer.</p><p>Code-reusibility is one of the major benefits of using ESPnet as a toolkit for speech tasks. As ESPnet already support conformer block in ASR, it is easy to import into this new task.</p><p>In ESPnet, adding modules that we already have can be as simple as two-line codes. Please add lines into <code>/content/espnet/espnet2/tasks/asvspoof.py</code>. We have marked <code>TODO</code> in the scripts for your convenience.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># It takes less than 2 minutes</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">3</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;dev eval&quot;</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">checkpoint2.yaml</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Checkpoint 2</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h3 id="decoder-✅-checkpint-3-1-point" tabindex="-1"><a class="header-anchor" href="#decoder-✅-checkpint-3-1-point"><span>Decoder (✅ Checkpint 3 (1 point))</span></a></h3><p>In this stage, we will finally start the training. As the previous tutorial, we can use the Tensorboard to monitor the process.</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Load the TensorBoard notebook extension</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">reload_ext tensorboard</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Launch tensorboard before training</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">tensorboard </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">logdir </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">content</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">egs2</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">espnet_tutorial</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof1</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">exp</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><p>After we finished the encoder, we also need to create a decoder to conduct the prediciton. As the encoder will generate hidden representations, we want to have a simple decoder to conduct mean-pooling to all the hidden representation at the time-axis. There should be another linear layer to conclude the models into binary classification. Please fill the missing part in <code>/conent/espnet/espnet2/asvspoof/decoder/linear_decoder.py</code> to finally start the training. For people who are not familiar with Pytorch, please refer the related resources for details.</p><p>Related resources that could be helpful for this checkpoint:</p><ul><li>https://pytorch.org/docs/stable/generated/torch.mean.html</li><li>https://pytorch.org/docs/stable/generated/torch.nn.Linear.html</li><li>https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html</li></ul><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">nvidia</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">smi</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># Training takes around 2 minutes</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">4</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">4</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;dev eval&quot;</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">checkpoint2.yaml </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">inference_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">decode_asvspoof.yaml</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Checkpoint 3</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="model-inference" tabindex="-1"><a class="header-anchor" href="#model-inference"><span>Model Inference</span></a></h2><h3 id="✅-checkpint-4-1-point" tabindex="-1"><a class="header-anchor" href="#✅-checkpint-4-1-point"><span>(✅ Checkpint 4 (1 point))</span></a></h3><p>As the training is finished, we expect to conduct ASVSpoof on the test set. To approach that, we first have to finish the inference codebase. For our task specifically, we need the log-probability of the prediction to compute <a href="https://www.igi-global.com/dictionary/equal-error-rate-eer/35389" target="_blank" rel="noopener noreferrer">equal error rate (EER)</a>. Therefore the output should be a float number for each utterance.</p><p>Please fill the missing parts with <code>TODO</code>s in <code>/content/espnet/espnet2/bin/asvspoof_inference.py</code></p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">5</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">5</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;eval&quot;</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">checkpoint2.yaml </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">inference_nj </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">1</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">gpu_inference true</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Checkpoint 4</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="scoring" tabindex="-1"><a class="header-anchor" href="#scoring"><span>Scoring</span></a></h2><h3 id="✅-checkpint-5-1-point" tabindex="-1"><a class="header-anchor" href="#✅-checkpint-5-1-point"><span>(✅ Checkpint 5 (1 point))</span></a></h3><p>We have prepred the scoring script for you. We can get the EER by the following code-block</p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">!.</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof.sh </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">6</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">stop_stage </span><span style="--shiki-light:#005CC5;--shiki-dark:#D19A66;">6</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">train_set train </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">valid_set dev </span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">test_sets </span><span style="--shiki-light:#032F62;--shiki-dark:#98C379;">&quot;eval&quot;</span><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">asvspoof_config conf</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">checkpoint2.yaml </span></span>
+<span class="line"><span style="--shiki-light:#B31D28;--shiki-dark:#FFFFFF;--shiki-light-font-style:italic;--shiki-dark-font-style:inherit;">!</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">chmod </span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">+</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">x scripts</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">utils</span><span style="--shiki-light:#D73A49;--shiki-dark:#56B6C2;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">show_asvspoof_result.sh</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Checkpoint 5</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="📗-exercise-1-1-point-bonus" tabindex="-1"><a class="header-anchor" href="#📗-exercise-1-1-point-bonus"><span>📗 Exercise 1 (1 point bonus)</span></a></h2><p>In the data you just downloaded, we have some extra data for training (<code>/content/espnet/egs2/espnet_tutorial/asvspoof1/espnet_asvspoof_tutorial/extend_train</code>). Please try to combine them with the training set and then conduct experiments the augmented set. You are also encouraged to change the model configuration. <strong>If you achieve a better equal error rate (EER) than the previous experiments, you can get a bonus point.</strong></p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">TODO</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Exercise 1</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div><h2 id="📗-exercise-2-1-point-bonus" tabindex="-1"><a class="header-anchor" href="#📗-exercise-2-1-point-bonus"><span>📗 Exercise 2 (1 point bonus)</span></a></h2><p>One main issue of speech anti-spoofing research is the generalization to unseen attacks, i.e., synthesis methods not seen in training the anti-spoofing models. In fact, the test set in our scenario is exact in the same case. Recently, there is a <a href="https://arxiv.org/pdf/2010.13995.pdf" target="_blank" rel="noopener noreferrer">one-class learning method</a> that compacts the natural speech representations and separate them from the fake speech with a certain margin in the embedding space.</p><p>We have implemented the AM softmax method located in <code>/content/espnet/espnet2/asvspoof/loss/am_softmax_loss.py</code> and also prepared the template <code>/content/espnet/espnet2/asvspoof/loss/oc_softmax_loss.py</code> for your implementation. You can follow the TODOs to implement the methods (note that the inference/train_config should change accordingly).</p><p><strong>If you successfully implement the OC-softmax and get similar/better EER, you can get a bouns point</strong></p><div class="language-python line-numbers-mode" data-highlighter="shiki" data-ext="python" data-title="python" style="--shiki-light:#24292e;--shiki-dark:#abb2bf;--shiki-light-bg:#fff;--shiki-dark-bg:#282c34;"><pre class="shiki shiki-themes github-light one-dark-pro vp-code"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">TODO</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;"># </span><span style="--shiki-light:#D73A49;--shiki-dark:#C678DD;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">NOTE</span><span style="--shiki-light:#6A737D;--shiki-dark:#7F848E;--shiki-light-font-style:inherit;--shiki-dark-font-style:italic;">: Exercise 2</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#61AFEF;">print_date_and_time</span><span style="--shiki-light:#24292E;--shiki-dark:#ABB2BF;">()</span></span></code></pre><div class="line-numbers" aria-hidden="true" style="counter-reset:line-number 0;"><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div><div class="line-number"></div></div></div></div><!----><footer class="vp-page-meta"><div class="vp-meta-item edit-link"><a class="auto-link external-link vp-meta-label" href="https://github.com/espnet/espnet/edit/main/src/notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/new_task_tutorial.md" aria-label="Edit this page" rel="noopener noreferrer" target="_blank"><!--[--><svg xmlns="http://www.w3.org/2000/svg" class="icon edit-icon" viewBox="0 0 1024 1024" fill="currentColor" aria-label="edit icon" name="edit"><path d="M430.818 653.65a60.46 60.46 0 0 1-50.96-93.281l71.69-114.012 7.773-10.365L816.038 80.138A60.46 60.46 0 0 1 859.225 62a60.46 60.46 0 0 1 43.186 18.138l43.186 43.186a60.46 60.46 0 0 1 0 86.373L588.879 565.55l-8.637 8.637-117.466 68.234a60.46 60.46 0 0 1-31.958 11.229z"></path><path d="M728.802 962H252.891A190.883 190.883 0 0 1 62.008 771.98V296.934a190.883 190.883 0 0 1 190.883-192.61h267.754a60.46 60.46 0 0 1 0 120.92H252.891a69.962 69.962 0 0 0-69.098 69.099V771.98a69.962 69.962 0 0 0 69.098 69.098h475.911A69.962 69.962 0 0 0 797.9 771.98V503.363a60.46 60.46 0 1 1 120.922 0V771.98A190.883 190.883 0 0 1 728.802 962z"></path></svg><!--]-->Edit this page<!----></a></div><div class="vp-meta-item git-info"><!----><!----></div></footer><nav class="vp-page-nav"><a class="route-link auto-link prev" href="/espnet/notebook/ESPnet2/Course/CMU_SpeechRecognition_Fall2022/recipe_tutorial.html" aria-label="CMU 11751/18781 Fall 2022: ESPnet Tutorial"><div class="hint"><span class="arrow start"></span>Prev</div><div class="link"><!---->CMU 11751/18781 Fall 2022: ESPnet Tutorial</div></a><!----></nav><!----><!----><!--]--></main><!--]--><footer class="vp-footer-wrapper"><div class="vp-footer">Copyright © 2024 ESPnet Community. All rights reserved.</div><!----></footer></div><!--]--><!--]--><!--[--><!----><!----><!--]--><!--]--></div>
+    <script type="module" src="/espnet/assets/app-BaN_VLbp.js" defer></script>
+  </body>
 </html>
