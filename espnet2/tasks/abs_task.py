@@ -1382,6 +1382,10 @@ class AbsTask(ABC):
             # 2. Loads pre-trained model
             # NOTE(Jinchuan): should load --init_param before FSDP warpper
             for p in args.init_param:
+
+                if args.collect_stats:
+                    continue
+                
                 logging.info(f"Loading pretrained params from {p}")
                 load_pretrained_model(
                     model=model,

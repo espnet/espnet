@@ -290,6 +290,12 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
         logging.info(f"Token Bias: {token_bias}")
 
+        # NOTE(Jinchuan): model will not in real use. Create a placeholder
+        if args.collect_stats:
+            return ESPnetSpeechLMModel(
+                corelm=ARLM(vocab_size=1, nq=args.codec_token_in_use)
+            )
+
         kwargs = dict()
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
