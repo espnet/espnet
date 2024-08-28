@@ -353,6 +353,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             ngpu: int = 0,
             inference: bool = False,
             mode: Optional[str] = None,
+            multi_task_dataset: bool = False,
         ) -> DataLoader:
             """Build DataLoader using iterable dataset"""
             if mode == "train" and cls.train_dataloader is not None:
