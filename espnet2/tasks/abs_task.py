@@ -770,6 +770,12 @@ class AbsTask(ABC):
             default=None,
             help="If not given, the value of --batch_bins is used",
         )
+        group.add_argument(
+            "--category_sample_size",
+            type=int,
+            default=10,
+            help="The sample size for category chunk iterator",
+        )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
@@ -1971,7 +1977,7 @@ class AbsTask(ABC):
         mode: str,
     ) -> AbsIterFactory:
 
-        dataset = ESPnetCategoricalDataset(
+        dataset = ESPnetDataset(
             iter_options.data_path_and_name_and_type,
             float_dtype=args.train_dtype,
             preprocess=iter_options.preprocess_fn,
@@ -1983,12 +1989,32 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        if len(iter_options.shape_files) == 0:
-            key_file = iter_options.data_path_and_name_and_type[0][0]
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
+        ).exists():
+            category2utt_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "category2utt",
+                )
+            )
+            logging.warning("Reading " + category2utt_file)
         else:
-            key_file = iter_options.shape_files[0]
+            category2utt_file = None
 
-        batch_sampler = UnsortedBatchSampler(batch_size=1, key_file=key_file)
+        sampler_args = dict(
+            batch_size=args.category_sample_size,
+            min_batch_size=(
+                torch.distributed.get_world_size() if iter_options.distributed else 1
+            ),
+            drop_last=args.drop_last_iter,
+            category2utt_file=category2utt_file,
+            epoch=1,
+            num_batches=iter_options.num_batches,
+            distributed=iter_options.distributed,
+        )
+        batch_sampler = CategoryBalancedSampler(**sampler_args)
+
         batches = list(batch_sampler)
         if iter_options.num_batches is not None:
             batches = batches[: iter_options.num_batches]
