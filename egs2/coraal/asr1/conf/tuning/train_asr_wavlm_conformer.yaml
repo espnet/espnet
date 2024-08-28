@@ -93,4 +93,4 @@ specaug_conf:
     time_mask_width_ratio_range:
     - 0.
     - 0.05
-    num_time_mask: 10
+    num_time_mask: 5
