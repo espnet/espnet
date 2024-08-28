@@ -4,7 +4,7 @@ import { viteBundler } from "@vuepress/bundler-vite";
 import theme from "./theme.js";
 
 export default defineUserConfig({
-  base: "/espnet_draft_home_page/",
+  base: "/espnet/",
 
   lang: "en-US",
   description: "A documentation for ESPnet",

@@ -8,8 +8,7 @@ if [ $1 == "--help" ]; then
 fi
 
 real=$(realpath $1)
-# githash=`git rev-parse HEAD`
-githash=8574aa8e0d5968916df1df42c28621a48b2a5281
+githash=`git rev-parse HEAD`
 
 cd ./egs2/wsj/asr1
 . path.sh
