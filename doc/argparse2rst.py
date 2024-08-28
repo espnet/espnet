@@ -52,47 +52,45 @@ def get_parser():
     return parser
 
 
-# parser
-args = get_parser().parse_args()
+if __name__ == "__main__":
+    # parser
+    args = get_parser().parse_args()
 
+    modinfo = []
+    for p in args.src:
+        if "__init__.py" in p:
+            continue
+        try:
+            modinfo.append(ModuleInfo(p))
+        except Exception as e:
+            logging.error(f"Error processing {p}: {str(e)}")
 
-modinfo = []
-
-for p in args.src:
-    if "__init__.py" in p:
-        continue
-    try:
-        modinfo.append(ModuleInfo(p))
-    except Exception as e:
-        logging.error(f"Error processing {p}: {str(e)}")
-
-print(f"""
+    print(f"""
 {args.title}
 {"=" * len(args.title)}
 
 """)
 
-for m in modinfo:
-    logging.info(f"processing: {m.path.name}")
-    d = m.module.get_parser().description
-    assert d is not None
-    print(f"- :ref:`{m.path.name}`: {d}")
-
-print()
-
-os.makedirs(args.output_dir, exist_ok=True)
-
-# print argparse to each files
-for m in modinfo:
-    cmd = m.path.name
-    sourceurl = f"https://github.com/espnet/espnet/blob/" \
-        + get_git_revision_hash() + str(m.path.parent / m.path.stem) + ".py"
-    sep = "~" * len(cmd)
-    mname = m.name if m.name.startswith("espnet") \
-        else ".".join(m.name.split(".")[1:])
-    with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer: # remove .py
-        writer.write(
-        f""".. _{cmd}
+    for m in modinfo:
+        logging.info(f"processing: {m.path.name}")
+        d = m.module.get_parser().description
+        assert d is not None
+        print(f"- :ref:`{m.path.name}`: {d}")
+    
+    print()
+    
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    # print argparse to each files
+    for m in modinfo:
+        cmd = m.path.name
+        sourceurl = f"https://github.com/espnet/espnet/blob/" \
+            + get_git_revision_hash() + str(m.path.parent / m.path.stem) + ".py"
+        sep = "~" * len(cmd)
+        mname = m.name if m.name.startswith("espnet") \
+            else ".".join(m.name.split(".")[1:])
+        with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer: # remove .py
+            writer.write(f""".. _{cmd}
 {cmd}
 {sep}
 
