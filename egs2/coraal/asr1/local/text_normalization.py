@@ -9,7 +9,6 @@ import collections
 
 # adapted from https://github.com/cmu-llab/s3m-aave/blob/master/data/preprocess.py
 #   which was adapted from Koenecke et al 2020, https://github.com/stanford-policylab/asr-disparities/blob/master/src/transcript_cleaning_functions.py
-# TODO: use https://github.com/cmu-llab/s3m-aave/blob/master/data/preprocess_coraal.py
 
 
 def fix_numbers(text):

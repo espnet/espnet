@@ -110,7 +110,7 @@ def create_coraal_snippets(transcripts):
                 # save previous snippet, start a new snippet
                 snippets.append(snippet)
                 snippet = []
-            # TODO: segment the file if it's too long
+            # IMPROVEMENT: segment the file if it's too long
             # see https://github.com/cmu-llab/s3m-aave/blob/main/data/nsp/segment.py
         if snippet:
             snippets.append(snippet)
