@@ -1,5 +1,5 @@
 import argparse
-
+import json
 from transformers import AutoConfig, AutoTokenizer
 
 
@@ -27,15 +27,20 @@ def main():
     token_and_ids = [(token, tid) for token, tid in tokenizer.get_vocab().items()]
     token_and_ids.sort(key=lambda x: x[1])
 
+    token_list = []
+
     for idx in range(len(token_and_ids)):
         token, tid = token_and_ids[idx]
         assert tid == idx
-        print(token)
+        token_list.append(token)
 
     # (2) empty slots.
     vocab_size = AutoConfig.from_pretrained(args.model_tag).vocab_size
     for idx in range(len(token_and_ids), vocab_size):
-        print(f"<unused_text_bpe_{idx}>")
+        token_list.append(f"<unused_text_bpe_{idx}>")
+    
+    # (3) dump list
+    print(json.dumps(token_list, indent=4))
 
 
 if __name__ == "__main__":

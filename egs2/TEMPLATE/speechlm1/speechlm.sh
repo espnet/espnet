@@ -417,6 +417,7 @@ if ! "${skip_data_prep}"; then
                         --cleaner "${cleaner}" \
                         --g2p "${g2p}" \
                         --write_vocabulary true
+                    sed -i 's/^/g2p_/' "${data_feats}/${dset}/token_lists/g2p_token_list"
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 elif [ ${_modality} == "text_bpe" ]; then
@@ -550,7 +551,7 @@ if ! ${skip_train}; then
             ${python} -m "espnet2.bin.speechlm_train" \
                 --collect_stats true \
                 --use_preprocessor true \
-                --token_list ${token_list_dir}/token_list \
+                --token_list ${token_list_dir}/token_list.json \
                 --token_bias ${token_list_dir}/token_bias.json \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
@@ -654,7 +655,7 @@ if ! ${skip_train}; then
             --multiprocessing_distributed true -- \
             ${python} -m "espnet2.bin.speechlm_train" \
                 --use_preprocessor true \
-                --token_list ${token_list_dir}/token_list \
+                --token_list ${token_list_dir}/token_list.json \
                 --token_bias ${token_list_dir}/token_bias.json \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \

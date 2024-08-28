@@ -2407,6 +2407,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_bias = token_bias
         self.encoder_decoder_format = encoder_decoder_format
 
+        assert not ("codec" in token_bias and "codec_ssl" in token_bias), \
+            "Cannot use both modality codec and codec_ssl"
+
         self.modalities = speechlm_definitions.MODALITIES
         self.tasks = speechlm_definitions.SPEECHLM_TASKS
 
@@ -2568,10 +2571,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return token_idx
 
     def modality_specific_processing(self, value, modality):
-        if modality in ["codec", "spk"]:
+        if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
-            value = value + self.token_bias["codec"]
+            value = value + self.token_bias.get("codec", None) or self.token_bias["codec_ssl"]
 
             if modality == "spk":
                 if len(value) > self.speaker_prompt_length:
@@ -2594,6 +2597,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = self.text_cleaner(value)
                 tokenizer = self.bpe if modality == "text_bpe" else self.g2p
                 value = tokenizer.text2tokens(value)
+                if modality == "g2p":
+                    value = [f"g2p_{tok}" for tok in value]
                 value = self.converter.tokens2ids(value)
                 value = np.array(value)
 
