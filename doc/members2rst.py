@@ -67,50 +67,52 @@ def gen_class_rst(class_name, writer, filepath, lineno):
     :show-inheritance:
 """)
 
-# parser
-parser = configargparse.ArgumentParser(
-    description="generate RST files from <root> module recursively into <dst>/_gen",
-    config_file_parser_class=configargparse.YAMLConfigFileParser,
-    formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
-)
-parser.add_argument(
-    "--root", type=str, help="root module to generate docs"
-)
-parser.add_argument("--dst", type=str, help="destination path to generate RSTs")
-parser.add_argument("--exclude", nargs="*", default=[], help="exclude module name")
-args = parser.parse_args()
-print(args)
+
+if __name__ == "__main__":
+    # parser
+    parser = configargparse.ArgumentParser(
+        description="generate RST files from <root> module recursively into <dst>/_gen",
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--root", type=str, help="root module to generate docs"
+    )
+    parser.add_argument("--dst", type=str, help="destination path to generate RSTs")
+    parser.add_argument("--exclude", nargs="*", default=[], help="exclude module name")
+    args = parser.parse_args()
+    print(args)
 
 
-gendir = args.dst
-os.makedirs(gendir, exist_ok=True)
-os.makedirs(f"{gendir}/{args.root}", exist_ok=True)
+    gendir = args.dst
+    os.makedirs(gendir, exist_ok=True)
+    os.makedirs(f"{gendir}/{args.root}", exist_ok=True)
 
-for p in glob(args.root + "/**", recursive=True):
-    module_name = to_module(p)
-    if any([ex in module_name for ex in args.exclude]):
-        continue
-    if "__init__" in p:
-        continue
-    if not p.endswith(".py"):
-        continue
+    for p in glob(args.root + "/**", recursive=True):
+        module_name = to_module(p)
+        if any([ex in module_name for ex in args.exclude]):
+            continue
+        if "__init__" in p:
+            continue
+        if not p.endswith(".py"):
+            continue
 
-    submodule_name = module_name.split(".")[1]
-    os.makedirs(f"{gendir}/{args.root}/{submodule_name}", exist_ok=True)
+        submodule_name = module_name.split(".")[1]
+        os.makedirs(f"{gendir}/{args.root}/{submodule_name}", exist_ok=True)
 
-    if not os.path.exists(f"{gendir}/{args.root}/{submodule_name}/README.rst"):
-        # 1 get functions
-        for func in top_level_functions(parse_ast(p).body):
-            function_name = func.name
-            print(f"[INFO] generating {func.name} in {module_name}")
-            # 1.2 generate RST
-            with open(f"{gendir}/{args.root}/{submodule_name}/{function_name}.rst", "w") as f_rst:
-                gen_func_rst(f"{module_name}.{function_name}", f_rst, p, func.lineno)
+        if not os.path.exists(f"{gendir}/{args.root}/{submodule_name}/README.rst"):
+            # 1 get functions
+            for func in top_level_functions(parse_ast(p).body):
+                function_name = func.name
+                print(f"[INFO] generating {func.name} in {module_name}")
+                # 1.2 generate RST
+                with open(f"{gendir}/{args.root}/{submodule_name}/{function_name}.rst", "w") as f_rst:
+                    gen_func_rst(f"{module_name}.{function_name}", f_rst, p, func.lineno)
 
-        # 2 get classes
-        for clz in top_level_classes(parse_ast(p).body):
-            class_name = clz.name
-            print(f"[INFO] generating {clz.name} in {module_name}")
-            # 1.2 generate RST
-            with open(f"{gendir}/{args.root}/{submodule_name}/{class_name}.rst", "w") as f_rst:
-                gen_class_rst(f"{module_name}.{class_name}", f_rst, p, clz.lineno)
+            # 2 get classes
+            for clz in top_level_classes(parse_ast(p).body):
+                class_name = clz.name
+                print(f"[INFO] generating {clz.name} in {module_name}")
+                # 1.2 generate RST
+                with open(f"{gendir}/{args.root}/{submodule_name}/{class_name}.rst", "w") as f_rst:
+                    gen_class_rst(f"{module_name}.{class_name}", f_rst, p, clz.lineno)

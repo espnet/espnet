@@ -76,11 +76,12 @@ def convert(markdown_text):
     return _result
 
 
-# parser
-args = get_parser().parse_args()
+if __name__ == "__main__":
+    # parser
+    args = get_parser().parse_args()
 
-for md in glob(f"{args.root}/**/*.md", recursive=True):
-    markdown_text = open(md, "r").read()
-    _result = convert(markdown_text)
-    with open(md, "w") as f:
-        f.write(_result)
+    for md in glob(f"{args.root}/**/*.md", recursive=True):
+        markdown_text = open(md, "r").read()
+        _result = convert(markdown_text)
+        with open(md, "w") as f:
+            f.write(_result)

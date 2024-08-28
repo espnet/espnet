@@ -211,34 +211,35 @@ def replace_language_tags(content):
     return content
 
 
-# parser
-args = get_parser().parse_args()
+if __name__ == "__main__":
+    # parser
+    args = get_parser().parse_args()
 
-for md in glob.glob(f"{args.root}/*.md", recursive=True):
-    with open(md, "r") as f:
-        content = f.read()
+    for md in glob.glob(f"{args.root}/*.md", recursive=True):
+        with open(md, "r") as f:
+            content = f.read()
 
-    # Replace the "" and "" with "&lt;" and "&gt;", respectively
-    # if the tag is not in ALL_HTML_TAGS and does not have its end tag
-    # we need to apply this two functions because
-    # there are custom tags like: "<custom-tag a='<type>' b='<value>' />"
-    content = replace_language_tags(content)
-    content = replace_string_tags(content)
-    content = replace_custom_tags(content)
+        # Replace the "" and "" with "&lt;" and "&gt;", respectively
+        # if the tag is not in ALL_HTML_TAGS and does not have its end tag
+        # we need to apply this two functions because
+        # there are custom tags like: "<custom-tag a='<type>' b='<value>' />"
+        content = replace_language_tags(content)
+        content = replace_string_tags(content)
+        content = replace_custom_tags(content)
 
-    with open(md, "w") as f:
-        f.write(content)
+        with open(md, "w") as f:
+            f.write(content)
 
 
-for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
-    with open(md, "r") as f:
-        content = f.read()
+    for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
+        with open(md, "r") as f:
+            content = f.read()
 
-    # Replace the "" and "" with "&lt;" and "&gt;", respectively
-    # if the tag is not in ALL_HTML_TAGS
-    content = replace_language_tags(content)
-    content = replace_string_tags(content)
-    content = replace_custom_tags(content)
+        # Replace the "" and "" with "&lt;" and "&gt;", respectively
+        # if the tag is not in ALL_HTML_TAGS
+        content = replace_language_tags(content)
+        content = replace_string_tags(content)
+        content = replace_custom_tags(content)
 
-    with open(md, "w") as f:
-        f.write(content)
+        with open(md, "w") as f:
+            f.write(content)
