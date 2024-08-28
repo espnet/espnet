@@ -114,13 +114,12 @@ requirements = {
         "myst-parser",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
-        "jupyterlab==4",
+        "jupyterlab<5",
         "sphinx-markdown-builder",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
 requirements["test"].extend(requirements["train"])
-requirements["doc"].extend(requirements["all"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]

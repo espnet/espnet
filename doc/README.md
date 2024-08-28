@@ -11,6 +11,7 @@ $ conda create -p ./envs python=3.10
 $ conda activate ./envs
 
 # Requirements
+$ pip install -e ".[all]"
 $ pip install -e ".[doc]"
 $ conda install conda-forge::ffmpeg
 $ conda install conda-forge::nodejs==22.6.0
