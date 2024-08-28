@@ -5,7 +5,7 @@ freeze_param: [
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: wavlm_large 
+        upstream: wavlm_large
     download_dir: ./hub
     multilayer_feature: True
 

@@ -26,4 +26,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/test|4351|93612|88.5|6.9|4.6|1.5|13.0|62.9|
-
