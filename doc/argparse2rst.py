@@ -76,11 +76,11 @@ if __name__ == "__main__":
         d = m.module.get_parser().description
         assert d is not None
         print(f"- :ref:`{m.path.name}`: {d}")
-    
+
     print()
-    
+
     os.makedirs(args.output_dir, exist_ok=True)
-    
+
     # print argparse to each files
     for m in modinfo:
         cmd = m.path.name
