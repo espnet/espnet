@@ -2574,7 +2574,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
-            value = value + self.token_bias.get("codec", None) or self.token_bias["codec_ssl"]
+            value = value + (self.token_bias.get("codec", None) or self.token_bias["codec_ssl"])
 
             if modality == "spk":
                 if len(value) > self.speaker_prompt_length:

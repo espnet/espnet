@@ -101,7 +101,7 @@ def split_one_data_json(json_file, nj, output_dir):
         this_json["examples"] = this_split
         this_json["num_examples"] = len(this_split)
 
-        writer = open(sub_dir / f"data.{j}.json", "wb")
+        writer = open(sub_dir / f"data.json", "wb")
         writer.write(
             json.dumps(this_json, indent=4, ensure_ascii=False, sort_keys=False).encode(
                 "utf_8"
@@ -145,18 +145,16 @@ def main():
     example_list = [[] for _ in range(args.nj)]
     for json_file in args.json_files:
         json_file = Path(json_file)
-        json_name = json_file.parent.name
         example_splits = split_one_data_json(
             json_file,
             args.nj,
-            args.output_dir / json_name,
+            args.output_dir,
         )
-
         for idx, split in enumerate(example_splits):
             example_list[idx].extend(split)
 
     for j in range(1, args.nj + 1):
-        writer = open(args.output_dir / f"example_list.{j}", "w")
+        writer = open(args.output_dir / f"split{args.nj}" / str(j) /f"example_list", "w")
         for utt in example_list[j - 1]:
             writer.write(f"{utt}\n")
 

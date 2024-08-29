@@ -267,8 +267,9 @@ class SpeechLMTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> Union[AbsESPnetModel]:
 
         if isinstance(args.token_list, str):
-            with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip("\n") for line in f]
+            assert args.token_list.endswith(".json"), \
+                "Input token list should be a json file"
+            token_list = json.load(open(args.token_list))
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".

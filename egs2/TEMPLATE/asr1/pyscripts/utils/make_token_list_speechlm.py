@@ -96,7 +96,7 @@ def main():
         logging.info(
             f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list)}"
         )
-        token_bias[modality] = len(token_list)
+        token_bias[modality] = len(token_list) + len(special_tokens)
         token_list = token_list + list(modality_vocab.keys())
     
     # (4) add special token lastly since it may be revised.
