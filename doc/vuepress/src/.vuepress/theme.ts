@@ -27,6 +27,8 @@ export default hopeTheme({
   displayFooter: true,
 
   toc: false,
+  
+  editLink: false,
 
   plugins: {
 
