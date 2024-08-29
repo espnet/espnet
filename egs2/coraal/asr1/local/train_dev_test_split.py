@@ -96,13 +96,18 @@ def generate_segments(split_file_path, rows):
 if __name__ == "__main__":
     if len(sys.argv) != 8:
         print(
-            "Help: python local/train_dev_test_split.py <path_to_transcript> <train_split> <dev_split> <test_split> <train_ratio> <dev_ratio> <test_ratio>"
+            "Help: python local/train_dev_test_split.py <path_to_transcript> "
+            "<train_split> <dev_split> <test_split> "
+            "<train_ratio> <dev_ratio> <test_ratio>"
         )
         print(
-            "ex: python local/train_dev_test_split.py downloads/transcript.tsv downloads/train downloads/dev downloads/test 0.8 0.1 0.1"
+            "ex: python local/train_dev_test_split.py "
+            "downloads/transcript.tsv downloads/train downloads/dev "
+            "downloads/test 0.8 0.1 0.1"
         )
         print(
-            "Note: This script assumes transcript.tsv contains age group, gender, and socioeconomic class"
+            "Note: This script assumes transcript.tsv contains "
+            "age group, gender, and socioeconomic class"
         )
         exit(1)
     path_to_transcript = sys.argv[1]
@@ -159,6 +164,8 @@ if __name__ == "__main__":
 
 # http://lingtools.uoregon.edu/coraal/userguide/CORAALUserGuide_current.pdf
 # DCA_se2_ag1_m_05_1
-# location. socioeconomic group (0 = no splits). age group. gender. speaker number. audio file number.
-# age groups inconsistent across locations (page 38), ex: 29 and under ("-29") vs 19 and under ("-19")
+# location. socioeconomic group (0 = no splits). age group.
+#   gender. speaker number. audio file number.
+# age groups inconsistent across locations (page 38)
+#   ex: 29 and under ("-29") vs 19 and under ("-19")
 # many locations do not mark socioeconomic group

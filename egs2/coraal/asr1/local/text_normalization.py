@@ -8,8 +8,11 @@ import inflect
 import pandas as pd
 from text2digits import text2digits
 
-# adapted from https://github.com/cmu-llab/s3m-aave/blob/master/data/preprocess.py
-#   which was adapted from Koenecke et al 2020, https://github.com/stanford-policylab/asr-disparities/blob/master/src/transcript_cleaning_functions.py
+# adapted from https://github.com/cmu-llab/s3m-aave/blob/master/
+#   data/preprocess.py
+#   which was adapted from Koenecke et al 2020
+#   https://github.com/stanford-policylab/asr-disparities/blob/master/
+#   src/transcript_cleaning_functions.py
 
 
 def fix_numbers(text):
@@ -63,7 +66,7 @@ def fix_numbers(text):
                             + " "
                             + fix_numbers(items[0][-1:] + items[1])
                         )
-                    except:
+                    except Exception:
                         new_word = fix_numbers(items[0]) + items[1]
                 # deal with case e.g. 80s
                 elif (items[1] in ["s", "th"]) and (
@@ -96,8 +99,10 @@ def fix_numbers(text):
         new_list.append(new_word)
 
     text = " ".join(new_list)
-    # NSP needs // (overlapping speech), [] (dysfluencies, [laugh]) before forced alignment
-    # this script assumes [] (overlapping speech), // (annotations) have already been removed in CORAAL
+    # NSP needs // (overlapping speech), [] (dysfluencies, [laugh])
+    #   before forced alignment
+    # this script assumes [] (overlapping speech), // (annotations)
+    #   have already been removed in CORAAL
     text = re.sub(r"[^\s\w$\'\[\]\/]|_", " ", text)
 
     # Deal with written out years (two thousand and ten -> twenty ten)
@@ -109,10 +114,12 @@ def fix_numbers(text):
             text.lower(),
         )
         text = re.sub(
-            "two thousand " + double_dig_str, "twenty " + double_dig_str, text.lower()
+            "two thousand " + double_dig_str,
+            "twenty " + double_dig_str,
+            text.lower()
         )
 
-    text = re.sub("\s+", " ", "".join(text))  # standardize whitespace
+    text = re.sub(r"\s+", " ", "".join(text))  # standardize whitespace
 
     return text
 
@@ -151,17 +158,20 @@ def normalize_text(text):
     )  # replace inter-word hyphen with space
 
     # replace special characters (punctuation) with space, except $ and apostrophes
-    # NSP needs // (overlapping speech), [] (dysfluencies, [laugh]) before forced alignment
-    # this script assumes [] (overlapping speech), // (annotations) have already been removed in CORAAL
+    # NSP needs // (overlapping speech), [] (dysfluencies, [laugh])
+    #   before forced alignment
+    # this script assumes [] (overlapping speech), // (annotations)
+    #   have already been removed in CORAAL
     text = re.sub(r"[^\s\w$\'\[\]\/]|_", "", text)
     # standardize whitespace
-    text = re.sub("\s+", " ", "".join(text))
+    text = re.sub(r"\s+", " ", "".join(text))
 
     # deal with cardinal directions
     split_words_dir = text.split()
     # requires uppercase to disambiguate
     # NSP is lowercase but does not abbreviate cardinal directions
-    # needs to be done before expanding of acronyms b/c an acronym could contain N, E, S, W
+    # needs to be done before expanding of acronyms
+    #   b/c an acronym could contain N, E, S, W
     pre_cardinal = ["N", "E", "S", "W", "NE", "NW", "SE", "SW"]
     post_cardinal = [
         "North",
@@ -265,8 +275,8 @@ def normalize_text(text):
 
     # update numeric numbers to strings and remove $
     text = fix_numbers(text)
-    text = re.sub("\$", "dollars", "".join(text))
-    text = re.sub("\£", "pounds", "".join(text))
+    text = re.sub(r"\$", "dollars", "".join(text))
+    text = re.sub(r"\£", "pounds", "".join(text))
 
     # lowercase text
     text = text.lower()
@@ -296,10 +306,12 @@ def normalize_text(text):
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print(
-            "Help: python local/text_normalization.py <path_to_transcript> <desired_output_path>"
+            "Help: python local/text_normalization.py "
+            "<path_to_transcript> <desired_output_path>"
         )
         print(
-            "ex: python local/snippet_generation.py downloads/transcript.tsv.bak downloads/transcript.tsv"
+            "ex: python local/snippet_generation.py "
+            "downloads/transcript.tsv.bak downloads/transcript.tsv"
         )
         exit(1)
     path_to_transcript, output_path = sys.argv[1:3]
