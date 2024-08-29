@@ -22,8 +22,7 @@ def load_coraal_text(project_path):
     )
 
     rows = []
-    for sub, file in \
-            metadata[["CORAAL.Sub", "CORAAL.File"]].drop_duplicates().values:
+    for sub, file in metadata[["CORAAL.Sub", "CORAAL.File"]].drop_duplicates().values:
         if file == "VLD_se0_ag2_f_01_2":
             # this file is missing from VLD/2021.07 (2023.06 release)
             continue
@@ -121,11 +120,9 @@ def create_coraal_snippets(transcripts):
         df = transcripts[transcripts.basefile == basefile][
             ["line", "start_time", "end_time", "interviewee", "content"]
         ]
-        backward_check = \
-            df["start_time"].values[1:] >= df["end_time"].values[:-1]
+        backward_check = df["start_time"].values[1:] >= df["end_time"].values[:-1]
         backward_check = np.insert(backward_check, 0, True)
-        forward_check = \
-            df["end_time"].values[:-1] <= df["start_time"].values[1:]
+        forward_check = df["end_time"].values[:-1] <= df["start_time"].values[1:]
         forward_check = np.insert(forward_check, len(forward_check), True)
         # filter out
         #   interviewer lines
@@ -232,8 +229,7 @@ def get_nonexistent_snippets(input_folder, snippets):
             )
 
             if (
-                audio[int(start_time * 1000) : int(end_time * 1000)]
-                .duration_seconds
+                audio[int(start_time * 1000) : int(end_time * 1000)].duration_seconds
                 == 0.0
             ):
                 nonexistent_snippets.add(segment_filename)
@@ -247,8 +243,7 @@ if __name__ == "__main__":
             "Help: python local/snippet_generation.py <input_folder> "
             "<output_folder> <min_duration> <max_duration>"
         )
-        print("ex: python local/snippet_generation.py "
-              "downloads downloads 0.1 30")
+        print("ex: python local/snippet_generation.py " "downloads downloads 0.1 30")
         print(
             "Note: This script assumes all files (metadata and wav) "
             "are in <input_folder> with no nested folders"
@@ -266,28 +261,22 @@ if __name__ == "__main__":
 
     # These snippets should exist, run these pre-filtering on duration
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 364.6292, 382.2063)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 364.6292, 382.2063)) > 0
     )
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 17.0216, 19.5291)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 17.0216, 19.5291)) > 0
     )
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 875.0084, 876.5177)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 875.0084, 876.5177)) > 0
     )
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 885.9359, 886.3602)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 885.9359, 886.3602)) > 0
     )
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 890.9707, 894.35)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 890.9707, 894.35)) > 0
     )
     assert (
-        len(find_snippet(coraal_snippets,
-            "DCB_se1_ag1_f_01_1", 895.9076, 910.211)) > 0
+        len(find_snippet(coraal_snippets, "DCB_se1_ag1_f_01_1", 895.9076, 910.211)) > 0
     )
 
     # ensure no annotations left
@@ -327,8 +316,7 @@ if __name__ == "__main__":
             print(basefile, start_time, end_time, "not enough speakers")
             assert 0
         if not (
-            len(xscript_speakers) == 1
-                and xscript_speakers[0] == interviewees[basefile]
+            len(xscript_speakers) == 1 and xscript_speakers[0] == interviewees[basefile]
         ):
             print(basefile, start_time, end_time, "interviewee missing")
             assert 0
@@ -339,8 +327,7 @@ if __name__ == "__main__":
         & (coraal_snippets.duration <= MAX_DURATION)
     ]
 
-    nonexistent_snippets = \
-        get_nonexistent_snippets(base_folder, coraal_snippets)
+    nonexistent_snippets = get_nonexistent_snippets(base_folder, coraal_snippets)
     print(nonexistent_snippets)
     coraal_snippets = coraal_snippets[
         ~coraal_snippets["segment_filename"].isin(nonexistent_snippets)
@@ -348,13 +335,12 @@ if __name__ == "__main__":
 
     # save transcripts (which includes speaker metadata)
     print(coraal_snippets.duration.describe())
-    coraal_snippets.to_csv(output_folder + "/transcript.tsv", sep="\t",
-                           index=False)
+    coraal_snippets.to_csv(output_folder + "/transcript.tsv", sep="\t", index=False)
 
     # generate segments file (kaldi)
     # <utterance_id> <wav_id> <start_time> <end_time>
-    coraal_snippets[["segment_filename", "basefile", "start_time",
-                     "end_time"]].to_csv(output_folder + "/segments", sep=" ",
-                                         header=False, index=False)
+    coraal_snippets[["segment_filename", "basefile", "start_time", "end_time"]].to_csv(
+        output_folder + "/segments", sep=" ", header=False, index=False
+    )
 
     print("finished in", datetime.now() - start_time)

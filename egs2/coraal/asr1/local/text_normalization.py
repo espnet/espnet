@@ -114,9 +114,7 @@ def fix_numbers(text):
             text.lower(),
         )
         text = re.sub(
-            "two thousand " + double_dig_str,
-            "twenty " + double_dig_str,
-            text.lower()
+            "two thousand " + double_dig_str, "twenty " + double_dig_str, text.lower()
         )
 
     text = re.sub(r"\s+", " ", "".join(text))  # standardize whitespace
