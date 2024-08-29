@@ -41,7 +41,7 @@ def parse_ast(filename):
 
 def gen_func_rst(func_name, writer, filepath, lineno):
     sourceurl = f"https://github.com/espnet/espnet/blob/" \
-        + GIT_HASH + filepath + f":L{lineno}"
+        + GIT_HASH + "/" + filepath + f"#L{lineno}"
     writer.write(f""".. _{func_name}
 {func_name}
 {"~" * len(func_name)}
@@ -54,7 +54,7 @@ def gen_func_rst(func_name, writer, filepath, lineno):
 
 def gen_class_rst(class_name, writer, filepath, lineno):
     sourceurl = f"https://github.com/espnet/espnet/blob/" \
-        + GIT_HASH + filepath + f":L{lineno}"
+        + GIT_HASH + "/" + filepath + f"#L{lineno}"
     writer.write(f""".. _{class_name}
 {class_name}
 {"~" * len(class_name)}

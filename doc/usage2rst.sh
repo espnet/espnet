@@ -18,7 +18,7 @@ len=${#cmd}
 r=$(dirname $real)
 sep=$(printf '~%.0s' $(seq $len))
 usage=$($real --help |& sed "s?${r}/??g" | grep -v -e '--help' | sed "s/^/    /g")
-sourceurl="https://github.com/espnet/espnet/blob/${githash}/$1"
+sourceurl="https://github.com/espnet/espnet/blob/${githash}\/$1"
 cat <<EOF
 .. _${cmd}
 

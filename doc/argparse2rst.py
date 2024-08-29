@@ -85,7 +85,7 @@ if __name__ == "__main__":
     for m in modinfo:
         cmd = m.path.name
         sourceurl = f"https://github.com/espnet/espnet/blob/" \
-            + get_git_revision_hash() + str(m.path.parent / m.path.stem) + ".py"
+            + get_git_revision_hash() + "/" + str(m.path.parent / m.path.stem) + ".py"
         sep = "~" * len(cmd)
         mname = m.name if m.name.startswith("espnet") \
             else ".".join(m.name.split(".")[1:])
