@@ -2594,7 +2594,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         elif modality in ["ssl", "text_bpe", "g2p"]:
 
             if modality in ["text_bpe", "g2p"]:
-                value = self.text_cleaner(value)
+                try:
+                    value = self.text_cleaner(value)
+                except:
+                    logging.warning(f"Failed to apply cleaner to {value}. Make it empty")
+                    value = ""
                 tokenizer = self.bpe if modality == "text_bpe" else self.g2p
                 value = tokenizer.text2tokens(value)
                 if modality == "g2p":

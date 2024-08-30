@@ -113,7 +113,7 @@ ssl_batch_bins=4800000
 
 # (3) g2p
 g2p="g2p_en"
-cleaner=tacotron
+cleaner=none
 
 # (4) text bpe
 subword_choice=sentencepiece      # sentencepiece or huggingface
