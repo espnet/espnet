@@ -5,11 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay.yaml
+train_config=conf/train_delay_tts.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
-token_list_dir=data/token_list/llm_vocab
+token_list_dir=data/token_list/tts_vocab
 bpe_opts="--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B "
 
 train_jsons=""
@@ -33,7 +33,6 @@ valid_jsons+=" \
   dump/raw_tts_gigaspeech/gigaspeech_dev/data.json \
 "
 
-echo ${data_combo_name}
 ./speechlm.sh \
     --stage 7 \
     --skip_data_prep true \

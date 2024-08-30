@@ -15,7 +15,8 @@ from torch import Tensor, nn
 
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
-        return super().forward(x.float()).type(x.dtype)
+        return super().forward(x) # For full BF16 training
+        # return super().forward(x.float()).type(x.dtype) # For AMP / FP32 training
 
 
 class Linear(nn.Linear):

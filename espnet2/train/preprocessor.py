@@ -2419,7 +2419,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        # Modality-specific utilities
+        ### Modality-specific utilities
 
         # Text BPE (text_bpe):
         if subword_model is not None:
@@ -2571,6 +2571,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return token_idx
 
     def modality_specific_processing(self, value, modality):
+        # multi-stream discrete modalities
         if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
@@ -2584,8 +2585,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                     value = value[start : start + self.speaker_prompt_length]
                 elif self.pad_speaker_prompt:
                     pad_len = self.speaker_prompt_length - len(value)
-                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                    value = np.concatenate([value, pad], axis=0)
+                    value = np.pad(value, ((0, pad_len), (0, 0)), mode="wrap")
 
             value = value.flatten()
             conti_feat = None
@@ -2609,9 +2609,16 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             elif modality in ["ssl"]:
                 value = value + self.token_bias["ssl"]
 
-            value = value.repeat(self.codec_token_in_use, axis=0)
+            value = np.pad(
+                np.expand_dims(value, 1), 
+                ((0,0), (0, self.codec_token_in_use - 1)),
+                mode="constant",
+                constant_values=self.token_list.index("<pad>")
+            ).flatten()
+
             conti_feat = None
 
+        # continuous modalities
         elif modality in ["text_emb"]:
             if value.ndim != 2:
                 raise ValueError(f"Text embedding should have size of [T, D]")
