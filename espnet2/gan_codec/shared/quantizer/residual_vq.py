@@ -1,9 +1,13 @@
 # Copyright 2024 Jiatong Shi
 # Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 # Adapted from https://github.com/facebookresearch/encodec
+
 # Original license as follows:
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
 """Residual vector quantizer implementation."""
 import math
@@ -35,8 +39,9 @@ class ResidualVectorQuantizer(nn.Module):
         decay (float): Decay for exponential moving average over the codebooks.
         kmeans_init (bool): Whether to use kmeans to initialize the codebooks.
         kmeans_iters (int): Number of iterations used for kmeans initialization.
-        threshold_ema_dead_code (int): Threshold for dead code expiration. Replace any codes
-            that have an exponential moving average cluster size less than the specified threshold with
+        threshold_ema_dead_code (int): Threshold for dead code expiration.
+            Replace any codes that have an exponential moving average cluster
+            size less than the specified threshold with
             randomly selected vector from the current batch.
     """
 
@@ -126,9 +131,9 @@ class ResidualVectorQuantizer(nn.Module):
         bandwidth: Optional[float] = None,
         st: Optional[int] = None,
     ) -> torch.Tensor:
-        """Encode a given input tensor with the specified sample rate at the given bandwidth.
-        The RVQ encode method sets the appropriate number of quantizer to use
-        and returns indices for each quantizer.
+        """Encode a given input tensor with the specified sample rate at
+        the given bandwidth. The RVQ encode method sets the appropriate
+        number of quantizer to use and returns indices for each quantizer.
         """
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
         st = st or 0

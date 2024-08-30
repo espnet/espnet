@@ -19,7 +19,7 @@ def is_dict(x):
 def to_dict(x, recursive=True):
     """Convert Sequence or Mapping object to dict.
 
-    lists get converted to {0: x[0], 1: x[1], ...}
+    lists get converted to {0: x[0], 1: x[1]}
     """
     if is_list(x):
         x = {i: v for i, v in enumerate(x)}

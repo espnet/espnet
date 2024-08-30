@@ -20,15 +20,12 @@ local_data_opts="--trim_all_silence true" # trim all silence in the audio
 #                 (1) The speech prompt is 3s
 #                 (2) We limit the longest audio to 30s to avoid
 #                     some corner cases in memeory
+
 ./speechlm.sh \
     --task "tts" \
     --fs 24000 \
-    --ngpu 4 \
-    --nj 32 \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
-    --inference_nj 1 \
-    --gpu_inference true \
     --local_data_opts "${local_data_opts}" \
     --audio_format "flac.ark" \
     --train_config ${train_config} \

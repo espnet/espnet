@@ -270,3 +270,6 @@ class MultiHeadedAttention(BaseMultiHeadedAttention):
         self.linear_out = torch.nn.Linear(n_feat, n_feat)
         self.attn = None
         self.dropout = torch.nn.Dropout(p=dropout_rate)
+        self.use_flash_attn = False
+        self.q_norm = torch.nn.Identity()
+        self.k_norm = torch.nn.Identity()

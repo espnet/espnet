@@ -2,7 +2,8 @@
 # All rights reserved.
 #
 # This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
+# LICENSE file in https://github.com/facebookresearch/encodec/tree/main
+
 
 import typing as tp
 from abc import ABC, abstractmethod
@@ -142,19 +143,21 @@ class DiscriminatorSTFT(nn.Module):
 
 
 class MultiDiscriminator(ABC, nn.Module):
-    """Base implementation for discriminators composed of sub-discriminators acting at different scales."""
+    """Base implementation for discriminators composed of sub-discriminators
+    acting at different scales."""
 
     def __init__(self):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x: torch.Tensor): ...
+    def forward(self, x: torch.Tensor):
+        raise NotImplementedError("forward method is not implemented")
 
     @property
     @abstractmethod
     def num_discriminators(self) -> int:
         """Number of discriminators."""
-        ...
+        raise NotImplementedError("num_discriminators is not implemented")
 
 
 class MultiScaleSTFTDiscriminator(MultiDiscriminator):

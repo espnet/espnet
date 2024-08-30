@@ -151,7 +151,8 @@ class EncodecDiscriminator(torch.nn.Module):
             filters (int): Number of filters in convolutions.
             norm (str): normalization choice of Convolutional layers
             n_ffts (Sequence[int]): Size of FFT for each scale.
-            hop_lengths (Sequence[int]): Length of hop between STFT windows for each scale.
+            hop_lengths (Sequence[int]): Length of hop between STFT windows for
+                each scale.
             win_lengths (Sequence[int]): Window size for each scale.
             activation (str): activation function choice of convolutional layer
             activation_params (Dict[str, Any]): parameters for activation function)

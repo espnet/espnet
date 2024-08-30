@@ -78,7 +78,7 @@ extra_wav_list= # Extra list of scp files for wav formatting
 init_param=
 
 # Enhancement related
-inference_args="--normalize_output_wav true"
+inference_args="--normalize_output_wav true --output_format wav"
 inference_model=valid.loss.ave.pth
 download_model=
 
@@ -172,6 +172,7 @@ Options:
     --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
     --inference_model      # Enhancement model path for inference (default="${inference_model}").
     --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
+    --download_model      # Download a model from Model Zoo and use it for inference (default="${download_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -222,7 +223,7 @@ fi
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
 # Extra files for enhancement process
-utt_extra_files="utt2category"
+utt_extra_files="utt2category utt2fs"
 
 data_feats=${dumpdir}/raw
 
@@ -752,7 +753,7 @@ if ! "${skip_train}"; then
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "
         fi
 
-        # Add the fs information at the end of the data path list
+        # Add the sampling frequency information at the end of the data path list
         if [ -e "${_enh_train_dir}/utt2fs" ] && [ -e "${_enh_valid_dir}/utt2fs" ]; then
             log "[INFO] Adding the sampling frequency information (fs) for training"
 
@@ -800,6 +801,26 @@ else
 fi
 
 
+
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for inference and scoring"
+    enh_exp="${expdir}/${download_model}"
+    mkdir -p "${enh_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${enh_exp}/config.txt"
+
+    # Get the path of each file
+    _enh_model_file=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_model_file': '\([^']*\)'.*$/\1/")
+    _enh_train_config=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_enh_model_file}" "${enh_exp}"
+    ln -sf "${_enh_train_config}" "${enh_exp}"
+    inference_model=$(basename "${_enh_model_file}")
+fi
+
+
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Enhance Speech: training_dir=${enh_exp}"
@@ -836,6 +857,19 @@ if ! "${skip_eval}"; then
                 for spk in $(seq "${ref_num}"); do
                     _data_param+="--data_path_and_name_and_type ${_data}/enroll_spk${spk}.scp,enroll_ref${spk},text "
                 done
+            fi
+            # Add the category information at the end of the data path list
+            if [ -e "${_data}/utt2category" ]; then
+                log "[INFO] Adding the category information for inference"
+                log "[WARNING] Please make sure the category information is explicitly processed by the preprocessor defined in '${enh_config}' so that it is converted to an integer"
+
+                _data_param+="--data_path_and_name_and_type ${_data}/utt2category,category,text "
+            fi
+            # Add the sampling frequency information at the end of the data path list
+            if [ -e "${_data}/utt2fs" ]; then
+                log "[INFO] Adding the sampling frequency information for inference"
+
+                _data_param+="--data_path_and_name_and_type ${_data}/utt2fs,fs,text_int "
             fi
             # 1. Split the key file
             key_file=${_data}/${_scp}
@@ -887,6 +921,14 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Scoring"
         _cmd=${decode_cmd}
+
+        if ${gpu_inference}; then
+            _cmd=${cuda_cmd}
+            _ngpu=1
+        else
+            _cmd=${decode_cmd}
+            _ngpu=0
+        fi
 
         # score_obs=true: Scoring for observation signal
         # score_obs=false: Scoring for enhanced signal
@@ -944,7 +986,7 @@ if ! "${skip_eval}"; then
                 # 2. Submit scoring jobs
                 log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
                 # shellcheck disable=SC2086
-                ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
                     ${python} -m espnet2.bin.enh_scoring \
                         --key_file "${_logdir}"/keys.JOB.scp \
                         --output_dir "${_logdir}"/output.JOB \

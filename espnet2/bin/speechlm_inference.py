@@ -14,11 +14,11 @@ import torch
 import torchaudio
 from kaldiio import WriteHelper
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
-from espnet2.tasks.speechlm import SpeechLMTask, post_processor_choices
+from espnet2.tasks.speechlm import SpeechLMTask
 
 # utilities
 from espnet2.torch_utils.device_funcs import to_device
@@ -34,6 +34,7 @@ class SpeechLM:
     Examples: TODO(Jinchuan): will finish this when the code is stable.
     """
 
+    @typechecked
     def __init__(
         self,
         train_config: Union[Path, str] = None,
@@ -51,7 +52,6 @@ class SpeechLM:
         post_processor_conf: dict = {},
     ):
         """Initialize SpeechLM module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = SpeechLMTask.build_model_from_file(
@@ -101,13 +101,12 @@ class SpeechLM:
         )
 
         # post_processor: transform tokens to the target modality. E.g., speech, text.
-        post_processor_class = post_processor_choices.get_class(modality)
-        self.post_processor = post_processor_class(**post_processor_conf).to(device)
         if modality in ["codec"]:
             self.bias = token_bias[modality]
         else:
             self.bias = 0
 
+    @typechecked
     def __call__(
         self,
         dec_seq: torch.Tensor,
@@ -116,7 +115,6 @@ class SpeechLM:
         **kwargs,
     ) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
         """Run SpeechLM inference"""
-        assert check_argument_types()
 
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
@@ -157,6 +155,7 @@ class SpeechLM:
         return SpeechLM(**kwargs)
 
 
+@typechecked
 def inference(
     # general
     output_dir: str,
@@ -186,7 +185,6 @@ def inference(
     postprocessor_conf: dict = {},
 ):
     """Run SpeechLM inference."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -425,11 +423,10 @@ def get_parser():
         "--inference_nj",
         type=int,
         default=None,
-        help="nj used in inference, should be the same or smaller than the nq in training",
+        help="nj used in inference, should be the same/smaller than the nq in train",
     )
 
     group = parser.add_argument_group("Postprocessor related")
-    post_processor_choices.add_arguments(group)
 
     return parser
 

@@ -5,7 +5,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 # CoreLM
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
@@ -75,9 +75,9 @@ class SpeechLMTask(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -174,23 +174,22 @@ class SpeechLMTask(AbsTask):
             # e.g. --encoder and --encoder_conf
             class_choices.add_arguments(group)
 
-        assert check_return_type(parser)
         return parser
 
     @classmethod
+    @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         int_pad = args.token_list.index("<pad>")
         return CommonCollateFn(int_pad_value=int_pad)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
 
         # (Jinchuan) SpeechLM task will always use the preprocess_fn
         retval = SpeechLMPreprocessor(
@@ -206,7 +205,6 @@ class SpeechLMTask(AbsTask):
             speaker_prompt_length=args.speaker_prompt_length,
         )
 
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -224,8 +222,8 @@ class SpeechLMTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> Union[AbsESPnetModel]:
-        assert check_argument_types()
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -273,5 +271,4 @@ class SpeechLMTask(AbsTask):
                 elif isinstance(m, torch.nn.Embedding):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
-        assert check_return_type(model)
         return model

@@ -459,7 +459,8 @@ class CommonPreprocessor(AbsPreprocessor):
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
-                data[self.speech_name] = speech * self.speech_volume_normalize / ma
+                if ma != 0:
+                    data[self.speech_name] = speech * self.speech_volume_normalize / ma
 
             if self.force_single_channel:
                 speech = data[self.speech_name]
@@ -1208,10 +1209,10 @@ class EnhPreprocessor(CommonPreprocessor):
             # (Nmic, Time)
             return signal[None, :] if signal.ndim == 1 else signal.T
 
-    def _get_early_signal(self, speech, rir, power):
+    def _get_early_signal(self, speech, rir, power, fs):
         predelay = 50  # milliseconds
         dt = np.argmax(rir, axis=1).min()
-        et = dt + (predelay * self.sample_rate) // 1000
+        et = dt + (predelay * fs) // 1000
         rir_early = rir[:, :et]
         speech2 = scipy.signal.convolve(speech, rir_early, mode="full")[
             :, : speech.shape[1]
@@ -1351,6 +1352,7 @@ class EnhPreprocessor(CommonPreprocessor):
             speech_mix = self._ensure_2d(data[self.speech_name])
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
+                speech_ref0 = speech_ref
                 speech_ref, rir_ref = zip(
                     *[
                         self._convolve_rir(
@@ -1378,7 +1380,7 @@ class EnhPreprocessor(CommonPreprocessor):
                             if spk == 0 or len(dereverb_speech_ref) > 1:
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = self._get_early_signal(
-                                    speech_ref[spk], rir_ref[spk], power_ref[spk]
+                                    speech_ref0[spk], rir_ref[spk], power_ref[spk], fs
                                 ).T
                 else:
                     for spk in range(num_spk):
@@ -1386,7 +1388,7 @@ class EnhPreprocessor(CommonPreprocessor):
                         speech_ref_name = self.speech_ref_name_prefix + suffix
                         # clean speech with early reflections (Time, Nmic)
                         data[speech_ref_name] = self._get_early_signal(
-                            speech_ref[spk], rir_ref[spk], power_ref[spk]
+                            speech_ref0[spk], rir_ref[spk], power_ref[spk], fs
                         ).T
 
                         if dereverb_speech_ref is not None:
@@ -1447,8 +1449,8 @@ class EnhPreprocessor(CommonPreprocessor):
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
                     speech_mix = self.data_aug(
                         speech_mix.T if speech_mix.shape[0] > 1 else speech_mix[0],
-                        self.sample_rate,
-                    )
+                        fs,
+                    ).T
 
             data[self.speech_name] = speech_mix.T
             ma = np.max(np.abs(data[self.speech_name]))
@@ -1469,7 +1471,10 @@ class EnhPreprocessor(CommonPreprocessor):
                 # use a fixed scale to make it deterministic
                 volume_scale = self.volume_low
             ma = np.max(np.abs(data[self.speech_name]))
-            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+            if ma != 0:
+                self._apply_to_all_signals(
+                    data, lambda x: x * volume_scale / ma, num_spk
+                )
 
         if self.categories and "category" in data:
             category = data.pop("category")
@@ -1580,7 +1585,10 @@ class SVSPreprocessor(AbsPreprocessor):
             if self.singing_volume_normalize is not None:
                 singing = data[self.singing_name]
                 ma = np.max(np.abs(singing))
-                data[self.singing_name] = singing * self.singing_volume_normalize / ma
+                if ma != 0:
+                    data[self.singing_name] = (
+                        singing * self.singing_volume_normalize / ma
+                    )
 
         if self.midi_name in data and self.label_name in data:
             # Load label info
@@ -2385,7 +2393,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        ### Modality-specific utilities
+        # Modality-specific utilities
+
         # Text BPE (text_bpe):
         if bpemodel is not None:
             if bpe_encode_kwargs is None:
