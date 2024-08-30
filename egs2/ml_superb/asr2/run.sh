@@ -6,12 +6,9 @@ set -u
 set -o pipefail
 
 # Process Pipeline
-source /home/stan/miniconda3/envs/espnet_discrete/etc/profile.d/conda.sh
-conda activate /home/stan/miniconda3/envs/espnet_discrete
-export NCCL_P2P_DISABLE=1
 
-stage=15
-stop_stage=15
+stage=1
+stop_stage=100
 nj=32
 inference_nj=4
 gpu_inference=true
@@ -24,8 +21,8 @@ only_lid=false
 single_lang=xty
 
 # Model/Inference Configs
-inference_config=conf/decode_ctc0.3.yaml
-asr_config=conf/tuning/train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup5k.yaml
+inference_config=conf/decode.yaml
+asr_config=conf/train.yaml
 
 ./utils/parse_options.sh || exit 1
 
