@@ -16,6 +16,10 @@ Running stage 1 of asr.sh will download the script, create segments from the hou
 
 ## exp/asr_train_asr_wavlm_transformer_raw_en_bpe5000_sp
 
+GPU: 2 V100-32GB
+
+Model: https://huggingface.co/kalbin/coraal_wavlm_transformer
+
 ## Environments
 - date: `Wed Aug 28 11:48:57 EDT 2024`
 - python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
@@ -45,6 +49,11 @@ Running stage 1 of asr.sh will download the script, create segments from the hou
 
 
 ## exp/asr_train_asr_wavlm_conformer_raw_en_bpe5000_sp
+
+GPU: 2 V100-32GB
+
+Model: https://huggingface.co/kalbin/coraal_wavlm_conformer
+
 ## Environments
 - date: `Thu Aug 29 22:20:14 EDT 2024`
 - python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
