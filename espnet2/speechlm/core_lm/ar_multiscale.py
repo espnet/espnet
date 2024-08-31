@@ -12,12 +12,13 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import (
-    ce_loss, 
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
+from espnet2.speechlm.net_utils import ( 
     logits_to_tokens,
     modality_index_to_mask,
     install_continuous_features,
 )
+
 
 
 class MultiScaleLM(AbsCoreLM):
@@ -25,8 +26,9 @@ class MultiScaleLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        token_bias: dict,
+        pad_id: int,
         hf_model_tag: str = None,
-        token_bias: dict = None,
         share_emb: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
@@ -97,8 +99,11 @@ class MultiScaleLM(AbsCoreLM):
 
         self.nq = nq
         self.n_ctx = n_ctx
+        self.pad_id = pad_id
 
         self.g_decoders.init_embeddings(self.emb, self.lm_head)
+        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
+
 
     def forward(
         self,
@@ -146,15 +151,7 @@ class MultiScaleLM(AbsCoreLM):
         x = self.l_decoders(x)
         x = x.view(target_shift.size())  # [B, T, nq, D]
 
-        # loss
-        logits = self.lm_head(x)  # [B, T, nq, V]
-        loss, stats, weight = ce_loss(
-            logits,
-            target,
-            dec_seq_lengths - 1,
-            prefix_len - 1,
-            compute_loss=compute_loss,
-        )
+        loss, logits, stats, weight = self.criterion(x, target)
 
         return loss, logits, stats, weight
 

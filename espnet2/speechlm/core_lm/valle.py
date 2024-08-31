@@ -13,6 +13,7 @@ import torch
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.net_utils import (
     ce_loss,
     install_continuous_features,
@@ -27,8 +28,9 @@ class ValleLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        token_bias: dict,
+        pad_id: int,
         hf_model_tag: str = None,
-        token_bias: dict = None,
         share_emb: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
@@ -82,8 +84,10 @@ class ValleLM(AbsCoreLM):
 
         self.nq = nq
         self.n_ctx = n_ctx
+        self.pad_id = pad_id
 
         self.ar_decoder.init_embeddings(self.emb, self.lm_head)
+        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
 
     def forward(
         self,
@@ -120,7 +124,6 @@ class ValleLM(AbsCoreLM):
         ]  # [B, T, D]
         target_ar = dec_seq[:, 1:, 0]
         h_ar = self.ar_decoder(input_ar_emb)
-        logits_ar = self.lm_head(h_ar)  # [B, T, V]
 
         # Non-Auto-Regressive part
         level_idx_th = torch.randint(
@@ -134,24 +137,18 @@ class ValleLM(AbsCoreLM):
         mask = length_mask(dec_seq_lengths - 1).bool()
         mask = mask.unsqueeze(1).unsqueeze(1)  # [B, 1, 1, T]
         h_nar = self.nar_decoder(input_nar_emb, level_idx_th - 1, mask=mask)
-        logits_nar = self.lm_head(h_nar)  # [B, T, V]
 
         # merge and compute loss
-        logits = torch.stack([logits_ar, logits_nar], dim=2)  # [B, T, 2, V]
+        h = torch.stack([h_ar, h_nar], dim=2)  # [B, T, 2, V]
         target = torch.stack([target_ar, target_nar], dim=2)  # [B, T, 2]
 
-        loss, stats, weight = ce_loss(
-            logits,
-            target,
-            dec_seq_lengths - 1,
-            prefix_len - 1,
-            compute_loss=compute_loss,
-        )
+        loss, logits, stats, weight = self.criterion(h, target)
 
-        stats["acc_ar"] = stats["acc_layer0"]
-        stats["acc_nar"] = stats["acc_layer1"]
-        stats.pop("acc_layer0")
-        stats.pop("acc_layer1")
+        if "acc_layer0" in stats and "acc_layer1" in stats:
+            stats["acc_ar"] = stats["acc_layer0"]
+            stats["acc_nar"] = stats["acc_layer1"]
+            stats.pop("acc_layer0")
+            stats.pop("acc_layer1")
 
         return loss, logits, stats, weight
 

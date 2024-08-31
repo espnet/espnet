@@ -12,7 +12,8 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss, install_continuous_features
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
+from espnet2.speechlm.net_utils import install_continuous_features
 
 
 class ARParallelLM(AbsCoreLM):
@@ -20,8 +21,9 @@ class ARParallelLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        token_bias: dict,
+        pad_id: int,
         hf_model_tag: str = None,
-        token_bias: dict = None,
         share_emb: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
@@ -66,8 +68,10 @@ class ARParallelLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
         self.sos_eos = sos_eos
+        self.pad_id = pad_id
 
         self.decoders.init_embeddings(self.emb, self.lm_head)
+        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
 
     def forward(
         self,
@@ -98,17 +102,9 @@ class ARParallelLM(AbsCoreLM):
         x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
         x, _ = install_continuous_features(x, None, conti_feats)
         x = self.decoders(x)
-
-        # [B, T, 1, D] + [1, 1, nq, D]
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)
-        logits = self.lm_head(x)  # [B, T, nq, V]
-        loss, stats, weight = ce_loss(
-            logits,
-            target,
-            dec_seq_lengths - 1,
-            prefix_len - 1,
-            compute_loss=compute_loss,
-        )
+
+        loss, logits, stats, weight = self.criterion(x, target)
 
         return loss, logits, stats, weight
 
