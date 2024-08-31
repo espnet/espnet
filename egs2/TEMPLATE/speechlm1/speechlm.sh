@@ -704,7 +704,7 @@ if ! "${skip_eval}"; then
                 --nj ${inference_nj} \
                 --output_dir ${_logdir}
 
-            _data_opts="--data_path_and_name_and_type ${_logdir}/${dset}/split${inference_nj}/JOB/data.JOB.json,_,dataset_json"
+            _data_opts="--data_path_and_name_and_type ${_logdir}/split${inference_nj}/JOB/data.json,_,dataset_json"
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
