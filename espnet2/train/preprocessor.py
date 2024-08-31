@@ -2585,7 +2585,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                     value = value[start : start + self.speaker_prompt_length]
                 elif self.pad_speaker_prompt:
                     pad_len = self.speaker_prompt_length - len(value)
-                    value = np.pad(value, ((0, pad_len), (0, 0)), mode="wrap")
+                    value = np.pad(
+                        value, 
+                        ((0, pad_len), (0, 0)), 
+                        mode="constant",
+                        constant_values=self.token_list.index("<pad>")
+                    )
 
             value = value.flatten()
             conti_feat = None

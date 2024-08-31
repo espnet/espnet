@@ -137,6 +137,7 @@ class DeepSpeedTrainer(Trainer):
                 )
 
             # (5.2) valid one epoch
+            logging.info("Start Evaluation ...")
             with reporter.observe("valid") as sub_reporter:
                 cls.valid_one_epoch(
                     model=model,
@@ -168,6 +169,7 @@ class DeepSpeedTrainer(Trainer):
         options: DeepSpeedTrainerOptions,
     ) -> None:
         model.train()
+        torch.cuda.empty_cache()
         iterator_stop = torch.tensor(0).cuda()
 
         log_interval = options.log_interval
@@ -237,6 +239,7 @@ class DeepSpeedTrainer(Trainer):
         options: DeepSpeedTrainerOptions,
     ) -> None:
         model.eval()
+        torch.cuda.empty_cache()
         iterator_stop = torch.tensor(0).cuda()
 
         for iiter, (utt_id, batch) in enumerate(iterator):

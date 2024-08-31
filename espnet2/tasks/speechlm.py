@@ -304,6 +304,7 @@ class SpeechLMTask(AbsTask):
             vocab_size=len(token_list),
             nq=args.codec_token_in_use,
             token_bias=token_bias,
+            pad_id=token_list.index("<pad>"),
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)
