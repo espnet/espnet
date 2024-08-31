@@ -472,6 +472,12 @@ class AbsTask(ABC):
             type=str,
             help="deepspeed training config",
         )
+        group.add_argument(
+            "--deepspeed_step_sync",
+            default=True,
+            type=str2bool,
+            help="Synchronize stats in each minibatch",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(

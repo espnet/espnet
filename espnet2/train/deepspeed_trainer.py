@@ -4,7 +4,6 @@ import argparse
 import dataclasses
 import json
 import logging
-
 import torch
 import torch.distributed as dist
 
@@ -44,6 +43,7 @@ class DeepSpeedTrainerOptions:
     log_interval: Optional[int]
     output_dir: Union[Path, str]
     max_epoch: int
+    deepspeed_step_sync: bool
     deepspeed_config: Union[Path, str]
 
 
@@ -176,6 +176,9 @@ class DeepSpeedTrainer(Trainer):
                 log_interval = max(len(iterator) // 20, 10)
             except TypeError:
                 log_interval = 100
+        
+        if not options.deepspeed_step_sync:
+            cls.check_iterator_length(iterator)
 
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
@@ -184,9 +187,10 @@ class DeepSpeedTrainer(Trainer):
 
             with reporter.measure_time("step_time"):
                 # (0) ensure all ranks have not finished.
-                dist.all_reduce(iterator_stop, ReduceOp.SUM)
-                if iterator_stop > 0:
-                    break
+                if options.deepspeed_step_sync:
+                    dist.all_reduce(iterator_stop, ReduceOp.SUM)
+                    if iterator_stop > 0:
+                        break
 
                 # (1) forward
                 batch["utt_id"] = utt_id
@@ -195,7 +199,9 @@ class DeepSpeedTrainer(Trainer):
 
                 # (2) all-reduce statistics and logging on model side
                 stats = {k: v for k, v in stats.items() if v is not None}
-                stats, weight = recursive_average(stats, weight, True)
+                stats, weight = recursive_average(
+                    stats, weight, options.deepspeed_step_sync
+                )
                 reporter.register(stats, weight)
 
                 # (3) backward and logging on trainer side
@@ -215,9 +221,10 @@ class DeepSpeedTrainer(Trainer):
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
 
-        else:
-            iterator_stop.fill_(1)
-            dist.all_reduce(iterator_stop, ReduceOp.SUM)
+        else: 
+            if options.deepspeed_step_sync:
+                iterator_stop.fill_(1)
+                dist.all_reduce(iterator_stop, ReduceOp.SUM)
 
     @classmethod
     @typechecked
@@ -273,3 +280,18 @@ class DeepSpeedTrainer(Trainer):
 
         else:
             return torch.float
+    
+    @classmethod
+    @typechecked
+    def check_iterator_length(cls, iter: Iterable):
+        this_length = torch.Tensor([len(iter)]).long().cuda()
+        length_list = [
+            torch.Tensor([0]).long().cuda() 
+            for _ in range(dist.get_world_size())
+        ]
+        dist.all_gather(length_list, this_length)
+        length_list = torch.cat(length_list)
+        assert torch.all(length_list.eq(this_length)), \
+            f"Iterator lengths are different across all ranks: {length_list}"
+
+
