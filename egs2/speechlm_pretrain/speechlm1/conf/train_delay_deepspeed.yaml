@@ -11,11 +11,11 @@ corelm_conf:
 # Dataloader
 batch_type: numel
 batch_bins: 12000
-num_iters_per_epoch: 10000
-max_epoch: 40
-num_workers: 4
+num_iters_per_epoch: 5000
+max_epoch: 80
+num_workers: 2
 drop_last_iter: true
-log_interval: 100
+log_interval: 1000
 codec_token_per_frame: 9 # encodec
 codec_token_in_use: 9
 speaker_prompt_length: 500 # 50fps, a.k.a., 10s
