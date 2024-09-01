@@ -57,4 +57,3 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
                 lr * step_num**-0.5  # No warmup, use only step decay
                 for lr in self.base_lrs
             ]
-

@@ -326,7 +326,7 @@ if ! "${skip_data_prep}"; then
         # Parse the data preparation operations from Python task definition.
         all_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].data_triplets_string)")
         # NOTE(yiwen) process assistant modalities, score and text have to be processed before label, a.k.a please don't change the order.
-        svs_all_triplets="$svs_score_triplets $svs_text_triplets $all_triplets" 
+        svs_all_triplets="$svs_score_triplets $svs_text_triplets $all_triplets"
 
         for dset in ${_dsets}; do
             opts=""

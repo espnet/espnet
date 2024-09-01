@@ -1,5 +1,5 @@
-# This is ESPnet2 Speech Language Model (SpeechLM) Recipe 
-🎙️ ``Task``: Singing Voice Synthesis (SVS) 
+# This is ESPnet2 Speech Language Model (SpeechLM) Recipe
+🎙️ ``Task``: Singing Voice Synthesis (SVS)
 
 📊 ``Corpus``: Mandarin Single Female Singer Corpus, [Opencpop](https://wenet.org.cn/opencpop/download/).
 
