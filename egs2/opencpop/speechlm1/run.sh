@@ -18,12 +18,14 @@ train_set=tr_no_dev
 valid_set=dev
 test_sets="dev test"
 
+train_config=conf/train_valle.yaml
+inference_config=conf/decode_espnet_codec.yaml
+
 # bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
 codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"
 
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm_svs.sh \
-    --stop_stage 5 \
     --task "svs" \
     --data_name opencpop \
     --fs "${fs}" \
@@ -32,8 +34,11 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstre
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
+    --train_config "${train_config}" \
     --audio_format "wav" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
     ${codec_opts} \
     "$@"
+
+# --inference_config "${inference_config}" \

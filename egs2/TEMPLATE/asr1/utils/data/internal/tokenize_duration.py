@@ -1,11 +1,11 @@
 import os
 import json
 import argparse
-import matplotlib.pyplot as plt
 import shutil
 
 
 def draw_histogram(source_ls, prefix=''):
+    import matplotlib.pyplot as plt
     plt.hist(source_ls, bins=50, edgecolor='black')
 
     plt.title(f"Histogram of {prefix} duration")
@@ -15,13 +15,12 @@ def draw_histogram(source_ls, prefix=''):
     plt.savefig(f"duration_histogram_{prefix}.png")
 
 
-def process_line_label(line, visualize_distribution=True):
+def process_line_label(line, visualize_distribution=False):
     parts = line.split()
     audio_id = parts[0]
     data_unit = parts[1:]
     
-    if visualize_distribution:
-        duration_ls = []
+    duration_ls = []
 
     result = [audio_id]
     for i in range(0, len(data_unit), 3):
@@ -37,6 +36,7 @@ def process_line_label(line, visualize_distribution=True):
         
         result.append(f"{duration_rounded} {phone}")
     
+
     return ' '.join(result), duration_ls
 
 
@@ -60,7 +60,36 @@ def process_line_score(line):
     return ' '.join(result)
 
 
-def overwrite_file(data_folder, file_type, visualize_distribution=True):
+def duration2repeat(args.data_folder):
+    """(duration, phn, midi) --> (phn, midi)*duration, <placeholder>"""
+    
+    file_path = os.path.join(args.data_folder, 'label')
+    file_out = os.path.join(args.data_folder, 'label2')
+
+    with open(file_path, 'r') as infile:
+        lines = infile.readlines()
+
+    with open(file_out, 'w') as outfile:
+        for line in lines:
+            parts = line.split()
+            audio_id = parts[0]
+            data_unit = parts[1:]
+            
+            result = [audio_id]
+            for i in range(0, len(data_unit), 3):
+                duration = float(data_unit[i])
+                phn = str(data_unit[i+1])
+                midi = str(data_unit[i+2])
+                
+                result.extend([f"{phn} {midi}"] * duration)
+                result.append(" ")
+
+            processed_line = ' '.join(result[:-1])
+            
+            outfile.write(processed_line + '\n')
+
+
+def overwrite_file(data_folder, file_type, visualize_distribution=False):
     file_path = os.path.join(args.data_folder, args.file_type)
     
     # backup the original file
@@ -83,7 +112,7 @@ def overwrite_file(data_folder, file_type, visualize_distribution=True):
 
         with open(file_test, 'w') as outfile:
             for line in lines:
-                processed_line, duration_line = process_line_label(line.strip())
+                processed_line, duration_line = process_line_label(line.strip(), visualize_distribution)
                 if visualize_distribution:
                     durations.extend(duration_line)
                 outfile.write(processed_line + '\n')
@@ -105,12 +134,15 @@ def overwrite_file(data_folder, file_type, visualize_distribution=True):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="""
-    Tokenize duration label by: (ed-st)*1k/20f.""")
+        Tokenize duration label by: (ed-st)*1k/20f.""")
     parser.add_argument("--data_folder", type = str, required = True,
                         help="in processing dataset")
     parser.add_argument("--file_type", type = str, required = True,
                         help="in processing file")
     args = parser.parse_args()
 
-    # file_type: {"label" / "score"}
-    overwrite_file(args.data_folder, args.file_type)
+    if file_type=="label" or file_type=="score":
+        overwrite_file(args.data_folder, args.file_type)
+
+    elif file_type=="duration":
+        duration2repeat(args.data_folder)

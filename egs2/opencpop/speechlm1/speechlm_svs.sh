@@ -325,7 +325,8 @@ if ! "${skip_data_prep}"; then
 
         # Parse the data preparation operations from Python task definition.
         all_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].data_triplets_string)")
-        svs_all_triplets="$all_triplets $svs_score_triplets $svs_text_triplets" #process assistant modalities
+        # NOTE(yiwen) process assistant modalities, score and text have to be processed before label, a.k.a please don't change the order.
+        svs_all_triplets="$svs_score_triplets $svs_text_triplets $all_triplets" 
 
         for dset in ${_dsets}; do
             opts=""
@@ -476,7 +477,7 @@ if ! "${skip_data_prep}"; then
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 else
-                    echo "Unsupported modality ${_modality}" #&& exit 1;
+                    echo "Unsupported modality ${_modality}" && exit 1;
                 fi
 
                 # convert the separate score json files to an uniform text file
@@ -490,11 +491,11 @@ if ! "${skip_data_prep}"; then
 
 
             ## tokenize continuous duration to integer
-            # back up original label (st, ed, phn) --> new label (duration, phn) / repeats * (phn)
+            # back up original label (st, ed, phn) --> new label (duration, phn)
             ${python} utils/data/internal/tokenize_duration.py \
                 --data_folder ${data_feats}/${dset} \
                 --file_type "label"
-            # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word) / repeats * (midi, word)
+            # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
             ${python} utils/data/internal/tokenize_duration.py \
                 --data_folder ${data_feats}/${dset} \
                 --file_type "score"
@@ -503,6 +504,11 @@ if ! "${skip_data_prep}"; then
             ## find midi from score file, add to the label file and save as a new score file
             ${python} utils/data/internal/make_svs_score_triplets.py \
                 --data_folder ${data_feats}/${dset}
+
+            # ## data format1 --> data format2 NOTE(yiwen) wait testing
+            # ${python} utils/data/internal/tokenize_duration.py \
+            #     --data_folder ${data_feats}/${dset} \
+            #     --file_type "duration"
 
             # The metadata for this dataset/task is saved in a json file, also do verification
             ${python} pyscripts/utils/make_speechlm_json.py \
