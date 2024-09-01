@@ -66,6 +66,44 @@ TASK_CLASSES = dict(
 
 
 def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
+    """
+    Retrieve a customized task class for the ESPnet-EZ framework.
+
+    This function returns a task class based on the specified task name.
+    If the `use_custom_dataset` flag is set to True, a version of the task
+    class that supports custom datasets will be returned. The returned class
+    inherits from the appropriate base task class and may be extended with
+    additional functionality.
+
+    Args:
+        task_name (str): The name of the task to retrieve. This must be one of
+            the keys defined in the `TASK_CLASSES` dictionary, such as 'asr',
+            'mt', 'tts', etc.
+        use_custom_dataset (bool, optional): A flag indicating whether to use
+            a version of the task class that supports custom datasets. Defaults
+            to False.
+
+    Returns:
+        AbsTask: An instance of the task class corresponding to the provided
+        `task_name`. If `use_custom_dataset` is True, the returned class will
+        be capable of handling custom datasets.
+
+    Raises:
+        KeyError: If `task_name` is not found in the `TASK_CLASSES` dictionary.
+
+    Examples:
+        >>> asr_task = get_ez_task("asr")
+        >>> custom_asr_task = get_ez_task("asr", use_custom_dataset=True)
+
+        >>> mt_task = get_ez_task("mt")
+        >>> custom_mt_task = get_ez_task("mt", use_custom_dataset=True)
+
+    Note:
+        The task classes are designed to be used within the ESPnet-EZ framework,
+        which allows for flexibility in handling various speech and language tasks.
+        Ensure that the required dependencies for the specific task are properly
+        installed and configured.
+    """
     task_class = TASK_CLASSES[task_name]
 
     if use_custom_dataset:
@@ -85,6 +123,39 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 
 
 def get_ez_task_with_dataset(task_name: str) -> AbsTask:
+    """
+    Create an ESPnet-EZ task class with a custom dataset for a given task.
+
+    This function returns a task class that inherits from the specified
+    task class in the ESPnet framework, enabling the use of custom datasets
+    for training and validation. The created task class includes methods
+    for building models and iterators specifically tailored for handling
+    datasets.
+
+    Args:
+        task_name (str): The name of the task for which the class is being created.
+                          This should correspond to one of the predefined task classes
+                          in the ESPnet framework, such as 'asr', 'tts', etc.
+
+    Returns:
+        AbsTask: A subclass of AbsTask that supports custom datasets for the
+            specified task.
+
+    Examples:
+        >>> from espnetez.task import get_ez_task_with_dataset
+        >>> custom_asr_task = get_ez_task_with_dataset("asr")
+        >>> custom_asr_task.train_dataset = my_custom_train_dataset
+        >>> custom_asr_task.valid_dataset = my_custom_valid_dataset
+        >>> model = custom_asr_task.build_model(args)
+        >>> iterator = custom_asr_task.build_iter_factory(args, distributed_option,
+            mode='train')
+
+    Note:
+        Ensure that the specified task name is valid and that the corresponding
+        task class is available in the TASK_CLASSES dictionary. The created
+        task class will need to have its `train_dataset` and `valid_dataset`
+        attributes set to the appropriate dataset instances before training.
+    """
     task_class = TASK_CLASSES[task_name]
 
     class ESPnetEZDataTask(task_class):
@@ -282,6 +353,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             ngpu: int = 0,
             inference: bool = False,
             mode: Optional[str] = None,
+            multi_task_dataset: bool = False,
         ) -> DataLoader:
             """Build DataLoader using iterable dataset"""
             if mode == "train" and cls.train_dataloader is not None:
