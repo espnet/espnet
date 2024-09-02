@@ -12,6 +12,7 @@ clean_outputs() {
 
     rm -rf doc/_gen
     rm -rf doc/build
+    rm -rf doc/notebook
 
     rm -rf doc/vuepress/src/*.md
     rm -rf doc/vuepress/src/notebook
@@ -73,7 +74,8 @@ build_and_convert "tools/sentencepiece_commands/spm_decode" spm
 build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # There seems no help prepared for spm_train command.
 
-./doc/notebook2rst.sh > ./doc/notebooks.md
+# incorporate espnet/notebook repository to docs
+git clone https://github.com/espnet/notebook --depth 1 ./doc/notebook
 
 # generate package doc
 python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
