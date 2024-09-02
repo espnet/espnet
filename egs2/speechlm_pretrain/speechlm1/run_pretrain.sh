@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay.yaml
+train_config=conf/train_delay_deepspeed.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
@@ -16,26 +16,30 @@ train_jsons=""
 valid_jsons=""
 test_jsons=""
 
-# As of Aug 29, MLS_en + LibriSpeech + Yodas + GigaSpeech
-data_combo_name=combo_aug29
+# As of Sep 1:
+# Speech: MLS + LibriSpeech + Yodas + GigaSpeech + Emilia
+# Audio: Audioset + Music
+# Text: CommonCrawl
+data_combo_name=combo_sep31
 # 1. ASR
-train_jsons+=" \
+asr_train=" \
   dump/raw_codec_ssl_asr_mls_en/mls_en_train/data.json \
+  dump/raw_codec_ssl_asr_mls_multilingual/mls_multilingual_train/data.json \
   dump/raw_codec_ssl_asr_librispeech/train_960/data.json \
   dump/raw_codec_ssl_asr_yodas_manual/train_manual/data.json \
   dump/raw_codec_ssl_asr_yodas_auto2/train_auto_part2/data.json \
   dump/raw_codec_ssl_asr_yodas_auto1/train_auto_part1/data.json \
   dump/raw_codec_ssl_asr_gigaspeech/gigaspeech_train_xl/data.json \
+  dump/raw_codec_ssl_asr_emilia/emilia_en/data.json \
 "
 valid_jsons+=" \
-  dump/raw_codec_ssl_asr_mls_en/mls_en_dev/data.json \
   dump/raw_codec_ssl_asr_librispeech/dev_clean/data.json \
-  dump/raw_codec_ssl_asr_gigaspeech/gigaspeech_dev/data.json \
 "
 
 # 2. TTS
-train_jsons+=" \
+tts_train=" \
   dump/raw_codec_ssl_tts_mls_en/mls_en_train/data.json \
+  dump/raw_codec_ssl_tts_mls_multilingual/mls_multilingual_train/data.json
   dump/raw_codec_ssl_tts_librispeech/train_960/data.json \
   dump/raw_codec_ssl_tts_yodas_manual/train_manual/data.json \
   dump/raw_codec_ssl_tts_yodas_auto1/train_auto_part1/data.json \
@@ -43,27 +47,34 @@ train_jsons+=" \
   dump/raw_codec_ssl_tts_gigaspeech/gigaspeech_train_xl/data.json \
 "
 valid_jsons+=" \
-  dump/raw_codec_ssl_tts_mls_en/mls_en_dev/data.json \
   dump/raw_codec_ssl_tts_librispeech/dev_clean/data.json \
-  dump/raw_codec_ssl_tts_gigaspeech/gigaspeech_dev/data.json \
 "
 
 # 3. Audio Auto-Regressive
-train_jsons+=" \
+audiolm_train=" \
   dump/raw_codec_ssl_audiolm_mls_en/mls_en_train/data.json \
+  dump/raw_codec_ssl_audiolm_mls_multilingual/mls_multilingual_train/data.json
   dump/raw_codec_ssl_audiolm_librispeech/train_960/data.json
   dump/raw_codec_ssl_audiolm_yodas_auto1/train_auto_part1/data.json \
   dump/raw_codec_ssl_audiolm_yodas_auto2/train_auto_part2/data.json \
   dump/raw_codec_ssl_audiolm_yodas_manual/train_manual/data.json \
   dump/raw_codec_ssl_audiolm_gigaspeech/gigaspeech_train_xl/data.json \
-"
-valid_jsons+=" \
-  dump/raw_codec_ssl_audiolm_mls_en/mls_en_test/data.json \
-  dump/raw_codec_ssl_audiolm_librispeech/dev_clean/data.json \
-  dump/raw_codec_ssl_audiolm_gigaspeech/gigaspeech_dev/data.json \
+  dump/raw_codec_ssl_audiolm_emilia/emilia_en/data.json \
 "
 
-echo ${data_combo_name}
+# 4. Text Auto-Regressive
+textlm_train=""
+for name in `ls dump/raw_textlm_cc`; do
+    textlm_train+="dump/raw_textlm_cc/${name}/data.json "
+done
+
+# combine all portions
+train_jsons="${asr_train} ${tts_train} ${audiolm_train} ${textlm_train}"
+valid_jsons="\
+  dump/raw_codec_ssl_tts_librispeech/dev_clean/data.json \
+  dump/raw_codec_ssl_asr_librispeech/dev_clean/data.json \
+"
+
 ./speechlm.sh \
     --stage 7 \
     --skip_data_prep true \

@@ -10,7 +10,7 @@ python3 ${python} pyscripts/utils/make_token_list_speechlm.py \
 --token_list_dir "data/token_list/tts_vocab"
 
 # (2) To prepare multiple data.json based on current TTS data.json
-data_names="mls_en librispeech gigaspeech yodas_auto1 yodas_auto2 yodas_manual"
+data_names="mls_en librispeech gigaspeech yodas_auto1 yodas_auto2 yodas_manual mls_multilingual emilia"
 for data_name in $data_names; do
     src_dir=dump/raw_codec_ssl_tts_${data_name}
 

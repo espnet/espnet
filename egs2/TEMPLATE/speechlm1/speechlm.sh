@@ -245,6 +245,8 @@ if [ -z "${speechlm_exp}" ]; then
     speechlm_exp="${expdir}/speechlm_${tag}"
 fi
 
+global_ngpu=$((ngpu * num_nodes))
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -575,26 +577,26 @@ if ! ${skip_train}; then
             _opts+="--config ${train_config} "
         fi
 
-        # (1) for each  split by ${ngpu} and assign statistics
+        # (1) for each  split by ${global_ngpu} and assign statistics
         for data_json in ${train_jsons} ${valid_jsons}; do
             stats_dir=$(dirname ${data_json})/stats
             if [ ! -f ${stats_dir}/dec_seq_shape ]; then
                 log "${data_json} doesn't have length statistics. Please rerun stage 7"
             fi
 
-            if [ ! -f ${stats_dir}/split${ngpu}/1/dec_seq_shape ]; then
-                log "Split ${data_json} into ${ngpu} shards for training"
+            if [ ! -f ${stats_dir}/split${global_ngpu}/1/dec_seq_shape ]; then
+                log "Split ${data_json} into ${global_ngpu} shards for training"
                 ${python} pyscripts/utils/split_data_jsons.py \
                     --json_files ${data_json} \
-                    --nj ${ngpu} \
+                    --nj ${global_ngpu} \
                     --output_dir ${stats_dir}
 
-                for n in `seq ${ngpu}`; do
-                    filter_scp.pl ${stats_dir}/split${ngpu}/${n}/example_list ${stats_dir}/dec_seq_shape \
-                        > ${stats_dir}/split${ngpu}/${n}/dec_seq_shape &
+                for n in `seq ${global_ngpu}`; do
+                    filter_scp.pl ${stats_dir}/split${global_ngpu}/${n}/example_list ${stats_dir}/dec_seq_shape \
+                        > ${stats_dir}/split${global_ngpu}/${n}/dec_seq_shape &
                     if [ -f ${stats_dir}/enc_seq_shape ]; then
-                        filter_scp.pl ${stats_dir}/split${ngpu}/${n}/example_list ${stats_dir}/enc_seq_shape \
-                            > ${stats_dir}/split${ngpu}/${n}/enc_seq_shape &
+                        filter_scp.pl ${stats_dir}/split${global_ngpu}/${n}/example_list ${stats_dir}/enc_seq_shape \
+                            > ${stats_dir}/split${global_ngpu}/${n}/enc_seq_shape &
                     fi
                 done; wait
             fi
@@ -605,29 +607,29 @@ if ! ${skip_train}; then
 
         for data_json in ${train_jsons}; do
             stats_dir=$(dirname ${data_json})/stats
-            _data_opts+="--train_data_path_and_name_and_type ${stats_dir}/split${ngpu}/JOB/data.json,_,dataset_json "
+            _data_opts+="--train_data_path_and_name_and_type ${stats_dir}/split${global_ngpu}/JOB/data.json,_,dataset_json "
         done
         for data_json in ${valid_jsons}; do
             stats_dir=$(dirname ${data_json})/stats
-            _data_opts+="--valid_data_path_and_name_and_type ${stats_dir}/split${ngpu}/JOB/data.json,_,dataset_json "
+            _data_opts+="--valid_data_path_and_name_and_type ${stats_dir}/split${global_ngpu}/JOB/data.json,_,dataset_json "
         done
 
         # TODO(Jinchuan): only do this on master node; also consider enc_seq_shape
-        mkdir -p ${speechlm_stats_dir}/train/split${ngpu}
-        for n in `seq ${ngpu}`; do
+        mkdir -p ${speechlm_stats_dir}/train/split${global_ngpu}
+        for n in `seq ${global_ngpu}`; do
             for data_json in ${train_jsons}; do
-                cat $(dirname ${data_json})/stats/split${ngpu}/${n}/dec_seq_shape
-            done > ${speechlm_stats_dir}/train/split${ngpu}/dec_seq_shape.${n}
+                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape
+            done > ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.${n}
         done
-        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/split${ngpu}/dec_seq_shape.JOB "
+        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.JOB "
 
-        mkdir -p ${speechlm_stats_dir}/valid/split${ngpu}
-        for n in `seq ${ngpu}`; do
+        mkdir -p ${speechlm_stats_dir}/valid/split${global_ngpu}
+        for n in `seq ${global_ngpu}`; do
             for data_json in ${valid_jsons}; do
-                cat $(dirname ${data_json})/stats/split${ngpu}/${n}/dec_seq_shape
-            done > ${speechlm_stats_dir}/valid/split${ngpu}/dec_seq_shape.${n}
+                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape
+            done > ${speechlm_stats_dir}/valid/split${global_ngpu}/dec_seq_shape.${n}
         done
-        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/split${ngpu}/dec_seq_shape.JOB "
+        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/split${global_ngpu}/dec_seq_shape.JOB "
 
         log "SpeechLM training started... log: '${speechlm_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then

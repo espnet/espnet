@@ -181,6 +181,12 @@ class AdapterForLabelScpReader(collections.abc.Mapping):
         assert isinstance(sample_time, np.ndarray) and isinstance(sample_label, list)
         return sample_time, sample_label
 
+def jsonl_loader(path):
+    ret_dict = dict()
+    for line in open(path):
+        ret_dict.update(json.loads(line))
+    
+    return ret_dict
 
 def sound_loader(path, float_dtype=None, multi_columns=False, allow_multi_rates=False):
     # The file is as follows:
@@ -432,6 +438,13 @@ DATA_TYPES = {
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
     ),
+    "jsonl": dict(
+        func=jsonl_loader,
+        kwargs=[],
+        help="jsonl file loader. Will allow text in multiple lines."
+        "\{ example1: content1 \}"
+        "\{ example2: content2 \}"
+    )
 }
 
 

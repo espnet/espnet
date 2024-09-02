@@ -294,7 +294,12 @@ class SpeechLMTask(AbsTask):
         # NOTE(Jinchuan): model will not in real use. Create a placeholder
         if args.collect_stats:
             return ESPnetSpeechLMModel(
-                corelm=ARLM(vocab_size=1, nq=args.codec_token_in_use)
+                corelm=ARLM(
+                    vocab_size=1, 
+                    nq=args.codec_token_in_use,
+                    token_bias=token_bias,
+                    pad_id=token_list.index("<pad>")
+                    )
             )
 
         kwargs = dict()
