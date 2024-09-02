@@ -29,4 +29,3 @@ done
 sed -i '1 a [[toc]]' README.md
 # 2. Change link inside the original README.md
 sed -i "s/\.ipynb)/\.md)/g" README.md
-
