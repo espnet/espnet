@@ -75,7 +75,7 @@ build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # There seems no help prepared for spm_train command.
 
 # incorporate espnet/notebook repository to docs
-git clone https://github.com/espnet/notebook --depth 1 ./doc/notebook
+./doc/notebook2rst.sh
 
 # generate package doc
 python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
