@@ -28,6 +28,8 @@ export default hopeTheme({
 
   toc: false,
 
+  editLink: false,
+
   plugins: {
 
     // All features are enabled for demo, only preserve features you need here
