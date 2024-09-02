@@ -489,10 +489,13 @@ class BeamSearchTransducer:
         """
         if self.search_cache is not None:
             B = self.search_cache
+            print('existing cache')
         else:
             start_toks = [0]
             if extra_start_token is not None:
                 start_toks.append(extra_start_token)
+
+                print('added start tok')
                 
             B = [
                 Hypothesis(
