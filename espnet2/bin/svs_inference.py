@@ -36,7 +36,9 @@ class SingingGenerate:
         Example 1: SVS
         >>> import soundfile
         >>> import numpy as np
-        >>> svs = SingingGenerate("config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl")
+        >>> svs = svs = SingingGenerate(
+        ...     "config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl"
+        ... )
         >>> batch = {
         ...     "score": (
         ...         75,  # tempo
@@ -59,7 +61,7 @@ class SingingGenerate:
         ... }
         >>> output_dict = svs(batch)
         >>> soundfile.write("out.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
-        
+
         Example 2: GAN SVS
         >>> import soundfile
         >>> import numpy as np
