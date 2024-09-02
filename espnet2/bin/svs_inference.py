@@ -59,7 +59,7 @@ class SingingGenerate:
         ... }
         >>> output_dict = svs(batch)
         >>> soundfile.write("out.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
-        
+
         Example 2: GAN SVS
         >>> import soundfile
         >>> import numpy as np
