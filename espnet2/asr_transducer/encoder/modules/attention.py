@@ -73,7 +73,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         time2 = time1 + left_context
 
         batch_stride, n_heads_stride, time1_stride, n_stride = x.stride()
-        
+
         return x.as_strided(
             (batch_size, n_heads, time1, time2),
             (batch_stride, n_heads_stride, time1_stride - n_stride, n_stride),

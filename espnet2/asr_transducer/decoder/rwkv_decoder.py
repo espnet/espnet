@@ -145,7 +145,7 @@ class RWKVDecoder(AbsDecoder):
             states: Decoder hidden states. [5 x (B, D_att/D_dec, N)]
 
         """
-        
+
         x = self.embed_norm(self.embed(labels))
 
         for idx, block in enumerate(self.rwkv_blocks):
@@ -182,7 +182,7 @@ class RWKVDecoder(AbsDecoder):
             states: Decoder hidden states. [5 x (1, 1, D_att/D_dec, N)]
 
         """
-        
+
         label = torch.full(
             (1, 1), label_sequence[-1], dtype=torch.long, device=self.device
         )
