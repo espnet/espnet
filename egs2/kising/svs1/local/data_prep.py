@@ -37,6 +37,44 @@ from espnet2.fileio.score_scp import SingingScoreWriter
 TEST_SET = [425, 434, 435]
 PREFIX = "kising"
 
+singer2sid = {
+    "barber": 3,
+    "blanca": 30,
+    "changge": 5,
+    "chuci": 19,
+    "chuming": 4,
+    "crimson": 1,
+    "david": 28,
+    "dvaid": 31,
+    "ghost": 27,
+    "growl": 25,
+    "hiragi-yuki": 22,
+    "huolian": 13,
+    "kuro": 2,
+    "lien": 29,
+    "liyuan": 9,
+    "luanming": 21,
+    "luotianyi": 36,
+    "namine": 8,
+    "orange": 12,
+    "original": 32,
+    "qifu": 16,
+    "qili": 15,
+    "qixuan": 7,
+    "quehe": 6,
+    "ranhuhu": 11,
+    "steel": 26,
+    "tangerine": 23,
+    "tarara": 20,
+    "tuyuan": 24,
+    "wenli": 10,
+    "xiaomo": 17,
+    "xiaoye": 14,
+    "yanhe": 33,
+    "yuehao": 34,
+    "yuezhengling": 35,
+    "yunhao": 18
+}
 
 def makedir(data_url):
     if os.path.exists(data_url):
@@ -205,69 +243,110 @@ def get_info_from_partitions(
     is_slur = [[]]
 
     notes = midi_data.instruments[0].notes
+    lyrics = midi_data.lyrics
+    assert len(notes) == len(lyrics)
+    for i in range(len(notes)):
+        assert notes[i].start == lyrics[i].time
     note_index = 0
     word_index = 0
+    seg_start_flag = False
     # for lyric in midi_data.lyrics:
-    while word_index < len(midi_data.lyrics):
-        lyric = midi_data.lyrics[word_index]
+    while word_index < len(lyrics):
+        lyric = lyrics[word_index]
         assert lyric.time > partitions[current_partition][0]
+        # start a new partition
         if lyric.time > partitions[current_partition][1]:
+            dur = partitions[current_partition][1] - lyrics[word_index - 1].time
+            if dur > 0:
+                # add <SP> at end of segment
+                text[current_partition].append("<SP>")
+                phonemes[current_partition].append("<SP>")
+                pitches[current_partition].append(0)
+                note_durations[current_partition].append(dur)
+                phn_durations[current_partition].append(dur)
+                is_slur[current_partition].append(0)
+            
+            current_partition += 1
+            assert lyric.time > partitions[current_partition][0]
+            assert lyric.time < partitions[current_partition][1]
             text.append([])
             phonemes.append([])
             pitches.append([])
             note_durations.append([])
             phn_durations.append([])
             is_slur.append([])
-            current_partition += 1
-            assert lyric.time > partitions[current_partition][0]
-            assert lyric.time < partitions[current_partition][1]
+
+            seg_start_flag = True
+            dur = lyric.time - partitions[current_partition][0]
+            if dur > 0:
+                # add <AP> at the start of segment
+                text[current_partition].append("<AP>")
+                phonemes[current_partition].append("<AP>")
+                pitches[current_partition].append(0)
+                note_durations[current_partition].append(dur)
+                phn_durations[current_partition].append(dur)
+                is_slur[current_partition].append(0)
+
+
+        if note_index > 0 and note_index < len(notes) and seg_start_flag is False:
+            # add <AP> if there is slience
+            dur = notes[note_index].start - notes[note_index - 1].end
+            if dur > 0:
+                text[current_partition].append("<AP>")
+                phonemes[current_partition].append("<AP>")
+                pitches[current_partition].append(0)
+                note_durations[current_partition].append(dur)
+                phn_durations[current_partition].append(dur)
+                is_slur[current_partition].append(0)
 
         if lyric.text == "?" or lyric.text == "-":
             phonemes[-1].append(phonemes[-1][-1])
             is_slur[-1].append(1)
-            pitches[-1].append(pitches[-1][-1])
-            note_durations[-1].append(note_durations[-1][-1])
-            phn_durations[-1].append(phn_durations[-1][-1])
+            while note_index < len(notes):
+                note = notes[note_index]
+                if word_index == len(lyrics) - 1 or note.start >= lyrics[word_index + 1].time:
+                    if word_index == len(lyrics) - 1 or note.end <= lyrics[word_index + 1].time:
+                        pitches[-1].append(note.pitch)
+                        dur = note.end - note.start
+                        note_durations[-1].append(dur)
+                        phn_durations[-1].append(dur)
+                    break
+                pitches[-1].append(note.pitch)
+                dur = note.end - note.start
+                note_durations[-1].append(dur)
+                phn_durations[-1].append(dur)
+                note_index += 1
         else:
             if "#" in lyric.text:
+                # NOTE: seems not used
                 word, id = lyric.text.split("#")
                 if id == "1":
                     text[-1].append(word)
                     phn_list = split_pinyin(word)
                     phonemes[-1].extend(phn_list)
                     is_slur[-1].extend([0] * len(phn_list))
-            # Note(yueqian): The English logic is not correct yet
-            # elif check_en(lyric.text):
-            #     text[-1].append(lyric.text)
-            #     phn_list = [lyric.text]
-            #     phonemes[-1].append(lyric.text)
-            #     is_slur[-1].append(0)
             else:
                 text[-1].append(lyric.text)
                 phn_list = split_pinyin(lyric.text)
                 phonemes[-1].extend(phn_list)
                 is_slur[-1].extend([0] * len(phn_list))
+
             current_word_pitch = []
             current_word_duration = []
             # get all the notes from note_index to the end of the next lyric time
-            if word_index == len(midi_data.lyrics) - 1:
-                while note_index < len(notes):
-                    note = midi_data.instruments[0].notes[note_index]
-                    current_word_pitch.append(note.pitch)
-                    note_duration = note.end - note.start
-                    current_word_duration.append(note_duration)
-                    note_index += 1
-            else:
-                while (
-                    note_index < len(notes)
-                    and notes[note_index].start < midi_data.lyrics[word_index + 1].time
-                ):
-                    note = midi_data.instruments[0].notes[note_index]
-                    current_word_pitch.append(note.pitch)
-                    note_duration = note.end - note.start
-                    current_word_duration.append(note_duration)
-                    note_index += 1
-
+            while note_index < len(notes):
+                note = notes[note_index]
+                if word_index == len(lyrics) - 1 or note.start >= lyrics[word_index + 1].time:
+                    if word_index == len(lyrics) - 1 or note.end <= lyrics[word_index + 1].time:
+                        current_word_pitch.append(note.pitch)
+                        note_duration = note.end - note.start
+                        current_word_duration.append(note_duration)
+                    break
+                current_word_pitch.append(note.pitch)
+                note_duration = note.end - note.start
+                current_word_duration.append(note_duration)
+                note_index += 1
+            
             # if the len(phn_list) = len(current_word_pitch),
             # then we can just assign the pitches to the phonemes
             if len(phn_list) == len(current_word_pitch):
@@ -294,8 +373,7 @@ def get_info_from_partitions(
                     [current_word_pitch[-1]] * (len(phn_list) - len(current_word_pitch))
                 )
                 note_durations[-1].extend(
-                    [current_word_duration[-1]]
-                    * (len(phn_list) - len(current_word_pitch))
+                    [current_word_duration[-1]] * (len(phn_list) - len(current_word_pitch))
                 )
                 phn_durations[-1][-1] = current_word_duration[-1] / (
                     len(phn_list) - len(current_word_pitch) + 1
@@ -304,6 +382,7 @@ def get_info_from_partitions(
                     [phn_durations[-1][-1]] * (len(phn_list) - len(current_word_pitch))
                 )
         word_index += 1
+        seg_start_flag = False
 
     for i in range(len(phonemes)):
         if not (
@@ -315,11 +394,11 @@ def get_info_from_partitions(
         ):
             # If the lengths are not equal, print the lengths for debugging
             print(f"Length mismatch in partition {i}:")
-            print(f"  Phonemes: {len(phonemes[i])}, {phonemes}")
-            print(f"  Pitches: {len(pitches[i])}, {pitches}")
-            print(f"  Note Durations: {len(note_durations[i])}", note_durations)
-            print(f"  Phoneme Durations: {len(phn_durations[i])}", phn_durations)
-            print(f"  Is Slur: {len(is_slur[i])}", is_slur)
+            print(f"  Phonemes: {len(phonemes[i])}, {phonemes[i]}")
+            print(f"  Pitches: {len(pitches[i])}, {pitches[i]}")
+            print(f"  Note Durations: {len(note_durations[i])}", note_durations[i])
+            print(f"  Phoneme Durations: {len(phn_durations[i])}", phn_durations[i])
+            print(f"  Is Slur: {len(is_slur[i])}", is_slur[i])
             raise ValueError("Length mismatch in partition.")
 
     return text, phonemes, pitches, note_durations, phn_durations, is_slur
@@ -632,13 +711,13 @@ if __name__ == "__main__":
                         real_subdir = os.path.realpath(
                             os.path.join(args.src_data, subdir)
                         )
-                        # cmd = "sox {} -c 1 --bits 16 {}".format(
-                        #     os.path.join(real_subdir, file),
-                        #     os.path.join(
-                        #         args.src_data, "tmp", number, number + "-original.wav"
-                        #     ),
-                        # )
-                        # os.system(cmd)
+                        cmd = "sox {} -c 1 --bits 16 {}".format(
+                            os.path.join(real_subdir, file),
+                            os.path.join(
+                                args.src_data, "tmp", number, number + "-original.wav"
+                            ),
+                        )
+                        os.system(cmd)
                         # symlink the midi file in subdir/number to tmp/number
                         # find the midi file name
                         for file in os.listdir(os.path.join(args.src_data, number)):
