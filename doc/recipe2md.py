@@ -17,7 +17,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    args.dst.mkdir(parents=True, exist_ok=True)
+    resource_name = "TEMPLATE_local"
+    (args.dst / resource_name).mkdir(parents=True, exist_ok=True)
     for recipe in args.src.glob("*/*.md"):
         shutil.copyfile(recipe, args.dst / f"{recipe.parent.name}.md")
+    for resources in args.src.glob(f"*/{resource_name}/*"):
+        shutil.copyfile(resources, args.dst / resource_name / resources.name)
     shutil.copyfile(args.src / "README.md", args.dst / "README.md")

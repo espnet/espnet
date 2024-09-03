@@ -9,38 +9,29 @@ heroImageStyle:
 
 heroText: "End-to-end Speech Processing toolkit"
 tagline: "ESPnet is the state-of-the-art toolkit that covers end-to-end speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, and much more!"
-actions:
-  - text: Get Started
-    icon: book
-    link: ./get_started.md
-    type: primary
-
-  - text: Demos
-    icon: lightbulb
-    link: ./notebook/
 
 
 highlights:
-  - header: Providing different usage types
+  - header: Get started with ESPnet!
     bgImage: https://theme-hope-assets.vuejs.press/bg/3-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/3-dark.svg
     features:
       - title: "Inferencing existing ESPnet models"
         details: "<code>pip install espnet espnet-model-zoo</code> and use it straight away."
         icon: bolt-lightning
-        link: ./notebook/inference.md
+        link: notebook/#demo
       - title: "Fine-tuning ESPnet models"
         details: "<code>pip install espnet</code> and use the <code>espnetez</code> module."
         icon: fire
-        link: ./notebook/inference.md
+        link: notebook/#espnet-ez
       - title: "High-performance training and full experiment replication"
         details: "Go through full installation and leverage the existing recipes."
         icon: server
         link: ./espnet2_tutorial.md
 
 
-  - header: Supports many tasks
-    description: We provide a complete setup for various speech processing tasks.
+  - header: Extensive task coverage
+    description: We provide a complete recipe for various speech processing tasks.
     image: https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj3mOiQTPh_S9XW6m94OQYjucUzUu7L9uEcHP9YsADUGWTcmscynkrLc1Zs8o5rA3G9lSNnEpyHBMCnZzBepYdW8jVofKnLflvOsu-ywIZpQf1Kw5l6tzvhEA1q2cbnFDIzIDlOUOKPOarf/s800/cooking_recipe.png
     bgImage: https://theme-hope-assets.vuejs.press/bg/2-light.svg
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/2-dark.svg
@@ -49,29 +40,40 @@ highlights:
       background-size: initial
     features:
       - title: "ASR: Automatic Speech Recognition"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#asr-automatic-speech-recognition
+        link: ./recipe/asr1.md
 
       - title: "TTS: Text-to-speech"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#tts-text-to-speech
+        link: ./recipe/tts1.md
 
-      - title: "SE: Speech enhancement (and separation)"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#se-speech-enhancement-and-separation
+      - title: "Speech Enhancement"
+        link: ./recipe/enh1.md
 
-      - title: "SUM: Speech Summarization"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#sum-speech-summarization
+      - title: "Weakly-supervised Learning"
+        link: ./recipe/s2t1.md
 
-      - title: "SVS: Singing Voice Synthesis"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#svs-singing-voice-synthesis
+      - title: "Speaker Embedding"
+        link: ./recipe/spk1.md
 
-      - title: "SSL: Self-supervised Learning"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#ssl-self-supervised-learning
+      # - title: "SSL: Self-supervised Learning"
+      #   link: ./recipe/ssl1.md
 
-      - title: "UASR: Unsupervised ASR "
-        details: "EURO: ESPnet Unsupervised Recognition - Open-source"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#uasr-unsupervised-asr-euro-espnet-unsupervised-recognition---open-source
+      # - title: "Speech Language Model"
+      #   link: ./recipe/speechlm1.md
 
-      - title: "S2T: Speech-to-text with Whisper-style multilingual   multitask models"
-        link: https://github.com/espnet/espnet?tab=readme-ov-file#s2t-speech-to-text-with-whisper-style-multilingual-multitask-models
+      # - title: "SLU: Spoken Language Understanding"
+      #   link: ./recipe/slu1.md
+
+      - title: "Speech-to-Text Translation"
+        link: ./recipe/st1.md
+
+      # - title: "Speech-to-Speech Translation"
+      #   link: ./recipe/s2st1.md
+
+      - title: "Speech Codec"
+        link: ./recipe/codec1.md
+
+      - title: "... And much more!"
+        link: recipe/
 
   - header: Tutorials
     bgImage: https://theme-hope-assets.vuejs.press/bg/10-light.svg
@@ -83,7 +85,7 @@ highlights:
       - title: ESPnet2
         details: Leveraging ESPnet2 recipes for full replication
         icon: graduation-cap
-        link: ./tutorial.md
+        link: ./espnet2_tutorial.md
 
       - title: ESPnet1
         details: Documents on ESPnet1 recipes (Legacy)
@@ -94,6 +96,11 @@ highlights:
         details: Understanding and updating the training configurations
         icon: sliders
         link: ./espnet2_training_option.md
+
+      - title: Recipe tips
+        details: Various tips on using run.sh in ESPnet recipes
+        icon: clipboard-check
+        link: ./tutorial.md
 
       - title: Audio formatting
         details: Formatting audios into wav.scp for ESPnet recipes

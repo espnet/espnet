@@ -34,6 +34,7 @@ if __name__ == "__main__":
         "children": [
             {"text": "Roadmap", "link": "README.md"},
             {"text": "ESPnet2", "prefix": "ESPnet2/", "children": ["Demo/", "Course/"]},
+            {"text": "ESPnet-EZ", "prefix": "ESPnetEZ/", "children": ["README.md"]},
             {"text": "ESPnet1 (Legacy)", "prefix": "ESPnet1/", "children": ["README.md"]},
         ]
     }, {
@@ -44,7 +45,7 @@ if __name__ == "__main__":
             {"text": "What is a recipe template?", "link": "README.md"},
         ] + [
             p.name
-            for p in args.root.glob("recipe/*")
+            for p in sorted(list(args.root.glob("recipe/*")))
             if p.stem != "README"
         ]
     }, {
