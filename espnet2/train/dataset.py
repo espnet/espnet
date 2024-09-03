@@ -126,6 +126,26 @@ class H5FileWrapper:
         value = self.h5_file[key]
         return value[()]
 
+class MultiH5FileWarpper:
+    @typechecked
+    def __init__(self, path: str):
+        self.map = dict()
+        self.readers = dict()
+
+        for line in open(path):
+            example_id, content = line.strip().split(maxsplit=1)
+            self.map[example_id] = content
+        
+    def __getitem__(self, key):
+        reader_name = self.map[key]
+        if reader_name not in self.readers:
+            self.readers[reader_name] = H5FileWrapper(reader_name)
+        retval = self.readers[reader_name][key].decode('utf-8')
+        return retval
+
+    def __len__(self):
+        return len(self.map)
+
 
 class AdapterForSingingScoreScpReader(collections.abc.Mapping):
     def __init__(self, loader):
@@ -404,6 +424,14 @@ DATA_TYPES = {
         "   >>> f = h5py.File('file.h5')\n"
         "   >>> array1 = f['utterance_id_A']\n"
         "   >>> array2 = f['utterance_id_B']\n",
+    ),
+    "multi_hdf5": dict(
+        func=MultiH5FileWarpper,
+        kwargs=[],
+        help="Similar to kaldi wav.scp style but save into HDF5 format "
+        "This can be used to save large and long text documents for LM training \n"
+        "example_id1: hdf5_file_path1 \n"
+        "example_id1: hdf5_file_path1 \n"
     ),
     "rand_float": dict(
         func=FloatRandomGenerateDataset,

@@ -5,12 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay.yaml
+train_config=conf/tts_pretrain/train_delay_deepspeed_370m.yaml
 inference_config=conf/decode_espnet_codec.yaml
 inference_model=valid.total_count.best.pth
 
 token_list_dir=data/token_list/tts_vocab
-bpe_opts="--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B "
 
 train_jsons=""
 valid_jsons=""
@@ -55,4 +54,4 @@ valid_jsons+=" \
     --test_jsons "${test_jsons}" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    ${bpe_opts} "$@"
+    "$@"
