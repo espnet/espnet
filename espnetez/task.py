@@ -160,10 +160,18 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
 
     class ESPnetEZDataTask(task_class):
         build_model_fn = None
+        build_preprocess = None
         train_dataset = None
         valid_dataset = None
         train_dataloader = None
         valid_dataloader = None
+
+        @classmethod
+        def build_preprocess_fn(cls, *args, **kwargs):
+            if cls.build_preprocess is not None:
+                return cls.build_preprocess(*args, **kwargs)
+            else:
+                return task_class.build_preprocess_fn(*args, **kwargs)
 
         @classmethod
         def build_model(cls, args=None):
