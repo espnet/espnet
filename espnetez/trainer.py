@@ -182,7 +182,6 @@ class Trainer:
         train_dataloader=None,
         valid_dataloader=None,
         build_model_fn=None,
-        build_preprocess_fn=None,
         **kwargs
     ):
         self.train_config = train_config
@@ -239,9 +238,6 @@ class Trainer:
 
         if build_model_fn is not None:
             self.task_class.build_model_fn = build_model_fn
-        
-        if build_preprocess_fn is not None:
-            self.task_class.build_preprocess = build_preprocess_fn
 
     def train(self):
         """
