@@ -53,7 +53,6 @@ requirements = {
     "train": [
         "matplotlib",
         "pillow==9.5.0",
-        "editdistance==0.5.2",
         "wandb",
         "tensorboard>=1.14",
     ],
