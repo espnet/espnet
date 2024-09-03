@@ -77,6 +77,9 @@ build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # incorporate espnet/notebook repository to docs
 ./doc/notebook2rst.sh
 
+# incorporate recipe template readme.md to docs
+python ./doc/recipe2md.py --src ./egs2/TEMPLATE --dst ./doc/recipe
+
 # generate package doc
 python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
@@ -91,6 +94,7 @@ sphinx-build -M markdown ./doc/_gen ./doc/build
 # copy markdown files to specific directory.
 cp -r ./doc/build/markdown/* ./doc/vuepress/src/
 cp -r ./doc/notebook ./doc/vuepress/src/
+cp -r ./doc/recipe ./doc/vuepress/src
 cp ./doc/*.md ./doc/vuepress/src/
 mv ./doc/vuepress/src/README.md ./doc/vuepress/src/document.md
 cp -r ./doc/image ./doc/vuepress/src/
