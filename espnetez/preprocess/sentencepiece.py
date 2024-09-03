@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Union
 
 import sentencepiece as spm
+import sentencepiece.sentencepiece_model_pb2 as model
+from sentencepiece.sentencepiece_model_pb2 import ModelProto
 
 
 def prepare_sentences(
@@ -150,3 +152,66 @@ def train_sentencepiece(
     )
     with open(os.path.join(output_path, "tokens.txt"), "w") as f:
         f.write("\n".join(vocabs))
+
+
+def add_special_tokens(
+    tokenizer, converter, embedding, special_tokens,
+    insert_after="<st_zho>"):
+    """Add special tokens to the tokenizer.
+    For detailed usage, please refer to the demo notebook for ESPnetEZ with SLU task.
+
+    Args:
+        tokenizer: Sentencepiece tokenizer.
+        converter: Sentencepiece converter.
+        embedding: nn.Embedding object.
+        special_tokens (list): List of special tokens.
+    
+    Returns:
+        Tuple(
+            tokenizer: new tokenizer,
+            converter: new converter,
+            embedding: new embedding,
+        )
+    """
+    token_list = converter.token_list
+
+    # First, check if the special tokens are already in the token list.
+    add_token_list = []
+    for token in special_tokens:
+        if token not in token_list:
+            # add token to the token list
+            add_token_list.append(token)
+
+    # Then append tokens into the token_list and sentencepiece model.
+    insert_position = token_list.index(insert_after) + 1
+    new_token_list = token_list[:insert_position] + add_token_list\
+         + token_list[insert_position:]
+    new_converter = TokenIDConverter(new_token_list, converter.unk_symbol)
+
+    new_embedding = nn.Embedding(
+        embedding.num_embeddings + len(add_token_list),
+        embedding.embedding_dim
+    )
+    new_embedding.weight.data[:insert_position] = embedding.weight[:insert_position]
+    new_embedding.weight.data[insert_position + len(add_token_list):] = \
+        embedding.weight[insert_position:]
+
+    m = model.ModelProto()
+    m.ParseFromString(open(tokenizer.model, 'rb').read())
+    for token in add_token_list:
+        p = ModelProto.SentencePiece(
+            piece=token, score=0.0
+        )
+        m.pieces.insert(insert_position, p)
+    
+    new_model_path = \
+        Path(tokenizer.model).parent / f"{Path(tokenizer.model).stem} _sp.model"
+    with open(new_model_path, 'wb') as f:
+        f.write(m.SerializeToString())
+    
+    new_tokenizer = SentencepiecesTokenizer(
+        new_model_path,
+        encode_kwargs=tokenizer.encode_kwargs
+    )
+    
+    return new_tokenizer, new_converter, new_embedding
