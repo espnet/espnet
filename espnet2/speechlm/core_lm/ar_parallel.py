@@ -52,7 +52,7 @@ class ARParallelLM(AbsCoreLM):
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
         if share_emb:
             self.lm_head.weight = self.emb.weight
-        self.head_emb = torch.nn.Embedding(nq, att_unit)
+        self.head_emb = torch.nn.Embedding(12, att_unit)
 
         self.decoders = TransformerDecoder(
             n_ctx=n_ctx,
@@ -99,10 +99,15 @@ class ARParallelLM(AbsCoreLM):
 
         target = dec_seq[:, 1:]
         x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
+
+        pad_mask = x == self.pad_id
+        x = self.emb(x)
+        x[pad_mask] = 0.0
+        x = x.sum(dim=2)
         x, _ = install_continuous_features(x, None, conti_feats)
+        
         x = self.decoders(x)
-        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)
+        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
 
         loss, logits, stats, weight = self.criterion(x, target)
 

@@ -2386,6 +2386,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # codec related:
         codec_token_per_frame: int = 1,
         codec_token_in_use: Optional[int] = None,
+        # codec_ssl related:
+        codec_ssl_corrupt_prob: float = 0.0,
         # tokenizer related: Phone & BPE
         unk_symbol: Optional[str] = "<unk>",
         space_symbol: Optional[str] = "<space>",
@@ -2456,6 +2458,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             codec_token_in_use = codec_token_per_frame
             assert codec_token_in_use <= codec_token_per_frame
         self.codec_token_in_use = codec_token_in_use
+
+        # Codec ssl
+        self.codec_ssl_corrupt_prob = codec_ssl_corrupt_prob
 
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
@@ -2591,6 +2596,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         mode="constant",
                         constant_values=self.token_list.index("<pad>")
                     )
+                
+                # As mentioned in AudioLM, always corrupt SSL token in speech prompt.
+                if "codec_ssl" in self.token_bias:
+                    value[:, 0] = self.token_list.index("<pad>")
+            
+            if modality == "codec_ssl" and random.random() < self.codec_ssl_corrupt_prob:
+                value[:, 0] = self.token_list.index("<pad>")
 
             value = value.flatten()
             conti_feat = None

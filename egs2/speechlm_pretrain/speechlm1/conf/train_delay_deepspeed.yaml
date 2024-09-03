@@ -2,20 +2,25 @@ use_deepspeed: true
 deepspeed_config: conf/deepspeed_ddp_tts.json
 deepspeed_step_sync: false
 
+# Model
 corelm: ar_delay
 corelm_conf:
     share_emb: false
     att_unit: 2048
+    n_ctx: 4096
     hf_model_tag: HuggingFaceTB/SmolLM-1.7B
 
-# Dataloader
+# General Dataloader configuration
 batch_type: numel
-batch_bins: 12000
-num_iters_per_epoch: 5000
-max_epoch: 80
+batch_bins: 10000
+num_iters_per_epoch: 10000
+max_epoch: 200
 num_workers: 2
 drop_last_iter: true
 log_interval: 1000
-codec_token_per_frame: 9 # encodec
-codec_token_in_use: 9
+
+# Data preprocessing
+codec_token_per_frame: 9
+codec_token_in_use: 3 # Gradually increase this to 3, 5, 7, 9
 speaker_prompt_length: 500 # 50fps, a.k.a., 10s
+codec_ssl_corrupt_prob: 0.5

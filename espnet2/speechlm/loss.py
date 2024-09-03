@@ -2,7 +2,7 @@ import torch
 import logging
 
 class FusedLinearCrossEntropyLoss(torch.nn.Module):
-    def __init__(self, lm_head, pad_id=0, chunk_size=65536):
+    def __init__(self, lm_head, pad_id=0, chunk_size=32768):
         """ Compute CrossEntropy loss for multi-stream LM using liger fused triton kernel """
         super(FusedLinearCrossEntropyLoss, self).__init__()
         self.lm_head = lm_head
@@ -30,7 +30,8 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         assert targets.size() == hidden.size()[:3]
         B, T, nq = targets.size()
 
-        fused = self.fused and self.training
+        # fused = self.fused and self.training
+        fused = False
 
         # select items that are not padding.
         padding_mask = targets != self.pad_id
@@ -54,11 +55,11 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
                 loss.append(this_loss)
                 chunk_id += 1
             loss = torch.cat(loss).mean()
-        weight = targets.numel()
+        weight = float(targets.numel())
         stats = {"loss": loss.clone().detach(), "weight": weight}
         
         # compute token accuracy
-        if not fused:
+        if not fused and not self.training:
             logits = torch.cat(logits, dim=0)
             layer_idx = torch.arange(nq, device=hidden.device).tile(B, T, 1)
             layer_idx = layer_idx[padding_mask]
@@ -70,7 +71,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
                 ).float().sum()
                 acc = acc / (layer_idx == idx).float().sum()
                 stats[f"acc_layer{idx}"] = acc.clone().detach()
-
+        
         return loss, logits, stats, weight
 
 if __name__ == "__main__":

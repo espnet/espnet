@@ -203,6 +203,12 @@ class SpeechLMTask(AbsTask):
             default=None,
             help="Number of codec codes in exact use",
         )
+        group.add_argument(
+            "--codec_ssl_corrupt_prob",
+            type=float,
+            default=0.0,
+            help="The prob of changing SSL tokens to pad_id in codec_ssl modality"
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -242,6 +248,7 @@ class SpeechLMTask(AbsTask):
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
+            codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
         )

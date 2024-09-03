@@ -761,7 +761,13 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
             # example_list is for sub_dataest -> no task prefix
             example_list = json_dict["data_files"][0].strip().split(",")[0]
-            example_list = [line.strip().split()[0] for line in open(example_list)]
+            if _type == "jsonl":
+                example_list = [
+                    list(json.loads(line).keys())[0]
+                    for line in open(example_list)
+                ]
+            else:
+                example_list = [line.strip().split()[0] for line in open(example_list)]
             if self.key_dict is not None:
                 example_list = [
                     e

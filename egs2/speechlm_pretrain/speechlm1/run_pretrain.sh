@@ -60,6 +60,8 @@ audiolm_train=" \
   dump/raw_codec_ssl_audiolm_yodas_manual/train_manual/data.json \
   dump/raw_codec_ssl_audiolm_gigaspeech/gigaspeech_train_xl/data.json \
   dump/raw_codec_ssl_audiolm_emilia/emilia_en/data.json \
+  dump/raw_codec_ssl_audiolm_audio/audioset/data.json \
+  dump/raw_codec_ssl_audiolm_audio/music/data.json \
 "
 
 # 4. Text Auto-Regressive

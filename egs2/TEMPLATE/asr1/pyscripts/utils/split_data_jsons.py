@@ -48,7 +48,11 @@ def split_one_data_json(json_file, nj, output_dir):
         path, name, _type = file_triplet.split(",")
         file_dict = {}
         for line in open(path):
-            utt, content = line.strip().split(maxsplit=1)
+            if _type == "jsonl":
+                line = json.loads(line)
+                utt, content = list(line.items())[0]
+            else:
+                utt, content = line.strip().split(maxsplit=1)
             file_dict[utt] = content
         all_file_dict[(path, name, _type)] = file_dict
 
@@ -92,7 +96,11 @@ def split_one_data_json(json_file, nj, output_dir):
             data_files.append(f"{new_file_name},{name},{_type}")
             writer = open(new_file_name, "w")
             for utt in this_split:
-                writer.write(f"{utt} {data_dict[utt]}\n")
+                if _type == "jsonl":
+                    line = json.dumps({utt: data_dict[utt]})
+                    writer.write(line + "\n")
+                else:
+                    writer.write(f"{utt} {data_dict[utt]}\n")
             writer.close()
 
         # write json files

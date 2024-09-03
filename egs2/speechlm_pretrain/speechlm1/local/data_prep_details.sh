@@ -1,13 +1,13 @@
 # (1) To prepare the vocabulary
 mkdir -p data/token_list/llm_vocab/
 python3 ${python} pyscripts/utils/make_token_list_speechlm.py \
-  --data_json "data/token_list/llm_vocab/data.json" \
-  --token_list_dir "data/token_list/llm_vocab"
+    --data_json "data/token_list/llm_vocab/data.json" \
+    --token_list_dir "data/token_list/llm_vocab"
 
 mkdir -p data/token_list/tts_vocab/
 python3 ${python} pyscripts/utils/make_token_list_speechlm.py \
---data_json "data/token_list/tts_vocab/data.json" \
---token_list_dir "data/token_list/tts_vocab"
+    --data_json "data/token_list/tts_vocab/data.json" \
+    --token_list_dir "data/token_list/tts_vocab"
 
 # (2) To prepare multiple data.json based on current TTS data.json
 data_names="mls_en librispeech gigaspeech yodas_auto1 yodas_auto2 yodas_manual mls_multilingual emilia"
