@@ -46,7 +46,7 @@ if __name__ == "__main__":
         ] + [
             p.name
             for p in sorted(list(args.root.glob("recipe/*")))
-            if p.stem != "README"
+            if p.stem != "README" and p.is_file()
         ]
     }, {
         "text": "Python API",
