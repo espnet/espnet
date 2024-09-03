@@ -2660,7 +2660,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             raise NotImplementedError
 
         modality_idx = self.special_token(f"<{modality}_start/end>")
-        value = np.concatenate([modality_idx, value])
+        value = np.concatenate([modality_idx, value]).astype(np.int64)
 
         return value, conti_feat
 

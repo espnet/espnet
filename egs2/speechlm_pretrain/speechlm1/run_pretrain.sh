@@ -67,7 +67,9 @@ audiolm_train=" \
 # 4. Text Auto-Regressive
 textlm_train=""
 for name in `ls dump/raw_textlm_cc`; do
-    textlm_train+="dump/raw_textlm_cc/${name}/data.json "
+    if [ -f dump/raw_textlm_cc/${name}/data.json ]; then
+        textlm_train+="dump/raw_textlm_cc/${name}/data.json "
+    fi
 done
 
 # combine all portions

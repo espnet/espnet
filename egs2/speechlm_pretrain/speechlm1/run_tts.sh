@@ -16,7 +16,7 @@ valid_jsons=""
 test_jsons=""
 
 # As of Sep 1: MLS_en + LibriSpeech + Yodas + GigaSpeech + Emilia
-data_combo_name=combo_sep1_tts
+data_combo_name=combo_sep2_tts
 # 1. TTS
 train_jsons+=" \
   dump/raw_tts_mls_en/mls_en_train/data.json \
