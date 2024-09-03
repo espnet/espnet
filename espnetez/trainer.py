@@ -239,7 +239,7 @@ class Trainer:
 
         if build_model_fn is not None:
             self.task_class.build_model_fn = build_model_fn
-        
+
         if build_preprocess_fn is not None:
             self.task_class.build_preprocess = build_preprocess_fn
 
