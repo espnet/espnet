@@ -29,7 +29,6 @@ highlights:
         icon: server
         link: ./espnet2_tutorial.md
 
-
   - header: Extensive task coverage
     description: We provide a complete recipe for various speech processing tasks.
     image: https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj3mOiQTPh_S9XW6m94OQYjucUzUu7L9uEcHP9YsADUGWTcmscynkrLc1Zs8o5rA3G9lSNnEpyHBMCnZzBepYdW8jVofKnLflvOsu-ywIZpQf1Kw5l6tzvhEA1q2cbnFDIzIDlOUOKPOarf/s800/cooking_recipe.png
