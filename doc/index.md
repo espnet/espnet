@@ -14,7 +14,6 @@ tagline: "ESPnet is the state-of-the-art toolkit that covers end-to-end speech r
 highlights:
   - header: Get started with ESPnet!
     bgImage: https://theme-hope-assets.vuejs.press/bg/3-light.svg
-    bgImageDark: https://theme-hope-assets.vuejs.press/bg/3-dark.svg
     features:
       - title: "Inferencing existing ESPnet models"
         details: "<code>pip install espnet espnet-model-zoo</code> and use it straight away."
@@ -31,27 +30,30 @@ highlights:
 
   - header: Extensive task coverage
     description: We provide a complete recipe for various speech processing tasks.
-    image: https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj3mOiQTPh_S9XW6m94OQYjucUzUu7L9uEcHP9YsADUGWTcmscynkrLc1Zs8o5rA3G9lSNnEpyHBMCnZzBepYdW8jVofKnLflvOsu-ywIZpQf1Kw5l6tzvhEA1q2cbnFDIzIDlOUOKPOarf/s800/cooking_recipe.png
     bgImage: https://theme-hope-assets.vuejs.press/bg/2-light.svg
-    bgImageDark: https://theme-hope-assets.vuejs.press/bg/2-dark.svg
     bgImageStyle:
       background-repeat: repeat
       background-size: initial
     features:
       - title: "ASR: Automatic Speech Recognition"
         link: ./recipe/asr1.md
+        icon: material-symbols-light:speech-to-text-rounded
 
       - title: "TTS: Text-to-speech"
         link: ./recipe/tts1.md
+        icon: material-symbols-light:text-to-speech-rounded
 
       - title: "Speech Enhancement"
         link: ./recipe/enh1.md
+        icon: material-symbols:adaptive-audio-mic-rounded
 
       - title: "Weakly-supervised Learning"
         link: ./recipe/s2t1.md
+        icon: guidance:children-must-be-supervised
 
       - title: "Speaker Embedding"
         link: ./recipe/spk1.md
+        icon: ic:sharp-safety-divider
 
       # - title: "SSL: Self-supervised Learning"
       #   link: ./recipe/ssl1.md
@@ -64,71 +66,72 @@ highlights:
 
       - title: "Speech-to-Text Translation"
         link: ./recipe/st1.md
+        icon: ph:translate
 
       # - title: "Speech-to-Speech Translation"
       #   link: ./recipe/s2st1.md
 
       - title: "Speech Codec"
         link: ./recipe/codec1.md
+        icon: material-symbols:hd-outline
 
       - title: "... And much more!"
         link: recipe/
 
   - header: Tutorials
-    bgImage: https://theme-hope-assets.vuejs.press/bg/10-light.svg
-    bgImageDark: https://theme-hope-assets.vuejs.press/bg/10-dark.svg
+    bgImage: https://theme-hope-assets.vuejs.press/bg/4-light.svg
     bgImageStyle:
       background-repeat: repeat
       background-size: initial
     features:
       - title: ESPnet2
         details: Leveraging ESPnet2 recipes for full replication
-        icon: graduation-cap
+        icon: mdi:graduation-cap
         link: ./espnet2_tutorial.md
 
       - title: ESPnet1
         details: Documents on ESPnet1 recipes (Legacy)
-        icon: graduation-cap
+        icon: mdi:graduation-cap
         link: ./espnet1_tutorial.md
 
       - title: Training configurations
         details: Understanding and updating the training configurations
-        icon: sliders
+        icon: fa6-solid:sliders
         link: ./espnet2_training_option.md
 
       - title: Recipe tips
         details: Various tips on using run.sh in ESPnet recipes
-        icon: clipboard-check
+        icon: mdi:clipboard-check-outline
         link: ./tutorial.md
 
       - title: Audio formatting
         details: Formatting audios into wav.scp for ESPnet recipes
-        icon: microphone
+        icon: mdi:microphone
         link: ./espnet2_format_wav_scp.md
 
       - title: Task class and data input system
         details: Common task/data interface for ESPnet2
-        icon: database
+        icon: material-symbols-light:database-outline
         link: ./espnet2_task.md
 
       - title: Docker
         details: Running ESPnet on Docker
-        icon: fa-brands fa-docker
+        icon: mdi:docker
         link: ./docker.md
 
       - title: Job scheduling system
         details: Distributing jobs in multi-machine environment within recipes
-        icon: list-check
+        icon: tabler:list-check
         link: ./parallelization.md
 
       - title: Distributed training
         details: Handling multiple GPUS for training
-        icon: network-wired
+        icon: fa-solid:network-wired
         link: ./espnet2_distributed.md
 
       - title: Document Generation
         details: Details on fixing the development document
-        icon: book
+        icon: fa-solid:book
         link: ./document.md
 
 footer: Apache License 2.0, Copyright © 2024-present ESPnet community
