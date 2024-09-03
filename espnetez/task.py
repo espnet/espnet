@@ -171,7 +171,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.build_model_fn(args=args)
             else:
                 return task_class.build_model(args=args)
-        
+
         @classmethod
         def build_preprocess_fn(cls, *args, **kwargs) -> IteratorOptions:
             """Build a preprocess function for the task.
