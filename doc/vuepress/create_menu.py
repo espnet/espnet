@@ -55,8 +55,8 @@ if __name__ == "__main__":
             "text": module.name,
             "prefix": module.name,
             "children": [{
-                "link": f"{submodule.name}/",
                 "text": f"{submodule.name}",
+                "link": f"{submodule.name}/",
             } for submodule in sorted(list(module.glob("*")))]
         } for module in sorted(list(args.root.glob("guide/*")))]
     }, {
@@ -80,5 +80,5 @@ if __name__ == "__main__":
         "children": "structure",
     } for nav in navbars]
 
-    with open('sidebars.yml', 'w', encoding='utf-8') as f:
+    with open("sidebars.yml", "w", encoding="utf-8") as f:
         yaml.dump(sidebars, f, default_flow_style=False)
