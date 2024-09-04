@@ -15,21 +15,21 @@ highlights:
   - header: Get started with ESPnet!
     bgImage: https://theme-hope-assets.vuejs.press/bg/3-light.svg
     features:
-      - title: "Inferencing existing ESPnet models"
-        details: "<code>pip install espnet espnet-model-zoo</code> and use it straight away."
+      - title: "Running inference on existing ESPnet models"
+        details: "<code>pip install espnet espnet-model-zoo</code> and start using it immediately."
         icon: fa-solid:bolt
         link: notebook/#demo
       - title: "Fine-tuning ESPnet models"
-        details: "<code>pip install espnet</code> and use the <code>espnetez</code> module."
+        details: "<code>pip install espnet</code> and use the <code>espnetez</code> module for fine-tuning."
         icon: fa-solid:fire
         link: notebook/#espnet-ez
       - title: "High-performance training and full experiment replication"
-        details: "Go through full installation and leverage the existing recipes."
+        details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
         link: ./espnet2_tutorial.md
 
-  - header: Extensive task coverage
-    description: We provide a complete recipe for various speech processing tasks.
+  - header: Comprehensive Task Coverage
+    description: We offer complete recipes for a wide range of speech processing tasks.
     bgImage: https://theme-hope-assets.vuejs.press/bg/2-light.svg
     bgImageStyle:
       background-repeat: repeat
@@ -95,17 +95,17 @@ highlights:
         link: ./espnet1_tutorial.md
 
       - title: Training configurations
-        details: Understanding and updating the training configurations
+        details: Understanding and updating training configurations
         icon: fa6-solid:sliders
         link: ./espnet2_training_option.md
 
       - title: Recipe tips
-        details: Various tips on using run.sh in ESPnet recipes
+        details: Various tips for using <code>run.sh</code> in ESPnet recipes
         icon: mdi:clipboard-check-outline
         link: ./tutorial.md
 
       - title: Audio formatting
-        details: Formatting audios into wav.scp for ESPnet recipes
+        details: Formatting audio files into <code>wav.scp</code> for ESPnet recipes
         icon: mdi:microphone
         link: ./espnet2_format_wav_scp.md
 
@@ -115,22 +115,22 @@ highlights:
         link: ./espnet2_task.md
 
       - title: Docker
-        details: Running ESPnet on Docker
+        details: Running ESPnet with Docker
         icon: mdi:docker
         link: ./docker.md
 
       - title: Job scheduling system
-        details: Distributing jobs in multi-machine environments within recipes
+        details: Distributing jobs in a multi-machine environment
         icon: tabler:list-check
         link: ./parallelization.md
 
       - title: Distributed training
-        details: Handling multiple GPUS for training
+        details: Handling multiple GPUs for training
         icon: fa-solid:network-wired
         link: ./espnet2_distributed.md
 
       - title: Document Generation
-        details: Details on fixing the development document
+        details: Details on fixing the ESPnet documentation
         icon: fa-solid:book
         link: ./document.md
 
@@ -149,4 +149,4 @@ footer: Apache License 2.0, Copyright © 2024-present ESPnet community
   issn      = {2958-1796},
 }
 ```
-To additionally cite individual modules, models, or recipes, please refer to [Additional Citations](./citations.md).
+To cite individual modules, models, or recipes, please refer to [Additional Citations](./citations.md).
