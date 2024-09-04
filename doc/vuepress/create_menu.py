@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # Create navbar (on the upper side of the page)
     navbars = [{
         "text": "Demos",
-        "icon": "laptop-code",
+        "icon": "fa-solid:laptop-code",
         "prefix": f"notebook/",
         "children": [
             {"text": "Roadmap", "link": "README.md"},
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         ]
     }, {
         "text": "Recipes",
-        "icon": "mug-hot",
+        "icon": "fa-solid:mug-hot",
         "prefix": "recipe/",
         "children": [
             {"text": "What is a recipe template?", "link": "README.md"},
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         ]
     }, {
         "text": "Python API",
-        "icon": "book",
+        "icon": "fa-solid:book",
         "prefix": f"guide/",
         "children": [{
             "text": module.name,
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         } for module in sorted(list(args.root.glob("guide/*")))]
     }, {
         "text": "Shell API",
-        "icon": "wrench",
+        "icon": "fa-solid:wrench",
         "prefix": f"tools/",
         "children": [{
             "text": module.name,
