@@ -17,15 +17,15 @@ highlights:
     features:
       - title: "Inferencing existing ESPnet models"
         details: "<code>pip install espnet espnet-model-zoo</code> and use it straight away."
-        icon: bolt-lightning
+        icon: fa-solid:bolt
         link: notebook/#demo
       - title: "Fine-tuning ESPnet models"
         details: "<code>pip install espnet</code> and use the <code>espnetez</code> module."
-        icon: fire
+        icon: fa-solid:fire
         link: notebook/#espnet-ez
       - title: "High-performance training and full experiment replication"
         details: "Go through full installation and leverage the existing recipes."
-        icon: server
+        icon: fa-solid:server
         link: ./espnet2_tutorial.md
 
   - header: Extensive task coverage
@@ -120,7 +120,7 @@ highlights:
         link: ./docker.md
 
       - title: Job scheduling system
-        details: Distributing jobs in multi-machine environment within recipes
+        details: Distributing jobs in multi-machine environments within recipes
         icon: tabler:list-check
         link: ./parallelization.md
 
