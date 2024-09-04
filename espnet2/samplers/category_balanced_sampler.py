@@ -50,7 +50,6 @@ class CategoryBalancedSampler(AbsSampler):
         # as values
         category2utt = read_2columns_text(category2utt_file)
 
-
         categories = list(category2utt.keys())
         random.shuffle(categories)
 

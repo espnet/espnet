@@ -24,8 +24,8 @@ from typeguard import typechecked
 
 from espnet import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
+from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
@@ -2063,7 +2063,6 @@ class AbsTask(ABC):
             chunk_max_abs_length=args.chunk_max_abs_length,
             discard_short_samples=args.chunk_discard_short_samples,
         )
-
 
     # NOTE(kamo): Not abstract class
     @classmethod

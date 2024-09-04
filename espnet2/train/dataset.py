@@ -625,8 +625,8 @@ class ESPnetDataset(AbsDataset):
 
         retval = uid, data
         return retval
-        
-    
+
+
 class ESPnetSpeechLMDataset(ESPnetDataset):
     """
     Dataset object that is specifically designed for SpeechLM. It will allows

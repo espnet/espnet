@@ -131,15 +131,17 @@ class CategoryChunkIterFactory(AbsIterFactory):
         epoch: int,
         shuffle: Optional[bool] = None,
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
-        category_sample_loader = self.category_sample_iter_factory.build_iter(epoch, shuffle)
+        category_sample_loader = self.category_sample_iter_factory.build_iter(
+            epoch, shuffle
+        )
 
         if shuffle is None:
             shuffle = self.shuffle
         state = np.random.RandomState(epoch + self.seed)
 
-        # NOTE(jiatong): 
+        # NOTE(jiatong):
         # Different from category_iter_factory, we do not rebuild sampler
-        # as usually the randomness from a samplers would be enough               
+        # as usually the randomness from a samplers would be enough
 
         # NOTE(kamo):
         #   This iterator supports multiple chunk lengths and
@@ -157,7 +159,9 @@ class CategoryChunkIterFactory(AbsIterFactory):
                     if key + "_lengths" in curr_batch:
                         sequence_keys.append(key)
                 # Remove lengths data and get the first sample
-                curr_batch = {k: v for k, v in curr_batch.items() if not k.endswith("_lengths")}
+                curr_batch = {
+                    k: v for k, v in curr_batch.items() if not k.endswith("_lengths")
+                }
 
                 for key in sequence_keys:
                     if self.excluded_key_pattern is not None and re.fullmatch(
@@ -172,7 +176,11 @@ class CategoryChunkIterFactory(AbsIterFactory):
                         )
 
                 # Get sampling frequency of the batch to recalculate the chunk length
-                fs = curr_batch.get("utt2fs", torch.LongTensor([16000])).type(torch.int64).item()
+                fs = (
+                    curr_batch.get("utt2fs", torch.LongTensor([16000]))
+                    .type(torch.int64)
+                    .item()
+                )
                 default_fs = fs if self.default_fs is None else self.default_fs
                 assert fs % default_fs == 0 or default_fs % fs == 0
 
@@ -182,7 +190,9 @@ class CategoryChunkIterFactory(AbsIterFactory):
                 chunk_lengths = [
                     min(lg, self.chunk_max_abs_length) for lg in chunk_lengths if lg < L
                 ]
-                if len(chunk_lengths) == 0 and getattr(self, "discard_short_samples", True):
+                if len(chunk_lengths) == 0 and getattr(
+                    self, "discard_short_samples", True
+                ):
                     logging.warning(
                         f"The length of '{id_}' is {L}, but it is shorter than "
                         f"any candidates of chunk-length: {self.chunk_lengths}"
@@ -230,11 +240,13 @@ class CategoryChunkIterFactory(AbsIterFactory):
                 cache_id_list += [id_ for _ in range(N)]
 
                 if len(cache_id_list) > self.num_cache_chunks:
-                    cache_id_list, cache_chunks = yield from self._generate_mini_batches(
-                        cache_id_list,
-                        cache_chunks,
-                        shuffle,
-                        state,
+                    cache_id_list, cache_chunks = (
+                        yield from self._generate_mini_batches(
+                            cache_id_list,
+                            cache_chunks,
+                            shuffle,
+                            state,
+                        )
                     )
 
                 if len(chunk_lengths) == 0:
