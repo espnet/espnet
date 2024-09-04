@@ -6,7 +6,7 @@ import sidebar from "./sidebar.js"
 
 export default hopeTheme({
 
-  iconAssets: "fontawesome-with-brands",
+  iconAssets: "iconify",
 
   logo: "/assets/image/espnet_logo1.png",
 
@@ -15,6 +15,8 @@ export default hopeTheme({
   repo: "espnet/espnet",
 
   docsDir: "src",
+
+  darkmode: "disable",
 
   // navbar
   navbar,

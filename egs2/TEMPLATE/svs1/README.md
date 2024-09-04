@@ -1,12 +1,10 @@
-# ESPnet2 SVS Recipe TEMPLATE
+# Singing Voice Synthesis
 
 This is a template of SVS recipe for ESPnet2.
 
 ## Table of Contents
 
-- [ESPnet2 SVS Recipe TEMPLATE](#espnet2-svs-recipe-template)
-  - [Table of Contents](#table-of-contents)
-  - [Recipe flow](#recipe-flow)
+- [Recipe flow](#recipe-flow)
     - [1. Database-dependent data preparation](#1-database-dependent-data-preparation)
     - [2. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     - [3. Filtering](#3-filtering)
@@ -16,7 +14,7 @@ This is a template of SVS recipe for ESPnet2.
     - [7. SVS inference](#7-svs-inference)
     - [8. Objective evaluation](#8-objective-evaluation)
     - [9. Model packing](#9-model-packing)
-  - [How to run](#how-to-run)
+- [How to run](#how-to-run)
     - [Naive\_RNN training](#naive_rnn-training)
     - [Naive\_RNN\_DP training](#naive_rnn_dp-training)
     - [XiaoiceSing training](#xiaoicesing-training)
@@ -27,8 +25,8 @@ This is a template of SVS recipe for ESPnet2.
     - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     - [Vocoder training](#vocoder-training)
     - [Evaluation](#evaluation)
-  - [About data directory](#about-data-directory)
-  - [Score preparation](#score-preparation)
+- [About data directory](#about-data-directory)
+- [Score preparation](#score-preparation)
       - [Case 1: phoneme annotation and standardized score](#case-1-phoneme-annotation-and-standardized-score)
       - [Case 2: phoneme annotation only](#case-2-phoneme-annotation-only)
     - [Problems you might meet](#problems-you-might-meet)
@@ -36,9 +34,9 @@ This is a template of SVS recipe for ESPnet2.
       - [2. Wrong lyric / midi annotation](#2-wrong-lyric--midi-annotation)
       - [3. Different lyric-phoneme pairs against the given g2p](#3-different-lyric-phoneme-pairs-against-the-given-g2p)
       - [4. Special marks in MusicXML](#4-special-marks-in-musicxml)
-  - [Supported text cleaner](#supported-text-cleaner)
-  - [Supported text frontend](#supported-text-frontend)
-  - [Supported Models](#supported-models)
+- [Supported text cleaner](#supported-text-cleaner)
+- [Supported text frontend](#supported-text-frontend)
+- [Supported Models](#supported-models)
 
 
 ## Recipe flow
