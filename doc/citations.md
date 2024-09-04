@@ -86,6 +86,13 @@
   booktitle={ACL Demos},
   year={2020},
 }
+
+@inproceedings{yan2023espnet,
+  title={ESPnet-ST-v2: Multipurpose Spoken Language Translation Toolkit},
+  author={Yan, Brian and Shi, Jiatong and Tang, Yun and Inaguma, Hirofumi and Peng, Yifan and Dalmia, Siddharth and Polak, Peter and Fernandes, Patrick and Berrebbi, Dan and Hayashi, Tomoki and Zhang, Xiaohui and Ni, Zhaoheng and Hira, Moto and Maiti, Soumi and Pino, Juan and Watanabe, Shinji},
+  booktitle={ACL Demos},
+  year={2023},
+}
 ```
 
 ## Speech Enhancement
@@ -132,5 +139,25 @@
   author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
   booktitle={ICASSP},
   year={2023}
+}
+```
+
+## Speech summarization
+```
+@inproceedings{sharma2023espnet,
+  title={Espnet-Summ: Introducing a Novel Large Dataset, Toolkit, and a Cross-Corpora Evaluation of Speech Summarization Systems},
+  author={Sharma, Roshan and Chen, William and Kano, Takatomo and Sharma, Ruchira and Arora, Siddhant and Watanabe, Shinji and Ogawa, Atsunori and Delcroix, Marc and Singh, Rita and Raj, Bhiksha},
+  booktitle={ASRU},
+  year={2023},
+}
+```
+
+## Exporting models to ONNX
+```
+@inproceedings{someki2022espnet,
+  title={ESPnet-ONNX: Bridging a Gap Between Research and Production},
+  author={Someki, Masao and Higuchi, Yosuke and Hayashi, Tomoki and Watanabe, Shinji},
+  booktitle={APSIPA ASC},
+  year={2022},
 }
 ```

@@ -55,25 +55,25 @@ highlights:
         link: ./recipe/spk1.md
         icon: ic:sharp-safety-divider
 
-      # - title: "SSL: Self-supervised Learning"
-      #   link: ./recipe/ssl1.md
-
-      # - title: "Speech Language Model"
-      #   link: ./recipe/speechlm1.md
-
-      # - title: "SLU: Spoken Language Understanding"
-      #   link: ./recipe/slu1.md
-
       - title: "Speech-to-Text Translation"
         link: ./recipe/st1.md
         icon: ph:translate
 
-      # - title: "Speech-to-Speech Translation"
-      #   link: ./recipe/s2st1.md
+      - title: "Singing Voice Synthesis"
+        link: ./recipe/svs1.md
+        icon: mdi:music
+
+      - title: "Discrete Unit ASR"
+        link: ./recipe/asr2.md
+        icon: carbon:string-integer
 
       - title: "Speech Codec"
         link: ./recipe/codec1.md
         icon: material-symbols:hd-outline
+
+      - title: "ASR with Speech Enhancement"
+        link: ./recipe/enh_asr1.md
+        icon: icon-park-outline:voice-one
 
       - title: "... And much more!"
         link: recipe/
