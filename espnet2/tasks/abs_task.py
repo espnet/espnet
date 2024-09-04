@@ -54,7 +54,6 @@ from espnet2.train.dataset import (
     DATA_TYPES,
     AbsDataset,
     ESPnetDataset,
-    ESPnetCategoricalDataset,
     ESPnetMultiTaskDataset,
 )
 from espnet2.train.distributed_utils import (
