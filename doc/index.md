@@ -25,7 +25,7 @@ highlights:
     bgImageDark: https://theme-hope-assets.vuejs.press/bg/3-dark.svg
     highlights:
       - title: <code>pip install espnet</code> for easy install.
-      - title: See <a href="./installation.md">this instruction</a> for more details.
+      - title: See <a href="./installation.html">this instruction</a> for more details.
 
   - header: Supports many tasks
     description: We provide a complete setup for various speech processing tasks.
