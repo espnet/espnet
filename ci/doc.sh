@@ -12,6 +12,7 @@ clean_outputs() {
 
     rm -rf doc/_gen
     rm -rf doc/build
+    rm -rf doc/notebook
 
     rm -rf doc/vuepress/src/*.md
     rm -rf doc/vuepress/src/notebook
@@ -73,7 +74,11 @@ build_and_convert "tools/sentencepiece_commands/spm_decode" spm
 build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 # There seems no help prepared for spm_train command.
 
-./doc/notebook2rst.sh > ./doc/notebooks.md
+# incorporate espnet/notebook repository to docs
+./doc/notebook2rst.sh
+
+# incorporate recipe template readme.md to docs
+python ./doc/recipe2md.py --src ./egs2/TEMPLATE --dst ./doc/recipe
 
 # generate package doc
 python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
@@ -89,6 +94,7 @@ sphinx-build -M markdown ./doc/_gen ./doc/build
 # copy markdown files to specific directory.
 cp -r ./doc/build/markdown/* ./doc/vuepress/src/
 cp -r ./doc/notebook ./doc/vuepress/src/
+cp -r ./doc/recipe ./doc/vuepress/src
 cp ./doc/*.md ./doc/vuepress/src/
 mv ./doc/vuepress/src/README.md ./doc/vuepress/src/document.md
 cp -r ./doc/image ./doc/vuepress/src/
