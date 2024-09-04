@@ -13,10 +13,13 @@ Modifications made by Jia Qi Yip 2024
 """
 
 import copy
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # from ..utils.Transformer import PositionalEncoding, TransformerEncoder
+
 
 class SBTransformerBlock(nn.Module):
     """A wrapper for the SpeechBrain implementation of the transformer encoder.
@@ -115,6 +118,7 @@ class SBTransformerBlock(nn.Module):
         else:
             return self.mdl(x)[0]
 
+
 class Linear(nn.Module):
     """Computes a linear transformation y = wx + b.
 
@@ -178,13 +182,14 @@ class Linear(nn.Module):
 
         return wx
 
+
 #################
 # Normaliations #
 #################
 
+
 def select_norm(norm, dim, shape, eps=1e-8):
-    """Just a wrapper to select the normalization type.
-    """
+    """Just a wrapper to select the normalization type."""
 
     if norm == "gln":
         return GlobalLayerNorm(dim, shape, elementwise_affine=True, eps=eps)
@@ -194,6 +199,7 @@ def select_norm(norm, dim, shape, eps=1e-8):
         return nn.GroupNorm(1, dim, eps=eps)
     else:
         return nn.BatchNorm1d(dim)
+
 
 class GlobalLayerNorm(nn.Module):
     """Calculate Global Layer Normalization.
@@ -249,10 +255,7 @@ class GlobalLayerNorm(nn.Module):
             mean = torch.mean(x, (1, 2), keepdim=True)
             var = torch.mean((x - mean) ** 2, (1, 2), keepdim=True)
             if self.elementwise_affine:
-                x = (
-                    self.weight * (x - mean) / torch.sqrt(var + self.eps)
-                    + self.bias
-                )
+                x = self.weight * (x - mean) / torch.sqrt(var + self.eps) + self.bias
             else:
                 x = (x - mean) / torch.sqrt(var + self.eps)
 
@@ -260,10 +263,7 @@ class GlobalLayerNorm(nn.Module):
             mean = torch.mean(x, (1, 2, 3), keepdim=True)
             var = torch.mean((x - mean) ** 2, (1, 2, 3), keepdim=True)
             if self.elementwise_affine:
-                x = (
-                    self.weight * (x - mean) / torch.sqrt(var + self.eps)
-                    + self.bias
-                )
+                x = self.weight * (x - mean) / torch.sqrt(var + self.eps) + self.bias
             else:
                 x = (x - mean) / torch.sqrt(var + self.eps)
         return x
@@ -326,10 +326,12 @@ Modifications made by Jia Qi Yip 2024
 """
 
 import math
+from typing import Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
-from typing import Optional
-import numpy as np
+
 
 class PositionalEncoding(nn.Module):
     """This class implements the absolute sinusoidal positional encoding function.
@@ -359,8 +361,7 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(self.max_len, input_size, requires_grad=False)
         positions = torch.arange(0, self.max_len).unsqueeze(1).float()
         denominator = torch.exp(
-            torch.arange(0, input_size, 2).float()
-            * -(math.log(10000.0) / input_size)
+            torch.arange(0, input_size, 2).float() * -(math.log(10000.0) / input_size)
         )
 
         pe[:, 0::2] = torch.sin(positions * denominator)
@@ -620,6 +621,7 @@ class TransformerEncoder(nn.Module):
         output = self.norm(output)
         return output, attention_lst
 
+
 class LayerNorm(nn.Module):
     """Applies layer normalization to the input tensor.
 
@@ -673,8 +675,9 @@ class LayerNorm(nn.Module):
         """
         return self.norm(x)
 
+
 class MultiheadAttention(nn.Module):
-    """ The class is a wrapper of MultiHead Attention for torch.nn.MultiHeadAttention.
+    """The class is a wrapper of MultiHead Attention for torch.nn.MultiHeadAttention.
 
     Reference: https://pytorch.org/docs/stable/nn.html
 

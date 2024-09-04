@@ -1,15 +1,17 @@
 import torch
 import torch.nn.functional as F
 import torchaudio.transforms as T
+
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
+
 
 class CodecDecoder(AbsDecoder):
     """Codec decoder for speech enhancement and separation"""
 
     def __init__(
         self,
-        channel: int, #this is the expected output size of the continuous codec output
+        channel: int,  # this is the expected output size of the continuous codec output
         codec_choice: str,
         codec_fs: int,
         sample_fs: int,
@@ -46,13 +48,13 @@ class CodecDecoder(AbsDecoder):
             fs (int): sampling rate in Hz (Not used)
         """
         wav = self.codec.decode_continuous(input)
-        
-        #Resampling back to original sampling rate if needed
+
+        # Resampling back to original sampling rate if needed
         wav = wav.unsqueeze(1)
         if self.codec_fs != self.sample_fs:
             wav = self.resample_audio(wav)
         wav = wav.squeeze(1)
-        
+
         # T might have changed due to model. If so, fix it here
         T_origin = ilens.max()
         if wav.shape[-1] != T_origin:
@@ -65,23 +67,23 @@ class CodecDecoder(AbsDecoder):
         return wav, ilens
 
     def resample_audio(self, x):
-        '''
+        """
         torchaudio resample function used here only requires last dimension to be time.
         it sucks that i have to go to cpu for this. need to think how i can make this stay in gpu
-        '''
+        """
         # get device
         device = x.device
 
         # Implement some checks on the input
         assert len(x.shape) == 3
         B, C, T = x.shape
-        assert C == 1 #model should only be handling single channel
+        assert C == 1  # model should only be handling single channel
 
         # Resamples the audio from the input rate to the dac model's rate
-        
+
         x_resamp = self.dac_sampler(x)
-        
+
         # normalize the resampled audio, otherwise we will run into clipping issues
-        x_resamp = x_resamp / torch.max(x_resamp.abs(),dim=2,keepdim=True)[0]
+        x_resamp = x_resamp / torch.max(x_resamp.abs(), dim=2, keepdim=True)[0]
 
         return x_resamp.to(device)

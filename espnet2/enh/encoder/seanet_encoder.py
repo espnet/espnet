@@ -1,10 +1,12 @@
-from functools import reduce
 import operator
+from functools import reduce
+from typing import Any, Dict, List, Optional, Tuple
+
 import torch
 import torchaudio.transforms as T
+
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
-from typing import Any, Dict, List, Optional, Tuple
 
 
 class SEANetEnhEncoder(AbsEncoder):
@@ -81,30 +83,30 @@ class SEANetEnhEncoder(AbsEncoder):
         if self.codec_fs != self.sample_fs:
             self.dac_sampler = self.dac_sampler.to(input.device)
             input = self.resample_audio(input)
-            
+
         feature = self.codec_encoder(input).transpose(1, 2)
 
-        flens = ilens.clone().apply_(lambda x: ((x//self.subsample) +1 ))
+        flens = ilens.clone().apply_(lambda x: ((x // self.subsample) + 1))
         return feature, flens
 
     def resample_audio(self, x):
-        '''
+        """
         torchaudio resample function used here only requires last dimension to be time.
         it sucks that i have to go to cpu for this. need to think how i can make this stay in gpu
-        '''
+        """
         # get device
         device = x.device
 
         # Implement some checks on the input
         assert len(x.shape) == 3
         B, C, T = x.shape
-        assert C == 1 #model should only be handling single channel
+        assert C == 1  # model should only be handling single channel
 
         # Resamples the audio from the input rate to the dac model's rate
-        
+
         x_resamp = self.dac_sampler(x)
-        
+
         # normalize the resampled audio, otherwise we will run into clipping issues
-        x_resamp = x_resamp / torch.max(x_resamp.abs(),dim=2,keepdim=True)[0]
+        x_resamp = x_resamp / torch.max(x_resamp.abs(), dim=2, keepdim=True)[0]
 
         return x_resamp.to(device)
