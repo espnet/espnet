@@ -2611,17 +2611,23 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         elif modality in ["ssl", "text_bpe", "g2p"]:
 
             if modality in ["text_bpe", "g2p"]:
-                try:
-                    value = self.text_cleaner(value)
-                except:
-                    logging.warning(f"Failed to apply cleaner to {value}. Make it empty")
-                    value = ""
-                tokenizer = self.bpe if modality == "text_bpe" else self.g2p
-                value = tokenizer.text2tokens(value)
-                if modality == "g2p":
-                    value = [f"g2p_{tok}" for tok in value]
-                value = self.converter.tokens2ids(value)
-                value = np.array(value)
+                if isinstance(value, str):
+                    try:
+                        value = self.text_cleaner(value)
+                    except:
+                        logging.warning(f"Failed to apply cleaner to {value}. Make it empty")
+                        value = ""
+                    tokenizer = self.bpe if modality == "text_bpe" else self.g2p
+                    value = tokenizer.text2tokens(value)
+                    if modality == "g2p":
+                        value = [f"g2p_{tok}" for tok in value]
+                    value = self.converter.tokens2ids(value)
+                    value = np.array(value)
+                
+                else:
+                    # already tokenized offline
+                    assert isinstance(value, np.ndarray)
+                    value = value + self.token_bias[modality]
 
             elif modality in ["ssl"]:
                 value = value + self.token_bias["ssl"]
