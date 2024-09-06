@@ -39,38 +39,70 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
-    ./local/download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_"  ${KISING}/kising-v2.zip
-    ./local/download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
+    ./local/download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_" ${KISING}/kising-v2.zip
+    ./local/download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz" ${KISING}/kising-v2-original.zip
 
     unzip ${KISING}/kising-v2.zip -d ${KISING}/KISING
     unzip ${KISING}/kising-v2-original.zip -d ${KISING}/KISING
-    mv ${KISING}/clean ${KISING}/original
+    mv ${KISING}/KISING/clean ${KISING}/KISING/original
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "
 
+    mkdir -p ${KISING}/KISING/all
+
+    # Resample files to sampling rate fs, single channel, 16 bits
+    for song_folder in ${KISING}/KISING/kising-v2/*; do
+        # Skip if song_folder ends with -unseg or is between 436 and 440
+        if [[ ${song_folder} == *-unseg ]]; then
+            continue
+        fi
+        song_id=$(basename ${song_folder})
+        song="${song_id%%-*}"
+        if [[ ${song} -ge 436 ]] && [[ ${song} -le 440 ]]; then
+            continue
+        fi
+        mkdir -p ${KISING}/KISING/all/${song_id}
+        for file in ${song_folder}/*.wav; do
+            filename=$(basename ${file})
+            sox ${file} -r ${fs} -b 16 -c 1 ${KISING}/KISING/all/${song_id}/${filename}
+        done
+        cp -r ${song_folder}/*.mid ${KISING}/KISING/all/${song_id}
+    done
+    for file in ${KISING}/KISING/original/*.wav; do
+        filename=$(basename ${file})
+        song_id=$(echo ${filename} | cut -c 1-3) # e.g., 421_all.wav -> 421
+        if [[ ${filename} == *part2.wav ]]; then
+            song_id=${song_id}-2 # e.g., 441-unseg-part2.wav -> 441-2
+        fi
+        mkdir -p ${KISING}/KISING/all/${song_id}
+        sox ${file} -r ${fs} -b 16 -c 1 ${KISING}/KISING/all/${song_id}/${song_id}-original.wav
+    done
+
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${KISING}/KISING --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${KISING}/KISING/all \
         --wav_dumpdir wav_dump \
-        --sr ${fs} \
-        --g2p ${g2p}\
         --dataset ${dataset}
-    for src_data in train_${dataset} test_${dataset}; do
-        utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
+    for src_data in train test; do
+        utils/utt2spk_to_spk2utt.pl <data/${src_data}_${dataset}/utt2spk >data/${src_data}_${dataset}/spk2utt
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}_${dataset}
     done
+    if [ -e "data/eval" ]; then
+        rm -r "data/eval"
+    fi
+    mv data/test_${dataset} data/eval
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Held out validation set"
 
-    utils/copy_data_dir.sh data/train data/${train_set}
-    utils/copy_data_dir.sh data/train data/${train_dev}
+    utils/copy_data_dir.sh data/train_${dataset} data/${train_set}
+    utils/copy_data_dir.sh data/train_${dataset} data/${train_dev}
     for dset in ${train_set} ${train_dev}; do
         for extra_file in label score.scp; do
-            cp data/train/${extra_file} data/${dset}
+            cp data/train_${dataset}/${extra_file} data/${dset}
         done
     done
     tail -n 50 data/train_${dataset}/wav.scp > data/${train_dev}/wav.scp

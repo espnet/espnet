@@ -1,102 +1,91 @@
-import argparse
-import glob
-import logging
-import os
-import re
-import shutil
-import subprocess
-import wave
-from typing import List, TextIO, Tuple
+from __future__ import annotations
 
-import miditoolkit
-import numpy as np
+import argparse
+import logging
+import random
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TextIO
+
 from local.pinyin_dict import PINYIN_DICT
 
 try:
     from pydub import AudioSegment
-except ModuleNotFoundError:
+except ModuleNotFoundError as error:
     raise ModuleNotFoundError(
         "pydub needed for audio segmentation" "use pip to install pydub"
-    )
+    ) from error
+
+
 try:
     import pretty_midi
-except ModuleNotFoundError:
+except ModuleNotFoundError as error:
     raise ModuleNotFoundError(
         "pretty_midi needed for midi data loading" "use pip to install pretty_midi"
-    )
-
-from tqdm import tqdm
+    ) from error
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
-"""Split audio into segments according to structured annotation.""" ""
-"""Generate segments according to structured annotation."""
-"""Transfer music score into 'score' format."""
+TEST_SET = ["425", "434", "435"]
+PREFIX = "kising"
+SEGMENT_ID_TEMPLATE = "{prefix}_{singer}_{song_id}_{segid:03}"
 
 
-TEST_SET = [425, 434, 435]
+@dataclass
+class Note:
+    onset_time: float
+    stop_time: float
+    pitch: int  # MIDI pitch
+    lyric: str
+    phn: str
 
 
-def makedir(data_url):
-    if os.path.exists(data_url):
-        shutil.rmtree(data_url)
-    os.makedirs(data_url)
+@dataclass
+class Phoneme:
+    start_time: float
+    stop_time: float
+    symbol: str
 
 
-def load_midi_note_scp(midi_note_scp):
-    # Note(jiatong): midi format is 0-based
-    midi_mapping = {}
-    with open(midi_note_scp, "r", encoding="utf-8") as f:
-        content = f.read().strip().split("\n")
-        for key in content:
-            key = key.split("\t")
-            midi_mapping[key[1]] = int(key[0])
-    return midi_mapping
+@dataclass
+class KaldiDataset:
+    data_folder: Path
+    score_dump_folder: Path
+    utt2spk: list[tuple[str, str]] = field(default_factory=list)
+    utt2wav: list[tuple[str, Path]] = field(default_factory=list)
+    utt2text: list[tuple[str, str]] = field(default_factory=list)
+    utt2label: list[tuple[str, str]] = field(default_factory=list)
+    score_writer: SingingScoreWriter | None = None
+
+    def __post_init__(self):
+        self.data_folder = Path(self.data_folder)
+        self.data_folder.mkdir(parents=True, exist_ok=True)
+        self.score_dump_folder = Path(self.score_dump_folder)
+        self.score_dump_folder.mkdir(parents=True, exist_ok=True)
+        if self.score_writer is None:
+            self.score_writer = SingingScoreWriter(
+                outdir=self.score_dump_folder,
+                scpfile=self.data_folder / "score.scp",
+            )
 
 
-def load_midi(root_path):
-    """
-    Loads MIDI files from subdirectories in the given root path and extracts tempo
-    information.
-    """
-    midis = {}
-
-    for subdir in os.listdir(root_path):
-        if subdir == "segments" or "-unseg" in subdir:
-            continue
-
-        full_subdir_path = os.path.join(root_path, subdir)
-        if os.path.isdir(full_subdir_path):
-            midi_files = glob.glob(os.path.join(full_subdir_path, "*.mid"))
-            if not midi_files:
-                print(f"No MIDI files found in {full_subdir_path}")
-                continue
-
-            midi_file = midi_files[0]
-            try:
-                midi_obj = miditoolkit.midi.parser.MidiFile(midi_file)
-                tempos = midi_obj.tempo_changes
-                tempos.sort(key=lambda x: (x.time, x.tempo))
-
-                if tempos:
-                    tempo = int(tempos[0].tempo + 0.5)
-                    midis[subdir] = tempo
-                else:
-                    print(f"No tempo information found in {midi_file}")
-            except Exception as e:
-                print(f"Error processing {midi_file}: {e}")
-
-    return midis
-
-
-def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
+def get_partitions(
+    input_midi: str | Path, threshold=2.0
+) -> tuple[list[tuple[float, float]], int]:
     """
     Get partition points [(start, end)] that detach at rests longer than the
-    specified threshold.
+    specified threshold in beats.
     Note: silence truncated when longer than 0.4s.
     """
-    midi_data = pretty_midi.PrettyMIDI(input_midi)
-    bpm = midi_data.estimate_tempo()
+    midi_data = pretty_midi.PrettyMIDI(str(input_midi))
+    times, tempo_changes = midi_data.get_tempo_changes()
+    assert len(tempo_changes) == 1, (
+        f"Unexpected tempo changes for {input_midi}: {tempo_changes}"
+    )
+    assert times[0] == 0.0, f"Unexpected start time={times[0]} for {input_midi}"
+    bpm = tempo_changes[0]
+
     second_per_beat = 60 / bpm
     thresh_in_second = threshold * second_per_beat
 
@@ -122,48 +111,49 @@ def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
     # corresponding audio length. But does not matter
     partitions.append((seg_start, notes[-1].end + 0.2))
 
-    return partitions
+    return partitions, int(bpm)
 
 
-def is_16bit_wav(file_path):
-    """Check if the WAV file is 16-bit."""
-    try:
-        with wave.open(file_path, "rb") as wav_file:
-            sample_width = wav_file.getsampwidth()
-            return sample_width == 2
-    except Exception as e:
-        return False
-
-
-def convert_to_16bit(input_wav, output_wav):
-    command = "sox {} -b 16 {}".format(input_wav, output_wav)
-    subprocess.run(command, check=True)
-
-
-def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singer):
+def save_wav_segments_from_partitions(
+    input_wav: str | Path,
+    partitions: list[tuple[float, float]],
+    output_directory: str | Path,
+    song_id: str,
+    singer: str,
+) -> tuple[list[str], list[Path], list[float]]:
     """
     Partition WAV files based on 'partitions' and save the segmented files.
     """
 
-    # Load the (possibly converted) audio file for segmentation
     audio = AudioSegment.from_wav(input_wav)
+
+    assert audio.channels in {1, 2}, (
+        f"Unexpected number of channels in kising-v2: {audio.channels}"
+    )
+
+    if audio.channels == 2:
+        audio = audio.split_to_mono()[1]  # NOTE: use the right channel when it's stereo
+
     segids = []
-    wav_scp = []
+    output_filenames = []
+    durations = []
 
     for i, (start_time, end_time) in enumerate(partitions, 1):
         start_time_ms = int(start_time * 1000)
         end_time_ms = int(end_time * 1000)
-        # Note: end_time_ms can be larger than the actual audio length.
-        # But does not matter here
+
         segment = audio[start_time_ms:end_time_ms]
-        segid = f"{songid}_{i:03}_{singer}"
-        outfile = os.path.join(path, f"{segid}.wav")
-        segment = segment.set_sample_width(2)
+        segid = SEGMENT_ID_TEMPLATE.format(
+            prefix=PREFIX, singer=singer, song_id=song_id, segid=i
+        )
+        outfile = output_directory / f"{segid}.wav"
+
         segment.export(outfile, format="wav")
         segids.append(segid)
-        wav_scp.append((segid, outfile))
+        output_filenames.append(outfile)
+        durations.append(len(segment) / 1000.0)
 
-    return segids, wav_scp
+    return segids, output_filenames, durations
 
 
 # Function to split Pinyin into shengmu and yunmu
@@ -175,9 +165,8 @@ def split_pinyin(pinyin):
         return "Invalid Pinyin input."
     if pinyin not in PINYIN_DICT.keys():
         return [pinyin]
-    else:
-        a = pinyin
-        a1, a2 = PINYIN_DICT[a]
+    a = pinyin
+    a1, a2 = PINYIN_DICT[a]
     if a1 == "^":
         return [a2]
     if a2 == "^":
@@ -186,385 +175,257 @@ def split_pinyin(pinyin):
 
 
 def get_info_from_partitions(
-    input_midi: str, partitions: List[Tuple[float, float]]
-) -> Tuple[
-    List[List[str]],
-    List[List[str]],
-    List[List[float]],
-    List[List[float]],
-    List[List[int]],
-]:
-    midi_data = pretty_midi.PrettyMIDI(input_midi)
-    current_partition = 0
-    text = [[]]
-    phonemes = [[]]
-    pitches = [[]]
-    note_durations = [[]]
-    phn_durations = [[]]
-    is_slur = [[]]
-
+    midi_path: str | Path, partitions: list[tuple[float, float]]
+) -> tuple[list[list[Note]], list[list[Phoneme]]]:
+    midi_data = pretty_midi.PrettyMIDI(str(midi_path))
     notes = midi_data.instruments[0].notes
-    note_index = 0
-    word_index = 0
-    # for lyric in midi_data.lyrics:
-    while word_index < len(midi_data.lyrics):
-        lyric = midi_data.lyrics[word_index]
-        assert lyric.time > partitions[current_partition][0]
-        if lyric.time > partitions[current_partition][1]:
-            text.append([])
-            phonemes.append([])
-            pitches.append([])
-            note_durations.append([])
-            phn_durations.append([])
-            is_slur.append([])
-            current_partition += 1
-            assert lyric.time > partitions[current_partition][0]
-            assert lyric.time < partitions[current_partition][1]
+    lyrics = midi_data.lyrics
 
-        if lyric.text == "?" or lyric.text == "-":
-            phonemes[-1].append(phonemes[-1][-1])
-            is_slur[-1].append(1)
-            pitches[-1].append(pitches[-1][-1])
-            note_durations[-1].append(note_durations[-1][-1])
-            phn_durations[-1].append(phn_durations[-1][-1])
-        else:
-            if "#" in lyric.text:
-                word, id = lyric.text.split("#")
-                if id == "1":
-                    text[-1].append(word)
-                    phn_list = split_pinyin(word)
-                    phonemes[-1].extend(phn_list)
-                    is_slur[-1].extend([0] * len(phn_list))
-            # Note(yueqian): The English logic is not correct yet
-            # elif check_en(lyric.text):
-            #     text[-1].append(lyric.text)
-            #     phn_list = [lyric.text]
-            #     phonemes[-1].append(lyric.text)
-            #     is_slur[-1].append(0)
-            else:
-                text[-1].append(lyric.text)
-                phn_list = split_pinyin(lyric.text)
-                phonemes[-1].extend(phn_list)
-                is_slur[-1].extend([0] * len(phn_list))
-            current_word_pitch = []
-            current_word_duration = []
-            # get all the notes from note_index to the end of the next lyric time
-            if word_index == len(midi_data.lyrics) - 1:
-                while note_index < len(notes):
-                    note = midi_data.instruments[0].notes[note_index]
-                    current_word_pitch.append(note.pitch)
-                    note_duration = note.end - note.start
-                    current_word_duration.append(note_duration)
-                    note_index += 1
-            else:
-                while (
-                    note_index < len(notes)
-                    and notes[note_index].start < midi_data.lyrics[word_index + 1].time
-                ):
-                    note = midi_data.instruments[0].notes[note_index]
-                    current_word_pitch.append(note.pitch)
-                    note_duration = note.end - note.start
-                    current_word_duration.append(note_duration)
-                    note_index += 1
+    assert len(notes) == len(lyrics), "Mismatch between notes and lyrics length"
+    assert all(
+        [note.start == lyric.time for note, lyric in zip(notes, lyrics)]
+    ), "Mismatch between notes and lyrics start time"
+    assert all(
+        [start < end for start, end in partitions]
+    ), "Partition start time should be smaller than end time"
+    assert all(
+        [partitions[i][1] <= partitions[i + 1][0] for i in range(len(partitions) - 1)]
+    ), "Partitions should be non-overlapping and increasing in time"
 
-            # if the len(phn_list) = len(current_word_pitch),
-            # then we can just assign the pitches to the phonemes
-            if len(phn_list) == len(current_word_pitch):
-                pitches[-1].extend(current_word_pitch)
-                note_durations[-1].extend(current_word_duration)
-                phn_durations[-1].extend(current_word_duration)
-            # if the len(phn_list) < len(current_word_pitch),
-            # then we need to assign the rest of the pitches to the last phoneme
-            elif len(phn_list) < len(current_word_pitch):
-                pitches[-1].extend(current_word_pitch)
-                note_durations[-1].extend(current_word_duration)
-                phn_durations[-1].extend(current_word_duration)
-                phonemes[-1].extend(
-                    [phonemes[-1][-1]] * (len(current_word_pitch) - len(phn_list))
+    partition_notes = []
+    partition_phns = []
+
+    lyric_index = 0
+    for partition_start, partition_end in partitions:
+        current_notes = []
+        current_phns = []
+
+        # Skip lyrics before partition_start
+        while lyrics[lyric_index].time < partition_start:
+            lyric_index += 1
+
+        # At the start of the partition
+        if (lyrics[lyric_index].time - partition_start) > 0:
+            current_notes.append(
+                Note(
+                    onset_time=0,
+                    stop_time=lyrics[lyric_index].time - partition_start,
+                    pitch=0,
+                    lyric="<AP>",
+                    phn="<AP>",
                 )
-                is_slur[-1].extend([1] * (len(current_word_pitch) - len(phn_list)))
-            # if the len(phn_list) > len(current_word_pitch),
-            # then we need to assign the rest of the phonemes to the last pitch
-            else:
-                pitches[-1].extend(current_word_pitch)
-                note_durations[-1].extend(current_word_duration)
-                phn_durations[-1].extend(current_word_duration)
-                pitches[-1].extend(
-                    [current_word_pitch[-1]] * (len(phn_list) - len(current_word_pitch))
+            )
+            current_phns.append(
+                Phoneme(
+                    start_time=0,
+                    stop_time=lyrics[lyric_index].time - partition_start,
+                    symbol="<AP>",
                 )
-                note_durations[-1].extend(
-                    [current_word_duration[-1]]
-                    * (len(phn_list) - len(current_word_pitch))
-                )
-                phn_durations[-1][-1] = current_word_duration[-1] / (
-                    len(phn_list) - len(current_word_pitch) + 1
-                )
-                phn_durations[-1].extend(
-                    [phn_durations[-1][-1]] * (len(phn_list) - len(current_word_pitch))
-                )
-        word_index += 1
-
-    for i in range(len(phonemes)):
-        if not (
-            len(phonemes[i])
-            == len(pitches[i])
-            == len(note_durations[i])
-            == len(is_slur[i])
-            == len(phn_durations[i])
-        ):
-            # If the lengths are not equal, print the lengths for debugging
-            print(f"Length mismatch in partition {i}:")
-            print(f"  Phonemes: {len(phonemes[i])}, {phonemes}")
-            print(f"  Pitches: {len(pitches[i])}, {pitches}")
-            print(f"  Note Durations: {len(note_durations[i])}", note_durations)
-            print(f"  Phoneme Durations: {len(phn_durations[i])}", phn_durations)
-            print(f"  Is Slur: {len(is_slur[i])}", is_slur)
-            raise ValueError("Length mismatch in partition.")
-
-    return text, phonemes, pitches, note_durations, phn_durations, is_slur
-
-
-def create_score(uid, phns, midis, syb_dur, keep):
-    # Transfer into 'score' format
-    assert len(phns) == len(midis)
-    assert len(midis) == len(syb_dur)
-    assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
-    st = 0
-    index_phn = 0
-    note_list = []
-    while index_phn < len(phns):
-        midi = midis[index_phn]
-        note_info = [st]
-        st += syb_dur[index_phn]
-        syb = [phns[index_phn]]
-        index_phn += 1
-        if (
-            index_phn < len(phns)
-            and syb_dur[index_phn] == syb_dur[index_phn - 1]
-            and midis[index_phn] == midis[index_phn - 1]
-            and keep[index_phn] == 0
-        ):
-            syb.append(phns[index_phn])
-            index_phn += 1
-        syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
-        note_list.append(note_info)
-        # multi notes in one syllable
-        while (
-            index_phn < len(phns)
-            and keep[index_phn] == 1
-            and phns[index_phn] == phns[index_phn - 1]
-        ):
-            note_info = [st]
-            st += syb_dur[index_phn]
-            note_info.extend([st, "—", midis[index_phn], phns[index_phn]])
-            note_list.append(note_info)
-            index_phn += 1
-    return note_list
-
-
-def process_utterance(
-    writer,
-    wavscp,
-    text,
-    utt2spk,
-    label,
-    audio_dir,
-    wav_dumpdir,
-    segment,
-    midi_mapping,
-    tempos,
-    tgt_sr=24000,
-):
-    uid, lyrics, phns, midis, syb_dur, phn_dur, keep = segment.strip().split("|")
-    phns = phns.split(" ")
-    midis = midis.split(" ")
-    syb_dur = syb_dur.split(" ")
-    phn_dur = phn_dur.split(" ")
-    keep = keep.split(" ")
-
-    # load tempo from midi
-    id = uid[0:3]
-    tempo = tempos[str(id)]
-    song, piece, singer = uid.split("_")
-    original_uid = uid
-    uid = "_".join([singer, song, piece])
-    # type convert
-    phn_dur = [float(dur) for dur in phn_dur]
-    syb_dur = [float(syb) for syb in syb_dur]
-    keep = [int(k) for k in keep]
-    note_list = create_score(uid, phns, midis, syb_dur, keep)
-
-    text.write("{} {}\n".format(uid, " ".join(phns)))
-    utt2spk.write("{} {}\n".format(uid, uid.split("_")[0]))
-
-    # apply bit convert, there is a known issue in direct convert in format wavscp
-    cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/{}.wav".format(
-        os.path.join(audio_dir, original_uid),
-        tgt_sr,
-        wav_dumpdir,
-        uid,
-    )
-    os.system(cmd)
-
-    wavscp.write("{} {}/{}.wav\n".format(uid, wav_dumpdir, uid))
-
-    running_dur = 0
-    assert len(phn_dur) == len(phns)
-    label_entry = []
-    for i in range(len(phns)):
-        start = running_dur
-        end = running_dur + phn_dur[i]
-        label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[i]))
-        running_dur += phn_dur[i]
-
-    label.write("{} {}\n".format(uid, " ".join(label_entry)))
-    score = dict(
-        tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
-    )
-    writer["{}".format(uid)] = score
-
-
-def process_subset(args, set_name, tempos):
-    folder_name = set_name + "_{}".format(args.dataset)
-    makedir(os.path.join(args.tgt_dir, folder_name))
-    wavscp = open(
-        os.path.join(args.tgt_dir, folder_name, "wav.scp"), "w", encoding="utf-8"
-    )
-    label = open(
-        os.path.join(args.tgt_dir, folder_name, "label"), "w", encoding="utf-8"
-    )
-    text = open(os.path.join(args.tgt_dir, folder_name, "text"), "w", encoding="utf-8")
-    utt2spk = open(
-        os.path.join(args.tgt_dir, folder_name, "utt2spk"), "w", encoding="utf-8"
-    )
-    writer = SingingScoreWriter(
-        args.score_dump, os.path.join(args.tgt_dir, folder_name, "score.scp")
-    )
-
-    midi_mapping = load_midi_note_scp(args.midi_note_scp)
-
-    with open(
-        os.path.join(args.src_data, "segments", set_name + ".txt"),
-        "r",
-        encoding="utf-8",
-    ) as f:
-        segments = f.read().strip().split("\n")
-        for segment in segments:
-            process_utterance(
-                writer,
-                wavscp,
-                text,
-                utt2spk,
-                label,
-                args.src_data + "/segments/wav",
-                args.wav_dumpdir,
-                segment,
-                midi_mapping,
-                tempos,
-                tgt_sr=args.sr,
             )
 
+        # Iterate through lyrics until partition_end
+        while lyric_index < len(lyrics) and lyrics[lyric_index].time < partition_end:
+            lyric = lyrics[lyric_index]
+            note = notes[lyric_index]
+            pitch = note.pitch
+            note_duration = note.end - note.start
+            note_relative_start = note.start - partition_start
+            note_relative_end = note.end - partition_start
 
-def segment_dataset(args):
-    root_path = os.path.join(args.src_data.replace("/tmp", ""), "segments")
-    output_path = os.path.join(root_path, "wav")
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    transcript_filepath = os.path.join(root_path, "transcriptions.txt")
-
-    transcript_file = open(transcript_filepath, "w")
-    for subdir in os.listdir(args.src_data):
-        # check if subdir has files
-        if not os.listdir(os.path.join(args.src_data, subdir)):
-            continue
-        if subdir == "segments":
-            continue
-        full_subdir_path = os.path.join(args.src_data, subdir)
-
-        if os.path.isdir(full_subdir_path) and "-unseg" not in subdir:
-            print(f"Processing: {full_subdir_path}")
-            songid = subdir
-            # skip between 436 and 440
-            if int(songid.split("-")[0]) <= 440 and int(songid.split("-")[0]) >= 436:
-                continue
-            wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
-            midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
-            partitions = get_partitions(midi_file)
-            for wav_file in wav_files:
-                match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
-                assert songid == match.group(1)
-                singer = match.group(2)
-                segids, wav_scp = save_wav_segments_from_partitions(
-                    output_path, wav_file, partitions, songid, singer
+            if lyric.text in {"?", "-"}:
+                # Slur
+                current_notes.append(
+                    Note(
+                        onset_time=note_relative_start,
+                        stop_time=note_relative_end,
+                        pitch=pitch,
+                        lyric=lyric.text,
+                        phn=current_phns[-1].symbol,
+                    )
                 )
-                (
-                    lyrics,
-                    phonemes,
-                    pitches,
-                    note_durations,
-                    phn_durations,
-                    is_slur,
-                ) = get_info_from_partitions(midi_file, partitions)
-                for i, segid in enumerate(segids):
-                    filename = wav_scp[i][1].split("/")[-1].split(".")[0]
-                    lyrics_str = " ".join(lyrics[i])
-                    phonemes_str = " ".join(phonemes[i])
-                    pitches_str = " ".join(f"{pitch}" for pitch in pitches[i])
-                    note_durations_str = " ".join(
-                        f"{duration:.6f}" for duration in note_durations[i]
+                current_phns.append(
+                    Phoneme(
+                        start_time=note_relative_start,
+                        stop_time=note_relative_end,
+                        symbol=current_phns[-1].symbol,
                     )
-                    phn_durations_str = " ".join(
-                        f"{duration:.6f}" for duration in phn_durations[i]
+                )
+            elif lyric.text.isalpha():
+                phns_in_lyric = split_pinyin(lyric.text)
+                current_notes.append(
+                    Note(
+                        onset_time=note_relative_start,
+                        stop_time=note_relative_end,
+                        pitch=pitch,
+                        lyric=lyric.text,
+                        phn="_".join(phns_in_lyric),
                     )
-                    is_slur_str = " ".join(f"{slur}" for slur in is_slur[i])
-                    transcript_line = (
-                        f"{filename}|{lyrics_str}|{phonemes_str}|"
-                        f"{pitches_str}|{note_durations_str}|{phn_durations_str}|"
-                        f"{is_slur_str}"
+                )
+                if len(phns_in_lyric) == 1:
+                    current_phns.append(
+                        Phoneme(
+                            start_time=note_relative_start,
+                            stop_time=note_relative_end,
+                            symbol=phns_in_lyric[0],
+                        )
                     )
-                    transcript_file.write(transcript_line + "\n")
-    transcript_file.close()
-    train_transcript_filepath = os.path.join(root_path, "train.txt")
-    test_transcript_filepath = os.path.join(root_path, "test.txt")
-    # loop through the transcript file and split into train and test based on song id
-    with open(transcript_filepath, "r") as f:
-        transcript = f.readlines()
-        train_transcript = []
-        test_transcript = []
-        for line in transcript:
-            song_id = line.split("|")[0].split("_")[0].split("-")[0]
-            if int(song_id) in TEST_SET:
-                test_transcript.append(line)
+                elif len(phns_in_lyric) == 2:
+                    initial_vowel_duration_split = random.uniform(0.2, 0.25)  # 1:5, 1:4
+                    initial_relative_split_end = (
+                        note_relative_start
+                        + note_duration * initial_vowel_duration_split
+                    )
+                    current_phns += [
+                        Phoneme(
+                            start_time=note_relative_start,
+                            stop_time=initial_relative_split_end,
+                            symbol=phns_in_lyric[0],
+                        ),
+                        Phoneme(
+                            start_time=initial_relative_split_end,
+                            stop_time=note_relative_end,
+                            symbol=phns_in_lyric[1],
+                        ),
+                    ]
+                else:
+                    raise ValueError(f"Unexpected number of phonemes in lyric: {lyric.text}")
+
+            lyric_index += 1
+
+        # at the end of the partition
+        if (partition_end - notes[lyric_index - 1].end) > 0:
+            current_notes.append(
+                Note(
+                    onset_time=notes[lyric_index - 1].end - partition_start,
+                    stop_time=partition_end - partition_start,
+                    pitch=0,
+                    lyric="<SP>",
+                    phn="<SP>",
+                )
+            )
+            current_phns.append(
+                Phoneme(
+                    start_time=notes[lyric_index - 1].end - partition_start,
+                    stop_time=partition_end - partition_start,
+                    symbol="<SP>",
+                )
+            )
+
+        partition_notes.append(current_notes)
+        partition_phns.append(current_phns)
+
+    return partition_notes, partition_phns
+
+
+def process_dataset(args):
+    trainset = KaldiDataset(args.tgt_dir / f"train_{args.dataset}", args.score_dump)
+    testset = KaldiDataset(args.tgt_dir / f"test_{args.dataset}", args.score_dump)
+
+    for song_folder in args.src_data.iterdir():
+        if (not song_folder.is_dir()) or song_folder.stem.endswith("-unseg"):
+            continue
+
+        try:
+            song = int(song_folder.name[:3])
+        except ValueError:
+            logging.error(f"Invalid song number in folder name: {song_folder}")
+            continue
+        # Skip songs between 436 and 440
+        if song >= 436 and song <= 440:
+            continue
+
+        wav_files = list(song_folder.glob("*.wav"))
+        if not wav_files:
+            logging.error(f"No wav files found in {song_folder}")
+            continue
+        midi_files = list(song_folder.glob("*.mid"))
+        if len(midi_files) != 1:
+            logging.error(
+                f"Unexpected number of midi files in {song_folder}: {len(midi_files)=}"
+            )
+            continue
+
+        logging.info(f"Processing: {song_folder}")
+        midi_file = midi_files[0]
+        song_id = song_folder.stem
+        partitions, tempo = get_partitions(midi_file)
+        for wav_file in wav_files:
+            match = re.search(r"([0-9-]+)-([a-zA-Z-]+)", wav_file.stem)
+            assert song_id == match.group(1)
+            singer = match.group(2)
+            if (args.dataset == "acesinger" and singer == "original") or (
+                args.dataset == "original" and singer != "original"
+            ):
+                continue
+            segids, filenames, _ = save_wav_segments_from_partitions(
+                wav_file, partitions, args.wav_dumpdir, song_id, singer
+            )
+            partitioned_notes, partitioned_phns = get_info_from_partitions(
+                midi_file, partitions
+            )
+            if song_id in TEST_SET:
+                dataset = testset
             else:
-                train_transcript.append(line)
-    with open(train_transcript_filepath, "w") as f:
-        f.writelines(train_transcript)
-    with open(test_transcript_filepath, "w") as f:
-        f.writelines(test_transcript)
+                dataset = trainset
+            dataset.utt2spk += [(segid, singer) for segid in segids]
+            dataset.utt2wav += list(zip(segids, filenames))
+            dataset.utt2text += [
+                (segid, *[phn.symbol for phn in phns])
+                for segid, phns in zip(segids, partitioned_phns)
+            ]
+            dataset.utt2label += [
+                (
+                    segid,
+                    *[
+                        f"{phn.start_time:.3f} {phn.stop_time:.3f} {phn.symbol}"
+                        for phn in phns
+                    ],
+                )
+                for segid, phns in zip(segids, partitioned_phns)
+            ]
+            for segid, notes in zip(segids, partitioned_notes):
+                dataset.score_writer[segid] = {
+                    "tempo": tempo,
+                    "item_list": ["st", "et", "lyric", "midi", "phns"],
+                    "note": [
+                        [
+                            note.onset_time,
+                            note.stop_time,
+                            note.lyric,
+                            note.pitch,
+                            note.phn,
+                        ]
+                        for note in notes
+                    ],
+                }
+
+    for dataset in [trainset, testset]:
+        with open(dataset.data_folder / "utt2spk", "w") as outfile:
+            write_kaldi_file(outfile, dataset.utt2spk)
+        with open(dataset.data_folder / "wav.scp", "w") as outfile:
+            write_kaldi_file(outfile, dataset.utt2wav)
+        with open(dataset.data_folder / "text", "w") as outfile:
+            write_kaldi_file(outfile, dataset.utt2text)
+        with open(dataset.data_folder / "label", "w") as outfile:
+            write_kaldi_file(outfile, dataset.utt2label)
+
+
+def write_kaldi_file(fhand: TextIO, tuples: list[tuple]):
+    fhand.writelines([" ".join(map(str, tup)) + "\n" for tup in sorted(tuples)])
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare Data for KiSing Database")
-    parser.add_argument("src_data", type=str, help="source data directory")
-    parser.add_argument("--tgt_dir", type=str, default="data")
+    parser.add_argument("src_data", type=Path, help="source data directory")
+    parser.add_argument("--tgt_dir", type=Path, default="data")
     parser.add_argument(
-        "--midi_note_scp",
-        type=str,
-        help="midi note scp for information of note id",
-        default="local/midi-note.scp",
+        "--wav_dumpdir",
+        type=Path,
+        help="wav dump directory (rebit)",
+        default="wav_dump",
     )
     parser.add_argument(
-        "--wav_dumpdir", type=str, help="wav dump directory (rebit)", default="wav_dump"
-    )
-    parser.add_argument("--sr", type=int, help="sampling rate (Hz)")
-    parser.add_argument("--g2p", type=str, help="g2p", default="None")
-    parser.add_argument(
-        "--score_dump", type=str, default="score_dump", help="score dump directory"
+        "--score_dump", type=Path, default="score_dump", help="score dump directory"
     )
     parser.add_argument(
         "--dataset",
@@ -574,81 +435,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    if not os.path.exists(os.path.join(args.src_data, "segments")):
-        makedir(os.path.join(args.src_data, "segments"))
-    dataset = args.dataset
-    # remove args.src_data/tmp dir if exists
-    if os.path.exists(os.path.join(args.src_data, "tmp")):
-        shutil.rmtree(os.path.join(args.src_data, "tmp"))
-    # create args.src_data/tmp dir
-    os.makedirs(os.path.join(args.src_data, "tmp"))
-    # create all numbers subdirs in args.src_data/tmp
-    for subdir in glob.glob(os.path.join(args.src_data, "*")):
-        # if subdir contains 4
-        if "4" in subdir:
-            os.makedirs(os.path.join(args.src_data, "tmp", subdir.split("/")[-1]))
-    if dataset == "all" or dataset == "acesinger":
-        # symlink all the folders in the src_data starting with number to tmp
-        for subdir in os.listdir(args.src_data):
-            if subdir[0].isdigit():
-                # get the absolute path of subdir even if it is symlinked
-                real_subdir = os.path.realpath(os.path.join(args.src_data, subdir))
-                for file in os.listdir(real_subdir):
-                    if file.endswith(".wav"):
-                        os.symlink(
-                            os.path.join(real_subdir, file),
-                            os.path.join(args.src_data, "tmp", subdir, file),
-                        )
-                    if file.endswith(".mid"):
-                        os.symlink(
-                            os.path.join(real_subdir, file),
-                            os.path.join(args.src_data, "tmp", subdir, file),
-                        )
-    if dataset == "all" or dataset == "original":
-        # symlink all the folders in the src_data starting with original to tmp,
-        # rename them to follow the format of kising
-        for subdir in os.listdir(args.src_data):
-            if subdir.startswith("original"):
-                for file in os.listdir(os.path.join(args.src_data, subdir)):
-                    if file.endswith(".wav"):
-                        # extract number
-                        if file.endswith("2.wav"):
-                            number = "441-2"
-                        else:
-                            number = file.split("-")[0].split("_")[0]
-                            if int(number) >= 436 and int(number) <= 440:
-                                continue
-                        real_subdir = os.path.realpath(
-                            os.path.join(args.src_data, subdir)
-                        )
-                        cmd = "sox {} -c 1 --bits 16 {}".format(
-                            os.path.join(real_subdir, file),
-                            os.path.join(
-                                args.src_data, "tmp", number, number + "-original.wav"
-                            ),
-                        )
-                        os.system(cmd)
-                        # symlink the midi file in subdir/number to tmp/number
-                        # find the midi file name
-                        for file in os.listdir(os.path.join(args.src_data, number)):
-                            if file.endswith(".mid"):
-                                midi_file = file
-                                break
-                        if not os.path.exists(
-                            os.path.join(args.src_data, "tmp", number, midi_file)
-                        ):
-                            real_midi_file = os.path.realpath(
-                                os.path.join(args.src_data, number, midi_file)
-                            )
-                            os.symlink(
-                                real_midi_file,
-                                os.path.join(args.src_data, "tmp", number, midi_file),
-                            )
-    args.src_data = os.path.join(args.src_data, "tmp")
-    segment_dataset(args)
-    # remove args.src_data/tmp dir
-    shutil.rmtree(os.path.join(args.src_data))
-    args.src_data = args.src_data.replace("/tmp", "")
-    tempos = load_midi(args.src_data)
-    for name in ["train", "test"]:
-        process_subset(args, name, tempos)
+    logging.debug(args)
+    logging.info(f"Start processing data from {args.src_data}")
+
+    process_dataset(args)
