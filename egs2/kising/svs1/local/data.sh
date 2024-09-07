@@ -17,6 +17,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=44100
+# shellcheck disable=SC2034
 g2p=None
 dataset="all"
 
