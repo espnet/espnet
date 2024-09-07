@@ -1,4 +1,4 @@
-# Adapted from Opencpop's pinyin to phoneme mapping table: 
+# Adapted from Opencpop's pinyin to phoneme mapping table:
 # https://wenet.org.cn/opencpop/resources/annotationformat/
 PINYIN_DICT = {
     "a": ("a",),
