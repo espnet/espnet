@@ -7,8 +7,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TextIO
-
-from local.pinyin_dict import PINYIN_DICT
+import importlib
 
 try:
     from pydub import AudioSegment
@@ -68,6 +67,11 @@ class KaldiDataset:
                 outdir=self.score_dump_folder,
                 scpfile=self.data_folder / "score.scp",
             )
+
+
+def load_pinyin_dict(pinyin_dict_path: Path):
+    module = importlib.import_module(pinyin_dict_path.stem)
+    return module.PINYIN_DICT
 
 
 def get_partitions(
@@ -158,25 +162,17 @@ def save_wav_segments_from_partitions(
 
 
 # Function to split Pinyin into shengmu and yunmu
-def split_pinyin(pinyin):
+def split_pinyin(pinyin: str, pinyin_dict: dict) -> tuple[str]:
     # load pinyin dict from local/pinyin.dict
     pinyin = pinyin.lower()
-
-    if not re.match(r"^[a-züv]+[1-5]?$", pinyin):
-        return "Invalid Pinyin input."
-    if pinyin not in PINYIN_DICT.keys():
-        return [pinyin]
-    a = pinyin
-    a1, a2 = PINYIN_DICT[a]
-    if a1 == "^":
-        return [a2]
-    if a2 == "^":
-        return [a1]
-    return [a1, a2]
+    if pinyin not in pinyin_dict:
+        logging.debug(f"Unknown pinyin: {pinyin} in pinyin_dict")
+        return (pinyin, )
+    return pinyin_dict[pinyin]
 
 
 def get_info_from_partitions(
-    midi_path: str | Path, partitions: list[tuple[float, float]]
+    midi_path: str | Path, partitions: list[tuple[float, float]], pinyin_dict: dict[str, tuple[str]]
 ) -> tuple[list[list[Note]], list[list[Phoneme]]]:
     midi_data = pretty_midi.PrettyMIDI(str(midi_path))
     notes = midi_data.instruments[0].notes
@@ -252,7 +248,7 @@ def get_info_from_partitions(
                     )
                 )
             elif lyric.text.isalpha():
-                phns_in_lyric = split_pinyin(lyric.text)
+                phns_in_lyric = split_pinyin(lyric.text, pinyin_dict)
                 current_notes.append(
                     Note(
                         onset_time=note_relative_start,
@@ -324,6 +320,8 @@ def process_dataset(args):
     trainset = KaldiDataset(args.tgt_dir / f"train_{args.dataset}", args.score_dump)
     testset = KaldiDataset(args.tgt_dir / f"test_{args.dataset}", args.score_dump)
 
+    pinyin_dict = load_pinyin_dict(args.pinyin_dict)
+
     for song_folder in args.src_data.iterdir():
         if (not song_folder.is_dir()) or song_folder.stem.endswith("-unseg"):
             continue
@@ -364,7 +362,7 @@ def process_dataset(args):
                 wav_file, partitions, args.wav_dumpdir, song_id, singer
             )
             partitioned_notes, partitioned_phns = get_info_from_partitions(
-                midi_file, partitions
+                midi_file, partitions, pinyin_dict
             )
             if song_id in TEST_SET:
                 dataset = testset
@@ -435,6 +433,12 @@ if __name__ == "__main__":
         type=str,
         default="all",
         help="dataset to process (original|acesinger|all)",
+    )
+    parser.add_argument(
+        "--pinyin_dict",
+        type=Path,
+        default=Path("local/pinyin_dict2.py"),
+        help="pinyin dict file",
     )
     args = parser.parse_args()
 
