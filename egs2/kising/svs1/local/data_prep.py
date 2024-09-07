@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import logging
 import random
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TextIO
-import importlib
 
 try:
     from pydub import AudioSegment
@@ -167,12 +167,14 @@ def split_pinyin(pinyin: str, pinyin_dict: dict) -> tuple[str]:
     pinyin = pinyin.lower()
     if pinyin not in pinyin_dict:
         logging.debug(f"Unknown pinyin: {pinyin} in pinyin_dict")
-        return (pinyin, )
+        return (pinyin,)
     return pinyin_dict[pinyin]
 
 
 def get_info_from_partitions(
-    midi_path: str | Path, partitions: list[tuple[float, float]], pinyin_dict: dict[str, tuple[str]]
+    midi_path: str | Path,
+    partitions: list[tuple[float, float]],
+    pinyin_dict: dict[str, tuple[str]],
 ) -> tuple[list[list[Note]], list[list[Phoneme]]]:
     midi_data = pretty_midi.PrettyMIDI(str(midi_path))
     notes = midi_data.instruments[0].notes
