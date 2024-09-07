@@ -21,7 +21,8 @@ g2p=None
 dataset="all"
 
 train_set="tr_no_dev"
-train_dev="dev"
+valid_set="dev"
+test_set="eval"
 
 log "$0 $*"
 
@@ -89,26 +90,26 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/utt2spk_to_spk2utt.pl <"data/${src_data}_${dataset}/utt2spk" >"data/${src_data}_${dataset}/spk2utt"
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" "data/${src_data}_${dataset}"
     done
-    if [ -e "data/eval" ]; then
-        rm -r "data/eval"
+    if [ -e "data/${test_set}" ]; then
+        rm -r "data/${test_set}"
     fi
-    mv "data/test_${dataset}" data/eval
+    mv "data/test_${dataset}" data/${test_set}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Held out validation set"
 
     utils/copy_data_dir.sh "data/train_${dataset}" "data/${train_set}"
-    utils/copy_data_dir.sh "data/train_${dataset}" "data/${train_dev}"
-    for dset in ${train_set} ${train_dev}; do
+    utils/copy_data_dir.sh "data/train_${dataset}" "data/${valid_set}"
+    for dset in ${train_set} ${valid_set}; do
         for extra_file in label score.scp; do
             cp "data/train_${dataset}/${extra_file}" "data/${dset}"
         done
     done
-    tail -n 50 "data/train_${dataset}/wav.scp" >"data/${train_dev}/wav.scp"
+    tail -n 50 "data/train_${dataset}/wav.scp" >"data/${valid_set}/wav.scp"
     utils/filter_scp.pl --exclude data/dev/wav.scp "data/train_${dataset}/wav.scp" >"data/${train_set}/wav.scp"
 
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" "data/${train_set}"
-    utils/fix_data_dir.sh --utt_extra_files "label score.scp" "data/${train_dev}"
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" "data/${valid_set}"
 
 fi
