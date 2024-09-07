@@ -80,9 +80,9 @@ def get_partitions(
     """
     midi_data = pretty_midi.PrettyMIDI(str(input_midi))
     times, tempo_changes = midi_data.get_tempo_changes()
-    assert len(tempo_changes) == 1, (
-        f"Unexpected tempo changes for {input_midi}: {tempo_changes}"
-    )
+    assert (
+        len(tempo_changes) == 1
+    ), f"Unexpected tempo changes for {input_midi}: {tempo_changes}"
     assert times[0] == 0.0, f"Unexpected start time={times[0]} for {input_midi}"
     bpm = tempo_changes[0]
 
@@ -127,9 +127,10 @@ def save_wav_segments_from_partitions(
 
     audio = AudioSegment.from_wav(input_wav)
 
-    assert audio.channels in {1, 2}, (
-        f"Unexpected number of channels in kising-v2: {audio.channels}"
-    )
+    assert audio.channels in {
+        1,
+        2,
+    }, f"Unexpected number of channels in kising-v2: {audio.channels}"
 
     if audio.channels == 2:
         audio = audio.split_to_mono()[1]  # NOTE: use the right channel when it's stereo
@@ -288,7 +289,9 @@ def get_info_from_partitions(
                         ),
                     ]
                 else:
-                    raise ValueError(f"Unexpected number of phonemes in lyric: {lyric.text}")
+                    raise ValueError(
+                        f"Unexpected number of phonemes in lyric: {lyric.text}"
+                    )
 
             lyric_index += 1
 
