@@ -75,11 +75,11 @@ def load_pinyin_dict(pinyin_dict_path: Path):
 
 
 def get_partitions(
-    input_midi: str | Path, threshold=0.75, max_padding_seconds = 0.09
+    input_midi: str | Path, threshold=0.75, max_padding_seconds=0.09
 ) -> tuple[list[list[float, float]], int]:
     """
     Get partition points [(start, end)] that detach at rests longer than the
-    specified `threshold` (in beats). Each segment is padded by 
+    specified `threshold` (in beats). Each segment is padded by
     `max_padding_seconds` (in seconds) at the start and end.
     """
     midi_data = pretty_midi.PrettyMIDI(str(input_midi))
