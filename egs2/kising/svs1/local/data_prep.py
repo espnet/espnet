@@ -75,12 +75,12 @@ def load_pinyin_dict(pinyin_dict_path: Path):
 
 
 def get_partitions(
-    input_midi: str | Path, threshold=2.0
+    input_midi: str | Path, threshold=0.75, max_padding_seconds = 0.09
 ) -> tuple[list[list[float, float]], int]:
     """
     Get partition points [(start, end)] that detach at rests longer than the
-    specified threshold in beats.
-    Note: silence truncated when longer than 0.4s.
+    specified `threshold` (in beats). Each segment is padded by 
+    `max_padding_seconds` (in seconds) at the start and end.
     """
     midi_data = pretty_midi.PrettyMIDI(str(input_midi))
     times, tempo_changes = midi_data.get_tempo_changes()
@@ -100,15 +100,16 @@ def get_partitions(
     partitions = []  # [[start, end], ...]
     instrument = midi_data.instruments[0]  # i.e., just a track
     notes = instrument.notes
-    seg_start = max(notes[0].start - 0.2, 0.0)
+    seg_start = max(notes[0].start - max_padding_seconds, 0.0)
     prev_note_end = notes[0].end
 
     for note in notes[1:]:
         if note.start - prev_note_end >= thresh_in_second:
+            silence_midpoint = (prev_note_end + note.start) / 2
             partitions.append(
-                [seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2)]
+                [seg_start, min(silence_midpoint, prev_note_end + max_padding_seconds)]
             )
-            seg_start = max(note.start - 0.2, (prev_note_end + note.start) / 2)
+            seg_start = max(note.start - max_padding_seconds, silence_midpoint)
         prev_note_end = note.end
 
     # NOTE: The end of the last partition can be larger than the
