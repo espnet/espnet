@@ -396,8 +396,8 @@ def process_dataset(args):
                     "item_list": ["st", "et", "lyric", "midi", "phns"],
                     "note": [
                         [
-                            note.onset_time,
-                            note.stop_time,
+                            round(note.onset_time, 3),
+                            round(note.stop_time, 3),
                             note.lyric,
                             note.pitch,
                             note.phn,
