@@ -76,7 +76,7 @@ def load_pinyin_dict(pinyin_dict_path: Path):
 
 def get_partitions(
     input_midi: str | Path, threshold=2.0
-) -> tuple[list[tuple[float, float]], int]:
+) -> tuple[list[list[float, float]], int]:
     """
     Get partition points [(start, end)] that detach at rests longer than the
     specified threshold in beats.
@@ -97,7 +97,7 @@ def get_partitions(
         print(f"Unexpected for kising. Multi-track found: {input_midi}!")
         exit(1)
 
-    partitions = []  # [(start, end)]
+    partitions = []  # [[start, end], ...]
     instrument = midi_data.instruments[0]  # i.e., just a track
     notes = instrument.notes
     seg_start = max(notes[0].start - 0.2, 0.0)
@@ -106,20 +106,20 @@ def get_partitions(
     for note in notes[1:]:
         if note.start - prev_note_end >= thresh_in_second:
             partitions.append(
-                (seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2))
+                [seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2)]
             )
             seg_start = max(note.start - 0.2, (prev_note_end + note.start) / 2)
         prev_note_end = note.end
 
-    # Note: the end of the last partition can be larger than the
-    # corresponding audio length. But does not matter
-    partitions.append((seg_start, notes[-1].end + 0.2))
+    # NOTE: The end of the last partition can be larger than the
+    # corresponding audio length
+    partitions.append([seg_start, notes[-1].end + 0.2])
 
     return partitions, int(bpm)
 
 
 def save_wav_segments_from_partitions(
-    input_wav: str | Path,
+    audio: AudioSegment,
     partitions: list[tuple[float, float]],
     output_directory: str | Path,
     song_id: str,
@@ -128,8 +128,6 @@ def save_wav_segments_from_partitions(
     """
     Partition WAV files based on 'partitions' and save the segmented files.
     """
-
-    audio = AudioSegment.from_wav(input_wav)
 
     assert audio.channels in {
         1,
@@ -183,13 +181,15 @@ def get_info_from_partitions(
     assert len(notes) == len(lyrics), "Mismatch between notes and lyrics length"
     assert all(
         [note.start == lyric.time for note, lyric in zip(notes, lyrics)]
-    ), "Mismatch between notes and lyrics start time"
-    assert all(
-        [start < end for start, end in partitions]
-    ), "Partition start time should be smaller than end time"
+    ), f"Mismatch between notes and lyrics start time. Got {notes=}, {lyrics=}"
+    assert all([start < end for start, end in partitions]), (
+        f"Partition start time should be smaller than end time. Got {partitions=}."
+        "This issue could be due to incomplete audio data."
+        "Try deleting the current audio folder and rerunning the script."
+    )
     assert all(
         [partitions[i][1] <= partitions[i + 1][0] for i in range(len(partitions) - 1)]
-    ), "Partitions should be non-overlapping and increasing in time"
+    ), f"Partitions should be non-overlapping and increasing in time. Got {partitions=}"
 
     partition_notes = []
     partition_phns = []
@@ -360,8 +360,12 @@ def process_dataset(args):
                 args.dataset == "original" and singer != "original"
             ):
                 continue
+
+            audio = AudioSegment.from_wav(wav_file)
+            # truncate the last partition if it's longer than the audio
+            partitions[-1][1] = min(partitions[-1][1], audio.duration_seconds)
             segids, filenames, _ = save_wav_segments_from_partitions(
-                wav_file, partitions, args.wav_dumpdir, song_id, singer
+                audio, partitions, args.wav_dumpdir, song_id, singer
             )
             partitioned_notes, partitioned_phns = get_info_from_partitions(
                 midi_file, partitions, pinyin_dict
