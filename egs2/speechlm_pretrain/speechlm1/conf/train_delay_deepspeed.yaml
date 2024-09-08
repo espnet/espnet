@@ -7,14 +7,14 @@ corelm: ar_delay
 corelm_conf:
     share_emb: false
     att_unit: 2048
-    n_ctx: 4096
+    n_ctx: 8192
     hf_model_tag: HuggingFaceTB/SmolLM-1.7B
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 10000
+batch_bins: 8000
 num_iters_per_epoch: 10000
-max_epoch: 200
+max_epoch: 500
 num_workers: 2
 drop_last_iter: true
 log_interval: 1000

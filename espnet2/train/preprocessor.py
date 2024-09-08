@@ -2401,6 +2401,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         speaker_prompt_length: int = 500,
         pad_speaker_prompt: bool = True,
         # others
+        n_ctx: int = 4096,
         extra_names_and_modalities=[
             "sampled.scp,codec",
         ],
@@ -2408,6 +2409,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_list = token_list
         self.token_bias = token_bias
         self.encoder_decoder_format = encoder_decoder_format
+        self.n_ctx = n_ctx - codec_token_in_use # in case this is delay interleave
 
         assert not ("codec" in token_bias and "codec_ssl" in token_bias), \
             "Cannot use both modality codec and codec_ssl"
@@ -2504,14 +2506,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if self.encoder_decoder_format:
             new_data["enc_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs[:n_conditions] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + seqs[n_conditions:] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
         else:
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
 
         prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
         prefix_len = prefix_len // self.codec_token_in_use + 2

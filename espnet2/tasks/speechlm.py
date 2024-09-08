@@ -251,6 +251,7 @@ class SpeechLMTask(AbsTask):
             codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
+            n_ctx=args.corelm_conf.get('n_ctx', 4096),
         )
 
         return retval

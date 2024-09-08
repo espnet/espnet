@@ -20,7 +20,7 @@ test_jsons=""
 # Speech: MLS + LibriSpeech + Yodas + GigaSpeech + Emilia
 # Audio: Audioset + Music
 # Text: CommonCrawl
-data_combo_name=combo_sep2
+data_combo_name=whole_pretrain
 # 1. ASR
 asr_train=" \
   dump/raw_codec_ssl_asr_mls_en/mls_en_train/data.json \

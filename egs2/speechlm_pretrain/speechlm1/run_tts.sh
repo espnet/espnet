@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/tts_pretrain/train_delay_deepspeed_370m.yaml
+train_config=conf/train_delay.yaml
 inference_config=conf/decode_espnet_codec.yaml
 inference_model=valid.total_count.best.pth
 
@@ -16,8 +16,15 @@ valid_jsons=""
 test_jsons=""
 
 # As of Sep 1: MLS_en + LibriSpeech + Yodas + GigaSpeech + Emilia
-data_combo_name=combo_sep2_tts
-# 1. TTS
+# data_combo_name=mls_ls_giga
+# # 1. TTS
+# train_jsons+=" \
+#   dump/raw_tts_mls_en/mls_en_train/data.json \
+#   dump/raw_tts_librispeech/train_960/data.json \
+#   dump/raw_tts_gigaspeech/gigaspeech_train_xl/data.json \
+# "
+
+data_combo_name=mls_ls_giga_yodas_emilia
 train_jsons+=" \
   dump/raw_tts_mls_en/mls_en_train/data.json \
   dump/raw_tts_librispeech/train_960/data.json \
@@ -25,7 +32,7 @@ train_jsons+=" \
   dump/raw_tts_yodas_auto1/train_auto_part1/data.json \
   dump/raw_tts_yodas_auto2/train_auto_part2/data.json \
   dump/raw_tts_gigaspeech/gigaspeech_train_xl/data.json \
-  dump/raw_tts_emilia/emilia_en/data.json
+  dump/raw_tts_emilia/emilia_en/data.json \
 "
 
 valid_jsons+=" \

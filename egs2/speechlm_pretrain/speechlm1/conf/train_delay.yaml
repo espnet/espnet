@@ -2,6 +2,7 @@ corelm: ar_delay
 corelm_conf:
     share_emb: false
     qk_norm: true
+    n_ctx: 3000
     att_unit: 1024
     head: 16
     layer: 24
