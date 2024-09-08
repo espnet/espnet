@@ -256,7 +256,7 @@ def get_info_from_partitions(
                         onset_time=note_relative_start,
                         stop_time=note_relative_end,
                         pitch=pitch,
-                        lyric=lyric.text,
+                        lyric="_".join(phns_in_lyric),
                         phn="_".join(phns_in_lyric),
                     )
                 )
