@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 ASVSPOOF2019_LA=downloads
+ASVSPOOF5=
 PUBLICDEEPMINE=downloads
 LIBRISPEECH=downloads
 COMMONVOICE16FARSI=downloads
