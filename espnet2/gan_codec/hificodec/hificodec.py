@@ -1,25 +1,28 @@
-import numpy as np
-import math
 import functools
+import math
 import random
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typeguard import typechecked
-from typing import Any, Dict, List, Optional
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
-from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
-from espnet2.gan_codec.shared.discriminator.msstft_discriminator import MultiScaleSTFTDiscriminator
 from espnet2.gan_codec.hificodec.module import (
-    Generator,
     Encoder,
+    Generator,
     GroupResidualVectorQuantization,
 )
+from espnet2.gan_codec.shared.discriminator.msstft_discriminator import (
+    MultiScaleSTFTDiscriminator,
+)
+from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
+from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.gan_tts.hifigan.hifigan import (
+    HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
-    HiFiGANMultiPeriodDiscriminator
 )
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -28,8 +31,9 @@ from espnet2.gan_tts.hifigan.loss import (
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
+
 class HiFiCodec(AbsGANCodec):
-    """ HiFiCodec model."""
+    """HiFiCodec model."""
 
     @typechecked
     def __init__(
@@ -38,10 +42,10 @@ class HiFiCodec(AbsGANCodec):
         generator_params: Dict[str, Any] = {
             "hidden_dim": 256,
             "resblock_num": "1",
-            "resblock_kernel_sizes": [3,7,11],
-            "resblock_dilation_sizes": [[1,3,5], [1,3,5], [1,3,5]],
-            "upsample_rates": [8,5,4,2],
-            "upsample_kernel_sizes": [16,11,8,4],
+            "resblock_kernel_sizes": [3, 7, 11],
+            "resblock_dilation_sizes": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+            "upsample_rates": [8, 5, 4, 2],
+            "upsample_kernel_sizes": [16, 11, 8, 4],
             "upsample_initial_channel": 512,
             "quantizer_n_q": 8,
             "quantizer_bins": 1024,
@@ -61,7 +65,7 @@ class HiFiCodec(AbsGANCodec):
                 "hop_lengths": [256, 512, 128, 64, 32],
                 "win_lengths": [1024, 2048, 512, 256, 128],
                 "activation": "LeakyReLU",
-                "activation_params": {"negative_slope": 0.2},                
+                "activation_params": {"negative_slope": 0.2},
             },
             "scales": 3,
             "scale_downsample_pooling": "AvgPool1d",
@@ -137,8 +141,7 @@ class HiFiCodec(AbsGANCodec):
         use_loss_balancer: bool = False,
         balance_ema_decay: float = 0.99,
     ):
-        """Intialize HiFiCodec model.
-        """
+        """Intialize HiFiCodec model."""
         super().__init__()
 
         # define modules
@@ -484,6 +487,7 @@ class HiFiCodec(AbsGANCodec):
         """
         return self.generator.decode(x)
 
+
 class HiFiCodecGenerator(nn.Module):
     """HiFiCodec generator module."""
 
@@ -493,10 +497,10 @@ class HiFiCodecGenerator(nn.Module):
         sample_rate: int = 16000,
         hidden_dim: int = 128,
         resblock_num: str = "1",
-        resblock_kernel_sizes: List[int] = [3,7,11],
-        resblock_dilation_sizes: List[List[int]] = [[1,3,5], [1,3,5], [1,3,5]],
-        upsample_rates: List[int] = [8,5,4,2],
-        upsample_kernel_sizes: List[int] = [16,11,8,4],
+        resblock_kernel_sizes: List[int] = [3, 7, 11],
+        resblock_dilation_sizes: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        upsample_rates: List[int] = [8, 5, 4, 2],
+        upsample_kernel_sizes: List[int] = [16, 11, 8, 4],
         upsample_initial_channel: int = 512,
         quantizer_n_q: int = 8,
         quantizer_bins: int = 1024,
@@ -530,7 +534,7 @@ class HiFiCodecGenerator(nn.Module):
             quantizer_kmeans_init=quantizer_kmeans_init,
             quantizer_kmeans_iters=quantizer_kmeans_iters,
             quantizer_threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
-            quantizer_target_bandwidth=quantizer_target_bandwidth
+            quantizer_target_bandwidth=quantizer_target_bandwidth,
         )
 
         self.target_bandwidths = quantizer_target_bandwidth
@@ -544,10 +548,10 @@ class HiFiCodecGenerator(nn.Module):
             resblock_num=resblock_num,
             resblock_kernel_sizes=resblock_kernel_sizes,
             resblock_dilation_sizes=resblock_dilation_sizes,
-            out_dim=2 * hidden_dim
+            out_dim=2 * hidden_dim,
         )
 
-    def forward(self, x: torch.Tensor,use_dual_decoder: bool = False):
+    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
         """HiFiCodec forward propagation.
 
         Args:
@@ -568,7 +572,9 @@ class HiFiCodecGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
 
         # Forward quantizer
-        quantized, _, _, commit_loss, quantization_loss = self.quantizer(encoder_out, self.frame_rate, bw)
+        quantized, _, _, commit_loss, quantization_loss = self.quantizer(
+            encoder_out, self.frame_rate, bw
+        )
 
         resyn_audio = self.decoder(quantized)
 
@@ -578,12 +584,12 @@ class HiFiCodecGenerator(nn.Module):
             resyn_audio_real = None
 
         return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
-        
 
-    def encode(self, 
-               x: torch.Tensor,
-               target_bw: Optional[float] = None,
-               ):
+    def encode(
+        self,
+        x: torch.Tensor,
+        target_bw: Optional[float] = None,
+    ):
         """HiFiCodec codec encoding.
 
         Args:
@@ -602,7 +608,7 @@ class HiFiCodecGenerator(nn.Module):
         else:
             bw = target_bw
         codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
-        
+
         return codes
 
     def decode(self, codes: torch.Tensor):
@@ -694,7 +700,7 @@ class HiFiCodecDiscriminator(nn.Module):
                 discriminator module. The period parameter will be overwritten.
         """
         super().__init__()
-        
+
         self.msstft = MultiScaleSTFTDiscriminator(
             **msstft_discriminator_params,
         )
@@ -709,7 +715,7 @@ class HiFiCodecDiscriminator(nn.Module):
             periods=periods,
             discriminator_params=periods_discriminator_params,
         )
-        
+
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -724,9 +730,9 @@ class HiFiCodecDiscriminator(nn.Module):
         """
         # 5 scale list of [fmap + [logit]]
         msstft_outs = self.msstft(x)
-        # 3 scale 4 of each layer 
+        # 3 scale 4 of each layer
         msd_outs = self.msd(x)
-        # 5 period 4 of each layer 
+        # 5 period 4 of each layer
         mpd_outs = self.mpd(x)
 
         return msstft_outs + msd_outs + mpd_outs
