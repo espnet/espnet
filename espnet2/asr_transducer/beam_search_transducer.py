@@ -541,8 +541,7 @@ class BeamSearchTransducer:
                 #     new_fname = str(max(existing_files) + 1)
                 # with open(os.path.join(outdir, new_fname), 'wb') as openf:
                 #     pickle.dump(beam_logp.detach().cpu().numpy(), openf)
-                
-                
+
                 beam_topk = beam_logp[:, 1:].topk(self.beam_size, dim=-1)
 
                 seq_A = [h.yseq for h in A]
