@@ -552,6 +552,21 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
+        # want to dump these to file
+        # import random
+        # if random.randint(0, 100)==0:
+        #     print('saving!')
+        #     import os
+        #     import pickle
+        #     outdir = '/home/jovyan/data/nhirschkind/joint_outputs'
+        #     existing_files = [int(x) for x in os.listdir(outdir)]
+        #     # if len(existing_files)==0:
+        #     new_fname = '0'
+        #     # else:
+        #     #     new_fname = str(max(existing_files) + 1)
+        #     with open(os.path.join(outdir, new_fname), 'wb') as openf:
+        #         pickle.dump(joint_out.detach().cpu().numpy(), openf)
+
         with autocast(False):
             pruned_loss = k2.rnnt_loss_pruned(
                 joint_out.float(),

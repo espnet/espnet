@@ -529,6 +529,20 @@ class BeamSearchTransducer:
                     self.joint_network(enc_out_t, beam_dec_out),
                     dim=-1,
                 )
+
+                # want to dump these to file
+                # import os
+                # import pickle
+                # outdir = '/home/jovyan/data/nhirschkind/joint_outputs'
+                # existing_files = [int(x) for x in os.listdir(outdir)]
+                # if len(existing_files)==0:
+                #     new_fname = '0'
+                # else:
+                #     new_fname = str(max(existing_files) + 1)
+                # with open(os.path.join(outdir, new_fname), 'wb') as openf:
+                #     pickle.dump(beam_logp.detach().cpu().numpy(), openf)
+                
+                
                 beam_topk = beam_logp[:, 1:].topk(self.beam_size, dim=-1)
 
                 seq_A = [h.yseq for h in A]
