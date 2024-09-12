@@ -164,7 +164,7 @@ class ARDelayLM(ARParallelLM):
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)  # [B, 1, D]
             h = self.decoders(prev_emb, kv_cache=cache)
-            h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)
+            h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
             logits = self.lm_head(h)  # [B, 1, nq, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits,
