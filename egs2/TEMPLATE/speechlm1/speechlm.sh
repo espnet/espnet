@@ -773,8 +773,6 @@ if ! "${skip_eval}"; then
             condition_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].condition_string)")
             condition_files=$(echo ${condition_triplets} | tr ' ' '\n' | awk -F ',' '{print $1}')
 
-            echo "${target_files}"
-
             # (2) process files before scoring.
             # (2.1) intersection of all generated example files
             
