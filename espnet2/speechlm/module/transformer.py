@@ -71,6 +71,9 @@ class TransformerDecoder(torch.nn.Module):
 
             import transformers
 
+            # NOTE(Jinchuan): the torch-builtin attention is used by default but will
+            # significantly slow down the training, which might be a bug. This is only
+            # observed on GH200 GPUs, not on H100 or A100.
             if not (is_flash_attn_2_available(), is_flash_attn_greater_or_equal_2_10):
                 logging.warning("Flash Attention is not properly used")
 
@@ -83,9 +86,13 @@ class TransformerDecoder(torch.nn.Module):
                 raise ValueError(f"HF model {hf_model_tag} is not supported yet")
 
             self.lm_head = causal_class.from_pretrained(
-                hf_model_tag
+                hf_model_tag,
+                attn_implementation="flash_attention_2",
             ).get_output_embeddings()
-            self.model = base_class.from_pretrained(hf_model_tag)
+            self.model = base_class.from_pretrained(
+                hf_model_tag,
+                attn_implementation="flash_attention_2",
+            )
             self.emb = self.model.get_input_embeddings()
 
             self.model_type = "huggingface"
