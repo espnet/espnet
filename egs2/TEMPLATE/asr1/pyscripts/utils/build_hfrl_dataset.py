@@ -9,7 +9,7 @@ import json
 import argparse
 import logging
 from pathlib import Path
-from espnet2.speechlm.definitions import tasks as task_definitions
+from espnet2.speechlm.definitions import SPEECHLM_TASKS
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -85,10 +85,13 @@ def main():
     args = parser.parse_args()
     data_json = json.load(open(args.ref_json))
     task = data_json["task"]
-    task_def = task_definitions[task]
+    task_def = SPEECHLM_TASKS[task]
 
     # (1) load data files
-    all_triplets = task_def.encoder_entries + task_def.decoder_entries
+    if len(task_def.targets) > 1:
+        raise ValueError(f"Currently, we only support tasks with one target triplet.")
+    
+    all_triplets = task_def.data_triplets
     all_names = [e[0] for e in all_triplets]
     if len(all_triplets) != len(args.path_modality_types):
         raise ValueError(

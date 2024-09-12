@@ -61,7 +61,6 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
 
         if kwargs.get("enc_seq", None) is not None:
             raise ValueError("Encoder-Decoder speechlm is not supported yet")
-        prefix_len = kwargs.get("prefix_len").squeeze(1)
 
         # (1) Get and concat examples
         # NOTE(Jinchuan): by default, dec_seq are positive examples
@@ -70,16 +69,25 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         rej_seq_lengths = kwargs.get("sampled_seq_lengths", None)
         if rej_seq is None or rej_seq_lengths is None:
             raise ValueError(f"The negative examples are not available")
+        
+        prefix_len = kwargs.get("prefix_len").flatten()
+        conti_feats = kwargs.get("conti_feats")
 
         n_positive, n_negative = len(dec_seq), len(rej_seq)
         assert n_negative % n_positive == 0, (n_negative, n_positive)
+        np_ratio = n_negative // n_positive
 
         all_seq = pad_and_concat([dec_seq, rej_seq])  # [B_pos + B_neg, T, nq]
         all_seq_lengths = torch.cat([dec_seq_lengths, rej_seq_lengths], dim=0)
+
+        # conditions shared among positive and negative examples
         all_prefix_lengths = torch.cat(
-            [prefix_len, torch.repeat_interleave(prefix_len, n_negative // n_positive)],
+            [prefix_len, torch.repeat_interleave(prefix_len, np_ratio)],
             dim=0,
-        )  # prefix lengths is shared among positive and negative examples
+        )  
+        all_conti_feats = conti_feats + [
+            conti_feats[i // np_ratio] for i in range(n_negative)
+        ]
 
         # (2) LM forward
         _, policy_logits, stats, _ = self.corelm(
@@ -88,6 +96,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
             None,
             None,
             all_prefix_lengths,
+            all_conti_feats,
             compute_loss=False,
         )
         stats["loss_ce"] = stats.pop("loss")
@@ -100,6 +109,7 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
                     None,
                     None,
                     all_prefix_lengths,
+                    all_conti_feats,
                     compute_loss=False,
                 )
         else:
@@ -237,8 +247,3 @@ class ESPnetSpeechLMRLModel(AbsESPnetModel):
         return [
             ResidualAttentionBlock,  # Espnet built-in transformer layer.
         ]
-
-
-def printf(*string):
-    if torch.distributed.get_rank() == 0:
-        print(*string, flush=True)

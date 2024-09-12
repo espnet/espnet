@@ -472,6 +472,10 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=
     kmeans_feature_conf="{type=mfcc}"
+elif [ ${kmeans_feature} != "espnet_hubert" ]; then
+    kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+    layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
+    kmeans_feature_conf=
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)

@@ -38,11 +38,9 @@ log "$0 $*"
 . ./path.sh
 
 if [ $# -ne 0 ]; then
-    echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp --codec_choice DAC"
+    echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp"
     exit 0
 fi
-
-# TODO (Jinchuan): check the installation of the used codec models
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [[ ${file_name} == *.scp ]]; then

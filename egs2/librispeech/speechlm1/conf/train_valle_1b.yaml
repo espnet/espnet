@@ -1,0 +1,48 @@
+corelm: valle
+corelm_conf:
+    att_unit: 1600
+    qk_norm: true
+    head: 25
+    ar_layer: 16
+    nar_layer: 16
+
+# Dataloader
+batch_type: numel
+batch_bins: 10000
+num_iters_per_epoch: 10000
+accum_grad: 1
+grad_clip: 5
+max_epoch: 60
+num_workers: 8
+drop_last_iter: true
+log_interval: 10
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.001
+    betas:
+        - 0.9
+        - 0.95
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 70000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - total_count
+    - max
+keep_nbest_models: 5
+nbest_averaging_interval: 5
+
+# Global settings
+use_amp: true
+use_tf32: false
+use_fsdp: false
+encoder_decoder_format: false
+codec_token_per_frame: 8 # encodec
+codec_token_in_use: 8
+speaker_prompt_length: 500 # 50fps, a.k.a., 3s

@@ -16,6 +16,7 @@ from espnet2.speechlm.net_utils import (
     ce_loss, 
     logits_to_tokens,
     modality_index_to_mask,
+    install_continuous_features,
 )
 
 
@@ -97,6 +98,8 @@ class MultiScaleLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
 
+        self.g_decoders.init_embeddings(self.emb, self.lm_head)
+
     def forward(
         self,
         dec_seq: torch.Tensor,
@@ -104,6 +107,7 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
+        conti_feats: Tuple = None,
         compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive MultiScale forward for training
@@ -123,6 +127,7 @@ class MultiScaleLM(AbsCoreLM):
         # global
         x = dec_seq[:, :-1]
         x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
+        x, _ = install_continuous_features(x, None, conti_feats)
         x = self.g_decoders(x)
         x = self.g2l(x)
 

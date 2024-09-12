@@ -37,9 +37,8 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
         enc_seq = kwargs.get("enc_seq", None)
         enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
-        prefix_len = kwargs.get("prefix_len", None)
-        if prefix_len is not None:
-            prefix_len = prefix_len.squeeze(1)
+        prefix_len = kwargs.get("prefix_len").squeeze(1)
+        conti_feats = kwargs.get("conti_feats")
 
         loss, _, stats, weight = self.corelm(
             dec_seq,
@@ -47,6 +46,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
             enc_seq,
             enc_seq_lengths,
             prefix_len,
+            conti_feats,
         )
 
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)

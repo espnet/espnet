@@ -462,6 +462,18 @@ class AbsTask(ABC):
             type=int,
             help="The minimum #params for a nn.Module to be warpped by FSDP",
         )
+        group.add_argument(
+            "--use_deepspeed",
+            default=False,
+            type=str2bool,
+            help="Enable deepspeed for training",
+        )
+        group.add_argument(
+            "--deepspeed_config",
+            default=None,
+            type=str,
+            help="deepspeed training config",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -1554,7 +1566,7 @@ class AbsTask(ABC):
                 )
             else:
                 plot_attention_iter_factory = None
-
+            
             # 7. Start training
             if args.use_wandb:
                 if wandb is None:
@@ -1595,6 +1607,15 @@ class AbsTask(ABC):
                     # but we only logs aggregated data,
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
+            
+            if args.use_deepspeed:
+                if cls.trainer != Trainer:
+                    raise ValueError(
+                        "only default trainer is compatible with deepspeed"
+                    )
+                from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+
+                cls.trainer = DeepSpeedTrainer
 
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
@@ -1774,7 +1795,7 @@ class AbsTask(ABC):
             )
         else:
             raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
-
+        
     @classmethod
     @typechecked
     def build_sequence_iter_factory(
