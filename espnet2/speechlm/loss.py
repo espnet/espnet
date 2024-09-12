@@ -3,7 +3,14 @@ import logging
 
 class FusedLinearCrossEntropyLoss(torch.nn.Module):
     def __init__(self, lm_head, pad_id=0, chunk_size=32768):
-        """ Compute CrossEntropy loss for multi-stream LM using liger fused triton kernel """
+        """ 
+        Compute CrossEntropy loss for multi-stream LM using either:
+        (1) liger fused triton kernel
+            slower but much less memory consumption
+        (2) torch implementation
+            normal speed but large memory consumption
+        
+        """
         super(FusedLinearCrossEntropyLoss, self).__init__()
         self.lm_head = lm_head
         self.pad_id = pad_id
@@ -16,7 +23,6 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         except:
             self.loss = torch.nn.CrossEntropyLoss(reduction='none')
             self.fused = False
-            logging.warning("liger_kernel is not available. Use Pytorch implementation")
 
         self.torch_loss = torch.nn.CrossEntropyLoss(reduction='none')
         
@@ -33,7 +39,8 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         # fused = self.fused and self.training
         fused = False
 
-        # select items that are not padding.
+        # select items that are not padding. This mask select is fast and will save
+        # the computing on padding tokens (very massive in multi-stream case).
         padding_mask = targets != self.pad_id
         hidden = hidden[padding_mask]
         targets = targets[padding_mask]
