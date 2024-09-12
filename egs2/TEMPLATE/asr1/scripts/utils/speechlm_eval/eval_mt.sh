@@ -69,7 +69,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 --remove_non_linguistic_symbols true \
                 --cleaner "${cleaner}" \
             ) \
-        >"${scoredir}/ref.trn" 
+        >"${scoredir}/ref.trn"
 
     paste \
         <(<"${gen_dir}/text" \
