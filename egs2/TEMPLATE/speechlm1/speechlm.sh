@@ -775,6 +775,7 @@ if ! "${skip_eval}"; then
 
             # (2) process files before scoring.
             # (2.1) intersection of all generated example files
+
             awk '{print $1}' ${_dir}/$(echo ${target_files} | cut -d ' ' -f 1) > ${_dir}/eval_cache/gen_list
             for file in $(echo ${target_files} | cut -d ' ' -f 2-); do
                 utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/${file} \
@@ -822,7 +823,7 @@ if ! "${skip_eval}"; then
                 --nj ${nj} \
                 --inference_nj ${inference_nj} \
                 --gpu_inference ${gpu_inference} \
-                --nbest ${nbest}
+                --nbest ${nbest} ${scoring_args}
         done
     fi
 else
