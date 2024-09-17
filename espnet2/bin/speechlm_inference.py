@@ -117,14 +117,15 @@ class SpeechLM:
         )
 
         # (4) Only a limited number of modalities support detokenization
-        # (4.1) offline tokenizers should be resumed from external config
+        # (4.1) offline tokenizers should be resumed from external config as they are
+        #       not included in preprocessor.
         if "codec" in self.modalities or "spk" in self.modalities:
             self.codec_tokenizer = tokenizer_choices.get_class("codec")(**codec_conf)
             self.codec_tokenizer.to(self.device)
         else:
             self.codec_tokenizer = None
 
-        # (4.2) online tokenizers should be from preprocessor
+        # (4.2) online tokenizers should be from preprocessor.
         if "text_bpe" in self.modalities:
             self.text_bpe_tokenizer = self.preprocessor.bpe
         else:
@@ -199,6 +200,9 @@ class SpeechLM:
                 detokenized = self.text_bpe_tokenizer.tokens2text(
                     [self.token_list[tok] for tok in segment]
                 )
+                # sentencepiece will include "\n" but huggingface will not.
+                # make it uniform
+                detokenized = detokenized.strip() + "\n"
 
             else:
                 segment = segment[:, 0] - self.token_bias[modality]

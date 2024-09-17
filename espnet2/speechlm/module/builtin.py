@@ -104,7 +104,7 @@ class MultiHeadAttention(nn.Module):
             q = self.q_norm(q)
             k = self.k_norm(k)
 
-        if self.flash_attn_func is not None and mask is None:
+        if self.flash_attn_func is not None and mask is None and self.training:
             wv = self.flash_attn_func(
                 q.transpose(1,2), 
                 k.transpose(1,2), 

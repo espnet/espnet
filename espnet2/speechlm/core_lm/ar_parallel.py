@@ -5,8 +5,7 @@
 
 # Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
-import logging
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 import torch
 
@@ -100,18 +99,26 @@ class ARParallelLM(AbsCoreLM):
         target = dec_seq[:, 1:]
         x = dec_seq[:, :-1]
 
-        pad_mask = x == self.pad_id
-        x = self.emb(x)
-        x[pad_mask] = 0.0
-        x = x.sum(dim=2)
-        x, _ = install_continuous_features(x, None, conti_feats)
-        
+        x = self.process_embedding(x, conti_feats=conti_feats)
         x = self.decoders(x)
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
 
         loss, logits, stats, weight = self.criterion(x, target)
 
         return loss, logits, stats, weight
+    
+    def process_embedding(
+        self,
+        x: torch.Tensor,
+        conti_feats: List = None,
+    ):
+        pad_mask = x == self.pad_id
+        x = self.emb(x)
+        x[pad_mask] = 0.0
+        x = x.sum(dim=2)
+        x, _ = install_continuous_features(x, None, conti_feats)
+
+        return x
 
     @torch.no_grad()
     def inference(
