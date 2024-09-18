@@ -65,6 +65,7 @@ class TransformerDecoder(torch.nn.Module):
 
             self.model_type = "builtin"
             self.hooks = dict()
+            
 
         else:
             logging.info(f"Building Transformer Decoder with HF model: {hf_model_tag}")
@@ -98,35 +99,38 @@ class TransformerDecoder(torch.nn.Module):
             self.model_type = "huggingface"
 
         self.token_bias = token_bias
+        self.kv_cache = None
 
     def forward(
         self,
         x: torch.Tensor,
         mask: torch.Tensor = None,
-        kv_cache: Optional[dict] = None,
     ):
         if self.model_type == "builtin":
-            return self.model(x=x, mask=mask, kv_cache=kv_cache)
+            return self.model(x=x, mask=mask, kv_cache=self.kv_cache)
         else:
-            return self.model(inputs_embeds=x).last_hidden_state
+            output = self.model(
+                inputs_embeds=x,
+                past_key_values=self.kv_cache,
+                use_cache=True,
+            )
+            
+            self.kv_cache = output.past_key_values
 
-    def init(self, kv_cache):
+            return output.last_hidden_state
+
+    def init(self):
         if self.model_type == "builtin":
-            kv_cache, self.hooks = install_kv_cache_hook(self.model, kv_cache)
+            self.kv_cache, self.hooks = install_kv_cache_hook(self.model, self.kv_cache)
         else:
-            pass
+            self.kv_cache = None
 
-        return kv_cache
-
-    def reset(self, kv_cache):
+    def reset(self,):
         if self.model_type == "builtin":
             for hook in self.hooks:
                 hook.remove()
 
-            kv_cache.clear()
-
-        else:
-            pass
+        self.kv_cache = None
 
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):

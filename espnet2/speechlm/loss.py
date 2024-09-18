@@ -78,6 +78,10 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
                 ).float().sum()
                 acc = acc / (layer_idx == idx).float().sum()
                 stats[f"acc_layer{idx}"] = acc.clone().detach()
+            
+            acc = (logits.argmax(-1) == targets).float().sum()
+            acc = acc / targets.numel()
+            stats["acc"] = acc.clone().detach()
         
         return loss, logits, stats, weight
 

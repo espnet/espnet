@@ -115,7 +115,7 @@ class ARDelayLM(ARParallelLM):
         """
 
         # (1) initialization
-        cache = self.decoders.init({})
+        self.decoders.init()
 
         # (2) splice-interleave-split
         prefix = prefix.expand(opts.nbest, -1, -1)
@@ -134,7 +134,7 @@ class ARDelayLM(ARParallelLM):
         
         # TODO(Jinchuan): support continuous features. Currently just use None
         prefix_emb = self.process_embedding(prefix, None)
-        _ = self.decoders(prefix_emb, kv_cache=cache)
+        _ = self.decoders(prefix_emb)
 
         # (3) auto-regressive loop
         # (3.1) AR initialization
@@ -165,7 +165,7 @@ class ARDelayLM(ARParallelLM):
             
             # (3.2) AR model prediction
             prev_emb = self.process_embedding(prev_tok)
-            h = self.decoders(prev_emb, kv_cache=cache)
+            h = self.decoders(prev_emb)
             h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
             logits = self.lm_head(h)  # [B, 1, nq, V]
             gen_tok, gen_score = logits_to_tokens(
@@ -217,7 +217,7 @@ class ARDelayLM(ARParallelLM):
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
-        self.decoders.reset(cache)
+        self.decoders.reset()
 
         valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         if len(valid_idx) == 0:
