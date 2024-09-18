@@ -27,7 +27,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none
+from espnet2.utils.types import str2triple_str, str_or_none, str2bool
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -53,6 +53,7 @@ class SpeechLM:
         top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
+        codec_ssl_predict_ssl: bool = True,
         codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
@@ -96,8 +97,11 @@ class SpeechLM:
                 ssl_start = self.token_list.index("<ssl_code1>")
                 codec_start = self.token_list.index("<codec_layer0_code0>")
                 
-                ssl_end = end if ssl_start > codec_start else codec_start
-                mask[0, ssl_start: ssl_end] = False
+                if codec_ssl_predict_ssl:
+                    ssl_end = end if ssl_start > codec_start else codec_start
+                    mask[0, ssl_start: ssl_end] = False
+                else:
+                    mask[0, self.pad] = False
 
                 codec_end = end if codec_start > ssl_start else ssl_start
                 assert (codec_end - codec_start) % (train_args.codec_token_per_frame - 1) == 0
@@ -303,6 +307,7 @@ def inference(
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
     codec_ssl_corrupt_prob: float = 0.0,
+    codec_ssl_predict_ssl: bool = True,
     # offline tokenizers
     codec_conf: dict = None,
 ):
@@ -341,6 +346,7 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         task=task,
+        codec_ssl_predict_ssl=codec_ssl_predict_ssl,
         codec_conf=codec_conf,
     )
 
@@ -572,8 +578,16 @@ def get_parser():
         "--codec_ssl_corrupt_prob",
         type=float,
         default=0.0,
-        help="the prob of corrput ssl tokens in codec_ssl modality in sequence level"
-        "1.0 means no ssl tokens in use; 0.0 means use ssl tokens"
+        help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
+          "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
+          "This is only applied to the prefix sequence"
+    )
+    group.add_argument(
+        "--codec_ssl_predict_ssl",
+        type=str2bool,
+        default=True,
+        help="If true, allow to predict ssl token in codec_ssl modality prediction "
+          "Otherwise, the first layer of codec_ssl is always paddings"
     )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during
@@ -597,6 +611,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
+    print("kwargs: ", dict(kwargs))
     inference(**kwargs)
 
 
