@@ -2,6 +2,7 @@ import pytest
 
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
 
+
 @pytest.fixture()
 def category_file(tmp_path):
     p = tmp_path / "category2utt"
