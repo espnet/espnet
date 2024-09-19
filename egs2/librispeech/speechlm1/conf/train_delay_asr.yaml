@@ -5,6 +5,8 @@ corelm_conf:
     att_unit: 1024
     head: 16
     layer: 24
+    n_ctx: 3000
+    prefix_lm: true
 
 # Dataloader
 batch_type: numel
@@ -15,7 +17,7 @@ grad_clip: 5
 max_epoch: 60
 num_workers: 8
 drop_last_iter: true
-log_interval: 1000
+log_interval: 100
 
 # Criterion & Optimization
 optim: adamw
@@ -26,7 +28,7 @@ optim_conf:
         - 0.95
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 70000
+    warmup_steps: 5000
 
 best_model_criterion:
 -   - valid
@@ -44,5 +46,7 @@ use_amp: true
 use_tf32: false
 use_fsdp: false
 encoder_decoder_format: false
-codec_token_per_frame: 1 # encodec
+codec_token_per_frame: 1
 codec_token_in_use: 1
+
+init_param: [exp/speechlm_espnet_speechlm_pretrained_asr/60epoch.pth]

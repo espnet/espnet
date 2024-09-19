@@ -586,17 +586,25 @@ When training with massive data, storing the whole dataset in each GPU process i
   * https://huggingface.co/espnet/owsmdata_soundstream_16k_200epoch
   * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch`
 
-`ssl`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
+`SSL`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
   * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xues
   * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xues`
 
 ### Pretrained Models:
-We provide pre-trained models for fine-tuning purpose. The models are of size of ~300M and is pre-trained on 55k hours of English Speech data using TTS task. The model currently accept `codec` and `g2p` modalities; users who work on other tasks/modalities can discard the pre-trained embedding layers and just use the transformer layers.
-  * Vall-E Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_valle
-    * With the previous codec model: https://huggingface.co/espnet/amuse_speech_soundstream_16k
-  * A new pre-trained model based on the latest codec model is coming soon.
+As of Sep 18, we provide two pre-trained models. These models are trained on 160khrs of English corpus, of size 300-400M parameters. People who work on speech understanding can use ASR pre-trained model; people who work on speech generation can use TTS pre-trained model.
+
+`ASR`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_asr
+  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_asr`
+  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_asr.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
+  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/asr_vocab`. The folder is together downloaded with the model.
+
+`TTS`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_tts
+  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_tts`
+  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_tts.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
+  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/tts_vocab`. The folder is together downloaded with the model.
 
 ### Recipes：
-  * `TTS` recipe for `LibriTTS`: `<espnet>/egs2/libritts/speechlm1/run.sh`
+  * `ASR` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_asr.sh`
+  * `TTS` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_tts.sh`
 
 ## FQA
