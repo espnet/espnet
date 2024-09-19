@@ -22,7 +22,7 @@ class Dataset:
 def test_CategoryChunkIterFactory(chunk_length):
     dataset = Dataset()
     collatefn = CommonCollateFn()
-    batches = [["a","b"]]
+    batches = [["a", "b"]]
     iter_factory = CategoryChunkIterFactory(
         dataset=dataset,
         batches=batches,
@@ -76,4 +76,3 @@ def test_CategoryChunkIterFactory_partial_chunking():
                 assert v.shape in ((2, 2), (2, 4))
             else:
                 assert v.shape == (2, 3)
-
