@@ -131,7 +131,7 @@ class ARDelayLM(ARParallelLM):
         )
         prefix = full_seq_delay[:, : prefix.size(1)]
         suffix = full_seq_delay[:, prefix.size(1) :]
-        
+
         # TODO(Jinchuan): support continuous features. Currently just use None
         prefix_emb = self.process_embedding(prefix, None)
         _ = self.decoders(prefix_emb)
@@ -162,11 +162,11 @@ class ARDelayLM(ARParallelLM):
                 prev_tok = torch.cat(
                     [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
                 )
-            
+
             # (3.2) AR model prediction
             prev_emb = self.process_embedding(prev_tok)
             h = self.decoders(prev_emb)
-            h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
+            h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
             logits = self.lm_head(h)  # [B, 1, nq, V]
             gen_tok, gen_score = logits_to_tokens(
                 logits,

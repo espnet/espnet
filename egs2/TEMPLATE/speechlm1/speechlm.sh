@@ -513,16 +513,16 @@ if ! ${skip_train}; then
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: SpeechLM collect stats: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
-        
+
         # collect length statistics for each data_json.
         for data_json in ${train_jsons} ${valid_jsons}; do
-            
+
             this_stats_dir=$(dirname ${data_json})/stats
             if [ -f ${this_stats_dir}/.done ]; then
                 log "Already have statistics for ${data_json}. Skip!"
                 continue
             fi
-            
+
             _opts=
             if [ -n "${train_config}" ]; then
                 _opts+="--config ${train_config} "
@@ -554,7 +554,7 @@ if ! ${skip_train}; then
                     --output_dir "${this_stats_dir}/split${nj}/JOB" \
                     ${_opts} ${_data_opts} ${train_args} \
                     || { cat $(grep -l -i error ${this_stats_dir}/logs/collect_stat.*.log) ; exit 1; }
-            
+
             for file in dec_seq_shape enc_seq_shape; do
                 if [ ! -f ${this_stats_dir}/split${nj}/1/train/${file} ]; then
                     continue

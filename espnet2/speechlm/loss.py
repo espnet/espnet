@@ -2,15 +2,16 @@ import torch
 
 from espnet2.speechlm.net_utils import length_mask
 
+
 class FusedLinearCrossEntropyLoss(torch.nn.Module):
     def __init__(self, lm_head, pad_id=0, prefix_lm=True, chunk_size=32768):
-        """ 
+        """
         Compute CrossEntropy loss for multi-stream LM using either:
         (1) liger fused triton kernel
             slower but much less memory consumption
         (2) torch implementation
             normal speed but large memory consumption
-        
+
         """
         super(FusedLinearCrossEntropyLoss, self).__init__()
         self.lm_head = lm_head
@@ -19,15 +20,18 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         self.chunk_size = chunk_size
 
         try:
-            from liger_kernel.transformers.fused_linear_cross_entropy import LigerFusedLinearCrossEntropyLoss
+            from liger_kernel.transformers.fused_linear_cross_entropy import (
+                LigerFusedLinearCrossEntropyLoss,
+            )
+
             self.loss = LigerFusedLinearCrossEntropyLoss()
             self.fused = True
         except:
-            self.loss = torch.nn.CrossEntropyLoss(reduction='none')
+            self.loss = torch.nn.CrossEntropyLoss(reduction="none")
             self.fused = False
 
-        self.torch_loss = torch.nn.CrossEntropyLoss(reduction='none')
-        
+        self.torch_loss = torch.nn.CrossEntropyLoss(reduction="none")
+
     def __call__(self, hidden, targets, prefix_len=None):
         """
         hidden (torch.Tensor): hidden embeddings, typically output from transformer
@@ -58,7 +62,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         targets = targets[mask]
 
         # compute loss
-        if fused: 
+        if fused:
             logits = None
             loss = self.loss(self.lm_head.weight, hidden, targets)
         else:
@@ -67,8 +71,8 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
             while chunk_id * self.chunk_size < len(hidden):
                 start = chunk_id * self.chunk_size
                 end = min((chunk_id + 1) * self.chunk_size, len(hidden))
-                this_logits = self.lm_head(hidden[start: end])
-                this_targets = targets[start: end]
+                this_logits = self.lm_head(hidden[start:end])
+                this_targets = targets[start:end]
                 this_loss = self.torch_loss(this_logits, this_targets)
                 logits.append(this_logits)
                 loss.append(this_loss)
@@ -76,7 +80,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
             loss = torch.cat(loss).mean()
         weight = float(targets.numel())
         stats = {"loss": loss.clone().detach(), "weight": weight}
-        
+
         # compute token accuracy
         if not fused and not self.training:
             logits = torch.cat(logits, dim=0)
@@ -84,33 +88,34 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
             layer_idx = layer_idx[padding_mask]
 
             for idx in range(nq):
-                acc = torch.logical_and(
-                    logits.argmax(-1) == targets,
-                    layer_idx == idx
-                ).float().sum()
+                acc = (
+                    torch.logical_and(logits.argmax(-1) == targets, layer_idx == idx)
+                    .float()
+                    .sum()
+                )
                 acc = acc / (layer_idx == idx).float().sum()
                 stats[f"acc_layer{idx}"] = acc.clone().detach()
-            
+
             acc = (logits.argmax(-1) == targets).float().sum()
             acc = acc / targets.numel()
             stats["acc"] = acc.clone().detach()
-        
+
         return loss, logits, stats, weight
+
 
 if __name__ == "__main__":
     hidden = torch.randn((1, 7, 2, 512)).float().cuda() * 100
     target = torch.randint(0, 9, (1, 7, 2)).long().cuda()
-    print('target: ', target)
+    print("target: ", target)
     prefix_len = torch.Tensor([6]).long().cuda()
     linear = torch.nn.Linear(512, 9).cuda()
 
-    liger_loss = FusedLinearCrossEntropyLoss(linear, pad_id=80000, prefix_lm=True).cuda()
+    liger_loss = FusedLinearCrossEntropyLoss(
+        linear, pad_id=80000, prefix_lm=True
+    ).cuda()
     # torch_loss = torch.nn.CrossEntropyLoss(ignore_index=80000)
 
     loss_liger, _, _, _ = liger_loss(hidden, target, prefix_len)
     # loss_torch = torch_loss(linear(hidden).view(-1, 70032), target.view(-1))
 
     # print('loss_liger', 'loss_torch', loss_liger, loss_torch)
-
-
-

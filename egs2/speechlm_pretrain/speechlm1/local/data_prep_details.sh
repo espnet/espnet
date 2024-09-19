@@ -31,7 +31,7 @@ for data_name in $data_names; do
             --task codec_ssl_asr \
             --output_json ${tgt_dir}/${dset}/data.json \
             --file_modality_type ${tgt_dir}/${dset}/wav.scp,codec_ssl,kaldi_ark \
-            --file_modality_type ${tgt_dir}/${dset}/text,text_bpe,text 
+            --file_modality_type ${tgt_dir}/${dset}/text,text_bpe,text
     done
 
     # build TTS dataset
@@ -75,6 +75,6 @@ for data_name in $data_names; do
             --task ssl_asr \
             --output_json ${tgt_dir}/${dset}/data.json \
             --file_modality_type ${tgt_dir}/${dset}/wav.scp,ssl,kaldi_ark \
-            --file_modality_type ${tgt_dir}/${dset}/text,text_bpe,text 
+            --file_modality_type ${tgt_dir}/${dset}/text,text_bpe,text
     done
 done

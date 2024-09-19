@@ -10,8 +10,8 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
+from espnet2.speechlm.module.transformer import TransformerDecoder
 
 
 class ARLM(AbsCoreLM):
@@ -98,7 +98,7 @@ class ARLM(AbsCoreLM):
         x = self.emb(x).mean(dim=2)
         x = self.decoders(x)
         x = x.unsqueeze(2)
-        
+
         loss, logits, stats, weight = self.criterion(x, target)
 
         return loss, logits, stats, weight

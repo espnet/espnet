@@ -5,13 +5,13 @@
 
 # Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
 
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
+from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.net_utils import install_continuous_features
 
 
@@ -72,7 +72,7 @@ class ARParallelLM(AbsCoreLM):
 
         self.decoders.init_embeddings(self.emb, self.lm_head)
         self.criterion = FusedLinearCrossEntropyLoss(
-            self.lm_head, 
+            self.lm_head,
             self.pad_id,
             prefix_lm=prefix_lm,
         )
@@ -106,12 +106,12 @@ class ARParallelLM(AbsCoreLM):
 
         x = self.process_embedding(x, conti_feats=conti_feats)
         x = self.decoders(x)
-        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
+        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
         loss, logits, stats, weight = self.criterion(x, target, prefix_len)
 
         return loss, logits, stats, weight
-    
+
     def process_embedding(
         self,
         x: torch.Tensor,

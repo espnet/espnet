@@ -207,7 +207,7 @@ class SpeechLMTask(AbsTask):
             "--codec_ssl_corrupt_prob",
             type=float,
             default=0.0,
-            help="The prob of changing SSL tokens to pad_id in codec_ssl modality"
+            help="The prob of changing SSL tokens to pad_id in codec_ssl modality",
         )
 
         for class_choices in cls.class_choices_list:
@@ -251,7 +251,7 @@ class SpeechLMTask(AbsTask):
             codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
-            n_ctx=args.corelm_conf.get('n_ctx', 4096),
+            n_ctx=args.corelm_conf.get("n_ctx", 4096),
         )
 
         return retval
@@ -275,8 +275,9 @@ class SpeechLMTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> Union[AbsESPnetModel]:
 
         if isinstance(args.token_list, str):
-            assert args.token_list.endswith(".json"), \
-                "Input token list should be a json file"
+            assert args.token_list.endswith(
+                ".json"
+            ), "Input token list should be a json file"
             token_list = json.load(open(args.token_list))
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
@@ -303,11 +304,11 @@ class SpeechLMTask(AbsTask):
         if args.collect_stats:
             return ESPnetSpeechLMModel(
                 corelm=ARLM(
-                    vocab_size=1, 
+                    vocab_size=1,
                     nq=args.codec_token_in_use,
                     token_bias=token_bias,
-                    pad_id=token_list.index("<pad>")
-                    )
+                    pad_id=token_list.index("<pad>"),
+                )
             )
 
         kwargs = dict()

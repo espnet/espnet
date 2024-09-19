@@ -27,7 +27,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none, str2bool
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -90,34 +90,40 @@ class SpeechLM:
                 inc = (end - start) // train_args.codec_token_per_frame
                 for n in range(self.inference_nq):
                     mask[n, start + n * inc : start + (n + 1) * inc] = False
-                
+
                 self.codec_start = start
 
             elif modality == "codec_ssl":
                 ssl_start = self.token_list.index("<ssl_code1>")
                 codec_start = self.token_list.index("<codec_layer0_code0>")
-                
+
                 if codec_ssl_predict_ssl:
                     ssl_end = end if ssl_start > codec_start else codec_start
-                    mask[0, ssl_start: ssl_end] = False
+                    mask[0, ssl_start:ssl_end] = False
                 else:
                     mask[0, self.pad] = False
 
                 codec_end = end if codec_start > ssl_start else ssl_start
-                assert (codec_end - codec_start) % (train_args.codec_token_per_frame - 1) == 0
-                inc = (codec_end - codec_start) // (train_args.codec_token_per_frame - 1)
+                assert (codec_end - codec_start) % (
+                    train_args.codec_token_per_frame - 1
+                ) == 0
+                inc = (codec_end - codec_start) // (
+                    train_args.codec_token_per_frame - 1
+                )
                 for n in range(self.inference_nq - 1):
-                    mask[n + 1, codec_start + n * inc : codec_start + (n + 1) * inc] = False
-                
+                    mask[n + 1, codec_start + n * inc : codec_start + (n + 1) * inc] = (
+                        False
+                    )
+
                 self.codec_start = codec_start
-            
+
             elif modality == "text_bpe":
-                mask[0, start: end] = False
-                mask[1:, self.pad] = False 
+                mask[0, start:end] = False
+                mask[1:, self.pad] = False
 
             else:
                 mask[:, start:end] = False
-            
+
             # When more than one target, allow modality switch
             if len(self.task.targets) > 1:
                 mask[0, 32:64] = False
@@ -215,7 +221,7 @@ class SpeechLM:
             modality = self.token_list[modality_id]
             modality = modality.removeprefix("<").removesuffix("_start/end>")
             segment = sequence[start + 1 : end]
-            
+
             if modality in ["codec", "spk", "codec_ssl"]:
                 if "codec_ssl" in self.token_bias:
                     segment = segment[:, 1:]
@@ -229,7 +235,7 @@ class SpeechLM:
                     segment.clone(),
                     n_codebook=n_codebook,
                 )
-            
+
             elif modality in ["text_bpe"]:
                 segment = segment[segment[:, 0] != self.pad]
                 segment = segment[:, 0]
@@ -353,7 +359,10 @@ def inference(
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
     # 3. Build data-iterator
-    if inference_nq is not None and speechlm.train_args.codec_token_in_use != inference_nq:
+    if (
+        inference_nq is not None
+        and speechlm.train_args.codec_token_in_use != inference_nq
+    ):
         logging.warning(
             f"The model is trained with nq={speechlm.train_args.codec_token_in_use} "
             f"While you are inference with {inference_nq}. "
@@ -580,15 +589,15 @@ def get_parser():
         type=float,
         default=0.0,
         help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
-          "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
-          "This is only applied to the prefix sequence"
+        "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
+        "This is only applied to the prefix sequence",
     )
     group.add_argument(
         "--codec_ssl_predict_ssl",
         type=str2bool,
         default=True,
         help="If true, allow to predict ssl token in codec_ssl modality prediction "
-          "Otherwise, the first layer of codec_ssl is always paddings"
+        "Otherwise, the first layer of codec_ssl is always paddings",
     )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during

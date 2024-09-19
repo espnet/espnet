@@ -16,7 +16,7 @@ from torch import Tensor, nn
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
         # return super().forward(x) # For full BF16 training
-        return super().forward(x.float()).type(x.dtype) # For AMP / FP32 training
+        return super().forward(x.float()).type(x.dtype)  # For AMP / FP32 training
 
 
 class Linear(nn.Linear):
@@ -54,9 +54,10 @@ class MultiHeadAttention(nn.Module):
 
         if not hasattr(F, "scaled_dot_product_attention"):
             raise ValueError("Install torch 2.0.1+ to support Flash Attention")
-        
+
         try:
             from flash_attn import flash_attn_func
+
             self.flash_attn_func = flash_attn_func
         except:
             self.flash_attn_func = None
@@ -95,7 +96,6 @@ class MultiHeadAttention(nn.Module):
         else:
             causal = False
 
-        
         q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
@@ -106,11 +106,11 @@ class MultiHeadAttention(nn.Module):
 
         if self.flash_attn_func is not None and mask is None and self.training:
             wv = self.flash_attn_func(
-                q.transpose(1,2), 
-                k.transpose(1,2), 
-                v.transpose(1,2), 
-                dropout_p=self.dropout, 
-                causal=causal
+                q.transpose(1, 2),
+                k.transpose(1, 2),
+                v.transpose(1, 2),
+                dropout_p=self.dropout,
+                causal=causal,
             ).flatten(start_dim=2)
         else:
             wv = (

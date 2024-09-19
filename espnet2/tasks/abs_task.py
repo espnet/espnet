@@ -1391,7 +1391,7 @@ class AbsTask(ABC):
 
                 if args.collect_stats:
                     continue
-                
+
                 logging.info(f"Loading pretrained params from {p}")
                 load_pretrained_model(
                     model=model,

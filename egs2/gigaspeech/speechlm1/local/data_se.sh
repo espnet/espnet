@@ -40,7 +40,7 @@ log "$0 $*"
 . ./path.sh || exit 1
 . ./cmd.sh || exit 1
 
-for dset in ${train_set} ${valid_set} ${test_sets}; do 
+for dset in ${train_set} ${valid_set} ${test_sets}; do
     log "Generate Speech Enhancement and Separation data for data/${dset}"
 
     mkdir -p data/${dset}_enh data/${dset}_sep
@@ -61,7 +61,7 @@ for dset in ${train_set} ${valid_set} ${test_sets}; do
         --rir_scp ${rir_scp} \
         --output_dir data/${dset}_enh \
         --nj ${nj}
-    
+
     separation
     log "Start generating Speech Separation Data"
     bash scripts/audio/dump_noisy_speech.sh \
@@ -70,8 +70,8 @@ for dset in ${train_set} ${valid_set} ${test_sets}; do
         --output_dir data/${dset}_sep \
         --nj ${nj} \
         --rir_apply_prob 0.0
-    
+
     mkdir -p data/${dset}_enh_sep
-    cat data/${dset}_enh/wav.scp data/${dset}_sep/wav.scp > data/${dset}_enh_sep/wav.scp 
+    cat data/${dset}_enh/wav.scp data/${dset}_sep/wav.scp > data/${dset}_enh_sep/wav.scp
     cat data/${dset}_enh/spk1.scp data/${dset}_sep/spk1.scp > data/${dset}_enh_sep/spk1.scp
 done

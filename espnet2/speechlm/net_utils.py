@@ -52,6 +52,7 @@ def pad_and_concat(tensor_list, pad_id=0):
 
     return retval
 
+
 def install_kv_cache_hook(model, cache):
     cache = {**cache} if cache is not None else {}
     hooks = []

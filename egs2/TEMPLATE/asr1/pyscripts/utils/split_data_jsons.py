@@ -162,7 +162,9 @@ def main():
             example_list[idx].extend(split)
 
     for j in range(1, args.nj + 1):
-        writer = open(args.output_dir / f"split{args.nj}" / str(j) /f"example_list", "w")
+        writer = open(
+            args.output_dir / f"split{args.nj}" / str(j) / f"example_list", "w"
+        )
         for utt in example_list[j - 1]:
             writer.write(f"{utt}\n")
 

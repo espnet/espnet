@@ -54,14 +54,14 @@ if [ $# -ne 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    
+
     mkdir -p ${output_dir}
     mkdir -p ${output_dir}/local
     mkdir -p ${output_dir}/data
     mkdir -p ${output_dir}/logs
 
     # (1) only select a ratio of the input scp data.
-    
+
     nutt=$(<${input_scp} wc -l)
     nutt_noise=$(<${noise_scp} wc -l)
     _nj=$(min ${nj} ${nutt} ${nutt_noise})
@@ -91,7 +91,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --output_dir=${output_dir}/data/JOB \
             --preprocessor=${preprocessor} \
             --fs=${fs}
-    
+
     for n in `seq ${_nj}`; do
         cat ${output_dir}/data/${n}/wav.scp
     done > ${output_dir}/wav.scp

@@ -11,9 +11,9 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
-from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.net_utils import (
     install_continuous_features,
     length_mask,

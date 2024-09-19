@@ -4,6 +4,7 @@ import argparse
 import dataclasses
 import json
 import logging
+
 import torch
 import torch.distributed as dist
 
@@ -178,7 +179,7 @@ class DeepSpeedTrainer(Trainer):
                 log_interval = max(len(iterator) // 20, 10)
             except TypeError:
                 log_interval = 100
-        
+
         if not options.deepspeed_step_sync:
             cls.check_iterator_length(iterator)
 
@@ -223,7 +224,7 @@ class DeepSpeedTrainer(Trainer):
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
 
-        else: 
+        else:
             if options.deepspeed_step_sync:
                 iterator_stop.fill_(1)
                 dist.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -283,18 +284,16 @@ class DeepSpeedTrainer(Trainer):
 
         else:
             return torch.float
-    
+
     @classmethod
     @typechecked
     def check_iterator_length(cls, iter: Iterable):
         this_length = torch.Tensor([len(iter)]).long().cuda()
         length_list = [
-            torch.Tensor([0]).long().cuda() 
-            for _ in range(dist.get_world_size())
+            torch.Tensor([0]).long().cuda() for _ in range(dist.get_world_size())
         ]
         dist.all_gather(length_list, this_length)
         length_list = torch.cat(length_list)
-        assert torch.all(length_list.eq(this_length)), \
-            f"Iterator lengths are different across all ranks: {length_list}"
-
-
+        assert torch.all(
+            length_list.eq(this_length)
+        ), f"Iterator lengths are different across all ranks: {length_list}"

@@ -11,14 +11,13 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
-from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
-from espnet2.speechlm.net_utils import ( 
+from espnet2.speechlm.module.transformer import TransformerDecoder
+from espnet2.speechlm.net_utils import (
+    install_continuous_features,
     logits_to_tokens,
     modality_index_to_mask,
-    install_continuous_features,
 )
-
 
 
 class MultiScaleLM(AbsCoreLM):
@@ -105,7 +104,6 @@ class MultiScaleLM(AbsCoreLM):
 
         self.g_decoders.init_embeddings(self.emb, self.lm_head)
         self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
-
 
     def forward(
         self,
@@ -273,9 +271,9 @@ class MultiScaleLM(AbsCoreLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
                     f"Consider increasing the maxlenratio"
                 )
-            
+
             # (3.6) detect modality switch
-            modality_change_mask =  torch.logical_and(
+            modality_change_mask = torch.logical_and(
                 g_prev_tok[:, 0, 0] >= 32,
                 g_prev_tok[:, 0, 0] < 64,
             )
@@ -289,7 +287,6 @@ class MultiScaleLM(AbsCoreLM):
                 logging.warning(
                     f"Step {g_step}: change modality index {modality_index}"
                 )
-
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 

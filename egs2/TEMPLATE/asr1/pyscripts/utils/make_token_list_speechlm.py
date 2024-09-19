@@ -85,9 +85,7 @@ def main():
                 if e in special_tokens:
                     idx = special_tokens.index(e)
                     special_tokens[idx] = e + "_<espnet>"
-                    logging.warning(
-                        f"Revise special token {e} to {e}_<espnet>"
-                    )
+                    logging.warning(f"Revise special token {e} to {e}_<espnet>")
                 if e not in modality_vocab:
                     modality_vocab[e] = None
                 else:
@@ -98,7 +96,7 @@ def main():
         )
         token_bias[modality] = len(token_list) + len(special_tokens)
         token_list = token_list + list(modality_vocab.keys())
-    
+
     # (4) add special token lastly since it may be revised.
     token_list = special_tokens + token_list
 

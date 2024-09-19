@@ -126,6 +126,7 @@ class H5FileWrapper:
         value = self.h5_file[key]
         return value[()]
 
+
 class MultiH5FileWarpper:
     @typechecked
     def __init__(self, path: str):
@@ -135,12 +136,12 @@ class MultiH5FileWarpper:
         for line in open(path):
             example_id, content = line.strip().split(maxsplit=1)
             self.map[example_id] = content
-        
+
     def __getitem__(self, key):
         reader_name = self.map[key]
         if reader_name not in self.readers:
             self.readers[reader_name] = H5FileWrapper(reader_name)
-        retval = self.readers[reader_name][key].decode('utf-8')
+        retval = self.readers[reader_name][key].decode("utf-8")
         return retval
 
     def __len__(self):
@@ -201,12 +202,14 @@ class AdapterForLabelScpReader(collections.abc.Mapping):
         assert isinstance(sample_time, np.ndarray) and isinstance(sample_label, list)
         return sample_time, sample_label
 
+
 def jsonl_loader(path):
     ret_dict = dict()
     for line in open(path):
         ret_dict.update(json.loads(line))
-    
+
     return ret_dict
+
 
 def sound_loader(path, float_dtype=None, multi_columns=False, allow_multi_rates=False):
     # The file is as follows:
@@ -431,7 +434,7 @@ DATA_TYPES = {
         help="Similar to kaldi wav.scp style but save into HDF5 format "
         "This can be used to save large and long text documents for LM training \n"
         "example_id1: hdf5_file_path1 \n"
-        "example_id1: hdf5_file_path1 \n"
+        "example_id1: hdf5_file_path1 \n",
     ),
     "rand_float": dict(
         func=FloatRandomGenerateDataset,
@@ -471,8 +474,8 @@ DATA_TYPES = {
         kwargs=[],
         help="jsonl file loader. Will allow text in multiple lines."
         "\{ example1: content1 \}"
-        "\{ example2: content2 \}"
-    )
+        "\{ example2: content2 \}",
+    ),
 }
 
 
@@ -791,8 +794,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
             example_list = json_dict["data_files"][0].strip().split(",")[0]
             if _type == "jsonl":
                 example_list = [
-                    list(json.loads(line).keys())[0]
-                    for line in open(example_list)
+                    list(json.loads(line).keys())[0] for line in open(example_list)
                 ]
             else:
                 example_list = [line.strip().split()[0] for line in open(example_list)]

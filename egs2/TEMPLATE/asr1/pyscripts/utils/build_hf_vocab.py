@@ -1,5 +1,6 @@
 import argparse
 import json
+
 from transformers import AutoConfig, AutoTokenizer
 
 
@@ -38,7 +39,7 @@ def main():
     vocab_size = AutoConfig.from_pretrained(args.model_tag).vocab_size
     for idx in range(len(token_and_ids), vocab_size):
         token_list.append(f"<unused_text_bpe_{idx}>")
-    
+
     # (3) dump list
     print(json.dumps(token_list, indent=4))
 
