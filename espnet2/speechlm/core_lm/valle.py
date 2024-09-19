@@ -15,7 +15,6 @@ from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.module.valle import ValleNARDecoder
 from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.net_utils import (
-    ce_loss,
     install_continuous_features,
     length_mask,
     logits_to_tokens,
@@ -55,6 +54,8 @@ class ValleLM(AbsCoreLM):
             n_ctx (int): maximum context length of AR & NAR Transformer.
         """
         super(ValleLM, self).__init__()
+
+        raise NotImplementedError("Need more polish. Don't use it at this moment")
 
         self.emb = torch.nn.Embedding(vocab_size, att_unit)
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)

@@ -29,8 +29,9 @@ class ARParallelLM(AbsCoreLM):
         att_unit: int = 256,
         head: int = 2,
         layer: int = 4,
-        n_ctx: int = 3000,
+        n_ctx: int = 4096,
         sos_eos: int = 5,
+        prefix_lm: bool = True,
     ):
         """Initialize Auto-regressive LM with parallel interleave codec pattern.
 
@@ -70,7 +71,11 @@ class ARParallelLM(AbsCoreLM):
         self.pad_id = pad_id
 
         self.decoders.init_embeddings(self.emb, self.lm_head)
-        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
+        self.criterion = FusedLinearCrossEntropyLoss(
+            self.lm_head, 
+            self.pad_id,
+            prefix_lm=prefix_lm,
+        )
 
     def forward(
         self,
@@ -103,7 +108,7 @@ class ARParallelLM(AbsCoreLM):
         x = self.decoders(x)
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, :self.nq]
 
-        loss, logits, stats, weight = self.criterion(x, target)
+        loss, logits, stats, weight = self.criterion(x, target, prefix_len)
 
         return loss, logits, stats, weight
     

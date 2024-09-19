@@ -9,27 +9,30 @@ train_set=train_960
 valid_set=dev_clean
 test_sets="test_clean"
 
-train_config="conf/train_delay.yaml"
+train_config=conf/train_delay_tts.yaml
+inference_config=conf/decode_tts.yaml
 
-ssl_opts="--ssl_checkpoint_path exp/kmeans_xues/38epoch.pth --ssl_kmeans_path exp/kmeans_xues/km_5000.mdl --ssl_nlayer 16"
+token_list_dir=data/token_list/tts_vocab
 codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"
-bpe_opts="--subword_choice huggingface --subword_model google/gemma-2b-it"
 
-
-# NOTE(Jinchuan): stop at stage 5, for data preparation only
 ./speechlm.sh \
-    --stop_stage 5 \
-    --task "codec_ssl_tts" \
+    --task "tts" \
     --data_name librispeech \
     --fs 16000 \
     --ngpu 1 \
     --nj 16 \
-    --train_config conf/train_foo.yaml \
+    --inference_nj 16 \
+    --gpu_infrence true \
+    --cleaner "tacotron" \
+    --g2p "g2p_en_no_space" \
+    --train_config ${train_config} \
+    --inference_config ${inference_config} \
     --audio_format "flac.ark" \
+    --token_list_dir ${token_list_dir} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 1.0 \
+    --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    ${ssl_opts} ${codec_opts} ${bpe_opts} \
+    ${codec_opts} \
     "$@"

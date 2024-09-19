@@ -1,8 +1,9 @@
 import torch
-import logging
+
+from espnet2.speechlm.net_utils import length_mask
 
 class FusedLinearCrossEntropyLoss(torch.nn.Module):
-    def __init__(self, lm_head, pad_id=0, chunk_size=32768):
+    def __init__(self, lm_head, pad_id=0, prefix_lm=True, chunk_size=32768):
         """ 
         Compute CrossEntropy loss for multi-stream LM using either:
         (1) liger fused triton kernel
@@ -14,6 +15,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         super(FusedLinearCrossEntropyLoss, self).__init__()
         self.lm_head = lm_head
         self.pad_id = pad_id
+        self.prefix_lm = prefix_lm
         self.chunk_size = chunk_size
 
         try:
@@ -26,7 +28,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
 
         self.torch_loss = torch.nn.CrossEntropyLoss(reduction='none')
         
-    def __call__(self, hidden, targets):
+    def __call__(self, hidden, targets, prefix_len=None):
         """
         hidden (torch.Tensor): hidden embeddings, typically output from transformer
           with lm_head bias. Size: (B, T, nq, D)
@@ -42,8 +44,18 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         # select items that are not padding. This mask select is fast and will save
         # the computing on padding tokens (very massive in multi-stream case).
         padding_mask = targets != self.pad_id
-        hidden = hidden[padding_mask]
-        targets = targets[padding_mask]
+
+        if self.prefix_lm:
+            if prefix_len is None:
+                raise ValueError("No prefix_len to compute prefix_lm loss")
+            prefix_mask = ~length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
+            mask = torch.logical_and(padding_mask, prefix_mask)
+
+        else:
+            mask = padding_mask
+
+        hidden = hidden[mask]
+        targets = targets[mask]
 
         # compute loss
         if fused: 
@@ -86,17 +98,19 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         return loss, logits, stats, weight
 
 if __name__ == "__main__":
-    hidden = torch.randn((1, 15, 2, 512)).float().cuda() * 100
-    target = torch.randint(0, 70031, (1, 15, 2)).long().cuda()
-    linear = torch.nn.Linear(512, 70032).cuda()
+    hidden = torch.randn((1, 7, 2, 512)).float().cuda() * 100
+    target = torch.randint(0, 9, (1, 7, 2)).long().cuda()
+    print('target: ', target)
+    prefix_len = torch.Tensor([6]).long().cuda()
+    linear = torch.nn.Linear(512, 9).cuda()
 
-    liger_loss = FusedLinearCrossEntropyLoss(linear, pad_id=80000).cuda()
-    torch_loss = torch.nn.CrossEntropyLoss(ignore_index=80000)
+    liger_loss = FusedLinearCrossEntropyLoss(linear, pad_id=80000, prefix_lm=True).cuda()
+    # torch_loss = torch.nn.CrossEntropyLoss(ignore_index=80000)
 
-    loss_liger, _, _, _ = liger_loss(hidden, target)
-    loss_torch = torch_loss(linear(hidden).view(-1, 70032), target.view(-1))
+    loss_liger, _, _, _ = liger_loss(hidden, target, prefix_len)
+    # loss_torch = torch_loss(linear(hidden).view(-1, 70032), target.view(-1))
 
-    print('loss_liger', 'loss_torch', loss_liger, loss_torch)
+    # print('loss_liger', 'loss_torch', loss_liger, loss_torch)
 
 
 

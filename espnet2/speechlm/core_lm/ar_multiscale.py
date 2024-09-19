@@ -58,6 +58,8 @@ class MultiScaleLM(AbsCoreLM):
         """
         super(MultiScaleLM, self).__init__()
 
+        raise NotImplementedError("Need more polish. Don't use it at this moment")
+
         self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
         self.lm_head = torch.nn.Linear(l_att_unit, vocab_size, bias=False)
         if share_emb:
