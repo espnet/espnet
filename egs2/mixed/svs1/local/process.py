@@ -17,6 +17,8 @@ jp_datasets = [
     "kiritan",
     "oniku",
     "ofuton",
+    "namine",
+    "natsume",
 ]
 
 zh_datasets = [
@@ -107,7 +109,7 @@ def convert(
         3: [0.1, 0.5, 1],
         4: [0.05, 0.1, 0.5, 1],
     },
-    sli = ["<AP>", "<SP>"],
+    sli = ["AP", "SP"],
 ):
     aux_ace_dict = load_customed_dic(args.aux_ace_dict)
     aux_ace_tails_dict = load_customed_dic(args.aux_ace_tails_dict)
@@ -218,7 +220,7 @@ def get_parser():
         "--score_dump", default="score_dump", type=str, help="score dump directory"
     )
     parser.add_argument(
-        "--silence", action="append", help="silence_phone", default=["<AP>", "<SP>"]
+        "--silence", action="append", help="silence_phone", default=["AP", "SP"]
     )
     parser.add_argument(
         "--aux_ace_dict",

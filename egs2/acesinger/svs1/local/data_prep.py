@@ -104,10 +104,10 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
         phns = phns.split(" ")
         duration = duration.split(" ")
         pitches = pitches.split(" ")
-        while phns[-1] == "<AP>" or phns[-1] == "<SP>":
+        while phns[-1] == "AP" or phns[-1] == "SP":
             phns = phns[:-1]
             duration = duration[:-1]
-        if phns[0] == "<SP>" or phns[0] == "<AP>":
+        if phns[0] == "SP" or phns[0] == "AP":
             phns = phns[1:]
             duration = duration[1:]
             pitches = pitches[1:]
@@ -296,17 +296,6 @@ def process_utterance(
     syb_dur = syb_dur.split(" ")
     phn_dur = phn_dur.split(" ")
     keep = keep.split(" ")
-
-     # unify format of slience phonemes
-    new_phns = []
-    for phn in phns:
-        if phn == "AP":
-            new_phns.append("<AP>")
-        elif phn == "SP":
-            new_phns.append("<SP>")
-        else:
-            new_phns.append(phn)
-    phns = new_phns
 
     # load tempo from midi
     id = int(uid[0:4])

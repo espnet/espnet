@@ -17,8 +17,8 @@ svs_conf:
     vocoder_generator_type: visinger2 # hifigan, avocodo, uhifigan, visinger2
     generator_params:
         hidden_channels: 192
-        spks: 91
-        langs: 2
+        spks: 91 # spk-0 as unknown speaker
+        langs: 3 # lang-0 as unknown language
         global_channels: 256
         segment_size: 20
         text_encoder_attention_heads: 2

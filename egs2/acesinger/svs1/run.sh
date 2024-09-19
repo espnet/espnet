@@ -9,7 +9,7 @@ set -o pipefail
 fs=24000
 if [ ${fs} -eq 24000 ];then
     fmin=0
-    fmax=22050
+    fmax=12000
     n_fft=2048
     n_shift=300
     win_length=1200

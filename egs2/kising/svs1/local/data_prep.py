@@ -250,6 +250,14 @@ def get_info_from_partitions(
     note_index = 0
     word_index = 0
     seg_start_flag = False
+    if (dur :=  lyrics[0].time - partitions[0][0]) > 0:
+        # add AP at the start of segment
+        text[current_partition].append("AP")
+        phonemes[current_partition].append("AP")
+        pitches[current_partition].append(0)
+        note_durations[current_partition].append(dur)
+        phn_durations[current_partition].append(dur)
+        is_slur[current_partition].append(0)
     # for lyric in midi_data.lyrics:
     while word_index < len(lyrics):
         lyric = lyrics[word_index]
@@ -258,9 +266,9 @@ def get_info_from_partitions(
         if lyric.time > partitions[current_partition][1]:
             dur = partitions[current_partition][1] - lyrics[word_index - 1].time
             if dur > 0:
-                # add <SP> at end of segment
-                text[current_partition].append("<SP>")
-                phonemes[current_partition].append("<SP>")
+                # add SP at end of segment
+                text[current_partition].append("SP")
+                phonemes[current_partition].append("SP")
                 pitches[current_partition].append(0)
                 note_durations[current_partition].append(dur)
                 phn_durations[current_partition].append(dur)
@@ -279,9 +287,9 @@ def get_info_from_partitions(
             seg_start_flag = True
             dur = lyric.time - partitions[current_partition][0]
             if dur > 0:
-                # add <AP> at the start of segment
-                text[current_partition].append("<AP>")
-                phonemes[current_partition].append("<AP>")
+                # add AP at the start of segment
+                text[current_partition].append("AP")
+                phonemes[current_partition].append("AP")
                 pitches[current_partition].append(0)
                 note_durations[current_partition].append(dur)
                 phn_durations[current_partition].append(dur)
@@ -289,11 +297,11 @@ def get_info_from_partitions(
 
 
         if note_index > 0 and note_index < len(notes) and seg_start_flag is False:
-            # add <AP> if there is slience
+            # add AP if there is slience
             dur = notes[note_index].start - notes[note_index - 1].end
             if dur > 0:
-                text[current_partition].append("<AP>")
-                phonemes[current_partition].append("<AP>")
+                text[current_partition].append("AP")
+                phonemes[current_partition].append("AP")
                 pitches[current_partition].append(0)
                 note_durations[current_partition].append(dur)
                 phn_durations[current_partition].append(dur)

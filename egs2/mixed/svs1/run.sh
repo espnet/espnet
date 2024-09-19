@@ -8,7 +8,7 @@ set -o pipefail
 # spectrogram-related arguments
 fs=24000
 fmin=0
-fmax=22050
+fmax=12000
 n_fft=2048
 n_shift=300
 win_length=1200
@@ -19,7 +19,7 @@ opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="eval"
+test_sets="dev eval"
 
 # training and inference configuration
 train_config=conf/train.yaml
@@ -33,24 +33,26 @@ pitch_extract=dio
 ying_extract=None
 
 combine_path=""
-combine_path+="$(realpath ../../itako/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../opencpop/svs1/dump/raw/)"
+combine_path+="$(realpath ../../opencpop/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../opencpop/svs1/dump/raw/)"
 combine_path+="\$$(realpath ../../acesinger/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../kising/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../kising/svs1/dump/raw/)"
 combine_path+="\$$(realpath ../../m4singer/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../ameboshi/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../ameboshi/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../oniku_kurumi_utagoe_db/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../ofuton_p_utagoe_db/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../namine_ritsu_utagoe_db/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../itako/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../oniku_kurumi_utagoe_db/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../ofuton_p_utagoe_db/svs1/dump/raw/)"
 
 use_sid=true
 use_lid=true
 
 min_wav_duration=2.0
+gpu_inference=true
 
 ./svs.sh \
-    --lang zh_jp \
+    --lang zh \
     --svs_task gan_svs \
     --local_data_opts "--combine_path ${combine_path} --stage 1" \
     --feats_type raw \
@@ -69,6 +71,7 @@ min_wav_duration=2.0
     --cleaner ${cleaner} \
     --min_wav_duration ${min_wav_duration} \
     --train_config "${train_config}" \
+    --gpu_inference "${gpu_inference}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
