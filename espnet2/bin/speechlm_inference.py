@@ -431,7 +431,8 @@ def inference(
                         logging.info(f"Save audio: {audio_path}")
 
                     elif modality in ["text_bpe"]:
-                        writers[name].write(f"{example_name} {detokenized}")
+                        detokenized = detokenized.strip()
+                        writers[name].write(f"{example_name} {detokenized}\n")
                         logging.info(f"Save text: {detokenized}")
 
                     else:

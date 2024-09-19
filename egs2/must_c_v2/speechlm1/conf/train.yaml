@@ -1,4 +1,4 @@
-corelm: ar
+corelm: ar_delay
 corelm_conf:
     share_emb: false
     qk_norm: true
@@ -34,6 +34,10 @@ best_model_criterion:
     - max
 keep_nbest_models: 5
 nbest_averaging_interval: 5
+
+# for nq setup
+codec_token_per_frame: 1
+codec_token_in_use: 1
 
 
 # Global settings
