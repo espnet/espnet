@@ -54,7 +54,11 @@ class CategoryChunkIterFactory(AbsIterFactory):
         default_fs: Optional[int] = None,
         chunk_max_abs_length: Optional[int] = None,
     ):
-        assert all(len(x) == 1 for x in batches), "batch-size must be 1"
+        if all(len(x) == 1 for x in batches):
+            logging.warning(
+                "Batch size is 1 when creating chunks. "
+                "This iterator will become the same as original chunk iterator"
+            )
 
         self.category_sample_iter_factory = SequenceIterFactory(
             dataset=dataset,
