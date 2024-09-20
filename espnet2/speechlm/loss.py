@@ -85,7 +85,7 @@ class FusedLinearCrossEntropyLoss(torch.nn.Module):
         if not fused and not self.training:
             logits = torch.cat(logits, dim=0)
             layer_idx = torch.arange(nq, device=hidden.device).tile(B, T, 1)
-            layer_idx = layer_idx[padding_mask]
+            layer_idx = layer_idx[mask]
 
             for idx in range(nq):
                 acc = (

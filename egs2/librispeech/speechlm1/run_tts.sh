@@ -22,7 +22,7 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstre
     --ngpu 1 \
     --nj 16 \
     --inference_nj 16 \
-    --gpu_infrence true \
+    --gpu_inference true \
     --cleaner "tacotron" \
     --g2p "g2p_en_no_space" \
     --train_config ${train_config} \

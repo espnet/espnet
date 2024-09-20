@@ -5,7 +5,6 @@
 - [ESPnet2 Speech Language Model (SpeechLM) Recipe](#espnet2-speech-language-model-speechlm-recipe)
   - [Table of Content](#table-of-content)
   - [Environment](#environments)
-  - [Check List of Building a New Task](#check-list-of-building-a-new-task)
   - [The Concept of Task Templete](#the-concept-of-task-templete)
     - [LM modeling paradigm](#lm-modeling-paradigm)
     - [Define Task as a Sequence Template](#define-task-as-a-sequence-template)
@@ -59,7 +58,7 @@ VISQOL dependency may have some issue. If you don't need that, comment [this lin
 
 TODO: Build DeepSpeed environment
 
-## Check List of Building a New Task
+<!-- ## Check List of Building a New Task
 We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
   * Task Template Definition:
     * Check if your task already has a template.
@@ -80,7 +79,7 @@ Ideally, stages like tokenization, data statistics collection, training and infe
     * BPE model and g2p model choices.
   * Check the inference results, specifically ensure the training and teacher-forced inference have the same results.
 
-Developers are also highly encouraged to adopt our resources, such as codec model, ssl model and pre-trained language models. We also provide an example recipe. See [Resources](#resources).
+Developers are also highly encouraged to adopt our resources, such as codec model, ssl model and pre-trained language models. We also provide an example recipe. See [Resources](#resources). -->
 
 ## The Concept of Task Templete
 ### LM Modeling Paradigm
@@ -597,6 +596,7 @@ As of Sep 18, we provide two pre-trained models. These models are trained on 160
   * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_asr`
   * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_asr.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
   * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/asr_vocab`. The folder is together downloaded with the model.
+  * Remember to download the SSL model.
 
 `TTS`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_tts
   * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_tts`
@@ -606,5 +606,21 @@ As of Sep 18, we provide two pre-trained models. These models are trained on 160
 ### Recipes：
   * `ASR` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_asr.sh`
   * `TTS` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_tts.sh`
+
+### Step-by-Step Guidance of supporting a new task
+  * Before you start, make sure you have some additional dependencies installed.
+    * `pip install huggingface-hub transformers`  # huggingface support, to download data and upload model
+    * `pip install git+https://github.com/shinjiwlab/versa.git` # VERSA, evaluation support
+  * Download necessary files, such as SSL model or pre-trained model, as in [Resources](#resources).
+  * Define your task template, as in [The Concept of Task Templete](#the-concept-of-task-templete)
+  * Stage 1: Create the `data.json` file, and prepare your dataset, as in [Stage 1: Data Preparation](#stage-1-data-preparation)
+  * Stage 2: Format audio, as in [Stage 2: Audio Formatting](#stage-2-audio-formatting). This should be automatic to users.
+  * Stage 5: Tokenization, as in [Stage 5: Tokenization](#stage-5-tokenization). This should be automatic to users.
+  * Stage 6: Build vocabulary, as in [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary). Please skip this stage if you don't need to add additional tokens.
+  * Stage 7: Statistics Collection, as in [Stage 7: Collect Statistics](#stage-7-collect-statistics). This should be automatic to users.
+  * Stage 8: Training, as in [Stage 8: Training](#stage-8-training). This should be automatic to users, but need some parameter-tuning for each task
+  * Stage 9: Inference, as in [Stage 9: Inference](#stage-9-inference). This should be automatic to users, but need some parameter-tuning for each task.
+  * Stage 10: Evaluation, as in [Stage 10: Evaluation](#stage-10-evaluation). Evaluation scripts are task-specific and are not provided. Users should built it by yourselves.
+  * Stage 13: Dataset sharing, as in [Stage 13: Dataset Sharing](#stage-12-dataset-sharing). People who work on ESPnet-SpeechLM project please do it even though you didn't get the result numbers.
 
 ## FQA
