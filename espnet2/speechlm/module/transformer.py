@@ -25,6 +25,7 @@ HF_OBJ = {
     "Qwen/Qwen2": [AutoModel, AutoModelForCausalLM],
     "allenai/OLMo": [AutoModel, AutoModelForCausalLM],
     "meta-llama/Meta-Llama-3.1": [AutoModel, AutoModelForCausalLM],
+    "HuggingFaceTB/SmolLM": [AutoModel, AutoModelForCausalLM],
 }
 
 
@@ -70,6 +71,9 @@ class TransformerDecoder(torch.nn.Module):
 
             import transformers
 
+            # NOTE(Jinchuan): the torch-builtin attention is used by default but will
+            # significantly slow down the training, which might be a bug. This is only
+            # observed on GH200 GPUs, not on H100 or A100.
             if not (is_flash_attn_2_available(), is_flash_attn_greater_or_equal_2_10):
                 logging.warning("Flash Attention is not properly used")
 
@@ -82,43 +86,52 @@ class TransformerDecoder(torch.nn.Module):
                 raise ValueError(f"HF model {hf_model_tag} is not supported yet")
 
             self.lm_head = causal_class.from_pretrained(
-                hf_model_tag
+                hf_model_tag,
+                attn_implementation="flash_attention_2",
             ).get_output_embeddings()
-            self.model = base_class.from_pretrained(hf_model_tag)
+            self.model = base_class.from_pretrained(
+                hf_model_tag,
+                attn_implementation="flash_attention_2",
+            )
             self.emb = self.model.get_input_embeddings()
 
             self.model_type = "huggingface"
 
         self.token_bias = token_bias
+        self.kv_cache = None
 
     def forward(
         self,
         x: torch.Tensor,
         mask: torch.Tensor = None,
-        kv_cache: Optional[dict] = None,
     ):
         if self.model_type == "builtin":
-            return self.model(x=x, mask=mask, kv_cache=kv_cache)
+            return self.model(x=x, mask=mask, kv_cache=self.kv_cache)
         else:
-            return self.model(inputs_embeds=x).last_hidden_state
+            output = self.model(
+                inputs_embeds=x,
+                past_key_values=self.kv_cache,
+                use_cache=True,
+            )
 
-    def init(self, kv_cache):
+            self.kv_cache = output.past_key_values
+
+            return output.last_hidden_state
+
+    def init(self):
         if self.model_type == "builtin":
-            kv_cache, self.hooks = install_kv_cache_hook(self.model, kv_cache)
+            self.kv_cache, self.hooks = install_kv_cache_hook(self.model, self.kv_cache)
         else:
-            pass
+            self.kv_cache = None
 
-        return kv_cache
-
-    def reset(self, kv_cache):
+    def reset(
+        self,
+    ):
         if self.model_type == "builtin":
             for hook in self.hooks:
                 hook.remove()
 
-            kv_cache.clear()
-
-        else:
-            pass
+        self.kv_cache = None
 
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):

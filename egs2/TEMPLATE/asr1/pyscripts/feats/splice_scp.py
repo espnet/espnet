@@ -47,7 +47,8 @@ def main():
     codec_reader = kaldiio.load_scp(args.codec_scp)
     writer = kaldiio.WriteHelper(args.wspecifier)
 
-    for key in ssl_reader:
+    print("number of examples to dump: ", len(ssl_reader))
+    for idx, key in enumerate(ssl_reader, 1):
         ssl_value = ssl_reader[key].reshape(-1, 1)
         codec_value = codec_reader[key].reshape(-1, args.codec_code_per_frame)
         codec_value = codec_value + args.ssl_vocab_size
@@ -62,6 +63,9 @@ def main():
 
         value = np.concatenate([ssl_value, codec_value], axis=1)
         writer[key] = value.flatten().astype(np.int32)
+
+        if idx % 1000 == 0:
+            print(f"Have processed {idx} examples", flush=True)
 
 
 if __name__ == "__main__":

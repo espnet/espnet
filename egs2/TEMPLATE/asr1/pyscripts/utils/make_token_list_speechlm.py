@@ -56,15 +56,17 @@ def main():
     for vocab in all_vocab:
         vocab = Path(vocab)
         vocab_stem = str(vocab.stem)
+        possible_match = []
         for modality in vocab_dict.keys():
             if vocab_stem.startswith(modality) and MODALITIES[modality].discrete:
-                vocab_dict[modality].append(vocab)
+                possible_match.append(modality)
+        # for multiple matches, select the longest
+        modality = max(possible_match, key=len)
+        vocab_dict[modality].append(vocab)
 
-    # (3) First include special tokens.
-    token_list = special_tokens.copy()
-
-    # (4) Merge the vocab file from each modality
+    # (3) Merge the vocab file from each modality
     token_bias = {}
+    token_list = []
     for modality, vocabs in vocab_dict.items():
         if len(vocabs) == 0:
             continue
@@ -74,13 +76,16 @@ def main():
 
         modality_vocab = {}
         for vocab in vocabs:
-            this_vocab = [e.rstrip("\n") for e in open(vocab)]
+            if str(vocab).endswith(".json"):
+                this_vocab = json.load(open(vocab))
+            else:
+                # have to remove "\n" as text is read line-by-line
+                this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
                 if e in special_tokens:
-                    e = e + f"_<{modality}>"
-                    logging.warning(
-                        f"Make token {e} due to duplication to special tokens"
-                    )
+                    idx = special_tokens.index(e)
+                    special_tokens[idx] = e + "_<espnet>"
+                    logging.warning(f"Revise special token {e} to {e}_<espnet>")
                 if e not in modality_vocab:
                     modality_vocab[e] = None
                 else:
@@ -89,14 +94,23 @@ def main():
         logging.info(
             f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list)}"
         )
-        token_bias[modality] = len(token_list)
+        token_bias[modality] = len(token_list) + len(special_tokens)
         token_list = token_list + list(modality_vocab.keys())
 
-    vocab_writer = open(args.token_list_dir / "token_list", "w")
-    for tok in token_list:
-        vocab_writer.write(f"{tok}\n")
+    # (4) add special token lastly since it may be revised.
+    token_list = special_tokens + token_list
 
-    # (5) write vocabulary and token_bias
+    # (5) ensure each unit is unique
+    seen = dict()
+    for tok in token_list:
+        if tok in seen:
+            raise ValueError(f"token {tok} is duplicated in the token list")
+        seen[tok] = None
+
+    # (6) write vocabulary and token_bias
+    vocab_writer = open(args.token_list_dir / "token_list.json", "w")
+    vocab_writer.write(json.dumps(token_list, indent=4))
+
     bias_writer = open(args.token_list_dir / "token_bias.json", "wb")
     bias_writer.write(
         json.dumps(token_bias, indent=4, ensure_ascii=False, sort_keys=False).encode(

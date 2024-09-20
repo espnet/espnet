@@ -44,7 +44,7 @@ ssl_hf_model_tag=null
 ssl_batch_bins=4800000
 
 use_gpu=true
-tolerance=0
+tolerance=1
 python=python3
 
 log "$0 $*"
@@ -99,7 +99,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ssl_vocab_size=$(cat ${tgt_dir}/token_lists/ssl_token_list | wc -l)
     codec_code_per_frame=$(cat ${tgt_dir}/token_lists/codec_code_per_frame)
 
-    cat ${tgt_dir}/token_lists/{ssl,codec}_token_list > ${tgt_dir}/token_lists/ssl_codec_token_list
+    cat ${tgt_dir}/token_lists/{ssl,codec}_token_list > ${tgt_dir}/token_lists/codec_ssl_token_list
 
     ${decode_cmd} JOB=1:"${nj}" ${tgt_dir}/logdir/splice.JOB.log \
       ${python} pyscripts/feats/splice_scp.py \

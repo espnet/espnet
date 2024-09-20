@@ -284,7 +284,7 @@ class CodecTokenizer(AbsTokenizer):
         B, Tnq = codes.size()
         n_codebook = self.n_codebook if n_codebook is None else n_codebook
         assert Tnq % n_codebook == 0, (n_codebook, codes.size())
-        codes = codes.view(B, Tnq // self.n_codebook, self.n_codebook)
+        codes = codes.view(B, Tnq // n_codebook, n_codebook)
 
         for l_idx in range(n_codebook):
             codes[:, :, l_idx] -= l_idx * self.size_codebook

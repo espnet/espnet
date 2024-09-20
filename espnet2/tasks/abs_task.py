@@ -472,6 +472,12 @@ class AbsTask(ABC):
             type=str,
             help="deepspeed training config",
         )
+        group.add_argument(
+            "--deepspeed_step_sync",
+            default=True,
+            type=str2bool,
+            help="Synchronize stats in each minibatch",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -1382,6 +1388,10 @@ class AbsTask(ABC):
             # 2. Loads pre-trained model
             # NOTE(Jinchuan): should load --init_param before FSDP warpper
             for p in args.init_param:
+
+                if args.collect_stats:
+                    continue
+
                 logging.info(f"Loading pretrained params from {p}")
                 load_pretrained_model(
                     model=model,

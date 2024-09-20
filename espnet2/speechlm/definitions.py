@@ -22,6 +22,8 @@ MODALITIES["text_bpe"] = Modality()
 MODALITIES["g2p"] = Modality()
 MODALITIES["spk"] = Modality()
 MODALITIES["class"] = Modality()
+MODALITIES["bool"] = Modality()
+MODALITIES["vision"] = Modality()
 
 MODALITIES["wav"] = Modality(discrete=False)
 MODALITIES["text_emb"] = Modality(discrete=False)
@@ -117,15 +119,21 @@ SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["codec_ssl_plain_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
 SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
     conditions=[],
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
 SPEECHLM_TASKS["codec_ssl_denoise"] = SpeechLMTaskTemplate(
-    conditions=[("noisy.scp", "codec_ssl", "kaldi_ark")],
-    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("spk1.scp", "codec_ssl", "kaldi_ark")],
 )
+
 
 # END OF TASK DEFINITION #
 
@@ -138,7 +146,6 @@ SPEECHLM_TASKS["codec_ssl_denoise"] = SpeechLMTaskTemplate(
 # b. don't delete / modify it, otherwise the model trained
 #    previously can become incompatible. New tokens can be
 #    added - there are enough slots
-
 special_tokens = [
     "<pad>",
     "<unk>",

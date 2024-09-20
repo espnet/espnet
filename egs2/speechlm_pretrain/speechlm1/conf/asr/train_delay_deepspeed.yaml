@@ -1,0 +1,24 @@
+use_deepspeed: true
+deepspeed_config: conf/asr/deepspeed_ddp.json
+deepspeed_step_sync: false
+
+# Model
+corelm: ar_delay
+corelm_conf:
+    share_emb: false
+    att_unit: 2048
+    n_ctx: 8192
+    hf_model_tag: HuggingFaceTB/SmolLM-360M
+
+# General Dataloader configuration
+batch_type: numel
+batch_bins: 22000
+num_iters_per_epoch: 10000
+max_epoch: 40
+num_workers: 2
+drop_last_iter: true
+log_interval: 1000
+
+# Data preprocessing
+codec_token_per_frame: 1
+codec_token_in_use: 1 # Gradually increase this to 3, 5, 7, 9
