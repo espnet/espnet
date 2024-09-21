@@ -613,7 +613,7 @@ As of Sep 18, we provide two pre-trained models. These models are trained on 160
     * `pip install git+https://github.com/shinjiwlab/versa.git` # VERSA, evaluation support
   * Download necessary files, such as SSL model or pre-trained model, as in [Resources](#resources).
   * Define your task template, as in [The Concept of Task Templete](#the-concept-of-task-templete)
-  * Stage 1: Create the `data.json` file, and prepare your dataset, as in [Stage 1: Data Preparation](#stage-1-data-preparation)
+  * Stage 1: Create the dataset, as in [Stage 1: Data Preparation](#stage-1-data-preparation)
   * Stage 2: Format audio, as in [Stage 2: Audio Formatting](#stage-2-audio-formatting). This should be automatic to users.
   * Stage 5: Tokenization, as in [Stage 5: Tokenization](#stage-5-tokenization). This should be automatic to users.
   * Stage 6: Build vocabulary, as in [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary). Please skip this stage if you don't need to add additional tokens.
@@ -622,5 +622,25 @@ As of Sep 18, we provide two pre-trained models. These models are trained on 160
   * Stage 9: Inference, as in [Stage 9: Inference](#stage-9-inference). This should be automatic to users, but need some parameter-tuning for each task.
   * Stage 10: Evaluation, as in [Stage 10: Evaluation](#stage-10-evaluation). Evaluation scripts are task-specific and are not provided. Users should built it by yourselves.
   * Stage 13: Dataset sharing, as in [Stage 13: Dataset Sharing](#stage-12-dataset-sharing). People who work on ESPnet-SpeechLM project please do it even though you didn't get the result numbers.
+
+### Extend vocabulary
+It is common that you need to extend the vocabulary of the language models. E.g., the pre-trained ASR model only contains tokens from `text_bpe` and `ssl` modalities, but sometimes the new task may need the phone modality. To deal with this case, we provide the script `pyscripts/utils/speechlm_extend_vocab.py`.
+  * After stage 5, for each modality, there is a modality-specific vocabulary file. E.g., `dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list` for phone.
+  * The pre-trained model already has a combined token_list folder. E.g., for ASR, it is `data/token_list/asr_vocab`
+  * Then, call the script as below. It will extend the vocabulary (1) in the token_list folder, (2) in the model config file and (3) in the embedding table / lm_head of pre-trained checkpoint.
+  * revise your `run_asr.sh` by setting `----token_list_dir <your_new_token_list_folder>` and `--tag <your_new_exp_folder>`
+  * Please also remember to set some on-the-fly tokenization related settings. E.g., if you want to use `g2p` for fine-tuning but that was not included in the ASR pre-trained model, specify: `--cleaner "tacotron" --g2p "g2p_en_no_space"`
+  * You should also revise the training config to change the `init_param` config so that the model saved in `<your_new_exp_folder>` will be used.
+  * Note, the extended embeddings in the checkpoint are randomly initialized. You will need to train with them to get reasonable results.
+Here is an example:
+```
+python pyscripts/utils/speechlm_extend_vocab.py \
+  --input_token_list_dir data/token_list/asr_vocab \
+  --output_token_list_dir data/token_list/asr_vocab_ext_phone \
+  --input_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr \
+  --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr_ext_phone \
+  --inference_model 60epoch.pth \
+  --additional_vocabs dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list
+```
 
 ## FQA

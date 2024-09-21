@@ -47,6 +47,7 @@ def main():
     all_results = pool.map(process_fn, all_chunks)
     pool.close()
     pool.join()
+    print("done multiprocess jobs", flush=True)
 
     # write kaldi scp and ark
     data_name = args.input_path.stem
@@ -96,7 +97,7 @@ def main():
 def process_chunk(tokenizer, max_len, iterator):
     retval = []
     for line in iterator:
-        if random.random() < 0.5:
+        if random.random() < 0.0:
             continue
         try:
             line = json.loads(line)
