@@ -1,17 +1,18 @@
-from typing import List, Optional
-from dataclasses import dataclass
-import numpy as np
 import math
+from dataclasses import dataclass
+from typing import List, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Conv1d
-from torch.nn import ConvTranspose1d
-from torch.nn.utils import remove_weight_norm
-from torch.nn.utils import weight_norm
+from torch.nn import Conv1d, ConvTranspose1d
+from torch.nn.utils import remove_weight_norm, weight_norm
+
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 
 LRELU_SLOPE = 0.1
+
 
 @dataclass
 class QuantizedResult:
@@ -22,42 +23,46 @@ class QuantizedResult:
 
 
 class Generator(torch.nn.Module):
-    def __init__(self,
-                 upsample_rates,
-                 upsample_kernel_sizes,
-                 upsample_initial_channel,
-                 resblock_num,
-                 resblock_kernel_sizes,
-                 resblock_dilation_sizes,
-                 out_dim,
-                 ):
+    def __init__(
+        self,
+        upsample_rates,
+        upsample_kernel_sizes,
+        upsample_initial_channel,
+        resblock_num,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        out_dim,
+    ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
         self.conv_pre = weight_norm(
-            Conv1d(out_dim, upsample_initial_channel, 7, 1, padding=3))
-        resblock = ResBlock1 if resblock_num == '1' else ResBlock2
+            Conv1d(out_dim, upsample_initial_channel, 7, 1, padding=3)
+        )
+        resblock = ResBlock1 if resblock_num == "1" else ResBlock2
 
         self.ups = nn.ModuleList()
-        for i, (u,
-                k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
+        for i, (u, k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
             self.ups.append(
                 weight_norm(
                     ConvTranspose1d(
                         upsample_initial_channel // (2**i),
-                        upsample_initial_channel // (2**(i + 1)),
+                        upsample_initial_channel // (2 ** (i + 1)),
                         k,
                         u,
                         # padding=(u//2 + u%2),
                         padding=(k - u) // 2,
                         # output_padding=u%2
-                    )))
+                    )
+                )
+            )
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel // (2**(i + 1))
+            ch = upsample_initial_channel // (2 ** (i + 1))
             for j, (k, d) in enumerate(
-                    zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+                zip(resblock_kernel_sizes, resblock_dilation_sizes)
+            ):
                 self.resblocks.append(resblock(ch, k, d))
 
         self.conv_post = weight_norm(Conv1d(ch, 1, 7, 1, padding=3))
@@ -83,7 +88,7 @@ class Generator(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        print('Removing weight norm...')
+        print("Removing weight norm...")
         for layers in self.ups:
             remove_weight_norm(layers)
         for layers in self.resblocks:
@@ -93,45 +98,50 @@ class Generator(torch.nn.Module):
 
 
 class Encoder(torch.nn.Module):
-    def __init__(self, 
-                 resblock_num,
-                 resblock_kernel_sizes,
-                 resblock_dilation_sizes,
-                 upsample_rates,
-                 upsample_kernel_sizes,
-                 ):
+    def __init__(
+        self,
+        resblock_num,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_kernel_sizes,
+    ):
         super(Encoder, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
         self.conv_pre = weight_norm(Conv1d(1, 32, 7, 1, padding=3))
         self.normalize = nn.ModuleList()
-        resblock = ResBlock1 if resblock_num == '1' else ResBlock2
+        resblock = ResBlock1 if resblock_num == "1" else ResBlock2
 
         self.ups = nn.ModuleList()
         for i, (u, k) in enumerate(
-                list(
-                    reversed(
-                        list(zip(upsample_rates, upsample_kernel_sizes))))):
+            list(reversed(list(zip(upsample_rates, upsample_kernel_sizes))))
+        ):
             self.ups.append(
                 weight_norm(
                     Conv1d(
                         32 * (2**i),
-                        32 * (2**(i + 1)),
+                        32 * (2 ** (i + 1)),
                         k,
                         u,
-                        padding=((k - u) // 2)
+                        padding=((k - u) // 2),
                         # padding=(u//2 + u%2)
-                    )))
+                    )
+                )
+            )
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = 32 * (2**(i + 1))
+            ch = 32 * (2 ** (i + 1))
             for j, (k, d) in enumerate(
-                    zip(
-                        list(reversed(resblock_kernel_sizes)),
-                        list(reversed(resblock_dilation_sizes)))):
+                zip(
+                    list(reversed(resblock_kernel_sizes)),
+                    list(reversed(resblock_dilation_sizes)),
+                )
+            ):
                 self.resblocks.append(resblock(ch, k, d))
                 self.normalize.append(
-                    torch.nn.GroupNorm(ch // 16, ch, eps=1e-6, affine=True))
+                    torch.nn.GroupNorm(ch // 16, ch, eps=1e-6, affine=True)
+                )
         self.conv_post = Conv1d(512, 512, 3, 1, padding=1)
         self.ups.apply(init_weights)
         self.conv_post.apply(init_weights)
@@ -155,7 +165,7 @@ class Encoder(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        print('Removing weight norm...')
+        print("Removing weight norm...")
         for layers in self.ups:
             remove_weight_norm(layers)
         for layers in self.resblocks:
@@ -164,16 +174,18 @@ class Encoder(torch.nn.Module):
 
 
 class GroupResidualVectorQuantization(nn.Module):
-    def __init__(self, 
-                 quantizer_target_bandwidth,
-                 hidden_dim,
-                 quantizer_n_q,
-                 quantizer_bins,
-                 quantizer_decay,
-                 quantizer_kmeans_init,
-                 quantizer_kmeans_iters,
-                 quantizer_threshold_ema_dead_code,  
-                 **kwargs):
+    def __init__(
+        self,
+        quantizer_target_bandwidth,
+        hidden_dim,
+        quantizer_n_q,
+        quantizer_bins,
+        quantizer_decay,
+        quantizer_kmeans_init,
+        quantizer_kmeans_iters,
+        quantizer_threshold_ema_dead_code,
+        **kwargs
+    ):
         super().__init__()
 
         self.quantizer1 = ResidualVectorQuantizer(
@@ -183,7 +195,8 @@ class GroupResidualVectorQuantization(nn.Module):
             decay=quantizer_decay,
             kmeans_init=quantizer_kmeans_init,
             kmeans_iters=quantizer_kmeans_iters,
-            threshold_ema_dead_code=quantizer_threshold_ema_dead_code,)
+            threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
+        )
         self.quantizer0 = ResidualVectorQuantizer(
             dimension=hidden_dim,
             n_q=quantizer_n_q,
@@ -191,7 +204,8 @@ class GroupResidualVectorQuantization(nn.Module):
             decay=quantizer_decay,
             kmeans_init=quantizer_kmeans_init,
             kmeans_iters=quantizer_kmeans_iters,
-            threshold_ema_dead_code=quantizer_threshold_ema_dead_code,)
+            threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
+        )
 
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
@@ -208,7 +222,7 @@ class GroupResidualVectorQuantization(nn.Module):
         x = xin
         # x = torch.split(x, 512 // self.h.n_code_groups, dim=-1)
 
-        x0,x1 = torch.split(x, 512 // 2, dim=-1)
+        x0, x1 = torch.split(x, 512 // 2, dim=-1)
         x0 = x0.transpose(1, 2)
         x1 = x1.transpose(1, 2)
 
@@ -221,7 +235,7 @@ class GroupResidualVectorQuantization(nn.Module):
 
         quantized0, _, _, commit_loss0 = self.quantizer0(x0, sample_rate, bw)
 
-        quantized = torch.cat([quantized0,quantized1],dim=1)
+        quantized = torch.cat([quantized0, quantized1], dim=1)
 
         commit_loss = commit_loss0 + commit_loss1
 
@@ -236,7 +250,7 @@ class GroupResidualVectorQuantization(nn.Module):
         quantization_loss = quantization_loss0 + quantization_loss1
 
         return quantized, _, _, commit_loss, quantization_loss
-    
+
     def encode(
         self,
         xin: torch.Tensor,
@@ -259,13 +273,12 @@ class GroupResidualVectorQuantization(nn.Module):
             bw = self.target_bandwidths[-1]
         else:
             bw = target_bw
-            
+
         codes0 = self.quantizer0.encode(x0, frame_rate, bw)
         codes1 = self.quantizer1.encode(x1, frame_rate, bw)
-        code = torch.cat([codes0,codes1],dim=1)
-        
+        code = torch.cat([codes0, codes1], dim=1)
+
         return code
-    
 
     def decode(self, code: torch.Tensor):
         """HiFICodec codec decoding.
@@ -275,12 +288,12 @@ class GroupResidualVectorQuantization(nn.Module):
         Returns:
             torch.Tensor: resynthesized audio.
         """
-        
+
         code0, code1 = torch.split(code, 2 // 2, dim=1)
 
         quantized0 = self.quantizer0.decode(code0)
         quantized1 = self.quantizer1.decode(code1)
-        quantized = torch.cat([quantized0,quantized1],dim=1)
+        quantized = torch.cat([quantized0, quantized1], dim=1)
 
         return quantized
 
@@ -288,58 +301,76 @@ class GroupResidualVectorQuantization(nn.Module):
 class ResBlock1(torch.nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super(ResBlock1, self).__init__()
-        self.convs1 = nn.ModuleList([
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[0],
-                    padding=get_padding(kernel_size, dilation[0]))),
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[1],
-                    padding=get_padding(kernel_size, dilation[1]))),
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[2],
-                    padding=get_padding(kernel_size, dilation[2])))
-        ])
+        self.convs1 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[2],
+                        padding=get_padding(kernel_size, dilation[2]),
+                    )
+                ),
+            ]
+        )
         self.convs1.apply(init_weights)
 
-        self.convs2 = nn.ModuleList([
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=1,
-                    padding=get_padding(kernel_size, 1))), weight_norm(
-                        Conv1d(
-                            channels,
-                            channels,
-                            kernel_size,
-                            1,
-                            dilation=1,
-                            padding=get_padding(kernel_size, 1))), weight_norm(
-                                Conv1d(
-                                    channels,
-                                    channels,
-                                    kernel_size,
-                                    1,
-                                    dilation=1,
-                                    padding=get_padding(kernel_size, 1)))
-        ])
+        self.convs2 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=1,
+                        padding=get_padding(kernel_size, 1),
+                    )
+                ),
+            ]
+        )
         self.convs2.apply(init_weights)
 
     def forward(self, x):
@@ -361,24 +392,30 @@ class ResBlock1(torch.nn.Module):
 class ResBlock2(torch.nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super(ResBlock2, self).__init__()
-        self.convs = nn.ModuleList([
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[0],
-                    padding=get_padding(kernel_size, dilation[0]))),
-            weight_norm(
-                Conv1d(
-                    channels,
-                    channels,
-                    kernel_size,
-                    1,
-                    dilation=dilation[1],
-                    padding=get_padding(kernel_size, dilation[1])))
-        ])
+        self.convs = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[0],
+                        padding=get_padding(kernel_size, dilation[0]),
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
+                        dilation=dilation[1],
+                        padding=get_padding(kernel_size, dilation[1]),
+                    )
+                ),
+            ]
+        )
         self.convs.apply(init_weights)
 
     def forward(self, x):
@@ -401,4 +438,3 @@ def init_weights(m, mean=0.0, std=0.01):
 
 def get_padding(kernel_size, dilation=1):
     return int((kernel_size * dilation - dilation) / 2)
-
