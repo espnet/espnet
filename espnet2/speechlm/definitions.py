@@ -110,14 +110,9 @@ SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
 )
 
 SPEECHLM_TASKS["svs"] = SpeechLMTaskTemplate(
-    conditions=[("label", "g2p", "text")],  
+    conditions=[("label", "svs_lb", "text")],  
     targets=[("wav.scp", "codec", "kaldi_ark")], 
 ) 
-
-# SPEECHLM_TASKS["svs"] = SpeechLMTaskTemplate(
-#     conditions=[("label", "svs_lb", "text")],  
-#     targets=[("wav.scp", "codec", "kaldi_ark")], 
-# ) #TODO(yiwen) check the newly defined modality
 
 # codec_ssl tasks:
 SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(

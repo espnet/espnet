@@ -2549,7 +2549,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = self.modality_specific_processing(data[name], modality)[0]
             new_data = self.process_extra_entries(new_data, value, name)
 
-        # self.diagnose(new_data) # For debug. Enable this to check the sequence format TODO(yiwen) debug svs_lb the new modality
+        # self.diagnose(new_data) # For debug. Enable this to check the sequence format 
 
         return new_data
 
@@ -2615,7 +2615,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_feat = None
 
         # Other discrete modalities
-        elif modality in ["ssl", "text_bpe", "g2p"]:
+        elif modality in ["ssl", "text_bpe", "g2p", "svs_lb"]:
 
             if modality in ["text_bpe", "g2p"]:
                 if isinstance(value, str):
@@ -2640,6 +2640,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             elif modality in ["ssl"]:
                 value = value + self.token_bias["ssl"]
+
+            elif modality in ["svs_lb"]:
+                value = value.split(" ") # str to token list, no '\n'
+                value = self.converter.tokens2ids(value)
+                value = np.array(value) #NOTE(yiwen) don't need to add token bias
 
             value = np.pad(
                 np.expand_dims(value, 1),
@@ -2670,12 +2675,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 self.codec_token_in_use,
                 self.codec_token_in_use + conti_emb.shape[0],
             )
-
-        #TODO(yiwen) add a new modality and check adding token list
-        elif modality in ["svs_lb"]:
-            # value is token, no more tokenizer needed
-            value = self.converter.tokens2ids(value)
-            value = np.array(value)
             
         else:
             raise NotImplementedError

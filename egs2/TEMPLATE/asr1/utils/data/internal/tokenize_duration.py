@@ -34,7 +34,7 @@ def process_line_label(line, visualize_distribution=False):
         if visualize_distribution:
             duration_ls.append(duration_rounded)
         
-        result.append(f"{duration_rounded} {phone}")
+        result.append(f"{duration_rounded} svs_{phone}")
     
 
     return ' '.join(result), duration_ls
@@ -55,7 +55,7 @@ def process_line_score(line):
         duration = (end_time - start_time) * 1000 / 20
         duration_rounded = str(round(duration))
         
-        result.append(f"{duration_rounded} {midi} {phn}")
+        result.append(f"{duration_rounded} svs_{midi} svs_{phn}")
     
     return ' '.join(result)
 
@@ -87,7 +87,7 @@ def duration2repeat(data_folder):
                 midi = str(data_unit[i+2])
                 
                 result.extend([f"{phn} {midi}"] * duration)
-                result.append(" ")
+                result.append("<svs_placeholder>") # use a new token to define placeholder
 
             processed_line = ' '.join(result[:-1])
             outfile.write(processed_line + '\n')

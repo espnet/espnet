@@ -76,7 +76,7 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model=valid.acc.ave.till45epoch.pth # Model path for decoding.
+inference_model=valid.acc.ave.pth # Model path for decoding.
                                    # e.g.
                                    # inference_model=train.loss.best.pth
                                    # inference_model=3epoch.pth
@@ -112,8 +112,8 @@ ssl_hf_model_tag=null
 ssl_batch_bins=4800000
 
 # (3) g2p
-g2p=none # "g2p_en"
-cleaner=tacotron
+g2p="g2p_en"
+cleaner=none
 
 # (4) text bpe
 subword_choice=sentencepiece      # sentencepiece or huggingface
@@ -139,11 +139,11 @@ hf_repo=
 help_message=""
 
 # score is the main triplet while label and text are helpers
-# svs_score_triplets="score.scp,svs_lb,text" #TODO(yiwen) test svs_lb the new modality
-# svs_text_triplets="text,svs_lb,text"
+svs_score_triplets="score.scp,svs_lb,text" #TODO(yiwen) test svs_lb the new modality
+svs_text_triplets="text,svs_lb,text"
 
-svs_score_triplets="score.scp,g2p,text" #TODO(yiwen) test svs_lb the new modality
-svs_text_triplets="text,g2p,text"
+# svs_score_triplets="score.scp,g2p,text" #TODO(yiwen) test svs_lb the new modality
+# svs_text_triplets="text,g2p,text"
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
@@ -252,6 +252,7 @@ if [ -z "${speechlm_exp}" ]; then
     speechlm_exp="${expdir}/speechlm_${tag}"
 fi
 
+global_ngpu=$((ngpu * num_nodes))
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -280,6 +281,7 @@ if ! "${skip_data_prep}"; then
 
         for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
+
             for triplet in ${svs_all_triplets}; do
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
 
@@ -426,6 +428,7 @@ if ! "${skip_data_prep}"; then
                         --cleaner "${cleaner}" \
                         --g2p "${g2p}" \
                         --write_vocabulary true
+                    sed -i 's/^/g2p_/' "${data_feats}/${dset}/token_lists/g2p_token_list"
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 elif [ ${_modality} == "text_bpe" ]; then
@@ -479,8 +482,13 @@ if ! "${skip_data_prep}"; then
                     echo "copy utt2spk file"
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
+                elif [ ${_modality} == "svs_lb" ]; then
+                    echo "dump svs lable tokens"
+                    # cp the files first, generate token list later
+                    cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
+
                 else
-                    echo "Unsupported modality ${_modality}" # && exit 1;
+                    echo "Unsupported modality ${_modality}" && exit 1;
                 fi
 
                 # convert the separate score json files to an uniform text file
@@ -493,33 +501,40 @@ if ! "${skip_data_prep}"; then
             done
 
 
-            ## tokenize continuous duration to integer
-            # back up original label (st, ed, phn) --> new label (duration, phn)
-            ${python} utils/data/internal/tokenize_duration.py \
-                --data_folder ${data_feats}/${dset} \
-                --file_type "label"
-            # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
-            ${python} utils/data/internal/tokenize_duration.py \
-                --data_folder ${data_feats}/${dset} \
-                --file_type "score"
+            if [ ${task} == "svs" ]; then
+                echo "start to combine 3 input modalities"
+                ## tokenize continuous duration to integer
+                # back up original label (st, ed, phn) --> new label (duration, phn)
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "label"
+                # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "score"
 
-            ## preprocess svs data info to phn level triplets
-            ## find midi from score file, add to the label file and save as a new score file
-            ${python} utils/data/internal/make_svs_score_triplets.py \
-                --data_folder ${data_feats}/${dset}
+                ## preprocess svs data info to phn level triplets
+                ## find midi from score file, add to the label file and save as a new score file
+                ${python} utils/data/internal/make_svs_score_triplets.py \
+                    --data_folder ${data_feats}/${dset}
 
-            ## data format1 --> data format2
-            ${python} utils/data/internal/tokenize_duration.py \
-                --data_folder ${data_feats}/${dset} \
-                --file_type "duration"
-            rm ${data_feats}/${dset}/label2
+                ## data format1 --> data format2
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "duration"
+                rm ${data_feats}/${dset}/label2
+
+                ## generate the tokenlist from label
+                ${python} utils/data/internal/dump_svs_tokenls.py \
+                    --input "${data_feats}/${dset}/label" \
+                    --output "${data_feats}/${dset}/token_lists/${_modality}_token_list"
+            fi
 
             # The metadata for this dataset/task is saved in a json file, also do verification
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
                 ${opts}
-
         done
 
     fi
@@ -546,101 +561,62 @@ if ! ${skip_train}; then
 
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: SpeechLM collect stats: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
-        mkdir -p ${speechlm_stats_dir}
 
-        _opts=
-        if [ -n "${train_config}" ]; then
-            _opts+="--config ${train_config} "
-        fi
+        # collect length statistics for each data_json.
+        for data_json in ${train_jsons} ${valid_jsons}; do
 
-        # Split json files for each data cpu so each data shard is small and easy to handle.
-        _logdir="${speechlm_stats_dir}/logdir"
-        mkdir -p "${_logdir}"
-        ${python} pyscripts/utils/split_data_jsons.py \
-            --json_files ${train_jsons} \
-            --nj ${nj} \
-            --output_dir ${_logdir}/train
-        ${python} pyscripts/utils/split_data_jsons.py \
-            --json_files ${valid_jsons} \
-            --nj ${nj} \
-            --output_dir ${_logdir}/valid
+            this_stats_dir=$(dirname ${data_json})/stats
+            if [ -f ${this_stats_dir}/.done ]; then
+                log "Already have statistics for ${data_json}. Skip!"
+                continue
+            fi
 
-        _data_opts=""
-        for dset in `ls -d ${_logdir}/train/*/`; do
-            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${nj}/JOB/data.JOB.json,_,dataset_json "
-        done
-        for dset in `ls -d ${_logdir}/valid/*/`; do
-            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${nj}/JOB/data.JOB.json,_,dataset_json "
-        done
-        _data_opts+="--train_shape_file ${_logdir}/train/example_list.JOB "
-        _data_opts+="--valid_shape_file ${_logdir}/valid/example_list.JOB "
+            _opts=
+            if [ -n "${train_config}" ]; then
+                _opts+="--config ${train_config} "
+            fi
 
-        # 2. Generate run.sh
-        log "Generate '${speechlm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${speechlm_stats_dir}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${speechlm_stats_dir}/run.sh"; chmod +x "${speechlm_stats_dir}/run.sh"
+            ${python} pyscripts/utils/split_data_jsons.py \
+                --json_files ${data_json} \
+                --nj ${nj} \
+                --output_dir ${this_stats_dir}
 
-        # 3. Submit jobs
-        log "SpeechLM collect_stats started... log: '${_logdir}/stats.*.log'"
-        # shellcheck disable=SC2046,SC2086
-        ${train_cmd} JOB=1:"${nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m "espnet2.bin.speechlm_train" \
-                --collect_stats true \
-                --use_preprocessor true \
-                --token_list ${token_list_dir}/token_list \
-                --token_bias ${token_list_dir}/token_bias.json \
-                --non_linguistic_symbols "${nlsyms_txt}" \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --subword_choice ${subword_choice} \
-                --subword_model "${subword_model}" \
-                --multi_task_dataset true \
-                --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${_data_opts} ${train_args} \
-                || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+            # always consider it as the train set.
+            _data_opts="--train_data_path_and_name_and_type ${this_stats_dir}/split${nj}/JOB/data.json,_,dataset_json "
 
-        # 4. Aggregate shape files
-        _opts=
-        for i in $(seq "${nj}"); do
-            _opts+="--input_dir ${_logdir}/stats.${i} "
-        done
-        _opts+="--skip_sum_stats"
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${speechlm_stats_dir}"
+            # 3. Submit jobs
+            log "SpeechLM collect_stats for ${data_json} ... log: ${this_stats_dir}/logs/collect_stat.*.log"
+            # shellcheck disable=SC2046,SC2086
+            ${train_cmd} JOB=1:"${nj}" ${this_stats_dir}/logs/collect_stat.JOB.log \
+                ${python} -m "espnet2.bin.speechlm_train" \
+                    --collect_stats true \
+                    --use_preprocessor true \
+                    --token_list ${token_list_dir}/token_list.json \
+                    --token_bias ${token_list_dir}/token_bias.json \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --subword_choice ${subword_choice} \
+                    --subword_model "${subword_model}" \
+                    --multi_task_dataset true \
+                    --output_dir "${this_stats_dir}/split${nj}/JOB" \
+                    ${_opts} ${_data_opts} ${train_args} \
+                    || { cat $(grep -l -i error ${this_stats_dir}/logs/collect_stat.*.log) ; exit 1; }
 
-        # (Jinchuan) we only care about the #frames
-        for module in enc dec; do
-            for dset in train valid; do
-                if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_shape ]; then
-                    cat ${speechlm_stats_dir}/${dset}/${module}_seq_shape |\
-                    awk -F ',' '{print $1}' \
-                    > ${speechlm_stats_dir}/${dset}/${module}_seq_lengths
+            for file in dec_seq_shape enc_seq_shape; do
+                if [ ! -f ${this_stats_dir}/split${nj}/1/train/${file} ]; then
+                    continue
                 fi
+
+                for n in `seq ${nj}`; do
+                    cat ${this_stats_dir}/split${nj}/${n}/train/${file} | awk -F ',' '{print $1}'
+                done > ${this_stats_dir}/${file}
             done
-        done
 
-        # Shard dataset to each GPU.
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
-        mkdir -p "${_sharded_dir}"
-        ${python} pyscripts/utils/split_data_jsons.py \
-            --json_files ${train_jsons} \
-            --nj ${ngpu} \
-            --output_dir ${_sharded_dir}/train
-        ${python} pyscripts/utils/split_data_jsons.py \
-            --json_files ${valid_jsons} \
-            --nj ${ngpu} \
-            --output_dir ${_sharded_dir}/valid
-
-        for n in `seq $ngpu`; do
-            for module in enc dec; do
-                for dset in train valid; do
-                    if [ -f ${speechlm_stats_dir}/${dset}/${module}_seq_lengths ]; then
-                        utils/filter_scp.pl ${_sharded_dir}/${dset}/example_list.${n} \
-                            ${speechlm_stats_dir}/${dset}/${module}_seq_lengths \
-                            > ${_sharded_dir}/${dset}/${module}_seq_lengths.${n} &
-                    fi
-                done
-            done; wait
+            touch ${this_stats_dir}/.done
         done
     fi
+
 
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: SpeechlLM training: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
@@ -650,28 +626,59 @@ if ! ${skip_train}; then
             _opts+="--config ${train_config} "
         fi
 
-        _data_opts=""
-        _sharded_dir="${speechlm_stats_dir}/sharded_stats_ngpu${ngpu}"
+        # (1) for each  split by ${global_ngpu} and assign statistics
+        for data_json in ${train_jsons} ${valid_jsons}; do
+            stats_dir=$(dirname ${data_json})/stats
+            if [ ! -f ${stats_dir}/dec_seq_shape ]; then
+                log "${data_json} doesn't have length statistics. Please rerun stage 7"
+            fi
 
-        for dset in `ls -d ${_sharded_dir}/train/*/`; do
-            _data_opts+="--train_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
+            if [ ! -f ${stats_dir}/split${global_ngpu}/1/dec_seq_shape ]; then
+                log "Split ${data_json} into ${global_ngpu} shards for training"
+                ${python} pyscripts/utils/split_data_jsons.py \
+                    --json_files ${data_json} \
+                    --nj ${global_ngpu} \
+                    --output_dir ${stats_dir}
+
+                for n in `seq ${global_ngpu}`; do
+                    filter_scp.pl ${stats_dir}/split${global_ngpu}/${n}/example_list ${stats_dir}/dec_seq_shape \
+                        > ${stats_dir}/split${global_ngpu}/${n}/dec_seq_shape &
+                    if [ -f ${stats_dir}/enc_seq_shape ]; then
+                        filter_scp.pl ${stats_dir}/split${global_ngpu}/${n}/example_list ${stats_dir}/enc_seq_shape \
+                            > ${stats_dir}/split${global_ngpu}/${n}/enc_seq_shape &
+                    fi
+                done; wait
+            fi
         done
 
-        for dset in `ls -d ${_sharded_dir}/valid/*/`; do
-            _data_opts+="--valid_data_path_and_name_and_type ${dset}/split${ngpu}/JOB/data.JOB.json,_,dataset_json "
+        # (2) aggregate all statistics
+        _data_opts=
+
+        for data_json in ${train_jsons}; do
+            stats_dir=$(dirname ${data_json})/stats
+            _data_opts+="--train_data_path_and_name_and_type ${stats_dir}/split${global_ngpu}/JOB/data.json,_,dataset_json "
+        done
+        for data_json in ${valid_jsons}; do
+            stats_dir=$(dirname ${data_json})/stats
+            _data_opts+="--valid_data_path_and_name_and_type ${stats_dir}/split${global_ngpu}/JOB/data.json,_,dataset_json "
         done
 
-        _data_opts+="--train_shape_file ${_sharded_dir}/train/dec_seq_lengths.JOB "
-        _data_opts+="--valid_shape_file ${_sharded_dir}/valid/dec_seq_lengths.JOB "
-        if [ -f ${_sharded_dir}/train/enc_seq_lengths.JOB ]; then
-            _data_opts+="--train_shape_file ${_sharded_dir}/train/enc_seq_lengths.JOB "
-        fi
-        if [ -f ${_sharded_dir}/valid/enc_seq_lengths.JOB ]; then
-            _data_opts+="--valid_shape_file ${_sharded_dir}/valid/enc_seq_lengths.JOB "
-        fi
+        # TODO(Jinchuan): only do this on master node; also consider enc_seq_shape
+        mkdir -p ${speechlm_stats_dir}/train/split${global_ngpu}
+        for n in `seq ${global_ngpu}`; do
+            for data_json in ${train_jsons}; do
+                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape
+            done > ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.${n}
+        done
+        _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.JOB "
 
-        log "Generate '${speechlm_exp}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${speechlm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${speechlm_exp}/run.sh"; chmod +x "${speechlm_exp}/run.sh"
+        mkdir -p ${speechlm_stats_dir}/valid/split${global_ngpu}
+        for n in `seq ${global_ngpu}`; do
+            for data_json in ${valid_jsons}; do
+                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape
+            done > ${speechlm_stats_dir}/valid/split${global_ngpu}/dec_seq_shape.${n}
+        done
+        _data_opts+="--valid_shape_file ${speechlm_stats_dir}/valid/split${global_ngpu}/dec_seq_shape.JOB "
 
         log "SpeechLM training started... log: '${speechlm_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
@@ -690,7 +697,7 @@ if ! ${skip_train}; then
             --multiprocessing_distributed true -- \
             ${python} -m "espnet2.bin.speechlm_train" \
                 --use_preprocessor true \
-                --token_list ${token_list_dir}/token_list \
+                --token_list ${token_list_dir}/token_list.json \
                 --token_bias ${token_list_dir}/token_bias.json \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
