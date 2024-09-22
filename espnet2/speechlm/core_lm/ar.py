@@ -10,8 +10,8 @@ from typing import Dict, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss
 
 
 class ARLM(AbsCoreLM):
@@ -19,8 +19,9 @@ class ARLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        token_bias: dict,
+        pad_id: int,
         hf_model_tag: str = None,
-        token_bias: dict = None,
         share_emb: bool = False,
         qk_norm: bool = False,
         dropout: float = 0.0,
@@ -64,8 +65,10 @@ class ARLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
         self.sos_eos = sos_eos
+        self.pad_id = pad_id
 
         self.decoders.init_embeddings(self.emb, self.lm_head)
+        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
 
     def forward(
         self,
@@ -94,15 +97,9 @@ class ARLM(AbsCoreLM):
         x = dec_seq[:, :-1]
         x = self.emb(x).mean(dim=2)
         x = self.decoders(x)
-        logits = self.lm_head(x).unsqueeze(2)
+        x = x.unsqueeze(2)
 
-        loss, stats, weight = ce_loss(
-            logits,
-            target,
-            dec_seq_lengths - 1,
-            prefix_len - 1,
-            compute_loss=compute_loss,
-        )
+        loss, logits, stats, weight = self.criterion(x, target)
 
         return loss, logits, stats, weight
 

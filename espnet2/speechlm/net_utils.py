@@ -17,7 +17,7 @@ def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
     mask = torch.lt(
         torch.arange(maxlen, device=lengths.device).unsqueeze(0),
         lengths.unsqueeze(1),
-    ).long()
+    )
     return mask
 
 
@@ -51,73 +51,6 @@ def pad_and_concat(tensor_list, pad_id=0):
         count += B
 
     return retval
-
-
-def ce_loss(
-    logits: torch.Tensor,
-    target: torch.Tensor,
-    lengths: torch.Tensor,
-    prefix_len: torch.Tensor,
-    compute_loss: bool = True,
-    z_loss_factor: float = 0.0,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    assert logits.dim() == 4
-    assert logits.size()[:3] == target.size()
-
-    stats = {}
-
-    # (0) remove prefix to save computing
-    min_prefix_len = prefix_len.min()
-    logits = logits[:, min_prefix_len:]
-    target = target[:, min_prefix_len:]
-    lengths = lengths - min_prefix_len
-    prefix_len = prefix_len - min_prefix_len
-
-    # (1) mask and prefix mask
-    mask = length_mask(lengths).to(logits.dtype).unsqueeze(-1)
-    target_mask = (
-        length_mask(prefix_len, maxlen=lengths.max()).to(logits.dtype).unsqueeze(-1)
-    )
-    target_mask = mask * torch.abs(target_mask - 1)
-
-    # (2) compute cross-entropy loss and z-loss
-    if compute_loss:
-        elem_loss = torch.nn.functional.cross_entropy(
-            logits.permute(0, 3, 1, 2), target, reduction="none"
-        )
-
-        # compute loss on target tokens only (prefix excluded)
-        elem_loss = elem_loss * target_mask
-        loss = elem_loss.sum() / target_mask.sum() / logits.size(2)
-
-        # NOTE(Jinchuan): Z-loss regularization to avoid the numerical instability
-        # caused by very large logit values, a.k.a., "logit drift problem".
-        # check paper: https://arxiv.org/pdf/2405.09818
-        #              https://arxiv.org/pdf/2204.02311
-        #              https://arxiv.org/pdf/2309.14322
-        if z_loss_factor > 0.0:
-            z_loss = torch.logsumexp(logits, dim=-1)
-            z_loss = (z_loss * target_mask).sum() / target_mask.sum() / logits.size(2)
-            loss = loss + z_loss * z_loss_factor
-            stats.update(z_loss=z_loss.clone().detach())
-    else:
-        # NOTE(Jinchuan): In case only logits are needed - save memory
-        loss = torch.Tensor([0.0]).to(dtype=logits.dtype, device=logits.device)
-
-    # (3) statistics on token accuracy
-    pred = logits.argmax(dim=-1)
-    acc = torch.eq(pred, target).to(logits.dtype) * target_mask
-
-    for nq_idx in range(target.size(2)):
-        stats.update(
-            {f"acc_layer{nq_idx}": acc[:, :, nq_idx].sum() / target_mask.sum()}
-        )
-
-    acc = acc.sum() / target_mask.sum() / logits.size(2)
-    stats.update({"loss": loss.clone().detach(), "acc": acc})
-    weight = mask.sum()
-
-    return loss, stats, weight
 
 
 def install_kv_cache_hook(model, cache):

@@ -203,6 +203,12 @@ class SpeechLMTask(AbsTask):
             default=None,
             help="Number of codec codes in exact use",
         )
+        group.add_argument(
+            "--codec_ssl_corrupt_prob",
+            type=float,
+            default=0.0,
+            help="The prob of changing SSL tokens to pad_id in codec_ssl modality",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -242,8 +248,10 @@ class SpeechLMTask(AbsTask):
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
+            codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
+            n_ctx=args.corelm_conf.get("n_ctx", 4096),
         )
 
         return retval
@@ -267,8 +275,10 @@ class SpeechLMTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> Union[AbsESPnetModel]:
 
         if isinstance(args.token_list, str):
-            with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip("\n") for line in f]
+            assert args.token_list.endswith(
+                ".json"
+            ), "Input token list should be a json file"
+            token_list = json.load(open(args.token_list))
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
@@ -290,6 +300,17 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
         logging.info(f"Token Bias: {token_bias}")
 
+        # NOTE(Jinchuan): model will not in real use. Create a placeholder
+        if args.collect_stats:
+            return ESPnetSpeechLMModel(
+                corelm=ARLM(
+                    vocab_size=1,
+                    nq=args.codec_token_in_use,
+                    token_bias=token_bias,
+                    pad_id=token_list.index("<pad>"),
+                )
+            )
+
         kwargs = dict()
         # 1. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
@@ -297,6 +318,7 @@ class SpeechLMTask(AbsTask):
             vocab_size=len(token_list),
             nq=args.codec_token_in_use,
             token_bias=token_bias,
+            pad_id=token_list.index("<pad>"),
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)

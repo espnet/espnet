@@ -36,8 +36,8 @@ if ! command -v tokenizer.perl > /dev/null; then
     return 1
 fi
 
-if [ $# -ne 1 ]; then
-    log "Error: ang argument is required."
+if [ $# -ne 2 ]; then
+    log "Error: lang argument is required."
     exit 2
 fi
 

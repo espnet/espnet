@@ -9,8 +9,7 @@ train_set=train
 valid_set=""
 test_sets=""
 
-bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
-codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
+bpe_opts="--subword_choice huggingface --subword_model google/gemma-2b-it"
 
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm.sh \
@@ -21,11 +20,8 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_sound
     --ngpu 8 \
     --nj 32 \
     --train_config conf/train_foo.yaml \
-    --audio_format "flac.ark" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 3.0 \
-    --max_wav_duration 30.0 \
-    ${bpe_opts} ${codec_opts} \
+    ${bpe_opts} \
     "$@"

@@ -47,6 +47,8 @@ def collect_stats(
         sq_dict = defaultdict(lambda: 0)
         count_dict = defaultdict(lambda: 0)
 
+        # NOTE(Jinchuan): In case datadir_writer writes nothing so the datadir is not created.
+        (output_dir / mode).mkdir(parents=True, exist_ok=True)
         with DatadirWriter(output_dir / mode) as datadir_writer:
             for iiter, (keys, batch) in enumerate(itr, 1):
                 batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")

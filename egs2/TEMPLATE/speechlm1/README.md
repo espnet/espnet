@@ -5,7 +5,6 @@
 - [ESPnet2 Speech Language Model (SpeechLM) Recipe](#espnet2-speech-language-model-speechlm-recipe)
   - [Table of Content](#table-of-content)
   - [Environment](#environments)
-  - [Check List of Building a New Task](#check-list-of-building-a-new-task)
   - [The Concept of Task Templete](#the-concept-of-task-templete)
     - [LM modeling paradigm](#lm-modeling-paradigm)
     - [Define Task as a Sequence Template](#define-task-as-a-sequence-template)
@@ -59,7 +58,7 @@ VISQOL dependency may have some issue. If you don't need that, comment [this lin
 
 TODO: Build DeepSpeed environment
 
-## Check List of Building a New Task
+<!-- ## Check List of Building a New Task
 We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
   * Task Template Definition:
     * Check if your task already has a template.
@@ -80,7 +79,7 @@ Ideally, stages like tokenization, data statistics collection, training and infe
     * BPE model and g2p model choices.
   * Check the inference results, specifically ensure the training and teacher-forced inference have the same results.
 
-Developers are also highly encouraged to adopt our resources, such as codec model, ssl model and pre-trained language models. We also provide an example recipe. See [Resources](#resources).
+Developers are also highly encouraged to adopt our resources, such as codec model, ssl model and pre-trained language models. We also provide an example recipe. See [Resources](#resources). -->
 
 ## The Concept of Task Templete
 ### LM Modeling Paradigm
@@ -586,17 +585,62 @@ When training with massive data, storing the whole dataset in each GPU process i
   * https://huggingface.co/espnet/owsmdata_soundstream_16k_200epoch
   * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch`
 
-`ssl`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
+`SSL`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
   * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xues
   * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xues`
 
 ### Pretrained Models:
-We provide pre-trained models for fine-tuning purpose. The models are of size of ~300M and is pre-trained on 55k hours of English Speech data using TTS task. The model currently accept `codec` and `g2p` modalities; users who work on other tasks/modalities can discard the pre-trained embedding layers and just use the transformer layers.
-  * Vall-E Model: https://huggingface.co/espnet/speechlm_tts_ls_giga_mlsen_amuse_speech_valle
-    * With the previous codec model: https://huggingface.co/espnet/amuse_speech_soundstream_16k
-  * A new pre-trained model based on the latest codec model is coming soon.
+As of Sep 18, we provide two pre-trained models. These models are trained on 160khrs of English corpus, of size 300-400M parameters. People who work on speech understanding can use ASR pre-trained model; people who work on speech generation can use TTS pre-trained model.
+
+`ASR`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_asr
+  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_asr`
+  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_asr.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
+  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/asr_vocab`. The folder is together downloaded with the model.
+  * Remember to download the SSL model.
+
+`TTS`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_tts
+  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_tts`
+  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_tts.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
+  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/tts_vocab`. The folder is together downloaded with the model.
 
 ### Recipes：
-  * `TTS` recipe for `LibriTTS`: `<espnet>/egs2/libritts/speechlm1/run.sh`
+  * `ASR` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_asr.sh`
+  * `TTS` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_tts.sh`
+
+### Step-by-Step Guidance of supporting a new task
+  * Before you start, make sure you have some additional dependencies installed.
+    * `pip install huggingface-hub transformers`  # huggingface support, to download data and upload model
+    * `pip install git+https://github.com/shinjiwlab/versa.git` # VERSA, evaluation support
+  * Download necessary files, such as SSL model or pre-trained model, as in [Resources](#resources).
+  * Define your task template, as in [The Concept of Task Templete](#the-concept-of-task-templete)
+  * Stage 1: Create the dataset, as in [Stage 1: Data Preparation](#stage-1-data-preparation)
+  * Stage 2: Format audio, as in [Stage 2: Audio Formatting](#stage-2-audio-formatting). This should be automatic to users.
+  * Stage 5: Tokenization, as in [Stage 5: Tokenization](#stage-5-tokenization). This should be automatic to users.
+  * Stage 6: Build vocabulary, as in [Stage 6: Build Joint Vocabulary](#stage-6-build-joint-vocabulary). Please skip this stage if you don't need to add additional tokens.
+  * Stage 7: Statistics Collection, as in [Stage 7: Collect Statistics](#stage-7-collect-statistics). This should be automatic to users.
+  * Stage 8: Training, as in [Stage 8: Training](#stage-8-training). This should be automatic to users, but need some parameter-tuning for each task
+  * Stage 9: Inference, as in [Stage 9: Inference](#stage-9-inference). This should be automatic to users, but need some parameter-tuning for each task.
+  * Stage 10: Evaluation, as in [Stage 10: Evaluation](#stage-10-evaluation). Evaluation scripts are task-specific and are not provided. Users should built it by yourselves.
+  * Stage 13: Dataset sharing, as in [Stage 13: Dataset Sharing](#stage-12-dataset-sharing). People who work on ESPnet-SpeechLM project please do it even though you didn't get the result numbers.
+
+### Extend vocabulary
+It is common that you need to extend the vocabulary of the language models. E.g., the pre-trained ASR model only contains tokens from `text_bpe` and `ssl` modalities, but sometimes the new task may need the phone modality. To deal with this case, we provide the script `pyscripts/utils/speechlm_extend_vocab.py`.
+  * After stage 5, for each modality, there is a modality-specific vocabulary file. E.g., `dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list` for phone.
+  * The pre-trained model already has a combined token_list folder. E.g., for ASR, it is `data/token_list/asr_vocab`
+  * Then, call the script as below. It will extend the vocabulary (1) in the token_list folder, (2) in the model config file and (3) in the embedding table / lm_head of pre-trained checkpoint.
+  * revise your `run_asr.sh` by setting `----token_list_dir <your_new_token_list_folder>` and `--tag <your_new_exp_folder>`
+  * Please also remember to set some on-the-fly tokenization related settings. E.g., if you want to use `g2p` for fine-tuning but that was not included in the ASR pre-trained model, specify: `--cleaner "tacotron" --g2p "g2p_en_no_space"`
+  * You should also revise the training config to change the `init_param` config so that the model saved in `<your_new_exp_folder>` will be used.
+  * Note, the extended embeddings in the checkpoint are randomly initialized. You will need to train with them to get reasonable results.
+Here is an example:
+```
+python pyscripts/utils/speechlm_extend_vocab.py \
+  --input_token_list_dir data/token_list/asr_vocab \
+  --output_token_list_dir data/token_list/asr_vocab_ext_phone \
+  --input_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr \
+  --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr_ext_phone \
+  --inference_model 60epoch.pth \
+  --additional_vocabs dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list
+```
 
 ## FQA

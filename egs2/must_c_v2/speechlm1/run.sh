@@ -18,6 +18,7 @@ task=mt # mt will use tc as src_text
 
 ./speechlm.sh \
     --local_data_opts "${tgt_lang} ${task}" \
+    --gpu_inference true \
     --audio_format "flac.ark" \
     --feats_type raw \
     --bpemode huggingface \

@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import random
@@ -6,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
 
+import kaldiio
 import librosa
 import numpy as np
 import scipy.signal
@@ -278,7 +280,10 @@ class CommonPreprocessor(AbsPreprocessor):
         rir_path = np.random.choice(rirs)
         rir = None
         if rir_path is not None:
-            rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+            if ":" in rir_path and rir_path.split(":")[1].isdigit():
+                fs, rir = kaldiio.load_mat(rir_path)
+            else:
+                rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
 
             if single_channel:
                 num_ch = rir.shape[1]
@@ -320,6 +325,15 @@ class CommonPreprocessor(AbsPreprocessor):
         noise = None
         if noise_path is not None:
             noise_db = np.random.uniform(noise_db_low, noise_db_high)
+
+            # to load kaldi.ark style noise_path, load it into a memory buffer
+            # and treat it as a virtual path
+            if ":" in noise_path and noise_path.split(":")[1].isdigit():
+                fs, wav = kaldiio.load_mat(noise_path)
+                noise_path = io.BytesIO()
+                soundfile.write(noise_path, wav, fs, format="WAV")
+                noise_path.seek(0)
+
             with soundfile.SoundFile(noise_path) as f:
                 fs = f.samplerate
                 if tgt_fs and fs != tgt_fs:
@@ -2372,6 +2386,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # codec related:
         codec_token_per_frame: int = 1,
         codec_token_in_use: Optional[int] = None,
+        # codec_ssl related:
+        codec_ssl_corrupt_prob: float = 0.0,
         # tokenizer related: Phone & BPE
         unk_symbol: Optional[str] = "<unk>",
         space_symbol: Optional[str] = "<space>",
@@ -2385,6 +2401,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         speaker_prompt_length: int = 500,
         pad_speaker_prompt: bool = True,
         # others
+        n_ctx: int = 4096,
         extra_names_and_modalities=[
             "sampled.scp,codec",
         ],
@@ -2392,6 +2409,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_list = token_list
         self.token_bias = token_bias
         self.encoder_decoder_format = encoder_decoder_format
+        self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
+
+        assert not (
+            "codec" in token_bias and "codec_ssl" in token_bias
+        ), "Cannot use both modality codec and codec_ssl"
 
         self.modalities = speechlm_definitions.MODALITIES
         self.tasks = speechlm_definitions.SPEECHLM_TASKS
@@ -2402,7 +2424,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        # Modality-specific utilities
+        ### Modality-specific utilities
 
         # Text BPE (text_bpe):
         if subword_model is not None:
@@ -2439,6 +2461,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             codec_token_in_use = codec_token_per_frame
             assert codec_token_in_use <= codec_token_per_frame
         self.codec_token_in_use = codec_token_in_use
+
+        # Codec ssl
+        self.codec_ssl_corrupt_prob = codec_ssl_corrupt_prob
 
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
@@ -2481,14 +2506,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if self.encoder_decoder_format:
             new_data["enc_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs[:n_conditions] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + seqs[n_conditions:] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
         else:
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
+            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
 
         prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
         prefix_len = prefix_len // self.codec_token_in_use + 2
@@ -2553,10 +2578,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return token_idx
 
     def modality_specific_processing(self, value, modality):
-        if modality in ["codec", "spk"]:
+        # multi-stream discrete modalities
+        if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
             value = value[:, : self.codec_token_in_use]
-            value = value + self.token_bias["codec"]
+            value = value + (
+                self.token_bias.get("codec", None) or self.token_bias["codec_ssl"]
+            )
 
             if modality == "spk":
                 if len(value) > self.speaker_prompt_length:
@@ -2566,8 +2594,22 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                     value = value[start : start + self.speaker_prompt_length]
                 elif self.pad_speaker_prompt:
                     pad_len = self.speaker_prompt_length - len(value)
-                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                    value = np.concatenate([value, pad], axis=0)
+                    value = np.pad(
+                        value,
+                        ((0, pad_len), (0, 0)),
+                        mode="constant",
+                        constant_values=self.token_list.index("<pad>"),
+                    )
+
+                # As mentioned in AudioLM, always corrupt SSL token in speech prompt.
+                if "codec_ssl" in self.token_bias:
+                    value[:, 0] = self.token_list.index("<pad>")
+
+            if (
+                modality == "codec_ssl"
+                and random.random() < self.codec_ssl_corrupt_prob
+            ):
+                value[:, 0] = self.token_list.index("<pad>")
 
             value = value.flatten()
             conti_feat = None
@@ -2576,19 +2618,39 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         elif modality in ["ssl", "text_bpe", "g2p"]:
 
             if modality in ["text_bpe", "g2p"]:
-                value = self.text_cleaner(value)
-                tokenizer = self.bpe if modality == "text_bpe" else self.g2p
-                if tokenizer: #NOTE(yiwen) in case tokenizer=None where input data has already been phoneme
+                if isinstance(value, str):
+                    try:
+                        value = self.text_cleaner(value)
+                    except:
+                        logging.warning(
+                            f"Failed to apply cleaner to {value}. Make it empty"
+                        )
+                        value = ""
+                    tokenizer = self.bpe if modality == "text_bpe" else self.g2p
                     value = tokenizer.text2tokens(value)
-                value = self.converter.tokens2ids(value)
-                value = np.array(value)
+                    if modality == "g2p":
+                        value = [f"g2p_{tok}" for tok in value]
+                    value = self.converter.tokens2ids(value)
+                    value = np.array(value)
+
+                else:
+                    # already tokenized offline
+                    assert isinstance(value, np.ndarray)
+                    value = value + self.token_bias[modality]
 
             elif modality in ["ssl"]:
                 value = value + self.token_bias["ssl"]
 
-            value = value.repeat(self.codec_token_in_use, axis=0)
+            value = np.pad(
+                np.expand_dims(value, 1),
+                ((0, 0), (0, self.codec_token_in_use - 1)),
+                mode="constant",
+                constant_values=self.token_list.index("<pad>"),
+            ).flatten()
+
             conti_feat = None
 
+        # continuous modalities
         elif modality in ["text_emb"]:
             if value.ndim != 2:
                 raise ValueError(f"Text embedding should have size of [T, D]")
@@ -2619,7 +2681,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             raise NotImplementedError
 
         modality_idx = self.special_token(f"<{modality}_start/end>")
-        value = np.concatenate([modality_idx, value])
+        value = np.concatenate([modality_idx, value]).astype(np.int64)
 
         return value, conti_feat
 

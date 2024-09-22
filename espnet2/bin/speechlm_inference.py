@@ -27,7 +27,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2triple_str, str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -53,6 +53,7 @@ class SpeechLM:
         top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
+        codec_ssl_predict_ssl: bool = True,
         codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
@@ -84,10 +85,42 @@ class SpeechLM:
             mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
             start = self.token_bias[modality]
             end = min([b for b in all_boundaries if b > start])
-            if modality in ["codec", "spk"]:
+            if modality == "codec":
+                assert (end - start) % train_args.codec_token_per_frame == 0
                 inc = (end - start) // train_args.codec_token_per_frame
                 for n in range(self.inference_nq):
                     mask[n, start + n * inc : start + (n + 1) * inc] = False
+
+                self.codec_start = start
+
+            elif modality == "codec_ssl":
+                ssl_start = self.token_list.index("<ssl_code1>")
+                codec_start = self.token_list.index("<codec_layer0_code0>")
+
+                if codec_ssl_predict_ssl:
+                    ssl_end = end if ssl_start > codec_start else codec_start
+                    mask[0, ssl_start:ssl_end] = False
+                else:
+                    mask[0, self.pad] = False
+
+                codec_end = end if codec_start > ssl_start else ssl_start
+                assert (codec_end - codec_start) % (
+                    train_args.codec_token_per_frame - 1
+                ) == 0
+                inc = (codec_end - codec_start) // (
+                    train_args.codec_token_per_frame - 1
+                )
+                for n in range(self.inference_nq - 1):
+                    mask[n + 1, codec_start + n * inc : codec_start + (n + 1) * inc] = (
+                        False
+                    )
+
+                self.codec_start = codec_start
+
+            elif modality == "text_bpe":
+                mask[0, start:end] = False
+                mask[1:, self.pad] = False
+
             else:
                 mask[:, start:end] = False
 
@@ -95,7 +128,7 @@ class SpeechLM:
             if len(self.task.targets) > 1:
                 mask[0, 32:64] = False
 
-            modality = modality = f"<{modality}_start/end>"
+            modality = f"<{modality}_start/end>"
             modality_idx = self.token_list.index(modality)
             predict_masks[modality_idx] = mask
 
@@ -117,14 +150,15 @@ class SpeechLM:
         )
 
         # (4) Only a limited number of modalities support detokenization
-        # (4.1) offline tokenizers should be resumed from external config
-        if "codec" in self.modalities or "spk" in self.modalities:
+        # (4.1) offline tokenizers should be resumed from external config as they are
+        #       not included in preprocessor.
+        if any([m in self.modalities for m in ["codec", "codec_ssl", "spk"]]):
             self.codec_tokenizer = tokenizer_choices.get_class("codec")(**codec_conf)
             self.codec_tokenizer.to(self.device)
         else:
             self.codec_tokenizer = None
 
-        # (4.2) online tokenizers should be from preprocessor
+        # (4.2) online tokenizers should be from preprocessor.
         if "text_bpe" in self.modalities:
             self.text_bpe_tokenizer = self.preprocessor.bpe
         else:
@@ -186,19 +220,31 @@ class SpeechLM:
             modality_id = sequence[start, 0].int().item()
             modality = self.token_list[modality_id]
             modality = modality.removeprefix("<").removesuffix("_start/end>")
-
             segment = sequence[start + 1 : end]
-            segment = segment[segment[:, 0] != self.pad]
 
-            if modality in ["codec", "spk"]:
-                segment = segment.view(-1) - self.token_bias["codec"]
-                detokenized = self.codec_tokenizer.detokenize(segment.clone())
+            if modality in ["codec", "spk", "codec_ssl"]:
+                if "codec_ssl" in self.token_bias:
+                    segment = segment[:, 1:]
+                    n_codebook = self.inference_nq - 1
+                else:
+                    n_codebook = self.inference_nq
+                segment = segment[segment[:, 0] != self.pad]
+
+                segment = segment.contiguous().view(-1) - self.codec_start
+                detokenized = self.codec_tokenizer.detokenize(
+                    segment.clone(),
+                    n_codebook=n_codebook,
+                )
 
             elif modality in ["text_bpe"]:
+                segment = segment[segment[:, 0] != self.pad]
                 segment = segment[:, 0]
                 detokenized = self.text_bpe_tokenizer.tokens2text(
                     [self.token_list[tok] for tok in segment]
                 )
+                # sentencepiece will include "\n" but huggingface will not.
+                # make it uniform
+                detokenized = detokenized.strip() + "\n"
 
             else:
                 segment = segment[:, 0] - self.token_bias[modality]
@@ -266,6 +312,8 @@ def inference(
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
+    codec_ssl_corrupt_prob: float = 0.0,
+    codec_ssl_predict_ssl: bool = True,
     # offline tokenizers
     codec_conf: dict = None,
 ):
@@ -304,12 +352,24 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         task=task,
+        codec_ssl_predict_ssl=codec_ssl_predict_ssl,
         codec_conf=codec_conf,
     )
 
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
     # 3. Build data-iterator
+    if (
+        inference_nq is not None
+        and speechlm.train_args.codec_token_in_use != inference_nq
+    ):
+        logging.warning(
+            f"The model is trained with nq={speechlm.train_args.codec_token_in_use} "
+            f"While you are inference with {inference_nq}. "
+        )
+        speechlm.train_args.codec_token_in_use = inference_nq
+    if codec_ssl_corrupt_prob != speechlm.train_args.codec_ssl_corrupt_prob:
+        speechlm.train_args.codec_ssl_corrupt_prob = codec_ssl_corrupt_prob
     loader = SpeechLMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -329,7 +389,7 @@ def inference(
         (output_dir / name).mkdir(parents=True, exist_ok=True)
         file_name = str(output_dir / name / ("token_" + name))
         token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
-        if modality in ["spk", "codec", "text_bpe"]:
+        if modality in ["spk", "codec", "text_bpe", "codec_ssl"]:
             file_name = str(output_dir / name / name)
             writers[name] = open(file_name, "w")
 
@@ -367,7 +427,7 @@ def inference(
 
                 # 5.3 save tokenized results
                 if detokenized is not None:
-                    if modality in ["codec", "spk"]:
+                    if modality in ["codec", "spk", "codec_ssl"]:
                         audio_path = output_dir / name / f"{example_name}.wav"
                         torchaudio.save(
                             str(audio_path),
@@ -380,7 +440,8 @@ def inference(
                         logging.info(f"Save audio: {audio_path}")
 
                     elif modality in ["text_bpe"]:
-                        writers[name].write(f"{example_name} {detokenized}")
+                        detokenized = detokenized.strip()
+                        writers[name].write(f"{example_name} {detokenized}\n")
                         logging.info(f"Save text: {detokenized}")
 
                     else:
@@ -432,7 +493,7 @@ def get_parser():
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=1,
+        default=0,
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
@@ -523,6 +584,21 @@ def get_parser():
         default=None,
         help="nq in inference stage",
     )
+    group.add_argument(
+        "--codec_ssl_corrupt_prob",
+        type=float,
+        default=0.0,
+        help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
+        "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
+        "This is only applied to the prefix sequence",
+    )
+    group.add_argument(
+        "--codec_ssl_predict_ssl",
+        type=str2bool,
+        default=True,
+        help="If true, allow to predict ssl token in codec_ssl modality prediction "
+        "Otherwise, the first layer of codec_ssl is always paddings",
+    )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during
     # training and thus should be specified externally.
@@ -545,6 +621,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
+    print("kwargs: ", dict(kwargs))
     inference(**kwargs)
 
 

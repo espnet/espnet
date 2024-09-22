@@ -5,14 +5,14 @@
 
 # Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
-import logging
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
+from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
 from espnet2.speechlm.module.transformer import TransformerDecoder
-from espnet2.speechlm.net_utils import ce_loss, install_continuous_features
+from espnet2.speechlm.net_utils import install_continuous_features
 
 
 class ARParallelLM(AbsCoreLM):
@@ -20,16 +20,18 @@ class ARParallelLM(AbsCoreLM):
         self,
         vocab_size: int,
         nq: int,
+        token_bias: dict,
+        pad_id: int,
         hf_model_tag: str = None,
-        token_bias: dict = None,
         share_emb: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
         att_unit: int = 256,
         head: int = 2,
         layer: int = 4,
-        n_ctx: int = 3000,
+        n_ctx: int = 4096,
         sos_eos: int = 5,
+        prefix_lm: bool = True,
     ):
         """Initialize Auto-regressive LM with parallel interleave codec pattern.
 
@@ -50,7 +52,7 @@ class ARParallelLM(AbsCoreLM):
         self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
         if share_emb:
             self.lm_head.weight = self.emb.weight
-        self.head_emb = torch.nn.Embedding(nq, att_unit)
+        self.head_emb = torch.nn.Embedding(12, att_unit)
 
         self.decoders = TransformerDecoder(
             n_ctx=n_ctx,
@@ -66,8 +68,14 @@ class ARParallelLM(AbsCoreLM):
         self.nq = nq
         self.n_ctx = n_ctx
         self.sos_eos = sos_eos
+        self.pad_id = pad_id
 
         self.decoders.init_embeddings(self.emb, self.lm_head)
+        self.criterion = FusedLinearCrossEntropyLoss(
+            self.lm_head,
+            self.pad_id,
+            prefix_lm=prefix_lm,
+        )
 
     def forward(
         self,
@@ -95,22 +103,27 @@ class ARParallelLM(AbsCoreLM):
 
         target = dec_seq[:, 1:]
         x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
-        x, _ = install_continuous_features(x, None, conti_feats)
-        x = self.decoders(x)
 
-        # [B, T, 1, D] + [1, 1, nq, D]
-        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)
-        logits = self.lm_head(x)  # [B, T, nq, V]
-        loss, stats, weight = ce_loss(
-            logits,
-            target,
-            dec_seq_lengths - 1,
-            prefix_len - 1,
-            compute_loss=compute_loss,
-        )
+        x = self.process_embedding(x, conti_feats=conti_feats)
+        x = self.decoders(x)
+        x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
+
+        loss, logits, stats, weight = self.criterion(x, target, prefix_len)
 
         return loss, logits, stats, weight
+
+    def process_embedding(
+        self,
+        x: torch.Tensor,
+        conti_feats: List = None,
+    ):
+        pad_mask = x == self.pad_id
+        x = self.emb(x)
+        x[pad_mask] = 0.0
+        x = x.sum(dim=2)
+        x, _ = install_continuous_features(x, None, conti_feats)
+
+        return x
 
     @torch.no_grad()
     def inference(
