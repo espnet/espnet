@@ -866,20 +866,20 @@ if ! "${skip_eval}"; then
             done
 
             cp ${dumpdir}/audio_raw_${task}_${data_name}/${_dset}/wav.scp "${_dir}"/ref_temp.scp
-            
+
             first_write=true
             while IFS=' ' read -r key value; do
                 new_key="svs_${key}_sample0"
                 if [ "$first_write" = true ]; then
-                    echo "${new_key} ${value}" > "${_dir}/ref_wav.scp"  
+                    echo "${new_key} ${value}" > "${_dir}/ref_wav.scp"
                     first_write=false
                 else
-                    echo "${new_key} ${value}" >> "${_dir}/ref_wav.scp" 
+                    echo "${new_key} ${value}" >> "${_dir}/ref_wav.scp"
                 fi
             done < "${_dir}/ref_temp.scp"
             rm "${_dir}/ref_temp.scp"
             ###
-            
+
             # (3) Task-specific evaluation
             ./scripts/utils/speechlm_eval/eval_${task}.sh \
                 --gen_dir ${_dir} \

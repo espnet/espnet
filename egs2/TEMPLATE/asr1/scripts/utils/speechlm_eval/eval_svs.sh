@@ -123,7 +123,7 @@ fi
 #                 score_config=${spk_config}
 #                 gt_file=${ref_dir}/utt2spk
 #             fi
-            
+
 #             # (3) split
 #             _nj=$(min "${inference_nj}" "$(<${pred_file} wc -l)" )
 
@@ -159,7 +159,7 @@ fi
 #                     --output_file ${eval_dir}/result.JOB.txt \
 #                     --io soundfile \
 #                     ${opts} || exit 1;
-            
+
 #             # (5) aggregate
 #             pyscripts/utils/aggregate_eval.py \
 #                 --logdir ${eval_dir} \
@@ -208,7 +208,3 @@ fi
 # fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
-
-
-

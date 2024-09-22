@@ -2549,7 +2549,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = self.modality_specific_processing(data[name], modality)[0]
             new_data = self.process_extra_entries(new_data, value, name)
 
-        # self.diagnose(new_data) # For debug. Enable this to check the sequence format 
+        # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 
         return new_data
 
@@ -2642,9 +2642,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = value + self.token_bias["ssl"]
 
             elif modality in ["svs_lb"]:
-                value = value.split(" ") # str to token list, no '\n'
+                value = value.split(" ")  # str to token list, no '\n'
                 value = self.converter.tokens2ids(value)
-                value = np.array(value) #NOTE(yiwen) don't need to add token bias
+                value = np.array(value)  # NOTE(yiwen) don't need to add token bias
 
             value = np.pad(
                 np.expand_dims(value, 1),
@@ -2675,7 +2675,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 self.codec_token_in_use,
                 self.codec_token_in_use + conti_emb.shape[0],
             )
-            
+
         else:
             raise NotImplementedError
 

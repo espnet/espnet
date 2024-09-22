@@ -290,7 +290,7 @@ def main():
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
             save_asis = True
-            if args.fs is not None and args.fs != rate and len(wave)!=0:
+            if args.fs is not None and args.fs != rate and len(wave) != 0:
                 # FIXME(kamo): To use sox?
                 wave = resampy.resample(wave, rate, args.fs, axis=0)
                 rate = args.fs
