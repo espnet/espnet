@@ -205,8 +205,8 @@ NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
 
-if [[ `hostname` == capricornus_tyx_2258 ]]; then
-    OPENCPOP=/data4/tyx/dataset/opencpop
+if [[ `hostname` == mars_tyx_2254 ]]; then
+    OPENCPOP=/data2/tyx/dataset/opencpop
 fi
 
 # For only CMU TIR environment

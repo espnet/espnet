@@ -373,8 +373,8 @@ else
     exit 2
 fi
 
-# mert_url="m-a-p/MERT-v1-330M"
-mert_url="m-a-p/MERT-v1-95M"
+mert_url="m-a-p/MERT-v1-330M"
+# mert_url="m-a-p/MERT-v1-95M"
 encodec_url="facebook/encodec_48khz"
 if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
@@ -385,7 +385,7 @@ else
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
     # TODO(simpleoier): to support features beyond s3prl
     if [ ${kmeans_feature_type} = "mert" ]; then
-        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url},save_dir=${download_ckpt}}}"
+        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url},save_dir=${download_dir}}}"
     elif [ ${kmeans_feature_type} = "encodec" ]; then
         kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
     else

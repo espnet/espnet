@@ -18,6 +18,7 @@ import torch
 from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
+    MERTFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
     build_data_iterator,
@@ -41,6 +42,7 @@ feature_reader_choice = dict(
     mfcc=MfccFeatureReader,
     fairseq_hubert=HubertFeatureReader,
     espnet_hubert=ESPnetHubertFeatureReader,
+    mert=MERTFeatureReader,
     s3prl=S3PRLFeatureReader,
 )
 

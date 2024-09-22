@@ -6,11 +6,11 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=16000
+fs=24000
 fmin=80
 fmax=7600
 n_fft=2048
-n_shift=160
+n_shift=320
 win_length=1200
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -37,7 +37,7 @@ src_case="ts"
 tgt_case="ts"
 
 # text related processing arguments
-g2p=pyopenjtalk
+g2p=none
 cleaner=none
 pitch_extract=dio
 
@@ -64,7 +64,7 @@ pitch_extract=dio
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --kmeans_opts "--batch_bins 4800000" \
+    --kmeans_opts "--batch_bins 100000" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
     --ngpu 1 \

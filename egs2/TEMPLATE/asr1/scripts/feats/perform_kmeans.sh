@@ -135,8 +135,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         nutt=$(<"${_dump_dir}"/wav.scp wc -l)
         _nj=$((nj<nutt?nj:nutt))
 
-        echo ${_nj}
-
         key_file="${datadir}/${dset}"/wav.scp
         split_scps=""
         for n in $(seq ${_nj}); do
@@ -223,6 +221,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         _cmd="${cpu_cmd}"
     fi
 
+    # for dset in "${dev_set}" ${other_sets}; do
     for dset in "${train_set}" "${dev_set}" ${other_sets}; do
         log "Extract labels to ${featdir}/${feature_type}/${suffix}${dset}"
 
