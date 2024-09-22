@@ -2468,7 +2468,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             if triplet in task.targets and conti_feat is not None:
                 raise ValueError("Continuous feats can only be the condition")
             conti_feats.append(conti_feat)
-
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
         if task.use_task_identifier:
@@ -2525,7 +2524,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = self.modality_specific_processing(data[name], modality)[0]
             new_data = self.process_extra_entries(new_data, value, name)
 
-        # self.diagnose(new_data) # For debug. Enable this to check the sequence format
+        # self.diagnose(new_data) # For debug. Enable this to check the sequence format TODO(yiwen) debug svs_lb the new modality
 
         return new_data
 
@@ -2579,7 +2578,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             if modality in ["text_bpe", "g2p"]:
                 value = self.text_cleaner(value)
                 tokenizer = self.bpe if modality == "text_bpe" else self.g2p
-                value = tokenizer.text2tokens(value)
+                if tokenizer: #NOTE(yiwen) in case tokenizer=None where input data has already been phoneme
+                    value = tokenizer.text2tokens(value)
                 value = self.converter.tokens2ids(value)
                 value = np.array(value)
 
@@ -2609,6 +2609,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 self.codec_token_in_use + conti_emb.shape[0],
             )
 
+        #TODO(yiwen) add a new modality and check adding token list
+        elif modality in ["svs_lb"]:
+            # value is token, no more tokenizer needed
+            value = self.converter.tokens2ids(value)
+            value = np.array(value)
+            
         else:
             raise NotImplementedError
 

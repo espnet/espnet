@@ -27,7 +27,7 @@ codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstre
 # NOTE(Jinchuan): This script is only to prepare data. End at stage 5
 ./speechlm_svs.sh \
     --task "svs" \
-    --data_name opencpop \
+    --data_name acesinger \
     --fs "${fs}" \
     --ngpu 1 \
     --nj 32 \

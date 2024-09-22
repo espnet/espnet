@@ -76,7 +76,7 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model=valid.acc.ave.till45epoch.pth # Model path for decoding.
+inference_model=valid.acc.ave.till40epoch.pth # Model path for decoding.
                                    # e.g.
                                    # inference_model=train.loss.best.pth
                                    # inference_model=3epoch.pth
@@ -139,10 +139,7 @@ hf_repo=
 help_message=""
 
 # score is the main triplet while label and text are helpers
-# svs_score_triplets="score.scp,svs_lb,text" #TODO(yiwen) test svs_lb the new modality
-# svs_text_triplets="text,svs_lb,text"
-
-svs_score_triplets="score.scp,g2p,text" #TODO(yiwen) test svs_lb the new modality
+svs_score_triplets="score.scp,g2p,text"
 svs_text_triplets="text,g2p,text"
 
 log "$0 $*"
@@ -536,7 +533,7 @@ if ! ${skip_data_prep}; then
 fi
 
 if ! ${skip_train}; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then #TODO(yiwen) add token list of midi and lower letter phone
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         log "Generate vocabulary from the given train_jsons"
         mkdir -p ${token_list_dir}
         ${python} pyscripts/utils/make_token_list_speechlm.py \
@@ -872,7 +869,7 @@ if ! "${skip_eval}"; then
             done < "${_dir}/ref_temp.scp"
             rm "${_dir}/ref_temp.scp"
             ###
-            
+
             # (3) Task-specific evaluation
             ./scripts/utils/speechlm_eval/eval_${task}.sh \
                 --gen_dir ${_dir} \

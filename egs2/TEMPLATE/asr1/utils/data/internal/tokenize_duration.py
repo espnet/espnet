@@ -60,11 +60,16 @@ def process_line_score(line):
     return ' '.join(result)
 
 
-def duration2repeat(args.data_folder):
+def duration2repeat(data_folder):
     """(duration, phn, midi) --> (phn, midi)*duration, <placeholder>"""
     
-    file_path = os.path.join(args.data_folder, 'label')
-    file_out = os.path.join(args.data_folder, 'label2')
+    file_path = os.path.join(data_folder, 'label')
+    file_name, file_extension = os.path.splitext(file_path)
+    backup_file_name = f"{file_name}_format1{file_extension}"
+    print(f"pre {file_path}, aft {backup_file_name}")
+    shutil.copy(file_path, backup_file_name)
+
+    file_out = os.path.join(data_folder, 'label2')
 
     with open(file_path, 'r') as infile:
         lines = infile.readlines()
@@ -77,7 +82,7 @@ def duration2repeat(args.data_folder):
             
             result = [audio_id]
             for i in range(0, len(data_unit), 3):
-                duration = float(data_unit[i])
+                duration = int(data_unit[i])
                 phn = str(data_unit[i+1])
                 midi = str(data_unit[i+2])
                 
@@ -85,9 +90,8 @@ def duration2repeat(args.data_folder):
                 result.append(" ")
 
             processed_line = ' '.join(result[:-1])
-            
             outfile.write(processed_line + '\n')
-
+    shutil.copy(file_out, file_path)
 
 def overwrite_file(data_folder, file_type, visualize_distribution=False):
     file_path = os.path.join(args.data_folder, args.file_type)
@@ -141,8 +145,8 @@ if __name__=='__main__':
                         help="in processing file")
     args = parser.parse_args()
 
-    if file_type=="label" or file_type=="score":
+    if args.file_type=="label" or args.file_type=="score":
         overwrite_file(args.data_folder, args.file_type)
 
-    elif file_type=="duration":
+    elif args.file_type=="duration":
         duration2repeat(args.data_folder)
