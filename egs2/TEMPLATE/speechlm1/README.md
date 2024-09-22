@@ -638,7 +638,7 @@ python pyscripts/utils/speechlm_extend_vocab.py \
   --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr_ext_svs_lb \
   --inference_model 60epoch.pth \
   --additional_vocabs dump/raw_tts_librispeech/train_960/token_lists/svs_lb_token_list \
-  --additional_tasks svs 
+  --additional_tasks svs
 ```
 
 ## FQA
