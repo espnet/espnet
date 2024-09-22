@@ -624,23 +624,21 @@ As of Sep 18, we provide two pre-trained models. These models are trained on 160
   * Stage 13: Dataset sharing, as in [Stage 13: Dataset Sharing](#stage-12-dataset-sharing). People who work on ESPnet-SpeechLM project please do it even though you didn't get the result numbers.
 
 ### Extend vocabulary
-It is common that you need to extend the vocabulary of the language models. E.g., the pre-trained ASR model only contains tokens from `text_bpe` and `ssl` modalities, but sometimes the new task may need the phone modality. To deal with this case, we provide the script `pyscripts/utils/speechlm_extend_vocab.py`.
-  * After stage 5, for each modality, there is a modality-specific vocabulary file. E.g., `dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list` for phone.
-  * The pre-trained model already has a combined token_list folder. E.g., for ASR, it is `data/token_list/asr_vocab`
-  * Then, call the script as below. It will extend the vocabulary (1) in the token_list folder, (2) in the model config file and (3) in the embedding table / lm_head of pre-trained checkpoint.
-  * revise your `run_asr.sh` by setting `----token_list_dir <your_new_token_list_folder>` and `--tag <your_new_exp_folder>`
-  * Please also remember to set some on-the-fly tokenization related settings. E.g., if you want to use `g2p` for fine-tuning but that was not included in the ASR pre-trained model, specify: `--cleaner "tacotron" --g2p "g2p_en_no_space"`
-  * You should also revise the training config to change the `init_param` config so that the model saved in `<your_new_exp_folder>` will be used.
-  * Note, the extended embeddings in the checkpoint are randomly initialized. You will need to train with them to get reasonable results.
-Here is an example:
+It is common that you need to extend/revise the vocabulary of the language models. E.g., (1) the pre-trained ASR model only contains tokens from `text_bpe` and `ssl` modalities, but sometimes the new task may need the `g2p` modality; (2) your new task was not defined before the pre-training started. To deal with these cases, we provide the script `pyscripts/utils/speechlm_extend_vocab.py`. An example is shown as below.
+  * Based on the `input_token_list_dir`, it will generate `output_token_list_dir`; Based on `input_exp_dir`, it will generate `output_exp_dir`. The `inference_model` in `input_exp_dir` will be revised and then saved to `output_exp_dir`.
+  * In your launch script `run_xxx.sh`, please revise your `token_list_dir` to the `output_token_list_dir`. If you want to resume from a pre-trained model, please revise the training config and change the `init_param` setup accordingly using the checkpoint in `output_exp_dir`
+  * Since the pre-trained model already has a `token_list_dir`, you do **NOT** need to re-run stage 6.
+  * You can extend the vocabulary by providing **multiple** token list files to `--additional_vocabs`. These tokens will be added to `output_token_list_dir` and `output_exp_dir` accordingly. The modality identifiers will also be updated. Before you proceed, make sure the modalities are already defined in `espnet2/speechlm/definitions.py`
+  * You can extend the task identifiers by providing **multiple** task names to `--additional_tasks`. The task identifiers will be updated accordingly. Before you proceed, make sure the tasks are already defined in `espnet2/speechlm/definitions.py`
 ```
 python pyscripts/utils/speechlm_extend_vocab.py \
   --input_token_list_dir data/token_list/asr_vocab \
-  --output_token_list_dir data/token_list/asr_vocab_ext_phone \
+  --output_token_list_dir data/token_list/asr_vocab_ext_svs \
   --input_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr \
-  --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr_ext_phone \
+  --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_asr_ext_svs_lb \
   --inference_model 60epoch.pth \
-  --additional_vocabs dump/raw_tts_librispeech/train_960/token_lists/g2p_token_list
+  --additional_vocabs dump/raw_tts_librispeech/train_960/token_lists/svs_lb_token_list \
+  --additional_tasks svs 
 ```
 
 ## FQA
