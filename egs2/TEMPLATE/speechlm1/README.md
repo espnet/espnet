@@ -586,8 +586,8 @@ When training with massive data, storing the whole dataset in each GPU process i
   * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch`
 
 `SSL`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
-  * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xues
-  * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xues`
+  * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xeus
+  * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xeus`
 
 ### Pretrained Models:
 As of Sep 18, we provide two pre-trained models. These models are trained on 160khrs of English corpus, of size 300-400M parameters. People who work on speech understanding can use ASR pre-trained model; people who work on speech generation can use TTS pre-trained model.
