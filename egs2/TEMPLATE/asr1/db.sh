@@ -219,6 +219,7 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
+CLOTHO_V2=/data/user_data/sbharad2/espnet/egs2/clotho_v2/asr1/local/CLOTHO_v2.1 # TODO(sbharad2): Downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

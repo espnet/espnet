@@ -1,0 +1,60 @@
+batch_type: folded
+batch_size: 80
+accum_grad: 1    # gradient accumulation steps
+max_epoch: 20
+patience: none
+best_model_criterion:  # criterion to save best models
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5  # save nbest models and average these checkpoints
+use_amp: true    # whether to use automatic mixed precision
+num_att_plot: 0  # do not save attention plots to save time in the demo
+num_workers: 2   # number of workers in dataloader
+
+input_size: 1
+# beats code takes care of generating mel spectrogram and specaug
+frontend: none
+normalize: none
+init: xavier_normal # For the decoder
+
+encoder: beats
+encoder_conf:
+    beats_ckpt_path: /home/sbharad2/dcase2024_cp/dcase24task6/pretrained_weights/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
+    beats_config:
+        input_patch_size: 16
+        embed_dim: 512
+    specaug_config:
+        apply_freq_mask: true
+        freq_mask_width_range:
+        - 0
+        - 64
+        num_freq_mask: 2
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0
+        - 0.12
+        num_time_mask: 5
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    # use_flash_attn: false
+
+model_conf:
+    ctc_weight: 0.3  # joint CTC/attention training
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr  # linearly increase and exponentially decrease
+scheduler_conf:
+    warmup_steps: 500
