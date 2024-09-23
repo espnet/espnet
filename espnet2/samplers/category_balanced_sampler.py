@@ -46,7 +46,6 @@ class CategoryBalancedSampler(AbsSampler):
         self.drop_last = drop_last
 
         assert category2utt_file is not None
-
         # dictionary with categories as keys and corresponding utterances
         # as values
         category2utt = read_2columns_text(category2utt_file)
