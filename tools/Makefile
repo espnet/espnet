@@ -1,5 +1,5 @@
-# PyTorch version: 1.12.1, 1.13.1, 2.0.1, 2.1.0 are tested.
-TH_VERSION := 2.1.0
+# PyTorch version: 1.13.1, 2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0 are tested.
+TH_VERSION := 2.3.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -26,9 +26,9 @@ WITH_OMP=ON
 
 .PHONY: all clean
 
-all: showenv python conda_packages.done ffmpeg.done sctk check_install
+all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
-python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
+python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done flash_attn.done
 extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
 
 activate_python.sh:
@@ -89,15 +89,20 @@ sph2pipe: sph2pipe/sph2pipe
 sph2pipe/sph2pipe:
 	./installers/install_sph2pipe.sh
 
-packaging.done: activate_python.sh
+setuptools.done: activate_python.sh
+	# NOTE(jiatong): For python 3.12 case, as distutils are not default from 3.12
+	. ./activate_python.sh && { python -m ensurepip --upgrade; pip install setuptools; }
+	touch setuptools.done
+
+packaging.done: setuptools.done
 	. ./activate_python.sh && python3 -m pip install packaging
 	touch packaging.done
 
 numpy.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && python3 -m pip install "numpy<1.24"
+	. ./activate_python.sh && python3 -m pip install numpy
 else
-	. ./activate_python.sh && conda install -y "numpy<1.24"
+	. ./activate_python.sh && conda install -y numpy
 endif
 
 numba.done: numpy.done
@@ -119,6 +124,7 @@ espnet.done: pytorch.done conda_packages.done
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
+	. ./activate_python.sh && python -m nltk.downloader averaged_perceptron_tagger_eng
 	touch espnet.done
 
 sounfile_test: espnet.done
@@ -239,6 +245,10 @@ longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
 
+flash_attn.done: espnet.done
+	. ./activate_python.sh && ./installers/install_flash_attn.sh
+	touch flash_attn.done
+
 muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
 	touch muskits.done
@@ -254,6 +264,10 @@ rvad_fast.done: espnet.done
 discrete_speech_metrics.done: espnet.done
 	. ./activate_python.sh && ./installers/install_discrete_speech_metrics.sh
 	touch discrete_speech_metrics.done
+
+versa.done: espnet.done
+	. ./activate_python.sh && ./installers/install_versa.sh
+	touch versa.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
@@ -273,5 +287,7 @@ clean_extra:
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
+	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
+	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

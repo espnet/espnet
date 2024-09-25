@@ -38,19 +38,19 @@ jobs:
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/setup.py') }}
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: '3.10'
           architecture: "x64"
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc
+          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
       - name: install espnet
         env:
-          ESPNET_PYTHON_VERSION: 3.8
+          ESPNET_PYTHON_VERSION: 3.10
           TH_VERSION: 2.0.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
@@ -62,4 +62,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: doc/build
+          publish_dir: ./dist

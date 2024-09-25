@@ -1,34 +1,37 @@
-# ESPnet2 S2T1 Recipe TEMPLATE
+# Weakly-supervised Learning (Speech-to-Text)
 
 This is a template of S2T1 recipe for ESPnet2. It is based on ASR1, but follows the style of OpenAI's Whisper to train a single encoder-decoder model for various speech processing tasks.
 Specifically, it uses special tokens as task specifiers (e.g., transcribe, translate) or prediction targets (e.g., language ID) so that a single model can perform multiple tasks for multiple languages. It further supports conditional generation where the condition is the previous sentence within the long talk.
 
 More details can be found in our [OWSM](https://arxiv.org/abs/2309.13876) paper (ASRU 2023).
 
+**Table of Contents**
+- [Recipe flow](#recipe-flow)
+- [1. Data preparation](#1-data-preparation)
+    - [ESPnet format:](#espnet-format)
+- [2. Speed perturbation](#2-speed-perturbation)
+- [3. Wav format](#3-wav-format)
+- [4. Remove long or short data](#4-remove-long-or-short-data)
+- [5. Generate token list](#5-generate-token-list)
+- [6. LM statistics collection](#6-lm-statistics-collection)
+- [7. LM training](#7-lm-training)
+- [8. LM perplexity](#8-lm-perplexity)
+- [9. Ngram LM training](#9-ngram-lm-training)
+- [10. S2T statistics collection](#10-s2t-statistics-collection)
+- [11. S2T training](#11-s2t-training)
+- [12. S2T inference](#12-s2t-inference)
+- [13. S2T scoring](#13-s2t-scoring)
+- [14-15. (Optional) Pack results for upload](#14-15-optional-pack-results-for-upload)
+- [How to run](#how-to-run)
+- [OWSM training](#owsm-training)
+- [How to fine-tune pre-trained OWSM](#how-to-fine-tune-pre-trained-owsm)
+    - [1. Prepare `s2t1` recipe](#1-prepare-s2t1-recipe)
+    - [2. Prepare data in OWSM format](#2-prepare-data-in-owsm-format)
+    - [3. Fine-tune the model](#3-fine-tune-the-model)
+- [Related work](#related-work)
 
 ## Table of Contents
 
-* [ESPnet2 S2T1 Recipe TEMPLATE](#espnet2-s2t1-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Wav format](#3-wav-format)
-    * [4\. Remove long or short data](#4-remove-long-or-short-data)
-    * [5\. Generate token list](#5-generate-token-list)
-    * [6\. LM statistics collection](#6-lm-statistics-collection)
-    * [7\. LM training](#7-lm-training)
-    * [8\. LM perplexity](#8-lm-perplexity)
-    * [9\. Ngram-LM training](#9-ngram-lm-training)
-    * [10\. S2T statistics collection](#10-s2t-statistics-collection)
-    * [11\. S2T training](#11-s2t-training)
-    * [12\. S2T inference](#12-s2t-inference)
-    * [13\. S2T scoring](#13-s2t-scoring)
-    * [14\-16\. (Optional) Pack results for upload](#14-16-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [OWSM Training](#owsm-training)
-    * [How to fine-tune pre-trained OWSM](#how-to-fine-tune-pre-trained-owsm)
-  * [Related work](#related-work)
 
 ## Recipe flow
 
