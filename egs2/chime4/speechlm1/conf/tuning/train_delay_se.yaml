@@ -1,25 +1,28 @@
-corelm: valle
+corelm: ar_delay
 corelm_conf:
     share_emb: false
-    att_unit: 512
-    head: 8
-    ar_layer: 12
-    nar_layer: 12
+    qk_norm: true
+    att_unit: 1024
+    head: 16
+    layer: 24
+    n_ctx: 3000
+    prefix_lm: true
 
 # Dataloader
 batch_type: numel
-batch_bins: 16000
-accum_grad: 2
+batch_bins: 8000
+accum_grad: 1
 grad_clip: 5
-max_epoch: 50
-num_workers: 4
-log_interval: 500
+max_epoch: 30
+num_workers: 8
+drop_last_iter: true
+log_interval: 100
 num_att_plot: 0
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.002
+    lr: 0.001
     betas:
         - 0.9
         - 0.95
@@ -34,13 +37,14 @@ best_model_criterion:
 -   - valid
     - total_count
     - max
-keep_nbest_models: 10
-nbest_averaging_interval: 10
+keep_nbest_models: 5
+nbest_averaging_interval: 5
 
 
 # Global settings
 use_amp: true
 use_tf32: false
+use_fsdp: false
 encoder_decoder_format: false
 codec_token_per_frame: 8
 codec_token_in_use: 8

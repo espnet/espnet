@@ -1,4 +1,10 @@
-search_algo: greedy_search
+# search algorithm parameters
+search_algo: topk_sampling
+# search_algo: teacher_force
+sampling_temperature: 1.2
+minlenratio: 0.8
+# maxlenratio: 1.2
+top_k: 20
 
 codec_conf:
     codec_choice: ESPnet

@@ -12,6 +12,8 @@ train_set=tr05_simu_isolated_1ch_track
 valid_set=dt05_simu_isolated_1ch_track
 test_sets=et05_simu_isolated_1ch_track
 
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"
+
 ./speechlm.sh \
     --task "se" \
     --data_name "chime4" \
@@ -19,7 +21,7 @@ test_sets=et05_simu_isolated_1ch_track
     --nj 16 \
     --inference_nj 16 \
     --audio_format "wav.ark" \
-    --train_config conf/tuning/train_valle.yaml \
+    --train_config conf/tuning/train_delay_se.yaml \
     --inference_config conf/tuning/decode_se.yaml \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
