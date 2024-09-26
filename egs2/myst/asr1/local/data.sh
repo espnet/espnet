@@ -35,6 +35,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${MYST}/myst_child_conv_speech" ]; then
 	    echo "stage 1: Download data to ${MYST}"
+        exit 1
     else
         log "stage 1: ${MYST}/myst_child_conv_speech is already existing. Skip data downloading"
     fi
