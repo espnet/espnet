@@ -14,6 +14,7 @@ import torch
 import yaml
 
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+from espnet2.speechlm.definitions import MODALITIES, SPEECHLM_TASKS
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -65,6 +66,14 @@ def get_parser():
         required=True,
         help="The additional vocabulary files",
     )
+    parser.add_argument(
+        "--additional_tasks",
+        type=str,
+        nargs="+",
+        default=[],
+        help="Additional tasks that need task ids"
+    )
+
 
     return parser
 
@@ -123,7 +132,26 @@ def main():
     # add new tokens
     token_list_dict = {tok: idx for idx, tok in enumerate(token_list)}
     for modality_name, vocab in additional_vocabs:
+
+        if modality_name in token_bias:
+            raise ValueError(f"Modality {modality_name} is already in current vocabulary")
+
         token_bias[modality_name] = len(token_list_dict)
+
+        if modality_name not in MODALITIES:
+            raise ValueError(
+                f"The modality {modality_name} is not supported "
+                f"Revise espnet2.speechlm.definitions if this is a new modality"
+            )
+        if f"<{modality_name}_start/end>" not in token_list_dict:
+            for idx in range(32, 64):
+                if f"<unused_token_{idx}>" in token_list_dict:
+                    token_list_dict[f"<{modality_name}_start/end>"] = token_list_dict[f"<unused_token_{idx}>"]
+                    del token_list_dict[f"<unused_token_{idx}>"]
+                    logging.info(f"replace <unused_token_{idx}> by <{modality_name}_start/end>")
+                    break
+
+
         for tok in vocab:
             if tok in token_list_dict:
                 logging.warning(
@@ -138,6 +166,20 @@ def main():
             f"Add new modality: {modality_name} "
             f"from {token_bias[modality_name]} to {len(token_list_dict)}"
         )
+
+    for task_name in args.additional_tasks:
+        if task_name not in SPEECHLM_TASKS:
+            raise ValueError(
+                f"SpeechLM task {task_name} is not supported "
+                f"Revise espnet2.speechlm.definitions if this is a new task "
+            )
+        if f"<{task_name}_task>" not in token_list_dict:
+            for idx in range(64, 128):
+                if f"<unused_token_{idx}>" in token_list_dict:
+                    token_list_dict[f"<{task_name}_task>"] = token_list_dict[f"<unused_token_{idx}>"]
+                    del token_list_dict[f"<unused_token_{idx}>"]
+                    logging.info(f"replace <unused_token_{idx}> by <{task_name}_task>")
+                    break
 
     # save the new token list and token bias
     token_list = list(token_list_dict.keys())
@@ -185,6 +227,7 @@ def main():
         torch.nn.init.normal_(new_tensor, mean=0, std=std)
 
         new_tensor = torch.cat([old_tensor, new_tensor], dim=0).contiguous()
+        print("new tensor name and shape: ", tensor_name, new_tensor.size())
         checkpoint[tensor_name] = new_tensor
 
     torch.save(checkpoint, args.output_exp_dir / args.inference_model)

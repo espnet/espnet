@@ -1,7 +1,7 @@
 # This is ESPnet2 Speech Language Model (SpeechLM) Recipe
 🎙️ ``Task``: Singing Voice Synthesis (SVS)
 
-📊 ``Corpus``: Mandarin Single Female Singer Corpus, [Opencpop](https://wenet.org.cn/opencpop/download/).
+📊 ``Corpus``: Mandarin Multiple Singers Corpus, ACESinger-augmented
 
 Some Tutorials
 - [PSC usage tutorial](https://www.wavlab.org/activities/2022/psc-usage/)
@@ -10,23 +10,18 @@ Some Tutorials
 
 Please make sure you have installed ESPnet and [VERSA](https://github.com/shinjiwlab/versa/).
 
-
 ## Data Structure
-* Download this corpus from the [official websites](https://wenet.org.cn/opencpop/download/)
+* Download this corpus from [link](https://drive.google.com/file/d/1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0/view?usp=drive_link)
 
 * Organize the data as
     ```
-    opencpop/speechlm1
+    acesinger/speechlm1
         |__downloads
-        |   |__raw_data____midis
-        |   |           |__textgrids
-        |   |           |__wavs
-        |   |__segments____wavs
-        |               |__test.txt
-        |               |__train.txt
-        |               |__transcriptions.txt
-        |__local
-            |__midi-note.scp
+            |__lyrics
+            |__no_lyrics
+            |__raw_data
+            |__segments
+        
     ```
 
 * We use modified ``label`` as the conditional entry, ``wav.scp`` as the target entry. Information from ``text`` and ``score`` modalities of the original SVS are integrated to ``label`` through data preprocessing (stage 2). Also, the tokens from SVS are distinguished by tokens from TTS using a ``svs_`` prefix.
@@ -47,7 +42,7 @@ python pyscripts/utils/speechlm_extend_vocab.py \
   --input_exp_dir exp/speechlm_espnet_speechlm_pretrained_tts \
   --output_exp_dir exp/speechlm_espnet_speechlm_pretrained_tts_ext_phone \
   --inference_model 60epoch.pth \
-  --additional_vocabs dump/raw_svs_opencpop/tr_no_dev/token_lists/svs_lb_token_list \
+  --additional_vocabs dump/raw_svs_acesinger/tr_no_dev/token_lists/svs_lb_token_list \
   --additional_task svs
 ```
 

@@ -27,7 +27,6 @@ def add_phn_duration(data_folder):
             data_unit = parts[1:]
             
             result = [audio_id]
-            # print(f"debug {2 * len(midi_ls[0])} {len(data_unit)}")
             
             for i in range(0, int(len(data_unit)/2)):
                 phn_duration = data_unit[2*i]

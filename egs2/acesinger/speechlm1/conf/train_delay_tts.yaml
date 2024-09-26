@@ -1,33 +1,34 @@
-corelm: valle
+corelm: ar_delay
 corelm_conf:
     share_emb: false
-    att_unit: 512
     qk_norm: true
-    head: 8
-    ar_layer: 12
-    nar_layer: 12
+    att_unit: 1024
+    head: 16
+    layer: 24
+    n_ctx: 3000
+    prefix_lm: true
 
 # Dataloader
 batch_type: numel
-batch_bins: 16000
-num_iters_per_epoch: 5000
+batch_bins: 8000
 accum_grad: 1
 grad_clip: 5
-max_epoch: 50
-num_workers: 8
+max_epoch: 50 # 60
+num_workers: 2
 drop_last_iter: true
-log_interval: 1000
+log_interval: 100
+num_att_plot: 0
 
 # Criterion & Optimization
 optim: adamw
 optim_conf:
-    lr: 0.0001
+    lr: 0.001
     betas:
         - 0.9
         - 0.95
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 0
+    warmup_steps: 5000
 
 best_model_criterion:
 -   - valid
@@ -39,11 +40,13 @@ best_model_criterion:
 keep_nbest_models: 5
 nbest_averaging_interval: 5
 
+
 # Global settings
 use_amp: true
 use_tf32: false
 use_fsdp: false
 encoder_decoder_format: false
-num_att_plot: 0
-codec_token_per_frame: 8 # encodec
+codec_token_per_frame: 8
 codec_token_in_use: 8
+
+init_param: [exp/speechlm_espnet_speechlm_pretrained_tts_ext_phone/60epoch.pth]

@@ -1,7 +1,7 @@
 # search algorithm parameters
 search_algo: topk_sampling
 # search_algo: teacher_force
-sampling_temperature: 1.0
+sampling_temperature: 1.2
 minlenratio: 0.05
 top_k: 30
 

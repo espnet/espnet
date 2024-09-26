@@ -10,11 +10,11 @@ corelm_conf:
 
 # Dataloader
 batch_type: numel
-batch_bins: 2000
+batch_bins: 4000
 accum_grad: 1
 grad_clip: 5
-max_epoch: 70 # 60
-num_workers: 8
+max_epoch: 50 # 60
+num_workers: 2
 drop_last_iter: true
 log_interval: 100
 num_att_plot: 0

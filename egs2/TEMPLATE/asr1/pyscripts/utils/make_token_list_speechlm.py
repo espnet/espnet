@@ -76,9 +76,9 @@ def main():
 
         modality_vocab = {}
         for vocab in vocabs:
-            if str(vocab).endswith(".json"):
+            try:
                 this_vocab = json.load(open(vocab))
-            else:
+            except:
                 # have to remove "\n" as text is read line-by-line
                 this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
