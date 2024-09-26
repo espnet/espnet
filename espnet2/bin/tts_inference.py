@@ -308,7 +308,7 @@ class Text2Speech:
 
 @typechecked
 def inference(
-    output_dir: str,
+    output_dir: Union[Path, str],
     batch_size: int,
     dtype: str,
     ngpu: int,
@@ -398,7 +398,7 @@ def inference(
         inference=True,
     )
 
-    # 6. Start for-loop
+    # 4. Start for-loop
     output_dir = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
