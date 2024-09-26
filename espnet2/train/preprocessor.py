@@ -2406,10 +2406,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             "sampled.scp,codec",
         ],
     ):
-        self.token_list = token_list
-        self.token_bias = token_bias
+        self.token_list = token_list.copy()
+        self.token_bias = token_bias.copy()
         self.encoder_decoder_format = encoder_decoder_format
         self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
+        self.pad = token_list.index("<pad>")
 
         assert not (
             "codec" in token_bias and "codec_ssl" in token_bias
@@ -2575,7 +2576,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     def special_token(self, token):
         token_idx = self.token_list.index(token)
-        token_idx = np.array([token_idx]).repeat(self.codec_token_in_use, axis=0)
+        token_idx = np.array([token_idx])
+        token_idx = np.pad(
+            token_idx, 
+            (0, self.codec_token_in_use - 1), 
+            mode="constant", 
+            constant_values=self.pad
+        )
         return token_idx
 
     def modality_specific_processing(self, value, modality):
@@ -2599,18 +2606,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         value,
                         ((0, pad_len), (0, 0)),
                         mode="constant",
-                        constant_values=self.token_list.index("<pad>"),
+                        constant_values=self.pad,
                     )
 
                 # As mentioned in AudioLM, always corrupt SSL token in speech prompt.
                 if "codec_ssl" in self.token_bias:
-                    value[:, 0] = self.token_list.index("<pad>")
+                    value[:, 0] = self.pad
 
             if (
                 modality == "codec_ssl"
                 and random.random() < self.codec_ssl_corrupt_prob
             ):
-                value[:, 0] = self.token_list.index("<pad>")
+                value[:, 0] = self.pad
 
             value = value.flatten()
             conti_feat = None

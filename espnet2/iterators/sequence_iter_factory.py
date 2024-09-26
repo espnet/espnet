@@ -159,8 +159,7 @@ class SequenceIterFactory(AbsIterFactory):
             dataset=self.dataset,
             batch_sampler=batches,
             num_workers=self.num_workers,
-            prefetch_factor=50,
-            pin_memory=False,
+            pin_memory=True,
             worker_init_fn=partial(worker_init_fn, base_seed=epoch + self.seed),
             **kwargs,
         )

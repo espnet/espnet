@@ -63,7 +63,7 @@ def get_parser():
         "--additional_vocabs",
         type=Path,
         nargs="+",
-        required=True,
+        default=[],
         help="The additional vocabulary files",
     )
     parser.add_argument(
