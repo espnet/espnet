@@ -139,7 +139,7 @@ hf_repo=
 help_message=""
 
 # svs helpers
-svs_score_triplets="score.scp,svs_lb,text" 
+svs_score_triplets="score.scp,svs_lb,text"
 svs_text_triplets="text,svs_lb,text"
 
 log "$0 $*"
@@ -269,7 +269,7 @@ if ! "${skip_data_prep}"; then
         _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-        
+
         if [ ${task}=="svs" ]; then
             all_triplets="$all_triplets $svs_score_triplets $svs_text_triplets" #process assistant modalities
         fi
@@ -319,18 +319,18 @@ if ! "${skip_data_prep}"; then
                 # convert the separate score json files to an uniform text file
                 python utils/data/internal/convert_score.py --data_folder ${data_audio}/${dset}
                 echo "start to combine 3 input modalities"
-                
+
                 ## tokenize continuous duration to integer
                 # back up original label (st, ed, phn) --> new label (duration, phn)
                 ${python} utils/data/internal/tokenize_duration.py \
                     --data_folder ${data_audio}/${dset} \
                     --file_type "label"
-                
+
                 # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
                 ${python} utils/data/internal/tokenize_duration.py \
                     --data_folder ${data_audio}/${dset} \
                     --file_type "score"
-                
+
                 ## preprocess svs data info to phn level triplets
                 ## find midi from score file, add to the label file and save as a new score file
                 ${python} utils/data/internal/make_svs_score_triplets.py \
@@ -530,7 +530,7 @@ if ! "${skip_data_prep}"; then
                     --input "${data_feats}/${dset}/label" \
                     --output "${data_feats}/${dset}/token_lists/svs_lb_token_list"
             fi
-            
+
             # The metadata for this dataset/task is saved in a json file
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \

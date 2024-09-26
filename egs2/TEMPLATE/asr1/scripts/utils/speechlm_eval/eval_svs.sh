@@ -28,7 +28,7 @@ SECONDS=0
 . ./path.sh
 . ./cmd.sh
 
-stage=2 # using versa 
+stage=2 # using versa
 stop_stage=100
 nj=8
 inference_nj=8
@@ -47,8 +47,8 @@ eval_mcd_f0=true
 # if using espnet built-in eval scripts
 eval_mcd=true
 eval_log_F0=true
-eval_semitone_ACC=true 
-eval_VUV_res=true 
+eval_semitone_ACC=true
+eval_VUV_res=true
 
 spk_config=conf/eval_spk.yaml
 mcd_f0_config=conf/eval_mcd_f0.yaml
@@ -135,7 +135,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 pred_file=${gen_dir}/wav.scp
                 score_config=${mcd_f0_config}
                 gt_file=${gen_dir}/ref_wav.scp
-                
+
             elif [ ${eval_item} == "singmos" ]; then
                 pred_file=${gen_dir}/wav.scp
                 score_config=${singmos_config}
@@ -145,7 +145,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 pred_file=${gen_dir}/wav.scp
                 score_config=${spk_config}
                 gt_file=${ref_dir}/utt2spk
-            
+
             fi
 
             # (3) split

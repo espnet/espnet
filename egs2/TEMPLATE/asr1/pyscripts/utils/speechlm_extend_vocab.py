@@ -15,7 +15,6 @@ import yaml
 
 from espnet2.speechlm.definitions import MODALITIES, SPEECHLM_TASKS
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet2.speechlm.definitions import MODALITIES, SPEECHLM_TASKS
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

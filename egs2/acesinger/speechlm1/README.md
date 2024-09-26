@@ -21,7 +21,7 @@ Please make sure you have installed ESPnet and [VERSA](https://github.com/shinji
             |__no_lyrics
             |__raw_data
             |__segments
-        
+
     ```
 
 * We use modified ``label`` as the conditional entry, ``wav.scp`` as the target entry. Information from ``text`` and ``score`` modalities of the original SVS are integrated to ``label`` through data preprocessing (stage 2). Also, the tokens from SVS are distinguished by tokens from TTS using a ``svs_`` prefix.
@@ -30,7 +30,7 @@ Please make sure you have installed ESPnet and [VERSA](https://github.com/shinji
 
 Use stage1-5 for data preparation and generating token list. Please make sure you don't have overlapping validation set and test sets when running stage2, which will duplicatedly preprocess validation set and cause errors. Feel free to change the config in ``./run.sh`` after stage2.
 ```
-./run.sh --stage 1 --stop_stage 5 
+./run.sh --stage 1 --stop_stage 5
 ```
 
 Since this dataset is relatively small. To avoid overfitting, we use a pretrained TTS model ([download and setup](https://github.com/espnet/espnet/blob/speechlm/egs2/TEMPLATE/speechlm1/README.md#pretrained-models)). To combine the svs tokens to the pretrained token list, run
