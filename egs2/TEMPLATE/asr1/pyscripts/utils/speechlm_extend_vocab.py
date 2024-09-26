@@ -13,6 +13,7 @@ from pathlib import Path
 import torch
 import yaml
 
+from espnet2.speechlm.definitions import MODALITIES, SPEECHLM_TASKS
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 from espnet2.speechlm.definitions import MODALITIES, SPEECHLM_TASKS
 
@@ -71,9 +72,8 @@ def get_parser():
         type=str,
         nargs="+",
         default=[],
-        help="Additional tasks that need task ids"
+        help="Additional tasks that need task ids",
     )
-
 
     return parser
 
@@ -134,10 +134,11 @@ def main():
     for modality_name, vocab in additional_vocabs:
 
         if modality_name in token_bias:
-            raise ValueError(f"Modality {modality_name} is already in current vocabulary")
+            raise ValueError(
+                f"Modality {modality_name} is already in current vocabulary"
+            )
 
         token_bias[modality_name] = len(token_list_dict)
-
         if modality_name not in MODALITIES:
             raise ValueError(
                 f"The modality {modality_name} is not supported "
@@ -146,11 +147,14 @@ def main():
         if f"<{modality_name}_start/end>" not in token_list_dict:
             for idx in range(32, 64):
                 if f"<unused_token_{idx}>" in token_list_dict:
-                    token_list_dict[f"<{modality_name}_start/end>"] = token_list_dict[f"<unused_token_{idx}>"]
+                    token_list_dict[f"<{modality_name}_start/end>"] = token_list_dict[
+                        f"<unused_token_{idx}>"
+                    ]
                     del token_list_dict[f"<unused_token_{idx}>"]
-                    logging.info(f"replace <unused_token_{idx}> by <{modality_name}_start/end>")
+                    logging.info(
+                        f"replace <unused_token_{idx}> by <{modality_name}_start/end>"
+                    )
                     break
-
 
         for tok in vocab:
             if tok in token_list_dict:
@@ -176,7 +180,9 @@ def main():
         if f"<{task_name}_task>" not in token_list_dict:
             for idx in range(64, 128):
                 if f"<unused_token_{idx}>" in token_list_dict:
-                    token_list_dict[f"<{task_name}_task>"] = token_list_dict[f"<unused_token_{idx}>"]
+                    token_list_dict[f"<{task_name}_task>"] = token_list_dict[
+                        f"<unused_token_{idx}>"
+                    ]
                     del token_list_dict[f"<unused_token_{idx}>"]
                     logging.info(f"replace <unused_token_{idx}> by <{task_name}_task>")
                     break
