@@ -53,6 +53,13 @@ combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../namine_ritsu_utagoe_db/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../itako/svs1/dump/raw/)"
 
+datasets_to_fix_spk="kising" # more like "kising xxx yyy"
+
+for dataset_name in ${datasets_to_fix_spk}; do
+    kaldi_path=../../${dataset_name}/svs1/dump/raw
+    ./local/update_spks_in_data_dir.sh ${kaldi_path} ${dataset_name}
+done
+
 use_sid=true
 use_lid=false
 

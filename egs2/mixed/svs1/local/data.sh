@@ -77,14 +77,26 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "Stage 2: Resample to ${fs}Hz if needed"
+    for x in ${train_dev} ${test_set} ${train_set}; do
+        echo "Process for subset: ${x}"
+        src_data="data/${x}"
+        dst_wav_dump_dir="wav_dump_resampled/${fs}Hz"
+        mv ${src_data}/wav.scp ${src_data}/wav.scp.tmp
+        ./local/resample_wav_scp.sh ${fs} ${src_data}/wav.scp.tmp ${dst_wav_dump_dir} ${src_data}/wav.scp
+        rm ${src_data}/wav.scp.tmp
+    done
+fi
+
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: Unifiy Phoneme-List with ACE-phoneme"
+    log "Stage 3: Unifiy Phoneme-List with ACE-phoneme"
     mkdir -p score_dump
     for x in ${train_dev} ${test_set} ${train_set}; do
         echo "process for subset: ${x}"
         src_data="data/${x}"
-        python local/process.py --scp ${src_data}    
+        python local/process.py --scp ${src_data}
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
         mv ${src_data}/label.tmp ${src_data}/label
         mv ${src_data}/text.tmp ${src_data}/text
