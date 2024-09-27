@@ -142,6 +142,9 @@ class SequenceIterFactory(AbsIterFactory):
             kwargs = dict(collate_fn=self.collate_fn)
         else:
             kwargs = {}
+        
+        if self.num_workers > 0:
+            kwargs.update(prefetch_factor=50)
 
         # reshuffle whole 'batches' so that elements within a batch can move
         # between different batches
@@ -160,7 +163,6 @@ class SequenceIterFactory(AbsIterFactory):
             batch_sampler=batches,
             num_workers=self.num_workers,
             pin_memory=True,
-            prefetch_factor=50,
             worker_init_fn=partial(worker_init_fn, base_seed=epoch + self.seed),
             **kwargs,
         )

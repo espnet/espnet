@@ -85,13 +85,13 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
 
         if aux_logits is not None:
             aux_targets = torch.clip(
-                targets[:, :, 1:].flatten() - self.aux_start,
-                min=self.aux_start,
-                max=self.aux_end,
+                targets[:, :, 1:] - self.aux_start,
+                min=0,
+                max=self.aux_end - self.aux_start,
             )
             aux_ce_loss = self.aux_ce(
                 aux_logits.flatten(end_dim=2),
-                aux_targets,
+                aux_targets.flatten(),
             ).view(B, T, -1)
 
             ce_loss = torch.cat([ce_loss, aux_ce_loss], dim=2)
@@ -118,7 +118,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
                     mask[:, :, 1:]
                 )
                 acc = torch.cat([acc, aux_acc], dim=2)
-            
+
             acc_all = acc.float().sum() / mask.float().sum()
             stats["acc_all"] = acc_all.clone().detach()
             

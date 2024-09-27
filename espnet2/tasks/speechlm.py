@@ -346,10 +346,11 @@ class SpeechLMTask(AbsTask):
 
         # 2. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
+        aux_vocab_size = token_bias["codec"][1] - token_bias["codec"][0] if "codec" in token_bias else 0
         corelm = corelm_class(
             transformer=transformer,
             vocab_size=len(token_list),
-            aux_vocab_size=token_bias["codec"][1] - token_bias["codec"][0],
+            aux_vocab_size=aux_vocab_size,
             nq=args.codec_token_in_use,
             **args.corelm_conf,
         )
