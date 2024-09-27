@@ -25,9 +25,7 @@ class HuggingFaceFrontend(AbsFrontend):
         try:
             from transformers import AutoFeatureExtractor, AutoModel
         except ImportError:
-            raise ImportError(
-                "Please install `transformers`"
-            )
+            raise ImportError("Please install `transformers`")
 
         super().__init__()
         self.encoder = AutoModel.from_pretrained(model, cache_dir=download_dir)
