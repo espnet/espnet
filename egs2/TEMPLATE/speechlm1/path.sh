@@ -18,6 +18,7 @@ export PYTHONIOENCODING=UTF-8
 # You need to change or unset NCCL_SOCKET_IFNAME according to your network environment
 # https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html#nccl-socket-ifname
 export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # NOTE(kamo): Source at the last to overwrite the setting
 . local/path.sh
