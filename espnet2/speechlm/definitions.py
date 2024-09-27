@@ -86,7 +86,11 @@ SPEECHLM_TASKS["tts"] = SpeechLMTaskTemplate(
 
 # new task: visual tts
 SPEECHLM_TASKS["visual_tts"] = SpeechLMTaskTemplate(
-    conditions=[("text", "g2p", "text"), ("utt2spk", "spk", "text"), ("video.scp", "video_ssl", "kaldi_ark")],
+    conditions=[
+        ("text", "g2p", "text"),
+        ("utt2spk", "spk", "text"),
+        ("video.scp", "video_ssl", "kaldi_ark"),
+    ],
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 

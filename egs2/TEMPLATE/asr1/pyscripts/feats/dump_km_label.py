@@ -11,9 +11,9 @@ import argparse
 import logging
 import os
 import sys
-import kaldiio
 
 import joblib
+import kaldiio
 import numpy as np
 import torch
 from ssl_feature_utils import (
@@ -144,7 +144,10 @@ def dump_label(
                 writer[utt] = lab
     else:
         if feature_conf["type"] == "avhubert":  # intercept avhubert
-            with file_writer_helper(wspecifier, filetype=out_filetype,) as writer:
+            with file_writer_helper(
+                wspecifier,
+                filetype=out_filetype,
+            ) as writer:
                 with kaldiio.ReadHelper(rspecifier) as reader:
                     for utt, feats in reader:
                         lab = apply_kmeans(feats)

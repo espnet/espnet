@@ -94,7 +94,8 @@ def per_file(f, args, video_process, model, writer):
 
         os.system(
             f"ffmpeg -loglevel panic -nostdin -y -i {video_path} \
-                -acodec pcm_s16le -ar 16000 -ac 1 {temp_aud_path}.wav")
+                -acodec pcm_s16le -ar 16000 -ac 1 {temp_aud_path}.wav"
+        )
 
         video_feats, _, _ = output  # T, H, W
 
@@ -107,7 +108,12 @@ def per_file(f, args, video_process, model, writer):
         if audio_feats is not None and video_feats is not None:
             diff = len(audio_feats) - len(video_feats)
         if diff < 0:
-            audio_feats = np.concatenate([audio_feats, np.zeros([-diff, audio_feats.shape[-1]], dtype=audio_feats.dtype),])
+            audio_feats = np.concatenate(
+                [
+                    audio_feats,
+                    np.zeros([-diff, audio_feats.shape[-1]], dtype=audio_feats.dtype),
+                ]
+            )
         elif diff > 0:
             audio_feats = audio_feats[:-diff]
         audio_feats = torch.FloatTensor(audio_feats)
@@ -116,7 +122,9 @@ def per_file(f, args, video_process, model, writer):
         audio_feats = audio_feats.unsqueeze(0)
 
         # [B, T, H, W, C] -> [B, C, T, H, W]
-        video_feats = (torch.FloatTensor(video_feats).unsqueeze(-1).unsqueeze(0))  # B, T, H, W, C
+        video_feats = (
+            torch.FloatTensor(video_feats).unsqueeze(-1).unsqueeze(0)
+        )  # B, T, H, W, C
         video_feats = video_feats.permute(0, 4, 1, 2, 3).contiguous()
         # [B, T, F] -> [B, F, T]
         audio_feats = audio_feats.transpose(1, 2).contiguous()
@@ -142,7 +150,8 @@ def main():
         wspecifier=args.wspecifier,
         filetype="mat",
         write_num_frames=args.write_num_frames,
-        compress=False,)
+        compress=False,
+    )
 
     if args.model == "base":
         model = FairseqAVHubertEncoder(
@@ -164,23 +173,45 @@ def main():
         )
     model = model.cuda()
     model.eval()
-    
-    video_process = VideoProcess(mean_face_path="20words_mean_face.npy", convert_gray=True)
+
+    video_process = VideoProcess(
+        mean_face_path="20words_mean_face.npy", convert_gray=True
+    )
     file_lists = build_file_list(args.video_source_dir)
     import tqdm
+
     os.makedirs("./data/temp", exist_ok=True)
     for f in tqdm.tqdm(file_lists):
         per_file(f, args, video_process, model, writer)
     shutil.rmtree("./data/temp")
 
+
 def get_parser():
-    parser = argparse.ArgumentParser(description="Command-line script for preprocessing.")
-    parser.add_argument("--video_source_dir", type=str, required=True, help="file_list (scp)")
-    parser.add_argument("--landmark_dir", type=str, default="./local/landmark", help="path including landmark files",)
-    parser.add_argument("--model", type=str, required=True, help="AV-HuBERT model config")
-    parser.add_argument("--pretrained_model_dir", type=str, default="local/pretrained", help="AV-HuBERT pretrained model path",)
+    parser = argparse.ArgumentParser(
+        description="Command-line script for preprocessing."
+    )
+    parser.add_argument(
+        "--video_source_dir", type=str, required=True, help="file_list (scp)"
+    )
+    parser.add_argument(
+        "--landmark_dir",
+        type=str,
+        default="./local/landmark",
+        help="path including landmark files",
+    )
+    parser.add_argument(
+        "--model", type=str, required=True, help="AV-HuBERT model config"
+    )
+    parser.add_argument(
+        "--pretrained_model_dir",
+        type=str,
+        default="local/pretrained",
+        help="AV-HuBERT pretrained model path",
+    )
     parser.add_argument("--gpu", type=int, required=True, help="GPU number (job - 1)")
-    parser.add_argument("--write_num_frames", type=str, help="specify wspecifer for num frames")
+    parser.add_argument(
+        "--write_num_frames", type=str, help="specify wspecifer for num frames"
+    )
     parser.add_argument("wspecifier", type=str, help="Write specifier")
     return parser
 

@@ -29,7 +29,7 @@ kmeans_path=local/pretrained/km_dir/avhubert_km500.bin
 
 
 # cpu_cmd="run.pl"
-# cuda_cmd="run.pl"   
+# cuda_cmd="run.pl"
 
 # skip_train_kmeans=false     # Whether to skip the kmeans model training
 # nclusters=500       # Number of clusters of kmeans model
@@ -115,8 +115,3 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
-
-
-    
-

@@ -18,7 +18,7 @@ nj=8  # number of GPUs to extract features
 stage=4
 stop_stage=5
 
-# task 
+# task
 task=visualtts
 data_name=lrs2
 
@@ -83,18 +83,18 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 http://dlib.net/files/mmod_human_face_detector.dat.bz2 -O local/pretrained/cnn_detector.dat.bz2
         bunzip2 local/pretrained/cnn_detector.dat.bz2
     fi
-    
+
     if [ ! -f local/pretrained/face_predictor.dat ]; then
         echo "Download face_predictor from http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
         wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 http://dlib.net/files/mmod_human_face_detector.dat.bz2 -O local/pretrained/face_predictor.dat.bz2
         bunzip2 local/pretrained/face_predictor.dat.bz2
     fi
-    
+
     for dset in ${_dsets}; do
         log_dir="data/${dset}/logs"
         mkdir -p ${log_dir}
         if [ ! -e data/${dset}/landmarks.scp ]; then
-            
+
             echo "detecting landmarks..."
             ${cmd} RANK=1:$nshard ${log_dir}/detect_landmarks.RANK.log python ./local/detect_landmarks.py \
                 --video_source_dir "data/${dset}/video.scp" \
@@ -193,7 +193,3 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 fi
 
     # generate kmeans labels: avhubert_tokenization
-
-        
-
-
