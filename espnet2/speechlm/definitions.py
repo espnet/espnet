@@ -90,6 +90,7 @@ SPEECHLM_TASKS["visual_tts"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+
 SPEECHLM_TASKS["bpe_tts"] = SpeechLMTaskTemplate(
     conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
     targets=[("wav.scp", "codec", "kaldi_ark")],
