@@ -6,12 +6,20 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000
-fmin=0
-fmax=12000
-n_fft=2048
-n_shift=300
-win_length=1200
+fs=44100
+if [ ${fs} -eq 24000 ];then
+    fmin=0
+    fmax=7600
+    n_fft=2048
+    n_shift=300
+    win_length=1200
+elif [ ${fs} -eq 44100 ]; then
+    fmin=80
+    fmax=22050
+    n_fft=2048
+    n_shift=512
+    win_length=2048
+fi
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -35,18 +43,18 @@ ying_extract=None
 combine_path=""
 combine_path+="$(realpath ../../opencpop/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../opencpop/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../acesinger/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../acesinger/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../kising/svs1/dump/raw/)"
-combine_path+="\$$(realpath ../../m4singer/svs1/dump/raw/)"
-# combine_path+="\$$(realpath ../../ameboshi/svs1/dump/raw/)"
-# combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
+# combine_path+="\$$(realpath ../../m4singer/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../ameboshi/svs1/dump/raw/)"
+combine_path+="\$$(realpath ../../kiritan/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../oniku_kurumi_utagoe_db/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../ofuton_p_utagoe_db/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../namine_ritsu_utagoe_db/svs1/dump/raw/)"
 # combine_path+="\$$(realpath ../../itako/svs1/dump/raw/)"
 
 use_sid=true
-use_lid=true
+use_lid=false
 
 min_wav_duration=2.0
 gpu_inference=true

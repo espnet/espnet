@@ -93,8 +93,4 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    python local/check.py 
-fi
-
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -6,13 +6,13 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000
+fs=44100
 if [ ${fs} -eq 24000 ];then
     fmin=0
     fmax=12000
     n_fft=2048
-    n_shift=300
-    win_length=1200
+    n_shift=256
+    win_length=2048
 elif [ ${fs} -eq 44100 ]; then
     fmin=80
     fmax=22050
@@ -44,7 +44,7 @@ ying_extract=None
 ./svs.sh \
     --lang zh \
     --svs_task gan_svs \
-    --local_data_opts "--stage 0" \
+    --local_data_opts "--stage 1" \
     --feats_type raw \
     --use_sid ${use_sid} \
     --pitch_extract "${pitch_extract}" \

@@ -11,8 +11,8 @@ if [ ${fs} -eq 24000 ];then
     fmin=0
     fmax=12000
     n_fft=2048
-    n_shift=300
-    win_length=1200
+    n_shift=256
+    win_length=2048
 elif [ ${fs} -eq 44100 ]; then
     fmin=80
     fmax=22050
