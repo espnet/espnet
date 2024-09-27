@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 import sys
+import kaldiio
 
 import joblib
 import numpy as np
@@ -142,36 +143,44 @@ def dump_label(
                 lab = apply_kmeans(feat)
                 writer[utt] = lab
     else:
-        assert feature_conf["type"] in feature_reader_choice
-        reader_class = feature_reader_choice[feature_conf["type"]]
-        reader_conf = feature_conf.get("conf", dict())
+        if feature_conf["type"] == "avhubert":  # intercept avhubert
+            with file_writer_helper(wspecifier, filetype=out_filetype,) as writer:
+                with kaldiio.ReadHelper(rspecifier) as reader:
+                    for utt, feats in reader:
+                        lab = apply_kmeans(feats)
+                        # print(f"debug: {lab.shape}")
+                        writer[utt] = lab.astype(np.int32)
+        else:
+            assert feature_conf["type"] in feature_reader_choice
+            reader_class = feature_reader_choice[feature_conf["type"]]
+            reader_conf = feature_conf.get("conf", dict())
 
-        if reader_conf.get("multilayer_feature", None):
-            reader_conf["multilayer_feature"] = str2bool(
-                reader_conf["multilayer_feature"]
-            )
-        if reader_conf.get("layer", None):
-            reader_conf["layer"] = int(reader_conf["layer"])
-
-        reader = reader_class(**reader_conf)
-        iterator = build_data_iterator(
-            rspecifier,
-            in_filetype,
-            utt2num_samples=args.utt2num_samples,
-            batch_bins=kwargs.get("batch_bins", 1),
-        )
-        with file_writer_helper(
-            wspecifier,
-            filetype=out_filetype,
-        ) as writer:
-            for utt_ids, data in iterator:
-                feats, feats_lens = reader.get_feats(
-                    data["speech"], data["speech_lengths"]
+            if reader_conf.get("multilayer_feature", None):
+                reader_conf["multilayer_feature"] = str2bool(
+                    reader_conf["multilayer_feature"]
                 )
+            if reader_conf.get("layer", None):
+                reader_conf["layer"] = int(reader_conf["layer"])
 
-                for idx, utt in enumerate(utt_ids):
-                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
-                    writer[utt] = lab.astype(np.int32)
+            reader = reader_class(**reader_conf)
+            iterator = build_data_iterator(
+                rspecifier,
+                in_filetype,
+                utt2num_samples=args.utt2num_samples,
+                batch_bins=kwargs.get("batch_bins", 1),
+            )
+            with file_writer_helper(
+                wspecifier,
+                filetype=out_filetype,
+            ) as writer:
+                for utt_ids, data in iterator:
+                    feats, feats_lens = reader.get_feats(
+                        data["speech"], data["speech_lengths"]
+                    )
+
+                    for idx, utt in enumerate(utt_ids):
+                        lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
+                        writer[utt] = lab.astype(np.int32)
 
     logger.info("finished successfully")
 

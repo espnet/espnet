@@ -129,6 +129,13 @@ bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
 textlm_hf_model_tag=
 textlm_max_words=1000
 
+# (6) video ssl
+# frame_feature_choice=avhubert
+video_ssl_choice="avhubert"
+video_ssl_checkpoint_path=null
+video_ssl_kmeans_path=local/pretrained/km_dir/avhubert_km500.bin
+video_ssl_batch_bins=4800000
+
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -472,6 +479,20 @@ if ! "${skip_data_prep}"; then
                 elif [ ${_modality} == "spk" ]; then
                     echo "copy utt2spk file"
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
+                elif [ ${_modality} == "video_ssl" ]; then
+                    log "AVhubert Tokenization: data/${dset}/feats.scp -> ${data_feats}/${dset}/${_name}"
+                    cp data/${dset}/feats.scp ${data_feats}/${dset}/${_name}
+                    cp data/${dset}/num_frames.txt ${data_feats}/${dset}/utt2num_frames
+                    # cp ${data_video}/${dset}/utt2num_samples ${data_feats}/${dset}/utt2num_frames
+                    scripts/feats/video_ssl_tokenization.sh \
+                        --src_dir ${data_feats}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --nj ${nj} \
+                        --batch_bins ${video_ssl_batch_bins} \
+                        --ssl_choice ${video_ssl_choice} \
+                        --checkpoint_path ${video_ssl_checkpoint_path} \
+                        --kmeans_path ${video_ssl_kmeans_path}
 
                 else
                     echo "Unsupported modality ${_modality}" && exit 1;
