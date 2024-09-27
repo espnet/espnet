@@ -1,121 +1,134 @@
 import torch
-
+import logging
 from espnet2.speechlm.net_utils import length_mask
 
 
-class FusedLinearCrossEntropyLoss(torch.nn.Module):
-    def __init__(self, lm_head, pad_id=0, prefix_lm=True, chunk_size=32768):
+class SpeechLMCrossEntropyLoss(torch.nn.Module):
+    def __init__(
+        self,
+        pad,
+        vocab_size,
+        token_bias,
+        loss_region,
+        modality_weights,
+    ):
         """
-        Compute CrossEntropy loss for multi-stream LM using either:
-        (1) liger fused triton kernel
-            slower but much less memory consumption
-        (2) torch implementation
-            normal speed but large memory consumption
-
+        Compute the CrossEntropy for SpeechLM. The main motivation of this module is to save computing.
+        From the second layer and then on, the target codes can only be the codec codes, which helps us
+        to shrink the vocabulary during the loss computing. 
         """
-        super(FusedLinearCrossEntropyLoss, self).__init__()
-        self.lm_head = lm_head
-        self.pad_id = pad_id
-        self.prefix_lm = prefix_lm
-        self.chunk_size = chunk_size
+        super().__init__()
 
-        try:
-            from liger_kernel.transformers.fused_linear_cross_entropy import (
-                LigerFusedLinearCrossEntropyLoss,
+        self.pad = pad
+        self.loss_region = loss_region
+
+        if "codec" in token_bias:
+            self.aux_start, self.aux_end = token_bias["codec"]
+        else:
+            self.aux_start, self.aux_end = 0, 0
+
+        # prepare the weight for first-layer
+        weight = torch.ones(vocab_size).float()
+        for modality_name, modality_weight in modality_weights.items():
+
+            if modality_name not in token_bias:
+                raise ValueError(f"modality {modality_name} is invalid.")
+            
+            start, end = token_bias[modality_name]
+            del token_bias[modality_name]
+            weight[start: end] = modality_weight
+
+        for modality in token_bias.keys():
+            logging.warning(f"weight for modality {modality} not specified. Set to 1.0")
+        
+        self.ce = torch.nn.CrossEntropyLoss(
+            weight=weight, 
+            reduction="none",
+            ignore_index=self.pad
+        )
+        
+        if self.aux_start > 0 and self.aux_end > 0:
+            aux_weight = weight[self.aux_start: self.aux_end]
+            self.aux_ce = torch.nn.CrossEntropyLoss(
+                weight=aux_weight, 
+                reduction="none",
+                ignore_index=self.pad
             )
+        else:
+            self.aux_ce = None
+    
+    def forward(
+        self, 
+        logits: torch.Tensor,
+        targets: torch.Tensor, 
+        prefix_len: torch.Tensor,
+        seq_len: torch.Tensor,
+    ):
+        logits, aux_logits = logits
+        assert logits.dim() == 4 and logits.size(2) == 1
+        B, T, _, _ = logits.size()
+        
+        if aux_logits is not None:
+            assert logits.dim() == 4
+            assert logits.size()[:2] == aux_logits.size()[:2]
+            assert logits.size(2) + aux_logits.size(2) == targets.size(2)
+        
+        assert prefix_len.size() == seq_len.size()
+        assert torch.all(seq_len > prefix_len)
+        assert prefix_len.dim() == 1
 
-            self.loss = LigerFusedLinearCrossEntropyLoss()
-            self.fused = True
-        except:
-            self.loss = torch.nn.CrossEntropyLoss(reduction="none")
-            self.fused = False
+        # element-wise loss
+        ce_loss = self.ce(
+            logits.flatten(end_dim=2),
+            targets[:, :, :1].flatten(),
+        ).view(B, T, 1)
 
-        self.torch_loss = torch.nn.CrossEntropyLoss(reduction="none")
+        if aux_logits is not None:
+            aux_targets = torch.clip(
+                targets[:, :, 1:].flatten() - self.aux_start,
+                min=self.aux_start,
+                max=self.aux_end,
+            )
+            aux_ce_loss = self.aux_ce(
+                aux_logits.flatten(end_dim=2),
+                aux_targets,
+            ).view(B, T, -1)
 
-    def __call__(self, hidden, targets, prefix_len=None):
-        """
-        hidden (torch.Tensor): hidden embeddings, typically output from transformer
-          with lm_head bias. Size: (B, T, nq, D)
-        targets (torch.Tensor): predicting target. Size (B, T, nq)
-        """
-
-        assert targets.size() == hidden.size()[:3]
-        B, T, nq = targets.size()
-
-        # fused = self.fused and self.training
-        fused = False
-
-        # select items that are not padding. This mask select is fast and will save
-        # the computing on padding tokens (very massive in multi-stream case).
-        padding_mask = targets != self.pad_id
-
-        if self.prefix_lm:
-            if prefix_len is None:
-                raise ValueError("No prefix_len to compute prefix_lm loss")
+            ce_loss = torch.cat([ce_loss, aux_ce_loss], dim=2)
+        
+        mask = targets != self.pad
+        weight = seq_len.sum().float()
+        if self.loss_region == "target":
             prefix_mask = ~length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
-            mask = torch.logical_and(padding_mask, prefix_mask)
+            mask = torch.logical_and(mask, prefix_mask)
+            weight = (seq_len - prefix_len).sum().float()
+        
+        ce_loss = torch.where(mask, ce_loss, 0.0)
+        ce_loss = ce_loss.sum() / weight
+        stats = {"ce_loss": ce_loss.clone().detach(), "weight": weight.clone().detach()}
 
-        else:
-            mask = padding_mask
-
-        hidden = hidden[mask]
-        targets = targets[mask]
-
-        # compute loss
-        if fused:
-            logits = None
-            loss = self.loss(self.lm_head.weight, hidden, targets)
-        else:
-            # chunk-by-chunk CE loss to avoid memory peak
-            chunk_id, logits, loss = 0, [], []
-            while chunk_id * self.chunk_size < len(hidden):
-                start = chunk_id * self.chunk_size
-                end = min((chunk_id + 1) * self.chunk_size, len(hidden))
-                this_logits = self.lm_head(hidden[start:end])
-                this_targets = targets[start:end]
-                this_loss = self.torch_loss(this_logits, this_targets)
-                logits.append(this_logits)
-                loss.append(this_loss)
-                chunk_id += 1
-            loss = torch.cat(loss).mean()
-        weight = float(targets.numel())
-        stats = {"loss": loss.clone().detach(), "weight": weight}
-
-        # compute token accuracy
-        if not fused and not self.training:
-            logits = torch.cat(logits, dim=0)
-            layer_idx = torch.arange(nq, device=hidden.device).tile(B, T, 1)
-            layer_idx = layer_idx[mask]
-
-            for idx in range(nq):
-                acc = (
-                    torch.logical_and(logits.argmax(-1) == targets, layer_idx == idx)
-                    .float()
-                    .sum()
+        if not self.training:
+            acc = torch.logical_and(
+                logits.argmax(-1) == targets[:, :, :1],
+                mask[:, :, :1]
+            )
+            if aux_logits is not None:
+                aux_acc = torch.logical_and(
+                    aux_logits.argmax(-1) == (targets[:, :, 1:] - self.aux_start),
+                    mask[:, :, 1:]
                 )
-                acc = acc / (layer_idx == idx).float().sum()
-                stats[f"acc_layer{idx}"] = acc.clone().detach()
+                acc = torch.cat([acc, aux_acc], dim=2)
+            
+            acc_all = acc.float().sum() / mask.float().sum()
+            stats["acc_all"] = acc_all.clone().detach()
+            
+            for idx in range(targets.size(2)):
+                weight = mask[:, :, idx].float().sum()
+                if weight == 0:
+                    continue
 
-            acc = (logits.argmax(-1) == targets).float().sum()
-            acc = acc / targets.numel()
-            stats["acc"] = acc.clone().detach()
+                layer_acc = acc[:, :, idx:idx+1].float().sum() 
+                layer_acc = layer_acc / mask[:, :, idx:idx+1].float().sum()
+                stats[f"acc_layer{idx}"] = layer_acc.clone().detach()
 
-        return loss, logits, stats, weight
-
-
-if __name__ == "__main__":
-    hidden = torch.randn((1, 7, 2, 512)).float().cuda() * 100
-    target = torch.randint(0, 9, (1, 7, 2)).long().cuda()
-    print("target: ", target)
-    prefix_len = torch.Tensor([6]).long().cuda()
-    linear = torch.nn.Linear(512, 9).cuda()
-
-    liger_loss = FusedLinearCrossEntropyLoss(
-        linear, pad_id=80000, prefix_lm=True
-    ).cuda()
-    # torch_loss = torch.nn.CrossEntropyLoss(ignore_index=80000)
-
-    loss_liger, _, _, _ = liger_loss(hidden, target, prefix_len)
-    # loss_torch = torch_loss(linear(hidden).view(-1, 70032), target.view(-1))
-
-    # print('loss_liger', 'loss_torch', loss_liger, loss_torch)
+        return ce_loss, stats, weight

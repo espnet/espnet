@@ -19,48 +19,31 @@ class ARDelayLM(ARParallelLM):
     def forward(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor = None,
-        enc_seq: torch.Tensor = None,
-        enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
         conti_feats: Tuple = None,
-        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
+
         This forward function is very similar to that of ARParallelLM only except the
         delay interleave pattern
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
-            dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
-                may not be used.
-            enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
-                keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
-            compute_loss (bool): whether to compute loss or just logits.
+            conti_feats (dict or None): continuous features.
         """
 
-        dec_seq_delay, dec_seq_lengths_delay = self.delay_interleave(
-            dec_seq=dec_seq,
-            dec_seq_lengths=dec_seq_lengths,
-            pad=self.sos_eos,
-        )
+        dec_seq_delay = self.delay_interleave(dec_seq=dec_seq)
 
         return super().forward(
             dec_seq=dec_seq_delay,
-            dec_seq_lengths=dec_seq_lengths_delay,
-            enc_seq=enc_seq,
-            enc_seq_lengths=enc_seq_lengths,
             prefix_len=prefix_len,
             conti_feats=conti_feats,
-            compute_loss=compute_loss,
         )
 
     def delay_interleave(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor = None,
         pad: int = 0,
     ):
         B, T, nq = dec_seq.size()
@@ -74,15 +57,11 @@ class ARDelayLM(ARParallelLM):
         for n in range(self.nq):
             retval[:, n : n + T, n] = dec_seq[:, :, n]
 
-        if dec_seq_lengths is not None:
-            dec_seq_lengths = dec_seq_lengths + self.nq - 1
-
-        return retval, dec_seq_lengths
+        return retval
 
     def inverse_delay_interleave(
         self,
         dec_seq_delay: torch.Tensor,
-        dec_seq_lengths_delay: torch.Tensor = None,
     ):
         retval = []
         length = dec_seq_delay.size(1) - self.nq + 1
@@ -91,10 +70,7 @@ class ARDelayLM(ARParallelLM):
 
         retval = torch.stack(retval, dim=2)
 
-        if dec_seq_lengths_delay is not None:
-            dec_seq_lengths_delay = dec_seq_lengths_delay - self.nq + 1
-
-        return retval, dec_seq_lengths_delay
+        return retval
 
     @torch.no_grad()
     def inference(

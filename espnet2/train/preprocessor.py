@@ -2486,9 +2486,15 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # (2) get exact tokenised value based on all data triplets
         seqs, conti_feats = [], []
+        cache = {triplet[:2]: None for triplet in task.data_triplets}
         for triplet in task.data_triplets:
             name, modality, _ = triplet
-            value, conti_feat = self.modality_specific_processing(data[name], modality)
+            value, conti_feat = self.modality_specific_processing(
+                data[name], 
+                modality,
+                cache,
+            )
+            cache[(name, modality)] = value
             seqs.append(value)
 
             if triplet in task.targets and conti_feat is not None:
@@ -2585,16 +2591,26 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         return token_idx
 
-    def modality_specific_processing(self, value, modality):
+    def modality_specific_processing(self, value, modality, cache):
         # multi-stream discrete modalities
         if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, : self.codec_token_in_use]
-            value = value + (
-                self.token_bias.get("codec", None) or self.token_bias["codec_ssl"]
-            )
+            value = value[:, :self.codec_token_in_use]
 
             if modality == "spk":
+                all_modalities = [x[1] for x in cache.keys()]
+                if not (("codec" in all_modalities) ^ ("codec_ssl" in all_modalities)):
+                    raise ValueError(
+                        "Cannot build speaker prompt. "
+                        "There should be one and only one out of codec or codec_ssl "
+                        "modality in the task tempalte. "
+                )
+                
+                if "codec_ssl" in all_modalities:
+                    value = value + self.token_bias["ssl"][0]
+                else:
+                    value = value + self.token_bias["codec"][0]
+
                 if len(value) > self.speaker_prompt_length:
                     start = random.randint(
                         0, len(value) - self.speaker_prompt_length - 1
@@ -2608,16 +2624,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         mode="constant",
                         constant_values=self.pad,
                     )
-
-                # As mentioned in AudioLM, always corrupt SSL token in speech prompt.
-                if "codec_ssl" in self.token_bias:
-                    value[:, 0] = self.pad
-
-            if (
-                modality == "codec_ssl"
-                and random.random() < self.codec_ssl_corrupt_prob
-            ):
-                value[:, 0] = self.pad
+            
+            elif modality == "codec":
+                value = value + self.token_bias["codec"][0]
+            else:
+                value = value + self.token_bias["ssl"][0]
 
             value = value.flatten()
             conti_feat = None
@@ -2644,16 +2655,16 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 else:
                     # already tokenized offline
                     assert isinstance(value, np.ndarray)
-                    value = value + self.token_bias[modality]
+                    value = value + self.token_bias[modality][0]
 
             elif modality in ["ssl"]:
-                value = value + self.token_bias["ssl"]
+                value = value + self.token_bias["ssl"][0]
 
             value = np.pad(
                 np.expand_dims(value, 1),
                 ((0, 0), (0, self.codec_token_in_use - 1)),
                 mode="constant",
-                constant_values=self.token_list.index("<pad>"),
+                constant_values=self.pad,
             ).flatten()
 
             conti_feat = None

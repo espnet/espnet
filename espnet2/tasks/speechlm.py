@@ -7,6 +7,11 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
+# Transformer Implementation
+from espnet2.speechlm.module.builtin import TransformerDecoder
+from espnet2.speechlm.module.huggingface import HFTransformerDecoder
+from espnet2.speechlm.module.abs_transformer import AbsTransformer
+
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARLM
@@ -14,6 +19,8 @@ from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
 from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.core_lm.valle import ValleLM
+
+# Overall model warppers
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 
@@ -24,19 +31,28 @@ from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Others
+from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Preprocessor
 from espnet2.train.preprocessor import SpeechLMPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
-# ESPnet Models
+transformer_choices = ClassChoices(
+    "transformer",
+    classes=dict(
+        builtin=TransformerDecoder,
+        huggingface=HFTransformerDecoder,
+    ),
+    type_check=AbsTransformer,
+    default="builtin",
 
+)
 
 corelm_choices = ClassChoices(
     "corelm",
@@ -78,6 +94,8 @@ class SpeechLMTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
+        # --transformer and --transformer_conf
+        transformer_choices,
         # --corelm and --corelm_conf
         corelm_choices,
         # --tokenizer and --tokenizer_conf
@@ -209,6 +227,21 @@ class SpeechLMTask(AbsTask):
             default=0.0,
             help="The prob of changing SSL tokens to pad_id in codec_ssl modality",
         )
+        group.add_argument(
+            "--loss_region",
+            type=str,
+            choices=["whole", "target"],
+            default="whole",
+            help="If target, compute the loss only on the target segments "
+                 "Otherwise on the whole sequences"
+        )
+        group.add_argument(
+            "--modality_weights",
+            type=dict,
+            default=dict(),
+            help="Set the relative weights for different modalities "
+                 "using string format: modality:weight"
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -277,7 +310,7 @@ class SpeechLMTask(AbsTask):
         if isinstance(args.token_list, str):
             assert args.token_list.endswith(
                 ".json"
-            ), "Input token list should be a json file"
+            ), "Input token list should be a json file path"
             token_list = json.load(open(args.token_list))
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
@@ -289,10 +322,11 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         if isinstance(args.token_bias, str):
             token_bias = json.load(open(args.token_bias))
+            token_bias = cls.process_token_bias(token_bias, token_list)
             args.token_bias = token_bias
         elif isinstance(args.token_bias, Dict):
             token_bias = args.token_bias
@@ -300,43 +334,36 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
         logging.info(f"Token Bias: {token_bias}")
 
-        # NOTE(Jinchuan): model will not in real use. Create a placeholder
-        if args.collect_stats:
-            return ESPnetSpeechLMModel(
-                corelm=ARLM(
-                    vocab_size=1,
-                    nq=args.codec_token_in_use,
-                    token_bias=token_bias,
-                    pad_id=token_list.index("<pad>"),
-                )
-            )
-
         kwargs = dict()
-        # 1. Build CoreLM module
+        ### Build the model step-by-step
+        # 1. Build Transformer decoder
+        if args.collect_stats:
+            # NOTE(Jinchuan): model will not in real use. Create a placeholder
+            transformer = TransformerDecoder()
+        else:
+            transformer_class = transformer_choices.get_class(args.transformer)
+            transformer = transformer_class(token_bias=token_bias, **args.transformer_conf)
+
+        # 2. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
+            transformer=transformer,
             vocab_size=len(token_list),
+            aux_vocab_size=token_bias["codec"][1] - token_bias["codec"][0],
             nq=args.codec_token_in_use,
-            token_bias=token_bias,
-            pad_id=token_list.index("<pad>"),
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)
 
-        # 2. Reference LM for HFRL
-        if args.model == "rl":
-            if args.reflm is not None:
-                raise ValueError("external refernece LM is not supported yet")
-            else:
-                reflm_class = corelm_choices.get_class(args.corelm)
-                reflm = reflm_class(
-                    vocab_size=len(token_list),
-                    nq=args.codec_token_in_use,
-                    token_bias=token_bias,
-                    **args.corelm_conf,
-                )
-            reflm.requires_grad_(False)
-            kwargs.update(reflm=reflm)
+        # 3. Build traiing criterion
+        criterion = SpeechLMCrossEntropyLoss(
+            pad=token_list.index("<pad>"),
+            vocab_size=len(token_list),
+            token_bias=token_bias.copy(),
+            loss_region=args.loss_region,
+            modality_weights=args.modality_weights,
+        )
+        kwargs.update(criterion=criterion)
 
         # 3. Build model
         model_class = model_choices.get_class(args.model)
@@ -356,3 +383,25 @@ class SpeechLMTask(AbsTask):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
         return model
+    
+    @classmethod
+    def process_token_bias(cls, token_bias, token_list):
+        token_bias["special_token"] = 0
+        if "codec_ssl" in token_bias:
+            token_bias["ssl"] = token_list.index("<ssl_code1>")
+            token_bias["codec"] = token_list.index("<codec_layer0_code0>")
+            del token_bias["codec_ssl"]
+        
+        values = list(token_bias.values()) + [len(token_list)]
+        retval = dict()
+        for modality, start in token_bias.items():
+            end = min([v for v in values if v > start])
+            retval[modality] = (start, end)
+        
+        if "codec" in retval and "ssl" in retval:
+            assert retval["ssl"][1] == retval["codec"][0], \
+                "ssl and codec token list should be continuous"
+        
+        return retval
+        
+

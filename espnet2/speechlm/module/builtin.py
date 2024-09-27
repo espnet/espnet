@@ -12,6 +12,9 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
+from espnet2.speechlm.module.abs_transformer import AbsTransformer
+from espnet2.speechlm.net_utils import install_kv_cache_hook
+
 
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
@@ -185,13 +188,13 @@ class ResidualAttentionBlock(nn.Module):
         return x
 
 
-class TransformerDecoder(nn.Module):
+class TransformerDecoder(AbsTransformer):
     def __init__(
         self,
-        n_ctx: int,
-        n_state: int,
-        n_head: int,
-        n_layer: int,
+        n_ctx: int = 128,
+        n_state: int = 128,
+        n_head: int = 4,
+        n_layer: int = 4,
         causal: bool = True,
         qk_norm: bool = False,
         dropout: float = 0.0,
@@ -217,10 +220,12 @@ class TransformerDecoder(nn.Module):
         self.ln = LayerNorm(n_state)
 
         self.causal = causal
+        self.d_model = n_state
+        
+        self.kv_cache = None
+        self.hooks = None
 
-    def forward(
-        self, x: Tensor, mask: torch.Tensor = None, kv_cache: Optional[dict] = None
-    ):
+    def forward(self, x: Tensor, mask: torch.Tensor = None):
         if self.causal and mask is not None:
             raise ValueError("Causal Transformer dones't allow mask")
 
@@ -232,3 +237,17 @@ class TransformerDecoder(nn.Module):
 
         x = self.ln(x)
         return x
+    
+    def init(self):
+        self.kv_cache, self.hooks = install_kv_cache_hook(
+            self.blocks, 
+            self.kv_cache,
+            attn_module=MultiHeadAttention,
+        )
+
+    def reset(self):
+        for h in self.hooks:
+            h.remove()
+        self.kv_cache = None
+        self.hooks = None
+        

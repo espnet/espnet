@@ -10,120 +10,76 @@ from typing import Dict, List, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
-from espnet2.speechlm.loss import FusedLinearCrossEntropyLoss
-from espnet2.speechlm.module.transformer import TransformerDecoder
 from espnet2.speechlm.net_utils import install_continuous_features
 
 
 class ARParallelLM(AbsCoreLM):
     def __init__(
         self,
+        transformer,
         vocab_size: int,
+        aux_vocab_size: int,
         nq: int,
-        token_bias: dict,
-        pad_id: int,
-        hf_model_tag: str = None,
         share_emb: bool = True,
-        qk_norm: bool = False,
-        dropout: float = 0.0,
-        att_unit: int = 256,
-        head: int = 2,
-        layer: int = 4,
-        n_ctx: int = 4096,
-        sos_eos: int = 5,
-        prefix_lm: bool = True,
     ):
         """Initialize Auto-regressive LM with parallel interleave codec pattern.
 
         Args:
+            transformer (torch.nn.Module): the Transformer body implementation
             vocab_size (int): Dimention of vocabulary.
+            aux_vocab_size (int): the size of auxuliary tokens, usually for codec tokens.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
-            qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
-            dropout: (float): dropout rate for attention layers.
-            att_unit (int): Dimention of global Transformer attention.
-            head (int): Number of heads in global Transformer attention.
-            layer (int): Number of layers in global Transformer.
-            n_ctx (int): maximum context length of global Transformer.
         """
         super(ARParallelLM, self).__init__()
 
-        self.emb = torch.nn.Embedding(vocab_size, att_unit)
-        self.lm_head = torch.nn.Linear(att_unit, vocab_size, bias=False)
+        self.decoders = transformer
+
+        self.emb = torch.nn.Embedding(vocab_size, transformer.d_model)
+        self.lm_head = torch.nn.Linear(transformer.d_model, vocab_size, bias=False)
         if share_emb:
             self.lm_head.weight = self.emb.weight
-        self.head_emb = torch.nn.Embedding(12, att_unit)
 
-        self.decoders = TransformerDecoder(
-            n_ctx=n_ctx,
-            n_state=att_unit,
-            n_head=head,
-            n_layer=layer,
-            qk_norm=qk_norm,
-            dropout=dropout,
-            hf_model_tag=hf_model_tag,
-            token_bias=token_bias,
+        self.aux_lm_head = torch.nn.Linear(
+            transformer.d_model, aux_vocab_size, bias=False
         )
+        self.head_emb = torch.nn.Embedding(12, transformer.d_model) 
 
+        if hasattr(self.decoders, "init_embeddings"):
+            self.decoders.init_embeddings(self.emb, self.lm_head)
+        
         self.nq = nq
-        self.n_ctx = n_ctx
-        self.sos_eos = sos_eos
-        self.pad_id = pad_id
-
-        self.decoders.init_embeddings(self.emb, self.lm_head)
-        self.criterion = FusedLinearCrossEntropyLoss(
-            self.lm_head,
-            self.pad_id,
-            prefix_lm=prefix_lm,
-        )
-
+        
     def forward(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor = None,
-        enc_seq: torch.Tensor = None,
-        enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
         conti_feats: Tuple = None,
-        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
-            dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep the interface,
-                may not be used.
-            enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
-                keep the interface, may not be used.
             prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
-            compute_loss (bool): whether to compute loss or just logits.
+            conti_feats (dict or None): continuous features.
         """
         assert dec_seq.dim() == 3
 
         target = dec_seq[:, 1:]
         x = dec_seq[:, :-1]
 
-        x = self.process_embedding(x, conti_feats=conti_feats)
+        # input embedding
+        x = self.emb(x).sum(dim=2)
+        x, _ = install_continuous_features(x, None, conti_feats)
+
+        # transformer output
         x = self.decoders(x)
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
-        loss, logits, stats, weight = self.criterion(x, target, prefix_len)
+        logits = self.lm_head(x[:, :, :1])
+        aux_logits = self.aux_lm_head(x[:, :, 1:]) if x.size(2) > 1 else None
 
-        return loss, logits, stats, weight
-
-    def process_embedding(
-        self,
-        x: torch.Tensor,
-        conti_feats: List = None,
-    ):
-        pad_mask = x == self.pad_id
-        x = self.emb(x)
-        x[pad_mask] = 0.0
-        x = x.sum(dim=2)
-        x, _ = install_continuous_features(x, None, conti_feats)
-
-        return x
+        return (logits, aux_logits), target
 
     @torch.no_grad()
     def inference(

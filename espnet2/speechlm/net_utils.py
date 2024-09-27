@@ -8,8 +8,6 @@ from typing import Dict, Optional, Tuple
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.module.builtin import MultiHeadAttention
-
 
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
     assert lengths.dim() == 1
@@ -53,7 +51,7 @@ def pad_and_concat(tensor_list, pad_id=0):
     return retval
 
 
-def install_kv_cache_hook(model, cache):
+def install_kv_cache_hook(model, cache, attn_module):
     cache = {**cache} if cache is not None else {}
     hooks = []
 
@@ -66,7 +64,7 @@ def install_kv_cache_hook(model, cache):
         return cache[module]
 
     def install_hooks(layer: torch.nn.Module):
-        if isinstance(layer, MultiHeadAttention):
+        if isinstance(layer, attn_module):
             hooks.append(layer.key.register_forward_hook(save_to_cache))
             hooks.append(layer.value.register_forward_hook(save_to_cache))
 
