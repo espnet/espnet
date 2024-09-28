@@ -29,7 +29,6 @@ train_jsons+=" \
   dump/raw_ssl_asr_yodas_auto1/train_auto_part1/data.json \
 "
 
-train_jsons="dump/raw_ssl_asr_librispeech/train_960/data.json"
 valid_jsons+=" \
   dump/raw_ssl_asr_librispeech/dev_clean/data.json \
 "
