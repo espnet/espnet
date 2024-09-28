@@ -1,0 +1,60 @@
+# model
+transformer: builtin
+transformer_conf:
+    n_ctx: 8192
+    n_state: 1024
+    n_head: 16
+    n_layer: 24
+    causal: true
+    qk_norm: true
+    dropout: 0.0
+
+corelm: ar_delay
+corelm_conf:
+    share_emb: false
+
+# loss
+modality_weights: {
+    "text_bpe": 1.0,
+    "special_token": 10.0,
+    "ssl": 1.0,
+}
+loss_region: whole
+
+# Dataloader
+batch_type: numel
+batch_bins: 28000
+num_iters_per_epoch: 30000
+accum_grad: 1
+grad_clip: 5
+max_epoch: 60
+num_workers: 5
+drop_last_iter: true
+num_att_plot: 0
+log_interval: 100
+
+# Criterion & Optimization
+optim: adamw
+optim_conf:
+    lr: 0.0002
+    betas:
+        - 0.9
+        - 0.95
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 10000
+
+best_model_criterion:
+-   - valid
+    - total_count
+    - max
+
+
+# Global settings
+use_amp: true
+use_tf32: false
+use_fsdp: false
+encoder_decoder_format: false
+codec_token_per_frame: 1 # encodec
+codec_token_in_use: 1
+speaker_prompt_length: 500 # 50fps, a.k.a., 10s

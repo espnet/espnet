@@ -191,6 +191,7 @@ class ResidualAttentionBlock(nn.Module):
 class TransformerDecoder(AbsTransformer):
     def __init__(
         self,
+        token_bias: dict,
         n_ctx: int = 128,
         n_state: int = 128,
         n_head: int = 4,
@@ -229,11 +230,11 @@ class TransformerDecoder(AbsTransformer):
         if self.causal and mask is not None:
             raise ValueError("Causal Transformer dones't allow mask")
 
-        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
+        offset = next(iter(self.kv_cache.values())).shape[1] if self.kv_cache else 0
         x = x + self.pos_emb.weight[offset : offset + x.shape[1]].unsqueeze(0)
 
         for block in self.blocks:
-            x = block(x, mask=mask, kv_cache=kv_cache)
+            x = block(x, mask=mask, kv_cache=self.kv_cache)
 
         x = self.ln(x)
         return x

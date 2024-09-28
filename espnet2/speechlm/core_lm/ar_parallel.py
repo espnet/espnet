@@ -40,9 +40,10 @@ class ARParallelLM(AbsCoreLM):
         if share_emb:
             self.lm_head.weight = self.emb.weight
 
-        self.aux_lm_head = torch.nn.Linear(
-            transformer.d_model, aux_vocab_size, bias=False
-        )
+        if nq > 1:
+            self.aux_lm_head = torch.nn.Linear(
+                transformer.d_model, aux_vocab_size, bias=False
+            )
         self.head_emb = torch.nn.Embedding(12, transformer.d_model) 
 
         if hasattr(self.decoders, "init_embeddings"):
@@ -77,7 +78,7 @@ class ARParallelLM(AbsCoreLM):
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
         logits = self.lm_head(x[:, :, :1])
-        aux_logits = self.aux_lm_head(x[:, :, 1:]) if x.size(2) > 1 else None
+        aux_logits = self.aux_lm_head(x[:, :, 1:]) if self.nq > 1 else None
 
         return (logits, aux_logits), target
 

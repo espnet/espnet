@@ -21,14 +21,14 @@ modality_weights: {
     "g2p": 1.0,
     "bool": 1.0,
 }
-loss_region: target
+loss_region: whole
 
 # General Dataloader configuration
 batch_type: numel
 batch_bins: 28000
 num_iters_per_epoch: 30000
 max_epoch: 500
-num_workers: 8
+num_workers: 6
 drop_last_iter: true
 log_interval: 1000
 

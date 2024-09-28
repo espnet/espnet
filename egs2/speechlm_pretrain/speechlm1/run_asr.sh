@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay.yaml
+train_config=conf/train_delay_asr.yaml
 inference_config=conf/decode_espnet_codec.yaml
 inference_model=valid.total_count.best.pth
 
@@ -23,12 +23,13 @@ train_jsons+=" \
   dump/raw_ssl_asr_mls_multilingual/mls_multilingual_train/data.json
   dump/raw_ssl_asr_librispeech/train_960/data.json \
   dump/raw_ssl_asr_yodas_manual/train_manual/data.json \
-  dump/raw_ssl_asr_yodas_auto1/train_auto_part1/data.json \
   dump/raw_ssl_asr_yodas_auto2/train_auto_part2/data.json \
   dump/raw_ssl_asr_gigaspeech/gigaspeech_train_xl/data.json \
   dump/raw_ssl_asr_emilia/emilia_en/data.json \
+  dump/raw_ssl_asr_yodas_auto1/train_auto_part1/data.json \
 "
 
+train_jsons="dump/raw_ssl_asr_librispeech/train_960/data.json"
 valid_jsons+=" \
   dump/raw_ssl_asr_librispeech/dev_clean/data.json \
 "
@@ -39,7 +40,7 @@ valid_jsons+=" \
     --data_combo_name ${data_combo_name} \
     --fs 16000 \
     --num_nodes 1 \
-    --ngpu 8 \
+    --ngpu 4 \
     --nj 200 \
     --inference_nj 8 \
     --nbest 10 \
