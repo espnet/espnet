@@ -9,7 +9,7 @@ train_set=test_clean
 valid_set=dev_clean
 test_sets=""
 
-train_config=conf/train_delay_tts.yaml
+train_config=conf/train_delay_t2a.yaml
 inference_config=conf/decode_tts.yaml
 
 token_list_dir=data/token_list/t2a_vocab
