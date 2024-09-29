@@ -1,7 +1,8 @@
 # search algorithm parameters
-search_algo: topk_sampling
-# search_algo: teacher_force
-sampling_temperature: 1.2
+search_algo: topk_sampling # for speech generation
+# search_algo: teacher_force # for debug
+# search_algo: greedy_search # for speech understanding
+sampling_temperature: 1.0
 minlenratio: 0.05
 top_k: 30
 

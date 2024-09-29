@@ -53,7 +53,6 @@ class SpeechLM:
         top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
-        codec_ssl_predict_ssl: bool = True,
         codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
@@ -77,33 +76,25 @@ class SpeechLM:
         # (2) predict mask
         self.inference_nq = model.corelm.nq if inference_nq is None else inference_nq
         predict_masks = dict()
-        all_boundaries = list(self.token_bias.values()) + [len(self.token_list)]
         for modality in set(self.modalities):
             if modality == "spk":  # never predict "spk" modality
                 continue
 
             mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
-            start = self.token_bias[modality]
-            end = min([b for b in all_boundaries if b > start])
             if modality == "codec":
+                start, end = self.token_bias[modality]
                 assert (end - start) % train_args.codec_token_per_frame == 0
                 inc = (end - start) // train_args.codec_token_per_frame
                 for n in range(self.inference_nq):
                     mask[n, start + n * inc : start + (n + 1) * inc] = False
 
-                self.codec_start = start
-
             elif modality == "codec_ssl":
-                ssl_start = self.token_list.index("<ssl_code1>")
-                codec_start = self.token_list.index("<codec_layer0_code0>")
+                codec_start, codec_end = self.token_bias["codec"]
+                ssl_start, ssl_end = self.token_bias['ssl']
 
-                if codec_ssl_predict_ssl:
-                    ssl_end = end if ssl_start > codec_start else codec_start
-                    mask[0, ssl_start:ssl_end] = False
-                else:
-                    mask[0, self.pad] = False
+                mask[0, ssl_start:ssl_end] = False
+                mask[1:, self.pad] = False
 
-                codec_end = end if codec_start > ssl_start else ssl_start
                 assert (codec_end - codec_start) % (
                     train_args.codec_token_per_frame - 1
                 ) == 0
@@ -115,14 +106,10 @@ class SpeechLM:
                         False
                     )
 
-                self.codec_start = codec_start
-
-            elif modality == "text_bpe":
+            else: # single-stream, discrete tokens
+                start, end = self.token_bias[modality]
                 mask[0, start:end] = False
                 mask[1:, self.pad] = False
-
-            else:
-                mask[:, start:end] = False
 
             # When more than one target, allow modality switch
             if len(self.task.targets) > 1:
@@ -147,6 +134,7 @@ class SpeechLM:
             start=train_args.token_list.index(f"<{start_modality}_start/end>"),
             masks=predict_masks,
             nq=self.inference_nq,
+            aux_start=self.token_bias["codec"][0] if "codec" in self.token_bias else 0,
         )
 
         # (4) Only a limited number of modalities support detokenization
@@ -163,6 +151,10 @@ class SpeechLM:
             self.text_bpe_tokenizer = self.preprocessor.bpe
         else:
             self.text_bpe_tokenizer = None
+        
+        # (5) speaker prompt setup
+        assert not ("codec" in self.modalities and "codec_ssl" in self.modalities)
+        self.spk_modality = "codec" if "codec" in self.modalities else "codec_ssl"
 
     @typechecked
     @torch.no_grad()
@@ -223,14 +215,15 @@ class SpeechLM:
             segment = sequence[start + 1 : end]
 
             if modality in ["codec", "spk", "codec_ssl"]:
-                if "codec_ssl" in self.token_bias:
+                bias_modality = self.spk_modality if modality == "spk" else modality
+                if bias_modality == "codec_ssl":
                     segment = segment[:, 1:]
                     n_codebook = self.inference_nq - 1
                 else:
                     n_codebook = self.inference_nq
                 segment = segment[segment[:, 0] != self.pad]
-
-                segment = segment.contiguous().view(-1) - self.codec_start
+                
+                segment = segment.contiguous().view(-1) - self.token_bias['codec'][0]
                 detokenized = self.codec_tokenizer.detokenize(
                     segment.clone(),
                     n_codebook=n_codebook,
@@ -247,7 +240,7 @@ class SpeechLM:
                 detokenized = detokenized.strip() + "\n"
 
             else:
-                segment = segment[:, 0] - self.token_bias[modality]
+                segment = segment[:, 0] - self.token_bias[modality][0]
                 detokenized = None
 
             retval.append((modality, segment, detokenized))
@@ -313,7 +306,6 @@ def inference(
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
     codec_ssl_corrupt_prob: float = 0.0,
-    codec_ssl_predict_ssl: bool = True,
     # offline tokenizers
     codec_conf: dict = None,
 ):
@@ -352,7 +344,6 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         task=task,
-        codec_ssl_predict_ssl=codec_ssl_predict_ssl,
         codec_conf=codec_conf,
     )
 
@@ -591,13 +582,6 @@ def get_parser():
         help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
         "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
         "This is only applied to the prefix sequence",
-    )
-    group.add_argument(
-        "--codec_ssl_predict_ssl",
-        type=str2bool,
-        default=True,
-        help="If true, allow to predict ssl token in codec_ssl modality prediction "
-        "Otherwise, the first layer of codec_ssl is always paddings",
     )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during

@@ -28,6 +28,7 @@ class HFTransformerDecoder(AbsTransformer):
         hf_model_tag: str,
         token_bias: dict,
         attention_choice: str = "sdpa",
+        n_ctx: int = 8192,
     ):
         super(HFTransformerDecoder, self).__init__()
 
@@ -58,6 +59,7 @@ class HFTransformerDecoder(AbsTransformer):
 
         self.token_bias = token_bias.copy()
         self.d_model = self.lm_head.in_features
+        self._n_ctx = n_ctx
 
     def forward(
         self,
@@ -77,9 +79,13 @@ class HFTransformerDecoder(AbsTransformer):
     def init(self):
         self.use_cache = True
 
-    def reset(self,):
+    def reset(self):
         self.kv_cache = None
         self.use_cache = False
+    
+    @property
+    def n_ctx(self):
+        return self._n_ctx
 
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):

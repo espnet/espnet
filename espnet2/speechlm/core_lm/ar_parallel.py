@@ -50,6 +50,7 @@ class ARParallelLM(AbsCoreLM):
             self.decoders.init_embeddings(self.emb, self.lm_head)
         
         self.nq = nq
+        self.n_ctx = transformer.n_ctx
         
     def forward(
         self,

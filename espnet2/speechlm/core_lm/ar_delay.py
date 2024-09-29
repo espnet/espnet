@@ -95,21 +95,14 @@ class ARDelayLM(ARParallelLM):
 
         # (2) splice-interleave-split
         prefix = prefix.expand(opts.nbest, -1, -1)
-        start = (
-            torch.Tensor([opts.start])
-            .tile(opts.nbest, 1, self.nq)
-            .long()
-            .to(opts.device)
-        )
+        start = torch.Tensor([opts.start] + [0 for _ in range(prefix.size(2) - 1)])
+        start = start.tile(opts.nbest, 1, 1).long().to(opts.device)
         suffix = suffix.expand(opts.nbest, -1, -1)
-        full_seq_delay, _ = self.delay_interleave(
-            torch.cat([prefix, start, suffix], dim=1), pad=self.sos_eos
-        )
-        prefix = full_seq_delay[:, : prefix.size(1)]
-        suffix = full_seq_delay[:, prefix.size(1) :]
+        full_seq_delay = self.delay_interleave(torch.cat([prefix, start, suffix], dim=1))
+        prefix = full_seq_delay[:, :prefix.size(1)]
+        suffix = full_seq_delay[:, prefix.size(1):]
 
-        # TODO(Jinchuan): support continuous features. Currently just use None
-        prefix_emb = self.process_embedding(prefix, None)
+        prefix_emb = self.emb(prefix).sum(dim=2)
         _ = self.decoders(prefix_emb)
 
         # (3) auto-regressive loop
@@ -132,7 +125,7 @@ class ARDelayLM(ARParallelLM):
         prev_tok = start
         modality_index = start[:, 0, 0]
         mask = modality_index_to_mask(modality_index, opts)
-
+        
         for step in range(maxlen):
             if step < self.nq:
                 prev_tok = torch.cat(
@@ -140,10 +133,18 @@ class ARDelayLM(ARParallelLM):
                 )
 
             # (3.2) AR model prediction
-            prev_emb = self.process_embedding(prev_tok)
+            prev_emb = self.emb(prev_tok).sum(dim=2)
             h = self.decoders(prev_emb)
             h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
-            logits = self.lm_head(h)  # [B, 1, nq, V]
+            logits = self.lm_head(h[:, :, :1])  # [B, 1, nq, V]
+            if self.aux_lm_head is not None:
+                aux_logits = self.aux_lm_head(h[:, :, 1:])
+                # NOTE(Jinchuan) use small number but not -inf, otherwise it will cause confict with
+                # modality mask.
+                pad_aux_logits = torch.ones_like(logits).repeat(1, 1, aux_logits.size(2), 1) * -1e10
+                pad_aux_logits[..., opts.aux_start: opts.aux_start + aux_logits.size(3)] = aux_logits
+                logits = torch.cat([logits, pad_aux_logits], dim=2)
+
             gen_tok, gen_score = logits_to_tokens(
                 logits,
                 opts,
@@ -202,8 +203,8 @@ class ARDelayLM(ARParallelLM):
         gen_token_seq = torch.cat(generated["token"], dim=1)[valid_idx]
         gen_score_seq = torch.cat(generated["score"], dim=1)[valid_idx]
 
-        gen_token_seq, _ = self.inverse_delay_interleave(gen_token_seq)
-        gen_score_seq, _ = self.inverse_delay_interleave(gen_score_seq)
+        gen_token_seq = self.inverse_delay_interleave(gen_token_seq)
+        gen_score_seq = self.inverse_delay_interleave(gen_score_seq)
 
         finish_idx = finish_idx[valid_idx]
 

@@ -28,4 +28,10 @@ class AbsTransformer(torch.nn.Module, ABC):
         """ Clear cache after auto-regressive prediction """
         raise NotImplementedError
     
+    @property
+    @abstractmethod
+    def n_ctx(self):
+        """ Maximum allowed length of context """
+        raise NotImplementedError
+    
 

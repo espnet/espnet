@@ -222,6 +222,7 @@ class TransformerDecoder(AbsTransformer):
 
         self.causal = causal
         self.d_model = n_state
+        self._n_ctx = n_ctx
         
         self.kv_cache = None
         self.hooks = None
@@ -251,4 +252,8 @@ class TransformerDecoder(AbsTransformer):
             h.remove()
         self.kv_cache = None
         self.hooks = None
+    
+    @property
+    def n_ctx(self):
+        return self._n_ctx
         

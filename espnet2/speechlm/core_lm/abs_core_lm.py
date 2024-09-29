@@ -24,6 +24,7 @@ class SpeechLMInferenceOptions:
     start: int = 1
     masks: Dict[str, torch.Tensor] = None
     nq: int = None
+    aux_start: int = 0
 
 
 class AbsCoreLM(torch.nn.Module, ABC):
