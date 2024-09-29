@@ -9,9 +9,16 @@ import os
 import sys
 
 import kaldiio
-import numpy as np
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    T5ForConditionalGeneration,
+    AutoTokenizer,
+)
+
+model_class_choices = {
+    "google-t5/t5-large": T5ForConditionalGeneration
+}
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -44,7 +51,13 @@ def dump_text_emb(
 ):
     # (1) build tokenizer and model
     tokenizer = AutoTokenizer.from_pretrained(hf_model_tag)
-    model = AutoModelForCausalLM.from_pretrained(hf_model_tag)
+    if hf_model_tag in model_class_choices:
+        model_class = model_class_choices[hf_model_tag]
+        logging.info(f"Use the specially selected model class {model_class}")
+    else:
+        model_class = AutoModelForCausalLM
+        logging.info(f"By default, using AutoModelForCausalLM")
+    model = model_class.from_pretrained(hf_model_tag)
     padding_side = tokenizer.padding_side
 
     if torch.cuda.is_available():
@@ -52,7 +65,7 @@ def dump_text_emb(
     else:
         device = torch.device("cpu")
         logging.warning(f"LM inference without CUDA will be very slow")
-    model = model.to(device)
+    model = model.to(device).eval()
 
     # (2) build writer
     writer = kaldiio.WriteHelper(wspecifier)
@@ -80,8 +93,11 @@ def dump_text_emb(
             inputs = {k: v.to(device) for k, v in inputs.items()}
 
             with torch.no_grad():
-                output = model(**inputs, output_hidden_states=True)
-                hidden_states = output.hidden_states[-1]
+                if isinstance(model, T5ForConditionalGeneration):
+                    output = model.encoder(**inputs, output_hidden_states=True)
+                else:
+                    output = model(**inputs, output_hidden_states=True)
+                hidden_states = output.last_hidden_state
 
             for i, mask in enumerate(inputs["attention_mask"]):
                 length = mask.sum().item()

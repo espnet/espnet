@@ -72,7 +72,7 @@ class ARParallelLM(AbsCoreLM):
 
         # input embedding
         x = self.emb(x).sum(dim=2)
-        x, _ = install_continuous_features(x, None, conti_feats)
+        x = install_continuous_features(x, conti_feats)
 
         # transformer output
         x = self.decoders(x)
@@ -88,7 +88,7 @@ class ARParallelLM(AbsCoreLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        enc_seq: torch.Tensor = None,
+        conti_feats = None,
         suffix: torch.Tensor = None,
     ):
         """Auto-Regresive MultiScale Inference.
@@ -96,7 +96,7 @@ class ARParallelLM(AbsCoreLM):
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).
             opts (SpeechLMInferenceOptions): inference options.
-            enc_seq (LongTensor): Encoder token sequence (B, T_enc, nq).
+            conti_feats: continuous features.
             suffix (LongTensor): suffix part of dec_seq (B, T_dec, nq),
                 usually the target sequence for teacher-forcing.
         """

@@ -166,12 +166,13 @@ class SpeechLM:
 
         dec_seq = data.get("dec_seq")
         prefix_len = data.get("prefix_len").squeeze(1)
+        conti_feats = data.get("conti_feats")
 
         # (1) language model inference
         gen_tokens, _ = self.model.corelm.inference(
             prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
-            enc_seq=None,
+            conti_feats=conti_feats,
             suffix=dec_seq[:, prefix_len + 1 :],
         )
 

@@ -12,7 +12,11 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
-from espnet2.speechlm.net_utils import logits_to_tokens, modality_index_to_mask
+from espnet2.speechlm.net_utils import (
+    logits_to_tokens, 
+    modality_index_to_mask,
+    install_continuous_features,
+)
 
 
 class ARDelayLM(ARParallelLM):
@@ -77,7 +81,7 @@ class ARDelayLM(ARParallelLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        enc_seq: torch.Tensor = None,
+        conti_feats = None,
         suffix: torch.Tensor = None,
     ):
         """Delay Architecture Inference.
@@ -85,7 +89,7 @@ class ARDelayLM(ARParallelLM):
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
             opts (SpeechLMInferenceOptions): inference options.
-            enc_seq (LongTensor): Encoder token sequence (B, T, nq).
+            conti_feats: continuous features.
             suffix (LongTensor): suffix part of dec_seq (B, T, nq),
                 usually the target sequence for teacher-forcing.
         """
@@ -103,6 +107,7 @@ class ARDelayLM(ARParallelLM):
         suffix = full_seq_delay[:, prefix.size(1):]
 
         prefix_emb = self.emb(prefix).sum(dim=2)
+        prefix_emb = install_continuous_features(prefix_emb, conti_feats * opts.nbest)
         _ = self.decoders(prefix_emb)
 
         # (3) auto-regressive loop

@@ -256,9 +256,8 @@ class SpeechLMTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        int_pad = args.token_list.index("<pad>")
         return CommonCollateFn(
-            int_pad_value=int_pad,
+            int_pad_value=args.token_list.index("<pad>"),
             not_process=["conti_feats"],
             not_sequence=["prefix_len"],
         )
@@ -339,7 +338,7 @@ class SpeechLMTask(AbsTask):
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder
-            transformer = TransformerDecoder()
+            transformer = TransformerDecoder(token_bias=token_bias)
         else:
             transformer_class = transformer_choices.get_class(args.transformer)
             transformer = transformer_class(token_bias=token_bias, **args.transformer_conf)

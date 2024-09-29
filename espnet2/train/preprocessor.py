@@ -2534,20 +2534,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 continue
 
             if self.encoder_decoder_format:
-                if idx <= n_conditions:
-                    prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
-                    part = "enc"
-                else:
-                    prev_segs = [sos_eos] + seqs[n_conditions : idx - 1]
-                    part = "dec"
+                raise NotImplementedError
             else:
                 prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
-                part = "dec"
 
             bias = sum(len(seg) for seg in prev_segs) // self.codec_token_in_use
             conti_emb, start, end = conti_feat
-            new_conti_feats.append((conti_emb, start + bias, end + bias, part))
-
+            new_conti_feats.append((conti_emb, start + bias, end + bias))
         new_data["conti_feats"] = new_conti_feats
 
         # (5) entries that are not included in sequences
@@ -2677,7 +2670,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_emb = value.copy()
 
             value = self.special_token(f"<pad>")
-            # add extra paddings of (self.codec_token_in_use - 1) so there
+            # NOTE(Jinchuan) add extra paddings of (self.codec_token_in_use - 1) so there
             # is no overlap between tokens and continuous embeddings when using
             # delay interleave.
             value_len = conti_emb.shape[0] + self.codec_token_in_use - 1
