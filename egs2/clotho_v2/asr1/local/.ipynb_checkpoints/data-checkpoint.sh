@@ -43,7 +43,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         echo Cannot find CLOTHO_V2 root! Exiting...
         exit 1
     fi
-    
+
     # Prepare data in the Kaldi format, including three files:
     # text, wav.scp, utt2spk
     echo "$(which python)"

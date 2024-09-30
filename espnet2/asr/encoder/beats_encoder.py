@@ -10,23 +10,22 @@
 #  can be used to pre-train/and or fine-tune BEATs model.
 # --------------------------------------------------------
 
-from typing import Optional, Dict, Tuple
 import logging
 import math
 import warnings
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn import LayerNorm, Parameter
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
+from packaging.version import parse as V
+from torch.nn import LayerNorm, Parameter
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-
-from packaging.version import parse as V
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

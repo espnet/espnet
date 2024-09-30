@@ -1,10 +1,10 @@
 """Prepares data for Clotho_v2 dataset."""
 
-import os
 import glob
+import os
 import sys
-import pandas as pd
 
+import pandas as pd
 
 if __name__ == "__main__":
     ROOT_DATA_DIR = sys.argv[1]

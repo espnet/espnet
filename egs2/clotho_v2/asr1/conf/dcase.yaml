@@ -39,7 +39,7 @@ decoder: hugging_face_transformers
 decoder_conf:
     model_name_or_path: facebook/bart-base
 
-# The initilization is only for the linear layer between the BEATs encoder and the BART decoder. 
+# The initilization is only for the linear layer between the BEATs encoder and the BART decoder.
 # BEATs and BART weights override this for encoder and decoder respectively.
 init: kaiming_normal
 

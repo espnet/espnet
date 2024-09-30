@@ -1,6 +1,7 @@
 """Wrapper around aac_metrics (https://github.com/Labbeti/aac-metrics) to evaluate the predictions."""
 
 import argparse
+
 from aac_metrics import Evaluate
 
 parser = argparse.ArgumentParser()
