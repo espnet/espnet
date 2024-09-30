@@ -1,6 +1,23 @@
-# Speech Enhancement Frontend Recipe
+# Speech Recognition with Speech Enhancement
 
 This is the common recipe for ESPnet2 joint-task with speech enhancement frontend. Following are the directory structure of speech enhancement and joint-task recipes:
+
+## Table of Contents
+
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
+  * [3\. Removal of long / short data](#3-removal-of-long--short-data)
+  * [4\. Codec statistics collection](#4-codec-statistics-collection)
+  * [5\. Codec training](#5-codec-training)
+  * [6\. Codec decoding](#6-codec-decoding)
+  * [7\. Codec Scoring](#7-codec-scoring)
+  * [8\-9\. (Optional) Pack results for upload](#8-9-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [Basic training](#basic-training)
+  * [Scoring](#scoring)
+* [Supported Models](#supported-models)
+* [FAQ](#faq)
 
 ```
 egs2/
