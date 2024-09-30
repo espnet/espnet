@@ -5,6 +5,9 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Based on fairseq code bases
 # https://github.com/pytorch/fairseq
+
+# This code is adapted from the original BEATs implementation and
+#  can be used to pre-train/and or fine-tune BEATs model.
 # --------------------------------------------------------
 
 from typing import Optional, Dict, Tuple
@@ -123,19 +126,27 @@ class BeatsEncoder(AbsEncoder):
         self.fbank_mean = 15.41663
         self.fbank_std = 6.55582
         self.max_layer = max_layer
+        self.beats_ckpt_path = beats_ckpt_path
 
+        # Four cases for loading Beats config:
+        # 1. No checkpoint and no config: Default config
+        # 2. Checkpoint and no user-provided config: Load config from checkpoint
+        # 3. Checkpoint and user-provided config: Merge the two, but override with user-provided config
+        # 4. No checkpoint and user-provided config: Use user-provided config
+        config = BEATsConfig()  # Default config
         if beats_ckpt_path and beats_config:
             logging.warning(
-                "Both pretrained checkpoint and config are provided. Config will override."
+                "Both pretrained checkpoint and config are provided."
+                " We will override ckpt config with user-provided config."
             )
-        config = BEATsConfig()
         self.loaded_state_dict_ = None
         if beats_ckpt_path is not None:
             self.loaded_state_dict_ = torch.load(beats_ckpt_path)
-            config = BEATsConfig(self.loaded_state_dict_["cfg"])
             logging.info(f"Loaded BEATs pretrained config from {beats_ckpt_path}.")
+            config = BEATsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:
             config.update(beats_config)
+            logging.info("Overriding BEATs config with user-provided config.")
 
         self.specaug = None
         if specaug_config is not None:
@@ -162,11 +173,16 @@ class BeatsEncoder(AbsEncoder):
         self.encoder = TransformerEncoder(config)
         self.layer_norm = LayerNorm(self.embed)
 
-        self.espnet_initialization_fn()
-        # TODO(sbharad2): add label predictor for fine-tuned model
-
     def espnet_initialization_fn(self):
-        logging.info("BEATs Intialization function called.")
+        """Initialization function for BEATs.
+
+        This must be called last in the initialization procedure.
+        The initialization occurs in three steps:
+        1. ESPNet initializes all modules.
+        2. This function initializes BEATs encoder overriding 1.
+        3. Optionally, if we have the pretrained checkpoint, we load the weights from the checkpoint overriding 2 and 1.
+        """
+        logging.info("BEATs Initialization function called.")
         if self.post_extract_proj:
             torch.nn.init.xavier_normal_(self.post_extract_proj.weight)
             if self.post_extract_proj.bias is not None:
@@ -183,8 +199,9 @@ class BeatsEncoder(AbsEncoder):
             )
             # strict=False to ignore Weights in the predictor
             logging.info(
-                f"Loaded BEATs pretrained model. Following keys were missing: {load_info.missing_keys}. "
-                f"Follwing keys were not found: {load_info.unexpected_keys}."
+                f"Loaded BEATs pretrained model. Following keys were missing in your custom model: {load_info.missing_keys}. "
+                f"Follwing keys could not be loaded from the pretrained checkpoint: {load_info.unexpected_keys}."
+                "It is expected to have 'predictor' here if you are fine-tuning with only the BEATs backbone."
             )
 
     def forward_padding_mask(
@@ -231,7 +248,9 @@ class BeatsEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPNets' AbsEncoder Interface."""
 
-        # TODO(sbharad2):Explain. If xs is not provided then the operation is costly, because this function tries to create a tensor of size maxlen x maxlen.
+        # NOTE(shikhar): If xs is not provided then the operation is costly, because this
+        # function tries to create a tensor of size maxlen x maxlen. Therfore, we unsqueeze
+        # and then squeeze tensors.
         mask = make_pad_mask(lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1)).to(
             xs_pad.device
         )
@@ -257,8 +276,8 @@ class BeatsEncoder(AbsEncoder):
             fbank = self.preprocess(source)
 
             if self.specaug is not None and self.training:
-                # NOTE(sbharad2): We don't provide lengths because espnet implementation does not use it.
-                # /espnet/espnet2/layers/mask_along_axis.py
+                # NOTE(shikhar): We don't provide lengths because espnet implementation
+                # does not use it --> /espnet/espnet2/layers/mask_along_axis.py
                 fbank = self.specaug(fbank)[0]
 
         if padding_mask is not None:

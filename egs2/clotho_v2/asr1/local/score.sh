@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Copyright 2021 Carnegie Mellon University (Author : Roshan Sharma)
-
-# TODO(sbharad2): Change for your own use case.
-## begin configuration section.
-# end configuration section.
 
 
 [ -f ./path.sh ] && . ./path.sh
@@ -15,8 +10,9 @@ if [ $# -lt 1 ]; then
   exit 1;
 fi
 
-# pip install aac-metrics
-# aac-metrics-download
+pip install aac-metrics
+aac-metrics-download
+
 asr_expdir=$1
 splits=(evaluation validation)
 

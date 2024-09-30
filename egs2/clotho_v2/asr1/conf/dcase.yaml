@@ -1,7 +1,7 @@
 batch_type: folded
-batch_size: 80
+batch_size: 64
 accum_grad: 1    # gradient accumulation steps
-max_epoch: 20
+max_epoch: 100
 patience: none
 best_model_criterion:  # criterion to save best models
 -   - valid
@@ -12,11 +12,11 @@ use_amp: true    # whether to use automatic mixed precision
 num_att_plot: 0  # do not save attention plots to save time in the demo
 num_workers: 2   # number of workers in dataloader
 
-input_size: 1
-# beats code takes care of generating mel spectrogram and specaug
+
+# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
-normalize: none
-init: xavier_normal # For the decoder
+input_size: 1 # important to set input_size to 1 if frontend is none
+normalize: none # BEATs code does global mean and variance normalization
 
 encoder: beats
 encoder_conf:
@@ -35,26 +35,27 @@ encoder_conf:
         - 0
         - 0.12
         num_time_mask: 5
-
-decoder: transformer
+decoder: hugging_face_transformers
 decoder_conf:
-    attention_heads: 4
-    linear_units: 1024
-    num_blocks: 6
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
-    # use_flash_attn: false
+    model_name_or_path: facebook/bart-base
 
+# The initilization is only for the linear layer between the BEATs encoder and the BART decoder. 
+# BEATs and BART weights override this for encoder and decoder respectively.
+init: kaiming_normal
+
+token_type: hugging_face
+
+# Loss, optimizer, scheduler
 model_conf:
-    ctc_weight: 0.3  # joint CTC/attention training
+    ctc_weight: 0.0  # No CTC, only attention branch
     lsm_weight: 0.1  # label smoothing weight
-    length_normalized_loss: false
+    length_normalized_loss: true
 
 optim: adam
 optim_conf:
-    lr: 0.001
+    lr: 0.00002
+    weight_decay: 0.001
+
 scheduler: warmuplr  # linearly increase and exponentially decrease
 scheduler_conf:
-    warmup_steps: 500
+    warmup_steps: 100
