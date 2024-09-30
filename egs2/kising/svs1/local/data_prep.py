@@ -211,15 +211,15 @@ def get_info_from_partitions(
                     onset_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
                     pitch=0,
-                    lyric="<AP>",
-                    phn="<AP>",
+                    lyric="AP",
+                    phn="AP",
                 )
             )
             current_phns.append(
                 Phoneme(
                     start_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
-                    symbol="<AP>",
+                    symbol="AP",
                 )
             )
 
@@ -301,15 +301,15 @@ def get_info_from_partitions(
                     onset_time=notes[lyric_index - 1].end - partition_start,
                     stop_time=partition_end - partition_start,
                     pitch=0,
-                    lyric="<SP>",
-                    phn="<SP>",
+                    lyric="SP",
+                    phn="SP",
                 )
             )
             current_phns.append(
                 Phoneme(
                     start_time=notes[lyric_index - 1].end - partition_start,
                     stop_time=partition_end - partition_start,
-                    symbol="<SP>",
+                    symbol="SP",
                 )
             )
 
