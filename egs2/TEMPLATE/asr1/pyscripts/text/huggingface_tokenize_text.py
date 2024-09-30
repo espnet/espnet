@@ -1,6 +1,8 @@
 import argparse
+import os
+import sys
 import json
-import random
+import logging
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
@@ -9,6 +11,12 @@ import kaldiio
 import numpy as np
 from transformers import AutoTokenizer
 
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=os.environ.get("LOGLEVEL", "INFO").upper(),
+    stream=sys.stdout,
+)
 
 def get_parser():
     parser = argparse.ArgumentParser(description="process text")
@@ -47,13 +55,23 @@ def main():
     all_results = pool.map(process_fn, all_chunks)
     pool.close()
     pool.join()
-    print("done multiprocess jobs", flush=True)
+    logging.info(f"File {args.input_path}: Done multi-processing")
 
+    # multi-process dump
+    pool = Pool(args.nj)
+    for n in range(args.nj):
+        this_results = all_results[n::args.nj]
+        output_dir = Path(str(args.output_dir) + f"_split{n}")
+        data_name = output_dir.stem
+        _ = pool.apply_async(dump_one_split, args=(this_results, data_name, output_dir))
+    pool.close()
+    pool.join()
+
+def dump_one_split(all_results, data_name, output_dir):
     # write kaldi scp and ark
-    data_name = args.input_path.stem
-    (args.output_dir / "data").mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "stats").mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "index_files").mkdir(parents=True, exist_ok=True)
+    (output_dir / "data").mkdir(parents=True, exist_ok=True)
+    (output_dir / "stats").mkdir(parents=True, exist_ok=True)
+    (output_dir / "index_files").mkdir(parents=True, exist_ok=True)
 
     ark_dict = dict()
     count = 0
@@ -63,9 +81,9 @@ def main():
             count += 1
 
     kaldiio.save_ark(
-        str(args.output_dir / "data" / f"{data_name}_tokens.ark"),
+        str(output_dir / "data" / f"{data_name}_tokens.ark"),
         ark_dict,
-        scp=str(args.output_dir / "index_files" / "text"),
+        scp=str(output_dir / "index_files" / "text"),
     )
 
     # write data.json
@@ -73,12 +91,12 @@ def main():
         "task": "textlm",
         "vocabularies": [],
         "data_files": [
-            str(args.output_dir / "index_files" / "text") + ",text_bpe,kaldi_ark"
+            str(output_dir / "index_files" / "text") + ",text_bpe,kaldi_ark"
         ],
         "examples": list(ark_dict.keys()),
         "num_examples": len(ark_dict),
     }
-    data_json_writer = open(args.output_dir / "data.json", "wb")
+    data_json_writer = open(output_dir / "data.json", "wb")
     data_json_writer.write(
         json.dumps(data_json, indent=4, ensure_ascii=False, sort_keys=False).encode(
             "utf_8"
@@ -86,19 +104,17 @@ def main():
     )
 
     # write length file
-    length_writer = open(args.output_dir / "stats" / "dec_seq_shape", "w")
+    length_writer = open(output_dir / "stats" / "dec_seq_shape", "w")
     for key, value in ark_dict.items():
         length_writer.write(f"textlm_{key} {len(value)}\n")
-    (args.output_dir / "stats" / ".done").touch()
+    (output_dir / "stats" / ".done").touch()
 
-    print(f"Done processing {str(args.input_path)} and save to {args.output_dir}")
+    logging.info(f"Done processing {data_name} and save to {output_dir}")
 
 
 def process_chunk(tokenizer, max_len, iterator):
     retval = []
     for line in iterator:
-        if random.random() < 0.0:
-            continue
         try:
             line = json.loads(line)
         except:
