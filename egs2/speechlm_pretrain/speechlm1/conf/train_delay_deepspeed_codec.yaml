@@ -16,8 +16,8 @@ corelm_conf:
 # loss
 modality_weights: {
     "text_bpe": 1.0,
-    "codec": 0.0625,
-    "ssl": 0.5,
+    "codec": 0.125,
+    "ssl": 1.0,
     "special_token": 10.0,
     "g2p": 1.0,
     "bool": 1.0,
@@ -26,7 +26,7 @@ loss_region: whole
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 28000
+batch_bins: 20000
 num_iters_per_epoch: 30000
 max_epoch: 500
 num_workers: 6
@@ -34,7 +34,7 @@ drop_last_iter: true
 log_interval: 1000
 
 # Data preprocessing
-codec_token_per_frame: 9
-codec_token_in_use: 9 # Gradually increase this to 3, 5, 7, 9
+codec_token_per_frame: 8
+codec_token_in_use: 8
 speaker_prompt_length: 500 # 50fps, a.k.a., 10s
 codec_ssl_corrupt_prob: 0.0

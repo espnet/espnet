@@ -2402,6 +2402,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         pad_speaker_prompt: bool = True,
         # others
         n_ctx: int = 4096,
+        inter_segment_pad: int = 0,
         extra_names_and_modalities=[
             "sampled.scp,codec",
         ],
@@ -2410,6 +2411,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_bias = token_bias.copy()
         self.encoder_decoder_format = encoder_decoder_format
         self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
+        self.inter_segment_pad = inter_segment_pad
         self.pad = token_list.index("<pad>")
 
         assert not (
@@ -2487,13 +2489,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # (2) get exact tokenised value based on all data triplets
         seqs, conti_feats = [], []
         cache = {triplet[:2]: None for triplet in task.data_triplets}
-        for triplet in task.data_triplets:
+        for idx, triplet in enumerate(task.data_triplets):
             name, modality, _ = triplet
             value, conti_feat = self.modality_specific_processing(
                 data[name], 
                 modality,
                 cache,
             )
+
+            if idx != len(task.data_triplets) - 1  and self.inter_segment_pad > 0:
+                pad = np.tile(self.special_token("<pad>"), self.inter_segment_pad)
+                value = np.concatenate([value, pad], axis=0)
+
             cache[(name, modality)] = value
             seqs.append(value)
 

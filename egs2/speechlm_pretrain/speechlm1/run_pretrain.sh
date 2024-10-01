@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay_deepspeed.yaml
+train_config=conf/train_delay_deepspeed_codecssl.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
