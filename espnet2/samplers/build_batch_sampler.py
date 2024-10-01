@@ -82,6 +82,7 @@ def build_batch_sampler(
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
     utt2category_file: Optional[str] = None,
+    allow_duplication: bool = False,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 
@@ -100,6 +101,8 @@ def build_batch_sampler(
         fold_lengths: Used for "folded" mode
         padding: Whether sequences are input as a padded tensor or not.
             used for "numel" mode
+        allow_duplication: if True, allow duplication in shape files.
+            Usually for data reweighting. Only for "numel"
     """
     if len(shape_files) == 0:
         raise ValueError("No shape file are given")
@@ -145,6 +148,7 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+            allow_duplication=allow_duplication,
         )
 
     elif type == "length":

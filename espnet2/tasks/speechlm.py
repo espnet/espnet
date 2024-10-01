@@ -387,10 +387,12 @@ class SpeechLMTask(AbsTask):
     @classmethod
     def process_token_bias(cls, token_bias, token_list):
         token_bias["special_token"] = 0
+        use_codec_ssl = False
         if "codec_ssl" in token_bias:
             token_bias["ssl"] = token_list.index("<ssl_code1>")
             token_bias["codec"] = token_list.index("<codec_layer0_code0>")
             del token_bias["codec_ssl"]
+            use_codec_ssl = True
         
         values = list(token_bias.values()) + [len(token_list)]
         retval = dict()
@@ -398,7 +400,7 @@ class SpeechLMTask(AbsTask):
             end = min([v for v in values if v > start])
             retval[modality] = (start, end)
         
-        if "codec" in retval and "ssl" in retval:
+        if "codec" in retval and "ssl" in retval and use_codec_ssl:
             assert retval["ssl"][1] == retval["codec"][0], \
                 "ssl and codec token list should be continuous"
         

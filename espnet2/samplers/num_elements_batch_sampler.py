@@ -19,6 +19,7 @@ class NumElementsBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
+        allow_duplication: bool = False,
     ):
         assert batch_bins > 0
         if sort_batch != "ascending" and sort_batch != "descending":
@@ -40,10 +41,16 @@ class NumElementsBatchSampler(AbsSampler):
         #    uttA 100,...
         #    uttB 201,...
         utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
+            load_num_sequence_text(s, loader_type="csv_int", allow_duplication=allow_duplication) 
+            for s in shape_files
         ]
 
+        # NOTE(Jinchuan): use list rather than dict to keep duplication
         first_utt2shape = utt2shapes[0]
+        if allow_duplication: 
+            keys = [line.split()[0] for line in open(shape_files[0])]
+        else:
+            keys = first_utt2shape.keys()
         for s, d in zip(shape_files, utt2shapes):
             if set(d) != set(first_utt2shape):
                 raise RuntimeError(
@@ -52,7 +59,7 @@ class NumElementsBatchSampler(AbsSampler):
 
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
-        keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
+        keys = sorted(keys, key=lambda k: first_utt2shape[k][0])
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
         if padding:

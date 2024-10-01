@@ -803,6 +803,14 @@ class AbsTask(ABC):
             default=None,
             help="If not given, the value of --batch_bins is used",
         )
+        group.add_argument(
+            "--sampler_allow_duplication",
+            type=str2bool,
+            default=False,
+            help="If true, allow duplication in sampler shape files. "
+                 "This is usually for data re-weighting "
+                 "Currently only for numel sampler"
+        )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
@@ -1855,6 +1863,7 @@ class AbsTask(ABC):
             drop_last=args.drop_last_iter,
             min_batch_size=min_batch_size,
             utt2category_file=utt2category_file,
+            allow_duplication=args.sampler_allow_duplication,
         )
 
         batches = list(batch_sampler)
