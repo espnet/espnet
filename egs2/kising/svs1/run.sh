@@ -20,7 +20,8 @@ elif [ ${fs} -eq 44100 ]; then
     n_shift=512
     win_length=2048
 fi
-use_sid=true
+use_sid=false
+use_spk_embed=true
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -49,6 +50,8 @@ ying_extract=None
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
     --ying_extract "${ying_extract}" \
+    --use_sid "${use_sid}" \
+    --use_spk_embed "${use_spk_embed}" \
     --fs "${fs}" \
     --fmax "${fmax}" \
     --fmin "${fmin}" \

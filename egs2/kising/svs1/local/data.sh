@@ -52,7 +52,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "
 
-    mkdir -p "${KISING}/KISING/all"
+    mkdir -p "${KISING}/KISING"
 
     # # Resample files to sampling rate fs, single channel, 16 bits
     # for song_folder in "${KISING}/KISING/kising-v2"/*; do
@@ -84,7 +84,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py "${KISING}/KISING/all" \
+    python local/data_prep.py "${KISING}/KISING" \
         --wav_dumpdir wav_dump \
         --dataset ${dataset}
     for src_data in train test; do

@@ -54,7 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         echo "process for subset: ${x}"
         opts="data/${x}"
         for dir in "${datasets_path[@]}"; do
-            if [ -d ${dir} ]; then
+            if [[ -d "${dir}" && ! -z "${dir}" ]]; then
                 org_workspace=$(realpath ${dir}/../../..)
                 dataset=$(basename ${org_workspace})
                 echo $dir
