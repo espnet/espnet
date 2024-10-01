@@ -388,7 +388,7 @@ class SpeechLMTask(AbsTask):
     @classmethod
     def process_token_bias(cls, token_bias, token_list):
         # if the token_bias is already processed
-        if all([isinstance(v, tuple) for v in token_bias.values()]):
+        if all([isinstance(v, (tuple, list)) for v in token_bias.values()]):
             return token_bias
 
         token_bias["special_token"] = 0
