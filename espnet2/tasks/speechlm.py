@@ -328,6 +328,7 @@ class SpeechLMTask(AbsTask):
             token_bias = cls.process_token_bias(token_bias, token_list)
             args.token_bias = token_bias
         elif isinstance(args.token_bias, Dict):
+            args.token_bias = cls.process_token_bias(args.token_bias, token_list)
             token_bias = args.token_bias
         else:
             raise RuntimeError("token_list must be str or dict")
@@ -386,6 +387,10 @@ class SpeechLMTask(AbsTask):
     
     @classmethod
     def process_token_bias(cls, token_bias, token_list):
+        # if the token_bias is already processed
+        if all([isinstance(v, tuple) for v in token_bias.values()]):
+            return token_bias
+
         token_bias["special_token"] = 0
         use_codec_ssl = False
         if "codec_ssl" in token_bias:

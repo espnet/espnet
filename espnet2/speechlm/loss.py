@@ -14,8 +14,8 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
     ):
         """
         Compute the CrossEntropy for SpeechLM. The main motivation of this module is to save computing.
-        From the second layer and then on, the target codes can only be the codec codes, which helps us
-        to shrink the vocabulary during the loss computing. 
+        From the second layer and then on, the target codes can only be the codec codes or paddings, 
+        which helps us to shrink the vocabulary during the loss computing. 
         """
         super().__init__()
 
@@ -41,21 +41,13 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         for modality in token_bias.keys():
             logging.warning(f"weight for modality {modality} not specified. Set to 1.0")
         
-        self.ce = torch.nn.CrossEntropyLoss(
-            weight=weight, 
-            reduction="none",
-            ignore_index=self.pad
-        )
+        self.weight = weight
         
         if self.aux_start > 0 and self.aux_end > 0:
             aux_weight = weight[self.aux_start: self.aux_end]
-            self.aux_ce = torch.nn.CrossEntropyLoss(
-                weight=aux_weight, 
-                reduction="none",
-                ignore_index=self.pad
-            )
+            self.aux_weight = aux_weight
         else:
-            self.aux_ce = None
+            self.aux_weight = None
     
     def forward(
         self, 
@@ -64,6 +56,14 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         prefix_len: torch.Tensor,
         seq_len: torch.Tensor,
     ):
+        # NOTE(Jinchuan): keep the weight on the correct device in the first forward.
+        # We don't want to keep the weights registered as model parameters as they 
+        # should always be specified by parameters.
+        if self.weight.device != targets.device:
+            self.weight = self.weight.to(targets.device)
+        if self.aux_weight is not None and self.aux_weight.device != targets.device:
+            self.aux_weight = self.aux_weight.to(targets.device)
+
         logits, aux_logits = logits
         assert logits.dim() == 4 and logits.size(2) == 1
         B, T, _, _ = logits.size()
@@ -78,21 +78,29 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         assert prefix_len.dim() == 1
 
         # element-wise loss
-        ce_loss = self.ce(
+        ce_loss = torch.nn.functional.cross_entropy(
             logits.flatten(end_dim=2),
             targets[:, :, :1].flatten(),
+            self.weight,
+            ignore_index=self.pad,
+            reduction='none',
         ).view(B, T, 1)
 
         if aux_logits is not None:
+            aux_mask = targets[:, :, 1:] != self.pad
             aux_targets = torch.clip(
                 targets[:, :, 1:] - self.aux_start,
                 min=0,
                 max=self.aux_end - self.aux_start,
             )
-            aux_ce_loss = self.aux_ce(
+            aux_ce_loss = torch.nn.functional.cross_entropy(
                 aux_logits.flatten(end_dim=2),
                 aux_targets.flatten(),
+                weight=self.aux_weight,
+                ignore_index=self.pad - self.aux_start,
+                reduction='none',
             ).view(B, T, -1)
+            aux_ce_loss = torch.where(aux_mask, aux_ce_loss, 0)
 
             ce_loss = torch.cat([ce_loss, aux_ce_loss], dim=2)
         
