@@ -143,6 +143,12 @@ def get_parser() -> argparse.Namespace:
         type=str,
         help="S3prl pretrained upstream model.",
     )
+    parser.add_argument(
+        "--download_dir",
+        default="./hub",
+        type=str,
+        help="Where to put the pretrained model.",
+    )
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
     parser.add_argument(
         "--verbose",
@@ -207,7 +213,7 @@ def main():
         device = "cpu"
 
     s3prl_frontend = S3prlFrontend(
-        download_dir="./hub",
+        download_dir=args.download_dir,
         frontend_conf={"upstream": args.pretrained_model},
     )
     s3prl_frontend.to(device)
