@@ -21,6 +21,11 @@ asr_train=" \
   dump/raw_codec_ssl_asr_mls_en/mls_en_train/data.json \
   dump/raw_codec_ssl_asr_librispeech/train_960/data.json \
   dump/raw_codec_ssl_asr_gigaspeech/gigaspeech_train_xl/data.json \
+  dump/raw_codec_ssl_asr_yodas_auto1/train_auto_part1/data.json \
+  dump/raw_codec_ssl_asr_yodas_auto2/train_auto_part2/data.json \
+  dump/raw_codec_ssl_asr_yodas_manual/train_manual/data.json \
+  dump/raw_codec_ssl_asr_emilia/emilia_en/data.json \
+  dump/raw_codec_ssl_asr_mls_multilingual/mls_multilingual_train/data.json \
 "
 asr_valid=" \
   dump/raw_codec_ssl_asr_librispeech/dev_clean/data.json \
@@ -31,22 +36,26 @@ tts_train=" \
   dump/raw_codec_ssl_tts_mls_en/mls_en_train/data.json \
   dump/raw_codec_ssl_tts_librispeech/train_960/data.json \
   dump/raw_codec_ssl_tts_gigaspeech/gigaspeech_train_xl/data.json \
+  dump/raw_codec_ssl_tts_yodas_auto1/train_auto_part1/data.json \
+  dump/raw_codec_ssl_tts_yodas_auto2/train_auto_part2/data.json \
+  dump/raw_codec_ssl_tts_yodas_manual/train_manual/data.json \
+  dump/raw_codec_ssl_tts_emilia/emilia_en/data.json \
 "
 tts_valid=" \
   dump/raw_codec_ssl_tts_librispeech/dev_clean/data.json \
 "
 
-data_combo_name=asr_55k
+data_combo_name=asr_180k
 train_jsons="${asr_train}"
 valid_jsons="${asr_valid}"
 
-data_combo_name=tts_55k
+data_combo_name=tts_180k
 train_jsons="${tts_train}"
 valid_jsons="${tts_valid}"
 
-data_combo_name=asr_tts_55k
+data_combo_name=asr_tts_180k
 train_jsons="${asr_train} ${tts_train}"
-valid_jsons="${asr_train} ${tts_valid}"
+valid_jsons="${asr_valid} ${tts_valid}"
 
 ./speechlm.sh \
     --stage 7 \
@@ -54,7 +63,7 @@ valid_jsons="${asr_train} ${tts_valid}"
     --data_combo_name ${data_combo_name} \
     --fs 16000 \
     --num_nodes 1 \
-    --ngpu 4 \
+    --ngpu 8 \
     --nj 200 \
     --inference_nj 8 \
     --nbest 10 \
