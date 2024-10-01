@@ -283,7 +283,8 @@ class SpeechLMTask(AbsTask):
             codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
-            n_ctx=args.corelm_conf.get("n_ctx", 4096),
+            n_ctx=args.corelm_conf.get("n_ctx", 8192),
+            inter_segment_pad=args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0,
         )
 
         return retval

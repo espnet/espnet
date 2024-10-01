@@ -133,10 +133,10 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             for idx in range(targets.size(2)):
                 weight = mask[:, :, idx].float().sum()
                 if weight == 0:
-                    continue
-
-                layer_acc = acc[:, :, idx:idx+1].float().sum() 
-                layer_acc = layer_acc / mask[:, :, idx:idx+1].float().sum()
-                stats[f"acc_layer{idx}"] = layer_acc.clone().detach()
+                    stats[f"acc_layer{idx}"] = 0.0
+                else:
+                    layer_acc = acc[:, :, idx:idx+1].float().sum() 
+                    layer_acc = layer_acc / mask[:, :, idx:idx+1].float().sum()
+                    stats[f"acc_layer{idx}"] = layer_acc.clone().detach()
 
         return ce_loss, stats, weight

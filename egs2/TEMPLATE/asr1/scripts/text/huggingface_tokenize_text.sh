@@ -17,11 +17,11 @@ log() {
 SECONDS=0
 stage=1
 stop_stage=1
-data_dir=/mnt/home/jinchuat/data/code
-output_dir=dump/raw_textlm_cc_half
+data_dir=/mnt/home/jinchuat/data/multilingual_cc_news
+output_dir=dump/raw_textlm_cc_whole
 tokenizer_tag=HuggingFaceTB/SmolLM-1.7B
 max_len=8000
-nj=200
+nj=6
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -34,15 +34,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         file_name=$(basename ${file_path})
         file_name=${file_name%.jsonl}
 
-        mkdir -p ${output_dir}/${file_name}
-
         log "Processing ${file_path}"
         python3 pyscripts/text/huggingface_tokenize_text.py \
             --input_path ${file_path} \
             --output_dir ${output_dir}/${file_name} \
             --tokenizer_tag ${tokenizer_tag} \
             --nj ${nj} \
-            --max_len ${max_len} \
-            > ${output_dir}/${file_name}/processing.log &
+            --max_len ${max_len} &
     done; wait
 fi
