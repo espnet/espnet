@@ -1,16 +1,8 @@
 #!/bin/bash
 
-# This file creates the Kaldi format files for the scripted data.
-
-## Check if the data path is provided
-#if [ -z "$1" ]; then
-#  echo "Usage: $0 <data_path>"
-#  exit 1
-#fi
-#
-## Set the data path from the first argument
-#data_path="$1"
-data_path="/ocean/projects/cis210027p/shared/corpora/ldc2007s18/cslu_kids"
+# Set the data path
+echo "The data is not publicly available. Please add the dataset path in /local/data.sh"
+data_path=""
 
 # Define directories
 wav_base_dir="$data_path/speech/scripted"
@@ -39,7 +31,6 @@ done < $trans_file
 
 # Process each index file
 for index_file in $index_dir/*-verified.txt; do
-  echo "index_file: $index_file"
   while IFS= read -r line; do
     wav_file=$(echo $line | cut -d' ' -f1 | sed "s#^../#$data_path/#")
     wav_path=$(realpath $wav_file)
@@ -51,17 +42,9 @@ for index_file in $index_dir/*-verified.txt; do
 
     trans_text=$(grep "^$utt_key " $trans_map_file | head -n 1 | cut -d' ' -f2-)
     if [ -z "$trans_text" ]; then
-      echo "Skipping $utt_key due to missing transcription."
+      # Skip $utt_key due to missing transcription
       continue
     fi
-
-    # Print the spk_id, utt_id, utt_key, and trans_text for testing
-    # echo "spk_id: $spk_id"
-    # echo "rel_path: $rel_path"
-    # echo "utt_id: $utt_id"
-    # echo "utt_key: $utt_key"
-    # echo "trans_text: $trans_text"
-    # echo "-----------------------------"
 
     for dir in all; do
       echo "$utt_id $wav_path" >> $output_dir/$dir/wav.scp
@@ -69,7 +52,6 @@ for index_file in $index_dir/*-verified.txt; do
       echo "$utt_id $spk_id" >> $output_dir/$dir/utt2spk
     done
   done < $index_file
-  #break # for testing
 done
 
 # Sort
@@ -80,33 +62,15 @@ for x in all test train train_dev train_nodev; do
   utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
 done
 
-# Make a dev set
 n_all=$(wc -l < data/all/text)
 n_train=$((n_all * 4 / 5))
 n_nodev=$((n_train * 3 / 4))
 n_dev=$((n_train - n_nodev))
 n_test=$((n_all - n_train))
 
-# Print the spk_id, utt_id, utt_key, and trans_text for testing
-echo "n_all: $n_all"
-echo "n_train: $n_train"
-echo "n_dev: $n_dev"
-echo "n_nodev: $n_nodev"
-echo "n_test: $n_test"
-echo "-----------------------------"
-
 utils/subset_data_dir.sh --first data/all "${n_train}" data/train
 utils/subset_data_dir.sh --last data/all "${n_test}" data/test
 utils/subset_data_dir.sh --first data/train "${n_dev}" data/train_dev
 utils/subset_data_dir.sh --last data/train "${n_nodev}" data/train_nodev
 
-# can work: n_train=1000, n_dev=900
-# cannot work: n_train=2000, n_dev=900
-# cannot work: n_train=2000, n_dev=1800
-# can work: n_train=1500, n_dev=1200
-# cannot work: n_train=1700, n_dev=1200
-# n_all=3261
-# can work: n_train = n_all / 2
-
-
-
+rm $trans_map_file
