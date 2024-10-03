@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# This model is trained only on the scripted speech subset.
+# TODO: Incorporate spontaneous speech into the training.
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
