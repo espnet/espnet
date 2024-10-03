@@ -20,14 +20,14 @@ mkdir -p $output_dir/all $output_dir/train $output_dir/test $output_dir/train_de
 
 # Initialize the Kaldi format files
 for dir in all train test train_dev train_nodev; do
-  > $output_dir/$dir/wav.scp
-  > $output_dir/$dir/text
-  > $output_dir/$dir/utt2spk
+  : > "$output_dir/$dir/wav.scp"
+  : > "$output_dir/$dir/text"
+  : > "$output_dir/$dir/utt2spk"
 done
 
 # Create a dictionary for transcription mappings
 trans_map_file="trans_map.txt"
-> $trans_map_file
+: > "$trans_map_file"
 while IFS= read -r line; do
   key=$(echo $line | cut -d' ' -f1 | tr '[:upper:]' '[:lower:]')
   value=$(echo $line | cut -d' ' -f2- | tr -d '"')
@@ -35,13 +35,13 @@ while IFS= read -r line; do
 done < $trans_file
 
 # Process each index file
-for index_file in $index_dir/*-verified.txt; do
+for index_file in "$index_dir"/*-verified.txt; do
   while IFS= read -r line; do
     wav_file=$(echo $line | cut -d' ' -f1 | sed "s#^../#$data_path/#")
     wav_path=$(realpath $wav_file)
-    rel_path=${wav_path#$wav_base_dir/}
+    rel_path=${wav_path#"$wav_base_dir"/}
 
-    spk_id=$(basename $(dirname $rel_path))
+    spk_id=$(basename "$(dirname "$rel_path")")
     utt_id=$(basename $rel_path .wav)
     utt_key=${utt_id: -3:2}
 
@@ -51,11 +51,9 @@ for index_file in $index_dir/*-verified.txt; do
       continue
     fi
 
-    for dir in all; do
-      echo "$utt_id $wav_path" >> $output_dir/$dir/wav.scp
-      echo "$utt_id $trans_text" >> $output_dir/$dir/text
-      echo "$utt_id $spk_id" >> $output_dir/$dir/utt2spk
-    done
+    echo "$utt_id $wav_path" >> $output_dir/all/wav.scp
+    echo "$utt_id $trans_text" >> $output_dir/all/text
+    echo "$utt_id $spk_id" >> $output_dir/all/utt2spk
   done < $index_file
 done
 
