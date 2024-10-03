@@ -1,8 +1,13 @@
 #!/bin/bash
 
 # Set the data path
-echo "The data is not publicly available. Please add the dataset path in /local/data.sh"
 data_path=""
+
+# Check the data path
+if [ -z "$data_path" ]; then
+    echo "ERROR: data_path is empty.\nThe dataset is OGI kids speech corpus, not publicly available so not provided here.\nIt is on https://catalog.ldc.upenn.edu/LDC2007S18\nPlease set the dataset path in /local/data.sh"
+    exit 1
+fi
 
 # Define directories
 wav_base_dir="$data_path/speech/scripted"
