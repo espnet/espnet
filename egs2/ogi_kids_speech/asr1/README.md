@@ -1,6 +1,8 @@
 # Branchformer - Transformer
 - Params: 29.15 M
 - Model link: https://huggingface.co/espnet/asr_train_ogi_kids_speech_branchformer_transformer
+- This model is trained only on the scripted speech subset from the /cslu_kids/speech/scripted directory, containing 71,999 recordings totaling 69.78 hours of short audios. Spontaneous speech (long audios) from the dataset is not included in the current training process.
+- TODO: Incorporate spontaneous speech into the training. Since these recordings are longer and lack timestamps, preprocessing will be necessary before adding them to the training pipeline.
 
 # RESULTS
 ## Environments
