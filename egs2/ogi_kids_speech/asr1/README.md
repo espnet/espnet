@@ -1,3 +1,7 @@
+# Branchformer - Transformer
+- Params: 29.15 M
+- Model link: https://huggingface.co/espnet/asr_train_ogi_kids_speech_branchformer_transformer
+
 # RESULTS
 ## Environments
 - date: `Wed Oct  2 10:20:13 EDT 2024`
