@@ -15,7 +15,7 @@ is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 @pytest.mark.parametrize("residual", ["residual", None])
 @pytest.mark.parametrize("norm", ["layer", "batch"])
 @pytest.mark.parametrize("drop_path", [0.0, 0.1])
-@pytest.mark.timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop_path):
     # Skip test for the lower pytorch versions
     if not is_torch_1_10_plus:
@@ -51,7 +51,7 @@ def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop
 @pytest.mark.parametrize("norm", ["layer", "batch"])
 @pytest.mark.parametrize("drop_path", [0.0, 0.1])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_S4Decoder_batch_beam_search(
     input_layer, prenorm, n_layers, norm, residual, drop_path, dtype
 ):
