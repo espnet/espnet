@@ -1,54 +1,58 @@
-# ESPnet2 TTS Recipe TEMPLATE
+# Text-to-Speech
 
 This is a template of TTS recipe for ESPnet2.
 
 ## Table of Contents
 
-* [ESPnet2 TTS Recipe TEMPLATE](#espnet2-tts-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
-    * [3\. Removal of long / short data](#3-removal-of-long--short-data)
-    * [4\. Token list generation](#4-token-list-generation)
-    * [5\. TTS statistics collection](#5-tts-statistics-collection)
-    * [6\. TTS training](#6-tts-training)
-    * [7\. TTS decoding](#7-tts-decoding)
-    * [8\-9\. (Optional) Pack results for upload](#8-9-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [FastSpeech training](#fastspeech-training)
-    * [FastSpeech2 training](#fastspeech2-training)
-    * [Multi speaker model with speaker embedding training](#multi-speaker-model-with-speaker-embedding-training)
-    * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
-    * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
-    * [VITS training](#vits-training)
-    * [Joint text2wav training](#joint-text2wav-training)
-    * [Evaluation](#evaluation)
-  * [Supported text frontend](#supported-text-frontend)
-  * [Supported text cleaner](#supported-text-cleaner)
-  * [Supported Models](#supported-models)
-    * [Single speaker model](#single-speaker-model)
-    * [Multi speaker model](#multi-speaker-model)
-  * [FAQ](#faq)
-    * [ESPnet1 model is compatible with ESPnet2?](#espnet1-model-is-compatible-with-espnet2)
-    * [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
-    * [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
-    * [How to add a new g2p module?](#how-to-add-a-new-g2p-module)
-    * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
-    * [How to use trained model in python?](#how-to-use-trained-model-in-python)
-    * [How to get pretrained models?](#how-to-get-pretrained-models)
-    * [How to load the pretrained parameters?](#how-to-load-the-pretrained-parameters)
-    * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
-    * [How to add a new model?](#how-to-add-a-new-model)
-    * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
-    * [How to train vocoder?](#how-to-train-vocoder)
-    * [How to train vocoder with text2mel GTA outputs?](#how-to-train-vocoder-with-text2mel-gta-outputs)
-    * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
-    * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
-    * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
-    * [Why the outputs contains metallic noise when combining neural vocoder?](#why-the-outputs-contains-metallic-noise-when-combining-neural-vocoder)
-    * [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
-    * [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
+- [Recipe flow](#recipe-flow)
+    - [1. Data preparation](#1-data-preparation)
+      - [ESPnet format:](#espnet-format)
+      - [(New) MFA Aligments generation](#new-mfa-aligments-generation)
+    - [2. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
+    - [3. Extract speaker embeddings](#3-extract-speaker-embeddings)
+    - [4. Removal of long / short data](#4-removal-of-long--short-data)
+    - [5. Token list generation](#5-token-list-generation)
+    - [6. TTS statistics collection](#6-tts-statistics-collection)
+    - [7. TTS training](#7-tts-training)
+    - [8. TTS decoding](#8-tts-decoding)
+    - [9. (Optional) Pack results for upload](#9-optional-pack-results-for-upload)
+    - [10. (Optional) Upload model to Hugging Face](#10-optional-upload-model-to-hugging-face)
+- [How to run](#how-to-run)
+    - [FastSpeech training](#fastspeech-training)
+    - [FastSpeech2 training](#fastspeech2-training)
+    - [Multi-speaker model with speaker embedding training](#multi-speaker-model-with-speaker-embedding-training)
+      - [(Optional) Train on speaker-averaged speaker embeddings](#optional-train-on-speaker-averaged-speaker-embeddings)
+    - [Multi-speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
+    - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
+    - [VITS training](#vits-training)
+    - [Joint text2wav training](#joint-text2wav-training)
+    - [Evaluation](#evaluation)
+- [Supported text frontend](#supported-text-frontend)
+- [Supported text cleaner](#supported-text-cleaner)
+- [Supported Models](#supported-models)
+    - [Single speaker model](#single-speaker-model)
+    - [Multi speaker model extension](#multi-speaker-model-extension)
+- [FAQ](#faq)
+    - [ESPnet1 model is compatible with ESPnet2?](#espnet1-model-is-compatible-with-espnet2)
+    - [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
+    - [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
+    - [How to add a new `g2p` module?](#how-to-add-a-new-g2p-module)
+    - [How to add a new `cleaner` module?](#how-to-add-a-new-cleaner-module)
+    - [How to use trained model in python?](#how-to-use-trained-model-in-python)
+    - [How to get pretrained models?](#how-to-get-pretrained-models)
+    - [How to load the pretrained parameters?](#how-to-load-the-pretrained-parameters)
+    - [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
+    - [How to add a new model?](#how-to-add-a-new-model)
+    - [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
+    - [How to train vocoder?](#how-to-train-vocoder)
+    - [How to train vocoder with text2mel GTA outputs?](#how-to-train-vocoder-with-text2mel-gta-outputs)
+    - [How to handle the errors in `validate_data_dir.sh`?](#how-to-handle-the-errors-in-validate_data_dirsh)
+    - [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
+    - [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
+    - [Why the outputs contains metallic noise when combining neural vocoder?](#why-the-outputs-contains-metallic-noise-when-combining-neural-vocoder)
+    - [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
+    - [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
+
 
 ## Recipe flow
 
@@ -114,12 +118,16 @@ This processing requires the compiled kaldi, please be careful.
 Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
-### 3. Removal of long / short data
+### 3. Extract speaker embeddings
+
+Extract speaker embeddings.
+
+### 4. Removal of long / short data
 
 Processing stage to remove long and short utterances from the training and validation data.
 You can change the threshold values via `--min_wav_duration` and `--max_wav_duration`.
 
-### 4. Token list generation
+### 5. Token list generation
 
 Token list generation stage.
 It generates token list (dictionary) from `srctexts`.
@@ -132,12 +140,12 @@ See also:
 - [Supported text cleaner](#supported-text-cleaner).
 - [Supported text frontend](#supported-text-frontend).
 
-### 5. TTS statistics collection
+### 6. TTS statistics collection
 
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training data).
 
-### 6. TTS training
+### 7. TTS training
 
 TTS model training stage.
 You can change the training setting via `--train_config` and `--train_args` options.
@@ -147,7 +155,7 @@ See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 - [Distributed training](https://espnet.github.io/espnet/espnet2_distributed.html)
 
-### 7. TTS decoding
+### 8. TTS decoding
 
 TTS model decoding stage.
 You can change the decoding setting via `--inference_config` and `--inference_args`.
@@ -155,16 +163,12 @@ You can change the decoding setting via `--inference_config` and `--inference_ar
 See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 
-### 8-9. (Optional) Pack results for upload
+### 9. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
-If you want to run this stage, you need to register your account in zenodo.
+It packs the trained model files as a preparation for uploading to Hugging Face.
 
-See also:
-- [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
-
-#### Stage 10: Upload model to Hugging Face
+### 10. (Optional) Upload model to Hugging Face
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 

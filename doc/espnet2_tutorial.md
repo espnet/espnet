@@ -1,10 +1,6 @@
 # ESPnet2
-We are planning a super major update, called `ESPnet2`. The developing status is still **under construction** yet, so please be very careful to use with understanding following cautions:
-
-- There might be fatal bugs related to essential parts.
-- We haven't achieved comparable results to espnet1 on each task yet.
-
-## Main changing from ESPnet1
+[[toc]]
+## Main changes from ESPnet1
 
 - **Chainer free**
   - Discarding Chainer completely.
@@ -24,9 +20,11 @@ We are planning a super major update, called `ESPnet2`. The developing status is
 - Support distributed data-parallel training (Not enough tested)
    - Single node multi GPU training with `DistributedDataParallel` is also supported.
 
-## Recipes using ESPnet2
+## Understanding ESPnet2 Recipes
+**Recipe** is a set of scripts that enables users to fully reproduce the experiment, such as data preparation, model definition, training, evaluation, and model release.
 
-You can find the new recipes in `egs2`:
+
+You can find the new recipes in `egs2` (shorthand for *Examples for ESPnet2*):
 
 ```
 espnet/  # Python modules of espnet1
@@ -35,71 +33,80 @@ egs/     # espnet1 recipes
 egs2/    # espnet2 recipes
 ```
 
-The usage of recipes is **almost the same** as that of ESPnet1.
+The `egs2` recipes are always structured by `egs2/<dataset>/<task>`.
+So, for example, the user should be able to fully reproduce the experiment by the following:
+```
+# Dataset: an4, Task: ASR
+cd egs2/an4/asr1/
 
+# Run the full experiment
+./run.sh
+```
+Note that the usage of recipes is **almost the same** as that of ESPnet1.
 
-1. Change directory to the base directory
+Now, let's go step-by-step on how exactly the recipes work.
 
+### Change directory to the base directory
+
+```bash
+# e.g.
+cd egs2/an4/asr1/
+```
+`an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
+You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
+
+Keep in mind that all scripts should be ran at the level of `egs2/<dataset>/<task>`.
+
+```bash
+# Doesn't work
+cd egs2/an4/
+./asr1/run.sh
+./asr1/scripts/<some-script>.sh
+
+# Doesn't work
+cd egs2/an4/asr1/local/
+./data.sh
+
+# Works
+cd egs2/an4/asr1
+./run.sh
+./scripts/<some-script>.sh
+```
+
+### Directory structure of each recipe
+
+```
+egs2/an4/asr1/
+  - conf/      # Configuration files for training, inference, etc.
+  - scripts/   # Bash utilities of espnet2
+  - pyscripts/ # Python utilities of espnet2
+  - steps/     # From Kaldi utilities
+  - utils/     # From Kaldi utilities
+  - db.sh      # The directory path of each corpora
+  - path.sh    # Setup script for environment variables
+  - cmd.sh     # Configuration for your backend of job scheduler
+  - run.sh     # Entry point
+  - asr.sh     # Invoked by run.sh
+```
+
+### Change the configuration
+- You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
+- Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
+- `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
     ```bash
-    # e.g.
-    cd egs2/an4/asr1/
+    . path.sh
+    python
     ```
-    `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
-    You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
+- `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your local machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
 
-    Keep in mind that all scripts should be ran at the level of `egs2/*/{asr1,tts1,...}`.
+### `run.sh`
+```bash
+./run.sh
+```
 
-    ```bash
-    # Doesn't work
-    cd egs2/an4/
-    ./asr1/run.sh
-    ./asr1/scripts/<some-script>.sh
+`run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
 
-    # Doesn't work
-    cd egs2/an4/asr1/local/
-    ./data.sh
-
-    # Work
-    cd egs2/an4/asr1
-    ./run.sh
-    ./scripts/<some-script>.sh
-    ```
-
-1. Change the configuration
-    Describing the directory structure as follows:
-
-    ```
-    egs2/an4/asr1/
-     - conf/      # Configuration files for training, inference, etc.
-     - scripts/   # Bash utilities of espnet2
-     - pyscripts/ # Python utilities of espnet2
-     - steps/     # From Kaldi utilities
-     - utils/     # From Kaldi utilities
-     - db.sh      # The directory path of each corpora
-     - path.sh    # Setup script for environment variables
-     - cmd.sh     # Configuration for your backend of job scheduler
-     - run.sh     # Entry point
-     - asr.sh     # Invoked by run.sh
-    ```
-
-    - You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
-    - Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
-    - `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
-        ```bash
-        . path.sh
-        python
-        ```
-    - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your local machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
-
-1. Run `run.sh`
-
-    ```bash
-    ./run.sh
-    ```
-
-    `run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
-
-## See training status
+## Seeing the training status
 
 ### Show the log file
 
@@ -128,8 +135,8 @@ eog exp/*_train_*/att_ws/<sample-id>/<param-name>.img
 tensorboard --logdir exp/*_train_*/tensorboard/
 ```
 
-# Instruction for run.sh
-## How to parse command-line arguments in shell scripts?
+## Instruction for run.sh
+### How to parse command-line arguments in shell scripts?
 
 All shell scripts in espnet/espnet2 depend on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to parase command line arguments.
 
@@ -156,7 +163,7 @@ You can also show the help message:
 ./run.sh --help
 ```
 
-## Start from a specified stage and stop at a specified stage
+### Start from a specified stage and stop at a specified stage
 The procedures in `run.sh` can be divided into some stages, e.g. data preparation, training, and evaluation. You can specify the starting stage and the stopping stage.
 
 ```sh
@@ -169,12 +176,12 @@ There are also some altenative otpions to skip specified stages:
 run.sh --skip_data_prep true  # Skip data preparation stages.
 run.sh --skip_train true      # Skip training stages.
 run.sh --skip_eval true       # Skip decoding and evaluation stages.
-run.sh --skip_upload false    # Enable packing and uploading stages.
+run.sh --skip_packing false --skip_upload_hf false  # Enable packing and uploading to huggingface stages.
 ```
 
-Note that `skip_upload` is true by default. Please change it to false when uploading your model.
+Note that `skip_upload` and `skip_upload_hf` are true by default. Please change them to false when uploading your model.
 
-## Change the configuration for training
+### Change the configuration for training
 Please keep in mind that `run.sh` is a wrapper script of several tools including DNN training command.
 You need to do one of the following two ways to change the training configuration.
 
@@ -200,7 +207,7 @@ This is the case of ASR training and you need to replace it accordingly for the 
 See [Change the configuration for training](./espnet2_training_option.md) for more detail about the usage of training tools.
 
 
-## Change the number of parallel jobs
+### Change the number of parallel jobs
 
 ```sh
 ./run.sh --nj 10             # Chnage the number of parallels for data preparation stages.
@@ -210,7 +217,7 @@ See [Change the configuration for training](./espnet2_training_option.md) for mo
 We also support submitting jobs to multiple hosts to accelerate your experiment: See [Using Job scheduling system](./parallelization.md)
 
 
-## Multi GPUs training and distributed training
+### Multi GPUs training and distributed training
 
 ```sh
 ./run.sh --ngpu 4 # 4GPUs in a single node
@@ -223,13 +230,14 @@ Note that you need to setup your environment correctly to use distributed traini
 - [Distributed training](./espnet2_distributed.md)
 - [Using Job scheduling system](./parallelization.md)
 
+## Various tips
 
 ### Relationship between mini-batch size and number of GPUs
 
 The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. **In ESPnet2, the total batch size is not changed regardless of the number of GPUs.** Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this [doc](https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus) for more information.
 
 
-## Use specified experiment directory for evaluation
+### Use specified experiment directory for evaluation
 
 If you already have trained a model, you may wonder how to give it to run.sh when you'll evaluate it later.
 By default the directory name is determined according to given options, `asr_args`, `lm_args`, or etc.
@@ -243,7 +251,7 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ./run.sh --skip_data_prep true --skip_train true --tts_exp <your_tts_exp_directory>
 ```
 
-## Evaluation without training using pretrained model
+### Evaluation without training using pretrained model
 
 
 ```sh
@@ -251,8 +259,7 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ```
 
 You need to fill `model_name` by yourself. You can search for pretrained models on Hugging Face using the tag [espnet](https://huggingface.co/models?library=espnet)
-
-(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)
+See the following link about our pretrained models: https://github.com/espnet/espnet_model_zoo
 
 
 ### Evaluation using OpenAI Whisper
@@ -296,9 +303,9 @@ done
 ```
 
 
-## Packing and sharing your trained model
+### Packing and sharing your trained model
 
-ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/) or [Zenodo](https://zenodo.org/) (This last will become deprecated.)
+ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/).
 
 For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).
 
@@ -307,36 +314,23 @@ Remember to install `git-lfs ` before continuing.
 Then, execute `run.sh` as follows:
 
 ```sh
-# For ASR recipe
-./run.sh --stage 14 --skip-upload-hf false --hf-repo <my_repo>
-
-# For TTS recipe
-./run.sh --stage 8 --skip-upload-hf false --hf-repo <my_repo>
+./run.sh --stage <packing stage> --skip-packing false --skip-upload-hf false --hf-repo <my_repo>
 ```
 
-For **Zenodo**, you need to register your account first. Then, execute `run.sh` as follows:
+The stage number differs according to the task. Please read the task-specific shell script (e.g., `asr1/asr.sh`) to see the number to specify.
+The packed model can be uploaded to huggingface by setting the previously mentioned flags.
 
-```sh
-# For ASR recipe
-./run.sh --stage 14 --skip-upload false
 
-# For TTS recipe
-./run.sh --stage 8 --skip-upload false
-```
-
-The packed model can be uploaded to both platforms by setting the previously mentioned flags.
-
-## Usage of Self-Supervised Learning Representations as feature
+### Usage of Self-Supervised Learning Representations as feature
 
 ESPnet supports self-supervised learning representations (SSLR) to replace traditional spectrum features. In some cases, SSLRs can boost the performance.
 
 To use SSLRs in your task, you need to make several modifications.
 
-### Prerequisite
 1. Install [S3PRL](https://github.com/s3prl/s3prl) by `tools/installers/install_s3prl.sh`.
 2. If HuBERT / Wav2Vec is needed, [fairseq](https://github.com/pytorch/fairseq) should be installed by `tools/installers/install_fairseq.sh`.
 
-### Usage
+Here's various tips for using SSLRs.
 1. To reduce the time used in `collect_stats` step, please specify `--feats_normalize uttmvn` in `run.sh` and pass it as arguments to `asr.sh` or other task-specific scripts. (Recommended)
 2. In the configuration file, specify the `frontend` and `preencoder`. Taking `HuBERT` as an example:
    The `upstream` name can be whatever supported in S3PRL. `multilayer-feature=True` means the final representation is a weighted-sum of all layers' hidden states from SSLR model.
@@ -359,7 +353,6 @@ To use SSLRs in your task, you need to make several modifications.
 
 ## Streaming ASR
 ESPnet supports streaming Transformer/Conformer ASR with blockwise synchronous beam search.
-
 For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
 
 ### Training

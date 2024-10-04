@@ -18,6 +18,7 @@ AR_SC=
 AUDIOSET=
 ASVSpoof_CMD=
 BIBLETTS=downloads
+CORAAL=downloads
 COVOST2=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
@@ -198,6 +199,7 @@ DCASE=
 TEDX_SPANISH=downloads
 IAM=downloads
 OFUTON=
+OGI_KIDS_SPEECH=
 OPENCPOP=
 M_AILABS=downloads
 CATSLU=downloads
@@ -219,6 +221,7 @@ VOXCELEB=
 KSPONSPEECH=
 SQA_5=
 SLUE_TED=
+HIFITTS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

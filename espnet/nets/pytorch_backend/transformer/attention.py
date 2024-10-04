@@ -6,10 +6,19 @@
 
 """Multi-Head Attention layer definition."""
 
+import logging
 import math
 
 import torch
 from torch import nn
+
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+
+try:
+    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn.bert_padding import pad_input, unpad_input
+except Exception as e:
+    logging.info(f"Failed to import Flash Attention, using ESPnet default: {e}")
 
 
 class MultiHeadedAttention(nn.Module):
@@ -19,10 +28,23 @@ class MultiHeadedAttention(nn.Module):
         n_head (int): The number of heads.
         n_feat (int): The number of features.
         dropout_rate (float): Dropout rate.
+        qk_norm (bool): Normalize q and k before dot product.
+        use_flash_attn (bool): Use flash_attn implementation.
+        causal (bool): Apply causal attention.
+        cross_attn (bool): Cross attention instead of self attention.
 
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate):
+    def __init__(
+        self,
+        n_head,
+        n_feat,
+        dropout_rate,
+        qk_norm=False,
+        use_flash_attn=False,
+        causal=False,
+        cross_attn=False,
+    ):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
         assert n_feat % n_head == 0
@@ -34,15 +56,27 @@ class MultiHeadedAttention(nn.Module):
         self.linear_v = nn.Linear(n_feat, n_feat)
         self.linear_out = nn.Linear(n_feat, n_feat)
         self.attn = None
-        self.dropout = nn.Dropout(p=dropout_rate)
+        self.dropout = (
+            nn.Dropout(p=dropout_rate) if not use_flash_attn else nn.Identity()
+        )
+        self.dropout_rate = dropout_rate
 
-    def forward_qkv(self, query, key, value):
+        # LayerNorm for q and k
+        self.q_norm = LayerNorm(self.d_k) if qk_norm else nn.Identity()
+        self.k_norm = LayerNorm(self.d_k) if qk_norm else nn.Identity()
+
+        self.use_flash_attn = use_flash_attn
+        self.causal = causal  # only used with flash_attn
+        self.cross_attn = cross_attn  # only used with flash_attn
+
+    def forward_qkv(self, query, key, value, expand_kv=False):
         """Transform query, key and value.
 
         Args:
             query (torch.Tensor): Query tensor (#batch, time1, size).
             key (torch.Tensor): Key tensor (#batch, time2, size).
             value (torch.Tensor): Value tensor (#batch, time2, size).
+            expand_kv (bool): Used only for partially autoregressive (PAR) decoding.
 
         Returns:
             torch.Tensor: Transformed query tensor (#batch, n_head, time1, d_k).
@@ -52,11 +86,30 @@ class MultiHeadedAttention(nn.Module):
         """
         n_batch = query.size(0)
         q = self.linear_q(query).view(n_batch, -1, self.h, self.d_k)
-        k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
-        v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
+
+        if expand_kv:
+            k_shape = key.shape
+            k = (
+                self.linear_k(key[:1, :, :])
+                .expand(n_batch, k_shape[1], k_shape[2])
+                .view(n_batch, -1, self.h, self.d_k)
+            )
+            v_shape = value.shape
+            v = (
+                self.linear_v(value[:1, :, :])
+                .expand(n_batch, v_shape[1], v_shape[2])
+                .view(n_batch, -1, self.h, self.d_k)
+            )
+        else:
+            k = self.linear_k(key).view(n_batch, -1, self.h, self.d_k)
+            v = self.linear_v(value).view(n_batch, -1, self.h, self.d_k)
+
         q = q.transpose(1, 2)  # (batch, head, time1, d_k)
         k = k.transpose(1, 2)  # (batch, head, time2, d_k)
         v = v.transpose(1, 2)  # (batch, head, time2, d_k)
+
+        q = self.q_norm(q)
+        k = self.k_norm(k)
 
         return q, k, v
 
@@ -92,7 +145,7 @@ class MultiHeadedAttention(nn.Module):
 
         return self.linear_out(x)  # (batch, time1, d_model)
 
-    def forward(self, query, key, value, mask):
+    def forward(self, query, key, value, mask, expand_kv=False):
         """Compute scaled dot product attention.
 
         Args:
@@ -101,12 +154,87 @@ class MultiHeadedAttention(nn.Module):
             value (torch.Tensor): Value tensor (#batch, time2, size).
             mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
                 (#batch, time1, time2).
+            expand_kv (bool): Used only for partially autoregressive (PAR) decoding.
+        When set to `True`, `Linear` layers are computed only for the first batch.
+        This is useful to reduce the memory usage during decoding when the batch size is
+        #beam_size x #mask_count, which can be very large. Typically, in single waveform
+        inference of PAR, `Linear` layers should not be computed for all batches
+        for source-attention.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time1, d_model).
 
         """
-        q, k, v = self.forward_qkv(query, key, value)
+        if self.training and self.use_flash_attn:
+            try:
+                # In the causal case, the last row will be the key mask
+                key_nonpad_mask = mask[:, -1, :]  # (#batch, time2)
+                if self.cross_attn:
+                    # For cross attention, we do not know the query padding
+                    query_nonpad_mask = torch.ones(
+                        size=query.shape[:2], dtype=torch.bool, device=query.device
+                    )
+                else:
+                    query_nonpad_mask = key_nonpad_mask
+
+                if key_nonpad_mask.eq(0).any():
+                    q, indices_q, cu_seqlens_q, max_seqlen_q = unpad_input(
+                        query, query_nonpad_mask
+                    )
+                    k, indices_k, cu_seqlens_k, max_seqlen_k = unpad_input(
+                        key, key_nonpad_mask
+                    )
+                    v, _, _, _ = unpad_input(value, key_nonpad_mask)
+
+                    q = self.linear_q(q).reshape(-1, self.h, self.d_k)
+                    k = self.linear_k(k).reshape(-1, self.h, self.d_k)
+                    v = self.linear_v(v).reshape(-1, self.h, self.d_k)
+
+                    q = self.q_norm(q)
+                    k = self.k_norm(k)
+
+                    out = flash_attn_varlen_func(
+                        q,
+                        k,
+                        v,
+                        cu_seqlens_q,
+                        cu_seqlens_k,
+                        max_seqlen_q,
+                        max_seqlen_k,
+                        dropout_p=self.dropout_rate if self.training else 0.0,
+                        causal=self.causal,
+                    )  # (total, nheads, headdim)
+
+                    out = out.reshape(out.shape[0], -1)
+                    out = self.linear_out(out)
+
+                    out = pad_input(out, indices_q, query.shape[0], query.shape[1])
+                    return out
+
+                else:
+                    del key_nonpad_mask
+                    q, k, v = self.forward_qkv(query, key, value)
+                    del query, key, value
+
+                    out = flash_attn_func(
+                        q.transpose(1, 2),
+                        k.transpose(1, 2),
+                        v.transpose(1, 2),
+                        dropout_p=self.dropout_rate if self.training else 0.0,
+                        causal=self.causal,
+                    )  # (batch_size, seqlen, nheads, headdim)
+                    del q, k, v
+
+                    out = out.reshape(out.shape[0], out.shape[1], -1)
+                    out = self.linear_out(out)
+                    return out
+            except Exception as e:
+                if self.training:
+                    import logging
+
+                    logging.warning(f"Flash attn has exception: {e}")
+                pass
+        q, k, v = self.forward_qkv(query, key, value, expand_kv)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         return self.forward_attention(v, scores, mask)
 
