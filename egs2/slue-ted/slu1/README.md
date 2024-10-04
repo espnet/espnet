@@ -28,6 +28,8 @@ Then, run the fine-tuning on summarization using the previously trained model as
 - SUMM scoring function: local/score.sh
 
 ## Uploaded Models
+- WavLM : https://huggingface.co/espnet/slueted_wavlm_summ/
+- OWSM : https://huggingface.co/espnet/slueted_owsm_summ
 - Whisper : https://huggingface.co/espnet/slueted_whisper_summ
 
 ## Complex prediction head with SFM feature extractor
