@@ -59,10 +59,10 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         # NOTE(Jinchuan): keep the weight on the correct device in the first forward.
         # We don't want to keep the weights registered as model parameters as they 
         # should always be specified by parameters.
-        if self.weight.device != targets.device:
-            self.weight = self.weight.to(targets.device)
-        if self.aux_weight is not None and self.aux_weight.device != targets.device:
-            self.aux_weight = self.aux_weight.to(targets.device)
+        device, dtype = logits[0].device, logits[0].dtype
+        self.weight = self.weight.to(device).to(dtype)
+        if self.aux_weight is not None: 
+            self.aux_weight = self.aux_weight.to(device).to(dtype)
 
         logits, aux_logits = logits
         assert logits.dim() == 4 and logits.size(2) == 1
