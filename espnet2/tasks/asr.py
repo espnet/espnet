@@ -40,6 +40,7 @@ from espnet2.asr.encoder.hubert_encoder import (
     TorchAudioHuBERTPretrainEncoder,
 )
 from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
+from espnet2.asr.encoder.multiconvformer_encoder import MultiConvConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.transformer_encoder_multispkr import (
@@ -158,6 +159,7 @@ encoder_choices = ClassChoices(
         whisper=OpenAIWhisperEncoder,
         e_branchformer=EBranchformerEncoder,
         avhubert=FairseqAVHubertEncoder,
+        multiconv_conformer=MultiConvConformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",

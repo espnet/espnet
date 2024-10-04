@@ -55,10 +55,6 @@ For ESPnet2, we do not recommend preparing the recipe's stages for each corpus b
 
 The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Hugging Face and Zenodo (Deprecated).
 You can also refer to the document at https://github.com/espnet/espnet_model_zoo
-To upload your model, you need first (This is currently deprecated, uploading to Huggingface Hub is preferred) :
-1. Sign up to Zenodo: https://zenodo.org/
-2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
 To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
@@ -98,7 +94,7 @@ or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's
 - [ ] common/shared files are linked with **symbolic link** (see Section 1.3.3)
 - [ ] cluster settings should be set as **default** (e.g., `cmd.sh` `conf/slurm.conf` `conf/queue.conf` `conf/pbs.conf`)
 - [ ] update `egs/README.md` or `egs2/README.md` with the corresponding recipes
-- [ ] add the corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
+- [ ] add the corresponding entry in `egs2/TEMPLATE/*/db.sh` for a new corpus
 - [ ] try to **simplify** the model configurations. We recommend having only the best configuration for the start of a recipe. Please also follow the default rule defined in Section 1.3.3
 - [ ] large meta-information (e.g., the keyword list) for a corpus should be maintained elsewhere other than in the recipe itself
 - [ ] also recommend including results and pre-trained models with the recipe

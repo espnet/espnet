@@ -12,6 +12,7 @@ import scipy.signal
 import soundfile
 from typeguard import typechecked
 
+import espnet2.speechlm.definitions as speechlm_definitions
 from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
@@ -148,6 +149,7 @@ class CommonPreprocessor(AbsPreprocessor):
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: Optional[str] = None,
+        force_single_channel: bool = False,
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
         noise_scp: Optional[str] = None,
@@ -163,6 +165,9 @@ class CommonPreprocessor(AbsPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
+        # for padding of chunk iterator, working when > 0
+        min_sample_size: int = -1,
+        audio_pad_value: Union[float, int] = 0.0,
         # only use for whisper
         whisper_language: Optional[str] = None,
         whisper_task: Optional[str] = None,
@@ -172,6 +177,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.speech_name = speech_name
         self.text_name = text_name
         self.speech_volume_normalize = speech_volume_normalize
+        self.force_single_channel = force_single_channel
         self.rir_apply_prob = rir_apply_prob
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
@@ -263,6 +269,10 @@ class CommonPreprocessor(AbsPreprocessor):
         else:
             self.data_aug = None
         self.data_aug_prob = data_aug_prob
+
+        # for padding of chunk iterator, working when > 0
+        self.min_sample_size = min_sample_size
+        self.audio_pad_value = audio_pad_value
 
     def _convolve_rir(self, speech, power, rirs, tgt_fs=None, single_channel=False):
         rir_path = np.random.choice(rirs)
@@ -369,6 +379,32 @@ class CommonPreprocessor(AbsPreprocessor):
             speech = speech + scale * noise
         return speech, noise
 
+    def _pad_speech(self, speech):
+        # NOTE(jiatong): Padding for chunk iterator
+        #                other padding are conducted in collate_fn
+
+        # right pad with given value
+        if speech.ndim == 1 and speech.shape[0] < self.min_sample_size:
+            # single channel cases
+            speech = np.pad(
+                speech,
+                (0, self.min_sample_size + 1 - speech.shape[0]),
+                mode="constant",
+                constant_values=(0, self.audio_pad_value),
+            )
+        elif speech.ndim == 2 and speech.shape[0] < self.min_sample_size:
+            # multi channel cases
+            speech = speech.T
+            speech = np.pad(
+                speech,
+                ((0, 0), (0, self.min_sample_size + 1 - speech.shape[1])),
+                mode="constant",
+                constant_values=((0, 0), (0, self.audio_pad_value)),
+            )
+            speech = speech.T
+
+        return speech
+
     @typechecked
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
@@ -382,6 +418,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     speech = speech[None, :]
                 else:
                     speech = speech.T
+
                 # Calc power on non silence region
                 power = (speech[detect_non_silence(speech)] ** 2).mean()
 
@@ -414,10 +451,24 @@ class CommonPreprocessor(AbsPreprocessor):
                         data[self.speech_name], self.fs
                     )
 
+            if self.train and self.min_sample_size > 0:
+                # NOTE(jiatong): Padding for chunk iterator
+                #                other padding are conducted in collate_fn
+                data[self.speech_name] = self._pad_speech(data[self.speech_name])
+
             if self.speech_volume_normalize is not None:
                 speech = data[self.speech_name]
                 ma = np.max(np.abs(speech))
-                data[self.speech_name] = speech * self.speech_volume_normalize / ma
+                if ma != 0:
+                    data[self.speech_name] = speech * self.speech_volume_normalize / ma
+
+            if self.force_single_channel:
+                speech = data[self.speech_name]
+                if speech.ndim == 2:
+                    # NOTE(jiatong): default average across channels
+                    speech = np.mean(speech, axis=1, keepdims=False)
+                data[self.speech_name] = speech
+
         return data
 
     def _text_process(
@@ -1158,10 +1209,10 @@ class EnhPreprocessor(CommonPreprocessor):
             # (Nmic, Time)
             return signal[None, :] if signal.ndim == 1 else signal.T
 
-    def _get_early_signal(self, speech, rir, power):
+    def _get_early_signal(self, speech, rir, power, fs):
         predelay = 50  # milliseconds
         dt = np.argmax(rir, axis=1).min()
-        et = dt + (predelay * self.sample_rate) // 1000
+        et = dt + (predelay * fs) // 1000
         rir_early = rir[:, :et]
         speech2 = scipy.signal.convolve(speech, rir_early, mode="full")[
             :, : speech.shape[1]
@@ -1301,6 +1352,7 @@ class EnhPreprocessor(CommonPreprocessor):
             speech_mix = self._ensure_2d(data[self.speech_name])
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
+                speech_ref0 = speech_ref
                 speech_ref, rir_ref = zip(
                     *[
                         self._convolve_rir(
@@ -1328,7 +1380,7 @@ class EnhPreprocessor(CommonPreprocessor):
                             if spk == 0 or len(dereverb_speech_ref) > 1:
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = self._get_early_signal(
-                                    speech_ref[spk], rir_ref[spk], power_ref[spk]
+                                    speech_ref0[spk], rir_ref[spk], power_ref[spk], fs
                                 ).T
                 else:
                     for spk in range(num_spk):
@@ -1336,7 +1388,7 @@ class EnhPreprocessor(CommonPreprocessor):
                         speech_ref_name = self.speech_ref_name_prefix + suffix
                         # clean speech with early reflections (Time, Nmic)
                         data[speech_ref_name] = self._get_early_signal(
-                            speech_ref[spk], rir_ref[spk], power_ref[spk]
+                            speech_ref0[spk], rir_ref[spk], power_ref[spk], fs
                         ).T
 
                         if dereverb_speech_ref is not None:
@@ -1397,8 +1449,8 @@ class EnhPreprocessor(CommonPreprocessor):
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
                     speech_mix = self.data_aug(
                         speech_mix.T if speech_mix.shape[0] > 1 else speech_mix[0],
-                        self.sample_rate,
-                    )
+                        fs,
+                    ).T
 
             data[self.speech_name] = speech_mix.T
             ma = np.max(np.abs(data[self.speech_name]))
@@ -1419,7 +1471,10 @@ class EnhPreprocessor(CommonPreprocessor):
                 # use a fixed scale to make it deterministic
                 volume_scale = self.volume_low
             ma = np.max(np.abs(data[self.speech_name]))
-            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+            if ma != 0:
+                self._apply_to_all_signals(
+                    data, lambda x: x * volume_scale / ma, num_spk
+                )
 
         if self.categories and "category" in data:
             category = data.pop("category")
@@ -1530,7 +1585,10 @@ class SVSPreprocessor(AbsPreprocessor):
             if self.singing_volume_normalize is not None:
                 singing = data[self.singing_name]
                 ma = np.max(np.abs(singing))
-                data[self.singing_name] = singing * self.singing_volume_normalize / ma
+                if ma != 0:
+                    data[self.singing_name] = (
+                        singing * self.singing_volume_normalize / ma
+                    )
 
         if self.midi_name in data and self.label_name in data:
             # Load label info
@@ -2298,3 +2356,193 @@ class S2TPreprocessor(CommonPreprocessor):
         data = self._text_process(data, round(init_pad / self.speech_resolution))
 
         return data
+
+
+class SpeechLMPreprocessor(AbsPreprocessor):
+    """Preprocessor specifically for SpeechLM models"""
+
+    def __init__(
+        self,
+        token_list: List,
+        token_bias: Dict,
+        encoder_decoder_format: bool = False,
+        # codec related:
+        codec_token_per_frame: int = 1,
+        codec_token_in_use: int = None,
+        # tokenizer related: Phone & BPE
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        g2p_type: str = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        bpe_encode_kwargs: Dict = None,
+        text_cleaner: str = None,
+        # speaker prompt
+        speaker_prompt_length: int = 1800,
+    ):
+        self.token_list = token_list
+        self.token_bias = token_bias
+        self.encoder_decoder_format = encoder_decoder_format
+
+        self.modalities = speechlm_definitions.modalities
+        self.tasks = speechlm_definitions.tasks
+
+        self.converter = TokenIDConverter(
+            token_list=token_list,
+            unk_symbol=unk_symbol,
+        )
+        self.text_cleaner = TextCleaner(text_cleaner)
+
+        # Modality-specific utilities
+
+        # Text BPE (text_bpe):
+        if bpemodel is not None:
+            if bpe_encode_kwargs is None:
+                bpe_encode_kwargs = Dict()
+            self.bpe = build_tokenizer(
+                token_type="bpe",
+                bpemodel=bpemodel,
+                encode_kwargs=bpe_encode_kwargs,
+            )
+        else:
+            self.bpe = None
+
+        # Phones (g2p):
+        if g2p_type is not None:
+            self.g2p = build_tokenizer(
+                token_type="phn",
+                space_symbol=space_symbol,
+                non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
+            )
+        else:
+            self.g2p = None
+
+        # Codec model (codec):
+        self.codec_token_per_frame = codec_token_per_frame
+        if codec_token_in_use is None:
+            codec_token_in_use = codec_token_per_frame
+            assert codec_token_in_use <= codec_token_per_frame
+        self.codec_token_in_use = codec_token_in_use
+
+        # speaker prompt
+        self.speaker_prompt_length = speaker_prompt_length
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
+
+        # (1) task parsing
+        task_name = uid.strip().split(" ")[0]
+        task = self.tasks[task_name]
+
+        # (Jinchuan): Temp code
+        for e in task.encoder_entries + task.decoder_entries:
+            if not self.modalities[e[1]].discrete:
+                raise ValueError("Continuous feature is not supported yet.")
+
+        # (2) encoder & decoder sequence
+        seqs, conti_feats = [], []
+        n_enc_entries = len(task.encoder_entries)
+        for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
+            for entry in entries:
+                name, modality, _ = entry
+
+                value, _ = self.modality_specific_processing(data[name], modality)
+                seqs.append(value)
+
+        # (3) splice
+        sos_eos = self.special_token("<sos/eos>")
+        if task.use_task_identifier:
+            task_identifier = f"<{task_name}_task>"
+        else:
+            task_identifier = "<unkown_task_identifer>"
+        task_identifier = self.special_token(task_identifier)
+
+        new_data = {}
+        if self.encoder_decoder_format:
+            new_data["enc_seq"] = np.concatenate(
+                [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
+            ).reshape(-1, self.codec_token_in_use)
+            new_data["dec_seq"] = np.concatenate(
+                [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
+            ).reshape(-1, self.codec_token_in_use)
+        else:
+            new_data["dec_seq"] = np.concatenate(
+                [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
+            ).reshape(-1, self.codec_token_in_use)
+
+        prefix_len = (
+            len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
+        )
+        new_data["prefix_len"] = np.array([prefix_len])
+        # self.diagnose(new_data) # For debug. Enable this to check the sequence format
+
+        return new_data
+
+    def special_token(self, token):
+        token_idx = self.token_list.index(token)
+        token_idx = np.array([token_idx]).repeat(self.codec_token_in_use, axis=0)
+        return token_idx
+
+    def modality_specific_processing(self, value, modality):
+
+        if modality in ["codec", "spk"]:
+            value = value.reshape(-1, self.codec_token_per_frame)
+            value = value[:, : self.codec_token_in_use]
+            value = value + self.token_bias["codec"]
+
+            if modality == "spk":
+                if len(value) <= self.speaker_prompt_length:
+                    pad_len = self.speaker_prompt_length - len(value)
+                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
+                    value = np.concatenate([value, pad])
+                else:
+                    start = random.randint(
+                        0, len(value) - self.speaker_prompt_length - 1
+                    )
+                    value = value[start : start + self.speaker_prompt_length]
+
+            value = value.flatten()
+            conti_feat = None
+
+        # Other discrete modalities
+        elif modality in ["ssl", "text_bpe", "g2p"]:
+
+            if modality in ["text_bpe", "g2p"]:
+                value = self.text_cleaner(value)
+                tokenizer = self.bpe if modality == "text_bpe" else self.g2p
+                value = tokenizer.text2tokens(value)
+                value = self.converter.tokens2ids(value)
+                value = np.array(value)
+
+            elif modality in ["ssl"]:
+                value = value + self.token_bias["ssl"]
+
+            value = value.repeat(self.codec_token_in_use, axis=0)
+            conti_feat = None
+
+        # TODO(Jinchuan): Support continuous modalities
+        else:
+            raise NotImplementedError
+
+        modality_idx = self.special_token(f"<{modality}_start/end>")
+        value = np.concatenate([modality_idx, value])
+
+        return value, conti_feat
+
+    def diagnose(self, data):
+        """Only for debug"""
+        enc_seq = data.get("enc_seq", None)
+        dec_seq = data.get("dec_seq", None)
+
+        logging.warning(f"Diagnose in preprocessor ...")
+        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
+            if seq is None:
+                continue
+            logging.warning(f"{name} ...")
+            for idx, patch in enumerate(seq):
+                patch = patch.tolist()
+                patch_str = ", ".join(self.converter.ids2tokens(patch))
+                logging.warning(f"Patch: {idx} -> {patch_str}")
