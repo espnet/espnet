@@ -275,6 +275,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.audio_pad_value = audio_pad_value
 
     def _convolve_rir(self, speech, power, rirs, tgt_fs=None, single_channel=False):
+        speech = speech - np.mean(speech, 1, keepdims=True)
         rir_path = np.random.choice(rirs)
         rir = None
         if rir_path is not None:
@@ -286,6 +287,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 rir = rir[:, chs]
             # rir: (Nmic, Time)
             rir = rir.T
+            rir = rir - np.mean(rir, -1, keepdims=True) # subtract mean in case RIR has problems 
             if tgt_fs and fs != tgt_fs:
                 logging.warning(
                     f"Resampling RIR to match the sampling rate ({fs} -> {tgt_fs} Hz)"
@@ -316,6 +318,7 @@ class CommonPreprocessor(AbsPreprocessor):
         single_channel=False,
     ):
         nsamples = speech.shape[1]
+        speech = speech - np.mean(speech, 1, keepdims=True)
         noise_path = np.random.choice(noises)
         noise = None
         if noise_path is not None:
@@ -328,6 +331,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     nsamples_ = nsamples
                 if f.frames == nsamples_:
                     noise = f.read(dtype=np.float64, always_2d=True)
+                    noise = noise - np.mean(noise, 0, keepdims=True)
                 elif f.frames < nsamples_:
                     if f.frames / nsamples_ < self.short_noise_thres:
                         logging.warning(
@@ -337,6 +341,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     offset = np.random.randint(0, nsamples_ - f.frames)
                     # noise: (Time, Nmic)
                     noise = f.read(dtype=np.float64, always_2d=True)
+                    noise = noise - np.mean(noise, 0, keepdims=True)
                     # Repeat noise
                     noise = np.pad(
                         noise,
@@ -348,6 +353,7 @@ class CommonPreprocessor(AbsPreprocessor):
                     f.seek(offset)
                     # noise: (Time, Nmic)
                     noise = f.read(nsamples_, dtype=np.float64, always_2d=True)
+                    noise = noise - np.mean(noise, 0, keepdims=True)
                     if len(noise) != nsamples_:
                         raise RuntimeError(f"Something wrong: {noise_path}")
             if single_channel:
@@ -384,6 +390,7 @@ class CommonPreprocessor(AbsPreprocessor):
         #                other padding are conducted in collate_fn
 
         # right pad with given value
+        speech = speech - np.mean(speech, 1, keepdims=True)
         if speech.ndim == 1 and speech.shape[0] < self.min_sample_size:
             # single channel cases
             speech = np.pad(
@@ -409,6 +416,11 @@ class CommonPreprocessor(AbsPreprocessor):
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
+
+        # always remove offset
+        speech = data[self.speech_name]
+        data[self.speech_name] = speech - np.mean(speech, -1, keepdims=True)
+        
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
