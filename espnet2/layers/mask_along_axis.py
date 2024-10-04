@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from typing import Sequence, Union
 
 import torch
@@ -192,8 +193,14 @@ class MaskAlongAxisVariableMaxWidth(torch.nn.Module):
         max_mask_width = math.floor(max_seq_len * self.mask_width_ratio_range[1])
         max_mask_width = min([max_seq_len, max_mask_width])
 
+        if isinstance(spec, np.ndarray):
+            spec = torch.from_numpy(spec)
+            is_np = True
+        else:
+            is_np = False
+
         if max_mask_width > min_mask_width:
-            return mask_along_axis(
+            spec, spec_lengths = mask_along_axis(
                 spec,
                 spec_lengths,
                 mask_width_range=(min_mask_width, max_mask_width),
@@ -201,4 +208,5 @@ class MaskAlongAxisVariableMaxWidth(torch.nn.Module):
                 num_mask=self.num_mask,
                 replace_with_zero=self.replace_with_zero,
             )
+        spec = spec.numpy() if is_np else spec
         return spec, spec_lengths

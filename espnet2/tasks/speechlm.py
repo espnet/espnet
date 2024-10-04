@@ -242,6 +242,18 @@ class SpeechLMTask(AbsTask):
             help="Set the relative weights for different modalities "
                  "using string format: modality:weight"
         )
+        group.add_argument(
+            "--asr_apply_time_mask",
+            type=str2bool,
+            default=False,
+            help="If true, apply time masking only for ASR tasks"
+        )
+        group.add_argument(
+            "--asr_time_mask_config",
+            type=dict,
+            default=dict(),
+            help="The config of using time mask"
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -270,6 +282,7 @@ class SpeechLMTask(AbsTask):
 
         # (Jinchuan) SpeechLM task will always use the preprocess_fn
         retval = SpeechLMPreprocessor(
+            train=train,
             token_list=args.token_list,
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
@@ -285,6 +298,8 @@ class SpeechLMTask(AbsTask):
             pad_speaker_prompt=args.pad_speaker_prompt,
             n_ctx=args.corelm_conf.get("n_ctx", 8192),
             inter_segment_pad=args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0,
+            asr_apply_time_mask=args.asr_apply_time_mask,
+            asr_time_mask_config=args.asr_time_mask_config,
         )
 
         return retval

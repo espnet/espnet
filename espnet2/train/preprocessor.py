@@ -2382,6 +2382,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self,
         token_list: List,
         token_bias: Dict,
+        train: bool = True,
         encoder_decoder_format: Optional[bool] = False,
         # codec related:
         codec_token_per_frame: int = 1,
@@ -2406,9 +2407,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         extra_names_and_modalities=[
             "sampled.scp,codec",
         ],
+        asr_apply_time_mask: bool = False,
+        asr_time_mask_config: dict = dict(),
     ):
         self.token_list = token_list.copy()
         self.token_bias = token_bias.copy()
+        self.train = train
         self.encoder_decoder_format = encoder_decoder_format
         self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
         self.inter_segment_pad = inter_segment_pad
@@ -2477,6 +2481,15 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             tup.split(",") for tup in extra_names_and_modalities
         ]
 
+        # time-mask, or specaug:
+        self.asr_apply_time_mask = asr_apply_time_mask
+        if asr_apply_time_mask and train:
+            from espnet2.layers.mask_along_axis import MaskAlongAxisVariableMaxWidth
+            print("specaug config: ", asr_time_mask_config)
+            self.asr_time_mask=MaskAlongAxisVariableMaxWidth(**asr_time_mask_config)
+        else:
+            self.asr_time_mask = None
+
     @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
@@ -2489,6 +2502,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # (2) get exact tokenised value based on all data triplets
         seqs, conti_feats = [], []
         cache = {triplet[:2]: None for triplet in task.data_triplets}
+        cache["task_name"] = task_name
         for idx, triplet in enumerate(task.data_triplets):
             name, modality, _ = triplet
             value, conti_feat = self.modality_specific_processing(
@@ -2629,6 +2643,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = value + self.token_bias["codec"][0]
             else:
                 value = value + self.token_bias["ssl"][0]
+            
+            if modality in ["codec", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask:
+                value = np.expand_dims(value, axis=0)
+                value, _ = self.asr_time_mask(value)
+                value = np.squeeze(value, axis=0)
 
             value = value.flatten()
             conti_feat = None
