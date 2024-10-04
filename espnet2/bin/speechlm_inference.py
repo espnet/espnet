@@ -320,7 +320,7 @@ def inference(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and ngpu > 0:
         device = f"cuda:0"
     else:
         device = "cpu"
