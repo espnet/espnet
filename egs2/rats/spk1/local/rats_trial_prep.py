@@ -1,9 +1,10 @@
 import argparse
-import sys
-import os
 import glob
-import numpy as np
+import os
 import random
+import sys
+
+import numpy as np
 from tqdm import tqdm
 
 np.random.seed(1234)
