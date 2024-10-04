@@ -287,7 +287,9 @@ class CommonPreprocessor(AbsPreprocessor):
                 rir = rir[:, chs]
             # rir: (Nmic, Time)
             rir = rir.T
-            rir = rir - np.mean(rir, -1, keepdims=True) # subtract mean in case RIR has problems 
+            rir = rir - np.mean(
+                rir, -1, keepdims=True
+            )  # subtract mean in case RIR has problems
             if tgt_fs and fs != tgt_fs:
                 logging.warning(
                     f"Resampling RIR to match the sampling rate ({fs} -> {tgt_fs} Hz)"
@@ -420,7 +422,7 @@ class CommonPreprocessor(AbsPreprocessor):
         # always remove offset
         speech = data[self.speech_name]
         data[self.speech_name] = speech - np.mean(speech, -1, keepdims=True)
-        
+
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
