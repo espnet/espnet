@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay_deepspeed_codecssl.yaml
+train_config=conf/train_delay_deepspeed_codecssl_1.7b.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
@@ -21,11 +21,6 @@ asr_train=" \
   dump/raw_codec_ssl_asr_mls_en/mls_en_train/data.json \
   dump/raw_codec_ssl_asr_librispeech/train_960/data.json \
   dump/raw_codec_ssl_asr_gigaspeech/gigaspeech_train_xl/data.json \
-  dump/raw_codec_ssl_asr_yodas_auto1/train_auto_part1/data.json \
-  dump/raw_codec_ssl_asr_yodas_auto2/train_auto_part2/data.json \
-  dump/raw_codec_ssl_asr_yodas_manual/train_manual/data.json \
-  dump/raw_codec_ssl_asr_emilia/emilia_en/data.json \
-  dump/raw_codec_ssl_asr_mls_multilingual/mls_multilingual_train/data.json \
 "
 asr_valid=" \
   dump/raw_codec_ssl_asr_librispeech/dev_clean/data.json \
@@ -36,24 +31,20 @@ tts_train=" \
   dump/raw_codec_ssl_tts_mls_en/mls_en_train/data.json \
   dump/raw_codec_ssl_tts_librispeech/train_960/data.json \
   dump/raw_codec_ssl_tts_gigaspeech/gigaspeech_train_xl/data.json \
-  dump/raw_codec_ssl_tts_yodas_auto1/train_auto_part1/data.json \
-  dump/raw_codec_ssl_tts_yodas_auto2/train_auto_part2/data.json \
-  dump/raw_codec_ssl_tts_yodas_manual/train_manual/data.json \
-  dump/raw_codec_ssl_tts_emilia/emilia_en/data.json \
 "
 tts_valid=" \
   dump/raw_codec_ssl_tts_librispeech/dev_clean/data.json \
 "
 
-data_combo_name=asr_180k
+data_combo_name=asr_55k
 train_jsons="${asr_train}"
 valid_jsons="${asr_valid}"
 
-data_combo_name=tts_180k
+data_combo_name=tts_55k
 train_jsons="${tts_train}"
 valid_jsons="${tts_valid}"
 
-data_combo_name=asr_tts_180k
+data_combo_name=asr_tts_55k
 train_jsons="${asr_train} ${tts_train}"
 valid_jsons="${asr_valid} ${tts_valid}"
 
