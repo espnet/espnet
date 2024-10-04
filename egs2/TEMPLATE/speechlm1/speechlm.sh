@@ -576,12 +576,29 @@ if ! ${skip_train}; then
         if [ -n "${train_config}" ]; then
             _opts+="--config ${train_config} "
         fi
+        _opts+="--sampler_allow_duplication true"
 
-        # (1) for each  split by ${global_ngpu} and assign statistics
+        # (1) handle the re-weighting factors of training data
+        declare -A reweight_factors
+        _train_jsons=
+        use_reweight=false
+        for data_json in ${train_jsons}; do
+            if [[ "$data_json" == *:* ]]; then
+                IFS=":" read -r data_json factor <<< "$data_json"
+                _train_jsons+="${data_json} "
+            else
+                factor=1.0
+                _train_jsons+="${data_json} "
+            fi
+            reweight_factors["${data_json}"]=${factor}
+        done
+        train_jsons=${_train_jsons}
+
+        # (2) for each  split by ${global_ngpu} and assign statistics
         for data_json in ${train_jsons} ${valid_jsons}; do
             stats_dir=$(dirname ${data_json})/stats
             if [ ! -f ${stats_dir}/dec_seq_shape ]; then
-                log "${data_json} doesn't have length statistics. Please rerun stage 7"
+                log "${data_json} doesn't have length statistics. Please rerun stage 7" || exit 1;
             fi
 
             if [ ! -f ${stats_dir}/split${global_ngpu}/1/dec_seq_shape ]; then
@@ -602,7 +619,7 @@ if ! ${skip_train}; then
             fi
         done
 
-        # (2) aggregate all statistics
+        # (3) aggregate all statistics
         _data_opts=
 
         for data_json in ${train_jsons}; do
@@ -618,8 +635,9 @@ if ! ${skip_train}; then
         mkdir -p ${speechlm_stats_dir}/train/split${global_ngpu}
         for n in `seq ${global_ngpu}`; do
             for data_json in ${train_jsons}; do
-                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape
-            done > ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.${n}
+		        repeat=${reweight_factors["${data_json}"]}
+                cat $(dirname ${data_json})/stats/split${global_ngpu}/${n}/dec_seq_shape | awk -v N=${repeat} '{for(i=0;i<N;i++) print}'
+            done | shuf > ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.${n}
         done
         _data_opts+="--train_shape_file ${speechlm_stats_dir}/train/split${global_ngpu}/dec_seq_shape.JOB "
 

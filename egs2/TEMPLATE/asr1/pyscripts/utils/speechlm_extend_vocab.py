@@ -54,7 +54,7 @@ def get_parser():
         help="The output experiment directory",
     )
     parser.add_argument(
-        "--inference_model",
+        "--model_name",
         type=str,
         required=True,
         help="The model name used for inference",
@@ -98,7 +98,7 @@ def main():
         raise ValueError(f"File {str(config)} doesn't exit")
     config = yaml.safe_load(open(config))
 
-    checkpoint = args.input_exp_dir / args.inference_model
+    checkpoint = args.input_exp_dir / args.model_name
     if not checkpoint.exists():
         raise ValueError(f"File {str(checkpoint)} doesn't exit")
     checkpoint = torch.load(checkpoint, map_location="cpu")
@@ -138,6 +138,7 @@ def main():
             )
 
         token_bias[modality_name] = len(token_list_dict)
+        print(MODALITIES)
         if modality_name not in MODALITIES:
             raise ValueError(
                 f"The modality {modality_name} is not supported "
@@ -208,11 +209,12 @@ def main():
     yaml_no_alias_safe_dump(config, config_writer, indent=4, sort_keys=False)
 
     # (2) revise the embedding and lm_head
+    for key in checkpoint.keys():
+        print("weight: ", key)
     num_new_tokens = sum([len(vocab) for modality_name, vocab in additional_vocabs])
     for tensor_name in [
         "corelm.emb.weight",
         "corelm.lm_head.weight",
-        "corelm.criterion.lm_head.weight",
     ]:
         if tensor_name not in checkpoint:
             raise ValueError(
@@ -233,8 +235,22 @@ def main():
 
         new_tensor = torch.cat([old_tensor, new_tensor], dim=0).contiguous()
         checkpoint[tensor_name] = new_tensor
+    
+    for modality_name, vocab in additional_vocabs:
+        if modality_name == "codec":
+            torch.random.manual_seed(0)
+            aux_tensor = torch.randn(
+                (len(vocab), old_tensor.size(1)),
+                device=old_tensor.device,
+                dtype=old_tensor.dtype,
+            )
+            torch.nn.init.normal_(aux_tensor, mean=0, std=std)
+            assert "corelm.aux_lm_head.weight" not in checkpoint
+            checkpoint["corelm.aux_lm_head.weight"] = aux_tensor
+            logging.info("also add a random weight for aux_lm_head")
 
-    torch.save(checkpoint, args.output_exp_dir / args.inference_model)
+    torch.save(checkpoint, args.output_exp_dir / args.model_name)
+    logging.info(f"Done!")
 
 
 if __name__ == "__main__":
