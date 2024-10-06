@@ -2485,7 +2485,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.asr_apply_time_mask = asr_apply_time_mask
         if asr_apply_time_mask and train:
             from espnet2.layers.mask_along_axis import MaskAlongAxisVariableMaxWidth
-            print("specaug config: ", asr_time_mask_config)
             self.asr_time_mask=MaskAlongAxisVariableMaxWidth(**asr_time_mask_config)
         else:
             self.asr_time_mask = None
@@ -2644,7 +2643,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             else:
                 value = value + self.token_bias["ssl"][0]
             
-            if modality in ["codec", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask:
+            if modality in ["codec", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask and self.train:
                 value = np.expand_dims(value, axis=0)
                 value, _ = self.asr_time_mask(value)
                 value = np.squeeze(value, axis=0)
