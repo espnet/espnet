@@ -200,6 +200,7 @@ DCASE=
 TEDX_SPANISH=downloads
 IAM=downloads
 OFUTON=
+OGI_KIDS_SPEECH=
 OPENCPOP=
 M_AILABS=downloads
 CATSLU=downloads
