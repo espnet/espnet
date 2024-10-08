@@ -65,7 +65,7 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.s2t_vis.espnet_model import ESPnetS2TModel
+from espnet2.vs2t.espnet_model import ESPnetVS2TModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -112,7 +112,7 @@ normalize_choices = ClassChoices(
 model_choices = ClassChoices(
     name="model",
     classes=dict(
-        espnet=ESPnetS2TModel,
+        espnet=ESPnetVS2TModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -180,14 +180,14 @@ decoder_choices = ClassChoices(
 preprocessor_choices = ClassChoices(
     "preprocessor",
     classes=dict(
-        s2t=S2TPreprocessor,
+        vs2t=S2TPreprocessor,
     ),
     type_check=AbsPreprocessor,
-    default="s2t",
+    default="vs2t",
 )
 
 
-class VisS2TTask(AbsTask):
+class VS2TTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -448,7 +448,7 @@ class VisS2TTask(AbsTask):
 
     @classmethod
     @typechecked
-    def build_model(cls, args: argparse.Namespace) -> ESPnetS2TModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetVS2TModel:
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

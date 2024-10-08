@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
 )
 
 
-class ESPnetS2TModel(AbsESPnetModel):
+class ESPnetVS2TModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     def __init__(
@@ -299,7 +299,7 @@ class ESPnetS2TModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         clip_feature: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by s2t_inference.py
+        """Frontend + Encoder. Note that this method is used by vs2t_inference.py
 
         Args:
             speech: (Batch, Length, ...)

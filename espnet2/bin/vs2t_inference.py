@@ -16,7 +16,7 @@ from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
-from espnet2.tasks.s2t import S2TTask
+from espnet2.tasks.vs2t import VS2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
@@ -147,14 +147,14 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         return scores, outstates
 
 
-class Speech2Text:
+class VisualSpeech2Text:
     """Speech2Text class
 
     Examples:
         >>> import soundfile
-        >>> speech2text = Speech2Text("s2t_config.yml", "s2t.pth")
+        >>> visualspeech2text = VisualSpeech2Text("vs2t_config.yml", "vs2t.pth")
         >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
+        >>> visualspeech2text(audio)
         [(text, token, token_int, text_nospecial, hypothesis object), ...]
 
     """
@@ -162,8 +162,8 @@ class Speech2Text:
     @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str, None] = None,
-        s2t_model_file: Union[Path, str, None] = None,
+        vs2t_train_config: Union[Path, str, None] = None,
+        vs2t_model_file: Union[Path, str, None] = None,
         lm_train_config: Union[Path, str, None] = None,
         lm_file: Union[Path, str, None] = None,
         ngram_scorer: str = "full",
@@ -182,7 +182,7 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         normalize_length: bool = False,
-        quantize_s2t_model: bool = False,
+        quantize_vs2t_model: bool = False,
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
@@ -202,38 +202,38 @@ class Speech2Text:
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
-        # 1. Build S2T model
-        s2t_model, s2t_train_args = VisS2TTask.build_model_from_file(
-            s2t_train_config, s2t_model_file, device
+        # 1. Build VS2T model
+        vs2t_model, vs2t_train_args = VS2TTask.build_model_from_file(
+            vs2t_train_config, vs2t_model_file, device
         )
-        s2t_model.to(dtype=getattr(torch, dtype)).eval()
+        vs2t_model.to(dtype=getattr(torch, dtype)).eval()
 
-        if quantize_s2t_model:
-            logging.info("Use quantized s2t model for decoding.")
+        if quantize_vs2t_model:
+            logging.info("Use quantized vs2t model for decoding.")
 
-            s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
+            vs2t_model = torch.quantization.quantize_dynamic(
+                vs2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
-        decoder = s2t_model.decoder
-        ctc = CTCPrefixScorer(ctc=s2t_model.ctc, eos=s2t_model.eos)
-        token_list = s2t_model.token_list
+        decoder = vs2t_model.decoder
+        ctc = CTCPrefixScorer(ctc=vs2t_model.ctc, eos=vs2t_model.eos)
+        token_list = vs2t_model.token_list
         scorers = dict(
             decoder=decoder,
             ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
             scorefilter=ScoreFilter(
                 notimestamps=token_list.index(
-                    s2t_train_args.preprocessor_conf["notime_symbol"]
+                    vs2t_train_args.preprocessor_conf["notime_symbol"]
                 ),
                 first_time=token_list.index(
-                    s2t_train_args.preprocessor_conf["first_time_symbol"]
+                    vs2t_train_args.preprocessor_conf["first_time_symbol"]
                 ),
                 last_time=token_list.index(
-                    s2t_train_args.preprocessor_conf["last_time_symbol"]
+                    vs2t_train_args.preprocessor_conf["last_time_symbol"]
                 ),
-                sos=s2t_model.sos,
-                eos=s2t_model.eos,
+                sos=vs2t_model.sos,
+                eos=vs2t_model.eos,
                 vocab_size=len(token_list),
             ),
         )
@@ -276,14 +276,14 @@ class Speech2Text:
         )
         if partial_ar:
             beam_search = PartiallyARInference(
-                s2t_model.ctc,
-                s2t_model.decoder,
+                vs2t_model.ctc,
+                vs2t_model.decoder,
                 threshold_probability=threshold_probability,
-                sos=s2t_model.sos,
-                eos=s2t_model.eos,
+                sos=vs2t_model.sos,
+                eos=vs2t_model.eos,
                 mask_token=len(token_list),
                 token_list=token_list,
-                scorers={"decoder": s2t_model.decoder},
+                scorers={"decoder": vs2t_model.decoder},
                 weights=weights,
                 beam_size=beam_size,
                 max_seq_len=max_seq_len,
@@ -294,8 +294,8 @@ class Speech2Text:
                 beam_size=beam_size,
                 weights=weights,
                 scorers=scorers,
-                sos=s2t_model.sos,
-                eos=s2t_model.eos,
+                sos=vs2t_model.sos,
+                eos=vs2t_model.eos,
                 vocab_size=len(token_list),
                 token_list=token_list,
                 pre_beam_score_key=None if ctc_weight == 1.0 else "full",
@@ -327,9 +327,9 @@ class Speech2Text:
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
-            token_type = s2t_train_args.token_type
+            token_type = vs2t_train_args.token_type
         if bpemodel is None:
-            bpemodel = s2t_train_args.bpemodel
+            bpemodel = vs2t_train_args.bpemodel
 
         if token_type is None:
             tokenizer = None
@@ -354,9 +354,9 @@ class Speech2Text:
             )
         logging.info(f"Text tokenizer: {tokenizer}")
 
-        self.s2t_model = s2t_model
-        self.s2t_train_args = s2t_train_args
-        self.preprocessor_conf = s2t_train_args.preprocessor_conf
+        self.vs2t_model = vs2t_model
+        self.vs2t_train_args = vs2t_train_args
+        self.preprocessor_conf = vs2t_train_args.preprocessor_conf
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -396,6 +396,7 @@ class Speech2Text:
 
         Args:
             speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
+            clip_feature: input visual feature of shape (nsamples, dim)
             text_prev: previous text used as condition (optional)
 
         Returns:
@@ -412,7 +413,7 @@ class Speech2Text:
         notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
 
         # Prepare hyp_primer
-        hyp_primer = [self.s2t_model.sos, lang_id, task_id]
+        hyp_primer = [self.vs2t_model.sos, lang_id, task_id]
         if not predict_time:
             hyp_primer.append(notime_id)
 
@@ -425,11 +426,11 @@ class Speech2Text:
                 text_prev = text_prev.tolist()
 
             # Check if text_prev is valid
-            if self.s2t_model.na in text_prev:
+            if self.vs2t_model.na in text_prev:
                 text_prev = None
 
         if text_prev is not None:
-            hyp_primer = [self.s2t_model.sop] + text_prev + hyp_primer
+            hyp_primer = [self.vs2t_model.sop] + text_prev + hyp_primer
 
         self.beam_search.set_hyp_primer(hyp_primer)
 
@@ -457,7 +458,7 @@ class Speech2Text:
         # speech: (nsamples,) -> (1, nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         clip_feature = clip_feature.unsqueeze(0).to(self.device)
-        clip_feature = self.s2t_model.visual_projection(clip_feature).to(
+        clip_feature = self.vs2t_model.visual_projection(clip_feature).to(
             getattr(torch, self.dtype)
         )
         # lengths: (1,)
@@ -473,7 +474,7 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, enc_olens = self.s2t_model.encode(**batch)
+        enc, enc_olens = self.vs2t_model.encode(**batch)
 
         intermediate_outs = None
         if isinstance(enc, tuple):
@@ -517,10 +518,10 @@ class Speech2Text:
                 token_int = hyp.yseq[start_pos:last_pos].tolist()
 
             if not self.partial_ar:
-                token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
+                token_int = token_int[token_int.index(self.vs2t_model.sos) + 1 :]
 
             # remove blank symbol id
-            token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
+            token_int = list(filter(lambda x: x != self.vs2t_model.blank_id, token_int))
 
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
@@ -542,12 +543,12 @@ class Speech2Text:
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
 
-        exclude_ids = [self.s2t_model.blank_id, self.s2t_model.sos, self.s2t_model.eos]
+        exclude_ids = [self.vs2t_model.blank_id, self.vs2t_model.sos, self.vs2t_model.eos]
         res = {}
         token_list = self.beam_search.token_list
 
         for layer_idx, encoder_out in intermediate_outs:
-            y = self.s2t_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
+            y = self.vs2t_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
             y = [x[0] for x in groupby(y) if x[0] not in exclude_ids]
             y = [token_list[x] for x in y]
 
@@ -690,14 +691,14 @@ class Speech2Text:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build VisualSpeech2Text instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2Text instance.
+            VisualSpeech2Text: VisualSpeech2Text instance.
 
         """
         if model_tag is not None:
@@ -713,7 +714,7 @@ class Speech2Text:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return Speech2Text(**kwargs)
+        return VisualSpeech2Text(**kwargs)
 
 
 @typechecked
@@ -736,8 +737,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    s2t_train_config: Optional[str],
-    s2t_model_file: Optional[str],
+    vs2t_train_config: Optional[str],
+    vs2t_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -747,7 +748,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    quantize_s2t_model: bool,
+    quantize_vs2t_model: bool,
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
@@ -783,10 +784,10 @@ def inference(
     # 1. Set random-seed
     set_all_random_seed(seed)
 
-    # 2. Build speech2text
-    speech2text_kwargs = dict(
-        s2t_train_config=s2t_train_config,
-        s2t_model_file=s2t_model_file,
+    # 2. Build visualspeech2text
+    visualspeech2text_kwargs = dict(
+        vs2t_train_config=vs2t_train_config,
+        vs2t_model_file=vs2t_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
@@ -803,7 +804,7 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         normalize_length=normalize_length,
-        quantize_s2t_model=quantize_s2t_model,
+        quantize_vs2t_model=quantize_vs2t_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
@@ -815,20 +816,20 @@ def inference(
         max_seq_len=max_seq_len,
         max_mask_parallel=max_mask_parallel,
     )
-    speech2text = Speech2Text.from_pretrained(
+    visualspeech2text = VisualSpeech2Text.from_pretrained(
         model_tag=model_tag,
-        **speech2text_kwargs,
+        **visualspeech2text_kwargs,
     )
 
     # 3. Build data-iterator
-    loader = VisS2TTask.build_streaming_iterator(
+    loader = VS2TTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=VisS2TTask.build_preprocess_fn(speech2text.s2t_train_args, False),
-        collate_fn=VisS2TTask.build_collate_fn(speech2text.s2t_train_args, False),
+        preprocess_fn=VS2TTask.build_preprocess_fn(visualspeech2text.vs2t_train_args, False),
+        collate_fn=VS2TTask.build_collate_fn(visualspeech2text.vs2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -845,7 +846,7 @@ def inference(
 
             # N-best list of (text, token, token_int, text_nospecial, hyp_object)
             try:
-                results = speech2text(**batch)
+                results = visualspeech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
@@ -885,7 +886,7 @@ def inference(
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
-        description="S2T Decoding",
+        description="VS2T Decoding",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -932,14 +933,14 @@ def get_parser():
 
     group = parser.add_argument_group("Model configuration related")
     group.add_argument(
-        "--s2t_train_config",
+        "--vs2t_train_config",
         type=str,
-        help="S2T training configuration",
+        help="VS2T training configuration",
     )
     group.add_argument(
-        "--s2t_model_file",
+        "--vs2t_model_file",
         type=str,
-        help="S2T model parameter file",
+        help="VS2T model parameter file",
     )
     group.add_argument(
         "--lm_train_config",
@@ -984,10 +985,10 @@ def get_parser():
 
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
-        "--quantize_s2t_model",
+        "--quantize_vs2t_model",
         type=str2bool,
         default=False,
-        help="Apply dynamic quantization to S2T model.",
+        help="Apply dynamic quantization to VS2T model.",
     )
     group.add_argument(
         "--quantize_lm",
@@ -1061,7 +1062,7 @@ def get_parser():
         type=str_or_none,
         default=None,
         choices=["char", "bpe", "word", None],
-        help="The token type for S2T model. "
+        help="The token type for VS2T model. "
         "If not given, refers from the training args",
     )
     group.add_argument(

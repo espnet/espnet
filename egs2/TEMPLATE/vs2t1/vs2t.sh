@@ -91,16 +91,16 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
-# S2T model related
-s2t_tag=       # Suffix to the result dir for s2t model training.
-s2t_exp=       # Specify the directory path for s2t experiment.
-               # If this option is specified, s2t_tag is ignored.
-s2t_stats_dir= # Specify the directory path for s2t statistics.
-s2t_config=    # Config for s2t model training.
-s2t_args=      # Arguments for s2t model training, e.g., "--max_epoch 10".
-               # Note that it will overwrite args in s2t config.
+# VS2T model related
+vs2t_tag=       # Suffix to the result dir for vs2t model training.
+vs2t_exp=       # Specify the directory path for vs2t experiment.
+               # If this option is specified, vs2t_tag is ignored.
+vs2t_stats_dir= # Specify the directory path for vs2t statistics.
+vs2t_config=    # Config for vs2t model training.
+vs2t_args=      # Arguments for vs2t model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in vs2t config.
 feats_normalize=global_mvn # Normalizaton layer type.
-num_splits_s2t=1           # Number of splitting for lm corpus.
+num_splits_vs2t=1           # Number of splitting for lm corpus.
 num_ref=1   # Number of references for training.
             # In supervised learning based speech enhancement / separation, it is equivalent to number of speakers.
 num_inf=    # Number of inferences output by the model
@@ -120,12 +120,12 @@ inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
-inference_s2t_model=valid.acc.ave.pth # S2T model path for decoding.
+inference_vs2t_model=valid.acc.ave.pth # S2T model path for decoding.
                                       # e.g.
-                                      # inference_s2t_model=train.loss.best.pth
-                                      # inference_s2t_model=3epoch.pth
-                                      # inference_s2t_model=valid.acc.best.pth
-                                      # inference_s2t_model=valid.loss.ave.pth
+                                      # inference_vs2t_model=train.loss.best.pth
+                                      # inference_vs2t_model=3epoch.pth
+                                      # inference_vs2t_model=valid.acc.best.pth
+                                      # inference_vs2t_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -143,9 +143,12 @@ g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
-s2t_speech_fold_length=800 # fold_length for speech data during S2T training.
-s2t_text_fold_length=150   # fold_length for text data during S2T training.
+vs2t_speech_fold_length=800 # fold_length for speech data during S2T training.
+vs2t_text_fold_length=150   # fold_length for text data during S2T training.
 lm_fold_length=150         # fold_length for LM training.
+
+use_visual_feature=true
+vis_feature='clip_feature'
 
 help_message=$(cat << EOF
 Usage: $0 --train_set "<train_set_name>" --valid_set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -209,17 +212,17 @@ Options:
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
-    # S2T model related
-    --s2t_tag          # Suffix to the result dir for s2t model training (default="${s2t_tag}").
-    --s2t_exp          # Specify the directory path for S2T experiment.
-                       # If this option is specified, s2t_tag is ignored (default="${s2t_exp}").
-    --s2t_stats_dir    # Specify the directory path for S2T statistics (default="${s2t_stats_dir}").
-    --s2t_config       # Config for S2T model training (default="${s2t_config}").
-    --s2t_args         # Arguments for S2T model training (default="${s2t_args}").
-                       # e.g., --s2t_args "--max_epoch 10"
-                       # Note that it will overwrite args in s2t config.
+    # VS2T model related
+    --vs2t_tag          # Suffix to the result dir for vs2t model training (default="${vs2t_tag}").
+    --vs2t_exp          # Specify the directory path for S2T experiment.
+                       # If this option is specified, vs2t_tag is ignored (default="${vs2t_exp}").
+    --vs2t_stats_dir    # Specify the directory path for S2T statistics (default="${vs2t_stats_dir}").
+    --vs2t_config       # Config for S2T model training (default="${vs2t_config}").
+    --vs2t_args         # Arguments for S2T model training (default="${vs2t_args}").
+                       # e.g., --vs2t_args "--max_epoch 10"
+                       # Note that it will overwrite args in vs2t config.
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --num_splits_s2t   # Number of splitting for lm corpus  (default="${num_splits_s2t}").
+    --num_splits_vs2t   # Number of splitting for lm corpus  (default="${num_splits_vs2t}").
     --num_ref    # Number of references for training (default="${num_ref}").
                  # In supervised learning based speech recognition, it is equivalent to number of speakers.
     --num_inf    # Number of inference audio generated by the model (default="${num_inf}")
@@ -232,7 +235,7 @@ Options:
                           # e.g., --inference_args "--lm_weight 0.1"
                           # Note that it will overwrite args in inference config.
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
-    --inference_s2t_model # S2T model path for decoding (default="${inference_s2t_model}").
+    --inference_vs2t_model # VS2T model path for decoding (default="${inference_vs2t_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
@@ -251,8 +254,8 @@ Options:
     --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
-    --s2t_speech_fold_length # fold_length for speech data during S2T training (default="${s2t_speech_fold_length}").
-    --s2t_text_fold_length   # fold_length for text data during S2T training (default="${s2t_text_fold_length}").
+    --vs2t_speech_fold_length # fold_length for speech data during VS2T training (default="${vs2t_speech_fold_length}").
+    --vs2t_text_fold_length   # fold_length for text data during VS2T training (default="${vs2t_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 EOF
 )
@@ -348,9 +351,9 @@ ref_text_files=(${ref_text_files_str// / })
 ref_text_names=(${ref_text_names_str// / })
 
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/org/${train_set}/${ref_text_files[0]}"
-# Use the same text as S2T for lm training if not specified.
+# Use the same text as VS2T for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/org/${train_set}/${ref_text_files[0]}"
-# Use the same text as S2T for lm training if not specified.
+# Use the same text as VS2T for lm training if not specified.
 [ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/org/${valid_set}/${ref_text_files[0]}"
 if [ -z "${lm_test_text}" ]; then
     if [ -z "${test_sets}" ]; then
@@ -410,29 +413,29 @@ fi
 
 
 # Set tag for naming of model directory
-if [ -z "${s2t_tag}" ]; then
-    if [ -n "${s2t_config}" ]; then
-        s2t_tag="$(basename "${s2t_config}" .yaml)_${feats_type}"
+if [ -z "${vs2t_tag}" ]; then
+    if [ -n "${vs2t_config}" ]; then
+        vs2t_tag="$(basename "${vs2t_config}" .yaml)_${feats_type}"
     else
-        s2t_tag="train_${feats_type}"
+        vs2t_tag="train_${feats_type}"
     fi
     if [ "${lang}" != noinfo ]; then
-        s2t_tag+="_${lang}_${token_type}"
+        vs2t_tag+="_${lang}_${token_type}"
     else
-        s2t_tag+="_${token_type}"
+        vs2t_tag+="_${token_type}"
     fi
     if [ "${token_type}" = bpe ]; then
-        s2t_tag+="${nbpe}"
+        vs2t_tag+="${nbpe}"
     fi
     if [ "${token_type}" = hugging_face ]; then
-        s2t_tag+="_"${hugging_face_model_name_or_path/\//-}
+        vs2t_tag+="_"${hugging_face_model_name_or_path/\//-}
     fi
     # Add overwritten arg's info
-    if [ -n "${s2t_args}" ]; then
-        s2t_tag+="$(echo "${s2t_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
+    if [ -n "${vs2t_args}" ]; then
+        vs2t_tag+="$(echo "${vs2t_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        s2t_tag+="_sp"
+        vs2t_tag+="_sp"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -456,20 +459,20 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-if [ -z "${s2t_stats_dir}" ]; then
+if [ -z "${vs2t_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
-        s2t_stats_dir="${expdir}/s2t_stats_${feats_type}_${lang}_${token_type}"
+        vs2t_stats_dir="${expdir}/vs2t_stats_${feats_type}_${lang}_${token_type}"
     else
-        s2t_stats_dir="${expdir}/s2t_stats_${feats_type}_${token_type}"
+        vs2t_stats_dir="${expdir}/vs2t_stats_${feats_type}_${token_type}"
     fi
     if [ "${token_type}" = bpe ]; then
-        s2t_stats_dir+="${nbpe}"
+        vs2t_stats_dir+="${nbpe}"
     fi
     if [ "${token_type}" = hugging_face ]; then
-        s2t_stats_dir+="_"${hugging_face_model_name_or_path/\//-}
+        vs2t_stats_dir+="_"${hugging_face_model_name_or_path/\//-}
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        s2t_stats_dir+="_sp"
+        vs2t_stats_dir+="_sp"
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
@@ -483,8 +486,8 @@ if [ -z "${lm_stats_dir}" ]; then
     fi
 fi
 # The directory used for training commands
-if [ -z "${s2t_exp}" ]; then
-    s2t_exp="${expdir}/s2t_${s2t_tag}"
+if [ -z "${vs2t_exp}" ]; then
+    vs2t_exp="${expdir}/vs2t_${vs2t_tag}"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
@@ -510,7 +513,7 @@ if [ -z "${inference_tag}" ]; then
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
-    inference_tag+="_s2t_model_$(echo "${inference_s2t_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_vs2t_model_$(echo "${inference_vs2t_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
 if "${skip_data_prep}"; then
@@ -858,7 +861,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     if [ -n "${post_process_local_data_opts}" ]; then
         # Do any additional local data post-processing here
-        local/data.sh ${post_process_local_data_opts} --s2t_data_dir "${data_feats}/${train_set}"
+        local/data.sh ${post_process_local_data_opts} --vs2t_data_dir "${data_feats}/${train_set}"
     fi
 
     # shellcheck disable=SC2002,SC2068,SC2005
@@ -1154,19 +1157,19 @@ fi
 
 
 if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~ [[:space:]]10[[:space:]] ]]; then
-    _s2t_train_dir="${data_feats}/${train_set}"
-    _s2t_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 10: S2T collect stats: train_set=${_s2t_train_dir}, valid_set=${_s2t_valid_dir}"
+    _vs2t_train_dir="${data_feats}/${train_set}"
+    _vs2t_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 10: VS2T collect stats: train_set=${_vs2t_train_dir}, valid_set=${_vs2t_valid_dir}"
 
     _opts=
-    if [ -n "${s2t_config}" ]; then
+    if [ -n "${vs2t_config}" ]; then
         # To generate the config file: e.g.
-        #   % python3 -m espnet2.bin.s2t_train --print_config --optim adam
-        _opts+="--config ${s2t_config} "
+        #   % python3 -m espnet2.bin.vs2t_train --print_config --optim adam
+        _opts+="--config ${vs2t_config} "
     fi
 
-    _feats_type="$(<${_s2t_train_dir}/feats_type)"
-    _audio_format="$(cat ${_s2t_train_dir}/audio_format 2>/dev/null || echo ${audio_format})"
+    _feats_type="$(<${_vs2t_train_dir}/feats_type)"
+    _audio_format="$(cat ${_vs2t_train_dir}/audio_format 2>/dev/null || echo ${audio_format})"
     if [ "${_feats_type}" = raw ]; then
         _scp=wav.scp
         if [[ "${_audio_format}" == *ark* ]]; then
@@ -1179,18 +1182,18 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _input_size="$(<${_s2t_train_dir}/feats_dim)"
+        _input_size="$(<${_vs2t_train_dir}/feats_dim)"
         _opts+="--input_size=${_input_size} "
     fi
 
     # 1. Split the key file
-    _logdir="${s2t_stats_dir}/logdir"
+    _logdir="${vs2t_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${_s2t_train_dir}/${_scp} wc -l)" "$(<${_s2t_valid_dir}/${_scp} wc -l)")
+    _nj=$(min "${nj}" "$(<${_vs2t_train_dir}/${_scp} wc -l)" "$(<${_vs2t_valid_dir}/${_scp} wc -l)")
 
-    key_file="${_s2t_train_dir}/${_scp}"
+    key_file="${_vs2t_train_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
@@ -1198,7 +1201,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     # shellcheck disable=SC2086
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_s2t_valid_dir}/${_scp}"
+    key_file="${_vs2t_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -1207,30 +1210,33 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Generate run.sh
-    log "Generate '${s2t_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
-    mkdir -p "${s2t_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${s2t_stats_dir}/run.sh"; chmod +x "${s2t_stats_dir}/run.sh"
+    log "Generate '${vs2t_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
+    mkdir -p "${vs2t_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${vs2t_stats_dir}/run.sh"; chmod +x "${vs2t_stats_dir}/run.sh"
 
     # 3. Submit jobs
-    log "S2T collect-stats started... log: '${_logdir}/stats.*.log'"
+    log "VS2T collect-stats started... log: '${_logdir}/stats.*.log'"
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
 
-    _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${_scp},speech,${_type} "
-    _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${_scp},speech,${_type} "
+    _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${_scp},speech,${_type} "
+    _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${_scp},speech,${_type} "
     # shellcheck disable=SC2068
     for extra_txt in ${utt_extra_files}; do
-        _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${extra_txt},${extra_txt//./_},text "
-        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
+        _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${extra_txt},${extra_txt//./_},text "
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
     done
     for i in ${!ref_text_files[@]}; do
-        _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+        _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
     done
-
+    if ${use_visual_feature}; then
+        _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${vis_feature},${vis_feature},npy "
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${vis_feature},${vis_feature},npy "
+    fi
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.vs2t_train \
             --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
@@ -1242,7 +1248,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
-            ${_opts} ${s2t_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+            ${_opts} ${vs2t_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
     # 4. Aggregate shape files
     _opts=
@@ -1254,46 +1260,56 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--skip_sum_stats"
     fi
     # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${s2t_stats_dir}"
+    ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${vs2t_stats_dir}"
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     # shellcheck disable=SC2068
     for extra_txt in ${utt_extra_files}; do
         _extra_txt=${extra_txt//./_}
-        <"${s2t_stats_dir}/train/${_extra_txt}_shape" \
+        <"${vs2t_stats_dir}/train/${_extra_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${s2t_stats_dir}/train/${_extra_txt}_shape.${token_type}"
+            >"${vs2t_stats_dir}/train/${_extra_txt}_shape.${token_type}"
 
-        <"${s2t_stats_dir}/valid/${_extra_txt}_shape" \
+        <"${vs2t_stats_dir}/valid/${_extra_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${s2t_stats_dir}/valid/${_extra_txt}_shape.${token_type}"
+            >"${vs2t_stats_dir}/valid/${_extra_txt}_shape.${token_type}"
     done
     for ref_txt in ${ref_text_names[@]}; do
-        <"${s2t_stats_dir}/train/${ref_txt}_shape" \
+        <"${vs2t_stats_dir}/train/${ref_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${s2t_stats_dir}/train/${ref_txt}_shape.${token_type}"
+            >"${vs2t_stats_dir}/train/${ref_txt}_shape.${token_type}"
 
-        <"${s2t_stats_dir}/valid/${ref_txt}_shape" \
+        <"${vs2t_stats_dir}/valid/${ref_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${s2t_stats_dir}/valid/${ref_txt}_shape.${token_type}"
+            >"${vs2t_stats_dir}/valid/${ref_txt}_shape.${token_type}"
     done
+    if ${use_visual_feature}; then
+        _vis_feature=${vis_feature//./_}
+        <"${vs2t_stats_dir}/train/${_vis_feature}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${vs2t_stats_dir}/train/${_vis_feature}_shape.${token_type}"
+
+        <"${vs2t_stats_dir}/valid/${_vis_feature}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${vs2t_stats_dir}/valid/${_vis_feature}_shape.${token_type}"
+    fi
 fi
 
 
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
-    _s2t_train_dir="${data_feats}/${train_set}"
-    _s2t_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 11: S2T Training: train_set=${_s2t_train_dir}, valid_set=${_s2t_valid_dir}"
+    _vs2t_train_dir="${data_feats}/${train_set}"
+    _vs2t_valid_dir="${data_feats}/${valid_set}"
+    log "Stage 11: S2T Training: train_set=${_vs2t_train_dir}, valid_set=${_vs2t_valid_dir}"
 
     _opts=
-    if [ -n "${s2t_config}" ]; then
+    if [ -n "${vs2t_config}" ]; then
         # To generate the config file: e.g.
-        #   % python3 -m espnet2.bin.s2t_train --print_config --optim adam
-        _opts+="--config ${s2t_config} "
+        #   % python3 -m espnet2.bin.vs2t_train --print_config --optim adam
+        _opts+="--config ${vs2t_config} "
     fi
 
-    _feats_type="$(<${_s2t_train_dir}/feats_type)"
-    _audio_format="$(cat ${_s2t_train_dir}/audio_format 2>/dev/null || echo ${audio_format})"
+    _feats_type="$(<${_vs2t_train_dir}/feats_type)"
+    _audio_format="$(cat ${_vs2t_train_dir}/audio_format 2>/dev/null || echo ${audio_format})"
     if [ "${_feats_type}" = raw ]; then
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
@@ -1304,36 +1320,40 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         else
             _type=sound
         fi
-        _fold_length="$((s2t_speech_fold_length * 100))"
+        _fold_length="$((vs2t_speech_fold_length * 100))"
         _opts+="--frontend_conf fs=${fs} "
     else
         _scp=feats.scp
         _type=kaldi_ark
-        _fold_length="${s2t_speech_fold_length}"
-        _input_size="$(<${_s2t_train_dir}/feats_dim)"
+        _fold_length="${vs2t_speech_fold_length}"
+        _input_size="$(<${_vs2t_train_dir}/feats_dim)"
         _opts+="--input_size=${_input_size} "
 
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
         # Default normalization is utterance_mvn and changes to global_mvn
-        _opts+="--normalize=global_mvn --normalize_conf stats_file=${s2t_stats_dir}/train/feats_stats.npz "
+        _opts+="--normalize=global_mvn --normalize_conf stats_file=${vs2t_stats_dir}/train/feats_stats.npz "
     fi
 
-    if [ "${num_splits_s2t}" -gt 1 ]; then
+    if [ "${num_splits_vs2t}" -gt 1 ]; then
         # If you met a memory error when parsing text files, this option may help you.
         # The corpus is split into subsets and each subset is used for training one by one in order,
         # so the memory footprint can be limited to the memory required for each dataset.
 
-        _split_dir="${s2t_stats_dir}/splits${num_splits_s2t}"
-        _all_scps="${_s2t_train_dir}/${_scp} ${_s2t_train_dir}/text ${s2t_stats_dir}/train/speech_shape ${s2t_stats_dir}/train/text_shape.${token_type} "
+        _split_dir="${vs2t_stats_dir}/splits${num_splits_vs2t}"
+        _all_scps="${_vs2t_train_dir}/${_scp} ${_vs2t_train_dir}/text ${vs2t_stats_dir}/train/speech_shape ${vs2t_stats_dir}/train/text_shape.${token_type} "
         for extra_txt in ${utt_extra_files}; do
-            _all_scps+="${_s2t_train_dir}/${extra_txt} ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
+            _all_scps+="${_vs2t_train_dir}/${extra_txt} ${vs2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
         done
+        if ${use_visual_feature}; then
+            _all_scps+="${_vs2t_train_dir}/${vis_feature} ${vs2t_stats_dir}/train/${vis_feature//./_}_shape.${token_type} "
+        fi
+
         if [ ! -f "${_split_dir}/.done" ]; then
             rm -f "${_split_dir}/.done"
             ${python} -m espnet2.bin.split_scps \
               --scps ${_all_scps} \
-              --num_splits "${num_splits_s2t}" \
+              --num_splits "${num_splits_vs2t}" \
               --output_dir "${_split_dir}"
             touch "${_split_dir}/.done"
         else
@@ -1344,65 +1364,79 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_shape_file ${_split_dir}/speech_shape "
         # shellcheck disable=SC2068
         for extra_txt in ${utt_extra_files}; do
-            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--fold_length ${vs2t_text_fold_length} "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${extra_txt},${extra_txt//./_},text "
             _opts+="--train_shape_file ${_split_dir}/${extra_txt//./_}_shape.${token_type} "
         done
         for i in ${!ref_text_names[@]}; do
-            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--fold_length ${vs2t_text_fold_length} "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
             _opts+="--train_shape_file ${_split_dir}/${ref_text_names[$i]}_shape.${token_type} "
         done
+
+        if ${use_visual_feature}; then
+            _opts+="--fold_length ${vs2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${vis_feature},${vis_feature//./_},npy "
+            _opts+="--train_shape_file ${_split_dir}/${vis_feature//./_}_shape.${token_type} "
+        fi
         _opts+="--multiple_iterator true "
 
     else
-        _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${s2t_stats_dir}/train/speech_shape "
+        _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_shape_file ${vs2t_stats_dir}/train/speech_shape "
 
         # shellcheck disable=SC2068
         for extra_txt in ${utt_extra_files}; do
-            _opts+="--fold_length ${s2t_text_fold_length} "
-            _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${extra_txt},${extra_txt//./_},text "
-            _opts+="--train_shape_file ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
+            _opts+="--fold_length ${vs2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${extra_txt},${extra_txt//./_},text "
+            _opts+="--train_shape_file ${vs2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
         done
         for i in ${!ref_text_names[@]}; do
-            _opts+="--fold_length ${s2t_text_fold_length} "
-            _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-            _opts+="--train_shape_file ${s2t_stats_dir}/train/${ref_text_names[$i]}_shape.${token_type} "
+            _opts+="--fold_length ${vs2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+            _opts+="--train_shape_file ${vs2t_stats_dir}/train/${ref_text_names[$i]}_shape.${token_type} "
         done
+        if ${use_visual_feature}; then
+            _opts+="--fold_length ${vs2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_vs2t_train_dir}/${vis_feature},${vis_feature},npy "
+            _opts+="--train_shape_file ${vs2t_stats_dir}/train/${vis_feature//./_}_shape.${token_type} "
+        fi
     fi
 
     # shellcheck disable=SC2068
     for extra_txt in ${utt_extra_files}; do
-        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
-        _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${extra_txt//./_}_shape.${token_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
+        _opts+="--valid_shape_file ${vs2t_stats_dir}/valid/${extra_txt//./_}_shape.${token_type} "
     done
     for i in ${!ref_text_names[@]}; do
-        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-        _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+        _opts+="--valid_shape_file ${vs2t_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
     done
-
-    log "Generate '${s2t_exp}/run.sh'. You can resume the process from stage 11 using this script"
-    mkdir -p "${s2t_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${s2t_exp}/run.sh"; chmod +x "${s2t_exp}/run.sh"
+    if ${use_visual_feature}; then
+        _opts+="--valid_data_path_and_name_and_type ${_vs2t_valid_dir}/${vis_feature},${vis_feature},npy "
+        _opts+="--valid_shape_file ${vs2t_stats_dir}/valid/${vis_feature//./_}_shape.${token_type} "
+    fi
+    log "Generate '${vs2t_exp}/run.sh'. You can resume the process from stage 11 using this script"
+    mkdir -p "${vs2t_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${vs2t_exp}/run.sh"; chmod +x "${vs2t_exp}/run.sh"
 
     # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-    log "S2T training started... log: '${s2t_exp}/train.log'"
+    log "S2T training started... log: '${vs2t_exp}/train.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
-        jobname="$(basename ${s2t_exp})"
+        jobname="$(basename ${vs2t_exp})"
     else
-        jobname="${s2t_exp}/train.log"
+        jobname="${vs2t_exp}/train.log"
     fi
 
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
-        --log "${s2t_exp}"/train.log \
+        --log "${vs2t_exp}"/train.log \
         --ngpu "${ngpu}" \
         --num_nodes "${num_nodes}" \
-        --init_file_prefix "${s2t_exp}"/.dist_init_ \
+        --init_file_prefix "${vs2t_exp}"/.dist_init_ \
         --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.s2t_train \
+        ${python} -m espnet2.bin.vs2t_train \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
             --token_type "${token_type}" \
@@ -1410,36 +1444,36 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
             --non_linguistic_symbols "${nlsyms_txt}" \
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
-            --valid_data_path_and_name_and_type "${_s2t_valid_dir}/${_scp},speech,${_type}" \
-            --valid_shape_file "${s2t_stats_dir}/valid/speech_shape" \
+            --valid_data_path_and_name_and_type "${_vs2t_valid_dir}/${_scp},speech,${_type}" \
+            --valid_shape_file "${vs2t_stats_dir}/valid/speech_shape" \
             --resume true \
             --fold_length "${_fold_length}" \
-            --output_dir "${s2t_exp}" \
-            ${_opts} ${s2t_args}
+            --output_dir "${vs2t_exp}" \
+            ${_opts} ${vs2t_args}
 
 fi
 
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    s2t_exp="${expdir}/${download_model}"
-    mkdir -p "${s2t_exp}"
+    vs2t_exp="${expdir}/${download_model}"
+    mkdir -p "${vs2t_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${s2t_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${vs2t_exp}/config.txt"
 
     # Get the path of each file
-    _s2t_model_file=$(<"${s2t_exp}/config.txt" sed -e "s/.*'s2t_model_file': '\([^']*\)'.*$/\1/")
-    _s2t_train_config=$(<"${s2t_exp}/config.txt" sed -e "s/.*'s2t_train_config': '\([^']*\)'.*$/\1/")
+    _vs2t_model_file=$(<"${vs2t_exp}/config.txt" sed -e "s/.*'vs2t_model_file': '\([^']*\)'.*$/\1/")
+    _vs2t_train_config=$(<"${vs2t_exp}/config.txt" sed -e "s/.*'vs2t_train_config': '\([^']*\)'.*$/\1/")
 
     # Create symbolic links
-    ln -sf "${_s2t_model_file}" "${s2t_exp}"
-    ln -sf "${_s2t_train_config}" "${s2t_exp}"
-    inference_s2t_model=$(basename "${_s2t_model_file}")
+    ln -sf "${_vs2t_model_file}" "${vs2t_exp}"
+    ln -sf "${_vs2t_train_config}" "${vs2t_exp}"
+    inference_vs2t_model=$(basename "${_vs2t_model_file}")
 
-    if [ "$(<${s2t_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
-        _lm_file=$(<"${s2t_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
-        _lm_train_config=$(<"${s2t_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
+    if [ "$(<${vs2t_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
+        _lm_file=$(<"${vs2t_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
+        _lm_train_config=$(<"${vs2t_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
 
         lm_exp="${expdir}/${download_model}/lm"
         mkdir -p "${lm_exp}"
@@ -1453,7 +1487,7 @@ fi
 
 
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
-    log "Stage 12: Decoding: training_dir=${s2t_exp}"
+    log "Stage 12: Decoding: training_dir=${vs2t_exp}"
 
     if ${gpu_inference}; then
         _cmd="${cuda_cmd}"
@@ -1481,8 +1515,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     fi
 
     # 2. Generate run.sh
-    log "Generate '${s2t_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
-    mkdir -p "${s2t_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${s2t_exp}/${inference_tag}/run.sh"; chmod +x "${s2t_exp}/${inference_tag}/run.sh"
+    log "Generate '${vs2t_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
+    mkdir -p "${vs2t_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${vs2t_exp}/${inference_tag}/run.sh"; chmod +x "${vs2t_exp}/${inference_tag}/run.sh"
 
     inference_bin_tag=""
     if "${use_streaming}"; then
@@ -1496,7 +1530,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     fi
     for dset in ${_dsets}; do
         _data="${data_feats}/${dset}"
-        _dir="${s2t_exp}/${inference_tag}/${dset}"
+        _dir="${vs2t_exp}/${inference_tag}/${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -1528,19 +1562,20 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Submit decoding jobs
-        log "Decoding started... log: '${_logdir}/s2t_inference.*.log'"
+        log "Decoding started... log: '${_logdir}/vs2t_inference.*.log'"
         rm -f "${_logdir}/*.log"
         # shellcheck disable=SC2046,SC2086
-        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/s2t_inference.JOB.log \
-            ${python} -m espnet2.bin.s2t_inference${inference_bin_tag} \
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/vs2t_inference.JOB.log \
+            ${python} -m espnet2.bin.vis_vs2t_inference${inference_bin_tag} \
                 --batch_size ${batch_size} \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                --data_path_and_name_and_type "${_data}/${vis_feature},${vis_feature},npy" \
                 --key_file "${_logdir}"/keys.JOB.scp \
-                --s2t_train_config "${s2t_exp}"/config.yaml \
-                --s2t_model_file "${s2t_exp}"/"${inference_s2t_model}" \
+                --vs2t_train_config "${vs2t_exp}"/config.yaml \
+                --vs2t_model_file "${vs2t_exp}"/"${inference_vs2t_model}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/s2t_inference.*.log) ; exit 1; }
+                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/vs2t_inference.*.log) ; exit 1; }
 
         # 3. Concatenates the output files from each jobs
         # shellcheck disable=SC2068
@@ -1573,7 +1608,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     fi
     for dset in ${_dsets}; do
         _data="${data_feats}/${dset}"
-        _dir="${s2t_exp}/${inference_tag}/${dset}"
+        _dir="${vs2t_exp}/${inference_tag}/${dset}"
 
         for _tok_type in "char" "word" "bpe"; do
             [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
@@ -1634,16 +1669,16 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
         done
     done
 
-    [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${s2t_exp}"
+    [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${vs2t_exp}"
 
     # Show results in Markdown syntax
-    scripts/utils/show_asr_result.sh "${s2t_exp}" > "${s2t_exp}"/RESULTS.md
-    cat "${s2t_exp}"/RESULTS.md
+    scripts/utils/show_asr_result.sh "${vs2t_exp}" > "${vs2t_exp}"/RESULTS.md
+    cat "${vs2t_exp}"/RESULTS.md
 
 fi
 
 
-packed_model="${s2t_exp}/${s2t_exp##*/}_${inference_s2t_model%.*}.zip"
+packed_model="${vs2t_exp}/${vs2t_exp##*/}_${inference_vs2t_model%.*}.zip"
 if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then
     log "Stage 14: Pack model: ${packed_model}"
 
@@ -1655,7 +1690,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~
         _opts+="--option ${lm_exp}/images "
     fi
     if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${s2t_stats_dir}/train/feats_stats.npz "
+        _opts+="--option ${vs2t_stats_dir}/train/feats_stats.npz "
     fi
     if [ "${token_type}" = bpe ]; then
         _opts+="--option ${bpemodel} "
@@ -1664,12 +1699,12 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~
         _opts+="--option ${nlsyms_txt} "
     fi
     # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack s2t \
-        --s2t_train_config "${s2t_exp}"/config.yaml \
-        --s2t_model_file "${s2t_exp}"/"${inference_s2t_model}" \
+    ${python} -m espnet2.bin.pack vs2t \
+        --vs2t_train_config "${vs2t_exp}"/config.yaml \
+        --vs2t_model_file "${vs2t_exp}"/"${inference_vs2t_model}" \
         ${_opts} \
-        --option "${s2t_exp}"/RESULTS.md \
-        --option "${s2t_exp}"/images \
+        --option "${vs2t_exp}"/RESULTS.md \
+        --option "${vs2t_exp}"/images \
         --outpath "${packed_model}"
 fi
 
@@ -1699,9 +1734,9 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
         _creator_name="$(whoami)"
         _checkout=""
     fi
-    # /some/where/espnet/egs2/foo/s2t1/ -> foo/s2t1
+    # /some/where/espnet/egs2/foo/vs2t1/ -> foo/vs2t1
     _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/s2t1 -> foo
+    # foo/vs2t1 -> foo
     _corpus="${_task%/*}"
     _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
@@ -1713,7 +1748,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
     # shellcheck disable=SC2034
     espnet_task=S2T
     # shellcheck disable=SC2034
-    task_exp=${s2t_exp}
+    task_exp=${vs2t_exp}
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
