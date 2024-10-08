@@ -20,6 +20,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
 from espnet2.asr.layers.fastformer import FastSelfAttention
+from espnet2.asr.layers.moe import MoE
 from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     LegacyRelPositionMultiHeadedAttention,
@@ -49,9 +50,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
-from espnet2.asr.layers.moe import MoE
-
-
 
 
 class VisualEBranchformerEncoderLayer(torch.nn.Module):
@@ -91,8 +89,10 @@ class VisualEBranchformerEncoderLayer(torch.nn.Module):
         self.ff_scale = 1.0
         self.use_moe = use_moe
         if self.use_moe:
-            self.moe_layer = MoE(self.feed_forward, num_experts, size, k=top_k_experts, noisy_gating=True)
-        
+            self.moe_layer = MoE(
+                self.feed_forward, num_experts, size, k=top_k_experts, noisy_gating=True
+            )
+
         if self.feed_forward is not None:
             self.norm_ff = LayerNorm(size)
         if self.feed_forward_macaron is not None:
@@ -186,7 +186,7 @@ class VisualEBranchformerEncoderLayer(torch.nn.Module):
                 x = residual + self.ff_scale * self.dropout(x)
             else:
                 x = residual + self.ff_scale * self.dropout(self.feed_forward(x))
-                                    
+
         x = self.norm_final(x)
 
         if pos_emb is not None:
@@ -496,10 +496,12 @@ class VisualEBranchformerEncoder(AbsEncoder):
             xs_pad = self.embed(xs_pad)
         if clip_feature is not None:
             pad_len = clip_feature.shape[1]
-            mask_padding = torch.ones(masks.shape[0], masks.shape[1], pad_len, dtype=torch.bool).to(xs_pad.device)
+            mask_padding = torch.ones(
+                masks.shape[0], masks.shape[1], pad_len, dtype=torch.bool
+            ).to(xs_pad.device)
             masks = torch.cat([mask_padding, masks], dim=2)
-            xs_pad = torch.cat((clip_feature, xs_pad),1)
-        
+            xs_pad = torch.cat((clip_feature, xs_pad), 1)
+
         intermediate_outs = []
         aux_loss = 0
         if len(self.interctc_layer_idx) == 0:
@@ -514,13 +516,15 @@ class VisualEBranchformerEncoder(AbsEncoder):
                         xs_pad, masks = encoder_layer(xs_pad, masks)
                     else:
                         xs_pad, masks, aux_loss = encoder_layer(xs_pad, masks, aux_loss)
-                        
+
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 if not self.use_moe:
                     xs_pad, masks = encoder_layer(xs_pad, masks)
                 else:
-                    xs_pad, masks, aux_loss = encoder_layer(xs_pad, masks, aux_loss=aux_loss)
+                    xs_pad, masks, aux_loss = encoder_layer(
+                        xs_pad, masks, aux_loss=aux_loss
+                    )
 
                 if layer_idx + 1 in self.interctc_layer_idx:
                     encoder_out = xs_pad
@@ -544,8 +548,8 @@ class VisualEBranchformerEncoder(AbsEncoder):
             xs_pad = xs_pad[0]
 
         xs_pad = self.after_norm(xs_pad)
-        xs_pad = xs_pad[:, self.num_frames:, :]
-        masks = masks[:, :, self.num_frames:]
+        xs_pad = xs_pad[:, self.num_frames :, :]
+        masks = masks[:, :, self.num_frames :]
         olens = masks.squeeze(1).sum(1)
         if len(intermediate_outs) > 0:
             return (xs_pad, intermediate_outs), olens, None

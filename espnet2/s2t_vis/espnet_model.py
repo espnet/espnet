@@ -77,10 +77,10 @@ class ESPnetS2TModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        
-        self.num_frames = num_frames       
+
+        self.num_frames = num_frames
         self.visual_dim = visual_dim
-        
+
         self.aux_weight = aux_weight
 
         if not hasattr(self.encoder, "interctc_use_conditioning"):
@@ -101,8 +101,10 @@ class ESPnetS2TModel(AbsESPnetModel):
             logging.warning("Set decoder to none as ctc_weight==1.0")
 
         self.decoder = decoder
-        
-        self.visual_projection = torch.nn.Linear(self.visual_dim, self.encoder.output_size())
+
+        self.visual_projection = torch.nn.Linear(
+            self.visual_dim, self.encoder.output_size()
+        )
 
         self.criterion_att = LabelSmoothingLoss(
             size=vocab_size,
@@ -181,16 +183,18 @@ class ESPnetS2TModel(AbsESPnetModel):
             clip_feature.shape,
         )
         batch_size, length = speech.shape[:2]
-        
+
         # -1 is used as padding index in collate fn
         text[text == -1] = self.ignore_id
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
         _clip_feature = self.visual_projection(clip_feature)
-        
+
         # 1. Encoder (add visual feature)
-        encoder_out, encoder_out_lens, aux_loss = self.encode(speech, speech_lengths, _clip_feature)
+        encoder_out, encoder_out_lens, aux_loss = self.encode(
+            speech, speech_lengths, _clip_feature
+        )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -252,7 +256,11 @@ class ESPnetS2TModel(AbsESPnetModel):
             loss = loss_ctc
         else:
             if self.aux_weight > 0 and aux_loss is not None:
-                loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att + self.aux_weight * aux_loss
+                loss = (
+                    self.ctc_weight * loss_ctc
+                    + (1 - self.ctc_weight) * loss_att
+                    + self.aux_weight * aux_loss
+                )
             else:
                 loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
@@ -286,7 +294,10 @@ class ESPnetS2TModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor, clip_feature: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        clip_feature: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by s2t_inference.py
 
@@ -318,7 +329,9 @@ class ESPnetS2TModel(AbsESPnetModel):
                 feats, feats_lengths, clip_feature, ctc=self.ctc
             )
         else:
-            encoder_out, encoder_out_lens, aux_loss = self.encoder(feats, feats_lengths, clip_feature)
+            encoder_out, encoder_out_lens, aux_loss = self.encoder(
+                feats, feats_lengths, clip_feature
+            )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -398,7 +411,7 @@ class ESPnetS2TModel(AbsESPnetModel):
                 y_in = [_sop, y_prev, _sos, y]
                 y_in_len = len(y_prev) + len(y) + 2
                 y_out = [self.ignore_id * ys_pad.new_ones(len(y_prev) + 1), y, _eos]
-            
+
             ys_in.append(torch.cat(y_in))
             ys_in_lens.append(y_in_len)
             ys_out.append(torch.cat(y_out))
@@ -406,7 +419,7 @@ class ESPnetS2TModel(AbsESPnetModel):
         ys_in_pad = pad_list(ys_in, self.eos)
         ys_in_lens = torch.tensor(ys_in_lens).to(ys_pad_lens)
         ys_out_pad = pad_list(ys_out, self.ignore_id)
- 
+
         # 1. Forward decoder
         decoder_out, _ = self.decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens

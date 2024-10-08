@@ -78,7 +78,7 @@ extra_wav_list= # Extra list of scp files for wav formatting
 init_param=
 
 # Enhancement related
-inference_args="--normalize_output_wav true"
+inference_args="--normalize_output_wav true --output_format wav"
 inference_model=valid.loss.ave.pth
 download_model=
 
@@ -172,6 +172,7 @@ Options:
     --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
     --inference_model      # Enhancement model path for inference (default="${inference_model}").
     --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
+    --download_model      # Download a model from Model Zoo and use it for inference (default="${download_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -222,7 +223,7 @@ fi
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
 # Extra files for enhancement process
-utt_extra_files="utt2category"
+utt_extra_files="utt2category utt2fs"
 
 data_feats=${dumpdir}/raw
 
@@ -797,6 +798,26 @@ if ! "${skip_train}"; then
     fi
 else
     log "Skip the training stages"
+fi
+
+
+
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for inference and scoring"
+    enh_exp="${expdir}/${download_model}"
+    mkdir -p "${enh_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${enh_exp}/config.txt"
+
+    # Get the path of each file
+    _enh_model_file=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_model_file': '\([^']*\)'.*$/\1/")
+    _enh_train_config=$(<"${enh_exp}/config.txt" sed -e "s/.*'enh_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_enh_model_file}" "${enh_exp}"
+    ln -sf "${_enh_train_config}" "${enh_exp}"
+    inference_model=$(basename "${_enh_model_file}")
 fi
 
 

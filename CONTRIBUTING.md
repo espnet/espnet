@@ -94,7 +94,7 @@ or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's
 - [ ] common/shared files are linked with **symbolic link** (see Section 1.3.3)
 - [ ] cluster settings should be set as **default** (e.g., `cmd.sh` `conf/slurm.conf` `conf/queue.conf` `conf/pbs.conf`)
 - [ ] update `egs/README.md` or `egs2/README.md` with the corresponding recipes
-- [ ] add the corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
+- [ ] add the corresponding entry in `egs2/TEMPLATE/*/db.sh` for a new corpus
 - [ ] try to **simplify** the model configurations. We recommend having only the best configuration for the start of a recipe. Please also follow the default rule defined in Section 1.3.3
 - [ ] large meta-information (e.g., the keyword list) for a corpus should be maintained elsewhere other than in the recipe itself
 - [ ] also recommend including results and pre-trained models with the recipe
