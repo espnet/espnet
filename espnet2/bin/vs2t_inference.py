@@ -543,7 +543,11 @@ class VisualSpeech2Text:
         self, intermediate_outs: List[Tuple[int, torch.Tensor]]
     ) -> Dict[int, List[str]]:
 
-        exclude_ids = [self.vs2t_model.blank_id, self.vs2t_model.sos, self.vs2t_model.eos]
+        exclude_ids = [
+            self.vs2t_model.blank_id,
+            self.vs2t_model.sos,
+            self.vs2t_model.eos,
+        ]
         res = {}
         token_list = self.beam_search.token_list
 
@@ -828,7 +832,9 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=VS2TTask.build_preprocess_fn(visualspeech2text.vs2t_train_args, False),
+        preprocess_fn=VS2TTask.build_preprocess_fn(
+            visualspeech2text.vs2t_train_args, False
+        ),
         collate_fn=VS2TTask.build_collate_fn(visualspeech2text.vs2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
