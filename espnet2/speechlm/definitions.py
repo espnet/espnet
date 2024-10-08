@@ -139,8 +139,13 @@ SPEECHLM_TASKS["vc"] = SpeechLMTaskTemplate(
 )
 
 SPEECHLM_TASKS["ssl2codec"] = SpeechLMTaskTemplate(
-    conditions=[("wav.scp", "ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
+    conditions=[("ssl_wav.scp", "ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
     targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["s2st"] = SpeechLMTaskTemplate(
+    conditions=[("wav_src.scp", "ssl", "kaldi_ark"), ("lang.src", "text_bpe", "text")],
+    targets=[("text.src", "text_bpe", "text"), ("text.tgt", "text_bpe", "text"), ("wav.scp", "ssl", "kaldi_ark")],
 )
 
 
