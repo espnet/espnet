@@ -2493,7 +2493,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             if triplet in task.targets and conti_feat is not None:
                 raise ValueError("Continuous feats can only be the condition")
             conti_feats.append(conti_feat)
-
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
         if task.use_task_identifier:
@@ -2616,7 +2615,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_feat = None
 
         # Other discrete modalities
-        elif modality in ["ssl", "text_bpe", "g2p"]:
+        elif modality in ["ssl", "text_bpe", "g2p", "svs_lb"]:
 
             if modality in ["text_bpe", "g2p"]:
                 if isinstance(value, str):
@@ -2641,6 +2640,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             elif modality in ["ssl"]:
                 value = value + self.token_bias["ssl"]
+
+            elif modality in ["svs_lb"]:
+                value = value.split(" ")  # str to token list, no '\n'
+                value = self.converter.tokens2ids(value)
+                value = np.array(value)  # NOTE(yiwen) don't need to add token bias
 
             value = np.pad(
                 np.expand_dims(value, 1),

@@ -232,6 +232,7 @@ def main():
         torch.nn.init.normal_(new_tensor, mean=0, std=std)
 
         new_tensor = torch.cat([old_tensor, new_tensor], dim=0).contiguous()
+        print("new tensor name and shape: ", tensor_name, new_tensor.size())
         checkpoint[tensor_name] = new_tensor
 
     torch.save(checkpoint, args.output_exp_dir / args.inference_model)

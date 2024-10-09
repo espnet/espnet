@@ -1,0 +1,12 @@
+# search algorithm parameters
+search_algo: topk_sampling
+# search_algo: teacher_force
+sampling_temperature: 1.0
+minlenratio: 0.05
+top_k: 30
+
+# offline tokenizer
+codec_conf:
+    codec_choice: ESPnet
+    hf_model_tag: espnet/owsmdata_soundstream_16k_200epoch
+    codec_fs: 16000

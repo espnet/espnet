@@ -76,7 +76,7 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model="valid.acc.ave.till45epoch" # Model path for decoding.
+inference_model=valid.acc.ave.pth # Model path for decoding.
                                    # e.g.
                                    # inference_model=train.loss.best.pth
                                    # inference_model=3epoch.pth
@@ -138,9 +138,12 @@ hf_repo=
 
 help_message=""
 
-# svs helpers
-svs_score_triplets="score.scp,svs_lb,text"
+# score is the main triplet while label and text are helpers
+svs_score_triplets="score.scp,svs_lb,text" #TODO(yiwen) test svs_lb the new modality
 svs_text_triplets="text,svs_lb,text"
+
+# svs_score_triplets="score.scp,g2p,text" #TODO(yiwen) test svs_lb the new modality
+# svs_text_triplets="text,g2p,text"
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
@@ -250,7 +253,6 @@ if [ -z "${speechlm_exp}" ]; then
 fi
 
 global_ngpu=$((ngpu * num_nodes))
-
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -270,10 +272,7 @@ if ! "${skip_data_prep}"; then
         _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
         _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
-        if [ ${task}=="svs" ]; then
-            all_triplets="$all_triplets $svs_score_triplets $svs_text_triplets" #process assistant modalities
-        fi
-
+        svs_all_triplets="$all_triplets $svs_score_triplets $svs_text_triplets" #process assistant modalities
         if ${skip_train}; then
             _dsets=${test_sets}
         else
@@ -283,7 +282,7 @@ if ! "${skip_data_prep}"; then
         for dset in ${_dsets}; do
             mkdir -p ${data_audio}/${dset}
 
-            for triplet in ${all_triplets}; do
+            for triplet in ${svs_all_triplets}; do
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
 
                 if [ ${_modality} == "codec" ] || [ ${_modality} == "ssl" ] || [ ${_modality} == "codec_ssl" ]; then
@@ -314,36 +313,6 @@ if ! "${skip_data_prep}"; then
                     awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/${_name}"
                 fi
             done
-
-            if [ ${task} == "svs" ]; then
-                # convert the separate score json files to an uniform text file
-                python utils/data/internal/convert_score.py --data_folder ${data_audio}/${dset}
-                echo "start to combine 3 input modalities"
-
-                ## tokenize continuous duration to integer
-                # back up original label (st, ed, phn) --> new label (duration, phn)
-                ${python} utils/data/internal/tokenize_duration.py \
-                    --data_folder ${data_audio}/${dset} \
-                    --file_type "label"
-
-                # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
-                ${python} utils/data/internal/tokenize_duration.py \
-                    --data_folder ${data_audio}/${dset} \
-                    --file_type "score"
-
-                ## preprocess svs data info to phn level triplets
-                ## find midi from score file, add to the label file and save as a new score file
-                ${python} utils/data/internal/make_svs_score_triplets.py \
-                    --data_folder ${data_audio}/${dset}
-
-                ## data format1 --> data format2
-                ${python} utils/data/internal/tokenize_duration.py \
-                    --data_folder ${data_audio}/${dset} \
-                    --file_type "duration"
-                rm ${data_audio}/${dset}/label2
-
-            fi
-
         done
     fi
 
@@ -361,10 +330,12 @@ if ! "${skip_data_prep}"; then
 
         # Parse the data preparation operations from Python task definition.
         all_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].data_triplets_string)")
+        # NOTE(yiwen) process assistant modalities, score and text have to be processed before label, a.k.a please don't change the order.
+        svs_all_triplets="$svs_score_triplets $svs_text_triplets $all_triplets"
 
         for dset in ${_dsets}; do
             opts=""
-            for triplet in ${all_triplets}; do
+            for triplet in ${svs_all_triplets}; do
                 mkdir -p ${data_feats}/${dset}/token_lists
 
                 IFS=',' read -r _name _modality _type <<< "${triplet}"
@@ -512,12 +483,16 @@ if ! "${skip_data_prep}"; then
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 elif [ ${_modality} == "svs_lb" ]; then
-                    echo "copy label file"
+                    echo "dump svs lable tokens"
+                    # cp the files first, generate token list later
                     cp "${data_audio}/${dset}/${_name}" "${data_feats}/${dset}/${_name}"
 
                 else
                     echo "Unsupported modality ${_modality}" && exit 1;
                 fi
+
+                # convert the separate score json files to an uniform text file
+                python utils/data/internal/convert_score.py --data_folder ${data_feats}/${dset}
 
                 opts+="--file_modality_type ${data_feats}/${dset}/${_name},${_modality},${_type} "
                 if [ -f ${data_feats}/${dset}/token_lists/${_modality}_token_list ]; then
@@ -525,13 +500,37 @@ if ! "${skip_data_prep}"; then
                 fi
             done
 
+
             if [ ${task} == "svs" ]; then
+                echo "start to combine 3 input modalities"
+                ## tokenize continuous duration to integer
+                # back up original label (st, ed, phn) --> new label (duration, phn)
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "label"
+                # back up original score (st, ed, sylb, midi, word) --> new score (duration, midi, word)
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "score"
+
+                ## preprocess svs data info to phn level triplets
+                ## find midi from score file, add to the label file and save as a new score file
+                ${python} utils/data/internal/make_svs_score_triplets.py \
+                    --data_folder ${data_feats}/${dset}
+
+                ## data format1 --> data format2
+                ${python} utils/data/internal/tokenize_duration.py \
+                    --data_folder ${data_feats}/${dset} \
+                    --file_type "duration"
+                rm ${data_feats}/${dset}/label2
+
+                ## generate the tokenlist from label
                 ${python} utils/data/internal/dump_svs_tokenls.py \
                     --input "${data_feats}/${dset}/label" \
-                    --output "${data_feats}/${dset}/token_lists/svs_lb_token_list"
+                    --output "${data_feats}/${dset}/token_lists/${_modality}_token_list"
             fi
 
-            # The metadata for this dataset/task is saved in a json file
+            # The metadata for this dataset/task is saved in a json file, also do verification
             ${python} pyscripts/utils/make_speechlm_json.py \
                 --task ${task} \
                 --output_json ${data_feats}/${dset}/data.json \
@@ -552,7 +551,7 @@ if ! ${skip_data_prep}; then
 fi
 
 if ! ${skip_train}; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then #TODO(yiwen) add token list of midi and lower letter phone
         log "Generate vocabulary from the given train_jsons"
         mkdir -p ${token_list_dir}
         ${python} pyscripts/utils/make_token_list_speechlm.py \
@@ -617,6 +616,7 @@ if ! ${skip_train}; then
             touch ${this_stats_dir}/.done
         done
     fi
+
 
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: SpeechlLM training: train_jsons=${train_jsons}, valid_set=${valid_jsons}"
@@ -755,7 +755,7 @@ if ! "${skip_eval}"; then
                 --nj ${inference_nj} \
                 --output_dir ${_logdir}
 
-            _data_opts="--data_path_and_name_and_type ${_logdir}/split${inference_nj}/JOB/data.json,_,dataset_json"
+            _data_opts="--data_path_and_name_and_type ${_logdir}/${dset}/split${inference_nj}/JOB/data.JOB.json,_,dataset_json"
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
@@ -818,7 +818,6 @@ if ! "${skip_eval}"; then
 
             # (2) process files before scoring.
             # (2.1) intersection of all generated example files
-
             awk '{print $1}' ${_dir}/$(echo ${target_files} | cut -d ' ' -f 1) > ${_dir}/eval_cache/gen_list
             for file in $(echo ${target_files} | cut -d ' ' -f 2-); do
                 utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/${file} \
@@ -858,34 +857,28 @@ if ! "${skip_eval}"; then
                 awk -v prefix="${task}" '{print prefix "_" $1}' ${_src_dir}/index_files/${file}
             done | sort | uniq > ${_dir}/eval_cache/key_file
 
-            if [ ${task}=="svs" ]; then
-                ### aggregate wav files
-                _logdir="${_dir}/log"
-                mkdir -p "${_dir}/wav"
-                for i in $(seq "${inference_nj}"); do
-                    cp "${_logdir}/output.${i}"/wav.scp/*.wav "${_dir}"/wav
-                    # rm -rf "${_logdir}/output.${i}"/wav
-                done
+            ### if using espnet embeded eval functions, aggregate wav files
+            _logdir="${_dir}/log"
+            mkdir -p "${_dir}/wav"
+            for i in $(seq "${inference_nj}"); do
+                cp "${_logdir}/output.${i}"/wav.scp/*.wav "${_dir}"/wav
+                # rm -rf "${_logdir}/output.${i}"/wav
+            done
 
-                cp ${dumpdir}/audio_raw_${task}_${data_name}/${_dset}/wav.scp "${_dir}"/ref_temp.scp
+            cp ${dumpdir}/audio_raw_${task}_${data_name}/${_dset}/wav.scp "${_dir}"/ref_temp.scp
 
-                first_write=true
-                while IFS=' ' read -r key value; do
-                    new_key="svs_${key}_sample0"
-                    if [ "$first_write" = true ]; then
-                        echo "${new_key} ${value}" > "${_dir}/ref_wav.scp"
-                        first_write=false
-                    else
-                        echo "${new_key} ${value}" >> "${_dir}/ref_wav.scp"
-                    fi
-                done < "${_dir}/ref_temp.scp"
-                rm "${_dir}/ref_temp.scp"
-
-                if [ -f "data/${_dset}/utt2spk" ]; then
-                    cp data/${_dset}/utt2spk ${_dir}/eval_cache/utt2spk
+            first_write=true
+            while IFS=' ' read -r key value; do
+                new_key="svs_${key}_sample0"
+                if [ "$first_write" = true ]; then
+                    echo "${new_key} ${value}" > "${_dir}/ref_wav.scp"
+                    first_write=false
+                else
+                    echo "${new_key} ${value}" >> "${_dir}/ref_wav.scp"
                 fi
-                ###
-            fi
+            done < "${_dir}/ref_temp.scp"
+            rm "${_dir}/ref_temp.scp"
+            ###
 
             # (3) Task-specific evaluation
             ./scripts/utils/speechlm_eval/eval_${task}.sh \
@@ -895,7 +888,7 @@ if ! "${skip_eval}"; then
                 --nj ${nj} \
                 --inference_nj ${inference_nj} \
                 --gpu_inference ${gpu_inference} \
-                --nbest ${nbest} ${scoring_args}
+                --nbest ${nbest}
         done
     fi
 else

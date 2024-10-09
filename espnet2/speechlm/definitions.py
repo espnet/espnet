@@ -22,6 +22,7 @@ MODALITIES["text_bpe"] = Modality()
 MODALITIES["g2p"] = Modality()
 MODALITIES["spk"] = Modality()
 MODALITIES["class"] = Modality()
+MODALITIES["svs_lb"] = Modality()
 MODALITIES["bool"] = Modality()
 MODALITIES["vision"] = Modality()
 
@@ -105,6 +106,11 @@ SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
 
 SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
     conditions=[("text", "text_emb", "kaldi_ark")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["svs"] = SpeechLMTaskTemplate(
+    conditions=[("label", "svs_lb", "text")],
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 

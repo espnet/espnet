@@ -1,0 +1,16 @@
+# mcd f0 related metrics
+#  -- mcd: mel cepstral distortion
+#  -- f0_corr: f0 correlation
+#  -- f0_rmse: f0 root mean square error
+
+- name: mcd_f0
+  fs: 16000
+  f0min: 40
+  f0max: 800
+  mcep_shift: 5
+  mcep_fftl: 1024
+  mcep_dim: 39
+  mcep_alpha: 0.466
+  seq_mismatch_tolerance: 0.1
+  power_threshold: -20
+  dtw: false

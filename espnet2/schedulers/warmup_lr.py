@@ -43,9 +43,17 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
 
     def get_lr(self):
         step_num = self.last_epoch + 1
-        return [
-            lr
-            * self.warmup_steps**0.5
-            * min(step_num**-0.5, step_num * self.warmup_steps**-1.5)
-            for lr in self.base_lrs
-        ]
+
+        if self.warmup_steps > 0:
+            return [
+                lr
+                * self.warmup_steps**0.5
+                * min(step_num**-0.5, step_num * self.warmup_steps**-1.5)
+                for lr in self.base_lrs
+            ]
+        else:
+            # If warmup_steps is 0, apply a different calculation
+            return [
+                lr * step_num**-0.5  # No warmup, use only step decay
+                for lr in self.base_lrs
+            ]
