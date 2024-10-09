@@ -108,6 +108,11 @@ SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["se"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec", "kaldi_ark")],
+    targets=[("spk1.scp", "codec", "kaldi_ark")],
+)
+
 # codec_ssl tasks:
 SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(
     conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],

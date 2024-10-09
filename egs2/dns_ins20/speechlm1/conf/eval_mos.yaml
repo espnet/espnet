@@ -1,0 +1,5 @@
+- name: pseudo_mos
+  predictor_types: ["utmos"]
+  predictor_args:
+    utmos:
+      fs: 16000

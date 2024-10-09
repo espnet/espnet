@@ -1,0 +1,6 @@
+search_algo: greedy_search
+
+codec_conf:
+    codec_choice: ESPnet
+    hf_model_tag: espnet/owsmdata_soundstream_16k_200epoch
+    codec_fs: 16000
