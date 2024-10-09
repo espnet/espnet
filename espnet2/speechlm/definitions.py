@@ -18,6 +18,7 @@ MODALITIES = {}
 MODALITIES["codec"] = Modality()
 MODALITIES["ssl"] = Modality()
 MODALITIES["codec_ssl"] = Modality()
+MODALITIES["video_ssl"] = Modality()  # video code
 MODALITIES["text_bpe"] = Modality()
 MODALITIES["g2p"] = Modality()
 MODALITIES["spk"] = Modality()
@@ -82,6 +83,17 @@ SPEECHLM_TASKS["tts"] = SpeechLMTaskTemplate(
     conditions=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
+
+# new task: visual tts
+SPEECHLM_TASKS["visual_tts"] = SpeechLMTaskTemplate(
+    conditions=[
+        ("text", "g2p", "text"),
+        ("utt2spk", "spk", "text"),
+        ("video.scp", "video_ssl", "kaldi_ark"),
+    ],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
 
 SPEECHLM_TASKS["bpe_tts"] = SpeechLMTaskTemplate(
     conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
