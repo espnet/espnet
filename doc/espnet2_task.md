@@ -187,8 +187,8 @@ python -m new_task \
 ```
 
 
-## Customize `collcate_fn` for PyTorch data loader
-`Task` class has a method to customize `collcate_fn`:
+## Customize `collate_fn` for PyTorch data loader
+`Task` class has a method to customize `collate_fn`:
 
 ```python
 class NewTask(AbsTask):
@@ -197,17 +197,17 @@ class NewTask(AbsTask):
     ...
 ```
 
-`collcate_fn` is an argument of `torch.utils.data.DataLoader` and
+`collate_fn` is an argument of `torch.utils.data.DataLoader` and
 it can modify the data which is received from data-loader. e.g.:
 
 ```python
-def collcate_fn(data):
+def collate_fn(data):
     # data is a list of the return value of Dataset class:
     modified_data = (...touch data)
     return modified_data
 
 from torch.utils.data import DataLoader
-data_loader = DataLoader(dataset, collcate_fn=collcate_fn)
+data_loader = DataLoader(dataset, collate_fn=collate_fn)
 for modified_data in data_loader:
     ...
 ```
@@ -231,7 +231,7 @@ data = [
 ```
 
 The return type of collate_fn is supposed to be a tuple of list and a dict of tensor in espnet2,
-so the collcate_fn for `Task` must transform the data type to it.
+so the collate_fn for `Task` must transform the data type to it.
 
 ```python
 for ids, batch in data_loader:
