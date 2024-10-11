@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_config=conf/train_delay_deepspeed_codecssl_1.7b.yaml
+train_config=conf/train_delay_deepspeed_codecssl.yaml
 inference_config=conf/decode_inhouse.yaml
 inference_model=valid.total_count.ave_5best.till60epoch.pth
 
@@ -36,6 +36,23 @@ tts_valid=" \
   dump/raw_codec_ssl_tts_librispeech/dev_clean/data.json \
 "
 
+# 3. SE
+se_train="\
+  dump/raw_codec_ssl_se_mls_en/mls_en_train_se_simu/data.json \
+  dump/raw_codec_ssl_tse_mls_en/mls_en_train_tse_simu/data.json
+"
+
+se_valid="\
+  dump/raw_codec_ssl_se_mls_en/mls_en_dev_se_simu/data.json \
+  dump/raw_codec_ssl_tse_mls_en/mls_en_dev_tse_simu/data.json \
+"
+
+# Audio
+audio_train="\
+  dump/raw_ag_codecssl_wavcaps/wavcaps_train/data.json \
+  dump/raw_aac_codecssl_wavcaps/wavcaps_train/data.json
+"
+
 data_combo_name=asr_55k
 train_jsons="${asr_train}"
 valid_jsons="${asr_valid}"
@@ -47,6 +64,14 @@ valid_jsons="${tts_valid}"
 data_combo_name=asr_tts_55k
 train_jsons="${asr_train} ${tts_train}"
 valid_jsons="${asr_valid} ${tts_valid}"
+
+data_combo_name=se_tse_45k
+train_jsons="${se_train}"
+valid_jsons="${se_valid}"
+
+data_combo_name=audio_7k
+train_jsons="${audio_train}"
+valid_jsons="${asr_valid}"
 
 ./speechlm.sh \
     --stage 7 \
