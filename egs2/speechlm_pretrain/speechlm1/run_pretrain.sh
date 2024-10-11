@@ -52,6 +52,21 @@ audio_train="\
   dump/raw_ag_codecssl_wavcaps/wavcaps_train/data.json \
   dump/raw_aac_codecssl_wavcaps/wavcaps_train/data.json
 "
+# 3. SSL_ASR
+ssl_asr_train=" \
+  dump/raw_ssl_asr_mls_en/mls_en_train/data.json \
+  dump/raw_ssl_asr_librispeech/train_960/data.json \
+  dump/raw_ssl_asr_gigaspeech/gigaspeech_train_xl/data.json \
+"
+ssl_asr_valid="dump/raw_ssl_asr_librispeech/dev_clean/data.json"
+
+# 4. SSL_TTS
+ssl_tts_train=" \
+  dump/raw_ssl_tts_mls_en/mls_en_train/data.json \
+  dump/raw_ssl_tts_librispeech/train_960/data.json \
+  dump/raw_ssl_tts_gigaspeech/gigaspeech_train_xl/data.json \
+"
+ssl_tts_valid="dump/raw_ssl_tts_librispeech/dev_clean/data.json"
 
 data_combo_name=asr_55k
 train_jsons="${asr_train}"
@@ -61,9 +76,21 @@ data_combo_name=tts_55k
 train_jsons="${tts_train}"
 valid_jsons="${tts_valid}"
 
-data_combo_name=asr_tts_55k
-train_jsons="${asr_train} ${tts_train}"
-valid_jsons="${asr_valid} ${tts_valid}"
+# data_combo_name=asr_tts_55k
+# train_jsons="${asr_train} ${tts_train}"
+# valid_jsons="${asr_valid} ${tts_valid}"
+
+data_combo_name=ssl_asr_55k
+train_jsons="${ssl_asr_train}"
+valid_jsons="${ssl_asr_valid}"
+
+# data_combo_name=ssl_tts_55k
+# train_jsons="${ssl_tts_train}"
+# valid_jsons="${ssl_tts_valid}"
+
+data_combo_name=ssl_asr_tts_55k
+train_jsons="${ssl_asr_train} ${ssl_tts_train}"
+valid_jsons="${ssl_asr_valid} ${ssl_tts_valid}"
 
 data_combo_name=se_tse_45k
 train_jsons="${se_train}"
@@ -79,7 +106,7 @@ valid_jsons="${asr_valid}"
     --data_combo_name ${data_combo_name} \
     --fs 16000 \
     --num_nodes 1 \
-    --ngpu 8 \
+    --ngpu 4 \
     --nj 200 \
     --inference_nj 8 \
     --nbest 10 \
