@@ -53,6 +53,7 @@ class SpeechLM:
         top_p: float = 0.8,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
+        fixed_length: bool = False,
         codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
@@ -135,6 +136,7 @@ class SpeechLM:
             masks=predict_masks,
             nq=self.inference_nq,
             aux_start=self.token_bias["codec"][0] if "codec" in self.token_bias else 0,
+            fixed_length=fixed_length,
         )
 
         # (4) Only a limited number of modalities support detokenization
@@ -151,7 +153,7 @@ class SpeechLM:
             self.text_bpe_tokenizer = self.preprocessor.bpe
         else:
             self.text_bpe_tokenizer = None
-        
+
         # (5) speaker prompt setup
         assert not ("codec" in self.modalities and "codec_ssl" in self.modalities)
         self.spk_modality = "codec" if "codec" in self.modalities else "codec_ssl"
@@ -167,6 +169,7 @@ class SpeechLM:
         dec_seq = data.get("dec_seq")
         prefix_len = data.get("prefix_len").squeeze(1)
         conti_feats = data.get("conti_feats")
+        inference_length = data.get("inference_length", -1)
 
         # (1) language model inference
         gen_tokens, _ = self.model.corelm.inference(
@@ -174,6 +177,7 @@ class SpeechLM:
             opts=self.inference_opts,
             conti_feats=conti_feats,
             suffix=dec_seq[:, prefix_len + 1 :],
+            inference_length=inference_length,
         )
 
         # (2) record the prefix segments
@@ -223,7 +227,7 @@ class SpeechLM:
                 else:
                     n_codebook = self.inference_nq
                 segment = segment[segment[:, 0] != self.pad]
-                
+
                 segment = segment.contiguous().view(-1) - self.token_bias['codec'][0]
                 detokenized = self.codec_tokenizer.detokenize(
                     segment.clone(),
@@ -244,6 +248,7 @@ class SpeechLM:
                 segment = segment[:, 0] - self.token_bias[modality][0]
                 detokenized = None
 
+            
             retval.append((modality, segment, detokenized))
 
         return retval
@@ -307,6 +312,7 @@ def inference(
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
     codec_ssl_corrupt_prob: float = 0.0,
+    fixed_length: bool = False,
     # offline tokenizers
     codec_conf: dict = None,
 ):
@@ -344,6 +350,7 @@ def inference(
         top_p=top_p,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
+        fixed_length=fixed_length,
         task=task,
         codec_conf=codec_conf,
     )
@@ -583,6 +590,15 @@ def get_parser():
         help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
         "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
         "This is only applied to the prefix sequence",
+    )
+    group.add_argument(
+        "--fixed_length",
+        type=str2bool,
+        default=False,
+        help="If true, the length of inference is fixed. "
+             "The inference is specified by the fixed_length_key of "
+             "each task definition "
+             "E.g., inference length for speech enhancement is the same as the mix.scp "
     )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during

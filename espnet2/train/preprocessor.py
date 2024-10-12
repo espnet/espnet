@@ -2493,6 +2493,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[np.ndarray, List]]:
+        new_data = {}
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
@@ -2500,8 +2501,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # (2) get exact tokenised value based on all data triplets
         seqs, conti_feats = [], []
+        
         cache = {triplet[:2]: None for triplet in task.data_triplets}
         cache["task_name"] = task_name
+
+        inference_length = -1
         for idx, triplet in enumerate(task.data_triplets):
             name, modality, _ = triplet
             value, conti_feat = self.modality_specific_processing(
@@ -2509,6 +2513,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 modality,
                 cache,
             )
+
+            if name == task.fixed_length_key:
+                inference_length = value.shape[0] / self.codec_token_in_use
 
             if idx != len(task.data_triplets) - 1  and self.inter_segment_pad > 0:
                 pad = np.tile(self.special_token("<pad>"), self.inter_segment_pad)
@@ -2520,6 +2527,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             if triplet in task.targets and conti_feat is not None:
                 raise ValueError("Continuous feats can only be the condition")
             conti_feats.append(conti_feat)
+        
+        # used for fixed-length inference.
+        new_data["inference_length"] = np.array([inference_length]).astype(np.int64)
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2529,7 +2539,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             task_identifier = "<unkown_task_identifer>"
         task_identifier = self.special_token(task_identifier)
 
-        new_data = {}
         n_conditions = len(task.conditions)
         if self.encoder_decoder_format:
             new_data["enc_seq"] = np.concatenate(

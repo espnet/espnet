@@ -39,6 +39,7 @@ class SpeechLMTaskTemplate:
     conditions: List[Tuple[str, str, str]]
     targets: List[Tuple[str, str, str]]
     use_task_identifier: bool = True
+    fixed_length_key: str = ""
 
     @property
     def data_triplets(self):
@@ -175,13 +176,15 @@ SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
 )
 
 SPEECHLM_TASKS["codec_ssl_se"] = SpeechLMTaskTemplate(
-    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
-    targets=[("spk1.scp", "codec_ssl", "kaldi_ark")],
+    conditions=[("mix.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    fixed_length_key="mix.scp",
 )
 
 SPEECHLM_TASKS["codec_ssl_tse"] = SpeechLMTaskTemplate(
-    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
-    targets=[("spk1.scp", "codec_ssl", "kaldi_ark")],
+    conditions=[("mix.scp", "codec_ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    fixed_length_key="mix.scp",
 )
 
 SPEECHLM_TASKS["aac_codecssl"] = SpeechLMTaskTemplate(

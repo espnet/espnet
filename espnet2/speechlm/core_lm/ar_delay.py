@@ -83,6 +83,7 @@ class ARDelayLM(ARParallelLM):
         opts: SpeechLMInferenceOptions,
         conti_feats = None,
         suffix: torch.Tensor = None,
+        inference_length: int = -1,
     ):
         """Delay Architecture Inference.
 
@@ -112,17 +113,26 @@ class ARDelayLM(ARParallelLM):
 
         # (3) auto-regressive loop
         # (3.1) AR initialization
+
+        # NOTE(Jinchuan):
+        # The delay interleave will need more "self.nq - 1" infernece step to obtain
+        # the effective codes in each level. minlen and maxlin already count them.
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = (
             int(prefix.size(1) * opts.maxlenratio)
             if opts.minlenratio > 0
-            else self.n_ctx
+            else self.n_ctx - prefix.size(1)
         )
+        
+        if opts.fixed_length:
+            assert inference_length > 0, "Inference length is needed for fixed length inference"
+            minlen = int(inference_length) + (self.nq - 1)
+            maxlen = int(inference_length) + (self.nq - 1)
+
         if opts.search_algo == "teacher_force":
-            minlen = suffix.size(1) - 1
+            minlen = suffix.size(1) - 1 # -1 due to next-token-prediction shift
             maxlen = suffix.size(1) - 1
-        if maxlen + prefix.size(1) > self.n_ctx:
-            maxlen = self.n_ctx - prefix.size(1)
+
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         generated = {"token": [], "score": []}
@@ -131,7 +141,7 @@ class ARDelayLM(ARParallelLM):
         modality_index = start[:, 0, 0]
         mask = modality_index_to_mask(modality_index, opts)
         
-        for step in range(maxlen):
+        for step in range(1, maxlen + 1):
             if step < self.nq:
                 prev_tok = torch.cat(
                     [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
@@ -154,7 +164,7 @@ class ARDelayLM(ARParallelLM):
                 logits,
                 opts,
                 mask,
-                allow_eos=step >= minlen,
+                allow_eos=step >= minlen - (self.nq - 1)
             )
 
             if opts.search_algo == "teacher_force":
@@ -172,15 +182,16 @@ class ARDelayLM(ARParallelLM):
                 finish_idx,
             )
 
+            if step == maxlen - (self.nq - 1) and torch.any(finish_idx == -1):
+                logging.warning(
+                    f"Some examples cannot finish in {maxlen} steps: {finish_idx} "
+                    f"Force it to finish "
+                )
+                finish_idx = torch.where(finish_idx == -1, step, finish_idx)
+
             # more "self.nq - 1" steps after all finish_idx becomes non-negative
             if finish_idx.min() >= 0 and step - finish_idx.max() >= self.nq - 1:
                 break
-
-            if step == maxlen - 1:
-                logging.warning(
-                    f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
-                    f"Consider increasing the maxlenratio"
-                )
 
             # (3.4) detect modality swtich
             modality_change_mask = torch.logical_and(
@@ -201,22 +212,16 @@ class ARDelayLM(ARParallelLM):
         # (4) global finalize & build hypotheses
         self.decoders.reset()
 
-        valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
-        if len(valid_idx) == 0:
-            return [], []
-
-        gen_token_seq = torch.cat(generated["token"], dim=1)[valid_idx]
-        gen_score_seq = torch.cat(generated["score"], dim=1)[valid_idx]
+        gen_token_seq = torch.cat(generated["token"], dim=1)
+        gen_score_seq = torch.cat(generated["score"], dim=1)
 
         gen_token_seq = self.inverse_delay_interleave(gen_token_seq)
         gen_score_seq = self.inverse_delay_interleave(gen_score_seq)
 
-        finish_idx = finish_idx[valid_idx]
-
         gen_tokens, gen_scores = [], []
-        for b in range(len(valid_idx)):
-            gen_tokens.append(gen_token_seq[b][: finish_idx[b]])
-            gen_scores.append(gen_score_seq[b][: finish_idx[b]])
+        for b in range(len(finish_idx)):
+            gen_tokens.append(gen_token_seq[b][: finish_idx[b] - 1])
+            gen_scores.append(gen_score_seq[b][: finish_idx[b] - 1])
             assert not torch.any(gen_tokens[-1].eq(opts.eos))
 
         return gen_tokens, gen_scores
