@@ -19,31 +19,29 @@ from espnet2.speechlm.net_utils import (
 )
 
 
-class MultiScaleLM(AbsCoreLM):
+class ARMultiScaleLM(AbsCoreLM):
     def __init__(
         self,
+        transformer,
         vocab_size: int,
+        aux_vocab_size: int,
         nq: int,
-        token_bias: dict,
-        pad_id: int,
-        hf_model_tag: str = None,
         share_emb: bool = True,
+        # local transformer param
         qk_norm: bool = False,
-        dropout: float = 0.0,
-        g_att_unit: int = 256,
-        g_head: int = 2,
-        g_layer: int = 4,
         l_att_unit: int = 256,
         l_head: int = 2,
         l_layer: int = 4,
-        n_ctx: int = 3000,
     ):
         """Initialize MultiScaleLM
 
         Args:
+            transformer (torch.nn.Module): the Transformer body implementation
             vocab_size (int): Dimention of vocabulary.
+            aux_vocab_size (int): the size of auxuliary tokens, usually for codec tokens.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
+            
             qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
             dropout: (float): dropout rate for attention layers.
             g_att_unit (int): Dimention of global Transformer attention.
@@ -54,65 +52,53 @@ class MultiScaleLM(AbsCoreLM):
             l_layer (int): Number of layers in local Transformer.
             n_ctx (int): maximum context length of global Transformer.
         """
-        super(MultiScaleLM, self).__init__()
+        super(ARMultiScaleLM, self).__init__()
 
-        raise NotImplementedError("Need more polish. Don't use it at this moment")
-
-        self.emb = torch.nn.Embedding(vocab_size, g_att_unit)
-        self.lm_head = torch.nn.Linear(l_att_unit, vocab_size, bias=False)
+        self.emb = torch.nn.Embedding(vocab_size, transformer.d_model)
+        self.lm_head = torch.nn.Linear(transformer.d_model, vocab_size, bias=False)
         if share_emb:
-            if g_att_unit == l_att_unit:
-                self.lm_head.weight = self.emb.weight
-            else:
-                raise ValueError("Set g_att_unit == l_att_unit to share embeddings")
+            self.lm_head.weight = self.emb.weight
 
-        if g_att_unit != l_att_unit:
-            self.g2l = torch.nn.Linear(g_att_unit, l_att_unit)
+        if nq > 1 and aux_vocab_size > 0:
+            self.aux_lm_head = torch.nn.Linear(
+                transformer.d_model, aux_vocab_size, bias=False
+            )
         else:
-            self.g2l = torch.nn.Identity()
+            self.aux_lm_head = None
 
-        # Global part
-        self.g_decoders = TransformerDecoder(
-            n_ctx=n_ctx,
-            n_state=g_att_unit,
-            n_head=g_head,
-            n_layer=g_layer,
-            qk_norm=qk_norm,
-            dropout=dropout,
-            hf_model_tag=hf_model_tag,
-            token_bias=token_bias,
-        )
-
-        # Local part
+        self.g_decoders = transformer
+        # The local transforemr is always from builtin implementation
         self.l_decoders = TransformerDecoder(
+            None,
             n_ctx=nq,
             n_state=l_att_unit,
             n_head=l_head,
             n_layer=l_layer,
             qk_norm=qk_norm,
-            dropout=dropout,
         )
 
         self.placeholder = torch.nn.parameter.Parameter(
             torch.randn(l_att_unit, requires_grad=True)
         )
 
-        self.nq = nq
-        self.n_ctx = n_ctx
-        self.pad_id = pad_id
+        if transformer.d_model != l_att_unit:
+            self.g2l = torch.nn.Linear(transformer.d_model, l_att_unit)
+            self.l2g = torch.nn.Linear(l_att_unit, transformer.d_model)
+        else:
+            self.g2l = torch.nn.Identity()
+            self.l2g = torch.nn.Identity()
 
-        self.g_decoders.init_embeddings(self.emb, self.lm_head)
-        self.criterion = FusedLinearCrossEntropyLoss(self.lm_head, self.pad_id)
+        if hasattr(self.g_decoders, "init_embeddings"):
+            self.g_decoders.init_embeddings(self.emb, self.lm_head)
+
+        self.nq = nq
+        self.n_ctx = transformer.n_ctx
 
     def forward(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor = None,
-        enc_seq: torch.Tensor = None,
-        enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
         conti_feats: Tuple = None,
-        compute_loss: bool = True,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive MultiScale forward for training
 
@@ -128,31 +114,32 @@ class MultiScaleLM(AbsCoreLM):
         """
         assert dec_seq.dim() == 3
 
-        # global
-        x = dec_seq[:, :-1]
-        x = self.emb(x).sum(dim=2)  # [B, T, nq, D] -> [B, T, D]
-        x, _ = install_continuous_features(x, None, conti_feats)
-        x = self.g_decoders(x)
-        x = self.g2l(x)
-
-        # global-to-local
-        B, T, _ = x.size()
-        placeholder = self.placeholder.tile(B, T, 1, 1)
         target = dec_seq[:, 1:]
-        target_emb = self.g2l(self.emb(target))
-        target_shift = torch.cat([placeholder, target_emb], dim=2)[
-            :, :, :-1
-        ]  # [B, T, nq, D]
-        x = x.unsqueeze(2) + target_shift
+        x = dec_seq[:, :-1]
+
+        # input embedding
+        x = self.emb(x).sum(dim=2)
+        x = install_continuous_features(x, conti_feats)
+
+        # global
+        x = self.g2l(self.g_decoders(x))
 
         # local
-        x = x.flatten(0, 1)  # [B * T, nq, D]
-        x = self.l_decoders(x)
-        x = x.view(target_shift.size())  # [B, T, nq, D]
+        B, T, _ = x.size()
+        placeholder = self.placeholder.tile(B, T, 1, 1) # [B, T, 1, D]
+        local_x = self.g2l(self.emb(target))
+        local_x = torch.cat([placeholder, local_x], dim=2)[:, :, :-1]
+        x = local_x + x.unsqueeze(2) # [B, T, nq, D]
 
-        loss, logits, stats, weight = self.criterion(x, target)
+        x = x.flatten(0, 1)
+        x = self.l_decoders(x).view(local_x.size())
+        x = self.l2g(x)
 
-        return loss, logits, stats, weight
+        # lm_logits
+        logits = self.lm_head(x[:, :, :1])
+        aux_logits = self.aux_lm_head(x[:, :, 1:]) if self.nq > 1 else None
+
+        return (logits, aux_logits), target
 
     @torch.no_grad()
     def inference(

@@ -16,7 +16,7 @@ from espnet2.speechlm.module.abs_transformer import AbsTransformer
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
-from espnet2.speechlm.core_lm.ar_multiscale import MultiScaleLM
+from espnet2.speechlm.core_lm.ar_multiscale import ARMultiScaleLM
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.core_lm.valle import ValleLM
 
@@ -61,7 +61,7 @@ corelm_choices = ClassChoices(
         ar=ARLM,
         ar_parallel=ARParallelLM,
         ar_delay=ARDelayLM,
-        multiscale=MultiScaleLM,
+        ar_multiscale=ARMultiScaleLM,
     ),
     type_check=AbsCoreLM,
     default="valle",
