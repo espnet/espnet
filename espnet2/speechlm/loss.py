@@ -32,7 +32,8 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         for modality_name, modality_weight in modality_weights.items():
 
             if modality_name not in token_bias:
-                raise ValueError(f"modality {modality_name} is invalid.")
+                logging.warning(f"The specified modality {modality_name} is not in token_bias. Skip it")
+                continue
             
             start, end = token_bias[modality_name]
             del token_bias[modality_name]

@@ -124,9 +124,9 @@ class DistributedOption:
 
                 if int(os.environ["OMP_NUM_THREADS"]) == 1:
                     raise ValueError(
-                        "By default, ESPnet will set OMP_NUM_THREADS=1"
+                        "By default, ESPnet will set OMP_NUM_THREADS=1 "
                         "As deepspeed will have heavy cpu-gpu communication, "
-                        "Please raise this number in `path.sh` so that cpu-side"
+                        "Please raise this number in `path.sh` so that cpu-side "
                         "will not be the performance bottleneck. "
                     )
 

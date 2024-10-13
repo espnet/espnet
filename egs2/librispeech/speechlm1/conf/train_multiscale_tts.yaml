@@ -1,0 +1,49 @@
+use_deepspeed: true
+deepspeed_config: conf/deepspeed_ddp.json
+deepspeed_step_sync: false
+
+# Model
+transformer: builtin
+transformer_conf:
+    n_ctx: 8192
+    n_state: 1024
+    n_head: 16
+    n_layer: 24
+    qk_norm: true
+    
+corelm: ar_multiscale
+corelm_conf:
+    qk_norm: true
+    l_att_unit: 512
+    l_head: 8
+    l_layer: 6
+
+# loss
+modality_weights: {
+    "codec": 0.125,
+    "special_token": 10.0,
+    "g2p": 1.0,
+}
+loss_region: target
+
+# General Dataloader configuration
+batch_type: numel
+batch_bins: 16000
+num_iters_per_epoch: 30000
+max_epoch: 500
+num_workers: 6
+drop_last_iter: true
+log_interval: 1000
+
+# Data preprocessing
+codec_token_per_frame: 8
+codec_token_in_use: 8
+speaker_prompt_length: 500 # 50fps, a.k.a., 10s
+codec_ssl_corrupt_prob: 0.0
+
+asr_apply_time_mask: false
+asr_time_mask_config:
+    mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_mask: 10
