@@ -117,6 +117,7 @@ class BeatsEncoder(AbsEncoder):
         input_size: int,
         beats_ckpt_path: str = None,
         max_layer: int = None,
+        use_all_layers: bool = False,
         beats_config: Optional[BEATsConfig] = None,
         specaug_config: Optional[Dict] = None,
     ) -> None:
@@ -171,6 +172,10 @@ class BeatsEncoder(AbsEncoder):
         assert not config.deep_norm or not config.layer_norm_first
         self.encoder = TransformerEncoder(config)
         self.layer_norm = LayerNorm(self.embed)
+        self.use_all_layers = use_all_layers
+        if self.use_all_layers:
+            assert self.max_layer is not None, "max_layer must be provided."
+            self.layer_weights = nn.Parameter(torch.ones(self.max_layer))
 
     def espnet_initialization_fn(self):
         """Initialization function for BEATs.
@@ -193,6 +198,20 @@ class BeatsEncoder(AbsEncoder):
         # BEATs has different initialization from ESPNet for other modules, so override.
         self.encoder.apply(init_bert_params)
         if self.loaded_state_dict_ is not None:
+            # TODO(shikhar): Hardcoded
+            all_keys = list(self.loaded_state_dict_["model"].items())
+            for key, _ in all_keys:
+                if (
+                    key.startswith("encoder.layers.11")
+                    # or key.startswith("encoder.layers.10")
+                    # or key.startswith("encoder.layers.9")
+                    # or key.startswith("encoder.layers.8")
+                    # or key.startswith("encoder.layers.7")
+                    # or key.startswith("encoder.layers.6")
+                ):
+                    self.loaded_state_dict_["model"].pop(key)
+                    logging.info(f"Removed key: {key}")
+
             load_info = self.load_state_dict(
                 self.loaded_state_dict_["model"], strict=False
             )
@@ -250,9 +269,9 @@ class BeatsEncoder(AbsEncoder):
         # NOTE(shikhar): If xs is not provided then the operation is costly, because this
         # function tries to create a tensor of size maxlen x maxlen. Therfore, we unsqueeze
         # and then squeeze tensors.
-        mask = make_pad_mask(lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1)).to(
-            xs_pad.device
-        )
+        mask = make_pad_mask(
+            lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
+        ).to(xs_pad.device)
         # Adjust shapes to be compatible with BEATs code
         xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
         # masks = None
@@ -296,6 +315,15 @@ class BeatsEncoder(AbsEncoder):
 
         x = self.dropout_input(features)
         x, layer_results = self.encoder(x, padding_mask=padding_mask, layer=max_layer)
+
+        if self.use_all_layers:
+            for i, (x_i, _) in enumerate(layer_results):
+                if i > self.max_layer:
+                    break
+                if i == 0:
+                    x = self.layer_weights[i] * x_i
+                x += self.layer_weights[i] * x_i
+
         return x, layer_results, padding_mask
 
 
