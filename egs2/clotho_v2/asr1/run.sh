@@ -12,7 +12,7 @@ timestamp=20240928.224746
 ./asr.sh \
     --asr_tag ${timestamp} \
     --feats_normalize uttmvn \
-    --stage 12 \
+    --stage 1 \
     --stop_stage 12 \
     --ngpu 1 \
     --gpu_inference true \

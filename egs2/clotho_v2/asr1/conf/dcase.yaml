@@ -20,7 +20,7 @@ normalize: none # BEATs code does global mean and variance normalization
 
 encoder: beats
 encoder_conf:
-    beats_ckpt_path: /home/sbharad2/dcase2024_cp/dcase24task6/pretrained_weights/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
+    beats_ckpt_path: /u/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS2M.pt
     beats_config:
         input_patch_size: 16
         embed_dim: 512

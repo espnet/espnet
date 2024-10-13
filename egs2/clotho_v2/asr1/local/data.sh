@@ -38,7 +38,7 @@ if [ ! -e "${CLOTHO_V2_ROOT_DIR}/download_done" ]; then
     fi
     echo "Downlaoding clotho into ${CLOTHO_V2_ROOT_DIR}."
     mkdir -p "${CLOTHO_V2_ROOT_DIR}"
-    for split in val eval; do
+    for split in val eval dev; do
         echo "Downloading ${split} split."
         if ! aac-datasets-download --root "${CLOTHO_V2_ROOT_DIR}" clotho --subsets "${split}"; then
             echo "Error: Downloading Clotho dataset failed."
