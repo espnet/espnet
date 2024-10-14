@@ -26,7 +26,7 @@ class ARMultiScaleLM(AbsCoreLM):
         vocab_size: int,
         aux_vocab_size: int,
         nq: int,
-        share_emb: bool = True,
+        share_emb: bool = False,
         # local transformer param
         qk_norm: bool = False,
         l_att_unit: int = 256,
@@ -146,67 +146,86 @@ class ARMultiScaleLM(AbsCoreLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        enc_seq: torch.Tensor = None,
+        conti_feats = None,
         suffix: torch.Tensor = None,
+        inference_length: int = -1,
     ):
         """Auto-Regresive MultiScale Inference.
 
         Args:
-            prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).
+            prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
             opts (SpeechLMInferenceOptions): inference options.
-            enc_seq (LongTensor): Encoder token sequence (B, T_enc, nq).
-            suffix (LongTensor): suffix part of dec_seq (B, T_dec, nq),
+            conti_feats: continuous features.
+            suffix (LongTensor): suffix part of dec_seq (B, T, nq),
                 usually the target sequence for teacher-forcing.
+            inference_length: a given inference length, ignore if -1
         """
 
-        # (1) global initialization
-        g_cache = self.g_decoders.init({})
+        # (1) initialization
+        self.g_decoders.init()
 
         # (2) Prefix forward
         prefix = prefix.expand(opts.nbest, -1, -1)
         suffix = suffix.expand(opts.nbest, -1, -1)
         prefix_emb = self.emb(prefix).sum(2)
-        _ = self.g_decoders(prefix_emb, kv_cache=g_cache)
+        _ = self.g_decoders(prefix_emb)
 
         # (3) global loop
         # (3.1) global initialization
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
-        maxlen = int(prefix.size(1) * opts.maxlenratio)
+        maxlen = (
+            int(prefix.size(1) * opts.maxlenratio)
+            if opts.minlenratio > 0
+            else self.n_ctx - prefix.size(1)
+        )
+
+        if opts.fixed_length:
+            assert inference_length > 0, "Inference length is needed for fixed length inference"
+            minlen = int(inference_length)
+            maxlen = int(inference_length)
+        
         if opts.search_algo == "teacher_force":
-            assert suffix is not None
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
-        if maxlen + prefix.size(1) > self.n_ctx:
-            maxlen = self.n_ctx - prefix.size(1)
+        
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
-
         g_generated = {"token": [], "score": []}
-        g_prev_tok = (
-            torch.Tensor([opts.start])
-            .tile(opts.nbest, 1, opts.nq)
-            .long()
-            .to(opts.device)
-        )
+        g_prev_tok = torch.Tensor([opts.start] + [0 for _ in range(prefix.size(2) - 1)])
+        g_prev_tok = g_prev_tok.tile(opts.nbest, 1, 1).long().to(opts.device)
         modality_index = g_prev_tok[:, 0, 0]
         mask = modality_index_to_mask(modality_index, opts)
 
-        g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
-        for g_step in range(maxlen):
-            g_hidden = self.g_decoders(g_prev_emb, kv_cache=g_cache)  # [B, 1, D]
-            g_hidden = self.g2l(g_hidden)
+        for g_step in range(1, maxlen + 1):
+            g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
+            g_hidden = self.g2l(self.g_decoders(g_prev_emb))  # [B, 1, D]
 
             # (3.2) local initialization
-            l_cache = self.l_decoders.init({})
+            self.l_decoders.init()
 
             # (3.3) local loop
             l_generated = {"token": [], "score": []}
             l_prev_emb = self.placeholder.tile(opts.nbest, 1, 1)  # [B, 1, D]
             for l_step in range(opts.nq):
+                # print(f"local addition: {l_step} | {l_prev_emb[:, 0, 0]} {g_hidden[:, 0, 0]}")
                 l_hidden = l_prev_emb + g_hidden
-                l_hidden = self.l_decoders(l_hidden, kv_cache=l_cache)
-                logits = self.lm_head(l_hidden)
+                l_hidden = self.l2g(self.l_decoders(l_hidden)) # [B, 1, D]
+
+                if l_step == 0:
+                    logits = self.lm_head(l_hidden)
+                else:
+                    logits = self.aux_lm_head(l_hidden)
+                    logits = torch.nn.functional.pad(
+                        logits,
+                        pad=(
+                         opts.aux_start,
+                         self.lm_head.out_features - (opts.aux_start + logits.size(2)),
+                         0, 0, 0, 0,
+                        ),
+                        mode="constant",
+                        value=-1e10,
+                    )
 
                 gen_tok, gen_score = logits_to_tokens(
                     logits.unsqueeze(2),
@@ -219,16 +238,17 @@ class ARMultiScaleLM(AbsCoreLM):
                 gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)
 
                 if opts.search_algo == "teacher_force":
-                    l_prev_tok = suffix[:, g_step : g_step + 1, l_step]
+                    l_prev_tok = suffix[:, g_step - 1: g_step, l_step]
                 else:
                     l_prev_tok = gen_tok
+                # print(f"gen_tok: {gen_tok} | l_prev_tok: {l_prev_tok}", flush=True)
                 l_prev_emb = self.g2l(self.emb(l_prev_tok))
 
                 l_generated["token"].append(gen_tok)
                 l_generated["score"].append(gen_score)
 
             # (3.4) local finalize
-            self.l_decoders.reset(l_cache)
+            self.l_decoders.reset()
 
             gen_tokens_local = torch.stack(l_generated["token"], dim=2)  # [B, 1, nq]
             gen_scores_local = torch.stack(l_generated["score"], dim=2)
@@ -237,10 +257,9 @@ class ARMultiScaleLM(AbsCoreLM):
             g_generated["score"].append(gen_scores_local)
 
             if opts.search_algo == "teacher_force":
-                g_prev_tok = suffix[:, g_step : g_step + 1]
+                g_prev_tok = suffix[:, g_step - 1: g_step]
             else:
                 g_prev_tok = gen_tokens_local
-            g_prev_emb = self.emb(g_prev_tok).sum(2)  # [B, 1, D]
 
             # (3.5) detect ended hypotheses
             finish_idx = torch.where(
@@ -252,11 +271,12 @@ class ARMultiScaleLM(AbsCoreLM):
             if torch.all(torch.ge(finish_idx, 0)):
                 break
 
-            if g_step == maxlen - 1:
+            if g_step == maxlen and torch.any(finish_idx == -1):
                 logging.warning(
-                    f"Some examples cannot finish in {maxlen} steps: {finish_idx}"
-                    f"Consider increasing the maxlenratio"
+                    f"Some examples cannot finish in {maxlen} steps: {finish_idx} "
+                    f"Force it to finish"
                 )
+                torch.where(finish_idx == -1, g_step, finish_idx)
 
             # (3.6) detect modality switch
             modality_change_mask = torch.logical_and(
@@ -277,19 +297,18 @@ class ARMultiScaleLM(AbsCoreLM):
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
 
         # (4) global finalize & build hypotheses
-        self.g_decoders.reset(g_cache)
+        self.g_decoders.reset()
 
-        valid_idx = finish_idx.ne(-1).nonzero(as_tuple=True)[0]
         g_generated = {
-            "token": torch.cat(g_generated["token"], dim=1)[valid_idx],
-            "score": torch.cat(g_generated["score"], dim=1)[valid_idx],
+            "token": torch.cat(g_generated["token"], dim=1),
+            "score": torch.cat(g_generated["score"], dim=1),
         }
-        finish_idx = finish_idx[valid_idx]
 
         gen_tokens, gen_scores = [], []
-        for b in range(len(valid_idx)):
-            gen_tokens.append(g_generated["token"][b][: finish_idx[b]])
-            gen_scores.append(g_generated["score"][b][: finish_idx[b]])
+        for b in range(len(finish_idx)):
+            # -1 to exclude eos
+            gen_tokens.append(g_generated["token"][b][: finish_idx[b] - 1])
+            gen_scores.append(g_generated["score"][b][: finish_idx[b] - 1])
             assert not torch.any(gen_tokens[-1].eq(opts.eos))
 
         return gen_tokens, gen_scores

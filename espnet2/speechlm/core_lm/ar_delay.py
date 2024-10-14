@@ -169,7 +169,7 @@ class ARDelayLM(ARParallelLM):
             )
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step + 1 : step + 2]
+                prev_tok = suffix[:, step: step + 1]
             else:
                 prev_tok = gen_tok
 
@@ -186,7 +186,7 @@ class ARDelayLM(ARParallelLM):
             if step == maxlen - (self.nq - 1) and torch.any(finish_idx == -1):
                 logging.warning(
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx} "
-                    f"Force it to finish "
+                    f"Force it to finish. "
                 )
                 finish_idx = torch.where(finish_idx == -1, step, finish_idx)
 
