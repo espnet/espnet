@@ -2652,12 +2652,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             else:
                 value = value + self.token_bias["ssl"][0]
             
-            if modality in ["codec", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask and self.train:
-                value = np.expand_dims(value, axis=0)
-                value, _ = self.asr_time_mask(value)
-                value = np.squeeze(value, axis=0)
-
-            value = value.flatten()
             conti_feat = None
 
         # Other discrete modalities
@@ -2700,7 +2694,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 ((0, 0), (0, self.codec_token_in_use - 1)),
                 mode="constant",
                 constant_values=self.pad,
-            ).flatten()
+            )
 
             conti_feat = None
 
@@ -2727,7 +2721,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         else:
             raise NotImplementedError
-
+    
+        if modality in ["codec", "ssl", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask and self.train:
+            value = np.expand_dims(value, axis=0)
+            value, _ = self.asr_time_mask(value)
+            value = np.squeeze(value, axis=0)
+        
+        value = value.flatten()
         modality_idx = self.special_token(f"<{modality}_start/end>")
         value = np.concatenate([modality_idx, value]).astype(np.int64)
 

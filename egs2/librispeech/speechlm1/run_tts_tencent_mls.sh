@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 train_config=conf/train_multiscale_tts.yaml
-inference_config=conf/decode_tts.yaml
+inference_config=conf/decode_tts_tencent.yaml
 
 token_list_dir=data/token_list/tts_vocab
 codec_opts="--codec_choice inhouse --dumpdir dump_tencent"
