@@ -93,6 +93,7 @@ class ARDelayLM(ARParallelLM):
             conti_feats: continuous features.
             suffix (LongTensor): suffix part of dec_seq (B, T, nq),
                 usually the target sequence for teacher-forcing.
+            inference_length: a given inference length, ignore if -1
         """
 
         # (1) initialization

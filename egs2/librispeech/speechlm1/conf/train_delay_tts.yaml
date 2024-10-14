@@ -7,13 +7,9 @@ transformer_conf:
     n_layer: 24
     qk_norm: true
     
-corelm: ar_multiscale
+corelm: ar_delay
 corelm_conf:
     share_emb: false
-    qk_norm: true
-    l_att_unit: 512
-    l_head: 8
-    l_layer: 6
 
 # loss
 modality_weights: {

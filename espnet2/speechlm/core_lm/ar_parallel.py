@@ -20,7 +20,7 @@ class ARParallelLM(AbsCoreLM):
         vocab_size: int,
         aux_vocab_size: int,
         nq: int,
-        share_emb: bool = True,
+        share_emb: bool = False,
     ):
         """Initialize Auto-regressive LM with parallel interleave codec pattern.
 

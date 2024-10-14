@@ -18,8 +18,8 @@ from espnet2.speechlm.net_utils import install_kv_cache_hook
 
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
-        return super().forward(x) # For full BF16 training
-        # return super().forward(x.float()).type(x.dtype)  # For AMP / FP32 training
+        # return super().forward(x) # For full BF16 training
+        return super().forward(x.float()).type(x.dtype)  # For AMP / FP32 training
 
 
 class Linear(nn.Linear):
