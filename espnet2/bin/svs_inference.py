@@ -157,8 +157,13 @@ class SingingGenerate:
 
         # prepare batch
         if isinstance(text, Dict):
+            # dataset infer: text = dict(label=text["label"], score=text["score"]) 
+            # music score infer: text = dict(score=text["score"]) 
+            infer_data = dict(score=text["score"])
+            if "label" in text:
+                infer_data["label"] = text["label"]
             data = self.preprocess_fn(
-                "<dummy>", dict(label=text["label"], score=text["score"])
+                "<dummy>", infer_data
             )
             label = data["label"]
             midi = data["midi"]

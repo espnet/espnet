@@ -1615,6 +1615,54 @@ class SVSPreprocessor(AbsPreprocessor):
             data["phn_cnt"] = phn_cnt
             data["slur"] = slur
 
+        # Infer case of music score  
+        if self.midi_name in data and not self.label_name in data:
+            # Load score info
+            tempo, syb_info = data[self.midi_name]
+            phn_cnt = []
+            midi = []
+            duration_phn = []
+            duration_ruled_phn = []
+            duration_syb = []
+            slur = []
+
+            for st, et, syb, note, phns in syb_info:
+                dur = et - st
+                _duration_syb = int(dur / self.time_shift + 0.5)
+                phone = phns.split("_")
+                phn_num = len(phone)
+                phn_cnt.append(phn_num)
+                pre_seg = 0
+                for k in range(phn_num):
+                    _duration_ruled_phn = int(
+                        (self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift
+                        + 0.5
+                    )
+                    pre_seg = self.phn_seg[phn_num][k]
+                    # phone level feature
+                    midi.append(note)
+                    duration_ruled_phn.append(_duration_ruled_phn)
+                    duration_syb.append(_duration_syb)
+                    if syb == "—":
+                        slur.append(1)
+                    else:
+                        slur.append(0)
+
+            data.pop(self.midi_name)
+
+            midi = np.array(midi, dtype=np.int64)
+            duration_syb = np.array(duration_syb, dtype=np.int64)
+            duration_ruled_phn = np.array(duration_ruled_phn, dtype=np.int64)
+            phn_cnt = np.array(phn_cnt, dtype=np.int64)
+            slur = np.array(slur, dtype=np.int64)
+
+            data["midi"] = midi
+            data["duration_phn"] = None
+            data["duration_ruled_phn"] = duration_ruled_phn
+            data["duration_syb"] = duration_syb
+            data["phn_cnt"] = phn_cnt
+            data["slur"] = slur
+            
         # TODO(Yuning): Add score from midi
 
         if self.text_name in data and self.tokenizer is not None:
@@ -1627,7 +1675,9 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-
+                # Infer case of music score  
+                if "label" not in data: 
+                    data["label"] = np.array(_text_ints, dtype=np.int64)
         return data
 
 
