@@ -5,33 +5,27 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-valid_set=valid
-test_sets="test"
+lang="en"
+data_split="full" # one of full 1h 10h
+local_data_opts="--lang ${lang} --data_split ${data_split}"
 
-train_config=conf/train_delay_asr.yaml
-inference_config=conf/decode_asr.yaml
+train_set="mls_${lang}_train"
+valid_set="mls_${lang}_dev"
+test_sets="mls_${lang}_test"
 
-token_list_dir=data/token_list/asr_vocab
-ssl_opts="\
-  --ssl_choice espnet_hubert \
-  --ssl_checkpoint_path exp/kmeans_xues/38epoch.pth \
-  --ssl_kmeans_path exp/kmeans_xues/km_5000.mdl \
-  --ssl_nlayer 16 \
-  --dumpdir dump_voxtlm \
-"
-subword_opts="\
-  --subword_choice sentencepiece \
-  --nbpe 1000 \
-"
+train_config=conf/train_delay_tts.yaml
+inference_config=conf/decode_tts.yaml
+
+token_list_dir=data/token_list/tts_vocab
+codec_opts="--codec_choice EnCodec --dumpdir dump_encodec"
 
 ./speechlm.sh \
-    --task "ssl_asr" \
-    --data_name librispeech \
-    --fs 16000 \
-    --ngpu 4 \
-    --nj 16 \
-    --inference_nj 16 \
+    --task "tts" \
+    --data_name mls_en \
+    --fs 24000 \
+    --ngpu 1 \
+    --nj 88 \
+    --inference_nj 88 \
     --nbest 10 \
     --gpu_inference true \
     --cleaner "tacotron" \
@@ -45,5 +39,5 @@ subword_opts="\
     --test_sets "${test_sets}" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    ${ssl_opts} ${subword_opts} \
+    ${codec_opts} \
     "$@"

@@ -1,3 +1,5 @@
 # search algorithm parameters
 search_algo: greedy_search
 # search_algo: teacher_force
+
+maxlenratio: 0.3

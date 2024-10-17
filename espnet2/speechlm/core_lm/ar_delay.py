@@ -121,7 +121,7 @@ class ARDelayLM(ARParallelLM):
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = (
             int(prefix.size(1) * opts.maxlenratio)
-            if opts.minlenratio > 0
+            if opts.maxlenratio > 0
             else self.n_ctx - prefix.size(1)
         )
         

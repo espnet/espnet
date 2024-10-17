@@ -5,12 +5,16 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-valid_set=valid
-test_sets="test"
+lang="en"
+data_split="full" # one of full 1h 10h
+local_data_opts="--lang ${lang} --data_split ${data_split}"
 
-train_config=conf/train_delay_asr.yaml
-inference_config=conf/decode_asr.yaml
+train_set="mls_${lang}_train"
+valid_set="mls_${lang}_dev"
+test_sets="mls_${lang}_test"
+
+train_config=conf/train_delay_tts.yaml
+inference_config=conf/decode_tts.yaml
 
 token_list_dir=data/token_list/asr_vocab
 ssl_opts="\
@@ -18,7 +22,7 @@ ssl_opts="\
   --ssl_checkpoint_path exp/kmeans_xues/38epoch.pth \
   --ssl_kmeans_path exp/kmeans_xues/km_5000.mdl \
   --ssl_nlayer 16 \
-  --dumpdir dump_voxtlm \
+  --dumpdir dump_xeus \
 "
 subword_opts="\
   --subword_choice sentencepiece \
@@ -27,11 +31,11 @@ subword_opts="\
 
 ./speechlm.sh \
     --task "ssl_asr" \
-    --data_name librispeech \
+    --data_name mls_en \
     --fs 16000 \
-    --ngpu 4 \
-    --nj 16 \
-    --inference_nj 16 \
+    --ngpu 1 \
+    --nj 88 \
+    --inference_nj 88 \
     --nbest 10 \
     --gpu_inference true \
     --cleaner "tacotron" \
