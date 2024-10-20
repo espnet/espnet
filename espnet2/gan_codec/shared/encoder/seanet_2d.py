@@ -361,7 +361,7 @@ class SEANetEncoder2d(nn.Module):
         del ratios
         self.n_residual_layers = n_residual_layers
         self.hop_length = np.prod([x[1] for x in self.ratios])
-        # act = getattr(nn, activation)
+
         mult = 1
         model: List[nn.Module] = [
             SConv2d(
@@ -433,7 +433,6 @@ class SEANetEncoder2d(nn.Module):
             model += [SLSTM(mult * n_filters, num_layers=lstm)]
 
         model += [
-            # act(**activation_params),
             get_activation(
                 activation, **{**activation_params, "channels": mult * n_filters}
             ),
@@ -452,5 +451,5 @@ class SEANetEncoder2d(nn.Module):
 
     def forward(self, x):
         if x.dim() == 3:
-            x = x.unsqueeze(1)  # x in B,C,T, return B,T,C
+            x = x.unsqueeze(1)
         return self.model(x)
