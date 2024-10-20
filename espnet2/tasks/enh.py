@@ -11,15 +11,19 @@ from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.diar.layers.multi_mask import MultiMask
 from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.enh.decoder.codec_decoder import CodecDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
+from espnet2.enh.decoder.seanet_decoder import SEANetEnhDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.encoder.codec_encoder import CodecEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
+from espnet2.enh.encoder.seanet_encoder import SEANetEnhEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -47,6 +51,7 @@ from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
+from espnet2.enh.separator.codec_separator import CodecSeparator
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
@@ -85,7 +90,13 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
-    classes=dict(stft=STFTEncoder, conv=ConvEncoder, same=NullEncoder),
+    classes=dict(
+        stft=STFTEncoder,
+        conv=ConvEncoder,
+        same=NullEncoder,
+        codec=CodecEncoder,
+        seanet=SEANetEnhEncoder,
+    ),
     type_check=AbsEncoder,
     default="stft",
 )
@@ -116,6 +127,7 @@ separator_choices = ClassChoices(
         tfgridnetv2=TFGridNetV2,
         tfgridnetv3=TFGridNetV3,
         uses=USESSeparator,
+        codec=CodecSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -130,7 +142,13 @@ mask_module_choices = ClassChoices(
 
 decoder_choices = ClassChoices(
     name="decoder",
-    classes=dict(stft=STFTDecoder, conv=ConvDecoder, same=NullDecoder),
+    classes=dict(
+        stft=STFTDecoder,
+        conv=ConvDecoder,
+        same=NullDecoder,
+        codec=CodecDecoder,
+        seanet=SEANetEnhDecoder,
+    ),
     type_check=AbsDecoder,
     default="stft",
 )
