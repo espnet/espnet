@@ -104,8 +104,9 @@ codec_hf_model_tag=null
 codec_batch_size=3
 
 # (2) ssl
-ssl_choice="espnet_hubert" # currently only espnet_hubert
-ssl_checkpoint_path=null
+ssl_choice="espnet_hubert" # currently only espnet_hubert and s3prl
+ssl_feature_type="wavlm_large" # the model name, when using s3prl
+ssl_checkpoint_path=null # the model path, when using espnet_hubert
 ssl_kmeans_path=null
 ssl_nlayer=16
 ssl_hf_model_tag=null
@@ -365,6 +366,7 @@ if ! "${skip_data_prep}"; then
                         --codec_batch_size ${codec_batch_size} \
                         --codec_dump_audio false \
                         --ssl_choice ${ssl_choice} \
+                        --ssl_feature_type ${ssl_feature_type} \
                         --ssl_checkpoint_path ${ssl_checkpoint_path} \
                         --ssl_kmeans_path ${ssl_kmeans_path} \
                         --ssl_nlayer ${ssl_nlayer} \
@@ -385,6 +387,7 @@ if ! "${skip_data_prep}"; then
                         --nj ${nj} \
                         --batch_bins ${ssl_batch_bins} \
                         --ssl_choice ${ssl_choice} \
+                        --ssl_feature_type ${ssl_feature_type} \
                         --checkpoint_path ${ssl_checkpoint_path} \
                         --kmeans_path ${ssl_kmeans_path} \
                         --nlayer ${ssl_nlayer} \

@@ -60,7 +60,7 @@ def build_data_iterator(
         dataset=dataset,
         batches=batches,
         collate_fn=CommonCollateFn(float_pad_value=0.0, int_pad_value=-1),
-        num_workers=2,
+        num_workers=8,
     ).build_iter(0)
     return iterator
 

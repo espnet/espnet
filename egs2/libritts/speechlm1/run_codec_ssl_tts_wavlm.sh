@@ -5,35 +5,36 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_960
-valid_set=dev_clean
-test_sets="test_clean"
+train_set=train-460
+valid_set=dev-clean
+test_sets="test-clean"
 
-train_config=conf/train_multiscale_tts.yaml
-inference_config=conf/decode_tts_encodec.yaml
+train_config=conf/train_delay_asr.yaml
+inference_config=conf/decode_asr.yaml
 
-token_list_dir=data/token_list/tts_vocab
-codec_opts="--codec_choice EnCodec --dumpdir dump_encodec"
+dumpdir=dump_wavlm
+ssl_opts="--ssl_choice s3prl --ssl_feature_type wavlm_large --ssl_nlayer 21 --ssl_kmeans_path exp/kmeans_wavlm/wavlm_large_21_2000clusters/km_2000.mdl --ssl_batch_bins 19200000"
+codec_opts="--codec_choice inhouse"
+bpe_opts="--subword_choice sentencepiece --nbpe 5000"
+
 
 ./speechlm.sh \
-    --task "tts" \
-    --data_name librispeech \
-    --fs 24000 \
+    --task "codec_ssl_tts" \
+    --data_name libritts \
+    --fs 16000 \
     --ngpu 4 \
     --nj 16 \
     --inference_nj 16 \
     --nbest 10 \
     --gpu_inference true \
-    --cleaner "tacotron" \
-    --g2p "g2p_en_no_space" \
     --train_config ${train_config} \
     --inference_config ${inference_config} \
     --audio_format "flac.ark" \
-    --token_list_dir ${token_list_dir} \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --min_wav_duration 3.0 \
     --max_wav_duration 30.0 \
-    ${codec_opts} \
+    --dumpdir ${dumpdir} \
+    ${ssl_opts} ${codec_opts} ${bpe_opts} \
     "$@"

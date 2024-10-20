@@ -126,7 +126,8 @@ def dump_label(
     if online_feature_extract:
         assert "feature_conf" in kwargs
         # need to wrap arguments with double-quotes for json string
-        feature_conf = format_feature_conf_str(kwargs["feature_conf"])
+        feature_conf = kwargs["feature_conf"].replace("'", '"')
+        feature_conf = format_feature_conf_str(feature_conf)
     else:
         feature_conf = None
 
