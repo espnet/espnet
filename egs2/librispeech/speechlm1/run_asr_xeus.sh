@@ -10,7 +10,7 @@ valid_set=dev_clean
 test_sets="test_clean"
 
 train_config=conf/train_delay_asr.yaml
-inference_config=conf/decode_tts.yaml
+inference_config=conf/decode_asr.yaml
 
 token_list_dir=data/token_list/asr_vocab
 ssl_opts="\

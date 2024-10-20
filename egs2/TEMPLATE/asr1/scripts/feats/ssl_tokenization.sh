@@ -31,6 +31,7 @@ use_gpu=true
 
 python=python3
 ssl_choice=espnet_hubert
+ssl_feature_type=wavlm_large
 checkpoint_path=null
 kmeans_path=null
 nlayer=16
@@ -48,8 +49,14 @@ fi
 
 if [ "${hf_model_tag}" != "null" ]; then
     log "download from url is not supported yet" && exit 1;
-elif [ ! -f ${checkpoint_path} ] || [ ! -f ${kmeans_path} ]; then
-    log "SSL model or K-Means model is not available" && exit 1;
+elif [ "${ssl_choice}" == "espnet_hubert" ]; then
+    if [ ! -f ${checkpoint_path} ] || [ ! -f ${kmeans_path} ]; then
+        log "SSL model or K-Means model is not available" && exit 1;
+    fi
+elif [ "${ssl_choice}" == "s3prl" ]; then
+    if [ ! -f ${kmeans_path} ]; then
+        log "K-Means model is not available" && exit 1;
+    fi
 fi
 
 if [ ${fs} != 16000 ]; then
@@ -90,14 +97,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     rspecifier="scp:${tgt_dir}/logdir/${file_name}.JOB.scp"
     wspecifier="ark,scp:${output_dir}/${file_name}_ssl_${ssl_choice}.JOB.ark,${output_dir}/${file_name}_ssl_${ssl_choice}.JOB.scp"
-    feature_conf="{ \
-        type=${ssl_choice}, \
-        conf={ \
-            sample_rate=${fs}, \
-            hubert_model_path=${checkpoint_path}, \
-            layer=${nlayer} \
-        } \
-    }"
+    if [ "${ssl_choice}" == "espnet_hubert" ]; then
+        feature_conf="{type=${ssl_choice},conf={sample_rate=${fs},hubert_model_path=${checkpoint_path},layer=${nlayer}}}" \
+
+    elif [ "${ssl_choice}" == "s3prl" ]; then
+        s3prl_conf="{upstream=${ssl_feature_type}}"
+        feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${nlayer}}}"
+        
+    else
+        log Unsupported SSL choice: ${ssl_choice} && exit 1;
+    fi
 
     log "Start SSL tokenization. log in ${_logdir}/ssl_dump_${ssl_choice}.*.log"
     ${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/ssl_dump_${ssl_choice}.JOB.log \
@@ -108,7 +117,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --in_filetype "kaldi_ark" \
             --out_filetype "mat" \
             --use_gpu ${use_gpu} \
-            --feature_conf "${feature_conf}" \
+            --feature_conf "'${feature_conf}'" \
             --utt2num_samples ${tgt_dir}/logdir/utt2num_samples.JOB \
             ${rspecifier} ${wspecifier}
 

@@ -5,23 +5,27 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_960
-valid_set=dev_clean
-test_sets="test_clean"
+lang="en"
+data_split="full" # one of full 1h 10h
+local_data_opts="--lang ${lang} --data_split ${data_split}"
 
-train_config=conf/train_multiscale_tts.yaml
-inference_config=conf/decode_tts_encodec.yaml
+train_set="mls_${lang}_train"
+valid_set="mls_${lang}_dev"
+test_sets="mls_${lang}_test"
+
+train_config=conf/train_delay_tts.yaml
+inference_config=conf/decode_tts.yaml
 
 token_list_dir=data/token_list/tts_vocab
 codec_opts="--codec_choice EnCodec --dumpdir dump_encodec"
 
 ./speechlm.sh \
     --task "tts" \
-    --data_name librispeech \
+    --data_name mls_en \
     --fs 24000 \
-    --ngpu 4 \
-    --nj 16 \
-    --inference_nj 16 \
+    --ngpu 1 \
+    --nj 88 \
+    --inference_nj 88 \
     --nbest 10 \
     --gpu_inference true \
     --cleaner "tacotron" \

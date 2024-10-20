@@ -37,6 +37,7 @@ codec_batch_size=3
 
 # ssl settings
 ssl_choice=espnet_hubert
+ssl_feature_type=wavlm_large
 ssl_checkpoint_path=null
 ssl_kmeans_path=null
 ssl_nlayer=16
@@ -80,6 +81,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --nj ${nj} \
       --batch_bins ${ssl_batch_bins} \
       --ssl_choice ${ssl_choice} \
+      --ssl_feature_type ${ssl_feature_type} \
       --checkpoint_path ${ssl_checkpoint_path} \
       --kmeans_path ${ssl_kmeans_path} \
       --nlayer ${ssl_nlayer} \
