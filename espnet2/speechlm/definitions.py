@@ -80,6 +80,11 @@ SPEECHLM_TASKS["audiolm"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["ssl_audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "ssl", "kaldi_ark")],
+)
+
 SPEECHLM_TASKS["tts"] = SpeechLMTaskTemplate(
     conditions=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
     targets=[("wav.scp", "codec", "kaldi_ark")],

@@ -92,7 +92,7 @@ def main():
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
-            f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list)}"
+            f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list) + len(special_tokens)}"
         )
         token_bias[modality] = len(token_list) + len(special_tokens)
         token_list = token_list + list(modality_vocab.keys())
