@@ -8,7 +8,7 @@ This document outlines the process of automatically generating the ESPnet homepa
 1. **Clone the ESPnet Repository**: Begin by cloning the ESPnet repository from GitHub.
 
 2. **Generate the `activate_python.sh` Script**:
-   - You can generate this file by running either `setup_anaconda.sh` or `setup_venv.sh`.
+   - You can generate this file by running either `setup_miniforge.sh` or `setup_venv.sh`.
    - Alternatively, create your own virtual environment and manually write the command to activate it in `activate_python.sh`.
 
 3. **Run `activate_python.sh`**: Execute this script to activate the Python environment.
