@@ -66,6 +66,8 @@ if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     fi
 fi
 
+export CONDARC=${output_dir}/.condarc
+
 # shellcheck disable=SC1090
 source "${output_dir}/etc/profile.d/conda.sh"
 conda deactivate
@@ -92,5 +94,6 @@ cat << EOF > activate_python.sh
 if [ -z "\${PS1:-}" ]; then
     PS1=__dummy__
 fi
+export CONDARC=${output_dir}/.condarc
 . $(cd ${output_dir}; pwd)/etc/profile.d/conda.sh && conda deactivate && conda activate ${name}
 EOF
