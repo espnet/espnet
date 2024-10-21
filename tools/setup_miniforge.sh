@@ -76,6 +76,8 @@ if [ -n "${name}" ] && ! conda activate ${name}; then
 fi
 conda activate ${name}
 
+conda config --prepend channels https://software.repos.intel.com/python/conda/
+
 if [ -n "${PYTHON_VERSION}" ]; then
     conda install -y conda "python=${PYTHON_VERSION}"
 else
