@@ -18,6 +18,7 @@ HF_OBJ = {
     "allenai/OLMo": [AutoModel, AutoModelForCausalLM],
     "meta-llama/Meta-Llama-3.1": [AutoModel, AutoModelForCausalLM],
     "HuggingFaceTB/SmolLM": [AutoModel, AutoModelForCausalLM],
+    "facebook/opt": [AutoModel, AutoModelForCausalLM],
 }
 
 class HFTransformerDecoder(AbsTransformer):
