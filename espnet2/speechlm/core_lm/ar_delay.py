@@ -13,7 +13,8 @@ import torch
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.net_utils import (
-    logits_to_tokens, 
+    logits_to_tokens,
+    beam_search_selection,
     modality_index_to_mask,
     install_continuous_features,
 )
@@ -170,6 +171,14 @@ class ARDelayLM(ARParallelLM):
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step: step + 1]
+            elif opts.search_algo == "beam_search":
+                prev_tok = beam_search_selection(
+                    gen_token_idx=gen_tok,
+                    gen_token_score=gen_score,
+                    generated=generated,
+                    finish_idx=finish_idx,
+                    model=self.decoders,
+                )
             else:
                 prev_tok = gen_tok
 

@@ -129,6 +129,15 @@ def logits_to_tokens(
         ).view(clip_probs[..., :1].size())
         gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
+    
+    elif search_algo in ["beam_search"]:
+        # NOTE(Jinchuan): for beam search, this function only proposes the candidates but not
+        # to do the hypothesis selection / pruning. If beam search, this function should be used
+        # together with the "beam_search_selection" function as defined below.
+        assert logits.size(2) == 1, "Currently beam search only supports single-stream decoding"
+        assert logits.size(0) == 1, "should set nbest=1 when doing beam seaarch"
+        probs = torch.softmax(logits / opts.sampling_temperature, dim=-1)
+        gen_token_score, gen_token_idx = torch.topk(probs, opts.beam_size, dim=-1)
 
     elif search_algo in ["greedy_search", "teacher_force"]:
         probs = logits.softmax(dim=-1)
@@ -141,6 +150,63 @@ def logits_to_tokens(
 
     return gen_token_idx, gen_token_score
 
+def beam_search_selection(
+    gen_token_idx, 
+    gen_token_score,
+    generated,
+    finish_idx,
+    model,
+):
+    # NOTE(Jinchuan): assume there are beam * beam hypotheses 
+    # expanded from previous beam hypothesis.
+    beam_size = gen_token_idx.size(-1)
+    # device = gen_token_idx.device()
+
+    # (1) history
+    if len(generated["score"]) == 0 and len(generated["token"]) == 0:
+        prev_scores = 0.0
+        prev_tokens = None
+    else:
+        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
+        prev_tokens = torch.cat(generated["token"], dim=1).squeeze(2) # [B, T]
+
+        # use very high previous scores to always keep finished hypotheses
+        prev_scores = torch.where(finish_idx == -1, prev_scores, 1e20)
+    
+    # (2) compare new hypotheses in beam and pruning
+    prev_scores = prev_scores.repeat_interleave(beam_size, dim=0)
+    prev_tokens = prev_tokens.repeat_interleave(beam_size, dim=0)
+
+    curr_scores = prev_scores + gen_token_score.view(-1)
+    _, selected_idx = torch.topk(curr_scores, beam_size, dim=0)
+
+    gen_token_idx = gen_token_idx[selected_idx]
+    gen_token_score = gen_token_score[selected_idx]
+    prev_scores = prev_scores[selected_idx]
+    prev_tokens = prev_tokens[selected_idx]
+
+
+    # (3) select the corresponding model cache; update generated
+    history_idx = selected_idx % beam_size
+    model.select_cache(history_idx)
+
+
+
+
+
+
+
+
+
+    
+
+    print("prev_tokens,", prev_tokens)
+    print("prev scores: ", prev_scores)
+    prev_scores = torch.cat(prev_scores, dim=1)
+    print("generated tokens: ", gen_token_idx.size(), gen_token_score.size())
+
+    print("", flush=True)
+    assert 1 == 2
 
 def modality_index_to_mask(
     modality_index: torch.Tensor,

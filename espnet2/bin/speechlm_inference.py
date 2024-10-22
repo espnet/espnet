@@ -51,6 +51,7 @@ class SpeechLM:
         sampling_temperature: float = 1.0,
         top_k: int = 20,
         top_p: float = 0.8,
+        beam_size: int = 1,
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         fixed_length: bool = False,
@@ -129,6 +130,7 @@ class SpeechLM:
             sampling_temperature=sampling_temperature,
             top_k=top_k,
             top_p=top_p,
+            beam_size=beam_size,
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
             eos=train_args.token_list.index("<sos/eos>"),
@@ -308,6 +310,7 @@ def inference(
     sampling_temperature: float = 1.0,
     top_k: int = 20,
     top_p: float = 0.8,
+    beam_size: int = 1,
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
@@ -348,6 +351,7 @@ def inference(
         sampling_temperature=sampling_temperature,
         top_k=top_k,
         top_p=top_p,
+        beam_size=beam_size,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         fixed_length=fixed_length,
@@ -550,6 +554,7 @@ def get_parser():
             "topp_sampling",
             "teacher_force",
             "greedy_search",
+            "beam_search",
         ],
         help="the search algorithm of SpeechLM",
     )
@@ -576,6 +581,12 @@ def get_parser():
         type=float,
         default=0.8,
         help="if positive, restrict the sampling to tokens with top-p probs",
+    )
+    group.add_argument(
+        "--beam_size",
+        type=int,
+        default=1,
+        help="Beam size, only effective in beam search mode",
     )
     group.add_argument(
         "--inference_nq",
