@@ -158,55 +158,30 @@ def beam_search_selection(
     model,
 ):
     # NOTE(Jinchuan): assume there are beam * beam hypotheses 
-    # expanded from previous beam hypothesis.
+    # expanded from previous beam hypothesis. Prune to "beam" hypotheses
     beam_size = gen_token_idx.size(-1)
-    # device = gen_token_idx.device()
 
-    # (1) history
-    if len(generated["score"]) == 0 and len(generated["token"]) == 0:
-        prev_scores = 0.0
-        prev_tokens = None
-    else:
-        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
-        prev_tokens = torch.cat(generated["token"], dim=1).squeeze(2) # [B, T]
+    # (1) compute overall scores, find select idx
+    prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
+    # use very high previous scores to always keep finished hypotheses
+    prev_scores = torch.where(finish_idx == -1, prev_scores, 1e20)
+    prev_scores_repeat = prev_scores.repeat_interleave(beam_size, dim=0)
 
-        # use very high previous scores to always keep finished hypotheses
-        prev_scores = torch.where(finish_idx == -1, prev_scores, 1e20)
-    
-    # (2) compare new hypotheses in beam and pruning
-    prev_scores = prev_scores.repeat_interleave(beam_size, dim=0)
-    prev_tokens = prev_tokens.repeat_interleave(beam_size, dim=0)
+    overall_scores = prev_scores_repeat + gen_token_score.view(-1)
 
-    curr_scores = prev_scores + gen_token_score.view(-1)
-    _, selected_idx = torch.topk(curr_scores, beam_size, dim=0)
+    _, select_idx = torch.topk(overall_scores, beam_size, dim=0)
+    gen_token_idx = gen_token_idx.view(-1)[select_idx].view(beam_size, 1, 1)
+    gen_token_score = gen_token_idx.view(-1)[select_idx].view(beam_size, 1, 1)
 
-    gen_token_idx = gen_token_idx[selected_idx]
-    gen_token_score = gen_token_score[selected_idx]
-    prev_scores = prev_scores[selected_idx]
-    prev_tokens = prev_tokens[selected_idx]
+    # (2) update model kv_cache and generated
+    select_idx = select_idx % beam_size
 
+    model.select_state(select_idx)
 
-    # (3) select the corresponding model cache; update generated
-    history_idx = selected_idx % beam_size
-    model.select_cache(history_idx)
+    generated["score"] = [s[select_idx] for s in generated["score"]]
+    generated["token"] = [s[select_idx] for s in generated["token"]]
 
-
-
-
-
-
-
-
-
-    
-
-    print("prev_tokens,", prev_tokens)
-    print("prev scores: ", prev_scores)
-    prev_scores = torch.cat(prev_scores, dim=1)
-    print("generated tokens: ", gen_token_idx.size(), gen_token_score.size())
-
-    print("", flush=True)
-    assert 1 == 2
+    return gen_token_idx, gen_token_score
 
 def modality_index_to_mask(
     modality_index: torch.Tensor,
