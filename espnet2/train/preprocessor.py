@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import random
@@ -2354,6 +2355,174 @@ class S2TPreprocessor(CommonPreprocessor):
         data, init_pad = self._pad_or_trim_speech(data)
 
         data = self._text_process(data, round(init_pad / self.speech_resolution))
+
+        return data
+
+
+class S2TCTCPreprocessor(CommonPreprocessor):
+    """Preprocessor for OWSM-CTC."""
+
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        text_prev_name: str = "text_prev",
+        text_ctc_name: str = "text_ctc",
+        fs: int = 16000,
+        na_symbol: str = "<na>",  # text is not available e.g. for prev or ctc
+        speech_length: float = 30,  # pad or trim speech to this value in seconds
+        speech_init_silence: float = 1.0,  # max silence before speech for data aug
+        text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
+        lang_apply_prob: float = 0.5,  # whether to use groundtruth language or unknown
+        nolang_symbol: str = "<nolang>",
+    ):
+        super().__init__(
+            train=train,
+            token_type=token_type,
+            token_list=token_list,
+            bpemodel=bpemodel,
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+            fs=fs,
+        )
+        self.text_prev_name = text_prev_name
+        self.text_ctc_name = text_ctc_name
+        self.speech_length = int(speech_length * fs)
+        self.speech_init_silence = int(speech_init_silence * fs)
+        self.text_prev_apply_prob = text_prev_apply_prob
+        self.lang_apply_prob = lang_apply_prob
+
+        # Obtain the token id of special tokens
+        self.na_symbol = na_symbol
+        self.nolang = self.token_id_converter.token2id[nolang_symbol]
+
+    @typechecked
+    def _pad_or_trim_speech(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
+
+        init_pad = 0
+        if self.speech_name in data:
+            speech = data[self.speech_name]
+
+            # speech: (Nmic, Time)
+            if speech.ndim == 1:
+                speech = speech[None, :]
+            else:
+                speech = speech.T
+
+            # Add silence to the left
+            if self.train and speech.shape[-1] < self.speech_length:
+                init_pad = np.random.randint(
+                    min(self.speech_length - speech.shape[-1], self.speech_init_silence)
+                    + 1
+                )
+                speech = np.pad(speech, ((0, 0), (init_pad, 0)))
+
+            # Pad or trim to max_samples
+            if speech.shape[-1] < self.speech_length:
+                speech = np.pad(
+                    speech, ((0, 0), (0, self.speech_length - speech.shape[-1]))
+                )
+            else:
+                speech = speech[:, : self.speech_length]
+
+            data[self.speech_name] = speech.T  # convert back to time first
+
+        return data, init_pad
+
+    @typechecked
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        # NOTE: the order is important
+        text_names = [self.text_name, self.text_prev_name, self.text_ctc_name]
+        if self.tokenizer is not None:
+            for name in text_names:
+                if name in data:
+                    text = data[name]
+
+                    # Remove prev text by setting it to <na>
+                    if (
+                        self.train
+                        and name == self.text_prev_name
+                        and np.random.uniform() > self.text_prev_apply_prob
+                    ):
+                        text = self.na_symbol
+
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    text_ints = np.array(text_ints, dtype=np.int64)
+
+                    # Augment text
+                    if name == self.text_name:
+                        # NOTE(yifan): The first token is always space
+                        # which should be removed.
+                        # No space is allowed between special tokens.
+                        # This works for bpe, but maybe not for the other types.
+                        text_ints = text_ints[1:]
+
+                        # First two tokens are <lang> and <task>
+                        # NOTE: must copy the array
+                        data["prefix"] = copy.deepcopy(text_ints[:2])
+                        if np.random.uniform() > self.lang_apply_prob:
+                            data["prefix"][0] = self.nolang
+
+                    elif name == self.text_ctc_name:
+                        # Add <lang> and <task> to ASR Text as well
+                        text_ints = np.concatenate([data[self.text_name][:2], text_ints])
+
+                    elif name == self.text_prev_name:
+                        # Remove space before <na>
+                        if text == self.na_symbol:
+                            assert len(text_ints) == 2, text_ints
+                            text_ints = text_ints[1:]
+
+                    data[name] = text_ints
+
+        return data
+
+    @typechecked
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        data = self._speech_process(data)
+        data, _ = self._pad_or_trim_speech(data)
+
+        data = self._text_process(data)
 
         return data
 
