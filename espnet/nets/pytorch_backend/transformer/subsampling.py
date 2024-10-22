@@ -474,7 +474,9 @@ class Conv2dSubsampling8(torch.nn.Module):
             torch.nn.ReLU(),
         )
         self.out = torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim)
-        self.pos_enc = pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        )
 
     def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
@@ -503,8 +505,14 @@ class Conv2dSubsampling8(torch.nn.Module):
             if x_mask is not None:
                 x_mask = torch.cat(
                     [
-                        torch.ones(x_mask.shape[0], 1, prefix_embeds.size(1), dtype=x_mask.dtype, device=x_mask.device),
-                        x_mask
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
                     ],
                     dim=-1,
                 )

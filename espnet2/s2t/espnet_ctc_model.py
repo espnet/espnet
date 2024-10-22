@@ -13,8 +13,8 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class ESPnetS2TCTCModel(AbsESPnetModel):
@@ -65,16 +65,18 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         self.encoder = encoder
         self.prompt_encoder = prompt_encoder
 
-        self.embed = torch.nn.Embedding(
-            vocab_size, self.prompt_encoder.output_size()
-        )
+        self.embed = torch.nn.Embedding(vocab_size, self.prompt_encoder.output_size())
         self.pos_enc = PositionalEncoding(self.prompt_encoder.output_size(), 0.0)
 
         if self.encoder.output_size() != self.prompt_encoder.output_size():
             # used in encoder to inject task and lang tokens
-            self.embed_proj = torch.nn.Linear(self.prompt_encoder.output_size(), self.encoder.output_size())
+            self.embed_proj = torch.nn.Linear(
+                self.prompt_encoder.output_size(), self.encoder.output_size()
+            )
             # applied to the output of prompt encoder
-            self.prompt_proj = torch.nn.Linear(self.prompt_encoder.output_size(), self.encoder.output_size())
+            self.prompt_proj = torch.nn.Linear(
+                self.prompt_encoder.output_size(), self.encoder.output_size()
+            )
         else:
             self.embed_proj = torch.nn.Identity()
             self.prompt_proj = torch.nn.Identity()
@@ -118,8 +120,7 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         # Forward prompt encoder
         text_prev[text_prev == -1] = self.eos
         memory, memory_lengths, _ = self.prompt_encoder(
-            self.pos_enc(self.embed(text_prev)),
-            text_prev_lengths
+            self.pos_enc(self.embed(text_prev)), text_prev_lengths
         )
         memory_mask = (~make_pad_mask(memory_lengths)[:, None, :]).to(memory.device)
 
@@ -199,7 +200,7 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
             text_ctc.shape,
             text_ctc_lengths.shape,
             prefix.shape,
-            prefix_lengths.shape
+            prefix_lengths.shape,
         )
         batch_size = speech.shape[0]
 
@@ -210,9 +211,7 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         text = text[:, : text_lengths.max()]
 
         encoder_out, encoder_out_lens = self.encode(
-            speech, speech_lengths,
-            text_prev, text_prev_lengths,
-            prefix, prefix_lengths
+            speech, speech_lengths, text_prev, text_prev_lengths, prefix, prefix_lengths
         )
 
         intermediate_outs = None
@@ -253,7 +252,9 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         loss_interctc = 0.0
         if self.interctc_weight != 0.0 and intermediate_outs is not None:
             assert len(self.ctc_asr_only) == len(intermediate_outs) + 1
-            for (layer_idx, intermediate_out), asr_only in zip(intermediate_outs, self.ctc_asr_only):
+            for (layer_idx, intermediate_out), asr_only in zip(
+                intermediate_outs, self.ctc_asr_only
+            ):
                 if asr_only:
                     loss_ic, cer_ic = self._calc_ctc_loss(
                         intermediate_out, encoder_out_lens, text_ctc, text_ctc_lengths

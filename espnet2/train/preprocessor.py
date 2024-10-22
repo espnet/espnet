@@ -2502,7 +2502,9 @@ class S2TCTCPreprocessor(CommonPreprocessor):
 
                     elif name == self.text_ctc_name:
                         # Add <lang> and <task> to ASR Text as well
-                        text_ints = np.concatenate([data[self.text_name][:2], text_ints])
+                        text_ints = np.concatenate(
+                            [data[self.text_name][:2], text_ints]
+                        )
 
                     elif name == self.text_prev_name:
                         # Remove space before <na>

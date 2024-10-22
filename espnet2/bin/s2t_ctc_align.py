@@ -429,10 +429,16 @@ class CTCSegmentation:
         buffer_len = int(sample_rate * buffer_len_in_secs)
         chunk_len = int(sample_rate * chunk_len_in_secs)
 
-        speech = np.pad(speech, (int(sample_rate * context_len_in_secs), int(sample_rate * context_len_in_secs)))
+        speech = np.pad(
+            speech,
+            (
+                int(sample_rate * context_len_in_secs),
+                int(sample_rate * context_len_in_secs),
+            ),
+        )
         buffer_list = []
         for i in range(0, len(speech), chunk_len):
-            cur_buffer = speech[i:i+buffer_len]
+            cur_buffer = speech[i : i + buffer_len]
             if len(cur_buffer) < buffer_len:
                 buffer_list.append(
                     np.pad(cur_buffer, (0, buffer_len - len(cur_buffer)))
@@ -452,12 +458,16 @@ class CTCSegmentation:
                 [cur_speech.size(0)], dtype=torch.long, fill_value=cur_speech.size(1)
             )
 
-            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(cur_speech.size(0), 1)
+            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(
+                cur_speech.size(0), 1
+            )
             text_prev_lengths = text_prev.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=text_prev.size(1)
             )
 
-            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(cur_speech.size(0), 1)
+            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(
+                cur_speech.size(0), 1
+            )
             prefix_lengths = prefix.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=prefix.size(-1)
             )
@@ -482,12 +492,16 @@ class CTCSegmentation:
                 enc, intermediate_outs = enc
 
             # enc: (B, T, D)
-            enc = enc[:, :buffer_frames]    # NOTE(yifan): IMPORTANT: it might be longer due to padding in conv
-            batched_log_p = self.ctc.log_softmax(enc).detach()      # (B, T, V)
-            valid_log_p = batched_log_p[:, context_frames : -context_frames].reshape(-1, batched_log_p.size(-1))    # (T', V)
+            enc = enc[
+                :, :buffer_frames
+            ]  # NOTE(yifan): IMPORTANT: it might be longer due to padding in conv
+            batched_log_p = self.ctc.log_softmax(enc).detach()  # (B, T, V)
+            valid_log_p = batched_log_p[:, context_frames:-context_frames].reshape(
+                -1, batched_log_p.size(-1)
+            )  # (T', V)
             unmerged.append(valid_log_p)
 
-        lpz = torch.cat(unmerged, dim=0).cpu().numpy()   # (time, V)
+        lpz = torch.cat(unmerged, dim=0).cpu().numpy()  # (time, V)
         return lpz
 
     def _split_text(self, text):
@@ -648,9 +662,8 @@ class CTCSegmentation:
 
         Returns:
             CTCSegmentationTask object with segments.
-        
-        """
 
+        """
 
         if fs is not None:
             self.set_config(fs=fs)

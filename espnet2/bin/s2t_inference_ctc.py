@@ -266,9 +266,7 @@ class Speech2Text:
         task_id = self.converter.token2id[task_sym]
 
         if isinstance(text_prev, str):
-            text_prev = self.converter.tokens2ids(
-                self.tokenizer.text2tokens(text_prev)
-            )
+            text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(text_prev))
         else:
             text_prev = text_prev.tolist()
 
@@ -276,12 +274,18 @@ class Speech2Text:
         if self.s2t_model.na in text_prev:
             text_prev = [self.s2t_model.na]
 
-        text_prev = torch.tensor(text_prev, dtype=torch.long).unsqueeze(0)  # (1, length)
-        text_prev_lengths = text_prev.new_full([1], dtype=torch.long, fill_value=text_prev.size(1))
+        text_prev = torch.tensor(text_prev, dtype=torch.long).unsqueeze(
+            0
+        )  # (1, length)
+        text_prev_lengths = text_prev.new_full(
+            [1], dtype=torch.long, fill_value=text_prev.size(1)
+        )
 
         # Prepare prefix
-        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long) # (1, 2)
-        prefix_lengths = prefix.new_full([1], dtype=torch.long, fill_value=prefix.size(-1))
+        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long)  # (1, 2)
+        prefix_lengths = prefix.new_full(
+            [1], dtype=torch.long, fill_value=prefix.size(-1)
+        )
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -291,7 +295,9 @@ class Speech2Text:
         # speech: (nsamples,) -> (1, nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
-        speech_lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        speech_lengths = speech.new_full(
+            [1], dtype=torch.long, fill_value=speech.size(1)
+        )
         logging.info("speech length: " + str(speech.size(1)))
 
         batch = {
@@ -452,7 +458,7 @@ class Speech2TextGreedySearch:
             s2t_model = torch.quantization.quantize_dynamic(
                 s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
             )
-    
+
         logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # [Optional] Build Text converter: e.g. bpe-sym -> Text
@@ -525,9 +531,7 @@ class Speech2TextGreedySearch:
         task_id = self.converter.token2id[task_sym]
 
         if isinstance(text_prev, str):
-            text_prev = self.converter.tokens2ids(
-                self.tokenizer.text2tokens(text_prev)
-            )
+            text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(text_prev))
         else:
             text_prev = text_prev.tolist()
 
@@ -535,12 +539,18 @@ class Speech2TextGreedySearch:
         if self.s2t_model.na in text_prev:
             text_prev = [self.s2t_model.na]
 
-        text_prev = torch.tensor(text_prev, dtype=torch.long).unsqueeze(0)  # (1, length)
-        text_prev_lengths = text_prev.new_full([1], dtype=torch.long, fill_value=text_prev.size(1))
+        text_prev = torch.tensor(text_prev, dtype=torch.long).unsqueeze(
+            0
+        )  # (1, length)
+        text_prev_lengths = text_prev.new_full(
+            [1], dtype=torch.long, fill_value=text_prev.size(1)
+        )
 
         # Prepare prefix
-        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long) # (1, 2)
-        prefix_lengths = prefix.new_full([1], dtype=torch.long, fill_value=prefix.size(-1))
+        prefix = torch.tensor([[lang_id, task_id]], dtype=torch.long)  # (1, 2)
+        prefix_lengths = prefix.new_full(
+            [1], dtype=torch.long, fill_value=prefix.size(-1)
+        )
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
@@ -550,7 +560,9 @@ class Speech2TextGreedySearch:
         # speech: (nsamples,) -> (1, nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
-        speech_lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        speech_lengths = speech.new_full(
+            [1], dtype=torch.long, fill_value=speech.size(1)
+        )
         logging.info("speech length: " + str(speech.size(1)))
 
         batch = {
@@ -603,7 +615,7 @@ class Speech2TextGreedySearch:
 
     def _decode_single_sample(self, enc: torch.Tensor):
         # enc: (B, T, D)
-        token_int = self.s2t_model.ctc.argmax(enc)[0]   # batch size is 1; (T,)
+        token_int = self.s2t_model.ctc.argmax(enc)[0]  # batch size is 1; (T,)
         token_int = torch.unique_consecutive(token_int).cpu().tolist()
         token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
         token = self.converter.ids2tokens(token_int)
@@ -650,13 +662,13 @@ class Speech2TextGreedySearch:
         buffer_len_in_secs = self.preprocessor_conf["speech_length"]
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
 
-        class AudioChunkIterator():
+        class AudioChunkIterator:
             def __init__(self, samples, chunk_len_in_secs, sample_rate):
                 self._samples = samples
                 self._chunk_len = chunk_len_in_secs * sample_rate
                 self._start = 0
                 self.output = True
-        
+
             def __iter__(self):
                 return self
 
@@ -665,14 +677,14 @@ class Speech2TextGreedySearch:
                     raise StopIteration
                 last = int(self._start + self._chunk_len)
                 if last <= len(self._samples):
-                    chunk = self._samples[self._start: last]
+                    chunk = self._samples[self._start : last]
                     self._start = last
                 else:
-                    chunk = np.zeros([int(self._chunk_len)], dtype='float32')
+                    chunk = np.zeros([int(self._chunk_len)], dtype="float32")
                     samp_len = len(self._samples) - self._start
-                    chunk[0:samp_len] = self._samples[self._start:len(self._samples)]
+                    chunk[0:samp_len] = self._samples[self._start : len(self._samples)]
                     self.output = False
-        
+
                 return chunk
 
         buffer_len = int(sample_rate * buffer_len_in_secs)
@@ -696,12 +708,16 @@ class Speech2TextGreedySearch:
                 [cur_speech.size(0)], dtype=torch.long, fill_value=cur_speech.size(1)
             )
 
-            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(cur_speech.size(0), 1)
+            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(
+                cur_speech.size(0), 1
+            )
             text_prev_lengths = text_prev.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=text_prev.size(1)
             )
 
-            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(cur_speech.size(0), 1)
+            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(
+                cur_speech.size(0), 1
+            )
             prefix_lengths = prefix.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=prefix.size(-1)
             )
@@ -726,10 +742,12 @@ class Speech2TextGreedySearch:
                 enc, intermediate_outs = enc
 
             # enc: (B, T, D)
-            batched_token_int = self.s2t_model.ctc.argmax(enc)      # (B, T)
-            valid_token_int = batched_token_int[:, context_frames : -context_frames].reshape(-1)
+            batched_token_int = self.s2t_model.ctc.argmax(enc)  # (B, T)
+            valid_token_int = batched_token_int[
+                :, context_frames:-context_frames
+            ].reshape(-1)
             unmerged.append(valid_token_int)
-        
+
         unmerged = torch.cat(unmerged)
         merged = torch.unique_consecutive(unmerged).cpu().tolist()
         token_int = list(filter(lambda x: x != self.s2t_model.blank_id, merged))
@@ -1086,12 +1104,12 @@ def get_parser():
     group.add_argument(
         "--lang_sym", type=str, default="nolang", help="Language symbol."
     )
+    group.add_argument("--task_sym", type=str, default="asr", help="Task symbol.")
     group.add_argument(
-        "--task_sym", type=str, default="asr", help="Task symbol."
-    )
-    group.add_argument(
-        "--generate_interctc_outputs", type=bool, default=False,
-        help="Also write intermediate CTC outputs."
+        "--generate_interctc_outputs",
+        type=bool,
+        default=False,
+        help="Also write intermediate CTC outputs.",
     )
 
     group = parser.add_argument_group("Text converter related")

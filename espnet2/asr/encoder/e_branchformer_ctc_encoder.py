@@ -107,7 +107,14 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         )
         self.merge_proj = torch.nn.Linear(size + size, size)
 
-    def forward(self, x_input, mask, cache=None, memory=None, memory_mask=None,):
+    def forward(
+        self,
+        x_input,
+        mask,
+        cache=None,
+        memory=None,
+        memory_mask=None,
+    ):
         """Compute encoded features.
 
         Args:
@@ -222,7 +229,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
         merge_conv_kernel: int = 3,
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
-        use_cross_attention=True,   # bool or list of bool
+        use_cross_attention=True,  # bool or list of bool
         use_flash_attn: bool = False,
     ):
         super().__init__()
@@ -404,7 +411,10 @@ class EBranchformerCTCEncoder(AbsEncoder):
 
         if isinstance(use_cross_attention, bool):
             use_cross_attention = [use_cross_attention for _ in range(num_blocks)]
-        assert isinstance(use_cross_attention, list) and len(use_cross_attention) == num_blocks
+        assert (
+            isinstance(use_cross_attention, list)
+            and len(use_cross_attention) == num_blocks
+        )
 
         self.encoders = repeat(
             num_blocks,
@@ -413,17 +423,23 @@ class EBranchformerCTCEncoder(AbsEncoder):
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 cgmlp_layer(*cgmlp_layer_args),
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
-                positionwise_layer(*positionwise_layer_args)
-                if use_ffn and macaron_ffn
-                else None,
-                MultiHeadedAttention(
-                    attention_heads,
-                    output_size,
-                    attention_dropout_rate,
-                    False,  # no qk_norm
-                    use_flash_attn,
-                    cross_attn=True,
-                ) if use_cross_attention[lnum] else None,
+                (
+                    positionwise_layer(*positionwise_layer_args)
+                    if use_ffn and macaron_ffn
+                    else None
+                ),
+                (
+                    MultiHeadedAttention(
+                        attention_heads,
+                        output_size,
+                        attention_dropout_rate,
+                        False,  # no qk_norm
+                        use_flash_attn,
+                        cross_attn=True,
+                    )
+                    if use_cross_attention[lnum]
+                    else None
+                ),
                 dropout_rate,
                 merge_conv_kernel,
             ),
@@ -493,7 +509,9 @@ class EBranchformerCTCEncoder(AbsEncoder):
 
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
-            xs_pad, masks = encoder_layer(xs_pad, masks, memory=memory, memory_mask=memory_mask)
+            xs_pad, masks = encoder_layer(
+                xs_pad, masks, memory=memory, memory_mask=memory_mask
+            )
 
             if layer_idx + 1 in self.interctc_layer_idx:
                 encoder_out = xs_pad
