@@ -19,6 +19,7 @@ jp_datasets = [
     "ofuton",
     "namine",
     "natsume",
+    "pjs",
 ]
 
 zh_datasets = [
@@ -187,7 +188,7 @@ def convert(
                 if lyric in heads_list:
                     pre_head_phn = lyric
                     set_phn_type = 1
-                    print("Warning: set prevous head phoneme {} in {}".format(pre_head_phn, key))
+                    print("Warning: set previous head phoneme {} in {}".format(pre_head_phn, key))
                     continue
                 
         if pro_phns == "pinyin not found":

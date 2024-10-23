@@ -186,6 +186,10 @@ def process_utterance(
     assert len(phn_dur) == len(phns)
     label_entry = []
     for i in range(len(phns)):
+        if phns[i] == "<AP>":
+            phns[i] = "AP"
+        if phns[i] == "<SP>":
+            phns[i] = "SP"
         start = running_dur
         end = running_dur + phn_dur[i]
         label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[i]))

@@ -41,10 +41,10 @@ pitch_extract=dio
 ying_extract=None
 
 combine_path=""
-datasets="opencpop ameboshi kiritan"
+datasets="opencpop acesinger m4singer ameboshi kiritan oniku_kurumi_utagoe_db ofuton_p_utagoe_db namine_ritsu_utagoe_db itako pjs"
 # datasets can be chonsen: 
 # - dataset(zh): opencpop acesinger kising m4singer
-# - dataset(jp): ameboshi kiritan oniku_kurumi_utagoe_db ofuton_p_utagoe_db namine_ritsu_utagoe_db itako
+# - dataset(jp): ameboshi kiritan oniku_kurumi_utagoe_db ofuton_p_utagoe_db namine_ritsu_utagoe_db itako pjs
 for dataset in ${datasets}; do
     combine_path+="\$$(realpath ../../${dataset}/svs1/dump/raw/)"
 done

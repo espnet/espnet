@@ -211,15 +211,15 @@ def get_info_from_partitions(
                     onset_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
                     pitch=0,
-                    lyric="AP",
-                    phn="AP",
+                    lyric="SP",
+                    phn="SP",
                 )
             )
             current_phns.append(
                 Phoneme(
                     start_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
-                    symbol="AP",
+                    symbol="SP",
                 )
             )
 
@@ -375,7 +375,7 @@ def process_dataset(args):
                 dataset = testset
             else:
                 dataset = trainset
-            dataset.utt2spk += [(segid, singer) for segid in segids]
+            dataset.utt2spk += [(segid, "kising_" + singer) for segid in segids]
             dataset.utt2wav += list(zip(segids, filenames))
             dataset.utt2text += [
                 (segid, *[phn.symbol for phn in phns])

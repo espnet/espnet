@@ -20,8 +20,8 @@ elif [ ${fs} -eq 44100 ]; then
     n_shift=512
     win_length=2048
 fi
-use_sid=false
-use_spk_embed=true
+use_sid=true
+use_spk_embed=false
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 

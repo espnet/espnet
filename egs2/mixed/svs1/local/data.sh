@@ -19,6 +19,7 @@ stop_stage=100
 fs=None
 g2p=None
 combine_path=None
+skip_resample=true
 
 log "$0 $*"
 
@@ -46,15 +47,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Combine Data"
     log "[IMPORTANT] assume merging with dumpped files"
     IFS='$' read -r -a datasets_path <<< "$combine_path"
-    if [ -e "data/raw_data" ]; then
-        echo "delete data/raw_data"
-        rm -r "data/raw_data"
+    if [[ -z "${datasets_path[0]}" ]]; then
+        datasets_path=("${datasets_path[@]:1}")
+    fi
+    if [ -e "data" ]; then
+        echo "delete data"
+        rm -r "data"
     fi
     for x in ${train_dev} ${test_set} ${train_set}; do
         echo "process for subset: ${x}"
         opts="data/${x}"
         for dir in "${datasets_path[@]}"; do
-            if [[ -d "${dir}" && ! -z "${dir}" ]]; then
+            if [[ -d "${dir}" ]] ; then
                 org_workspace=$(realpath ${dir}/../../..)
                 dataset=$(basename ${org_workspace})
                 echo $dir
@@ -78,20 +82,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: Resample to ${fs}Hz if needed"
-    for x in ${train_dev} ${test_set} ${train_set}; do
-        echo "Process for subset: ${x}"
-        src_data="data/${x}"
-        dst_wav_dump_dir="wav_dump_resampled/${fs}Hz"
-        mv ${src_data}/wav.scp ${src_data}/wav.scp.tmp
-        ./local/resample_wav_scp.sh ${fs} ${src_data}/wav.scp.tmp ${dst_wav_dump_dir} ${src_data}/wav.scp
-        rm ${src_data}/wav.scp.tmp
-    done
-fi
-
-
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 3: Unifiy Phoneme-List with ACE-phoneme"
+    log "Stage 2: Unifiy Phoneme-List with ACE-phoneme"
     mkdir -p score_dump
     for x in ${train_dev} ${test_set} ${train_set}; do
         echo "process for subset: ${x}"
@@ -104,5 +95,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    if [[ ${skip_resample} = "true" ]]; then
+        log "Skip resample stage."
+    else
+        log "[Optional] Stage 3: Resample to ${fs}Hz"
+        for x in ${train_dev} ${test_set} ${train_set}; do
+            echo "Process for subset: ${x}"
+            src_data="data/${x}"
+            dst_wav_dump_dir="wav_dump_resampled/${fs}Hz"
+            mv ${src_data}/wav.scp ${src_data}/wav.scp.tmp
+            ./local/resample_wav_scp.sh ${fs} ${src_data}/wav.scp.tmp ${dst_wav_dump_dir} ${src_data}/wav.scp
+            rm ${src_data}/wav.scp.tmp
+        done
+    fi
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
