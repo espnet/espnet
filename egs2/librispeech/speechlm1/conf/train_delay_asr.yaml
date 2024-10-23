@@ -21,8 +21,8 @@ loss_region: target
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 16000
-num_iters_per_epoch: 30000
+batch_bins: 48000
+num_iters_per_epoch: 5000
 max_epoch: 20
 num_workers: 6
 drop_last_iter: true
@@ -53,7 +53,7 @@ codec_token_per_frame: 1
 codec_token_in_use: 1
 
 # specaug
-asr_apply_time_mask: false
+asr_apply_time_mask: true
 asr_time_mask_config:
     mask_width_ratio_range:
     - 0.
