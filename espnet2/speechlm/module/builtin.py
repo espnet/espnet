@@ -253,6 +253,13 @@ class TransformerDecoder(AbsTransformer):
         self.kv_cache = None
         self.hooks = None
     
+    def select_state(self, index):
+        if self.kv_cache is None:
+            raise ValueError("Transformer is not initialized or doesn't have kv_cache")
+        
+        for k, v in self.kv_cache.items():
+            self.kv_cache[k] = v[index]
+    
     @property
     def n_ctx(self):
         return self._n_ctx

@@ -135,8 +135,7 @@ def logits_to_tokens(
         # to do the hypothesis selection / pruning. If beam search, this function should be used
         # together with the "beam_search_selection" function as defined below.
         assert logits.size(2) == 1, "Currently beam search only supports single-stream decoding"
-        assert logits.size(0) == 1, "should set nbest=1 when doing beam seaarch"
-        probs = torch.softmax(logits / opts.sampling_temperature, dim=-1)
+        probs = torch.log_softmax(logits / opts.sampling_temperature, dim=-1)
         gen_token_score, gen_token_idx = torch.topk(probs, opts.beam_size, dim=-1)
 
     elif search_algo in ["greedy_search", "teacher_force"]:
@@ -161,27 +160,48 @@ def beam_search_selection(
     # expanded from previous beam hypothesis. Prune to "beam" hypotheses
     beam_size = gen_token_idx.size(-1)
 
-    # (1) compute overall scores, find select idx
-    prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
-    # use very high previous scores to always keep finished hypotheses
-    prev_scores = torch.where(finish_idx == -1, prev_scores, 1e20)
-    prev_scores_repeat = prev_scores.repeat_interleave(beam_size, dim=0)
+    # (0) for finished hypotheses, keep the first candidate and kill the remained ones
+    if torch.any(finish_idx != -1) > 0:
+        # gen_token_score: [beam, 1, 1, beam]
+        gen_token_score[:, 0, 0, 0] = torch.where(
+            finish_idx != -1, 1e20, gen_token_score[:, 0, 0, 0]
+        )
+        gen_token_score[:, 0, 0, 1:] = torch.where(
+            (finish_idx != -1).unsqueeze(-1),
+            -1e20, gen_token_score[:, 0, 0, 1:]
+        )
 
-    overall_scores = prev_scores_repeat + gen_token_score.view(-1)
+    # (1) compute overall scores, find select idx
+    if len(generated["score"]) > 0:
+        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
+        prev_scores = prev_scores.repeat_interleave(beam_size, dim=0)
+    else:
+        prev_scores = 0
+
+    overall_scores = prev_scores + gen_token_score.view(-1)
 
     _, select_idx = torch.topk(overall_scores, beam_size, dim=0)
     gen_token_idx = gen_token_idx.view(-1)[select_idx].view(beam_size, 1, 1)
-    gen_token_score = gen_token_idx.view(-1)[select_idx].view(beam_size, 1, 1)
+    gen_token_score = gen_token_score.view(-1)[select_idx].view(beam_size, 1, 1)
 
-    # (2) update model kv_cache and generated
-    select_idx = select_idx % beam_size
+    # (2) reorder many runtime cache: finished_idx, model kv_cache and generated dict
+    select_idx = select_idx // beam_size
+
+    finish_idx = finish_idx[select_idx]
+
+    # for finished hypotheses, this score is 0.0
+    if torch.any(finish_idx != -1):
+        gen_token_score[:, 0, 0] = torch.where(
+            finish_idx != -1,
+            0.0,
+            gen_token_score[:, 0, 0]
+        )
 
     model.select_state(select_idx)
-
     generated["score"] = [s[select_idx] for s in generated["score"]]
     generated["token"] = [s[select_idx] for s in generated["token"]]
 
-    return gen_token_idx, gen_token_score
+    return gen_token_idx, gen_token_score, finish_idx
 
 def modality_index_to_mask(
     modality_index: torch.Tensor,
