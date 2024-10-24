@@ -2417,6 +2417,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
         self.inter_segment_pad = inter_segment_pad
         self.pad = token_list.index("<pad>")
+        self.unk = token_list.index("<unk>")
 
         assert not (
             "codec" in token_bias and "codec_ssl" in token_bias
@@ -2551,6 +2552,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             new_data["dec_seq"] = np.concatenate(
                 [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
             ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
+        
+        if np.isin(self.unk, new_data["dec_seq"]):
+            raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
 
         prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
         prefix_len = prefix_len // self.codec_token_in_use + 2

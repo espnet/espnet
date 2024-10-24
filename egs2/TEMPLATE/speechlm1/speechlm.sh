@@ -197,10 +197,9 @@ if [ -z "${speechlm_stats_dir}" ]; then
 fi
 
 if [ "${subword_choice}" == "sentencepiece" ]; then
-    if  [ ! -z "${subword_model}" ]; then
-        if [ ! -f "${subword_model}".model ]; then
-            log "subword_model is specified but not exist ... " && exit 1;
-        fi
+    if [ ! -z ${token_list_dir} ] && [ -f "${token_list_dir}/text_bpe.model" ]; then
+        subword_model="${token_list_dir}/text_bpe"
+
     else
         if ! "${skip_data_prep}"; then
             subword_model=${data_feats}/${train_set}/token_lists/text_bpe

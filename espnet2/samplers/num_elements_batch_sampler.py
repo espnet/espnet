@@ -92,9 +92,10 @@ class NumElementsBatchSampler(AbsSampler):
                     np.prod(d[k]) for k in current_batch_keys for d in utt2shapes
                 )
 
-            if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
+            if bins > batch_bins and len(current_batch_keys) >= min_batch_size + 1:
                 # NOTE (Jinchuan): exclude the last sample so that the batch size
-                # is strictly smaller than the specified batch_bins
+                # is strictly smaller than the specified batch_bins. Important
+                # for large models that can only tolerante very small batch size.
                 batch_sizes.append(len(current_batch_keys) - 1)
                 current_batch_keys = current_batch_keys[-1:]
         else:
@@ -102,7 +103,6 @@ class NumElementsBatchSampler(AbsSampler):
                 not self.drop_last or len(batch_sizes) == 0
             ):
                 batch_sizes.append(len(current_batch_keys))
-
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
             raise RuntimeError("0 batches")
@@ -144,7 +144,6 @@ class NumElementsBatchSampler(AbsSampler):
                     bs = next(iter_bs)
                 except StopIteration:
                     break
-
         if sort_batch == "ascending":
             pass
         elif sort_batch == "descending":
