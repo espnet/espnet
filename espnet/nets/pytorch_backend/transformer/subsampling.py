@@ -484,7 +484,8 @@ class Conv2dSubsampling8(torch.nn.Module):
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
-            prefix_embeds (torch.Tensor or None): Prefix token embeddings (#batch, prefix_len, odim).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings 
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
