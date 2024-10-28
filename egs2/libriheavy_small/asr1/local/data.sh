@@ -57,7 +57,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Preparing data directories in ${data_dir}"
 
-    mkdir ${data_dir}
+    mkdir -p ${data_dir}
 
     for sub in small medium large test_clean test_other dev; do
         cp -a libriheavy/upper_no_punc/kaldi/${sub} ${data_dir}/${sub}
