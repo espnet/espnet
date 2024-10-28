@@ -4,7 +4,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.s2t_inference_ctc import Speech2Text, Speech2TextGreedySearch, get_parser, main
+from espnet2.bin.s2t_inference_ctc import (
+    Speech2Text,
+    Speech2TextGreedySearch,
+    get_parser,
+    main,
+)
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet.nets.beam_search import Hypothesis
 
