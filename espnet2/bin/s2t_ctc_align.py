@@ -173,7 +173,6 @@ class CTCSegmentation:
     warned_about_misconfiguration = False
     config = CtcSegmentationParameters()
 
-    @typechecked
     def __init__(
         self,
         s2t_train_config: Union[Path, str] = None,

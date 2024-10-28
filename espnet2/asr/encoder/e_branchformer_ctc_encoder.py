@@ -216,7 +216,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: Optional[str] = "conv2d",
+        input_layer: Optional[str] = "conv2d8",
         zero_triu: bool = False,
         padding_idx: int = -1,
         layer_drop_rate: float = 0.0,

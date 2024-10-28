@@ -44,28 +44,18 @@ ListOfHypothesis = List[
 
 
 class Speech2Text:
-    """Speech2Text class
+    """Speech2Text class"""
 
-    Examples:
-        >>> import soundfile
-        >>> speech2text = Speech2Text("s2t_config.yml", "s2t.pth")
-        >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
-        [(text, token, token_int, hypothesis object), ...]
-
-    """
-
-    @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
-        lm_train_config: Union[Path, str] = None,
-        lm_file: Union[Path, str] = None,
+        s2t_train_config: Optional[Union[Path, str]] = None,
+        s2t_model_file: Optional[Union[Path, str]] = None,
+        lm_train_config: Optional[Union[Path, str]] = None,
+        lm_file: Optional[Union[Path, str]] = None,
         ngram_scorer: str = "full",
-        ngram_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        ngram_file: Optional[Union[Path, str]] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
@@ -421,10 +411,10 @@ class Speech2TextGreedySearch:
 
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        s2t_train_config: Optional[Union[Path, str]] = None,
+        s2t_model_file: Optional[Union[Path, str]] = None,
+        token_type: Optional[str] = None,
+        bpemodel: Optional[str] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
@@ -659,46 +649,25 @@ class Speech2TextGreedySearch:
         lang_id = self.converter.token2id[lang_sym]
         task_id = self.converter.token2id[task_sym]
 
-        buffer_len_in_secs = self.preprocessor_conf["speech_length"]
+        buffer_len_in_secs = self.s2t_train_args.preprocessor_conf["speech_length"]
         chunk_len_in_secs = buffer_len_in_secs - 2 * context_len_in_secs
-
-        class AudioChunkIterator:
-            def __init__(self, samples, chunk_len_in_secs, sample_rate):
-                self._samples = samples
-                self._chunk_len = chunk_len_in_secs * sample_rate
-                self._start = 0
-                self.output = True
-
-            def __iter__(self):
-                return self
-
-            def __next__(self):
-                if not self.output:
-                    raise StopIteration
-                last = int(self._start + self._chunk_len)
-                if last <= len(self._samples):
-                    chunk = self._samples[self._start : last]
-                    self._start = last
-                else:
-                    chunk = np.zeros([int(self._chunk_len)], dtype="float32")
-                    samp_len = len(self._samples) - self._start
-                    chunk[0:samp_len] = self._samples[self._start : len(self._samples)]
-                    self.output = False
-
-                return chunk
-
         buffer_len = int(sample_rate * buffer_len_in_secs)
         chunk_len = int(sample_rate * chunk_len_in_secs)
-        sampbuffer = np.zeros([buffer_len], dtype=np.float32)
 
-        chunk_reader = AudioChunkIterator(speech, chunk_len_in_secs, sample_rate)
+        speech = np.pad(speech, (int(sample_rate * context_len_in_secs), int(sample_rate * context_len_in_secs)))
         buffer_list = []
-        for chunk in chunk_reader:
-            sampbuffer[:-chunk_len] = sampbuffer[chunk_len:]
-            sampbuffer[-chunk_len:] = chunk
-            buffer_list.append(np.array(sampbuffer))
+        for i in range(0, len(speech), chunk_len):
+            cur_buffer = speech[i:i+buffer_len]
+            if len(cur_buffer) < buffer_len:
+                buffer_list.append(
+                    np.pad(cur_buffer, (0, buffer_len - len(cur_buffer)))
+                )
+                break
+            else:
+                buffer_list.append(cur_buffer)
 
         speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
+        buffer_frames = int(frames_per_sec * buffer_len_in_secs)
         context_frames = int(frames_per_sec * context_len_in_secs)
 
         unmerged = []
@@ -708,16 +677,12 @@ class Speech2TextGreedySearch:
                 [cur_speech.size(0)], dtype=torch.long, fill_value=cur_speech.size(1)
             )
 
-            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(
-                cur_speech.size(0), 1
-            )
+            text_prev = torch.tensor([self.s2t_model.na], dtype=torch.long).repeat(cur_speech.size(0), 1)
             text_prev_lengths = text_prev.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=text_prev.size(1)
             )
 
-            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(
-                cur_speech.size(0), 1
-            )
+            prefix = torch.tensor([lang_id, task_id], dtype=torch.long).repeat(cur_speech.size(0), 1)
             prefix_lengths = prefix.new_full(
                 [cur_speech.size(0)], dtype=torch.long, fill_value=prefix.size(-1)
             )
@@ -742,10 +707,9 @@ class Speech2TextGreedySearch:
                 enc, intermediate_outs = enc
 
             # enc: (B, T, D)
-            batched_token_int = self.s2t_model.ctc.argmax(enc)  # (B, T)
-            valid_token_int = batched_token_int[
-                :, context_frames:-context_frames
-            ].reshape(-1)
+            enc = enc[:, :buffer_frames]    # NOTE(yifan): IMPORTANT: it might be longer due to padding in conv
+            batched_token_int = self.s2t_model.ctc.argmax(enc)      # (B, T)
+            valid_token_int = batched_token_int[:, context_frames : -context_frames].reshape(-1)
             unmerged.append(valid_token_int)
 
         unmerged = torch.cat(unmerged)
