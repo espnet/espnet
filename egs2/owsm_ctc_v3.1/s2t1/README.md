@@ -64,4 +64,101 @@ GigaST_YOU0000009624_002208970_002218840_en_st_zh 与员工和同事一起，这
 
 The pre-trained model is available at: https://huggingface.co/pyf98/owsm_ctc_v3.1_1B
 
-The model page also contains example usage.
+The model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml](conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml)
+
+
+### Example script for short-form ASR/ST
+
+```python
+import soundfile as sf
+import numpy as np
+import librosa
+import kaldiio
+from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+
+
+s2t = Speech2TextGreedySearch.from_pretrained(
+    "pyf98/owsm_ctc_v3.1_1B",
+    device="cuda",
+    generate_interctc_outputs=False,
+    lang_sym='<eng>',
+    task_sym='<asr>',
+)
+
+speech, rate = sf.read(
+    "xxx.wav"
+)
+speech = librosa.util.fix_length(speech, size=(16000 * 30))
+
+res = s2t(speech)[0]
+print(res)
+```
+
+### Example script for long-form ASR/ST
+
+```python
+import soundfile as sf
+import torch
+from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+
+
+context_len_in_secs = 4   # left and right context when doing buffered inference
+batch_size = 32   # depends on the GPU memory
+s2t = Speech2TextGreedySearch.from_pretrained(
+    "pyf98/owsm_ctc_v3.1_1B",
+    device='cuda' if torch.cuda.is_available() else 'cpu',
+    generate_interctc_outputs=False,
+    lang_sym='<eng>',
+    task_sym='<asr>',
+)
+
+speech, rate = sf.read(
+    "xxx.wav"
+)
+
+text = s2t.decode_long_batched_buffered(
+    speech,
+    batch_size=batch_size,
+    context_len_in_secs=context_len_in_secs,
+    frames_per_sec=12.5,        # 80ms shift, model-dependent, don't change
+)
+print(text)
+```
+
+### Example for CTC forced alignment using `ctc-segmentation`
+
+It can be efficiently applied to audio of an arbitrary length.
+For model downloading, please refer to https://github.com/espnet/espnet?tab=readme-ov-file#ctc-segmentation-demo
+
+```python
+import soundfile as sf
+from espnet2.bin.s2t_ctc_align import CTCSegmentation
+
+
+## Please download model first
+aligner = CTCSegmentation(
+    s2t_model_file="exp/s2t_train_s2t_multitask-ctc_ebf27_conv2d8_size1024_raw_bpe50000/valid.total_count.ave_5best.till45epoch.pth",
+    fs=16000,
+    ngpu=1,
+    batch_size=16,    # batched parallel decoding; reduce it if your GPU memory is smaller
+    kaldi_style_text=True,
+    time_stamps="fixed",
+    samples_to_frames_ratio=1280,   # 80ms time shift; don't change as it depends on the pre-trained model
+    lang_sym="<eng>",
+    task_sym="<asr>",
+    context_len_in_secs=2,  # left and right context in buffered decoding
+    frames_per_sec=12.5,    # 80ms time shift; don't change as it depends on the pre-trained model
+)
+
+speech, rate = sf.read(
+    "example.wav"
+)
+print(f"speech duration: {len(speech) / rate : .2f} seconds")
+text = '''
+utt1 hello there
+utt2 welcome to this repo
+'''
+
+segments = aligner(speech, text)
+print(segments)
+```
