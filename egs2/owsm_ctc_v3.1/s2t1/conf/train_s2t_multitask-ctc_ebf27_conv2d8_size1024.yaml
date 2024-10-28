@@ -1,3 +1,5 @@
+# 64 NVIDIA A100 GPUs (40GB)
+# Total training time: 300 hours
 preprocessor: s2t_ctc
 preprocessor_conf:
     na_symbol: "<na>"
@@ -87,7 +89,7 @@ batch_type: unsorted
 batch_size: 256
 accum_grad: 1
 num_iters_per_epoch: 15000
-max_epoch: 55
+max_epoch: 45
 patience: none
 init: none
 best_model_criterion:
