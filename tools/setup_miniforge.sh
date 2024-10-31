@@ -88,7 +88,10 @@ else
 fi
 
 conda install -y pip setuptools
-conda install -y mkl=2024.0
+
+if [ "${unamem}" = "x86_64" ]; then
+    conda install -y mkl=2024.0
+fi
 
 cat << EOF > activate_python.sh
 #!/usr/bin/env bash
