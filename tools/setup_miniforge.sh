@@ -48,11 +48,6 @@ if [ -e activate_python.sh ]; then
     echo "Warning: activate_python.sh already exists. It will be overwritten"
 fi
 
-CONDARC=$(pwd)/condarc
-export CONDARC
-
-touch $CONDARC
-
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e "${script}" ]; then
         wget --tries=3 --no-check-certificate "https://github.com/conda-forge/miniforge/releases/latest/download/${script}"
@@ -101,6 +96,5 @@ cat << EOF > activate_python.sh
 if [ -z "\${PS1:-}" ]; then
     PS1=__dummy__
 fi
-export CONDARC=$(pwd)/condarc
 . $(cd ${output_dir}; pwd)/etc/profile.d/conda.sh && conda deactivate && conda activate ${name}
 EOF
