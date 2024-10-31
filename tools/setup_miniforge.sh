@@ -48,6 +48,9 @@ if [ -e activate_python.sh ]; then
     echo "Warning: activate_python.sh already exists. It will be overwritten"
 fi
 
+export CONDARC=$(pwd)/condarc
+touch $CONDARC
+
 if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if [ ! -e "${script}" ]; then
         wget --tries=3 --no-check-certificate "https://github.com/conda-forge/miniforge/releases/latest/download/${script}"
@@ -62,11 +65,9 @@ if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
         # shellcheck disable=SC2317
         ./"${script}" /InstallationType=JustMe /RegisterPython=0 /S /D="${_output_dir}"
     else
-        bash "${script}" -b -p "${output_dir}"
+        bash "${script}" -b -p "${output_dir}" -u
     fi
 fi
-
-export CONDARC=${output_dir}/.condarc
 
 # shellcheck disable=SC1090
 source "${output_dir}/etc/profile.d/conda.sh"
@@ -87,6 +88,7 @@ else
 fi
 
 conda install -y pip setuptools
+conda install -y mkl=2024.0
 
 cat << EOF > activate_python.sh
 #!/usr/bin/env bash
@@ -94,6 +96,6 @@ cat << EOF > activate_python.sh
 if [ -z "\${PS1:-}" ]; then
     PS1=__dummy__
 fi
-export CONDARC=${output_dir}/.condarc
+# export CONDARC=$(pwd)/condarc
 . $(cd ${output_dir}; pwd)/etc/profile.d/conda.sh && conda deactivate && conda activate ${name}
 EOF
