@@ -23,6 +23,7 @@ set -euo pipefail
 
 echo "=== run shellcheck ==="
 rm -fv tools/Miniconda*.sh  # exclude from schellcheck
+rm -fv tools/Miniforge*.sh  # exclude from schellcheck
 find utils doc tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
 find egs \( -name "run.sh" -o -name asr.sh -o -name tts.sh -o -name enh.sh \) -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
 
