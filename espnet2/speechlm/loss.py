@@ -22,6 +22,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         self.pad = pad
         self.loss_region = loss_region
 
+        token_bias = token_bias.copy()
         if "codec" in token_bias:
             self.aux_start, self.aux_end = token_bias["codec"]
         else:
@@ -59,11 +60,13 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
     ):
         # NOTE(Jinchuan): keep the weight on the correct device in the first forward.
         # We don't want to keep the weights registered as model parameters as they 
-        # should always be specified by parameters.
+        # should always be specified by external configurations.
         device, dtype = logits[0].device, logits[0].dtype
         self.weight = self.weight.to(device).to(dtype)
         if self.aux_weight is not None: 
             self.aux_weight = self.aux_weight.to(device).to(dtype)
+
+        rank = torch.distributed.get_rank()
 
         logits, aux_logits = logits
         assert logits.dim() == 4 and logits.size(2) == 1
@@ -132,8 +135,8 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             stats["acc_all"] = acc_all.clone().detach()
             
             for idx in range(targets.size(2)):
-                weight = mask[:, :, idx].float().sum()
-                if weight == 0:
+                layer_weight = mask[:, :, idx].float().sum()
+                if layer_weight == 0:
                     stats[f"acc_layer{idx}"] = 0.0
                 else:
                     layer_acc = acc[:, :, idx:idx+1].float().sum() 

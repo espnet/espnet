@@ -1,11 +1,7 @@
 # Model
-transformer: builtin
+transformer: huggingface
 transformer_conf:
-    n_ctx: 8192
-    n_state: 1024
-    n_head: 16
-    n_layer: 24
-    qk_norm: true
+    hf_model_tag: HuggingFaceTB/SmolLM-360M
     
 corelm: ar_delay
 corelm_conf:
@@ -13,18 +9,18 @@ corelm_conf:
 
 # loss
 modality_weights: {
-    "ssl": 1.0,
-    "codec": 0.125,
+    "g2p": 1.0,
+    "ssl": 0.5,
+    "codec": 0.0625,
     "text_bpe": 1.0,
     "special_token": 10.0,
-    "g2p": 1.0,
 }
-loss_region: target
+loss_region: whole
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 24000
-num_iters_per_epoch: 5000
+batch_bins: 12000
+num_iters_per_epoch: 10000
 max_epoch: 60
 num_workers: 6
 drop_last_iter: true
@@ -51,6 +47,14 @@ best_model_criterion:
     - max
 
 # Data preprocessing
-codec_token_per_frame: 8
-codec_token_in_use: 8
+codec_token_per_frame: 9
+codec_token_in_use: 9
 speaker_prompt_length: 500
+
+# specaug
+asr_apply_time_mask: true
+asr_time_mask_config:
+    mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_mask: 10

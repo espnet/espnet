@@ -2500,7 +2500,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        # (2) get exact tokenised value based on all data triplets
+        # (2) get exact tokenized value based on all data triplets
         seqs, conti_feats = [], []
         
         cache = {triplet[:2]: None for triplet in task.data_triplets}
@@ -2508,7 +2508,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         inference_length = -1
         for idx, triplet in enumerate(task.data_triplets):
-            name, modality, _ = triplet
+            name, modality, _type = triplet
+
             value, conti_feat = self.modality_specific_processing(
                 data[name], 
                 modality,
@@ -2580,6 +2581,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         for name, modality in self.extra_names_and_modalities:
             if name not in data:
                 continue
+
+            # Currently it's not under good maintainance.
+            raise NotImplementedError
             value = self.modality_specific_processing(data[name], modality)[0]
             new_data = self.process_extra_entries(new_data, value, name)
 
@@ -2588,6 +2592,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return new_data
 
     def process_extra_entries(self, new_data, value, name):
+        # Used in DPO: find the negative examples
         if name == "sampled.scp":
             prefix_len = new_data["prefix_len"]
             prefix = new_data["dec_seq"][: prefix_len.item()]

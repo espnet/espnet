@@ -14,6 +14,7 @@ corelm_conf:
 # loss
 modality_weights: {
     "ssl": 1.0,
+    "codec": 0.125,
     "text_bpe": 1.0,
     "special_token": 10.0,
 }
@@ -23,7 +24,7 @@ loss_region: target
 batch_type: numel
 batch_bins: 24000
 num_iters_per_epoch: 5000
-max_epoch: 20
+max_epoch: 60
 num_workers: 6
 drop_last_iter: true
 log_interval: 1000
