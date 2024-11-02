@@ -66,8 +66,6 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         if self.aux_weight is not None: 
             self.aux_weight = self.aux_weight.to(device).to(dtype)
 
-        rank = torch.distributed.get_rank()
-
         logits, aux_logits = logits
         assert logits.dim() == 4 and logits.size(2) == 1
         B, T, _, _ = logits.size()
