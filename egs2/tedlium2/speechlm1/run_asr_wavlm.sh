@@ -22,7 +22,7 @@ bpe_opts="--subword_choice sentencepiece --nbpe 5000"
     --nj 16 \
     --inference_nj 16 \
     --nbest 1 \
-    --gpu_inference true \
+    --gpu_inference false \
     --token_list_dir data/token_list/ssl_asr_tedlium2 \
     --train_config ${train_config} \
     --inference_config ${inference_config} \

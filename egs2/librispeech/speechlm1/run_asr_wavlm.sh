@@ -25,7 +25,7 @@ token_list_dir=data/token_list/ssl_asr_librispeech
     --nj 16 \
     --inference_nj 16 \
     --nbest 1 \
-    --gpu_inference true \
+    --gpu_inference false \
     --token_list_dir ${token_list_dir} \
     --train_config ${train_config} \
     --inference_config ${inference_config} \
