@@ -21,7 +21,7 @@ bpe_opts="--subword_choice sentencepiece --nbpe 5000"
     --ngpu 1 \
     --nj 16 \
     --inference_nj 16 \
-    --nbest 10 \
+    --nbest 1 \
     --gpu_inference true \
     --token_list_dir data/token_list/ssl_asr_tedlium2 \
     --train_config ${train_config} \
@@ -30,7 +30,7 @@ bpe_opts="--subword_choice sentencepiece --nbpe 5000"
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 3.0 \
+    --min_wav_duration 0.1 \
     --max_wav_duration 30.0 \
     ${ssl_opts} ${bpe_opts} \
     "$@"

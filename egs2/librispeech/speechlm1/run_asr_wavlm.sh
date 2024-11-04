@@ -5,8 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_clean_100_sp_concat2 # If use LibriSpeech Train-Clean-100 subset (100hrs)
-# train-set=train_960_sp_concat2 # If use LibriSpeech full set (960hrs)
+train_set=train_960_sp_concat2 # use LibriSpeech full set (960hrs)
 valid_set=dev
 test_sets="test_clean test_other"
 
@@ -25,7 +24,7 @@ token_list_dir=data/token_list/ssl_asr_librispeech
     --ngpu 1\
     --nj 16 \
     --inference_nj 16 \
-    --nbest 10 \
+    --nbest 1 \
     --gpu_inference true \
     --token_list_dir ${token_list_dir} \
     --train_config ${train_config} \
@@ -34,7 +33,7 @@ token_list_dir=data/token_list/ssl_asr_librispeech
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 3.0 \
-    --max_wav_duration 30.0 \
+    --min_wav_duration 0.1 \
+    --max_wav_duration 60.0 \
     ${ssl_opts} ${bpe_opts} \
     "$@"

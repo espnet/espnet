@@ -23,8 +23,8 @@ loss_region: target
 # General Dataloader configuration
 batch_type: numel
 batch_bins: 60000
-num_iters_per_epoch: 5000
-max_epoch: 80
+num_iters_per_epoch: 2000
+max_epoch: 50
 num_workers: 6
 drop_last_iter: true
 log_interval: 200
