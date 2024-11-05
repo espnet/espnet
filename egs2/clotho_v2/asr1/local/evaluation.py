@@ -74,12 +74,12 @@ def _evaluate(decode_fname: str, split: str):
                 references[key] = [value]
 
     candidates, mult_references = _convert_to_evaluation_format(predictions, references)
-    candidates = candidates[:10]
-    mult_references = mult_references[:10]  # TODO(sbharad2): Only for testing
-    evaluate = Evaluate(metrics=["spider", "fense", "vocab"])
+    
+    evaluate = Evaluate(metrics=["spider", "fense", "meteor", "rouge_l", "spice", "spider_fl", "cider_d"])
     corpus_scores, _ = evaluate(candidates, mult_references)
 
-    header_str = f" Split: {split} Evaluating over {len(candidates)} predictions. "
+
+    header_str = f" Split: {split} Evaluation over {len(candidates)} predictions. "
     header_str_l = len(header_str)
     print("=" * header_str_l)
     print(header_str)
@@ -88,5 +88,16 @@ def _evaluate(decode_fname: str, split: str):
         print(f" {metric:<20}: {value} ")
     print("=" * header_str_l)
 
+    # Write results in a file
+    results_file = decode_fname+'.result'
+    with open(results_file, 'w') as result_f:
+        header_str = f" Split: {split} Evaluation over {len(candidates)} predictions. "
+        header_str_l = len(header_str)
+        print("=" * header_str_l, file=result_f)
+        print(header_str, file=result_f)
+        print("=" * header_str_l, file=result_f)
+        for metric, value in corpus_scores.items():
+            print(f" {metric:<20}: {value} ", file=result_f)
+        print("=" * header_str_l, file=result_f)
 
 _evaluate(args.decode_file, args.split)

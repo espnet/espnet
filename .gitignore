@@ -103,4 +103,3 @@ tools/ffmpeg-*-static
 tools/ffmpeg-release
 tools/ffmpeg-release-*.tar.xz
 tools/Miniconda3-latest-*.sh
-egs2/clotho_v2/asr1/local/CLOTHO_v2.1/*

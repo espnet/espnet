@@ -23,17 +23,21 @@ if __name__ == "__main__":
         )
         captions_df = pd.read_csv(all_captions_path)
         N_PROCESSED = 0
+        if data_split=='development':
+            dir_write_name = 'development_clotho'
+        else:
+            dir_write_name = data_split # for validation and evaluation
         with open(
-            os.path.join("data", data_split, "wav.scp"), "w", encoding="utf-8"
+            os.path.join("data", dir_write_name, "wav.scp"), "w", encoding="utf-8"
         ) as wav_scp_f, open(
-            os.path.join("data", data_split, "utt2spk"), "w", encoding="utf-8"
+            os.path.join("data", dir_write_name, "utt2spk"), "w", encoding="utf-8"
         ) as utt2spk_f:
             text_f = []
             try:
                 if data_split == "evaluation":
                     text_f = [
                         open(
-                            os.path.join("data", data_split, f"text_spk{n_ref}"),
+                            os.path.join("data", dir_write_name, f"text_spk{n_ref}"),
                             "w",
                             encoding="utf-8",
                         )
@@ -42,13 +46,13 @@ if __name__ == "__main__":
                 else:
                     text_f = [
                         open(
-                            os.path.join("data", data_split, "text"),
+                            os.path.join("data", dir_write_name, "text"),
                             "w",
                             encoding="utf-8",
                         )
                     ]
                 for uttid, row in captions_df.iterrows():
-                    uttid = f"{data_split}_{uttid}"
+                    uttid = f"{data_split}_clotho_{uttid}"
                     file_name = row["file_name"]
                     audio_path = os.path.join(
                         ROOT_DATA_DIR, AUDIO_DIR, data_split, f"{file_name}"
@@ -64,8 +68,6 @@ if __name__ == "__main__":
                             text_i = row[f"caption_{i}"].strip()
                             print(f"{uttid} {text_i}", file=text_f[i - 1])
                     else:
-                        # TODO(sbharad2): Add options for concatenating data from multiple reference columns,
-                        # choosing particular ref column, randomly choosing col for each example.
                         text = row["caption_1"].strip()
                         print(f"{uttid} {text}", file=text_f[0])
                     N_PROCESSED += 1

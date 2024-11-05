@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -e
 
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
@@ -14,9 +14,8 @@ pip install aac-metrics
 aac-metrics-download
 
 asr_expdir=$1
-splits=(evaluation validation)
+splits=(evaluation)
 
-set -ex
 for split in ${splits[@]}; do
 	for decode_file in $((ls -d ${asr_expdir}/*/*/* && ls -d ${asr_expdir}/*/*) | grep "${split}/text"); do
 		echo "Decode file: ${decode_file} for split:${split}"

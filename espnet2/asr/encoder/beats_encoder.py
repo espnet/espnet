@@ -14,6 +14,7 @@ import logging
 import math
 import warnings
 from typing import Dict, Optional, Tuple
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -102,10 +103,11 @@ class BeatsEncoder(AbsEncoder):
 
     (https://arxiv.org/abs/2212.09058)
     Args:
-        input_size: Input size for xs_pad in `forward`.
         beats_ckpt_path: Path to a pretrained BEATs checkpoint. If `beats_config` is provided and it does
             not match the config in the checkpoint, code might throw an error.
-        max_layer: Use all layers for encoding if None. Otherwise use upto `max_layer`.
+        adapter_layers: Number of transformer-based adapter layers after encoder.
+        max_layer: Propagate input through all layers for encoding if None. Otherwise use upto `max_layer`.
+        use_weighted_representation: Use weighted representations from max_layer if True. Weights are randomly initialized.
         beats_config: `BEATsConfig` object. If provided, we will try to override the config in the
             checkpoint. This can be used to change dropouts etc for fine-tuning the model while starting
             from a pretrained checkpoint.
@@ -116,8 +118,9 @@ class BeatsEncoder(AbsEncoder):
         self,
         input_size: int,
         beats_ckpt_path: str = None,
+        adapter_layers: int = 0,
         max_layer: int = None,
-        use_all_layers: bool = False,
+        use_weighted_representation: bool = False,
         beats_config: Optional[BEATsConfig] = None,
         specaug_config: Optional[Dict] = None,
     ) -> None:
@@ -170,14 +173,24 @@ class BeatsEncoder(AbsEncoder):
         )
         self.dropout_input = nn.Dropout(config.dropout_input)
         assert not config.deep_norm or not config.layer_norm_first
+        # Add adapter layer to config.
         self.encoder = TransformerEncoder(config)
         self.layer_norm = LayerNorm(self.embed)
-        self.use_all_layers = use_all_layers
-        if self.use_all_layers:
-            assert self.max_layer is not None, "max_layer must be provided."
-            self.layer_weights = nn.Parameter(torch.ones(self.max_layer))
+        self.use_weighted_representation = use_weighted_representation
+        if self.use_weighted_representation:
+            if self.max_layer is None:
+                logging.warning(f"max_layer must be provided when using weighted representations. Set to {config.encoder_layers}.")
+                self.max_layer = config.encoder_layers
+            self.layer_weights = nn.Parameter(torch.ones(self.max_layer)/self.max_layer, requires_grad=True) # Uniform init
+        
+        self.transformer_adapter = None
+        if adapter_layers !=0:
+            adapter_config = deepcopy(config)
+            adapter_config.encoder_layers=adapter_layers
+            self.transformer_adapter = TransformerEncoder(adapter_config)
 
-    def espnet_initialization_fn(self):
+
+    def reload_pretrained_parameters(self):
         """Initialization function for BEATs.
 
         This must be called last in the initialization procedure.
@@ -198,19 +211,6 @@ class BeatsEncoder(AbsEncoder):
         # BEATs has different initialization from ESPNet for other modules, so override.
         self.encoder.apply(init_bert_params)
         if self.loaded_state_dict_ is not None:
-            # TODO(shikhar): Hardcoded
-            all_keys = list(self.loaded_state_dict_["model"].items())
-            for key, _ in all_keys:
-                if (
-                    key.startswith("encoder.layers.11")
-                    # or key.startswith("encoder.layers.10")
-                    # or key.startswith("encoder.layers.9")
-                    # or key.startswith("encoder.layers.8")
-                    # or key.startswith("encoder.layers.7")
-                    # or key.startswith("encoder.layers.6")
-                ):
-                    self.loaded_state_dict_["model"].pop(key)
-                    logging.info(f"Removed key: {key}")
 
             load_info = self.load_state_dict(
                 self.loaded_state_dict_["model"], strict=False
@@ -219,7 +219,7 @@ class BeatsEncoder(AbsEncoder):
             logging.info(
                 f"Loaded BEATs pretrained model. Following keys were missing in your custom model: {load_info.missing_keys}. "
                 f"Follwing keys could not be loaded from the pretrained checkpoint: {load_info.unexpected_keys}."
-                "It is expected to have 'predictor' here if you are fine-tuning with only the BEATs backbone."
+                "It is expected to have 'predictor' listed above if you are fine-tuning with only the BEATs backbone."
             )
 
     def forward_padding_mask(
@@ -275,7 +275,7 @@ class BeatsEncoder(AbsEncoder):
         # Adjust shapes to be compatible with BEATs code
         xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
         # masks = None
-        last_hidden, _, mask = self.extract_features(
+        last_hidden, mask = self.extract_features(
             xs_pad,
             mask,
             max_layer=self.max_layer,
@@ -313,18 +313,24 @@ class BeatsEncoder(AbsEncoder):
         if self.post_extract_proj is not None:
             features = self.post_extract_proj(features)
 
-        x = self.dropout_input(features)
-        x, layer_results = self.encoder(x, padding_mask=padding_mask, layer=max_layer)
+        features = self.dropout_input(features)
+        features, layer_results = self.encoder(features, padding_mask=padding_mask, layer=max_layer)
 
-        if self.use_all_layers:
+        if self.use_weighted_representation:
             for i, (x_i, _) in enumerate(layer_results):
-                if i > self.max_layer:
+                if i >= max_layer:
                     break
                 if i == 0:
-                    x = self.layer_weights[i] * x_i
-                x += self.layer_weights[i] * x_i
+                    features = self.layer_weights[i] * x_i
+                else:
+                    features += self.layer_weights[i] * x_i
+            # T x B x C -> B x T x C
+            features = features.transpose(0, 1)
+        
+        if self.transformer_adapter:
+            features, _ = self.transformer_adapter(features, padding_mask = padding_mask, layer = None)
 
-        return x, layer_results, padding_mask
+        return features, padding_mask
 
 
 class TransformerEncoder(nn.Module):
