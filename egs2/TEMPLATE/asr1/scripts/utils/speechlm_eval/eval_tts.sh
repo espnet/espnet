@@ -130,7 +130,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             fi
 
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${eval_dir}"/eval_${eval_item}.JOB.log \
-                ${python} -m versa.bin.espnet_scorer \
+                ${python} -m versa.bin.scorer \
                     --pred ${eval_dir}/pred.JOB \
                     --score_config ${score_config} \
                     --use_gpu ${gpu_inference} \
