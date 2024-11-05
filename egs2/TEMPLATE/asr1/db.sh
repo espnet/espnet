@@ -221,6 +221,11 @@ KSPONSPEECH=
 HIFITTS=downloads
 CLOTHO_V2=downloads
 
+if [[ "$(hostname -d)" == delta.ncsa.illinois.edu ]]; then
+    AUDIOCAPS=/old_scratch/bbjs/shared/corpora/audiocaps/
+    CLOTHO_CHATGPT_MIXUP=/old_scratch/bbjs/slseanwu/dcase23_aac/beats_baseline/chatgpt/
+fi
+
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
