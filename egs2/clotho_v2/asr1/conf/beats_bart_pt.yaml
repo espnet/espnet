@@ -46,7 +46,7 @@ encoder_conf:
     adapter_layers: 2
     max_layer: 12
     use_weighted_representation: true
-    
+
 decoder: hugging_face_transformers
 decoder_conf:
     model_name_or_path: facebook/bart-base

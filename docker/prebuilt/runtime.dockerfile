@@ -52,8 +52,9 @@ RUN add-apt-repository ppa:git-core/ppa -y && \
 
 RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
 
-RUN wget --tries=3 -nv "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
+RUN wget --tries=3 -nv "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -O miniconda.sh && \
     bash miniconda.sh -b -p /opt/miniconda && \
+    /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
     rm miniconda.sh
 
 WORKDIR /
