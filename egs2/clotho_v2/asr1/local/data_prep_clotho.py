@@ -23,10 +23,10 @@ if __name__ == "__main__":
         )
         captions_df = pd.read_csv(all_captions_path)
         N_PROCESSED = 0
-        if data_split=='development':
-            dir_write_name = 'development_clotho'
+        if data_split == "development":
+            dir_write_name = "development_clotho"
         else:
-            dir_write_name = data_split # for validation and evaluation
+            dir_write_name = data_split  # for validation and evaluation
         with open(
             os.path.join("data", dir_write_name, "wav.scp"), "w", encoding="utf-8"
         ) as wav_scp_f, open(

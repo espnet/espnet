@@ -13,8 +13,8 @@
 import logging
 import math
 import warnings
-from typing import Dict, Optional, Tuple
 from copy import deepcopy
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -179,16 +179,19 @@ class BeatsEncoder(AbsEncoder):
         self.use_weighted_representation = use_weighted_representation
         if self.use_weighted_representation:
             if self.max_layer is None:
-                logging.warning(f"max_layer must be provided when using weighted representations. Set to {config.encoder_layers}.")
+                logging.warning(
+                    f"max_layer must be provided when using weighted representations. Set to {config.encoder_layers}."
+                )
                 self.max_layer = config.encoder_layers
-            self.layer_weights = nn.Parameter(torch.ones(self.max_layer)/self.max_layer, requires_grad=True) # Uniform init
-        
-        self.transformer_adapter = None
-        if adapter_layers !=0:
-            adapter_config = deepcopy(config)
-            adapter_config.encoder_layers=adapter_layers
-            self.transformer_adapter = TransformerEncoder(adapter_config)
+            self.layer_weights = nn.Parameter(
+                torch.ones(self.max_layer) / self.max_layer, requires_grad=True
+            )  # Uniform init
 
+        self.transformer_adapter = None
+        if adapter_layers != 0:
+            adapter_config = deepcopy(config)
+            adapter_config.encoder_layers = adapter_layers
+            self.transformer_adapter = TransformerEncoder(adapter_config)
 
     def reload_pretrained_parameters(self):
         """Initialization function for BEATs.
@@ -314,7 +317,9 @@ class BeatsEncoder(AbsEncoder):
             features = self.post_extract_proj(features)
 
         features = self.dropout_input(features)
-        features, layer_results = self.encoder(features, padding_mask=padding_mask, layer=max_layer)
+        features, layer_results = self.encoder(
+            features, padding_mask=padding_mask, layer=max_layer
+        )
 
         if self.use_weighted_representation:
             for i, (x_i, _) in enumerate(layer_results):
@@ -326,9 +331,11 @@ class BeatsEncoder(AbsEncoder):
                     features += self.layer_weights[i] * x_i
             # T x B x C -> B x T x C
             features = features.transpose(0, 1)
-        
+
         if self.transformer_adapter:
-            features, _ = self.transformer_adapter(features, padding_mask = padding_mask, layer = None)
+            features, _ = self.transformer_adapter(
+                features, padding_mask=padding_mask, layer=None
+            )
 
         return features, padding_mask
 
