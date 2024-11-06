@@ -13,17 +13,15 @@ corelm_conf:
 
 # loss
 modality_weights: {
-    "ssl": 1.0,
-    "codec": 0.125,
-    "text_bpe": 1.0,
-    "special_token": 10.0,
     "g2p": 1.0,
+    "codec": 0.125,
+    "special_token": 10.0,
 }
 loss_region: target
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 24000
+batch_bins: 8000
 num_iters_per_epoch: 5000
 max_epoch: 60
 num_workers: 6
@@ -54,3 +52,11 @@ best_model_criterion:
 codec_token_per_frame: 8
 codec_token_in_use: 8
 speaker_prompt_length: 500
+
+# specaug
+asr_apply_time_mask: true
+asr_time_mask_config:
+    mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_mask: 10
