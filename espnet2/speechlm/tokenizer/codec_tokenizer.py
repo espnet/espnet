@@ -5,6 +5,9 @@
 
 import numpy as np
 import torch
+import math
+import json
+import yaml
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
@@ -126,6 +129,44 @@ class CodecTokenizer(AbsTokenizer):
             self.sample_rate = 16000
             self.size_codebook = 1024
             self.subsample = 320
+        
+        elif self.codec_choice == "HifiCodec":
+            # NOTE(Jinchuan): make sure you have clone the repository:
+            # https://github.com/yangdongchao/AcademiCodec/tree/master
+            # and have downloaded the proper checkpoint
+            try:
+                from academicodec.models.hificodec.vqvae import VQVAE
+            except:
+                raise ValueError("Please clone HifiCodec repository")
+            
+            self.model = VQVAE(
+                config_path=config_path,
+                ckpt_path=checkpoint_path,
+                with_encoder=True,
+            ).to(device)
+
+            model_config = json.load(open(config_path))
+            self.n_codebook = model_config["n_code_groups"] * 2
+            self.sample_rate = model_config["sampling_rate"]
+            self.size_codebook = model_config["n_codes"]
+            self.subsample = math.prod(model_config["upsample_rates"])
+        
+        elif self.codec_choice == "UniAudio":
+            try:
+                from UniAudio.codec.models.soundstream import SoundStream
+            except:
+                raise ValueError("Please clone HifiCodec repository")
+            
+            config = yaml.safe_load(open(config_path))["generator"]["config"]
+            self.model = SoundStream(**config).to(device)
+            self.model.load_state_dict(
+                torch.load(checkpoint_path)["codec_model"]
+            )
+
+            self.n_codebook = self.model.n_q
+            self.sample_rate = self.model.sample_rate
+            self.size_codebook = 2 ** self.model.bits_per_codebook
+            self.subsample = self.model.hop_length
 
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
@@ -154,6 +195,12 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "inhouse":
             codes = self.codec.encode(wavs).permute(1, 2, 0)
+        
+        elif self.codec_choice == "HifiCodec":
+            codes = self.model.encode(wavs.squeeze(1))
+        
+        elif self.codec_choice == "UniAudio":
+            codes = self.model.encode(wavs).permute(1, 2, 0)
 
         else:
             raise NotImplementedError
@@ -216,6 +263,13 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "inhouse":
             codes = codes.permute(2, 0, 1)
             waveform = self.codec.decode(codes).squeeze(1)
+        
+        elif self.codec_choice == "HifiCodec":
+            waveform = self.model(codes).squeeze(1)
+        
+        elif self.codec_choice == "UniAudio":
+            waveform = self.model.decode(codes.permute(2, 0, 1)).squeeze(1)
+            print("waveform size: ", waveform, waveform.size())
 
         else:
             raise NotImplementedError
