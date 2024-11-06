@@ -5,28 +5,36 @@ set -e
 set -u
 set -o pipefail
 
-train_set=gigaspeech_train_xl
-valid_set=gigaspeech_dev
-test_sets="gigaspeech_test"
+train_set=train
+valid_set=dev
+test_sets=test
 
-ssl_opts="--ssl_checkpoint_path exp/kmeans_xues/38epoch.pth --ssl_kmeans_path exp/kmeans_xues/km_5000.mdl --ssl_nlayer 16"
-codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch"
-bpe_opts="--subword_choice huggingface --subword_model google/gemma-2b-it"
+train_config=conf/train_delay_asr.yaml
+inference_config=conf/decode_asr.yaml
 
-# NOTE(Jinchuan): stop at stage 5, for data preparation only
+dumpdir=dump_wavlm
+ssl_opts="--ssl_choice s3prl --ssl_feature_type wavlm_large --ssl_nlayer 21 --ssl_kmeans_path exp/kmeans_wavlm/wavlm_large_21_2000clusters/km_2000.mdl --ssl_batch_bins 19200000"
+codec_opts="--codec_choice inhouse"
+bpe_opts="--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B"
+
+
 ./speechlm.sh \
-    --stop_stage 5 \
     --task "codec_ssl_tts" \
     --data_name gigaspeech \
     --fs 16000 \
-    --ngpu 1 \
-    --nj 32 \
-    --train_config conf/train_foo.yaml \
+    --ngpu 4 \
+    --nj 88 \
+    --inference_nj 16 \
+    --nbest 10 \
+    --gpu_inference true \
+    --train_config ${train_config} \
+    --inference_config ${inference_config} \
     --audio_format "flac.ark" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --min_wav_duration 1.0 \
-    --max_wav_duration 30.0 \
+    --max_wav_duration 60.0 \
+    --dumpdir ${dumpdir} \
     ${ssl_opts} ${codec_opts} ${bpe_opts} \
     "$@"
