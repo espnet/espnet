@@ -1,0 +1,62 @@
+# Model
+transformer: builtin
+transformer_conf:
+    n_ctx: 3600
+    n_state: 512
+    n_head: 4
+    n_layer: 12
+    qk_norm: true
+    
+corelm: ar_delay
+corelm_conf:
+    share_emb: false
+
+# loss
+modality_weights: {
+    "ssl": 1.0,
+    "codec": 0.125,
+    "text_bpe": 1.0,
+    "special_token": 10.0,
+}
+loss_region: target
+
+# General Dataloader configuration
+batch_type: numel
+batch_bins: 60000
+num_iters_per_epoch: 2000
+max_epoch: 50
+num_workers: 6
+drop_last_iter: true
+log_interval: 200
+
+# optimization
+optim: adamw
+grad_clip: 5
+accum_grad: 1
+use_amp: true
+num_att_plot: 0
+optim_conf:
+    lr: 0.001
+    betas:
+        - 0.9
+        - 0.95
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 4000
+
+best_model_criterion:
+-   - valid
+    - total_count
+    - max
+
+# Data preprocessing
+codec_token_per_frame: 1
+codec_token_in_use: 1
+
+# specaug
+asr_apply_time_mask: true
+asr_time_mask_config:
+    mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_mask: 10

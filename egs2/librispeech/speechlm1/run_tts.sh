@@ -17,11 +17,12 @@ codec_opts="--codec_choice inhouse"
 ./speechlm.sh \
     --task "tts" \
     --fs 16000 \
-    --ngpu 4 \
+    --ngpu 1\
     --nj 16 \
     --inference_nj 16 \
     --nbest 10 \
-    --gpu_inference true \
+    --gpu_inference false \
+    --token_list_dir ${token_list_dir} \
     --train_config ${train_config} \
     --inference_config ${inference_config} \
     --audio_format "flac.ark" \
