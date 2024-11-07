@@ -155,6 +155,19 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
 
+
+# [ESPnet Easy] test gan-tts recipe with coverage
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+    --task gan_tts \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path ../tts1/conf/train_tacotron2_debug.yaml \
+    --train_sentencepiece_model \
+    --run_collect_stats \
+    --run_train
+
 cd "${cwd}" || exit
 
 
