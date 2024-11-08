@@ -20,6 +20,7 @@ This is a template of SVS recipe for ESPnet2.
     - [XiaoiceSing training](#xiaoicesing-training)
     - [Diffsinger training](#diffsinger-training)
     - [VISinger (1+2) training](#visinger-12-training)
+    - [VISinger 2 Plus training](#visinger-2-plus-training)
     - [Singing Tacotron training](#singing-tacotron-training)
     - [Multi-speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
