@@ -1,25 +1,23 @@
-# ESPnet2 Codec Recipe TEMPLATE
+# Speech Codec
 
 This is a template of Codec recipe for ESPnet2.
 
 ## Table of Contents
 
-* [ESPnet2 Codec Recipe TEMPLATE](#espnet2-codec-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
-    * [3\. Removal of long / short data](#3-removal-of-long--short-data)
-    * [4\. Codec statistics collection](#4-codec-statistics-collection)
-    * [5\. Codec training](#5-codec-training)
-    * [6\. Codec decoding](#6-codec-decoding)
-    * [7\. Codec Scoring](#7-codec-scoring)
-    * [8\-9\. (Optional) Pack results for upload](#8-9-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [Basic training](#basic-training)
-    * [Scoring](#scoring)
-  * [Supported Models](#supported-models)
-  * [FAQ](#faq)
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
+  * [3\. Removal of long / short data](#3-removal-of-long--short-data)
+  * [4\. Codec statistics collection](#4-codec-statistics-collection)
+  * [5\. Codec training](#5-codec-training)
+  * [6\. Codec decoding](#6-codec-decoding)
+  * [7\. Codec Scoring](#7-codec-scoring)
+  * [8\-9\. (Optional) Pack results for upload](#8-9-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [Basic training](#basic-training)
+  * [Scoring](#scoring)
+* [Supported Models](#supported-models)
+* [FAQ](#faq)
 
 ## Recipe flow
 
