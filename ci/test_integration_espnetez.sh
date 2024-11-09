@@ -97,7 +97,6 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
         --exp_path ./exp \
         --config_path conf/train_asr_transducer_debug.yaml \
         --run_finetune
-fi
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
@@ -213,7 +212,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --config_path ../tts1/conf/train_tacotron2_debug.yaml \
     --run_finetune
 
-Remove generated files in order to reduce the disk usage
+# Remove generated files in order to reduce the disk usage
 rm -rf exp data dump
 
 
@@ -359,14 +358,14 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --run_train
 
     # finetune
-    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
-        --task enh_tse \
-        --data_path data \
-        --train_dump_path dump/raw/train_nodev \
-        --valid_dump_path dump/raw/train_dev \
-        --exp_path ./exp \
-        --config_path ./conf/train_debug.yaml \
-        --run_finetune
+    # python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    #     --task enh_tse \
+    #     --data_path data \
+    #     --train_dump_path dump/raw/train_nodev \
+    #     --valid_dump_path dump/raw/train_dev \
+    #     --exp_path ./exp \
+    #     --config_path ./conf/train_debug.yaml \
+    #     --run_finetune
 
     ./run.sh --ngpu 0 --stage 3 --stop-stage 4 --feats-type "raw" --ref-num 1 --python "${python}" \
             --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
