@@ -1,12 +1,10 @@
-# ESPnet2 SVS Recipe TEMPLATE
+# Singing Voice Synthesis
 
 This is a template of SVS recipe for ESPnet2.
 
 ## Table of Contents
 
-- [ESPnet2 SVS Recipe TEMPLATE](#espnet2-svs-recipe-template)
-  - [Table of Contents](#table-of-contents)
-  - [Recipe flow](#recipe-flow)
+- [Recipe flow](#recipe-flow)
     - [1. Database-dependent data preparation](#1-database-dependent-data-preparation)
     - [2. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     - [3. Filtering](#3-filtering)
@@ -16,19 +14,20 @@ This is a template of SVS recipe for ESPnet2.
     - [7. SVS inference](#7-svs-inference)
     - [8. Objective evaluation](#8-objective-evaluation)
     - [9. Model packing](#9-model-packing)
-  - [How to run](#how-to-run)
+- [How to run](#how-to-run)
     - [Naive\_RNN training](#naive_rnn-training)
     - [Naive\_RNN\_DP training](#naive_rnn_dp-training)
     - [XiaoiceSing training](#xiaoicesing-training)
     - [Diffsinger training](#diffsinger-training)
     - [VISinger (1+2) training](#visinger-12-training)
+    - [VISinger 2 Plus training](#visinger-2-plus-training)
     - [Singing Tacotron training](#singing-tacotron-training)
     - [Multi-speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     - [Vocoder training](#vocoder-training)
     - [Evaluation](#evaluation)
-  - [About data directory](#about-data-directory)
-  - [Score preparation](#score-preparation)
+- [About data directory](#about-data-directory)
+- [Score preparation](#score-preparation)
       - [Case 1: phoneme annotation and standardized score](#case-1-phoneme-annotation-and-standardized-score)
       - [Case 2: phoneme annotation only](#case-2-phoneme-annotation-only)
     - [Problems you might meet](#problems-you-might-meet)
@@ -36,9 +35,9 @@ This is a template of SVS recipe for ESPnet2.
       - [2. Wrong lyric / midi annotation](#2-wrong-lyric--midi-annotation)
       - [3. Different lyric-phoneme pairs against the given g2p](#3-different-lyric-phoneme-pairs-against-the-given-g2p)
       - [4. Special marks in MusicXML](#4-special-marks-in-musicxml)
-  - [Supported text cleaner](#supported-text-cleaner)
-  - [Supported text frontend](#supported-text-frontend)
-  - [Supported Models](#supported-models)
+- [Supported text cleaner](#supported-text-cleaner)
+- [Supported text frontend](#supported-text-frontend)
+- [Supported Models](#supported-models)
 
 
 ## Recipe flow
@@ -365,6 +364,30 @@ Second, check "train_config" (default `conf/train.yaml`, you can also use `--tra
     --inference_model latest.pth \
     --write_collected_feats true
 
+```
+
+### VISinger 2 Plus training
+VISinger 2 has been accepted at SLT 2024. To use the pretrained model, you can download it from [here](https://huggingface.co/yifengyu/svs_train_visinger2plus_mert_raw_phn_None_zh_200epoch).
+
+To train the model, you can select multiple configurations to train on either the ACESinger or Opencpop dataset. The default setting in `train_visinger2_plus_hubert.yaml` uses `hubert_large_ll60k` as the pretrained SSL model. To switch the SSL model, you can modify the configuration by uncommenting the lines for MERT or Chinese Hubert.
+```sh
+./run.sh \
+    --stage 1 \
+    --stop_stage 8 \
+    --ngpu 1 \
+    --fs 24000 \
+    --n_fft 2048 \
+    --n_shift 480 \
+    --win_length 2048 \
+    --dumpdir dump/24k \
+    --expdir exp/24k \
+    --svs_task gan_svs \
+    --feats_extract fbank \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_visinger2_plus_hubert.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth \
+    --write_collected_feats false
 ```
 
 ### Singing Tacotron training

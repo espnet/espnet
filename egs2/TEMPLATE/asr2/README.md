@@ -1,32 +1,30 @@
-# ESPnet2 ASR2 Recipe TEMPLATE
+# Automatic Speech Recognition with Discrete Units
 
 This is a template of ASR2 recipe for ESPnet2.
 The difference from ASR1 is that discrete tokens are used as input instead of conventional audios / spectrum features.
 
 ## Table of Contents
 
-* [ESPnet2 ASR2 Recipe TEMPLATE](#espnet2-asr2-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Wav format](#3-wav-format)
-    * [4\. Removal of long / short data](#4-removal-of-long--short-data)
-    * [5\. Generate discrete tokens](#5-generate-discrete-tokens)
-    * [6\. Generate dump raw folder](#6-generate-dump-raw-folder)
-    * [7\. Input and Output token list generation](#7-input-and-output-token-list-generation)
-    * [8\. LM statistics collection](#8-lm-statistics-collection)
-    * [9\. LM training](#9-lm-training)
-    * [10\. LM perplexity](#10-lm-perplexity)
-    * [11\. Ngram-LM training](#11-ngram-lm-training)
-    * [12\. ASR statistics collection](#12-asr-statistics-collection)
-    * [13\. ASR training](#13-asr-training)
-    * [14\. ASR inference](#14-asr-inference)
-    * [15\. ASR scoring](#15-asr-scoring)
-    * [16\-18\. (Optional) Pack results for upload](#16-18-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [LibriSpeech training](#librispeech-training)
-  * [Related works](#related-works)
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Speed perturbation](#2-speed-perturbation)
+  * [3\. Wav format](#3-wav-format)
+  * [4\. Removal of long / short data](#4-removal-of-long--short-data)
+  * [5\. Generate discrete tokens](#5-generate-discrete-tokens)
+  * [6\. Generate dump raw folder](#6-generate-dump-raw-folder)
+  * [7\. Input and Output token list generation](#7-input-and-output-token-list-generation)
+  * [8\. LM statistics collection](#8-lm-statistics-collection)
+  * [9\. LM training](#9-lm-training)
+  * [10\. LM perplexity](#10-lm-perplexity)
+  * [11\. Ngram-LM training](#11-ngram-lm-training)
+  * [12\. ASR statistics collection](#12-asr-statistics-collection)
+  * [13\. ASR training](#13-asr-training)
+  * [14\. ASR inference](#14-asr-inference)
+  * [15\. ASR scoring](#15-asr-scoring)
+  * [16\-18\. (Optional) Pack results for upload](#16-18-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [LibriSpeech training](#librispeech-training)
+* [Related works](#related-works)
 
 ## Recipe flow
 

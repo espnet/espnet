@@ -154,13 +154,13 @@ class Trainer:
 
     Examples:
         >>> trainer = Trainer(
-        ...     task='asr',
-        ...     train_config={'batch_size': 32, 'learning_rate': 0.001},
-        ...     output_dir='./output',
-        ...     stats_dir='./stats',
-        ...     train_dump_dir='./train_dump',
-        ...     valid_dump_dir='./valid_dump'
-        ... )
+                task='asr',
+                train_config={'batch_size': 32, 'learning_rate': 0.001},
+                output_dir='./output',
+                stats_dir='./stats',
+                train_dump_dir='./train_dump',
+                valid_dump_dir='./valid_dump'
+            )
         >>> trainer.collect_stats()  # Collect statistics from the dataset
         >>> trainer.train()           # Start the training process
 
@@ -264,7 +264,7 @@ class Trainer:
 
         Examples:
             >>> trainer = Trainer(task='my_task', train_config=my_train_config,
-            ...                   output_dir='output/', stats_dir='stats/')
+                                  output_dir='output/', stats_dir='stats/')
             >>> trainer.train()  # Starts the training process
         """
         # after collect_stats, define shape files
@@ -304,8 +304,8 @@ class Trainer:
 
         Examples:
             >>> trainer = Trainer(task='example_task', train_config=some_config,
-            ...                   output_dir='/path/to/output',
-            ...                   stats_dir='/path/to/stats')
+                                  output_dir='/path/to/output',
+                                  stats_dir='/path/to/stats')
             >>> trainer.collect_stats()
 
         Note:
