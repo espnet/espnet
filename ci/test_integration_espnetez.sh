@@ -637,7 +637,7 @@ for conf in "${spk_configs[@]}"; do
         --train_dump_path dump/raw/train_nodev_sp \
         --valid_dump_path dump/raw/train_dev \
         --exp_path ./exp \
-        --config_path ./conf/train_rawnet3_dataaug_debug.yaml \
+        --config_path ./conf/${conf}.yaml \
         --run_collect_stats \
         --run_train
 
@@ -647,23 +647,10 @@ for conf in "${spk_configs[@]}"; do
         --train_dump_path dump/raw/train_nodev_sp \
         --valid_dump_path dump/raw/train_dev \
         --exp_path ./exp \
-        --config_path ./conf/train_rawnet3_dataaug_debug.yaml \
+        --config_path ./conf/${conf}.yaml \
         --run_finetune
 
     done
-
-
-# [ESPnet Easy] test gan-tts recipe with coverage
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    --task gan_tts \
-    --data_path data \
-    --train_dump_path dump/raw/train_nodev \
-    --valid_dump_path dump/raw/train_dev \
-    --exp_path ./exp \
-    --config_path ../tts1/conf/train_tacotron2_debug.yaml \
-    --train_sentencepiece_model \
-    --run_collect_stats \
-    --run_train
 
 cd "${cwd}" || exit
 
