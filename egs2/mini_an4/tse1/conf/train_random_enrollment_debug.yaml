@@ -27,6 +27,19 @@ extractor_conf:
     adapt_layer_type: mul
     adapt_enroll_dim: 2
 
+optim: adam
+optim_conf:
+    lr: 0.005
+
+model_conf:
+    num_spk: 1
+    share_encoder: true
+
+train_spk2enroll: data/train_nodev/spk2enroll.json
+enroll_segment: 16000
+load_spk_embedding: false
+load_all_speakers: false
+
 criterions:
   # The first criterion
   - name: snr
@@ -36,26 +49,14 @@ criterions:
     wrapper_conf:
       weight: 1.0
 
-optim: adam
-optim_conf:
-    lr: 1.0e-3
-
 iterator_type: chunk
-
 chunk_length: 5000
 # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
 # from the length consistency check in ChunkIterFactory
 chunk_excluded_key_prefixes:
 - "enroll_ref"
 
-model_conf:
-    num_spk: 1
-    share_encoder: true
-
-train_spk2enroll: data/train_nodev/spk2enroll.json
-enroll_segment: 5000
-load_spk_embedding: false
-load_all_speakers: false
-
 max_epoch: 1
 num_iters_per_epoch: 1
+batch_type: sorted
+batch_size: 1

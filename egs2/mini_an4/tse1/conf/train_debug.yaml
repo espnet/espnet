@@ -36,7 +36,7 @@ model_conf:
     share_encoder: true
 
 train_spk2enroll: null
-enroll_segment: 5000
+enroll_segment: 16000
 load_spk_embedding: false
 load_all_speakers: false
 
@@ -55,8 +55,8 @@ chunk_length: 5000
 # from the length consistency check in ChunkIterFactory
 chunk_excluded_key_prefixes:
 - "enroll_ref"
-- "speech_ref"
-- "speech_mix"
 
 max_epoch: 1
 num_iters_per_epoch: 1
+batch_type: sorted
+batch_size: 1
