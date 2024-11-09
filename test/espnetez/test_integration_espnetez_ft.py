@@ -24,6 +24,7 @@ TASK_CLASSES = {
     "mt": MTInference,
     "slu": SLUInference,
     "tts": TTSInference,
+    "gan_tts": TTSInference,
     "uasr": UASRInference,
     "enh": ENHInference,
     "enh_tse": ENHTSEInference,
@@ -41,6 +42,7 @@ CONFIG_NAMES = {
     "mt": "mt_train_args",
     "slu": "asr_train_args",
     "tts": "train_args",
+    "gan_tts":"train_args",
     "uasr": "uasr_train_args",
     "enh": "enh_train_args",
     "enh_tse": "enh_train_args",
@@ -62,7 +64,7 @@ LORA_TARGET = [
 
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
-    if args.task in ("tts", "enh", "enh_tse", "s2st", "spk"):
+    if args.task in ("tts", "enh", "enh_tse", "s2st", "spk", "gan_tts"):
         return TASK_CLASSES[args.task](
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint

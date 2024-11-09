@@ -191,7 +191,7 @@ rm -rf exp data dump
 
 echo "==== [ESPnet2] TTS ==="
 # data preparation
-./run.sh --ngpu 0 --stage 1 --stop-stage 4 --skip-upload false --python "${python}" --train-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 1 --stop-stage 4 --python "${python}" --train-args "--num_workers 0"
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task tts \
     --data_path data \
@@ -218,32 +218,33 @@ rm -rf exp data dump
 
 
 # [ESPnet Easy] test gan-tts recipe with coverage
-# ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
-#         --ngpu 0 --stop-stage 4
+./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
+        --ngpu 0 --stop-stage 4
 
-# python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-#     --task tts \
-#     --data_path data \
-#     --train_dump_path dump/raw/train_nodev \
-#     --valid_dump_path dump/raw/train_dev \
-#     --exp_path ./exp \
-#     --config_path conf/train_vits_debug.yaml \
-#     --train_sentencepiece_model \
-#     --run_collect_stats \
-#     --run_train
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+    --task gan_tts \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_vits_debug.yaml \
+    --train_sentencepiece_model \
+    --run_collect_stats \
+    --run_train
 
 # # finetune
-# python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
-#     --task tts \
-#     --data_path data \
-#     --train_dump_path dump/raw/train_nodev \
-#     --valid_dump_path dump/raw/train_dev \
-#     --exp_path ./exp \
-#     --config_path conf/train_vits_debug.yaml \
-#     --run_finetune
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    --task gan_tts \
+    --data_path data \
+    --train_dump_path dump/raw/train_nodev \
+    --valid_dump_path dump/raw/train_dev \
+    --exp_path ./exp \
+    --config_path conf/train_vits_debug.yaml \
+    --run_finetune
 
-# # Remove generated files in order to reduce the disk usage
-# rm -rf exp data dump
+# Remove generated files in order to reduce the disk usage
+rm -rf exp data dump
+cd "${cwd}" || exit
 
 
 # [ESPnet Easy] test asr2 recipe with coverage
@@ -367,50 +368,50 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --config_path ./conf/train_debug.yaml \
         --run_finetune
 
-    # ./run.sh --ngpu 0 --stage 3 --stop-stage 4 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
-    #         --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
-    #         --enh_config ./conf/train_variable_nspk_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
+    ./run.sh --ngpu 0 --stage 3 --stop-stage 4 --feats-type "raw" --ref-num 1 --python "${python}" \
+            --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
+            --enh_config ./conf/train_variable_nspk_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
 
-    # python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    #     --task enh_tse \
-    #     --data_path data \
-    #     --train_dump_path dump/raw/train_nodev_unk_nspk \
-    #     --valid_dump_path dump/raw/test_unk_nspk \
-    #     --exp_path ./exp \
-    #     --config_path ./conf/train_variable_nspk_debug.yaml \
-    #     --variable_num_refs \
-    #     --run_collect_stats \
-    #     --run_train
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task enh_tse \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev_unk_nspk \
+        --valid_dump_path dump/raw/test_unk_nspk \
+        --exp_path ./exp \
+        --config_path ./conf/train_variable_nspk_debug.yaml \
+        --variable_num_refs \
+        --run_collect_stats \
+        --run_train
 
-    # rm -rf exp dump data
-    # ./run.sh --ngpu 0 --stage 1 --stop-stage 3 --feats-type "raw" --ref-num 1 \
-    #         --local_data_opts "--random-enrollment true" \
-    #         --enh_config ./conf/train_random_enrollment_debug.yaml --enh-args "--num_workers 0"
+    rm -rf exp dump data
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 4 --feats-type "raw" --ref-num 1 \
+            --local_data_opts "--random-enrollment true" \
+            --enh_config ./conf/train_random_enrollment_debug.yaml --enh-args "--num_workers 0"
 
-    # python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    #     --task enh_tse \
-    #     --data_path data \
-    #     --train_dump_path dump/raw/org/train_nodev \
-    #     --valid_dump_path dump/raw/train_dev \
-    #     --exp_path ./exp \
-    #     --config_path ./conf/train_random_enrollment_debug.yaml \
-    #     --run_collect_stats \
-    #     --run_train
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task enh_tse \
+        --data_path data \
+        --train_dump_path dump/raw/org/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_random_enrollment_debug.yaml \
+        --run_collect_stats \
+        --run_train # works
 
-    # ./run.sh --ngpu 0 --stage 3 --stop-stage 6 --feats-type "raw" --ref-num 1 \
-    #         --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
-    #         --enh_config ./conf/train_variable_nspk_random_enrollment_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
+    ./run.sh --ngpu 0 --stage 3 --stop-stage 6 --feats-type "raw" --ref-num 1 \
+            --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
+            --enh_config ./conf/train_variable_nspk_random_enrollment_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
 
-    # python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    #     --task enh_tse \
-    #     --data_path data \
-    #     --train_dump_path dump/raw/org/train_nodev_unk_nspk \
-    #     --valid_dump_path dump/raw/test_unk_nspk \
-    #     --exp_path ./exp \
-    #     --config_path ./conf/train_variable_nspk_random_enrollment_debug.yaml \
-    #     --variable_num_refs \
-    #     --run_collect_stats \
-    #     --run_train
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task enh_tse \
+        --data_path data \
+        --train_dump_path dump/raw/org/train_nodev_unk_nspk \
+        --valid_dump_path dump/raw/test_unk_nspk \
+        --exp_path ./exp \
+        --config_path ./conf/train_variable_nspk_random_enrollment_debug.yaml \
+        --variable_num_refs \
+        --run_collect_stats \
+        --run_train
 
 fi
 
