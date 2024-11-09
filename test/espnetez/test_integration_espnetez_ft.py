@@ -42,7 +42,7 @@ CONFIG_NAMES = {
     "mt": "mt_train_args",
     "slu": "asr_train_args",
     "tts": "train_args",
-    "gan_tts":"train_args",
+    "gan_tts": "train_args",
     "uasr": "uasr_train_args",
     "enh": "enh_train_args",
     "enh_tse": "enh_train_args",
