@@ -42,7 +42,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
         "egs2/swbd_da/asr1/conf/train_asr.yaml",
         "egs2/totonac/asr1/conf/train_asr.yaml" ]'
 
-    warprnnt_confs='[ 
+    warprnnt_confs='[
         "egs2/librispeech/asr1/conf/train_asr_rnnt.yaml",
         "egs2/mini_an4/asr1/conf/train_asr_conformer_rnnt_debug.yaml"
      ]'
