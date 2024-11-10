@@ -44,7 +44,6 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
 
     warprnnt_confs='[
         "egs2/librispeech/asr1/conf/train_asr_rnnt.yaml",
-        "egs2/mini_an4/asr1/conf/train_asr_conformer_rnnt_debug.yaml"
      ]'
 
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
@@ -74,6 +73,10 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
             fi
         fi
         ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+    done
+
+    for f in egs2/*/asr1/conf/train_transducer*.yaml; do
+        ${python} -m espnet2.bin.asr_transducer_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
 
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
