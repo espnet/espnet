@@ -36,7 +36,7 @@ model_conf:
     share_encoder: true
 
 train_spk2enroll: data/train_nodev/spk2enroll.json
-enroll_segment: 16000
+enroll_segment: 5000
 load_spk_embedding: false
 load_all_speakers: false
 
