@@ -146,11 +146,11 @@ class ARDelayLM(ARParallelLM):
         
         for step in range(1, maxlen + 1):
             
-            if step < self.nq:
+            if step <= self.nq:
                 prev_tok = torch.cat(
-                    [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
+                    [prev_tok[:, :, :step - 1], suffix[:, step - 1: step, step - 1:]], dim=2
                 )
-            
+
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)
             h = self.decoders(prev_emb)

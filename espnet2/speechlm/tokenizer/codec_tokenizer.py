@@ -269,7 +269,6 @@ class CodecTokenizer(AbsTokenizer):
         
         elif self.codec_choice == "UniAudio":
             waveform = self.model.decode(codes.permute(2, 0, 1)).squeeze(1)
-            print("waveform size: ", waveform, waveform.size())
 
         else:
             raise NotImplementedError
