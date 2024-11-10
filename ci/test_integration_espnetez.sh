@@ -108,7 +108,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --train_dump_path dump/raw/train_nodev \
     --valid_dump_path dump/raw/train_dev \
     --exp_path ./exp \
-    --config_path conf/train_asr_conformer_rnnt_debug.yaml \
+    --config_path conf/train_transducer_asr_conformer_rnnt_debug.yaml \
     --train_sentencepiece_model \
     --run_collect_stats \
     --run_train
