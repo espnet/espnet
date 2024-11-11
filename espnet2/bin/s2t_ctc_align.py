@@ -187,7 +187,6 @@ class CTCSegmentation:
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
         context_len_in_secs: float = 4,
-        frames_per_sec: float = 12.5,
         **ctc_segmentation_args,
     ):
         """Initialize the CTCSegmentation module.
@@ -267,7 +266,17 @@ class CTCSegmentation:
         self.lang_sym = lang_sym
         self.task_sym = task_sym
         self.context_len_in_secs = context_len_in_secs
-        self.frames_per_sec = frames_per_sec
+
+        subsample_dict = {
+            "conv2d1": 1,
+            "conv2d2": 2,
+            "conv2d": 4,
+            "conv2d6": 6,
+            "conv2d8": 8,
+        }
+        subsample_factor = subsample_dict[s2t_train_args.encoder_conf['input_layer']]
+        self.samples_to_frames_ratio = s2t_train_args.frontend_conf["hop_length"] * subsample_factor
+        self.frames_per_sec = fs / self.samples_to_frames_ratio
 
     def set_config(self, **kwargs):
         """Set CTC segmentation parameters.

@@ -118,44 +118,46 @@ text = s2t.decode_long_batched_buffered(
     speech,
     batch_size=batch_size,
     context_len_in_secs=context_len_in_secs,
-    frames_per_sec=12.5,        # 80ms shift, model-dependent, don't change
 )
 print(text)
 ```
 
 ### Example for CTC forced alignment using `ctc-segmentation`
 
-It can be efficiently applied to audio of an arbitrary length.
-For model downloading, please refer to https://github.com/espnet/espnet?tab=readme-ov-file#ctc-segmentation-demo
+CTC segmentation can be efficiently applied to audio of an arbitrary length.
 
 ```python
 import soundfile as sf
 from espnet2.bin.s2t_ctc_align import CTCSegmentation
+from espnet_model_zoo.downloader import ModelDownloader
 
 
 ## Please download model first
+d = ModelDownloader()
+downloaded = d.download_and_unpack("espnet/owsm_ctc_v3.1_1B")
+
 aligner = CTCSegmentation(
-    s2t_model_file="exp/s2t_train_s2t_multitask-ctc_ebf27_conv2d8_size1024_raw_bpe50000/valid.total_count.ave_5best.till45epoch.pth",
+    **downloaded,
     fs=16000,
     ngpu=1,
     batch_size=16,    # batched parallel decoding; reduce it if your GPU memory is smaller
     kaldi_style_text=True,
     time_stamps="fixed",
-    samples_to_frames_ratio=1280,   # 80ms time shift; don't change as it depends on the pre-trained model
     lang_sym="<eng>",
     task_sym="<asr>",
     context_len_in_secs=2,  # left and right context in buffered decoding
-    frames_per_sec=12.5,    # 80ms time shift; don't change as it depends on the pre-trained model
 )
 
 speech, rate = sf.read(
-    "example.wav"
+    "./test_utils/ctc_align_test.wav"
 )
 print(f"speech duration: {len(speech) / rate : .2f} seconds")
-text = '''
-utt1 hello there
-utt2 welcome to this repo
-'''
+text = """
+utt1 THE SALE OF THE HOTELS
+utt2 IS PART OF HOLIDAY'S STRATEGY
+utt3 TO SELL OFF ASSETS
+utt4 AND CONCENTRATE ON PROPERTY MANAGEMENT
+"""
 
 segments = aligner(speech, text)
 print(segments)

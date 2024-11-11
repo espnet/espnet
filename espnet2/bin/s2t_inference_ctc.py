@@ -5,10 +5,9 @@ import sys
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-
+import humanfriendly
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.quantization
 from typeguard import typechecked
 
@@ -490,6 +489,26 @@ class Speech2TextGreedySearch:
         self.lang_sym = lang_sym
         self.task_sym = task_sym
 
+        # retrieve sample rate and compute frames per second
+        sample_rate = s2t_train_args.frontend_conf["fs"]
+        if isinstance(sample_rate, str):
+            sample_rate = humanfriendly.parse_size(sample_rate)
+        self.sample_rate = sample_rate
+        logging.info(f"Audio sampling rate: {sample_rate}")
+
+        subsample_dict = {
+            "conv2d1": 1,
+            "conv2d2": 2,
+            "conv2d": 4,
+            "conv2d6": 6,
+            "conv2d8": 8,
+        }
+        subsample_factor = subsample_dict[s2t_train_args.encoder_conf['input_layer']]
+        frames_per_sec = sample_rate / s2t_train_args.frontend_conf["hop_length"]
+        frames_per_sec /= subsample_factor
+        self.frames_per_sec = frames_per_sec
+        logging.info(f"Final encoder frames per second: {frames_per_sec}")
+
     @torch.no_grad()
     def __call__(
         self,
@@ -627,9 +646,7 @@ class Speech2TextGreedySearch:
         self,
         speech: Union[torch.Tensor, np.ndarray],
         batch_size: int = 1,
-        sample_rate: int = 16000,
         context_len_in_secs: float = 2,
-        frames_per_sec: float = 12.5,
         lang_sym: Optional[str] = None,
         task_sym: Optional[str] = None,
     ):
@@ -638,11 +655,10 @@ class Speech2TextGreedySearch:
         Args:
             speech: 1D long-form input speech
             batch_size (int): decode this number of segments together in parallel
-
-        Returns:
-            utterances: list of tuples of (start_time, end_time, text)
-
         """
+
+        sample_rate = self.sample_rate
+        frames_per_sec = self.frames_per_sec
 
         lang_sym = lang_sym if lang_sym is not None else self.lang_sym
         task_sym = task_sym if task_sym is not None else self.task_sym
