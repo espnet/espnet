@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/eval2000/hyp.callhm.ctm.filt.sys|2628|21594|89.1|8.4|2.5|2.1|13.1|46.0|
 |decode_asr_asr_model_valid.acc.ave/eval2000/hyp.ctm.filt.sys|4459|42989|91.8|6.1|2.1|1.6|9.8|41.3|
-|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.swbd.ctm.filt.sys|1831|21395|94.5|3.8|1.7|1.0|6.4|34.5|           
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.swbd.ctm.filt.sys|1831|21395|94.5|3.8|1.7|1.0|6.4|34.5|
 
 ### CER
 
