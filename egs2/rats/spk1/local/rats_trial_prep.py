@@ -1,9 +1,10 @@
 import argparse
-import sys
-import os
 import glob
-import numpy as np
+import os
 import random
+import sys
+
+import numpy as np
 from tqdm import tqdm
 
 np.random.seed(1234)
@@ -39,7 +40,7 @@ def main(args):
     # Pre-generate the random speaker and class indices to reduce calls to random
     n_trials = len(d_src2spk) * 20
     batch_size = 100
-    
+
     random_spks = np.random.choice(spk_keys, size=n_trials)
     class_indices = np.random.randint(0, 2, size=n_trials)
 
