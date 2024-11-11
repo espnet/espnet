@@ -42,7 +42,7 @@ for dir in ${asr_expdir}/decode_*/${name}/score_wer; do
             hyp=${dir}/hyp.trn
             # The WER seems to be lower without converting stm
             #trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
-            utils/trn2ctm.py ${hyp} ${ctm}
+            ${MAIN_ROOT}/utils/trn2ctm.py ${hyp} ${ctm}
 
     fi
 
