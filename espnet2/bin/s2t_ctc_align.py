@@ -274,8 +274,10 @@ class CTCSegmentation:
             "conv2d6": 6,
             "conv2d8": 8,
         }
-        subsample_factor = subsample_dict[s2t_train_args.encoder_conf['input_layer']]
-        self.samples_to_frames_ratio = s2t_train_args.frontend_conf["hop_length"] * subsample_factor
+        subsample_factor = subsample_dict[s2t_train_args.encoder_conf["input_layer"]]
+        self.samples_to_frames_ratio = (
+            s2t_train_args.frontend_conf["hop_length"] * subsample_factor
+        )
         self.frames_per_sec = fs / self.samples_to_frames_ratio
 
     def set_config(self, **kwargs):

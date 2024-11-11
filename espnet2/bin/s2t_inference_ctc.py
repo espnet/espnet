@@ -5,6 +5,7 @@ import sys
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
 import humanfriendly
 import numpy as np
 import torch
@@ -503,7 +504,7 @@ class Speech2TextGreedySearch:
             "conv2d6": 6,
             "conv2d8": 8,
         }
-        subsample_factor = subsample_dict[s2t_train_args.encoder_conf['input_layer']]
+        subsample_factor = subsample_dict[s2t_train_args.encoder_conf["input_layer"]]
         frames_per_sec = sample_rate / s2t_train_args.frontend_conf["hop_length"]
         frames_per_sec /= subsample_factor
         self.frames_per_sec = frames_per_sec
