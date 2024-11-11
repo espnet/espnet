@@ -62,7 +62,9 @@ GigaST_YOU0000009624_002208970_002218840_en_st_zh 与员工和同事一起，这
 
 ## Pre-trained Model
 
-The pre-trained model is available at: https://huggingface.co/pyf98/owsm_ctc_v3.1_1B
+**IMPORTANT: Our model is trained on 16kHz audio with fixed duration 30s. When using the pre-trained model, please ensure the input speech is 16kHz and pad or truncate it to 30s.**
+
+The pre-trained model is available at: https://huggingface.co/espnet/owsm_ctc_v3.1_1B
 
 The model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml](conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml)
 
@@ -70,24 +72,20 @@ The model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_conv2
 ### Example script for short-form ASR/ST
 
 ```python
-import soundfile as sf
-import numpy as np
 import librosa
-import kaldiio
 from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 
 
 s2t = Speech2TextGreedySearch.from_pretrained(
-    "pyf98/owsm_ctc_v3.1_1B",
+    "espnet/owsm_ctc_v3.1_1B",
     device="cuda",
     generate_interctc_outputs=False,
     lang_sym='<eng>',
     task_sym='<asr>',
 )
 
-speech, rate = sf.read(
-    "xxx.wav"
-)
+# NOTE: OWSM-CTC is trained on 16kHz audio with a fixed 30s duration. Please ensure your input has the correct sample rate; otherwise resample it to 16k before feeding it to the model
+speech, rate = librosa.load("xxx.wav", sr=16000)
 speech = librosa.util.fix_length(speech, size=(16000 * 30))
 
 res = s2t(speech)[0]
@@ -105,7 +103,7 @@ from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
 context_len_in_secs = 4   # left and right context when doing buffered inference
 batch_size = 32   # depends on the GPU memory
 s2t = Speech2TextGreedySearch.from_pretrained(
-    "pyf98/owsm_ctc_v3.1_1B",
+    "espnet/owsm_ctc_v3.1_1B",
     device='cuda' if torch.cuda.is_available() else 'cpu',
     generate_interctc_outputs=False,
     lang_sym='<eng>',

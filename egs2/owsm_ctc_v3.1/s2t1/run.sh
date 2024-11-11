@@ -5,6 +5,7 @@ set -e
 set -u
 set -o pipefail
 
+# NOTE: please check README.md for data preparation scripts
 train_set=train_v3
 valid_set=dev_v3
 test_sets=dev_v3

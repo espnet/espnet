@@ -1,7 +1,7 @@
 """E-Branchformer encoder used by OWSM-CTC.
 
 Compared to the original encoder, this variant supports additional
-cross-attention modules.
+cross-attention modules and extra language and task token inputs.
 """
 
 import logging
@@ -47,6 +47,9 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 class EBranchformerEncoderLayer(torch.nn.Module):
     """E-Branchformer encoder layer module.
+
+    Compared to the original encoder layer in e_branchformer_encoder.py,
+    this variant supports additional cross-attention modules.
 
     Args:
         size (int): model dimension
@@ -197,7 +200,13 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
 
 class EBranchformerCTCEncoder(AbsEncoder):
-    """E-Branchformer encoder module."""
+    """E-Branchformer encoder module.
+    
+    Compared to the original encoder in e_branchformer_encoder.py,
+    this variant supports additional cross-attention modules.
+    Additionally, it supports extra prefix tokens for the input.
+    This is useful for language and task conditioning.
+    """
 
     @typechecked
     def __init__(
