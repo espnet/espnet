@@ -158,94 +158,100 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
 
 1) Each block (or layer) of the custom architecture should be specified individually through `enc-block-arch` or/and `dec-block-arch` parameters:
 
-        # e.g: Conv-Transformer encoder
-        etype: custom
-        enc-block-arch:
-                - type: conv1d
-                  idim: 80
-                  odim: 32
-                  kernel_size: [3, 7]
-                  stride: [1, 2]
-                - type: conv1d
-                  idim: 32
-                  odim: 32
-                  kernel_size: 3
-                  stride: 2
-                - type: conv1d
-                  idim: 32
-                  odim: 384
-                  kernel_size: 3
-                  stride: 1
-                - type: transformer
-                  d_hidden: 384
-                  d_ff: 1536
-                  heads: 4
+```yaml
+# e.g: Conv-Transformer encoder
+etype: custom
+enc-block-arch:
+        - type: conv1d
+          idim: 80
+          odim: 32
+          kernel_size: [3, 7]
+          stride: [1, 2]
+        - type: conv1d
+          idim: 32
+          odim: 32
+          kernel_size: 3
+          stride: 2
+        - type: conv1d
+          idim: 32
+          odim: 384
+          kernel_size: 3
+          stride: 1
+        - type: transformer
+          d_hidden: 384
+          d_ff: 1536
+          heads: 4
+```
 
 2) Different block types are allowed for the custom encoder (`tdnn`, `conformer` or `transformer`) and the custom decoder (`causal-conv1d` or `transformer`). Each one has a set of mandatory and optional parameters :
 
-        # 1D convolution (TDNN) block
-        - type: conv1d
-          idim: [Input dimension. (int)]
-          odim: [Output dimension. (int)]
-          kernel_size: [Size of the context window. (int or tuple)]
-          stride (optional): [Stride of the sliding blocks. (int or tuple, default = 1)]
-          dilation (optional): [Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)]
-          groups (optional): [Number of blocked connections from input channels to output channels. (int, default = 1)
-          bias (optional): [Whether to add a learnable bias to the output. (bool, default = True)]
-          use-relu (optional): [Whether to use a ReLU activation after convolution. (bool, default = True)]
-          use-batchnorm: [Whether to use batch normalization after convolution. (bool, default = False)]
-          dropout-rate (optional): [Dropout-rate for TDNN block. (float, default = 0.0)]
+```yaml
+# 1D convolution (TDNN) block
+- type: conv1d
+  idim: [Input dimension. (int)]
+  odim: [Output dimension. (int)]
+  kernel_size: [Size of the context window. (int or tuple)]
+  stride (optional): [Stride of the sliding blocks. (int or tuple, default = 1)]
+  dilation (optional): [Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)]
+  groups (optional): [Number of blocked connections from input channels to output channels. (int, default = 1)
+  bias (optional): [Whether to add a learnable bias to the output. (bool, default = True)]
+  use-relu (optional): [Whether to use a ReLU activation after convolution. (bool, default = True)]
+  use-batchnorm: [Whether to use batch normalization after convolution. (bool, default = False)]
+  dropout-rate (optional): [Dropout-rate for TDNN block. (float, default = 0.0)]
 
-        # Transformer
-        - type: transformer
-          d_hidden: [Input/output dimension of Transformer block. (int)]
-          d_ff: [Hidden dimension of the Feed-forward module. (int)]
-          heads: [Number of heads in multi-head attention. (int)]
-          dropout-rate (optional): [Dropout-rate for Transformer block. (float, default = 0.0)]
-          pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float, default = 0.0)]
-          att-dropout-rate (optional): [Dropout-rate for attention module. (float, default = 0.0)]
+# Transformer
+- type: transformer
+  d_hidden: [Input/output dimension of Transformer block. (int)]
+  d_ff: [Hidden dimension of the Feed-forward module. (int)]
+  heads: [Number of heads in multi-head attention. (int)]
+  dropout-rate (optional): [Dropout-rate for Transformer block. (float, default = 0.0)]
+  pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float, default = 0.0)]
+  att-dropout-rate (optional): [Dropout-rate for attention module. (float, default = 0.0)]
 
-        # Conformer
-        - type: conformer
-          d_hidden: [Input/output dimension of Conformer block (int)]
-          d_ff: [Hidden dimension of the Feed-forward module. (int)]
-          heads: [Number of heads in multi-head attention. (int)]
-          macaron_style: [Whether to use macaron style. (bool)]
-          use_conv_mod: [Whether to use convolutional module. (bool)]
-          conv_mod_kernel (required if use_conv_mod = True): [Number of kernel in convolutional module. (int)]
-          dropout-rate (optional): [Dropout-rate for Transformer block. (float, default = 0.0)]
-          pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float, default = 0.0)]
-          att-dropout-rate (optional): [Dropout-rate for attention module. (float, default = 0.0)]
+# Conformer
+- type: conformer
+  d_hidden: [Input/output dimension of Conformer block (int)]
+  d_ff: [Hidden dimension of the Feed-forward module. (int)]
+  heads: [Number of heads in multi-head attention. (int)]
+  macaron_style: [Whether to use macaron style. (bool)]
+  use_conv_mod: [Whether to use convolutional module. (bool)]
+  conv_mod_kernel (required if use_conv_mod = True): [Number of kernel in convolutional module. (int)]
+  dropout-rate (optional): [Dropout-rate for Transformer block. (float, default = 0.0)]
+  pos-dropout-rate (optional): [Dropout-rate for positional encoding module. (float, default = 0.0)]
+  att-dropout-rate (optional): [Dropout-rate for attention module. (float, default = 0.0)]
 
-        # Causal Conv1d
-        - type: causal-conv1d
-          idim: [Input dimension. (int)]
-          odim: [Output dimension. (int)]
-          kernel_size: [Size of the context window. (int)]
-          stride (optional): [Stride of the sliding blocks. (int, default = 1)]
-          dilation (optional): [Parameter to control the stride of elements within the neighborhood. (int, default = 1)]
-          groups (optional): [Number of blocked connections from input channels to output channels. (int, default = 1)
-          bias (optional): [Whether to add a learnable bias to the output. (bool, default = True)]
-          use-relu (optional): [Whether to use a ReLU activation after convolution. (bool, default = True)]
-          use-batchnorm: [Whether to use batch normalization after convolution. (bool, default = False)]
-          dropout-rate (optional): [Dropout-rate for TDNN block. (float, default = 0.0)]
+# Causal Conv1d
+- type: causal-conv1d
+  idim: [Input dimension. (int)]
+  odim: [Output dimension. (int)]
+  kernel_size: [Size of the context window. (int)]
+  stride (optional): [Stride of the sliding blocks. (int, default = 1)]
+  dilation (optional): [Parameter to control the stride of elements within the neighborhood. (int, default = 1)]
+  groups (optional): [Number of blocked connections from input channels to output channels. (int, default = 1)
+  bias (optional): [Whether to add a learnable bias to the output. (bool, default = True)]
+  use-relu (optional): [Whether to use a ReLU activation after convolution. (bool, default = True)]
+  use-batchnorm: [Whether to use batch normalization after convolution. (bool, default = False)]
+  dropout-rate (optional): [Dropout-rate for TDNN block. (float, default = 0.0)]
+```
 
 3) The defined architecture can be repeated by specifying the total number of blocks/layers in the architecture through `enc-block-repeat` or/and `dec-block-repeat` parameters:
 
-        # e.g.: 2x (Causal-Conv1d + Transformer) decoder
-        dtype: transformer
-        dec-block-arch:
-                - type: causal-conv1d
-                  idim: 256
-                  odim: 256
-                  kernel_size: 5
-                - type: transformer
-                  d_hidden: 256
-                  d_ff: 256
-                  heads: 4
-                  dropout-rate: 0.1
-                  att-dropout-rate: 0.4
-        dec-block-repeat: 2
+```yaml
+# e.g.: 2x (Causal-Conv1d + Transformer) decoder
+dtype: transformer
+dec-block-arch:
+        - type: causal-conv1d
+          idim: 256
+          odim: 256
+          kernel_size: 5
+        - type: transformer
+          d_hidden: 256
+          d_ff: 256
+          heads: 4
+          dropout-rate: 0.1
+          att-dropout-rate: 0.4
+dec-block-repeat: 2
+```
 
 #### Multi-task learning
 
@@ -258,30 +264,32 @@ where the losses are respectively, in order: The main Transducer loss, the CTC l
 
 Each loss can be defined in the training config alongside its specific options, such as follow:
 
-        # Transducer loss (L1)
-        transducer-loss-weight: [Weight of the main Transducer loss (float)]
+```yaml
+# Transducer loss (L1)
+transducer-loss-weight: [Weight of the main Transducer loss (float)]
 
-        # CTC loss (L2)
-        use-ctc-loss: True
-        ctc-loss-weight (optional): [Weight of the CTC loss. (float, default = 0.5)]
-        ctc-loss-dropout-rate (optional): [Dropout rate for encoder output representation. (float, default = 0.0)]
+# CTC loss (L2)
+use-ctc-loss: True
+ctc-loss-weight (optional): [Weight of the CTC loss. (float, default = 0.5)]
+ctc-loss-dropout-rate (optional): [Dropout rate for encoder output representation. (float, default = 0.0)]
 
-        # Auxiliary Transducer loss (L3)
-        use-aux-transducer-loss: True
-        aux-transducer-loss-weight (optional): [Weight of the auxiliary Transducer loss. (float, default = 0.4)]
-        aux-transducer-loss-enc-output-layers (required if use-aux-transducer-loss = True): [List of intermediate encoder layer IDs to compute auxiliary Transducer loss(es). (list)]
-        aux-transducer-loss-mlp-dim (optional): [Hidden dimension for the MLP network. (int, default = 320)]
-        aux-transducer-loss-mlp-dropout-rate: [Dropout rate for the MLP network. (float, default = 0.0)]
+# Auxiliary Transducer loss (L3)
+use-aux-transducer-loss: True
+aux-transducer-loss-weight (optional): [Weight of the auxiliary Transducer loss. (float, default = 0.4)]
+aux-transducer-loss-enc-output-layers (required if use-aux-transducer-loss = True): [List of intermediate encoder layer IDs to compute auxiliary Transducer loss(es). (list)]
+aux-transducer-loss-mlp-dim (optional): [Hidden dimension for the MLP network. (int, default = 320)]
+aux-transducer-loss-mlp-dropout-rate: [Dropout rate for the MLP network. (float, default = 0.0)]
 
-        # Symmetric KL divergence loss (L4)
-        # Note: It can be only used in addition to the auxiliary Transducer loss.
-        use-symm-kl-div-loss: True
-        symm-kl-div-loss-weight (optional): [Weight of the symmetric KL divergence loss. (float, default = 0.2)]
+# Symmetric KL divergence loss (L4)
+# Note: It can be only used in addition to the auxiliary Transducer loss.
+use-symm-kl-div-loss: True
+symm-kl-div-loss-weight (optional): [Weight of the symmetric KL divergence loss. (float, default = 0.2)]
 
-        # LM loss (L5)
-        use-lm-loss: True
-        lm-loss-weight (optional): [Weight of the LM loss. (float, default = 0.2)]
-        lm-loss-smoothing-rate: [Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)]
+# LM loss (L5)
+use-lm-loss: True
+lm-loss-weight (optional): [Weight of the LM loss. (float, default = 0.2)]
+lm-loss-smoothing-rate: [Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)]
+```
 
 #### Inference
 
@@ -296,29 +304,31 @@ Various decoding algorithms are also available for Transducer by setting `beam-s
 
 The algorithms share two parameters to control beam size (`beam-size`) and final hypotheses normalization (`score-norm-transducer`). The specific parameters for each algorithm are:
 
-        # Default beam search
-        search-type: default
+```yaml
+# Default beam search
+search-type: default
 
-        # Time-synchronous decoding
-        search-type: tsd
-        max-sym-exp: [Number of maximum symbol expansions at each time step (int)]
+# Time-synchronous decoding
+search-type: tsd
+max-sym-exp: [Number of maximum symbol expansions at each time step (int)]
 
-        # Alignement-length decoding
-        search-type: alsd
-        u-max: [Maximum output sequence length (int)]
+# Alignement-length decoding
+search-type: alsd
+u-max: [Maximum output sequence length (int)]
 
-        # N-step Constrained beam search
-        search-type: nsc
-        nstep: [Number of maximum expansion steps at each time step (int)]
-               # nstep = max-sym-exp + 1 (blank)
-        prefix-alpha: [Maximum prefix length in prefix search (int)]
+# N-step Constrained beam search
+search-type: nsc
+nstep: [Number of maximum expansion steps at each time step (int)]
+        # nstep = max-sym-exp + 1 (blank)
+prefix-alpha: [Maximum prefix length in prefix search (int)]
 
-        # modified Adaptive Expansion Search
-        search-type: maes
-        nstep: [Number of maximum expansion steps at each time step (int, > 1)]
-        prefix-alpha: [Maximum prefix length in prefix search (int)]
-        expansion-gamma: [Number of additional candidates in expanded hypotheses selection (int)]
-        expansion-beta: [Allowed logp difference for prune-by-value method (float, > 0)]
+# modified Adaptive Expansion Search
+search-type: maes
+nstep: [Number of maximum expansion steps at each time step (int, > 1)]
+prefix-alpha: [Maximum prefix length in prefix search (int)]
+expansion-gamma: [Number of additional candidates in expanded hypotheses selection (int)]
+expansion-beta: [Allowed logp difference for prune-by-value method (float, > 0)]
+```
 
 Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
 
