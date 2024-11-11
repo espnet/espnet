@@ -1,10 +1,9 @@
 import argparse
-import glob
-import os
-import random
 import sys
-
+import os
+import glob
 import numpy as np
+import random
 from tqdm import tqdm
 
 np.random.seed(1234)
@@ -37,6 +36,13 @@ def main(args):
     print(f"# of spk: {len(d_spk2utt)}")
     print(f"# of utt: {len(l_dev)}")
 
+    # Pre-generate the random speaker and class indices to reduce calls to random
+    n_trials = len(d_src2spk) * 20
+    batch_size = 100
+    
+    random_spks = np.random.choice(spk_keys, size=n_trials)
+    class_indices = np.random.randint(0, 2, size=n_trials)
+
     used_trials = set()
 
     def is_unique_trial(trials):
@@ -54,14 +60,8 @@ def main(args):
     dev_set = set(l_dev)
 
     with open(args.out, "w") as f_out:
-        # Pre-generate the random speaker and class indices to reduce calls to random
-        n_trials = len(d_src2spk) * 20
-        random_spks = np.random.choice(spk_keys, size=n_trials)
-        class_indices = np.random.randint(0, 2, size=n_trials)
-
-        batch_size = 100  # Process in batches
-
         for i in tqdm(range(0, n_trials, batch_size)):
+
             batch_spks = random_spks[i : i + batch_size]
             batch_classes = class_indices[i : i + batch_size]
             batch_trials = []
