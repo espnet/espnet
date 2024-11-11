@@ -69,6 +69,11 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
+        num_class: int = 0,
+        ssl_input_size: int = 0,
+        superb_setup: bool = False,
+        use_only_last_correct: bool = False,
+        superb_two_channel: bool = False,
     ):
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
@@ -94,6 +99,9 @@ class ESPnetASRModel(AbsESPnetModel):
         self.interctc_weight = interctc_weight
         self.aux_ctc = aux_ctc
         self.token_list = token_list.copy()
+        self.superb_setup = superb_setup
+        self.use_only_last_correct = use_only_last_correct
+        self.superb_two_channel = superb_two_channel
 
         self.frontend = frontend
         self.specaug = specaug
@@ -160,13 +168,16 @@ class ESPnetASRModel(AbsESPnetModel):
             # self.decoder parameters were never used and PyTorch complained
             # and threw an Exception in the multi-GPU experiment.
             # thanks Jeff Farris for pointing out the issue.
-            if ctc_weight < 1.0:
-                assert (
-                    decoder is not None
-                ), "decoder should not be None when attention is used"
+            if not(self.superb_setup):
+                if ctc_weight < 1.0:
+                    assert (
+                        decoder is not None
+                    ), "decoder should not be None when attention is used"
+                else:
+                    decoder = None
+                    logging.warning("Set decoder to none as ctc_weight==1.0")
             else:
-                decoder = None
-                logging.warning("Set decoder to none as ctc_weight==1.0")
+                logging.warning("Using SUPERB style classifier")
 
             self.decoder = decoder
 
@@ -188,7 +199,12 @@ class ESPnetASRModel(AbsESPnetModel):
             self.ctc = ctc
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
-
+        if self.superb_setup:
+            self.decoder = None
+            self.act_fn = torch.nn.Tanh()
+            self.num_class = num_class
+            self.transform_mean = torch.nn.Linear(ssl_input_size, ssl_input_size)
+            self.transform_linear = torch.nn.Linear(ssl_input_size, num_class)
         self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
 
         if self.is_encoder_whisper:
@@ -235,6 +251,25 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        if self.superb_setup:
+            encoder_out = self.transform_mean(self.act_fn(encoder_out))
+            if self.use_only_last_correct:
+                # import pdb;pdb.set_trace()
+                feats=[]
+                for k in range(encoder_out.shape[0]):
+                    feats.append(encoder_out[k, encoder_out_lens[k]-1])
+                feats = torch.stack(feats)
+            else:
+                feats_mean_out = []
+                for k in range(encoder_out.shape[0]):
+                    feats_mean_out.append(
+                        torch.mean(encoder_out[k, : encoder_out_lens[k]], dim=0)
+                    )
+                feats = torch.stack(feats_mean_out)
+            encoder_out = self.transform_linear(feats)
+            text = text.reshape(-1) - 2
+            loss_lightweight = torch.nn.functional.cross_entropy(encoder_out, text)
+            acc_lightweight = None
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -327,13 +362,16 @@ class ESPnetASRModel(AbsESPnetModel):
 
         else:
             # 2b. Attention decoder branch
-            if self.ctc_weight != 1.0:
+            if ((self.ctc_weight != 1.0) and (not self.superb_setup)):
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
                 )
 
             # 3. CTC-Att loss definition
-            if self.ctc_weight == 0.0:
+            if self.superb_setup:
+                loss = loss_lightweight
+                acc_att = acc_lightweight
+            elif self.ctc_weight == 0.0:
                 loss = loss_att
             elif self.ctc_weight == 1.0:
                 loss = loss_ctc
@@ -410,11 +448,16 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens = self.postencoder(
                 encoder_out, encoder_out_lens
             )
-
-        assert encoder_out.size(0) == speech.size(0), (
-            encoder_out.size(),
-            speech.size(0),
-        )
+        if self.superb_two_channel:
+            assert encoder_out[0].size(0) == speech.size(0), (
+                encoder_out[0].size(),
+                speech.size(0),
+            )
+        else:
+            assert encoder_out.size(0) == speech.size(0), (
+                encoder_out.size(),
+                speech.size(0),
+            )
         if (
             getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
             and not self.is_encoder_whisper

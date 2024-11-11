@@ -1,0 +1,55 @@
+# network architecture
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr     # pytorch v1.1.0+ required #Tune warmup steps
+scheduler_conf:
+    warmup_steps: 500
+max_epoch: 32
+num_iters_per_epoch: 750
+batch_size: 4000
+
+encoder: whisper
+encoder_conf:
+    whisper_model: medium
+    dropout_rate: 0.0
+    use_specaug: false
+    specaug_conf:
+        apply_time_warp: true
+        time_warp_window: 5
+        time_warp_mode: bicubic
+        apply_freq_mask: true
+        freq_mask_width_range:
+        - 0
+        - 40
+        num_freq_mask: 2
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0.
+        - 0.12
+        num_time_mask: 5
+
+freeze_param: [
+"encoder"
+]
+normalize: null
+frontend: null
+input_size: 1                   # to prevent build_model() from complaining
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    superb_setup: true
+    num_class: 5
+    ssl_input_size: 1024
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+    use_only_last_correct: true
+unused_parameters: true
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
