@@ -148,6 +148,7 @@ if __name__ == "__main__":
             "speech_ref1": ["spk1.scp", "sound"],
             "speech": ["wav.scp", "sound"],
         }
+        training_config["text_name"] = ["text", "text_spk1"]
 
     elif args.task == "hubert":
         data_info["text"] = ["text.km.kmeans_iter0_mfcc_train_nodev_portion1.0", "text"]

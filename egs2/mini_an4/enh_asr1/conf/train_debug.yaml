@@ -48,6 +48,3 @@ asr_decoder_conf:
     num_blocks: 1
 
 use_preprocessor: true
-preprocessor_conf:
-    text_name:
-        - "text_spk1"
