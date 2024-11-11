@@ -2,7 +2,7 @@
 
 Overall results
 | Model (conf name) | EER(%) | minDCF | Note | Huggingface |
-|---|---|---|---|---|
+| [conf/train_SKA_wavlm_frozen.yaml](conf/train_SKA_wavlm_frozen.yaml) | 19.728 | 0.92968 | SKA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/rats_ska_wavlm_frozen |
 
 ## Environments - conf/train_SKA_wavlm_frozen.yaml
 - python version: 3.9.19 (main, May  6 2024, 19:43:03)  [GCC 11.2.0]
