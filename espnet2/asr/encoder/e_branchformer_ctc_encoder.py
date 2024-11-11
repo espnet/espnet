@@ -201,7 +201,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
 class EBranchformerCTCEncoder(AbsEncoder):
     """E-Branchformer encoder module.
-    
+
     Compared to the original encoder in e_branchformer_encoder.py,
     this variant supports additional cross-attention modules.
     Additionally, it supports extra prefix tokens for the input.
