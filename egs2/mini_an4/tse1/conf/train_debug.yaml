@@ -28,6 +28,8 @@ extractor_conf:
     adapt_enroll_dim: 2
 
 optim: adam
+optim_conf:
+    lr: 0.005
 
 model_conf:
     num_spk: 1
@@ -56,3 +58,5 @@ chunk_excluded_key_prefixes:
 
 max_epoch: 1
 num_iters_per_epoch: 1
+batch_type: sorted
+batch_size: 1
