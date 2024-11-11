@@ -66,6 +66,12 @@ def s2t_config_file(tmp_path: Path, token_list):
             "fs=16000",
             "--preprocessor_conf",
             "speech_length=4",
+            "--frontend_conf",
+            "fs=16k",
+            "--frontend_conf",
+            "hop_length=160",
+            "--encoder_conf",
+            "input_layer=conv2d8",
         ]
     )
     return tmp_path / "s2t" / "config.yaml"

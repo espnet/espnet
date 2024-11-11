@@ -64,6 +64,12 @@ def s2t_config_file(tmp_path: Path, token_list):
             "fs=2000",
             "--preprocessor_conf",
             "speech_length=3",
+            "--frontend_conf",
+            "fs=16k",
+            "--frontend_conf",
+            "hop_length=160",
+            "--encoder_conf",
+            "input_layer=conv2d8",
         ]
     )
     return tmp_path / "s2t" / "config.yaml"
@@ -186,7 +192,6 @@ def test_Speech2TextGreedy_longform(s2t_config_file):
     speech = np.random.randn(3000)
     result = speech2text.decode_long_batched_buffered(
         speech,
-        sample_rate=2000,
         context_len_in_secs=1,
     )
     assert isinstance(result, str)
