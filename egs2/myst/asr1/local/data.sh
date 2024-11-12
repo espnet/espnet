@@ -13,6 +13,9 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
+flac2wav=false
+nj=32
+
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -20,7 +23,7 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-MYST=/ocean/projects/cis210027p/shared/corpora/ldc2021s05/
+
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -33,7 +36,7 @@ if [ -z "${MYST}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${MYST}/myst_child_conv_speech" ]; then
+    if [ ! -d "${MYST}/myst_child_conv_speech" ]; then
 	    echo "stage 1: Download data to ${MYST}"
         exit 1
     else
@@ -42,14 +45,34 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data preparation"
+    if "${flac2wav}"; then
+        log "stage 2: Convert flac to wav"
+        original_dir="${MYST}/myst_child_conv_speech/data"
+        logdir="${MYST}/myst_child_conv_speech/log"
+        mkdir -p $logdir
+        cmd=${train_cmd}
+        ${cmd} "JOB=1:1" "${logdir}/flac_to_wav.JOB.log" \
+            python local/flac_to_wav.py \
+                --multiprocessing \
+                --njobs ${nj} \
+                --myst_dir ${original_dir}
+    else
+        log "flac2wav is false. Skip convertion."
+    fi
+fi
 
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then    
+    log "stage 3: Data preparation"
     # Set the base directory of the original dataset
     original_dir="${MYST}/myst_child_conv_speech/data"
     # Set the base directory for the target data
     data_dir="./data"
 
-    python local/prepare_data.py --original-dir $original_dir --data-dir $data_dir
+    if "${flac2wav}"; then
+        python local/prepare_data.py --original-dir $original_dir --data-dir $data_dir --is-wav
+    else
+        python local/prepare_data.py --original-dir $original_dir --data-dir $data_dir
+    fi
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

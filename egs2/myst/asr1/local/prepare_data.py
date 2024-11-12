@@ -9,6 +9,7 @@ cache_size = 10000
 parser = argparse.ArgumentParser()
 parser.add_argument("--original-dir", type=str, help='the directory of the original myst dataset')
 parser.add_argument("--data-dir", type=str, default='data')
+parser.add_argument("--is-wav", action="store_true")
 args = parser.parse_args()
 
 original_partition_list = ['train', 'development', 'test']
@@ -41,7 +42,10 @@ for original_partition_name, data_partition_name in zip(original_partition_list,
 
     # Iterate overall audio files
     count = 0
-    audio_files = glob.glob(f"{original_partition}/**/*.flac", recursive = True)
+    if args.is_wav:
+        audio_files = glob.glob(f"{original_partition}/**/*.wav", recursive = True)
+    else:
+        audio_files = glob.glob(f"{original_partition}/**/*.flac", recursive = True)
     for audio_file in tqdm(audio_files):
         student_id= audio_file.split('/')[-3]
         session_dir = os.path.dirname(audio_file)
