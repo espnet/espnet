@@ -194,8 +194,6 @@ class Trainer:
             train_dataloader,
             valid_dataloader,
         )
-        train_dump_dir = Path(train_dump_dir)
-        valid_dump_dir = Path(valid_dump_dir)
 
         if type(self.train_config) is dict:
             self.train_config.update(kwargs)
@@ -222,6 +220,8 @@ class Trainer:
             assert data_info is not None, "data_info should be provided."
             assert train_dump_dir is not None, "Please provide train_dump_dir."
             assert valid_dump_dir is not None, "Please provide valid_dump_dir."
+            train_dump_dir = Path(train_dump_dir)
+            valid_dump_dir = Path(valid_dump_dir)
             self.task_class = get_ez_task(task)
             train_dpnt = []
             valid_dpnt = []
