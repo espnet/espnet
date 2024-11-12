@@ -320,12 +320,13 @@ class ClothoMixupDataset(Dataset):
         return bundle
 
 
-# create directory paths for storing clotho mixup audio
-audio_mixup_write_dir = "downloads/CLOTHO_v2.1_audio_mixup/development/"
-os.makedirs(os.path.dirname(audio_mixup_write_dir), exist_ok=True)
-
 mixup_captions_root_dir = sys.argv[1]
 clotho_audio_base_dir = sys.argv[2]
+
+# create directory paths for storing clotho mixup audio
+audio_mixup_write_dir = f"{clotho_audio_base_dir}_audio_mixup/development/"  # "downloads/CLOTHO_v2.1_audio_mixup/development/"
+os.makedirs(os.path.dirname(audio_mixup_write_dir), exist_ok=True)
+
 # Create mixup dataset
 dset = ClothoMixupDataset(
     audio_dir=os.path.join(clotho_audio_base_dir, "clotho_audio_files/development"),

@@ -18,22 +18,27 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
-    exit 2
-fi
-
 if [ -z "${CLOTHO_V2}" ]; then
     log "Fill the value of 'CLOTHO_V2' of db.sh"
     exit 1
 fi
 
 log "stage 1: Data preparation"
+
 ## DOWNLOAD DATA
-CLOTHO_V2_ROOT_DIR="$(pwd)/downloads"
+# If there is no argument, the default download directory is set to currentdir/downloads
+if [ $# -ne 1 ]; then
+    CLOTHO_V2_ROOT_DIR="$(pwd)/downloads"
+    log "Using the default download directory: ${CLOTHO_V2_ROOT_DIR}"
+else
+    CLOTHO_V2_ROOT_DIR="$1/downloads"
+    log "Using the specified download directory: ${CLOTHO_V2_ROOT_DIR}"
+fi
+
+
 if [ ! -e "${CLOTHO_V2_ROOT_DIR}/download_done" ]; then
     log "stage 1: Data preparation - Installing aac-datasets"
-    if ! pip install aac-datasets; then
+    if ! pip3 install aac-datasets; then
         echo "Error: Installing aac-datasets failed."
         exit 1
     fi

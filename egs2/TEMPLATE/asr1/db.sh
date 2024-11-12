@@ -222,9 +222,16 @@ KSPONSPEECH=
 HIFITTS=downloads
 CLOTHO_V2=downloads
 
+# For only Delta environment
 if [[ "$(hostname -d)" == delta.ncsa.illinois.edu ]]; then
     AUDIOCAPS=/old_scratch/bbjs/shared/corpora/audiocaps/
     CLOTHO_CHATGPT_MIXUP=/old_scratch/bbjs/slseanwu/dcase23_aac/beats_baseline/chatgpt/
+fi
+
+# For only CMU Babel environment on compute nodes
+if [[ "$(hostname)" == babel* ]]; then
+    AUDIOCAPS=/compute/babel-13-33/sbharad2/audiocaps/
+    CLOTHO_CHATGPT_MIXUP=/compute/babel-13-33/sbharad2/chatgpt/
 fi
 
 # For only CMU TIR environment

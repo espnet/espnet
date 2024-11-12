@@ -31,7 +31,7 @@ freeze_param: [
 
 encoder: beats
 encoder_conf:
-    beats_ckpt_path: /u/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # _finetuned_on_AS2M_cpt1
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # /u/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # _finetuned_on_AS2M_cpt1
     specaug_config:
         apply_freq_mask: true
         freq_mask_width_range:
