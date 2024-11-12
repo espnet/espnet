@@ -73,7 +73,6 @@ class ESPnetASRModel(AbsESPnetModel):
         ssl_input_size: int = 0,
         superb_setup: bool = False,
         use_only_last_correct: bool = False,
-        superb_two_channel: bool = False,
     ):
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
@@ -101,7 +100,6 @@ class ESPnetASRModel(AbsESPnetModel):
         self.token_list = token_list.copy()
         self.superb_setup = superb_setup
         self.use_only_last_correct = use_only_last_correct
-        self.superb_two_channel = superb_two_channel
 
         self.frontend = frontend
         self.specaug = specaug
@@ -448,16 +446,11 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens = self.postencoder(
                 encoder_out, encoder_out_lens
             )
-        if self.superb_two_channel:
-            assert encoder_out[0].size(0) == speech.size(0), (
-                encoder_out[0].size(),
-                speech.size(0),
-            )
-        else:
-            assert encoder_out.size(0) == speech.size(0), (
-                encoder_out.size(),
-                speech.size(0),
-            )
+
+        assert encoder_out.size(0) == speech.size(0), (
+            encoder_out.size(),
+            speech.size(0),
+        )
         if (
             getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
             and not self.is_encoder_whisper
