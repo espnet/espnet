@@ -1,32 +1,27 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""F0 extractor using DIO + Stonemask algorithm."""
+"""F0 extractor from Praat with Parselmouth Python wrapper."""
 
 import logging
 from typing import Any, Dict, Tuple, Union
 
 import humanfriendly
 import numpy as np
-import pyworld
+import parselmouth
 import torch
 import torch.nn.functional as F
 from scipy.interpolate import interp1d
-from typeguard import typechecked
+from typeguard import check_argument_types
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.utils.types import int_or_none
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-class Dio(AbsFeatsExtract):
-    """F0 estimation with dio + stonemask algorithm.
+class PraatPitch(AbsFeatsExtract):
+    """F0 estimation with Praat algorithm.
 
-    This is f0 extractor based on dio + stonmask algorithm introduced in `WORLD:
-    a vocoder-based high-quality speech synthesis system for real-time applications`_.
-
-    .. _`WORLD: a vocoder-based high-quality speech synthesis system for real-time
-        applications`: https://doi.org/10.1587/transinf.2015EDP7457
+    https://www.fon.hum.uva.nl/praat/manual/Sound__To_Pitch__ac____.html
 
     Note:
         This module is based on NumPy implementation. Therefore, the computational graph
@@ -37,24 +32,24 @@ class Dio(AbsFeatsExtract):
 
     """
 
-    @typechecked
     def __init__(
         self,
         fs: Union[int, str] = 22050,
         hop_length: int = 256,
-        f0min: int = 71,
+        f0min: int = 75,
         f0max: int = 800,
         use_token_averaged_f0: bool = True,
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
-        reduction_factor: int_or_none = None,
+        reduction_factor: int = None,
+        enable_warnings: bool = True,
     ):
+        assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
         self.fs = fs
         self.hop_length = hop_length
-        self.frame_period = 1000 * hop_length / fs
         self.f0min = f0min
         self.f0max = f0max
         self.use_token_averaged_f0 = use_token_averaged_f0
@@ -63,6 +58,8 @@ class Dio(AbsFeatsExtract):
         if use_token_averaged_f0:
             assert reduction_factor >= 1
         self.reduction_factor = reduction_factor
+        self.enable_warnings = enable_warnings
+        self.padding = 2 * hop_length
 
     def output_size(self) -> int:
         return 1
@@ -70,7 +67,6 @@ class Dio(AbsFeatsExtract):
     def get_parameters(self) -> Dict[str, Any]:
         return dict(
             fs=self.fs,
-            n_fft=self.n_fft,
             hop_length=self.hop_length,
             f0min=self.f0min,
             f0max=self.f0max,
@@ -82,26 +78,29 @@ class Dio(AbsFeatsExtract):
 
     def forward(
         self,
-        input: torch.Tensor,
+        inputs: torch.Tensor,
         input_lengths: torch.Tensor = None,
         feats_lengths: torch.Tensor = None,
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # If not provide, we assume that the inputs have the same length
+        # If not provided, we assume that the inputs have the same length
         if input_lengths is None:
             input_lengths = (
-                input.new_ones(input.shape[0], dtype=torch.long) * input.shape[1]
+                inputs.new_ones(inputs.shape[0], dtype=torch.long) * inputs.shape[1]
             )
 
         # F0 extraction
-        pitch = [self._calculate_f0(x[:xl]) for x, xl in zip(input, input_lengths)]
-
-        # (Optional): Adjust length to match with the mel-spectrogram
-        if feats_lengths is not None:
+        if feats_lengths is None:
+            if self.enable_warnings:
+                logging.warning(
+                    "Number of pitch frames will be different from mel frames."
+                )
+            pitch = [self._calc_f0(x[:xl]) for x, xl in zip(inputs, input_lengths)]
+        else:
             pitch = [
-                self._adjust_num_frames(p, fl).view(-1)
-                for p, fl in zip(pitch, feats_lengths)
+                self._calc_f0_corrected(x[:xl], feats_length)
+                for x, xl, feats_length in zip(inputs, input_lengths, feats_lengths)
             ]
 
         # (Optional): Average by duration to calculate token-wise f0
@@ -113,7 +112,7 @@ class Dio(AbsFeatsExtract):
             ]
             pitch_lengths = durations_lengths
         else:
-            pitch_lengths = input.new_tensor([len(p) for p in pitch], dtype=torch.long)
+            pitch_lengths = inputs.new_tensor([len(p) for p in pitch], dtype=torch.long)
 
         # Padding
         pitch = pad_list(pitch, 0.0)
@@ -121,35 +120,53 @@ class Dio(AbsFeatsExtract):
         # Return with the shape (B, T, 1)
         return pitch.unsqueeze(-1), pitch_lengths
 
-    def _calculate_f0(self, input: torch.Tensor) -> torch.Tensor:
-        x = input.cpu().numpy().astype(np.double)
-        f0, timeaxis = pyworld.dio(
-            x,
-            self.fs,
-            f0_floor=self.f0min,
-            f0_ceil=self.f0max,
-            frame_period=self.frame_period,
+    def _calc_f0(self, inp: torch.Tensor) -> torch.Tensor:
+        x = inp.cpu().numpy().astype(np.double)
+        sound = parselmouth.Sound(x, self.fs)
+        pitch = sound.to_pitch(pitch_floor=self.f0min, pitch_ceiling=self.f0max)
+        f0 = np.array([p[0] for p in pitch.selected_array])
+        return self._get_f0_tensor(inp, f0)
+
+    def _calc_f0_corrected(self, inp: torch.Tensor, feats_length) -> torch.Tensor:
+        x = inp.cpu().numpy().astype(np.double)
+        # Praat uses window length of 3.
+        # This padding method gives `floor(input_length / hop_length + 1)` frames, same as LogMelFbank
+        padding = self.padding - (len(inp) % self.hop_length) // 2
+        x = np.pad(x, (padding, padding))
+        sound = parselmouth.Sound(x, self.fs)
+        time_step = self.hop_length / self.fs
+        pitch = sound.to_pitch(
+            pitch_floor=self.f0min, pitch_ceiling=self.f0max, time_step=time_step
         )
-        f0 = pyworld.stonemask(x, f0, timeaxis, self.fs)
+        f0 = np.array([p[0] for p in pitch.selected_array])
+        # len(f0) and feats_length should usually be the same, but could be -1 or 1 due to rounding errors
+        diff = feats_length - len(f0)
+        if diff > 0:
+            if self.enable_warnings:
+                logging.warning(
+                    f"f0 length ({len(f0)}) shorter than feats length ({feats_length})"
+                )
+            f0 = np.pad(f0, (0, diff))
+        elif diff < 0:
+            if self.enable_warnings:
+                logging.warning(
+                    f"f0 length ({len(f0)}) longer than feats length ({feats_length})"
+                )
+            f0 = f0[:diff]
+        return self._get_f0_tensor(inp, f0)
+
+    def _get_f0_tensor(self, inp: torch.Tensor, f0: np.ndarray):
         if self.use_continuous_f0:
             f0 = self._convert_to_continuous_f0(f0)
         if self.use_log_f0:
             nonzero_idxs = np.where(f0 != 0)[0]
             f0[nonzero_idxs] = np.log(f0[nonzero_idxs])
-        return input.new_tensor(f0.reshape(-1), dtype=torch.float)
-
-    @staticmethod
-    def _adjust_num_frames(x: torch.Tensor, num_frames: torch.Tensor) -> torch.Tensor:
-        if num_frames > len(x):
-            x = F.pad(x, (0, num_frames - len(x)))
-        elif num_frames < len(x):
-            x = x[:num_frames]
-        return x
+        return inp.new_tensor(f0.reshape(-1), dtype=torch.float)
 
     @staticmethod
     def _convert_to_continuous_f0(f0: np.array) -> np.array:
         if (f0 == 0).all():
-            logging.warning("All frames seems to be unvoiced.")
+            logging.warning("All frames seem to be unvoiced.")
             return f0
 
         # padding start and end of f0 sequence
@@ -173,11 +190,9 @@ class Dio(AbsFeatsExtract):
         assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
-            (
-                x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
-                if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
-                else x.new_tensor(0.0)
-            )
+            x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
+            if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
+            else x.new_tensor(0.0)
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
         return torch.stack(x_avg)
