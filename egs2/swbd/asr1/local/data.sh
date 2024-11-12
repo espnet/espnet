@@ -61,7 +61,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     paste -d "" \
          <(cut -f 1 -d" " data/${x}/text.org) \
          <(awk '{$1=""; print tolower($0)}' data/${x}/text.org \
-         | perl -pe 's| \(\%.*\)||g' | perl -pe 's| \<.*\>||g' \
+         | perl -pe 's| \(\%.*?\)||g' | perl -pe 's| \<.*\>||g' \
          | sed -e "s/(//g" -e "s/)//g") \
          | sed -e 's/\s\+/ /g' > data/${x}/text.org2 # for ci check
     # remove the file with empty text, otherwise bug in stage calc perplexity
