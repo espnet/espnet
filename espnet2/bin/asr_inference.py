@@ -506,28 +506,33 @@ class Speech2Text:
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-       
+
         if self.run_chunk:
-            speech = to_device(speech, device=self.device)  
-            sim_chunk_length=640
-            start_chunk=3200
-            results_arr=[]
-            token_int_corr_total=[]
-            text_arr=[]
-            for i in range((speech.size(1) -start_chunk )// sim_chunk_length):
-                speech1=speech[
-                    :,max(0,((i+1) * sim_chunk_length +start_chunk - 480000)) : ((i+1) * sim_chunk_length +start_chunk)
+            speech = to_device(speech, device=self.device)
+            sim_chunk_length = 640
+            start_chunk = 3200
+            results_arr = []
+            token_int_corr_total = []
+            text_arr = []
+            for i in range((speech.size(1) - start_chunk) // sim_chunk_length):
+                speech1 = speech[
+                    :,
+                    max(0, ((i + 1) * sim_chunk_length + start_chunk - 480000)) : (
+                        (i + 1) * sim_chunk_length + start_chunk
+                    ),
                 ]
-                lengths = speech1.new_full([1], dtype=torch.long, fill_value=speech1.size(1))
+                lengths = speech1.new_full(
+                    [1], dtype=torch.long, fill_value=speech1.size(1)
+                )
                 batch = {"speech": speech1, "speech_lengths": lengths}
                 batch = to_device(batch, device=self.device)
-                logging.info("speech length: " + str(speech1.size(1))+" i: "+str(i))
+                logging.info("speech length: " + str(speech1.size(1)) + " i: " + str(i))
                 enc, enc_olens = self.asr_model.encode(**batch)
                 encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
                 if self.asr_model.use_only_last_correct:
-                    feats=[]
+                    feats = []
                     for k in range(encoder_out.shape[0]):
-                        feats.append(encoder_out[k, enc_olens[k]-1])
+                        feats.append(encoder_out[k, enc_olens[k] - 1])
                     feats = torch.stack(feats)
                 else:
                     feats_mean_out = []
@@ -544,17 +549,13 @@ class Speech2Text:
                 token_int_corr_total += token_int_corr
                 text_arr.append(text)
                 token = self.converter.ids2tokens(token_int_corr_total)
-                logging.info(
-                    "best hypo: " + " ".join(token) + "\n"
-                )
+                logging.info("best hypo: " + " ".join(token) + "\n")
             hyp = Hypothesis(
                 score=0.0, scores=None, states=None, yseq=torch.tensor(token_int_corr)
             )
             token = self.converter.ids2tokens(token_int_corr_total)
-            text=" ".join(text_arr)
-            logging.info(
-                "best hypo: " + " ".join(token) + "\n"
-            )
+            text = " ".join(text_arr)
+            logging.info("best hypo: " + " ".join(token) + "\n")
             results = [(text, token, token_int_corr_total, hyp)]
             return results
         batch = {"speech": speech, "speech_lengths": lengths}
@@ -568,9 +569,9 @@ class Speech2Text:
         if self.asr_model.superb_setup:
             encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
             if self.asr_model.use_only_last_correct:
-                feats=[]
+                feats = []
                 for k in range(encoder_out.shape[0]):
-                    feats.append(encoder_out[k, enc_olens[k]-1])
+                    feats.append(encoder_out[k, enc_olens[k] - 1])
                 feats = torch.stack(feats)
             else:
                 feats_mean_out = []

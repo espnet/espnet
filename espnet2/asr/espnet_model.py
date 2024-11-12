@@ -168,7 +168,7 @@ class ESPnetASRModel(AbsESPnetModel):
             # self.decoder parameters were never used and PyTorch complained
             # and threw an Exception in the multi-GPU experiment.
             # thanks Jeff Farris for pointing out the issue.
-            if not(self.superb_setup):
+            if not (self.superb_setup):
                 if ctc_weight < 1.0:
                     assert (
                         decoder is not None
@@ -255,9 +255,9 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out = self.transform_mean(self.act_fn(encoder_out))
             if self.use_only_last_correct:
                 # import pdb;pdb.set_trace()
-                feats=[]
+                feats = []
                 for k in range(encoder_out.shape[0]):
-                    feats.append(encoder_out[k, encoder_out_lens[k]-1])
+                    feats.append(encoder_out[k, encoder_out_lens[k] - 1])
                 feats = torch.stack(feats)
             else:
                 feats_mean_out = []
@@ -362,7 +362,7 @@ class ESPnetASRModel(AbsESPnetModel):
 
         else:
             # 2b. Attention decoder branch
-            if ((self.ctc_weight != 1.0) and (not self.superb_setup)):
+            if (self.ctc_weight != 1.0) and (not self.superb_setup):
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
                 )
