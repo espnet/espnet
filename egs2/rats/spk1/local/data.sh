@@ -5,7 +5,6 @@ set -o pipefail
 
 stage=1
 stop_stage=100
-n_proc=8
 
 trg_dir=data
 
