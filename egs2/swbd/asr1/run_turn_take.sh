@@ -9,7 +9,7 @@ train_set=train
 valid_set=valid
 test_sets=test
 
-asr_config=conf/train_asr_whisper_3_uselast.yaml
+asr_config=conf/train_asr_whisper_turn_taking.yaml
 inference_config=conf/decode_asr_chunk.yaml
 lm_config=conf/train_lm.yaml
 
