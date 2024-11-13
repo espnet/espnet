@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import torch
 from lightning.pytorch.callbacks import Callback
-from pathlib import Path
 
 
 class AverageCheckpointsCallback(Callback):
@@ -36,8 +37,13 @@ class AverageCheckpointsCallback(Callback):
 
                 # remove extra prefix in model keys
                 new_avg_state_dict = {
-                    k.removeprefix("model."): v for k, v in avg_state_dict.items() if k.startswith("model.")
+                    k.removeprefix("model."): v
+                    for k, v in avg_state_dict.items()
+                    if k.startswith("model.")
                 }
 
-                avg_ckpt_path = Path(self.output_dir) / f"{ckpt_callback.monitor.replace('/', '.')}.ave_{len(checkpoints)}best.pth"
+                avg_ckpt_path = (
+                    Path(self.output_dir)
+                    / f"{ckpt_callback.monitor.replace('/', '.')}.ave_{len(checkpoints)}best.pth"
+                )
                 torch.save(new_avg_state_dict, avg_ckpt_path)

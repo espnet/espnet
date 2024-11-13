@@ -2,15 +2,20 @@ import argparse
 import copy
 import importlib
 from pathlib import Path
-import torch
-from torch.distributed.algorithms.ddp_comm_hooks import default_hooks
-import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor, TQDMProgressBar
-from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
-from lightning.pytorch.loggers import WandbLogger, TensorBoardLogger
 
-from espnet2.train.lightning_espnet_model import LitESPnetModel, task_choices
+import lightning as L
+import torch
+from lightning.pytorch.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    TQDMProgressBar,
+)
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
+from torch.distributed.algorithms.ddp_comm_hooks import default_hooks
+
 from espnet2.train.lightning_callbacks import AverageCheckpointsCallback
+from espnet2.train.lightning_espnet_model import LitESPnetModel, task_choices
 from espnet2.utils.nested_dict_action import NestedDictAction
 
 
@@ -22,7 +27,7 @@ def get_base_parser():
         type=str,
         required=True,
         choices=list(task_choices.keys()),
-        help="Task to execute"
+        help="Task to execute",
     )
     return parser
 
@@ -51,7 +56,7 @@ def main():
     L.seed_everything(args.seed)
 
     # Set additional configurations that might be helpful
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
 
     # Instantiate the Lightning Model
     lit_model = LitESPnetModel(args=args)
@@ -75,7 +80,7 @@ def main():
             ModelCheckpoint(
                 save_top_k=args.keep_nbest_models,
                 monitor=monitor,
-                mode=mode,      # "min" or "max"
+                mode=mode,  # "min" or "max"
                 dirpath=args.output_dir,
                 save_last=False,
                 # Add monitor to filename to avoid overwriting when multiple metrics are used
@@ -83,14 +88,13 @@ def main():
                 auto_insert_metric_name=False,
                 save_on_train_epoch_end=False,
                 save_weights_only=True,
-                enable_version_counter=False,   # just overwrite
+                enable_version_counter=False,  # just overwrite
             )
         )
 
     # Average best models after training
     ave_ckpt_callback = AverageCheckpointsCallback(
-        output_dir=args.output_dir,
-        best_ckpt_callbacks=best_ckpt_callbacks
+        output_dir=args.output_dir, best_ckpt_callbacks=best_ckpt_callbacks
     )
 
     # Monitor learning rate
@@ -110,7 +114,11 @@ def main():
         wandb_latest_id = None
         # Resume the latest run if exists by setting the version
         if (Path(args.output_dir) / "wandb" / "latest-run").exists():
-            wandb_latest_id = (Path(args.output_dir) / "wandb" / "latest-run").resolve().name.split("-")[-1]
+            wandb_latest_id = (
+                (Path(args.output_dir) / "wandb" / "latest-run")
+                .resolve()
+                .name.split("-")[-1]
+            )
         wandb_logger = WandbLogger(
             project=args.wandb_project or "ESPnet_" + task_class.__name__,
             name=args.wandb_name or str(Path(".").resolve()).replace("/", "_"),
@@ -140,19 +148,26 @@ def main():
             auto_wrap_policy = set(
                 getattr(
                     importlib.import_module(".".join(policy.split(".")[:-1])),
-                    policy.split(".")[-1]
-                ) for policy in auto_wrap_policy
+                    policy.split(".")[-1],
+                )
+                for policy in auto_wrap_policy
             )
         else:
             auto_wrap_policy = None
 
-        activation_checkpointing_policy = strategy_conf.pop("activation_checkpointing_policy", None)
-        if activation_checkpointing_policy is not None and len(activation_checkpointing_policy) > 0:
+        activation_checkpointing_policy = strategy_conf.pop(
+            "activation_checkpointing_policy", None
+        )
+        if (
+            activation_checkpointing_policy is not None
+            and len(activation_checkpointing_policy) > 0
+        ):
             activation_checkpointing_policy = set(
                 getattr(
                     importlib.import_module(".".join(policy.split(".")[:-1])),
-                    policy.split(".")[-1]
-                ) for policy in activation_checkpointing_policy
+                    policy.split(".")[-1],
+                )
+                for policy in activation_checkpointing_policy
             )
         else:
             activation_checkpointing_policy = None
@@ -178,7 +193,7 @@ def main():
             *best_ckpt_callbacks,
             ave_ckpt_callback,
             lr_callback,
-            TQDMProgressBar(refresh_rate=args.lightning_conf['log_every_n_steps'])
+            TQDMProgressBar(refresh_rate=args.lightning_conf["log_every_n_steps"]),
         ],
         strategy=strategy,
         logger=loggers,
