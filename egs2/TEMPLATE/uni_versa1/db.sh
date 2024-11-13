@@ -18,6 +18,7 @@ AR_SC=
 AUDIOSET=
 ASVSpoof_CMD=
 BIBLETTS=downloads
+BVCC=downloads
 CORAAL=downloads
 COVOST2=
 DIRHA_ENGLISH_PHDEV=
