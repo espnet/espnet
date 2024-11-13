@@ -72,6 +72,7 @@ universa_stats_dir=""   # Specify the directory path for statistics. If empty, a
 num_splits=1       # Number of splitting for universa corpus.
 use_ref_wav=true   # Whether use reference wave or not.
 use_ref_text=true  # Whether use reference text or not.
+metric2id_file=    # File path for metric2id mapping.
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -96,6 +97,9 @@ scoring_tag=""    # Suffix for scoring directory.
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+bpe_train_text=  # Text file path of bpe training set.
+nlsyms_txt=none  # Non-linguistic symbol list if existing.
+cleaner=none     # Text cleaner.
 audio_fold_length=256000 # fold_length for audio data.
 
 # Upload model related
@@ -135,11 +139,11 @@ Options:
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
-    --token_type=bpe          # Tokenization type (char or bpe) for text. (default="${stoken_type}").
-    --nbpe=30                 # The number of BPE vocabulary for text. (default="${snbpe}").
-    --bpemode=unigram         # Mode of BPE for text (unigram or bpe). (default="${sbpemode}").
+    --token_type=bpe          # Tokenization type (char or bpe) for text. (default="${token_type}").
+    --nbpe=30                 # The number of BPE vocabulary for text. (default="${nbpe}").
+    --bpemode=unigram         # Mode of BPE for text (unigram or bpe). (default="${bpemode}").
     --bpe_input_sentence_size=100000000 # Size of input sentence for BPE for text. (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms=             # Non-linguistic symbols list, separated by a comma, for BPE of text. (default="${sbpe_nlsyms}").
+    --bpe_nlsyms=             # Non-linguistic symbols list, separated by a comma, for BPE of text. (default="${bpe_nlsyms}").
     --bpe_char_cover=1.0      # Character coverage when modeling BPE for text. (default="${bpe_char_cover}").
 
 
@@ -177,6 +181,9 @@ Options:
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
     --test_sets          # Names of test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
+    --bpe_train_text # Text file path of bpe training set.
+    --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
+    --cleaner       # Text cleaner (default="${cleaner}").
     --audio_fold_length  # Fold length for audio data (default="${audio_fold_length}").
 
     # Upload model related
@@ -212,6 +219,8 @@ utt_extra_files="metric.scp"
 if [ ${use_ref_wav} = true ]; then
     utt_extra_files="${utt_extra_files} ref_wav.scp"
 fi
+
+[ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/org/${train_set}/text"
 
 # Check tokenization type
 token_listdir=data/token_list
@@ -348,13 +357,29 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+        log "Stage 3: Prepare metric ID"
+        if [ -z "${metric2id_file}" ]; then
+            log "metric2id_file is not specificed. Generate it from metric.scp"
+            python pyscripts/utils/prep_metric_id.py \
+                "${data_feats}/org/${train_set}"/metric.scp \
+                "${data_feats}/org/${train_set}"/metric2id
+
+        else
+            log "metric2id_file is already specified. Skip this stage."
+            cp -r "${data_feats}/org/${train_set}"/metric2id "${data_feats}/org/${train_set}"
+        fi
+
+    fi
+
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
             # Copy data dir
             mkdir -p "${data_feats}/${dset}"
-            cp "${data_feats}/org/${dset}/wav.scp" "${data_feats}/${dset}/wav.scp"
+            # Copy data dir
+            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             # Remove short utterances
@@ -370,20 +395,111 @@ if ! "${skip_data_prep}"; then
             <"${data_feats}/org/${dset}/wav.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
+            
+            if [ ${use_ref_wav} = true ]; then
+                <"${data_feats}/org/${dset}/utt2num_samples.ref" \
+                    awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                        '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                        >"${data_feats}/${dset}/utt2num_samples.ref"
+                <"${data_feats}/org/${dset}/ref_wav.scp" \
+                    utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples.ref"  \
+                    >"${data_feats}/${dset}/ref_wav.scp"
+            fi
+
+            # Remove empty text
+            for utt_extra_file in ${utt_extra_files}; do
+                <${data_feats}/org/${dset}/${utt_extra_file} \
+                    awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
+            done
+
+            # fix_data_dir.sh leaves only utts which exist in all files
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+
+            # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
+            for utt_extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
+                mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
+		        sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
+            done
+
         done
+
+        # NOTE(jiatong): sync metric2id for train set
+        cp "${data_feats}/org/${train_set}/metric2id" "${data_feats}/${train_set}/metric2id"
     fi
+
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && [ ${use_ref_text} = true ] ; then
+        if [ "${token_type}" = bpe ]; then
+            log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
+
+            mkdir -p "${bpedir}"
+            # shellcheck disable=SC2002
+            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+
+            if [ -n "${bpe_nlsyms}" ]; then
+                if test -f "${bpe_nlsyms}"; then
+                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                else
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                fi
+            else
+                _opts_spm=""
+            fi
+
+            spm_train \
+                --input="${bpedir}"/train.txt \
+                --vocab_size="${nbpe}" \
+                --model_type="${bpemode}" \
+                --model_prefix="${bpeprefix}" \
+                --character_coverage=${bpe_char_cover} \
+                --input_sentence_size="${bpe_input_sentence_size}" \
+                ${_opts_spm}
+
+            {
+            echo "${blank}"
+            echo "${oov}"
+            # Remove <unk>, <s>, </s> from the vocabulary
+            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            echo "${sos_eos}"
+            } > "${token_list}"
+
+        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
+            log "Stage 5: Generate character level token_list from ${lm_train_text}"
+
+            _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "${token_type}" \
+                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
+        else
+            log "Error: not supported --token_type '${token_type}'"
+            exit 2
+        fi
+
+    fi
+
 else
     log "Skip the stages for data preparation"
 fi
-
 # ========================== Data preparation is done here. ==========================
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 4: Neural universa collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 6: Universa collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -425,17 +541,30 @@ if ! "${skip_train}"; then
 
         # 2. Generate run.sh
         log "Generate '${universa_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
-        mkdir -p "${universa_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${universa_stats_dir}/run.sh"; chmod +x "${universa_stats_dir}/run.sh"
+        mkdir -p "${universa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${universa_stats_dir}/run.sh"; chmod +x "${universa_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Universa collect_stats started... log: '${_logdir}/stats.*.log'"
+
+        # Add reference audio and text if required
+        if [ ${use_ref_wav} = true ]; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,audio,sound "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,audio,sound "
+        fi
+        if [ ${use_ref_text} = true ]; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,ref_text,text "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,ref_text,text "
+        fi
+
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m "espnet2.bin.universa_train" \
                 --collect_stats true \
                 --use_preprocessor true \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},audio,${_type}" \
+                --train_data_path_and_name_and_type "${_train_dir}/metric.scp,metrics,metric" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},audio,${_type}" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/metric.scp,metrics,metric" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -452,7 +581,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: universa Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 5: Universa Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
