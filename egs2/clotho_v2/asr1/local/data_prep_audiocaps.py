@@ -8,8 +8,10 @@ from scipy.io import wavfile
 
 if __name__ == "__main__":
     ROOT_DATA_DIR = sys.argv[1]
-    TRAIN_FILES = "train_split.json"  # this is a json with key "audiocap_ids" containing list of folder_ids
-    DATA_DIR = "data"  # this has folders each for a folder_id, containing audio.wav and metadata.json files
+    # this is a json with key "audiocap_ids" containing list of folder_ids
+    TRAIN_FILES = "train_split.json"
+    # this has folders each for a folder_id, containing audio.wav and metadata.json files
+    DATA_DIR = "data"
 
     LOCAL_DATA_DIR = "data/development_audiocaps"
 
@@ -57,5 +59,7 @@ if __name__ == "__main__":
                 if N_PROCESSED % 1000 == 0:
                     print(f"Processed {N_PROCESSED} audio files.")
     print(
-        f"Processed {N_PROCESSED} audio files. Skipped {N_VERY_LONG_AUDIO} long audio, {N_ZERO_LENGTH_AUDIO} empty audio and {N_ZERO_LENGTH_CAPTIONS} empty caption items."
+        f"Processed {N_PROCESSED} audio files. Skipped {N_VERY_LONG_AUDIO}"
+        f"long audio, {N_ZERO_LENGTH_AUDIO} empty audio and "
+        f"{N_ZERO_LENGTH_CAPTIONS} empty caption items."
     )

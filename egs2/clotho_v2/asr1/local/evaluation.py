@@ -1,4 +1,5 @@
-"""Wrapper around aac_metrics (https://github.com/Labbeti/aac-metrics) to evaluate the predictions."""
+"""Wrapper around aac_metrics (https://github.com/Labbeti/aac-metrics)
+to evaluate the audio captioning predictions."""
 
 import argparse
 

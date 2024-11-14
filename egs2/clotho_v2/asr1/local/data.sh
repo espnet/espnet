@@ -85,11 +85,10 @@ fi
 
 SPLITS=(development_clotho validation evaluation) # map dev, val, eval to development, validation, evaluation
 N_REF=5
-for split_name in ${SPLITS[@]}; do
+for split_name in "${SPLITS[@]}"; do
     mkdir -p "data/${split_name}"
 done
 
-echo "$(which python)"
 # Prepare data in the Kaldi format, including three files:
 # text, wav.scp, utt2spk
 ##########
@@ -115,7 +114,7 @@ SPLITS+=(pretrain)
 # and 2 for val, eval - validation, evaluation
 
 # SORT ALL
-for split_name in ${SPLITS[@]}; do
+for split_name in "${SPLITS[@]}"; do
     for f in wav.scp utt2spk; do
         sort data/${split_name}/${f} -o data/${split_name}/${f}
     done

@@ -103,15 +103,21 @@ class BeatsEncoder(AbsEncoder):
 
     (https://arxiv.org/abs/2212.09058)
     Args:
-        beats_ckpt_path: Path to a pretrained BEATs checkpoint. If `beats_config` is provided and it does
-            not match the config in the checkpoint, code might throw an error.
-        adapter_layers: Number of transformer-based adapter layers after encoder.
-        max_layer: Propagate input through all layers for encoding if None. Otherwise use upto `max_layer`.
-        use_weighted_representation: Use weighted representations from max_layer if True. Weights are randomly initialized.
-        beats_config: `BEATsConfig` object. If provided, we will try to override the config in the
-            checkpoint. This can be used to change dropouts etc for fine-tuning the model while starting
-            from a pretrained checkpoint.
-        specaug_config: Dictionary containing parameters for SpecAugment. If provided, SpecAugment will be applied.
+        beats_ckpt_path: Path to a pretrained BEATs checkpoint. If
+            `beats_config` is provided and it does not match the
+            config in the checkpoint, code might throw an error.
+        adapter_layers: Number of transformer-based adapter layers
+            after encoder.
+        max_layer: Propagate input through all layers for encoding
+            if None. Otherwise use upto `max_layer`.
+        use_weighted_representation: Use weighted representations
+            from max_layer if True. Weights are randomly initialized.
+        beats_config: `BEATsConfig` object. If provided, we will try
+            to override the config in the checkpoint. This can be used
+            to change dropouts etc for fine-tuning the model while
+            starting from a pretrained checkpoint.
+        specaug_config: Dictionary containing parameters for SpecAugment.
+            If provided, SpecAugment will be applied.
     """
 
     def __init__(
@@ -133,8 +139,10 @@ class BeatsEncoder(AbsEncoder):
 
         # Four cases for loading Beats config:
         # 1. No checkpoint and no config: Default config
-        # 2. Checkpoint and no user-provided config: Load config from checkpoint
-        # 3. Checkpoint and user-provided config: Merge the two, but override with user-provided config
+        # 2. Checkpoint and no user-provided config: Load config from
+        #    checkpoint
+        # 3. Checkpoint and user-provided config: Merge the two, but
+        #    override with user-provided config
         # 4. No checkpoint and user-provided config: Use user-provided config
         config = BEATsConfig()  # Default config
         if beats_ckpt_path and beats_config:
@@ -180,7 +188,8 @@ class BeatsEncoder(AbsEncoder):
         if self.use_weighted_representation:
             if self.max_layer is None:
                 logging.warning(
-                    f"max_layer must be provided when using weighted representations. Set to {config.encoder_layers}."
+                    f"max_layer must be provided when using weighted representations."
+                    f"Set to {config.encoder_layers}."
                 )
                 self.max_layer = config.encoder_layers
             self.layer_weights = nn.Parameter(
@@ -200,7 +209,8 @@ class BeatsEncoder(AbsEncoder):
         The initialization occurs in three steps:
         1. ESPNet initializes all modules.
         2. This function initializes BEATs encoder overriding 1.
-        3. Optionally, if we have the pretrained checkpoint, we load the weights from the checkpoint overriding 2 and 1.
+        3. Optionally, if we have the pretrained checkpoint, we load the
+            weights from the checkpoint overriding 2 and 1.
         """
         logging.info("BEATs Initialization function called.")
         if self.post_extract_proj:
@@ -211,7 +221,8 @@ class BeatsEncoder(AbsEncoder):
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
 
-        # BEATs has different initialization from ESPNet for other modules, so override.
+        # BEATs has different initialization from ESPNet for other modules,
+        #  so override.
         self.encoder.apply(init_bert_params)
         if self.loaded_state_dict_ is not None:
 
@@ -220,9 +231,12 @@ class BeatsEncoder(AbsEncoder):
             )
             # strict=False to ignore Weights in the predictor
             logging.info(
-                f"Loaded BEATs pretrained model. Following keys were missing in your custom model: {load_info.missing_keys}. "
-                f"Follwing keys could not be loaded from the pretrained checkpoint: {load_info.unexpected_keys}."
-                "It is expected to have 'predictor' listed above if you are fine-tuning with only the BEATs backbone."
+                f"Loaded BEATs pretrained model. Following keys were missing"
+                f" in your custom model: {load_info.missing_keys}. "
+                f"Follwing keys could not be loaded from the pretrained"
+                f"checkpoint: {load_info.unexpected_keys}."
+                "It is expected to have 'predictor' listed above if you are"
+                "fine-tuning with only the BEATs backbone."
             )
 
     def forward_padding_mask(
@@ -269,9 +283,9 @@ class BeatsEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPNets' AbsEncoder Interface."""
 
-        # NOTE(shikhar): If xs is not provided then the operation is costly, because this
-        # function tries to create a tensor of size maxlen x maxlen. Therfore, we unsqueeze
-        # and then squeeze tensors.
+        # NOTE(shikhar): If xs is not provided then the operation is costly,
+        # because this function tries to create a tensor of size maxlen x maxlen.
+        # Therfore, we unsqueeze and then squeeze tensors.
         mask = make_pad_mask(
             lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
         ).to(xs_pad.device)
@@ -297,8 +311,6 @@ class BeatsEncoder(AbsEncoder):
             fbank = self.preprocess(source)
 
             if self.specaug is not None and self.training:
-                # NOTE(shikhar): We don't provide lengths because espnet implementation
-                # does not use it --> /espnet/espnet2/layers/mask_along_axis.py
                 fbank = self.specaug(fbank)[0]
 
         if padding_mask is not None:
@@ -1219,7 +1231,9 @@ class GLU_Linear(nn.Module):
 
     def forward(self, x):
         """Forward pass"""
-        # to be consistent with GLU_Linear, we assume the input always has the #channel (#dim) in the last dimension of the tensor, so need to switch the dimension first for 1D-Conv case
+        # to be consistent with GLU_Linear, we assume the input always has the
+        # #channel (#dim) in the last dimension of the tensor, so need to
+        # switch the dimension first for 1D-Conv case
         x = self.linear(x)
 
         if self.glu_type == "bilinear":

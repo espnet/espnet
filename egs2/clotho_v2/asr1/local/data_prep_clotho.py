@@ -78,5 +78,6 @@ if __name__ == "__main__":
                 for f in text_f:
                     f.close()
         print(
-            f"For split {data_split}: Processed {N_PROCESSED} audio and their captions. {len(missing_audio)} audio files were missing."
+            f"For split {data_split}: Processed {N_PROCESSED} audio and their"
+            f" captions. {len(missing_audio)} audio files were missing."
         )

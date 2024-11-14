@@ -2,11 +2,11 @@ import json
 import os
 import random
 import sys
+import time
 from collections import defaultdict
 from multiprocessing import Pool
 from string import punctuation
 from typing import List, Optional
-
 import librosa
 import numpy as np
 import pandas as pd
@@ -158,28 +158,6 @@ class ClothoMixupDataset(Dataset):
             audio_a = pyln.normalize.peak(audio_a, base_db)
             audio_b = pyln.normalize.peak(audio_b, base_db + mix_db_ratio)
 
-        # sf.write(
-        #     os.path.join("tmp", f"audio_{base_db:.2f}_{mix_db_ratio:.2f}_A_prenorm.wav"),
-        #     audio_a,
-        #     SAMPLE_RATE
-        # )
-        # sf.write(
-        #     os.path.join("tmp", f"audio_{base_db:.2f}_{mix_db_ratio:.2f}_B_prenorm.wav"),
-        #     audio_b,
-        #     SAMPLE_RATE
-        # )
-
-        # sf.write(
-        #     os.path.join("tmp", f"audio_{base_db:.2f}_{mix_db_ratio:.2f}_A.wav"),
-        #     audio_a,
-        #     SAMPLE_RATE
-        # )
-        # sf.write(
-        #     os.path.join("tmp", f"audio_{base_db:.2f}_{mix_db_ratio:.2f}_B.wav"),
-        #     audio_b,
-        #     SAMPLE_RATE
-        # )
-
         if len(audio_a) > len(audio_b):
             st_idx = random.choice(range(len(audio_a) - len(audio_b) + 1))
             audio_a[st_idx : st_idx + len(audio_b)] += mix_scale * audio_b
@@ -192,11 +170,10 @@ class ClothoMixupDataset(Dataset):
         try:
             sf.write(
                 mixed_audio_path,
-                # os.path.join("tmp", f"{base_db:.2f}_{mix_db_ratio:.2f}_mixed.wav"),
                 mixed_audio,
                 SAMPLE_RATE,
             )
-        except:
+        except Exception as e:
             print(f"Can not write audio {mixed_audio_path}")
             mixed_audio = None
             mixed_audio_path = None
@@ -229,8 +206,8 @@ class ClothoMixupDataset(Dataset):
         lemmas = self.lemma_data[sample_name][sample_idx]["caption_kw_labels"]
         labels = np.zeros((self.n_lemmas,))
 
-        for l in lemmas:
-            labels[l] = 1
+        for lem in lemmas:
+            labels[lem] = 1
 
         return labels
 
@@ -324,7 +301,8 @@ mixup_captions_root_dir = sys.argv[1]
 clotho_audio_base_dir = sys.argv[2]
 
 # create directory paths for storing clotho mixup audio
-audio_mixup_write_dir = f"{clotho_audio_base_dir}_audio_mixup/development/"  # "downloads/CLOTHO_v2.1_audio_mixup/development/"
+# "downloads/CLOTHO_v2.1_audio_mixup/development/" < This is default.
+audio_mixup_write_dir = f"{clotho_audio_base_dir}_audio_mixup/development/"
 os.makedirs(os.path.dirname(audio_mixup_write_dir), exist_ok=True)
 
 # Create mixup dataset
@@ -348,7 +326,6 @@ output_wav_scp_path = os.path.join(data_base, "wav.scp")
 output_utt2spk_path = os.path.join(data_base, "utt2spk")
 
 os.makedirs(os.path.dirname(output_txt_path), exist_ok=True)
-import time
 
 start = time.time()
 
@@ -386,4 +363,3 @@ with open(output_txt_path, "w") as text_f, open(
 
 print(f"Number of files skipped {N_ERROR}")
 print(f"Number of files processed {N_PROCESSED}")
-# TODO(shikhar): change location of downloaded data to downloads, check gitignore for more info.
