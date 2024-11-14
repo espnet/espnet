@@ -12,7 +12,7 @@ fi
 
 pip install aac-metrics
 aac-metrics-download
-
+# Currently this script just creates a text.result file in the same directory as the decode file.
 asr_expdir=$1
 splits=(evaluation)
 

@@ -6,28 +6,28 @@ set -euo pipefail
 
 wandb_sweep_args="$@"
 
-# name_tag=ft.initfix.bigbatch512.lr2e-4.weighted12layers.20241103.145125
-# name_tag=pt.full.20241111.170406
 
-name_tag=pt.data_check.20241111.153210
-expdir=/compute/babel-13-33/sbharad2/expdir
-dumpdir=/compute/babel-13-33/sbharad2/dumpdir
+# expdir=/compute/babel-13-33/sbharad2/expdir
+# dumpdir=/compute/babel-13-33/sbharad2/dumpdir
+#         --expdir ${expdir} \
+#         --dumpdir ${dumpdir} \
 
+
+name_tag=ft.beats.bartfrozen.20241111.164042.valid.acc.ave
 all_ckpts=$(find ${expdir}/asr_${name_tag} -name "*.pth"  -printf "%f\n" | awk '{print substr($0, 1, length($0) - 4)}')
 
 # for ckpt in valid.acc.best; do
-for ckpt in $all_ckpts ; do
-    if [[ $ckpt == "checkpoint" || $ckpt == "latest"  || $ckpt == "valid.acc.best" ]]; then
+for ckpt in $all_ckpts; do
+    # We skip all symlinks
+    if [[ $ckpt == "checkpoint" || $ckpt == "latest"  || $ckpt == "valid.acc.best"  || $ckpt == "valid.acc.ave.pth" ]]; then
         continue
     fi
     ./asr.sh \
         --asr_tag $name_tag \
-        --expdir ${expdir} \
-        --dumpdir ${dumpdir} \
         --feats_normalize uttmvn \
         --stage 12 \
         --stop_stage 13 \
-        --ngpu 1 \
+        --ngpu 2 \
         --gpu_inference true \
         --nj 20 \
         --inference_nj 1 \
