@@ -9,6 +9,9 @@ overriding validate_one_epoch.
 
 from typing import Dict, Iterable
 
+import re
+from tqdm import tqdm
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -19,7 +22,13 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer, TrainerOptions
-from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore
+from espnet2.utils.eer import (
+    ComputeErrorRates,
+    ComputeMinDcf,
+    SASVCostModel,
+    tuneThresholdfromScore,
+)
+from a_dcf import a_dcf
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -55,66 +64,154 @@ class SpkTrainer(Trainer):
         labels = []
         spk_embd_dic = {}
         bs = 0
+        
+        embed_avg = (
+            False  # use speech, speech2, and speech3 as enrollment and speech4 as test
+        )
+        sasv = False  # spoofing aware speaker verification task
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
-        # fill dictionary with speech samples
-        utt_id_list = []
-        speech_list = []
+        # trials list
+        all_trials_list = []
+
         task_token = None
-        for utt_id, batch in iterator:
+        for utt_id, batch in tqdm(iterator):
+            pattern = r"[DE]_\d{4}\*[DE]_\d{10}"
+            if any(re.match(pattern, uid) for uid in utt_id):
+                sasv = True
+
+            # Synchronize sasv across all processes
+            if distributed:
+                sasv_tensor = torch.tensor(
+                    [1 if sasv else 0], device="cuda" if ngpu > 0 else "cpu"
+                )
+                torch.distributed.all_reduce(
+                    sasv_tensor, op=torch.distributed.ReduceOp.MAX
+                )
+                sasv = bool(sasv_tensor.item())
+
+            utt_id_list = []
+            speech_list = []
             bs = max(bs, len(utt_id))
             if "task_tokens" in batch:
                 task_token = batch["task_tokens"][0]
 
+            # check if batch has speech3 and speech4
+            if "speech3" in batch:
+                assert "speech4" in batch
+                embed_avg = True
+
             assert isinstance(batch, dict), type(batch)
-            for _utt_id, _speech, _speech2 in zip(
-                utt_id, batch["speech"], batch["speech2"]
-            ):
-                _utt_id_1, _utt_id_2 = _utt_id.split("*")
-                if _utt_id_1 not in utt_id_list:
-                    utt_id_list.append(_utt_id_1)
-                    speech_list.append(
-                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
-                    )
-                if _utt_id_2 not in utt_id_list:
-                    utt_id_list.append(_utt_id_2)
-                    speech_list.append(
-                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
-                    )
 
-        # extract speaker embeddings.
-        n_utt = len(utt_id_list)
-        for ii in range(0, n_utt, bs):
-            _utt_ids = utt_id_list[ii : ii + bs]
-            _speechs = speech_list[ii : ii + bs]
-            _speechs = torch.stack(_speechs, dim=0)
-            org_shape = (_speechs.size(0), _speechs.size(1))
-            _speechs = _speechs.flatten(0, 1)
-            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
-
-            if task_token is None:
-                task_tokens = None
+            if embed_avg:
+                for _utt_id, _speech, _speech2, _speech3, _speech4 in zip(
+                    utt_id,
+                    batch["speech"],
+                    batch["speech2"],
+                    batch["speech3"],
+                    batch["speech4"],
+                ):
+                    _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                    # speech, speech2 and speech3 are enrollment utterances for the speaker whose
+                    # speakerid is _utt_id_1 and speech4 is the test utterance
+                    # for the purpose of enrollment, the uttid for each enrollment utterance will be
+                    # recorded as _utt_id_1-first, _utt_id_1-second, and _utt_id_1-third
+                    if (_utt_id_1 + "-first") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-first")
+                        speech_list.append(
+                            to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if (_utt_id_1 + "-second") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-second")
+                        speech_list.append(
+                            to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if (_utt_id_1 + "-third") not in utt_id_list:
+                        utt_id_list.append(_utt_id_1 + "-third")
+                        speech_list.append(
+                            to_device(_speech3, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if _utt_id_2 not in utt_id_list:
+                        utt_id_list.append(_utt_id_2)
+                        speech_list.append(
+                            to_device(_speech4, "cuda" if ngpu > 0 else "cpu")
+                        )
             else:
-                task_tokens = to_device(
-                    task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
-                ).unsqueeze(1)
-            spk_embds = model(
-                speech=_speechs,
-                spk_labels=None,
-                extract_embd=True,
-                task_tokens=task_tokens,
-            )
-            spk_embds = F.normalize(spk_embds, p=2, dim=1)
-            spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+                for _utt_id, _speech, _speech2 in zip(
+                    utt_id, batch["speech"], batch["speech2"]
+                ):
+                    _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                    if _utt_id_1 not in utt_id_list:
+                        utt_id_list.append(_utt_id_1)
+                        speech_list.append(
+                            to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                        )
+                    if _utt_id_2 not in utt_id_list:
+                        utt_id_list.append(_utt_id_2)
+                        speech_list.append(
+                            to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                        )
 
-            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
-                spk_embd_dic[_utt_id] = _spk_embd
+            assert len(utt_id_list) == len(speech_list)
 
-        del utt_id_list
-        del speech_list
+            # extract speaker embeddings.
+            n_utt = len(utt_id_list)
+            for ii in range(0, n_utt, bs):
+                _utt_ids = utt_id_list[ii : ii + bs]
+                _speechs = speech_list[ii : ii + bs]
+                _speechs = torch.stack(_speechs, dim=0)
+                org_shape = (_speechs.size(0), _speechs.size(1))
+                _speechs = _speechs.flatten(0, 1)
+                _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+
+                if task_token is None:
+                    task_tokens = None
+                else:
+                    task_tokens = to_device(
+                        task_token.repeat(_speechs.size(0)),
+                        "cuda" if ngpu > 0 else "cpu",
+                    ).unsqueeze(1)
+                spk_embds = model(
+                    speech=_speechs,
+                    spk_labels=None,
+                    extract_embd=True,
+                    task_tokens=task_tokens,
+                )
+
+                spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+
+                for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+                    if embed_avg:
+                        if (
+                            _utt_id.endswith("-first")
+                            or _utt_id.endswith("-second")
+                            or _utt_id.endswith("-third")
+                        ):
+                            spkID = _utt_id.split("-")[0]
+                            if spkID in spk_embd_dic:
+                                spk_embd_dic[spkID] = torch.cat(
+                                    (spk_embd_dic[spkID], _spk_embd), dim=0
+                                )
+                            else:  # first time we see this speaker
+                                spk_embd_dic[spkID] = _spk_embd
+                        else:  # test utterance
+                            spk_embd_dic[_utt_id] = _spk_embd
+                    else:  # not embed_avg
+                        spk_embd_dic[_utt_id] = _spk_embd
+
+            del utt_id_list
+            del speech_list
+
+        # Compute the average embedding for each speaker
+        if embed_avg:
+            for spkID in spk_embd_dic:
+                spk_embd_dic[spkID] = torch.mean(
+                    spk_embd_dic[spkID], dim=0, keepdim=True
+                )
 
         # calculate similarity scores
         for utt_id, batch in iterator:
@@ -129,8 +226,15 @@ class SpkTrainer(Trainer):
 
             for _utt_id in utt_id:
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
-                score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
-                score = -1.0 * torch.mean(score)
+                if not sasv:
+                    score = torch.cdist(
+                        spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2]
+                    )
+                    score = -1.0 * torch.mean(score)
+                else:
+                    score = F.cosine_similarity(
+                        spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2], dim=1
+                    )
                 scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
 
@@ -172,47 +276,120 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
-        # calculate statistics in target and nontarget classes.
-        n_trials = len(scores)
-        scores_trg = []
-        scores_nontrg = []
-        for _s, _l in zip(scores, labels):
-            if _l == 1:
-                scores_trg.append(_s)
-            elif _l == 0:
-                scores_nontrg.append(_s)
-            else:
-                raise ValueError(f"{_l}, {type(_l)}")
-        trg_mean = float(np.mean(scores_trg))
-        trg_std = float(np.std(scores_trg))
-        nontrg_mean = float(np.std(scores_nontrg))
-        nontrg_std = float(np.std(scores_nontrg))
+        # gather all trials list
+        if distributed:
+            gathered_trials = [None for _ in range(torch.distributed.get_world_size())]
+            torch.distributed.all_gather_object(gathered_trials, all_trials_list)
+            trials_list = [item for sublist in gathered_trials for item in sublist]
+        else:
+            trials_list = all_trials_list
 
-        # exception for collect_stats.
-        if len(scores) == 1:
-            reporter.register(stats=dict(eer=1.0, mindcf=1.0))
-            return
+        if sasv == False:
+            # calculate statistics in target and nontarget classes.
+            n_trials = len(scores)
+            scores_trg = []
+            scores_nontrg = []
+            for _s, _l in zip(scores, labels):
+                if _l == 1:
+                    scores_trg.append(_s)
+                elif _l == 0:
+                    scores_nontrg.append(_s)
+                else:
+                    raise ValueError(f"{_l}, {type(_l)}")
+            trg_mean = float(np.mean(scores_trg))
+            trg_std = float(np.std(scores_trg))
+            nontrg_mean = float(np.std(scores_nontrg))
+            nontrg_std = float(np.std(scores_nontrg))
 
-        # predictions, ground truth, and the false acceptance rates to calculate
-        results = tuneThresholdfromScore(scores, labels, [1, 0.1])
-        eer = results[1]
-        fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
+            # exception for collect_stats.
+            if len(scores) == 1:
+                reporter.register(stats=dict(eer=1.0, mindcf=1.0))
+                return
 
-        # p_target, c_miss, and c_falsealarm in NIST minDCF calculation
-        p_trg, c_miss, c_fa = 0.05, 1, 1
-        mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
+            # predictions, ground truth, and the false acceptance rates to calculate
+            results = tuneThresholdfromScore(scores, labels, [1, 0.1])
+            eer = results[1]
+            fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
 
-        reporter.register(
-            stats=dict(
-                eer=eer,
-                mindcf=mindcf,
-                n_trials=n_trials,
-                trg_mean=trg_mean,
-                trg_std=trg_std,
-                nontrg_mean=nontrg_mean,
-                nontrg_std=nontrg_std,
+            # p_target, c_miss, and c_falsealarm in NIST minDCF calculation
+            p_trg, c_miss, c_fa = 0.05, 1, 1
+            mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
+
+            reporter.register(
+                stats=dict(
+                    eer=eer,
+                    mindcf=mindcf,
+                    n_trials=n_trials,
+                    trg_mean=trg_mean,
+                    trg_std=trg_std,
+                    nontrg_mean=nontrg_mean,
+                    nontrg_std=nontrg_std,
+                )
             )
-        )
+
+        else:
+            idx2class = {}
+            idx2class[0] = "target"
+            idx2class[1] = "nontarget"
+            idx2class[2] = "spoof"
+            # calculate statistics in target, nontarget, and spoof classes.
+            n_trials = len(scores)
+            scores_trg = []
+            scores_nontrg = []
+            scores_spoof = []
+            for _s, _l in zip(scores, labels):
+                if _l == 0:
+                    scores_trg.append(_s)
+                elif _l == 1:
+                    scores_nontrg.append(_s)
+                elif _l == 2:
+                    scores_spoof.append(_s)
+                else:
+                    raise ValueError(f"{_l}, {type(_l)}")
+            trg_mean = float(np.mean(scores_trg))
+            trg_std = float(np.std(scores_trg))
+            nontrg_mean = float(np.std(scores_nontrg))
+            nontrg_std = float(np.std(scores_nontrg))
+            spoof_mean = float(np.mean(scores_spoof))
+            spoof_std = float(np.std(scores_spoof))
+
+            # exception for collect_stats.
+            if len(scores) == 1:
+                reporter.register(stats=dict(eer=1.0, mindcf=1.0))
+                return
+
+            # write scores to file for a-dcf calculation
+            # format should be:
+            # # <speaker_id> <utterance_id> <score> <trial type>
+            # where speaker_id and utterance_id are obtained from the utt_id in format <speaker_id>*<utterance_id>
+            # and trial type is 0 for target, 1 for nontarget, and 2 for spoof but should be mapped to string using idx2class
+            print(f"num trials: {len(trials_list)}")
+            print(f"num scores: {len(scores)}")
+            assert len(trials_list) == len(scores)
+            with open("scores.txt", "w") as f:
+                for i in range(len(trials_list)):
+                    f.write(
+                        f"{trials_list[i].split('*')[0]} {trials_list[i].split('*')[1]} {scores[i]} {idx2class[labels[i]]}\n"
+                    )
+
+            # calculate a-dcf
+            adcf_results = a_dcf.calculate_a_dcf(
+                "scores.txt", cost_model=SASVCostModel()
+            )
+            adcf = adcf_results["min_a_dcf"]
+
+            reporter.register(
+                stats=dict(
+                    a_dcf=adcf,
+                    n_trials=n_trials,
+                    trg_mean=trg_mean,
+                    trg_std=trg_std,
+                    nontrg_mean=nontrg_mean,
+                    nontrg_std=nontrg_std,
+                    spoof_mean=spoof_mean,
+                    spoof_std=spoof_std,
+                )
+            )
 
         # added to reduce GRAM usage. May have minor speed boost when
         # this line is commented in case GRAM is not fully used.

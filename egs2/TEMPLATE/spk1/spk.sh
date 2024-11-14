@@ -73,6 +73,19 @@ inference_model=valid.eer.best.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 
+cos_sim=false       # Use cosine similarity for scoring
+# Speaker Task related
+multi_task=false      # Apply multi-task learning in speaker recognition
+sasv_task=false       # Apply speaker anti-spoofing task in speaker recognition
+spf_args=            # Parameters for spoofing
+
+# Embedding averaging related
+embed_avg=false    # Apply embedding averaging in inference
+embed_avg_args=   # Arguments for embedding averaging
+
+# Label related
+no_labels=false    # No labels for inference
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
 valid_set=        # Name of validation set used for monitoring/tuning network training.
@@ -262,8 +275,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
 
             # copy extra files that are not covered by copy_data_dir.sh
-            # category2utt will be used bydata sampler
+            # category2utt will be used by the data sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+
+            # copy files for spoofing task if multi-task sasv is enabled
+            if "${multi_task}" && "${sasv_task}"; then
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                # category2utt_2 will also be used by the data sampler
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/category2utt_2"
+            fi
+
             for x in music noise speech; do
                 cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             done
@@ -294,6 +316,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
+            # copy files for spoofing task if multi-task sasv is enabled
+            if "${multi_task}" && "${sasv_task}"; then
+                cp data/"${dset}/utt2spf" "${data_feats}/${dset}/utt2spf"
+                cp data/"${dset}/spf2utt" "${data_feats}/${dset}/spf2utt"
+                cp data/"${dset}/spf2utt" "${data_feats}/${dset}/category2utt_2"
+            fi
+
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
@@ -309,6 +338,24 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --out_filename trial2.scp \
                 "data/${dset}/trial2.scp" "${data_feats}/${dset}"
 
+            # if embed_avg is enabled, then also trial3.scp and trial4.scp are required
+            if "${embed_avg}"; then
+                # shellcheck disable=SC2086
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    --multi-columns-input "${multi_columns_input_wav_scp}" \
+                    --multi-columns-output "${multi_columns_output_wav_scp}" \
+                    --out_filename trial3.scp \
+                    "data/${dset}/trial3.scp" "${data_feats}/${dset}"
+                # shellcheck disable=SC2086
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                    --audio-format "${audio_format}" --fs "${fs}" \
+                    --multi-columns-input "${multi_columns_input_wav_scp}" \
+                    --multi-columns-output "${multi_columns_output_wav_scp}" \
+                    --out_filename trial4.scp \
+                    "data/${dset}/trial4.scp" "${data_feats}/${dset}"
+            fi
+
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
 
@@ -316,8 +363,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     elif [ "${feats_type}" = raw_copy ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
-            # category2utt will be used bydata sampler
+
+            # category2utt will be used by the data sampler
             cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            # copy files for spoofing task if multi-task sasv is enabled
+            if "${multi_task}" && "${sasv_task}"; then
+                cp data/"${train_set}/utt2spf" "${data_feats}/${train_set}/utt2spf"
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/spf2utt"
+                # category2utt_2 will also be used by the data sampler
+                cp data/"${train_set}/spf2utt" "${data_feats}/${train_set}/category2utt_2"
+            fi
+
             for x in music noise speech; do
                 cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
             done
@@ -338,6 +394,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             cp data/${dset}/trial_label "${data_feats}/${dset}"
             cp data/${dset}/trial.scp "${data_feats}/${dset}"
             cp data/${dset}/trial2.scp "${data_feats}/${dset}"
+            if "${embed_avg}"; then
+                cp data/${dset}/trial3.scp "${data_feats}/${dset}"
+                cp data/${dset}/trial4.scp "${data_feats}/${dset}"
+            fi
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
@@ -421,6 +481,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${spk_stats_dir}"
 
     cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape2
+
+    # if embed_avg is enabled, then also copy trial3 and trial4 shape files
+    if "${embed_avg}"; then
+        cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape3
+        cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape4
+    fi
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -433,6 +499,19 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.spk_train --print_config --optim adam
         _opts+="--config ${spk_config} "
+    fi
+
+    # if multi_task and sasv_task are both true, then add spoofing task arguments
+    if [ "$multi_task" = true ] && [ "$sasv_task" = true ]; then
+        spf_args="--train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
+                    --spf2utt ${_spk_train_dir}/spf2utt \
+                    --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d' ')"
+    fi
+
+    # if embed_avg is enabled, then also add trial3 and trial4 arguments for valid
+    if "${embed_avg}"; then
+        embed_avg_args="--valid_data_path_and_name_and_type ${_spk_valid_dir}/trial3.scp,speech3,sound \
+                        --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial4.scp,speech4,sound"
     fi
 
     log "Spk training started... log: '${spk_exp}/train.log'"
@@ -467,6 +546,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
+            --embed_avg ${embed_avg} \
+            ${spf_args} \
+            ${embed_avg_args} \
             ${_opts} ${spk_args}
 fi
 
@@ -481,6 +563,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         jobname="$(basename ${infer_exp})"
     else
         jobname="${infer_exp}/spk_embed_extraction.log"
+    fi
+
+    # if embed_avg is enabled, then also add trial3 and trial4 arguments for inference
+    if "${embed_avg}"; then
+        embed_avg_args="--data_path_and_name_and_type ${_inference_dir}/trial3.scp,speech3,sound \
+                        --data_path_and_name_and_type ${_inference_dir}/trial4.scp,speech4,sound \
+                        --embedding_average true"
     fi
 
     log "Extracting speaker embeddings for inference... log: '${infer_exp}/spk_embed_extraction_test.log'"
@@ -502,6 +591,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --config ${inference_config} \
             --spk_train_config "${spk_exp}/config.yaml" \
             --spk_model_file "${spk_exp}"/${inference_model} \
+            ${embed_avg_args} \
             ${spk_args}
 
     # extract embeddings for cohort set
@@ -572,7 +662,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     cohort_dir="${data_feats}/${cohort_set}"
 
     log "Stage 7-a: get scores for the test set."
-    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    if [ "${no_labels}" = true ]; then
+        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py --embd ${infer_exp}/${test_sets}_embeddings.npz --trial_label ${_inference_dir}/trial_label --out_dir ${infer_exp}/${test_sets}_raw_trial_scores --cosine ${cos_sim}
+
+    else
+        ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py --embd ${infer_exp}/${test_sets}_embeddings.npz --trial_label ${_inference_dir}/trial_label --out_dir ${infer_exp}/${test_sets}_raw_trial_scores
+    fi
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
     if "$score_norm"; then

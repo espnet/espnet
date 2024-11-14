@@ -213,6 +213,27 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spf2utt",
+            type=str,
+            default="",
+            help="Directory of spf2utt file to be used in label mapping",
+        )
+
+        group.add_argument(
+            "--spf_num",
+            type=int,
+            default=None,
+            help="specify the number of spoofing classes during training",
+        )
+
+        group.add_argument(
+            "--embed_avg",
+            type=str2bool,
+            default=False,
+            help="Compute average embedding for an enrolled speaker",
+        )
+
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=16000,
@@ -261,12 +282,14 @@ class SpeakerTask(AbsTask):
             if train:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     spk2utt=args.spk2utt,
+                    spf2utt=args.spf2utt,
                     train=train,
                     **args.preprocessor_conf,
                 )
             else:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     train=train,
+                    embed_avg=args.embed_avg,
                     **args.preprocessor_conf,
                 )
 
@@ -292,7 +315,21 @@ class SpeakerTask(AbsTask):
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
-        retval = ("speech2", "trial", "spk_labels", "task_tokens")
+
+        # For ASVspoof and other cases where 3 enrollment utterances are
+        # often given, speech3 and speech4 are used. Here, speech4 is
+        # the test utterance. speech1 to speech3 are for enrollment.
+
+        # spf_labels are required for SASV task
+        retval = (
+            "speech2",
+            "speech3",
+            "speech4",
+            "trial",
+            "spk_labels",
+            "task_tokens",
+            "spf_labels",
+        )
 
         return retval
 
@@ -336,10 +373,29 @@ class SpeakerTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(
-            nout=projector_output_size, nclasses=args.spk_num, **args.loss_conf
-        )
+        # for SASV task, two losses are present: spk_loss and spf_loss
+        losses = []
+        loss_weights = []
+        if args.spf_num is not None:
+            for i in range(2):
+                loss_conf = args.loss[i].get("loss_conf", {})
+                loss_class = loss_choices.get_class(args.loss[i]["name"])
+                losses.append(
+                    loss_class(
+                        nout=projector_output_size,
+                        nclasses=args.spk_num if i == 0 else args.spf_num,
+                        **loss_conf,
+                    )
+                )
+                loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
+        else:  # for spk task, loss is a single loss
+            loss_class = loss_choices.get_class(args.loss)
+            loss = loss_class(
+                nout=projector_output_size,
+                nclasses=args.spk_num,
+                **args.loss_conf,
+            )
+            losses.append(loss)
 
         model = ESPnetSpeakerModel(
             frontend=frontend,
@@ -348,7 +404,8 @@ class SpeakerTask(AbsTask):
             encoder=encoder,
             pooling=pooling,
             projector=projector,
-            loss=loss,
+            loss=losses,
+            loss_weights=loss_weights,
             # **args.model_conf, # uncomment when model_conf exists
         )
 

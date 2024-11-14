@@ -128,6 +128,7 @@ def extract_embed(args):
             output_dir=args.output_dir,
             custom_bs=bs,
             average=args.average_embd,
+            embed_avg=args.embedding_average,
         )
 
     if distributed_option.distributed:
@@ -294,6 +295,7 @@ def get_parser():
     )
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
     group.add_argument("--average_embd", type=str2bool, default=False)
+    group.add_argument("--embedding_average", type=str2bool, default=False)
     group.add_argument(
         "--train_dtype",
         default="float32",

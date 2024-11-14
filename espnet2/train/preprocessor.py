@@ -1915,6 +1915,7 @@ class SpkPreprocessor(CommonPreprocessor):
     Args:
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
+        spf2utt (str): Path to the `spf2utt` file.
         target_duration (float): Target duration in seconds.
         sample_rate (int): Sampling rate.
         num_eval (int): Number of utterances to be used for evaluation.
@@ -1936,7 +1937,9 @@ class SpkPreprocessor(CommonPreprocessor):
         self,
         train: bool,
         target_duration: float,  # in seconds
+        embed_avg: bool = False,
         spk2utt: Optional[str] = None,
+        spf2utt: Optional[str] = None,
         sample_rate: int = 16000,
         num_eval: int = 10,
         rir_scp: Optional[str] = None,
@@ -1949,7 +1952,9 @@ class SpkPreprocessor(CommonPreprocessor):
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
+        self.embed_avg = embed_avg
         self.spk2label = None  # a dictionary that maps string speaker label to int
+        self.spf2label = None  # a dictionary that maps string spoof label to int
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
         self.num_eval = num_eval
@@ -1957,6 +1962,11 @@ class SpkPreprocessor(CommonPreprocessor):
         if train:
             with open(spk2utt, "r") as f_s2u:
                 self.spk2utt = f_s2u.readlines()
+            if spf2utt is not None and spf2utt != "":
+                with open(spf2utt, "r") as f_spf2u:
+                    self.spf2utt = f_spf2u.readlines()
+            else:
+                self.spf2utt = None
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
 
@@ -1993,6 +2003,8 @@ class SpkPreprocessor(CommonPreprocessor):
         msg = f"{name}(train={self.train}"
         if self.spk2label:
             msg += f", len(spk2label)={len(self.spk2label)}"
+        if self.spf2label is not None:
+            msg += f", len(spf2label)={len(self.spf2label)}"
         for key in ("target_duration", "sample_rate", "num_eval"):
             if getattr(self, key):
                 msg += f", {key}={getattr(self, key)}"
@@ -2007,12 +2019,23 @@ class SpkPreprocessor(CommonPreprocessor):
         return msg + ")"
 
     def _make_label_mapping(self):
+        # spk label mapping
         label_idx = 0
         self.spk2label = {}
         for spk in self.spk2utt:
             spk = spk.strip().split(" ")[0]
             self.spk2label[spk] = label_idx
             label_idx += 1
+        # spoof label mapping
+        label_idx = 0
+        self.spf2label = {}
+        if self.spf2utt is not None:
+            for spf in self.spf2utt:
+                spf = spf.strip().split(" ")[0]
+                self.spf2label[spf] = label_idx
+                label_idx += 1
+        else:
+            self.spf2label = None
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         if self.train:
@@ -2036,6 +2059,10 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             audio = data["speech"]
             audio2 = data["speech2"]
+            # if embed_avg is true speech3 and speech4 also need to be loaded
+            if self.embed_avg:
+                audio3 = data["speech3"]
+                audio4 = data["speech4"]
 
             # duplicate if utt is shorter than minimum required duration
             if len(audio) < self.target_duration:
@@ -2044,6 +2071,13 @@ class SpkPreprocessor(CommonPreprocessor):
             if len(audio2) < self.target_duration:
                 shortage = self.target_duration - len(audio2) + 1
                 audio2 = np.pad(audio2, (0, shortage), "wrap")
+            if self.embed_avg:
+                if len(audio3) < self.target_duration:
+                    shortage = self.target_duration - len(audio3) + 1
+                    audio3 = np.pad(audio3, (0, shortage), "wrap")
+                if len(audio4) < self.target_duration:
+                    shortage = self.target_duration - len(audio4) + 1
+                    audio4 = np.pad(audio4, (0, shortage), "wrap")
 
             startframe = np.linspace(
                 0, len(audio) - self.target_duration, num=self.num_eval
@@ -2061,9 +2095,32 @@ class SpkPreprocessor(CommonPreprocessor):
                 audios2.append(audio2[int(frame) : int(frame) + self.target_duration])
             audios2 = np.stack(audios2, axis=0)
 
+            if self.embed_avg:
+                startframe3 = np.linspace(
+                    0, len(audio3) - self.target_duration, num=self.num_eval
+                )
+                audios3 = []
+                for frame in startframe3:
+                    audios3.append(
+                        audio3[int(frame) : int(frame) + self.target_duration]
+                    )
+                audios3 = np.stack(audios3, axis=0)
+
+                startframe4 = np.linspace(
+                    0, len(audio4) - self.target_duration, num=self.num_eval
+                )
+                audios4 = []
+                for frame in startframe4:
+                    audios4.append(
+                        audio4[int(frame) : int(frame) + self.target_duration]
+                    )
+                audios4 = np.stack(audios4, axis=0)
+
             data["speech"] = audios
             data["speech2"] = audios2
-
+            if self.embed_avg:
+                data["speech3"] = audios3
+                data["speech4"] = audios4
         return data
 
     def _convolve_rir(self, speech, rirs):
@@ -2161,10 +2218,13 @@ class SpkPreprocessor(CommonPreprocessor):
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        """Make speaker labels into integers."""
+        """Make speaker and optionally spoof labels into integers."""
         if self.train:
             int_label = self.spk2label[data["spk_labels"]]
             data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+            if self.spf2label is not None:
+                int_label = self.spf2label[data["spf_labels"]]
+                data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 

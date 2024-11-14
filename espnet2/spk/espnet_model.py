@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import typechecked
@@ -47,7 +47,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        loss: Optional[AbsLoss],
+        loss: Optional[List[AbsLoss]],
+        loss_weights: Optional[List[float]] = None,
     ):
 
         super().__init__()
@@ -59,12 +60,14 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.pooling = pooling
         self.projector = projector
         self.loss = loss
+        self.loss_weights = loss_weights
 
     @typechecked
     def forward(
         self,
         speech: torch.Tensor,
         spk_labels: Optional[torch.Tensor] = None,
+        spf_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         **kwargs,
@@ -83,6 +86,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             spk_labels: (Batch, )
             one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
+            spf_labels: (Batch, )
+            one-hot spoofing labels used in the train phase
             task tokens used in case of token-based trainings
         """
         if spk_labels is not None:
@@ -114,12 +119,31 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 4. calculate loss
         assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        loss = self.loss(spk_embd, spk_labels.squeeze())
-
-        stats = dict(loss=loss.detach())
-
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        # for SASV, loss will be a list of two losses: spk_loss and spf_loss
+        if len(self.loss) == 2:
+            assert spf_labels is not None, "spf_labels is None, cannot compute spf_loss"
+            spk_loss = self.loss[0](spk_embd, spk_labels.squeeze())
+            spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
+            if self.loss_weights is not None:
+                weight_sum = sum(self.loss_weights)
+                loss = (
+                    self.loss_weights[0] * spk_loss + self.loss_weights[1] * spf_loss
+                )
+            else:
+                loss = spk_loss + spf_loss
+            stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())
+            stats["loss"] = loss.detach()
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
+            return loss, stats, weight
+        else:  # for spk task, loss will be a single loss
+            loss = self.loss[0](spk_embd, spk_labels.squeeze())
+            stats = dict(loss=loss.detach())
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
+            return loss, stats, weight
 
     def extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
