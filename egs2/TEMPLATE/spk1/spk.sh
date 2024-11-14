@@ -72,8 +72,8 @@ inference_config=conf/decode.yaml   # Inference configuration
 inference_model=valid.eer.best.pth  # Inference model weight file
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
-
 cos_sim=false       # Use cosine similarity for scoring
+
 # Speaker Task related
 multi_task=false      # Apply multi-task learning in speaker recognition
 sasv_task=false       # Apply speaker anti-spoofing task in speaker recognition
@@ -82,6 +82,10 @@ spf_args=            # Parameters for spoofing
 # Embedding averaging related
 embed_avg=false    # Apply embedding averaging in inference
 embed_avg_args=   # Arguments for embedding averaging
+
+# Use pseudomos scores
+pseudomos=false   # Use pseudomos scores for training
+train_utt2pmos=   # absolue path to utt2pmos file, required if pseudomos is true
 
 # Label related
 no_labels=false    # No labels for inference
@@ -506,6 +510,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         spf_args="--train_data_path_and_name_and_type ${_spk_train_dir}/utt2spf,spf_labels,text \
                     --spf2utt ${_spk_train_dir}/spf2utt \
                     --spf_num $(wc -l ${_spk_train_dir}/spf2utt | cut -f1 -d' ')"
+    fi
+
+    # if pseudomos is enabled, then add utt2pmos argument to spf_args
+    if "${pseudomos}"; then
+        # check that train_utt2pmos is set
+        if [ -z "${train_utt2pmos}" ]; then
+            log "Error: train_utt2pmos is not set. Please set this variable to the absolute path of the utt2pmos file."
+            exit 1
+        fi
+        spf_args+=" --train_data_path_and_name_and_type "${train_utt2pmos}",pmos_labels,text"
     fi
 
     # if embed_avg is enabled, then also add trial3 and trial4 arguments for valid

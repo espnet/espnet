@@ -68,6 +68,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         speech: torch.Tensor,
         spk_labels: Optional[torch.Tensor] = None,
         spf_labels: Optional[torch.Tensor] = None,
+        pmos_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
         **kwargs,
@@ -87,6 +88,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
             spf_labels: (Batch, )
+            pmos_labels: (Batch, )
             one-hot spoofing labels used in the train phase
             task tokens used in case of token-based trainings
         """
@@ -119,24 +121,36 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 4. calculate loss
         assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        # for SASV, loss will be a list of two losses: spk_loss and spf_loss
-        if len(self.loss) == 2:
-            assert spf_labels is not None, "spf_labels is None, cannot compute spf_loss"
-            spk_loss = self.loss[0](spk_embd, spk_labels.squeeze())
-            spf_loss = self.loss[1](spk_embd, spf_labels.squeeze())
+        # for SASV, loss will either be a list of:
+        #  two losses: spk_loss and spf_loss or
+        #  three losses: spk_loss, spf_loss, and pmos_loss
+        if len(self.loss) > 1:
+            labels = [spk_labels, spf_labels, pmos_labels][:len(self.loss)]
+            loss_names = ['spk', 'spf', 'pmos'][:len(self.loss)]
+            # Check all required labels are present
+            for name, label in zip(loss_names[1:], labels[1:]):
+                if label is None:
+                    raise ValueError(f"{name}_labels is None, cannot compute {name}_loss")
+            # calculate individual losses
+            losses = [loss_fn(spk_embd, label.squeeze()) for loss_fn, label in zip(self.loss, labels)]  
+
+            # calculate weighted sum of losses
             if self.loss_weights is not None:
-                weight_sum = sum(self.loss_weights)
-                loss = (
-                    self.loss_weights[0] * spk_loss + self.loss_weights[1] * spf_loss
-                )
+                loss = sum(w * l for w, l in zip(self.loss_weights, losses))
             else:
-                loss = spk_loss + spf_loss
-            stats = dict(spk_loss=spk_loss.detach(), spf_loss=spf_loss.detach())
+                loss = sum(losses)
+
+            # Prepare stats dictionary
+            stats = {f"{name}_loss": loss.detach() 
+                    for name, loss in zip(loss_names, losses)}
             stats["loss"] = loss.detach()
+            
+            # Make gathered results
             loss, stats, weight = force_gatherable(
                 (loss, stats, batch_size), loss.device
             )
             return loss, stats, weight
+
         else:  # for spk task, loss will be a single loss
             loss = self.loss[0](spk_embd, spk_labels.squeeze())
             stats = dict(loss=loss.detach())

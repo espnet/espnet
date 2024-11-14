@@ -1916,6 +1916,7 @@ class SpkPreprocessor(CommonPreprocessor):
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
         spf2utt (str): Path to the `spf2utt` file.
+        utt2pmos (str): Path to the `utt2pmos` file.
         target_duration (float): Target duration in seconds.
         sample_rate (int): Sampling rate.
         num_eval (int): Number of utterances to be used for evaluation.
@@ -1940,6 +1941,7 @@ class SpkPreprocessor(CommonPreprocessor):
         embed_avg: bool = False,
         spk2utt: Optional[str] = None,
         spf2utt: Optional[str] = None,
+        utt2pmos: Optional[str] = None,
         sample_rate: int = 16000,
         num_eval: int = 10,
         rir_scp: Optional[str] = None,
@@ -1953,8 +1955,9 @@ class SpkPreprocessor(CommonPreprocessor):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.embed_avg = embed_avg
-        self.spk2label = None  # a dictionary that maps string speaker label to int
-        self.spf2label = None  # a dictionary that maps string spoof label to int
+        self.spk2label = None      # a dictionary that maps string speaker label to int
+        self.spf2label = None      # a dictionary that maps string spoof label to int
+        self.utt2pmoslabel = None  # a dictionary that maps string uttID to float pmos
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
         self.num_eval = num_eval
@@ -1967,6 +1970,13 @@ class SpkPreprocessor(CommonPreprocessor):
                     self.spf2utt = f_spf2u.readlines()
             else:
                 self.spf2utt = None
+            if utt2pmos is not None and utt2pmos != "":
+                with open(utt2pmos, "r") as f_u2p:
+                    self.utt2pmoslabel = f_u2p.readlines()
+                assert len(self.utt2pmoslabel) > 0, "Empty utt2pmos file"
+            else:
+                self.utt2pmoslabel = None
+
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
 
@@ -2005,6 +2015,8 @@ class SpkPreprocessor(CommonPreprocessor):
             msg += f", len(spk2label)={len(self.spk2label)}"
         if self.spf2label is not None:
             msg += f", len(spf2label)={len(self.spf2label)}"
+        if self.utt2pmoslabel is not None:
+            msg += f", len(utt2pmos)={len(self.utt2pmoslabel)}"
         for key in ("target_duration", "sample_rate", "num_eval"):
             if getattr(self, key):
                 msg += f", {key}={getattr(self, key)}"
@@ -2036,6 +2048,14 @@ class SpkPreprocessor(CommonPreprocessor):
                 label_idx += 1
         else:
             self.spf2label = None
+        # pmos mapping
+        self.utt2pmos = {}
+        if self.utt2pmoslabel is not None:
+            for line in self.utt2pmoslabel:
+                utt, pmos = line.strip().split(" ")
+                self.utt2pmos[utt] = pmos
+        else:
+            self.utt2pmos = None
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         if self.train:
@@ -2225,6 +2245,8 @@ class SpkPreprocessor(CommonPreprocessor):
             if self.spf2label is not None:
                 int_label = self.spf2label[data["spf_labels"]]
                 data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
+            if data["pmos_labels"] is not None:
+                data["pmos_labels"] = np.asarray([data["pmos_labels"]], dtype=np.float32)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
@@ -2240,7 +2262,6 @@ class SpkPreprocessor(CommonPreprocessor):
 
         data = self._text_process(data)
         data = self._speech_process(data)
-
         return data
 
 

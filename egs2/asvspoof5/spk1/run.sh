@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_SKA_mel_1_100.yaml
+spk_config=conf/train_SKA_mel_spk_spf_pmos.yaml
 
 train_set="asvspoof5_train"
 valid_set="dev"
@@ -26,7 +26,9 @@ cos_sim=true
 multi_task=true
 sasv_task=true
 embed_avg=true
-no_labels=true 
+no_labels=true
+pseudomos=true
+train_utt2pmos=/home/user/espnet/egs2/asvspoof5/spk1/data/asvspoof5_train/utt2pmos
 
 ./spk.sh \
     --feats_type ${feats_type} \
@@ -48,4 +50,6 @@ no_labels=true
     --sasv_task ${sasv_task} \
     --embed_avg ${embed_avg} \
     --no_labels ${no_labels} \
+    --pseudomos ${pseudomos} \
+    --train_utt2pmos ${train_utt2pmos} \
     "$@"

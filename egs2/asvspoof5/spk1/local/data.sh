@@ -166,8 +166,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             python3 pyscripts/utils/evaluate_pseudomos.py "${data_dir_prefix}/spk1/data/${x}/wav.scp" --outdir ${utmos_pseudomos_dir}/${x} --batchsize 4
         done
     else
-        log "UTMOS_pseudomos exists. Skip download."
+        log "UTMOS_pseudomos exists. Skip computing PMOS."
     fi
+
+    for x in "asvspoof5_train" "dev"; do
+        if [ ! -f "${trg_dir}/${x}/utt2pmos" ]; then
+            log "Creating utt2pmos file for ${x}"
+            python3 local/convert_pmos_uttids.py --in_utt2pmos ${utmos_pseudomos_dir}/${x}/utt2pmos --wavscp ${trg_dir}/${x}/wav.scp --out  ${trg_dir}/${x}
+        else
+            log "utt2pmos file for ${x} exists. Skip creating it."
+        fi
+
+        # sort files
+        sort ${trg_dir}/${x}/utt2pmos -o ${trg_dir}/${x}/utt2pmos
+    done
 
     log "Stage 4, DONE."
 fi

@@ -29,6 +29,7 @@ from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
+from espnet2.spk.loss.mse import MSE
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
@@ -137,6 +138,7 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        mse=MSE,
     ),
     default="aamsoftmax",
 )
@@ -227,6 +229,13 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--utt2pmos",
+            type=str,
+            default="",
+            help="utt2pmos file to be used in label mapping",
+        )
+
+        group.add_argument(
             "--embed_avg",
             type=str2bool,
             default=False,
@@ -283,6 +292,7 @@ class SpeakerTask(AbsTask):
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     spk2utt=args.spk2utt,
                     spf2utt=args.spf2utt,
+                    utt2pmos=args.utt2pmos,
                     train=train,
                     **args.preprocessor_conf,
                 )
@@ -295,6 +305,7 @@ class SpeakerTask(AbsTask):
 
         else:
             retval = None
+
         return retval
 
     @classmethod
@@ -329,6 +340,7 @@ class SpeakerTask(AbsTask):
             "spk_labels",
             "task_tokens",
             "spf_labels",
+            "pmos_labels",
         )
 
         return retval
@@ -373,20 +385,26 @@ class SpeakerTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        # for SASV task, two losses are present: spk_loss and spf_loss
+        # for SASV task, two or three losses are used: spk, spf, and pmos
         losses = []
         loss_weights = []
         if args.spf_num is not None:
-            for i in range(2):
+            num_losses = len([loss for loss in args.loss if "name" in loss])
+            for i in range(num_losses):
                 loss_conf = args.loss[i].get("loss_conf", {})
                 loss_class = loss_choices.get_class(args.loss[i]["name"])
-                losses.append(
-                    loss_class(
+                if args.loss[i]["name"] != "mse":
+                    loss = loss_class(
                         nout=projector_output_size,
                         nclasses=args.spk_num if i == 0 else args.spf_num,
                         **loss_conf,
                     )
-                )
+                else: # mse has no classes
+                    loss = loss_class(
+                        nout=projector_output_size,
+                        **loss_conf,
+                    )
+                losses.append(loss)
                 loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
         else:  # for spk task, loss is a single loss
             loss_class = loss_choices.get_class(args.loss)
