@@ -10,7 +10,8 @@ if __name__ == "__main__":
     ROOT_DATA_DIR = sys.argv[1]
     # this is a json with key "audiocap_ids" containing list of folder_ids
     TRAIN_FILES = "train_split.json"
-    # this has folders each for a folder_id, containing audio.wav and metadata.json files
+    # this has folders each for a folder_id, containing audio.wav and
+    # metadata.json files
     DATA_DIR = "data"
 
     LOCAL_DATA_DIR = "data/development_audiocaps"
