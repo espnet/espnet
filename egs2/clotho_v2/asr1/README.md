@@ -1,6 +1,6 @@
 # Clotho Audio Captioning RECIPE
 
-This recipe implements the DCASE 2023 Automated Audio Captioning (AAC) task with a BEATs encoder BART decoder model on the Clotho_v2 dataset, very close to what is described in [this paper](https://dcase.community/documents/challenge2023/technical_reports/DCASE2023_Wu_31_t6a.pdf) and reusing part of code from the [original implementation](https://github.com/slSeanWU/beats-conformer-bart-audio-captioner?tab=readme-ov-file). 
+This recipe implements the DCASE 2023 Automated Audio Captioning (AAC) task with a BEATs encoder BART decoder model on the Clotho_v2 dataset, very close to what is described in [this paper](https://dcase.community/documents/challenge2023/technical_reports/DCASE2023_Wu_31_t6a.pdf) and reusing part of code from the [original implementation](https://github.com/slSeanWU/beats-conformer-bart-audio-captioner?tab=readme-ov-file).
 We also reuse the code from the [BEATs repository](https://github.com/microsoft/unilm/tree/master/beats) for this implementation.
 
 # Training Details and Requirements
@@ -11,11 +11,11 @@ Fine-tuning is performed only on the standard development set of Clotho_v2 datas
 
 ### Steps to run
 For running AAC pre-training
-1. Download AudioCaps and set the path to its root directory in db.sh (This recipe downloads clotho for you). 
+1. Download AudioCaps and set the path to its root directory in db.sh (This recipe downloads clotho for you).
 2. Download the BEATs checkpoint: [BEATs_iter3+](https://onedrive.live.com/?authkey=%21AGXnEG4l3mlIzfA&id=6B83B49411CA81A7%2125960&cid=6B83B49411CA81A7&parId=root&parQt=sharedby&o=OneUp) and change the `beats_ckpt_path` path in `conf/beats_bart_pt.yaml`
 3. Launch with `run_pt.sh`
 
-For running fine-tuning: 
+For running fine-tuning:
 1. Set the value of `pt_tag` in `run_ft.sh` and
 2. Launch with `run_ft.sh`
 
