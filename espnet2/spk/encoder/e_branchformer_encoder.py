@@ -16,7 +16,6 @@ import logging
 from typing import List, Optional, Tuple
 
 import torch
-# from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -52,6 +51,9 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+
+# from typeguard import check_argument_types
+
 
 
 class EBranchformerEncoder(AbsEncoder):
@@ -96,7 +98,7 @@ class EBranchformerEncoder(AbsEncoder):
             self._output_size = num_blocks * output_size
         else:
             self._output_size = output_size
-        
+
         if cls_token:
             self.cls_token_flag = True
             self.cls_token = torch.nn.Parameter(torch.randn(1, 1, output_size))
@@ -338,9 +340,9 @@ class EBranchformerEncoder(AbsEncoder):
         if not self.aggregate_layer:
             if self.cls_token_flag:
                 x_frame = x[0] if isinstance(x, tuple) else x
-                x_pos = x[1] if isinstance(x, tuple) else None 
+                x_pos = x[1] if isinstance(x, tuple) else None
                 if x_pos is not None:
-                    x_pos = torch.cat([x_pos[:,:2], x_pos], dim=1)
+                    x_pos = torch.cat([x_pos[:, :2], x_pos], dim=1)
                 cls_token = self.cls_token.expand(x_frame.size(0), -1, -1)
                 x_cls = torch.cat([cls_token, x_frame], dim=1)
                 x = (x_cls, x_pos) if isinstance(x, tuple) else x_cls
@@ -348,7 +350,7 @@ class EBranchformerEncoder(AbsEncoder):
             if self.cls_token_flag:
                 x = x[0]
             else:
-                x = x[0][:,:1].unsqueeze(1) # B x T x C -> B x 1 x C
+                x = x[0][:, :1].unsqueeze(1)  # B x T x C -> B x 1 x C
 
         # use encoder layer output aggregation
         # Layer-wise dropout is not applied in this case
@@ -365,7 +367,6 @@ class EBranchformerEncoder(AbsEncoder):
             x = torch.cat(intermediate_outs, dim=-1)
 
         # print(f"Shape of x before after_norm: {x.shape}")
-        x = self.after_norm(x).transpose(1, 2) # B x T x C -> B x C x T
+        x = self.after_norm(x).transpose(1, 2)  # B x T x C -> B x C x T
 
         return x
-
