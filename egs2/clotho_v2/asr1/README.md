@@ -21,10 +21,10 @@ For running fine-tuning, inference and scoring:
 
 
 ## Trained checkpoints
-AAC Pre-trained model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.PreTrained 
+AAC Pre-trained model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.PreTrained
 
 
-Fine-tuned model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.FineTuned 
+Fine-tuned model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.FineTuned
 
 
 ### GPU Time
