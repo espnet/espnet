@@ -2,22 +2,10 @@
 set -euo pipefail
 # Runs fine-tuning
 
-# wandb_init_args="--use_wandb true --wandb_project DCASE_AAC --wandb_model_log_interval 0"
 wandb_init_args=""
 other_args="$@"
 
-# expdir=/compute/babel-13-33/sbharad2/expdir
-# dumpdir=/compute/babel-13-33/sbharad2/dumpdir
-# local_data_opts=/compute/babel-13-33/sbharad2/expdir
-#     --expdir ${expdir} \
-#     --dumpdir ${dumpdir} \
-#     --local_data_opts "${local_data_opts}" \
-
-# pre_trained_model_path=exp/asr_pt.initfix.bigbatch512.lr2e-4.weighted12layers.20241103.145125/valid.acc.ave_5best.pth
-# pt_tag=full.20241111.170406
-# pt_tag=data_check.20241111.153210
-
-pt_tag=beats.bartfrozen.20241111.164042
+pt_tag=pt.initfix.bigbatch512.lr2e-4.weighted12layers.20241103.145125
 
 ckpt_name=valid.acc.ave
 

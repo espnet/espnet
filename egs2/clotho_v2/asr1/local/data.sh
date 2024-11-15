@@ -25,38 +25,44 @@ fi
 
 log "stage 1: Data preparation"
 
-## DOWNLOAD DATA
-# If there is no argument, the default download directory is set to currentdir/downloads
-if [ $# -ne 1 ]; then
-    CLOTHO_V2_ROOT_DIR="$(pwd)/downloads"
-    log "Using the default download directory: ${CLOTHO_V2_ROOT_DIR}"
-else
-    CLOTHO_V2_ROOT_DIR="$1/downloads"
-    log "Using the specified download directory: ${CLOTHO_V2_ROOT_DIR}"
-fi
 
-
-if [ ! -e "${CLOTHO_V2_ROOT_DIR}/download_done" ]; then
-    log "stage 1: Data preparation - Installing aac-datasets"
-    if ! pip3 install aac-datasets; then
-        echo "Error: Installing aac-datasets failed."
-        exit 1
+## DOWNLOAD DATA if CLOTHO_V2 is set to downloads
+if [ "${CLOTHO_V2}" == "downloads" ]; then
+    # If there is no argument, the default download directory is set to currentdir/downloads
+    if [ $# -ne 1 ]; then
+        CLOTHO_V2_ROOT_DIR="$(pwd)/downloads"
+        log "Using the default download directory: ${CLOTHO_V2_ROOT_DIR}"
+    else
+        CLOTHO_V2_ROOT_DIR="$1/downloads"
+        log "Using the specified download directory: ${CLOTHO_V2_ROOT_DIR}"
     fi
-    echo "Downlaoding clotho into ${CLOTHO_V2_ROOT_DIR}."
-    mkdir -p "${CLOTHO_V2_ROOT_DIR}"
-    for split in val eval dev; do
-        echo "Downloading ${split} split."
-        if ! aac-datasets-download --root "${CLOTHO_V2_ROOT_DIR}" clotho --subsets "${split}"; then
-            echo "Error: Downloading Clotho dataset failed."
+
+
+    if [ ! -e "${CLOTHO_V2_ROOT_DIR}/download_done" ]; then
+        log "stage 1: Data preparation - Installing aac-datasets"
+        if ! pip3 install aac-datasets; then
+            echo "Error: Installing aac-datasets failed."
             exit 1
         fi
-    done
-    touch "${CLOTHO_V2_ROOT_DIR}/download_done"
-else
-    echo "Clotho dataset is already downloaded. ${CLOTHO_V2_ROOT_DIR}/download_done exists."
-fi
+        echo "Downlaoding clotho into ${CLOTHO_V2_ROOT_DIR}."
+        mkdir -p "${CLOTHO_V2_ROOT_DIR}"
+        for split in val eval dev; do
+            echo "Downloading ${split} split."
+            if ! aac-datasets-download --root "${CLOTHO_V2_ROOT_DIR}" clotho --subsets "${split}"; then
+                echo "Error: Downloading Clotho dataset failed."
+                exit 1
+            fi
+        done
+        touch "${CLOTHO_V2_ROOT_DIR}/download_done"
+    else
+        echo "Clotho dataset is already downloaded. ${CLOTHO_V2_ROOT_DIR}/download_done exists."
+    fi
 
-CLOTHO_V2_ROOT_DIR="${CLOTHO_V2_ROOT_DIR}/CLOTHO_v2.1"
+    CLOTHO_V2_ROOT_DIR="${CLOTHO_V2_ROOT_DIR}/CLOTHO_v2.1"
+else
+    CLOTHO_V2_ROOT_DIR=${CLOTHO_V2}
+    log "Using the specified data directory: ${CLOTHO_V2_ROOT_DIR}"
+fi
 
 ## PREPARE DATA
 if [ ! -d ${CLOTHO_V2_ROOT_DIR} ]; then

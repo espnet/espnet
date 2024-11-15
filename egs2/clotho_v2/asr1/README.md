@@ -15,16 +15,16 @@ For running AAC pre-training
 2. Download the BEATs checkpoint: [BEATs_iter3+](https://onedrive.live.com/?authkey=%21AGXnEG4l3mlIzfA&id=6B83B49411CA81A7%2125960&cid=6B83B49411CA81A7&parId=root&parQt=sharedby&o=OneUp) and change the `beats_ckpt_path` path in `conf/beats_bart_pt.yaml`
 3. Launch with `run_pt.sh`
 
-For running fine-tuning:
+For running fine-tuning, inference and scoring:
 1. Set the value of `pt_tag` in `run_ft.sh` and
 2. Launch with `run_ft.sh`
 
-For running inference and scoring on all checkpoints `run_inference.sh` can be used by just changing the `name_tag`.
 
 ## Trained checkpoints
-AAC Pre-trained model: https://huggingface.co/shikhar7ssu/dcase23.aac.pt
+AAC Pre-trained model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.PreTrained 
 
-Fine-tuned model: https://huggingface.co/shikhar7ssu/dcase23.aac
+
+Fine-tuned model: https://huggingface.co/espnet/DCASE23.AudioCaptioning.FineTuned 
 
 
 ### GPU Time

@@ -29,7 +29,8 @@ freeze_param: [
 
 encoder: beats
 encoder_conf:
-    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # /u/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS2M.pt # _finetuned_on_AS2M_cpt1
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats (iter3+, Beats finetuned model 1) and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
     specaug_config:
         apply_freq_mask: true
         freq_mask_width_range:

@@ -8,13 +8,6 @@ timestamp=$(date "+%Y%m%d.%H%M%S")
 wandb_init_args=""
 other_args="$@"
 
-# expdir=/compute/babel-13-33/sbharad2/expdir
-# dumpdir=/compute/babel-13-33/sbharad2/dumpdir
-# local_data_opts=/compute/babel-13-33/sbharad2/expdir
-    # --local_data_opts "${local_data_opts}" \
-    # --expdir ${expdir} \
-    # --dumpdir ${dumpdir} \
-
 
 ./asr.sh \
     --asr_tag pt.${timestamp} \
