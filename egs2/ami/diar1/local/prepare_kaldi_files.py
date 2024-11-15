@@ -5,8 +5,8 @@ import re
 import yaml
 
 def float2str(number, size=6):
-    number = str(float(number * 100)) # number with 2 digit after decimal point
-    return (size - len(number)) * "0" + number
+    number = str(int(number * 100))  # convert to integer after multiplying by 100
+    return number.zfill(size)  # pad with zeros to the left to ensure the string is of the desired size
 
 
 def gen_utt_id(wav_id: str, utt_start_time: float, utt_end_time: float) -> str:
@@ -14,15 +14,22 @@ def gen_utt_id(wav_id: str, utt_start_time: float, utt_end_time: float) -> str:
 
 
 def prepare_kaldi_files(
-    config_path: str, mic_type: str, if_mini: bool, 
+    config_path: str, mic_type: str, if_mini: str, 
     sound_type: str, dataset_type: str, kaldi_files_base_dir: str
 ) -> None:
     # dataset_type: "train", "dev", "test"
+    if if_mini == "true":
+        if_mini = True
+    elif if_mini == "false":
+        if_mini = False
+    else:
+        raise ValueError("if_mini must be 'true' or 'false'")
+    
     if sound_type == "word_and_vocalsounds":
         assert mic_type == "ihm", "Only data with ihm microphone type is available for word_and_vocalsounds sound type."
-        assert if_mini == False, "Only full dataset is available for word_and_vocalsounds sound type."
+        assert not if_mini, "Only full dataset is available for word_and_vocalsounds sound type."
     if sound_type == "only_words":
-        assert if_mini == False, "Only full dataset is available for only_words sound type."
+        assert not if_mini, "Only full dataset is available for only_words sound type."
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
@@ -31,6 +38,9 @@ def prepare_kaldi_files(
     task = "SpeakerDiarization"
     task_option = "mini" if if_mini else sound_type
     kaldi_files_dir = os.path.join(kaldi_files_base_dir, dataset_type)
+
+    if not os.path.exists(kaldi_files_dir):
+        os.makedirs(kaldi_files_dir)
 
     wavscp = open(os.path.join(kaldi_files_dir, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(kaldi_files_dir, "utt2spk"), "w", encoding="utf-8")
@@ -54,7 +64,7 @@ def prepare_kaldi_files(
     lab_path_template = protocols[dataset][task][task_option][dataset_type]["lab"]
 
     # we may not use uem file when creating kaldi-style data directory
-    uem_path_template = protocols[dataset][task][task_option][dataset_type]["uem"]
+    uem_path_template = protocols[dataset][task][task_option][dataset_type]["annotated"]
 
     wav_ids = []
     with open(wav_id_txt, "r") as f:
@@ -116,7 +126,7 @@ def prepare_kaldi_files(
                 if spk_count >= len(rttm_dict):
                     break
 
-            assert len(spks_in_utt) > 0, f"Error in {lab_path}, no speaker found for utterance {utt_id}"
+            # assert len(spks_in_utt) > 0, f"Error in {lab_path}, no speaker found for utterance {utt_id}"
 
             spks_in_utt_str = " ".join(spks_in_utt)
             utt2spk.write(f"{utt_id} {spks_in_utt_str}\n")
@@ -141,7 +151,7 @@ parser.add_argument(
     help="Microphone type, options: 'ihm', 'sdm'. (ihm: individual head mic, sdm: single distant mic)"
 )
 parser.add_argument(
-    "--if_mini", type=bool, default=False, 
+    "--if_mini", type=str, required=True, 
     help="If true, use the subset of corresponding dataset."
 )
 parser.add_argument(
@@ -149,14 +159,11 @@ parser.add_argument(
     help="Sound type, options: 'only_words', 'word_and_vocal'"
 )
 parser.add_argument(
-    "--kaildi_files_base_dir", type=str, required=True, 
+    "--kaldi_files_base_dir", type=str, required=True, 
     help="Directory to store kaldi style data files, typically located at ./data, under this base dir, there are /train, /dev, /test."
 )
 
 args = parser.parse_args()
-
-if not os.path.exists(args.kaldi_files_base_dir):
-    os.makedirs(args.kaldi_files_base_dir)
 
 ### prepare train
 prepare_kaldi_files(

@@ -12,7 +12,7 @@ log() {
 }
 
 # Stage control variables
-stage=0       # Start from 0 if you need to start from data preparation
+stage=2       # Start from 0 if you need to start from data preparation
 stop_stage=100
 
 # Directory for AMI diarization setup
@@ -26,7 +26,7 @@ mic_type=ihm
 
 # Mini dataset flag
 # If true, download ami_${data_type}_mini, a subset of the full dataset
-if_mini=false 
+if_mini=false
 
 # Specify the type of sounds to be annotated in the RTTM files
 # Options:
@@ -95,17 +95,14 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
 # Create Kaldi-style files
-fs_int=${fs//k/"000"}
 mkdir -p data/
 
-for i in $num_spk; do
-    python3 local/prepare_kaldi_files.py \
-        --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
-        --mic_type "${mic_type}" \
-        --if_mini ${if_mini} \
-        --sound_type ${sound_type} \
-        --kaildi_files_base_dir ./data
-done
+python3 local/prepare_kaldi_files.py \
+    --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
+    --mic_type "${mic_type}" \
+    --if_mini ${if_mini} \
+    --sound_type ${sound_type} \
+    --kaldi_files_base_dir ./data
 
 # converts the utt2spk file to spk2utt file
 for dir in data/test data/train data/dev; do
