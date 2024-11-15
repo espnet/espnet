@@ -627,7 +627,7 @@ class ESPnetDataset(AbsDataset):
         return retval
 
 
-class EspnetSpeechLMDataset(ESPnetDataset):
+class ESPnetSpeechLMDataset(ESPnetDataset):
     """
     Dataset object that is specifically designed for SpeechLM. It will allows
     dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is
@@ -640,7 +640,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         task: str,
         **kwargs,
     ):
-        super(EspnetSpeechLMDataset, self).__init__(**kwargs)
+        super(ESPnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map
         if "utt2spk" in self.loader_dict:

@@ -1,6 +1,7 @@
 import glob
 import os
 from argparse import Namespace
+from pathlib import Path
 
 from espnetez.task import get_ez_task
 
@@ -153,13 +154,13 @@ class Trainer:
 
     Examples:
         >>> trainer = Trainer(
-        ...     task='asr',
-        ...     train_config={'batch_size': 32, 'learning_rate': 0.001},
-        ...     output_dir='./output',
-        ...     stats_dir='./stats',
-        ...     train_dump_dir='./train_dump',
-        ...     valid_dump_dir='./valid_dump'
-        ... )
+                task='asr',
+                train_config={'batch_size': 32, 'learning_rate': 0.001},
+                output_dir='./output',
+                stats_dir='./stats',
+                train_dump_dir='./train_dump',
+                valid_dump_dir='./valid_dump'
+            )
         >>> trainer.collect_stats()  # Collect statistics from the dataset
         >>> trainer.train()           # Start the training process
 
@@ -219,12 +220,20 @@ class Trainer:
             assert data_info is not None, "data_info should be provided."
             assert train_dump_dir is not None, "Please provide train_dump_dir."
             assert valid_dump_dir is not None, "Please provide valid_dump_dir."
+            train_dump_dir = Path(train_dump_dir)
+            valid_dump_dir = Path(valid_dump_dir)
             self.task_class = get_ez_task(task)
             train_dpnt = []
             valid_dpnt = []
-            for k, v in data_info.items():
-                train_dpnt.append((os.path.join(train_dump_dir, v[0]), k, v[1]))
-                valid_dpnt.append((os.path.join(valid_dump_dir, v[0]), k, v[1]))
+            if "train" in data_info and "valid" in data_info:
+                for k, v in data_info["train"].items():
+                    train_dpnt.append((str(train_dump_dir / v[0]), k, v[1]))
+                for k, v in data_info["valid"].items():
+                    valid_dpnt.append((str(valid_dump_dir / v[0]), k, v[1]))
+            else:
+                for k, v in data_info.items():
+                    train_dpnt.append((str(train_dump_dir / v[0]), k, v[1]))
+                    valid_dpnt.append((str(valid_dump_dir / v[0]), k, v[1]))
 
             self.train_config.train_data_path_and_name_and_type = train_dpnt
             self.train_config.valid_data_path_and_name_and_type = valid_dpnt
@@ -255,7 +264,7 @@ class Trainer:
 
         Examples:
             >>> trainer = Trainer(task='my_task', train_config=my_train_config,
-            ...                   output_dir='output/', stats_dir='stats/')
+                                  output_dir='output/', stats_dir='stats/')
             >>> trainer.train()  # Starts the training process
         """
         # after collect_stats, define shape files
@@ -295,8 +304,8 @@ class Trainer:
 
         Examples:
             >>> trainer = Trainer(task='example_task', train_config=some_config,
-            ...                   output_dir='/path/to/output',
-            ...                   stats_dir='/path/to/stats')
+                                  output_dir='/path/to/output',
+                                  stats_dir='/path/to/stats')
             >>> trainer.collect_stats()
 
         Note:

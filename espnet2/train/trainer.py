@@ -677,6 +677,7 @@ class Trainer:
                     scaler.scale(loss).backward()
                 else:
                     loss.backward()
+            del loss
 
             if iiter % accum_grad == 0:
                 if scaler is not None:

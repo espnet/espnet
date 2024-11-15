@@ -34,6 +34,8 @@ loss_conf:
   scale: 15
 
 optim: adam
+optim_conf:
+    lr: 0.005
 num_att_plot: 0
 
 max_epoch: 1
