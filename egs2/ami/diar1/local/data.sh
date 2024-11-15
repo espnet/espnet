@@ -107,6 +107,7 @@ python3 local/prepare_kaldi_files.py \
 # converts the utt2spk file to spk2utt file
 for dir in data/test data/train data/dev; do
     utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
+    sort $dir/utt2spk -o $dir/utt2spk
 done
 
 for dir in data/test data/train data/dev; do

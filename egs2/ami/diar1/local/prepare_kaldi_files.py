@@ -9,8 +9,8 @@ def float2str(number, size=6):
     return number.zfill(size)  # pad with zeros to the left to ensure the string is of the desired size
 
 
-def gen_utt_id(wav_id: str, utt_start_time: float, utt_end_time: float) -> str:
-    return f"{wav_id}_{float2str(utt_start_time)}_{float2str(utt_end_time)}"
+def gen_utt_id(wav_id: str, spk_id: str, utt_start_time: float, utt_end_time: float) -> str:
+    return f"{spk_id}_{wav_id}_{float2str(utt_start_time)}_{float2str(utt_end_time)}"
 
 
 def prepare_kaldi_files(
@@ -71,6 +71,9 @@ def prepare_kaldi_files(
         for line in f:
             wav_ids.append(line.strip())
 
+    segments_entries = []
+    utt2spk_entries = []
+    wavscp_entries = []
     for wav_id in wav_ids:
         ### ======== Prepare segments, utt2spk ======== ###
         rttm_path = rttm_path_template.format(uri=wav_id)
@@ -78,62 +81,77 @@ def prepare_kaldi_files(
 
         # read rttm file, 
         # transform it to [{"spk_id": str, "spk_start_time": float, "spk_end_time": float}, ...]
-        rttm_dict = []
+        # rttm_dict = []
+        
         with open(rttm_path, "r") as f:
             for line_id, line in enumerate(f):
                 sps = re.split(" +", line.rstrip())
                 assert len(sps) == 10, f"Error in {rttm_path} at line {line_id + 1}"
                 label_type, wav_id, channel, spk_start_time, spk_duration, _, _, spk_id, _, _ = sps
                 assert label_type == "SPEAKER", f"Error in {rttm_path} at line {line_id + 1}"
-                rttm_dict.append({
-                    "spk_id": spk_id,
-                    "spk_start_time": float(spk_start_time),
-                    "spk_end_time": float(spk_start_time) + float(spk_duration)
-                })
-        
+                spk_start_time = float(spk_start_time)
+                spk_end_time = spk_start_time + float(spk_duration)
+                utt_id = gen_utt_id(wav_id, spk_id, spk_start_time, spk_end_time)
+                # rttm_dict.append({
+                #     "utt_id": utt_id, 
+                #     "spk_id": spk_id,
+                #     "spk_start_time": spk_start_time,
+                #     "spk_end_time": spk_end_time
+                # })
+                segments_entries.append(f"{utt_id} {wav_id} {spk_start_time} {spk_end_time}\n")
+                utt2spk_entries.append(f"{utt_id} {spk_id}\n")
+
         # read lab file, 
         # transform it to [{"utt_id": str, "utt_start_time": float, "utt_end_time": float}, ...]
-        lab_dict = []
-        with open(lab_path, "r") as f:
-            for line_id, line in enumerate(f):
-                sps = re.split(" +", line.rstrip())
-                assert len(sps) == 3, f"Error in {lab_path} at line {line_id + 1}"
-                utt_start_time, utt_end_time, utt_label = sps
-                assert utt_label == "speech", f"Error in {lab_path} at line {line_id + 1}"
-                lab_dict.append({
-                    "utt_id": gen_utt_id(wav_id, float(utt_start_time), float(utt_end_time)),
-                    "utt_start_time": float(utt_start_time),
-                    "utt_end_time": float(utt_end_time)
-                })
+        # lab_dict = []
+        # with open(lab_path, "r") as f:
+        #     for line_id, line in enumerate(f):
+        #         sps = re.split(" +", line.rstrip())
+        #         assert len(sps) == 3, f"Error in {lab_path} at line {line_id + 1}"
+        #         utt_start_time, utt_end_time, utt_label = sps
+        #         assert utt_label == "speech", f"Error in {lab_path} at line {line_id + 1}"
+        #         lab_dict.append({
+        #             "utt_id": gen_utt_id(wav_id, float(utt_start_time), float(utt_end_time)),
+        #             "utt_start_time": float(utt_start_time),
+        #             "utt_end_time": float(utt_end_time)
+        #         })
         
         # match the utterance and speaker, write to segments, utt2spk
         # Note: only create utt2spk, spk2utt can be created through utt2spk by 
         #       `utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt``
-        spk_count = 0
-        for utt in lab_dict:
-            utt_id = utt["utt_id"]
-            spks_in_utt = []
+        # spk_count = 0
+        # for utt in lab_dict:
+        #     utt_id = utt["utt_id"]
+        #     spks_in_utt = []
 
-            while rttm_dict[spk_count]["spk_start_time"] >= utt["utt_start_time"] and rttm_dict[spk_count]["spk_end_time"] <= utt["utt_end_time"]:
-                spk_id = rttm_dict[spk_count]["spk_id"]
-                spk_start_time = rttm_dict[spk_count]["spk_start_time"]
-                spk_end_time = rttm_dict[spk_count]["spk_end_time"]
+        #     while rttm_dict[spk_count]["spk_start_time"] >= utt["utt_start_time"] and rttm_dict[spk_count]["spk_end_time"] <= utt["utt_end_time"]:
+        #         spk_id = rttm_dict[spk_count]["spk_id"]
+        #         spk_start_time = rttm_dict[spk_count]["spk_start_time"]
+        #         spk_end_time = rttm_dict[spk_count]["spk_end_time"]
 
-                segments.write(f"{utt_id} {wav_id} {spk_start_time} {spk_end_time}\n")
-                spks_in_utt.append(spk_id)
+        #         segments.write(f"{utt_id} {wav_id} {spk_start_time} {spk_end_time}\n")
+        #         spks_in_utt.append(spk_id)
 
-                spk_count += 1
-                if spk_count >= len(rttm_dict):
-                    break
+        #         spk_count += 1
+        #         if spk_count >= len(rttm_dict):
+        #             break
 
-            # assert len(spks_in_utt) > 0, f"Error in {lab_path}, no speaker found for utterance {utt_id}"
+        #     # assert len(spks_in_utt) > 0, f"Error in {lab_path}, no speaker found for utterance {utt_id}"
 
-            spks_in_utt_str = " ".join(spks_in_utt)
-            utt2spk.write(f"{utt_id} {spks_in_utt_str}\n")
+        #     spks_in_utt_str = " ".join(spks_in_utt)
+        #     utt2spk.write(f"{utt_id} {spks_in_utt_str}\n")
 
         ### ======== Prepare wav.scp ======== ###
         wav_path = wav_path_template.format(uri=wav_id)
-        wavscp.write(f"{wav_id} {wav_path}\n")
+        wavscp_entries.append(f"{wav_id} {wav_path}\n")
+        # wavscp.write(f"{wav_id} {wav_path}\n")
+    
+    segments_entries.sort()
+    utt2spk_entries.sort()
+    wavscp_entries.sort()
+    segments.writelines(segments_entries)
+    utt2spk.writelines(utt2spk_entries)
+    wavscp.writelines(wavscp_entries)
     
     wavscp.close()
     utt2spk.close()
