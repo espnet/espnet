@@ -2428,10 +2428,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
@@ -2546,3 +2546,182 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
                 logging.warning(f"Patch: {idx} -> {patch_str}")
+
+
+class UniversaProcessor(AbsPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        metric2type: Optional[Dict[str, str]] = None,
+        token_type: Optional[str] = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: Optional[str] = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: Optional[str] = None,
+        force_single_channel: bool = True,
+        audio_volume_normalize: float = None,
+        audio_name: str = "audio",
+        ref_audio_name: str = "ref_audio",
+        text_name: str = "ref_text",
+        fs: int = 0,
+        nonsplit_symbol: Iterable[str] = None,
+        # for padding of chunk iterator, working when > 0
+        min_sample_size: int = -1,
+        audio_pad_value: Union[float, int] = 0.0,
+    ):
+        super().__init__(train)
+        self.train = train
+        self.metric2type = metric2type
+        self.audio_name = audio_name
+        self.ref_audio_name = ref_audio_name
+        self.text_name = text_name
+        self.audio_volume_normalize = audio_volume_normalize
+        self.force_single_channel = force_single_channel
+
+        if token_type is not None:
+            if token_list is None:
+                raise ValueError("token_list is required if token_type is not None")
+            self.text_cleaner = TextCleaner(text_cleaner)
+
+            self.tokenizer = build_tokenizer(
+                token_type=token_type,
+                bpemodel=bpemodel,
+                delimiter=delimiter,
+                space_symbol=space_symbol,
+                non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
+                nonsplit_symbol=nonsplit_symbol,
+            )
+            self.token_id_converter = TokenIDConverter(
+                token_list=token_list,
+                unk_symbol=unk_symbol,
+            )
+        else:
+            self.text_cleaner = None
+            self.tokenizer = None
+
+        self.fs = fs
+
+        # for padding of chunk iterator, working when > 0
+        self.min_sample_size = min_sample_size
+        self.audio_pad_value = audio_pad_value
+
+    def _pad_audio(self, audio):
+        # NOTE(jiatong): Padding for chunk iterator
+        #                other padding are conducted in collate_fn
+
+        # right pad with given value
+        if audio.ndim == 1 and audio.shape[0] < self.min_sample_size:
+            # single channel cases
+            audio = np.pad(
+                audio,
+                (0, self.min_sample_size + 1 - audio.shape[0]),
+                mode="constant",
+                constant_values=(0, self.audio_pad_value),
+            )
+        elif audio.ndim == 2 and audio.shape[0] < self.min_sample_size:
+            # multi channel cases
+            audio = audio.T
+            audio = np.pad(
+                audio,
+                ((0, 0), (0, self.min_sample_size + 1 - audio.shape[1])),
+                mode="constant",
+                constant_values=((0, 0), (0, self.audio_pad_value)),
+            )
+            audio = audio.T
+
+        return audio
+
+    @typechecked
+    def _audio_process(
+        self, data: Dict[str, Union[str, np.ndarray, Dict[str, float]]]
+    ) -> Dict[str, Union[str, np.ndarray, Dict[str, float]]]:
+        for name in [self.audio_name, self.ref_audio_name]:
+            if name in data:
+                if self.train:
+                    audio = data[name]
+
+                    # audio: (Nmic, Time)
+                    if audio.ndim == 1:
+                        audio = audio[:, None]
+
+                    ma = np.max(np.abs(audio))
+                    if ma > 1.0:
+                        audio /= ma
+                    data[name] = audio
+
+                if self.train and self.min_sample_size > 0:
+                    # NOTE(jiatong): Padding for chunk iterator
+                    #                other padding are conducted in collate_fn
+                    data[name] = self._pad_audio(data[name])
+
+                if self.audio_volume_normalize is not None:
+                    audio = data[name]
+                    ma = np.max(np.abs(audio))
+                    if ma != 0:
+                        data[name] = audio * self.audio_volume_normalize / ma
+
+                if self.force_single_channel:
+                    audio = data[name]
+                    if audio.ndim == 2:
+                        # NOTE(jiatong): default average across channels
+                        audio = np.mean(audio, axis=1, keepdims=False)
+                    data[name] = audio
+        return data
+
+    @typechecked
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray, Dict[str, float]]]
+    ) -> Dict[str, Union[str, np.ndarray, Dict[str, float]]]:
+        if self.text_name in data and self.tokenizer is not None:
+            text = data[self.text_name]
+            if isinstance(text, np.ndarray):
+                return data
+            text = self.text_cleaner(text)
+            tokens = self.tokenizer.text2tokens(text)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            if len(text_ints) > 500:
+                logging.warning(
+                    "The length of the text output exceeds 500, "
+                    "which may cause OOM on the GPU."
+                    "Please ensure that the data processing is correct and verify it."
+                )
+            data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        return data
+    
+    @typechecked
+    def _metric_process(
+        self, data: Dict[str, Union[np.ndarray, Dict[str, float]]]
+    ) -> Dict[str, Union[np.ndarray, Dict[str, float]]]:
+        if "metric" in data:
+            metric = data["metric"]
+            for key, value in metric.items():
+                if key in data:
+                    raise ValueError(f"Metric key {key} is the same as base keys, considering change metric name")
+                if self.metric2type is not None and key in self.metric2type:
+                    if self.metric2type[key] == "int":
+                        metric[key] = int(value)
+                    elif self.metric2type[key] == "float":
+                        metric[key] = float(value)
+                    elif self.metric2type[key] == "str":
+                        metric[key] = str(value)
+                    else:
+                        raise ValueError(f"Unsupported metric type: {self.metric2type[key]}")
+                else:
+                    metric[key] = float(value)
+            data["metric"] = metric
+        return data
+
+    @typechecked
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray, Dict[str, float]]]
+    ) -> Dict[str, Union[str, np.ndarray, Dict[str, float]]]:
+
+        data = self._audio_process(data)
+        data = self._text_process(data)
+        data  = self._metric_process(data)
+        return data

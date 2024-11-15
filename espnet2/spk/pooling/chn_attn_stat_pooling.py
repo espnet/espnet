@@ -17,13 +17,13 @@ class ChnAttnStatPooling(AbsPooling):
             the input_size
     """
 
-    def __init__(self, input_size: int = 1536):
+    def __init__(self, input_size: int = 1536, hidden_size: int = 128):
         super().__init__()
         self.attention = nn.Sequential(
-            nn.Conv1d(input_size * 3, 128, kernel_size=1),
+            nn.Conv1d(input_size * 3, hidden_size, kernel_size=1),
             nn.ReLU(),
-            nn.BatchNorm1d(128),
-            nn.Conv1d(128, input_size, kernel_size=1),
+            nn.BatchNorm1d(hidden_size),
+            nn.Conv1d(hidden_size, input_size, kernel_size=1),
             nn.Softmax(dim=2),
         )
         self._output_size = input_size * 2

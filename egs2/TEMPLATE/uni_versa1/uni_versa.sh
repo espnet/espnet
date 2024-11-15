@@ -72,7 +72,8 @@ universa_stats_dir=""   # Specify the directory path for statistics. If empty, a
 num_splits=1       # Number of splitting for universa corpus.
 use_ref_wav=true   # Whether use reference wave or not.
 use_ref_text=true  # Whether use reference text or not.
-metric2id_file=    # File path for metric2id mapping.
+metric2id=    # File path for metric2id mapping.
+metric2type=       # Metric type for metric2id mapping.
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -160,6 +161,8 @@ Options:
     --num_splits    # Number of splitting for universa corpus (default="${num_splits}").
     --use_ref_wav   # Whether use reference wave or not. (default="${use_ref_wav}").
     --use_ref_text  # Whether use reference text or not. (default="${use_ref_text}").
+    --metric2id # File path for metric2id mapping (default="${metric2id}").
+    --metric2type    # Metric type for metric2id mapping (default="${metric2type}").
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
@@ -358,15 +361,24 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Prepare metric ID"
-        if [ -z "${metric2id_file}" ]; then
-            log "metric2id_file is not specificed. Generate it from metric.scp"
-            python pyscripts/utils/prep_metric_id.py \
-                "${data_feats}/org/${train_set}"/metric.scp \
-                "${data_feats}/org/${train_set}"/metric2id
+
+        if [ -z "${metric2id}" ] ; then
+            if [ -z "${metric2type}" ] ; then
+                log "metric2id and metric2type are not specificed. Generate it from metric.scp"
+                python pyscripts/utils/prep_metric_id.py \
+                    "${data_feats}/org/${train_set}"/metric.scp \
+                    "${data_feats}/org/${train_set}"/metric2id
+            else
+                log "metric2id_file is not specificed but metric2type is. Generate it from metric2type"
+                python pyscripts/utils/prep_metric_id.py \
+                    "${data_feats}/org/${train_set}"/metric.scp \
+                    "${data_feats}/org/${train_set}"/metric2id \
+                    --metric_type ${metric2type}
+            fi
 
         else
-            log "metric2id_file is already specified. Skip this stage."
-            cp -r "${data_feats}/org/${train_set}"/metric2id "${data_feats}/org/${train_set}"
+            log "metric2id is already specified. Skip this stage."
+            cp -r "${data_feats}/org/${train_set}"/metric2id "${data_feats}/${train_set}"
         fi
 
     fi
@@ -548,12 +560,20 @@ if ! "${skip_train}"; then
 
         # Add reference audio and text if required
         if [ ${use_ref_wav} = true ]; then
-            _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,audio,sound "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,audio,sound "
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,ref_audio,${_type} "
         fi
         if [ ${use_ref_text} = true ]; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,ref_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,ref_text,text "
+            _opts+="--token_list ${token_list} "
+            _opts+="--token_type ${token_type} "
+            _opts+="--bpemodel ${bpemodel} "
+            _opts+="--cleaner ${cleaner} "
+            _opts+="--non_linguistic_symbols ${nlsyms_txt} "
+        fi
+        if [ -n "${metric2type}" ]; then
+            _opts+="--metric2type ${metric2type} "
         fi
 
         # shellcheck disable=SC2046,SC2086
@@ -565,6 +585,7 @@ if ! "${skip_train}"; then
                 --train_data_path_and_name_and_type "${_train_dir}/metric.scp,metrics,metric" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},audio,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/metric.scp,metrics,metric" \
+                --metric2id "${data_feats}/${train_set}/metric2id" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \

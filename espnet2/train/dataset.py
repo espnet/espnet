@@ -28,6 +28,8 @@ import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
+
+from espnet2.fileio.metric_scp import MetricReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
@@ -417,6 +419,15 @@ DATA_TYPES = {
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
     ),
+    "metric": dict(
+        func=MetricReader,
+        kwargs=[],
+        help="Metric scp loader, currently support for universa learning"
+        "\n\n"
+        "   utterance_id_A {'metric': 0.0}\n"
+        "   utterance_id_B {'metric': 0.1}\n"
+        "   ...",
+    ),
 }
 
 
@@ -553,7 +564,7 @@ class ESPnetDataset(AbsDataset):
         return _mes
 
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, float]]]]:
 
         # Change integer-id to string-id
         if isinstance(uid, int):
@@ -572,12 +583,12 @@ class ESPnetDataset(AbsDataset):
                 if isinstance(value, (list)):
                     value = np.array(value)
                 if not isinstance(
-                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple)
+                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple, dict)
                 ):
                     raise TypeError(
                         (
                             "Must be ndarray, torch.Tensor, "
-                            "str,  Number or tuple: {}".format(type(value))
+                            "str,  Number, tuple or dict: {}".format(type(value))
                         )
                     )
             except Exception:
@@ -605,14 +616,25 @@ class ESPnetDataset(AbsDataset):
         # 3. Force data-precision
         for name in data:
             value = data[name]
-            if not isinstance(value, np.ndarray):
+            if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                 raise RuntimeError(
-                    f"All values must be converted to np.ndarray object "
-                    f'by preprocessing, but "{name}" is still {type(value)}.'
+                    f"All values must be converted to np.ndarray or "
+                    "dict (universa-only) object by preprocessing, "
+                    f'but "{name}" is still {type(value)}.'
                 )
 
             # Cast to desired type
-            if value.dtype.kind == "f":
+            if type(value) == dict:
+                # NOTE(jiatong): Universa metric case
+                for k, v in value.items():
+                    if isinstance(v, np.ndarray):
+                        if v.dtype.kind == "f":
+                            value[k] = v.astype(self.float_dtype)
+                        elif v.dtype.kind == "i":
+                            value[k] = v.astype(self.int_dtype)
+                        else:
+                            raise NotImplementedError(f"Not supported dtype: {v.dtype}")
+            elif value.dtype.kind == "f":
                 value = value.astype(self.float_dtype)
             elif value.dtype.kind == "i":
                 value = value.astype(self.int_dtype)
