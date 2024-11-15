@@ -36,6 +36,8 @@ if_mini=false
 # Default is only_words, as vocal sounds are subjectively labeled.
 sound_type=only_words
 
+num_spk=2
+
 . utils/parse_options.sh || exit 1;
 
 if [ -z "${AMI}" ]; then
@@ -70,14 +72,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
     # specified with `mic_type` and `if_mini`, default is `ihm` and `false`.
     if [ ${mic_type} == "ihm" ]; then
         if [ ${if_mini} == false ]; then
+            chmod +x ./${setup_dir}/pyannote/download_ami.sh
             ./${setup_dir}/pyannote/download_ami.sh ${AMI}
         else
+            chmod +x ./${setup_dir}/pyannote/download_ami_mini.sh
             ./${setup_dir}/pyannote/download_ami_mini.sh ${AMI}
         fi
     elif [ ${mic_type} == "sdm" ]; then 
         if [ ${if_mini} == false ]; then 
+            chmod +x ./${setup_dir}/pyannote/download_ami_sdm.sh
             ./${setup_dir}/pyannote/download_ami_sdm.sh ${AMI}
         else
+            chmod +x ./${setup_dir}/pyannote/download_ami_sdm_mini.sh
             ./${setup_dir}/pyannote/download_ami_sdm_mini.sh ${AMI}
         fi
     else
