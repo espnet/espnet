@@ -4,14 +4,14 @@
 """Universa ESPnet model definition."""
 
 from contextlib import contextmanager
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
 from packaging.version import parse as V
 from typeguard import typechecked
 
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.universa.abs_universa import AbsUniversa
 
 if V(torch.__version__) >= V("1.6.0"):

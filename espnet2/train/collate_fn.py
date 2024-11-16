@@ -1,5 +1,5 @@
-import math
 import logging
+import math
 from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
