@@ -71,15 +71,14 @@ fcaw-cen8-b fcaw-cen8-b_org 0.0 2.9
 mmxg-cen8-b mmxg-cen8-b_org 0.0 2.3
 EOF
 
-    # for enh and separation task
+    # for uni_versa task
     for x in test ${train_set} ${train_dev}; do
-        cp data/${x}/wav.scp data/${x}/spk1.scp
-        cp data/${x}/wav.scp data/${x}/spk2.scp
-        awk '{print $1 " 1ch_16k"}' data/${x}/wav.scp > data/${x}/utt2category
+        cp data/${x}/wav.scp data/${x}/ref_wav.scp
     done
+    cp local/test.json.scp data/test/metric.scp
+    cp local/dev.json.scp data/train_dev/metric.scp
+    cp local/train.json.scp data/train_nodev/metric.scp
 
-    find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/${train_set}/noises.scp
-    find downloads/rirs/ -iname "*.wav" | awk '{print "rir" NR " " $1}' > data/${train_set}/rirs.scp
 fi
 
 

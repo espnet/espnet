@@ -27,10 +27,10 @@ class ESPnetUniversaModel(AbsESPnetModel):
     """ESPnet model for Universa."""
 
     def __init__(
-            self, 
-            universa: AbsUniversa, 
-            frontend: AbsFrontend,
-        ):
+        self,
+        universa: AbsUniversa,
+        frontend: AbsFrontend,
+    ):
         """Initialize ESPnet model for Universa."""
         super().__init__()
         self.frontend = frontend
@@ -41,7 +41,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
         self,
         audio: torch.Tensor,
         audio_lengths: torch.Tensor,
-        metrics: torch.Tensor,
+        metrics: Dict[str, torch.Tensor],
         ref_audio: Optional[torch.Tensor] = None,
         ref_audio_lengths: Optional[torch.Tensor] = None,
         ref_text: Optional[torch.Tensor] = None,
@@ -49,7 +49,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate outputs and return the loss tensor.
-        
+
         Args:
             audio (torch.Tensor): Input audio tensor (B, T).
             audio_lengths (torch.Tensor): Length of audio tensor (B,).
@@ -58,7 +58,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
             ref_audio_lengths (torch.Tensor, optional): Length of reference audio tensor (B',).
             ref_text (torch.Tensor, optional): Reference text tensor (B', U).
             ref_text_lengths (torch.Tensor, optional): Length of reference text tensor (B',).
-        
+
         Returns:
             Tensor: Loss scalar tensor.
             Dict[str, torch.Tensor]: Statistics to be monitored.
@@ -66,11 +66,13 @@ class ESPnetUniversaModel(AbsESPnetModel):
         """
         with autocast():
             # Extract features
-            feats, feats_lengths = self.frontend(audio, audio_lengths)
+            feats, feats_lengths = self._extract_feats(audio, audio_lengths)
 
             # Extract reference features if necessary
             if ref_audio is not None:
-                ref_feats, ref_feats_lengths = self.frontend(ref_audio, ref_audio_lengths)
+                ref_feats, ref_feats_lengths = self._extract_feats(
+                    ref_audio, ref_audio_lengths
+                )
             else:
                 ref_feats, ref_feats_lengths = None, None
 
@@ -78,6 +80,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
             batch = dict(
                 audio=feats,
                 audio_lengths=feats_lengths,
+                metrics=metrics,
             )
 
             # Update batch with reference features and text
@@ -91,16 +94,16 @@ class ESPnetUniversaModel(AbsESPnetModel):
                     ref_text=ref_text,
                     ref_text_lengths=ref_text_lengths,
                 )
-            
+
             return self.universa(**batch)
-    
+
     def collect_feats(
-            self,
-            audio: torch.Tensor,
-            audio_lengths: torch.Tensor,
-            ref_audio: Optional[torch.Tensor] = None,
-            ref_audio_lengths: Optional[torch.Tensor] = None,
-            **kwargs,
+        self,
+        audio: torch.Tensor,
+        audio_lengths: torch.Tensor,
+        ref_audio: Optional[torch.Tensor] = None,
+        ref_audio_lengths: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         # Use raw audio length to speed up the process.
         feats_dict = dict(
@@ -113,7 +116,31 @@ class ESPnetUniversaModel(AbsESPnetModel):
                 ref_audio_lengths=ref_audio_lengths,
             )
         return feats_dict
-        
+
+    def _extract_feats(
+        self, audio: torch.Tensor, audio_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Extract features from audio tensor.
+
+        Args:
+            audio (torch.Tensor): Input audio tensor (B, T).
+            audio_lengths (torch.Tensor): Length of audio tensor (B,).
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Extracted features and lengths.
+
+        """
+        # for data-parallel
+        audio = audio[:, : audio_lengths.max()]
+        if self.frontend is not None:
+            # Frontend
+            #  e.g. STFT and Feature extract
+            #       data_loader may send time-domain signal in this case
+            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            feats, feats_lengths = self.frontend(audio, audio_lengths)
+        else:
+            feats, feats_lengths = audio, audio_lengths
+        return feats, feats_lengths
 
     @typechecked
     def inference(

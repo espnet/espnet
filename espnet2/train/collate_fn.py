@@ -267,7 +267,7 @@ class UniversaCollateFn(CommonCollateFn):
     def __call__(
         self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
     ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
-        
+
         uttids = [u for u, _ in data]
         data = [d for _, d in data]
 
@@ -301,13 +301,15 @@ class UniversaCollateFn(CommonCollateFn):
             if key not in self.not_sequence:
                 lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
                 output[key + "_lengths"] = lens
-        
+
         # NOTE(jiatong): special treatment for metrics
         logging.warning("We only support metric with float type now!")
         metrics_data = [d["metrics"] for d in data]
         output_metrics = {}
         for metric in self.metrics_list:
-            tensor_list = torch.tensor([m.get(metric, self.float_pad_value) for m in metrics_data])
+            tensor = torch.tensor(
+                [m.get(metric, self.float_pad_value) for m in metrics_data]
+            )
             output_metrics[metric] = tensor
         output["metrics"] = output_metrics
 

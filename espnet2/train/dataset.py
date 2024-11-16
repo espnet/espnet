@@ -564,7 +564,9 @@ class ESPnetDataset(AbsDataset):
         return _mes
 
     @typechecked
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, float]]]]:
+    def __getitem__(
+        self, uid: Union[str, int]
+    ) -> Tuple[str, Dict[str, Union[str, np.ndarray, Dict[str, float]]]]:
 
         # Change integer-id to string-id
         if isinstance(uid, int):

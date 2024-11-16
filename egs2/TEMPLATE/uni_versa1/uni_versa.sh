@@ -599,10 +599,10 @@ if ! "${skip_train}"; then
         ${python} -m espnet2.bin.aggregate_stats_dirs --skip_sum_stats ${_opts} --output_dir "${universa_stats_dir}"
     fi
 
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: Universa Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 7: Universa Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -619,18 +619,41 @@ if ! "${skip_train}"; then
             _type=sound
         fi
 
-        log "Generate '${universa_exp}/run.sh'. You can resume the process from stage 5 using this script"
+        log "Generate '${universa_exp}/run.sh'. You can resume the process from stage 7 using this script"
         mkdir -p "${universa_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${universa_exp}/run.sh"; chmod +x "${universa_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
-        log "Neural universa training started... log: '${universa_exp}/train.log'"
+        log "Universa training started... log: '${universa_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${universa_exp})"
         else
             jobname="${universa_exp}/train.log"
         fi
+
+        # Add reference audio and text if required
+        if [ ${use_ref_wav} = true ]; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/ref_wav.scp,ref_audio,${_type} "
+            _opts+="--train_shape_file ${universa_stats_dir}/train/ref_audio_shape "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/ref_wav.scp,ref_audio,${_type} "
+            _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_audio_shape "
+        fi
+        if [ ${use_ref_text} = true ]; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,ref_text,text "
+            _opts+="--train_shape_file ${universa_stats_dir}/train/ref_text_shape "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,ref_text,text "
+            _opts+="--valid_shape_file ${universa_stats_dir}/valid/ref_text_shape "
+            _opts+="--token_list ${token_list} "
+            _opts+="--token_type ${token_type} "
+            _opts+="--bpemodel ${bpemodel} "
+            _opts+="--cleaner ${cleaner} "
+            _opts+="--non_linguistic_symbols ${nlsyms_txt} "
+        fi
+        if [ -n "${metric2type}" ]; then
+            _opts+="--metric2type ${metric2type} "
+        fi
+
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
@@ -644,7 +667,10 @@ if ! "${skip_train}"; then
                 --resume true \
                 --fold_length "${audio_fold_length}" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},audio,${_type}" \
+                --train_data_path_and_name_and_type "${_train_dir}/metric.scp,metrics,metric" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},audio,${_type}" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/metric.scp,metrics,metric" \
+                --metric2id "${data_feats}/${train_set}/metric2id" \
                 --train_shape_file ${universa_stats_dir}/train/audio_shape \
                 --valid_shape_file ${universa_stats_dir}/valid/audio_shape \
                 --output_dir "${universa_exp}" \
@@ -677,8 +703,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-        log "Stage 6: Decoding: training_dir=${universa_exp}"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Decoding: training_dir=${universa_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -701,8 +727,8 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        log "Generate '${universa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${universa_exp}/${inference_tag}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${universa_exp}/${inference_tag}/run.sh"; chmod +x "${universa_exp}/${inference_tag}/run.sh"
+        log "Generate '${universa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${universa_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${universa_exp}/${inference_tag}/run.sh"; chmod +x "${universa_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do
@@ -757,8 +783,8 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Scoring"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Scoring"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -794,8 +820,8 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Generate run.sh
-            log "Generate '${_scoredir}/run.sh'. You can resume the process from stage 7 using this script"
-            echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${_scoredir}/run.sh"; chmod +x "${_scoredir}/run.sh"
+            log "Generate '${_scoredir}/run.sh'. You can resume the process from stage 9 using this script"
+            echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${_scoredir}/run.sh"; chmod +x "${_scoredir}/run.sh"
 
             # 3. Submit jobs
             log "Evaluation started... log: '${_logdir}/universa_evaluate.*.log'"
@@ -826,8 +852,8 @@ fi
 
 
 packed_model="${universa_exp}/${universa_exp##*/}_${inference_model%.*}.zip"
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload}"; then
-    log "Stage 8: Packing model: ${packed_model}"
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! "${skip_upload}"; then
+    log "Stage 10: Packing model: ${packed_model}"
     # Pack model
     if [ -e "${universa_exp}/${inference_model}" ]; then
         # Pack model
@@ -843,8 +869,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! "${skip_upload}"; then
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
-    log "Stage 9: Uploading to hugging face: ${hf_repo}"
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! "${skip_upload}"; then
+    log "Stage 11: Uploading to hugging face: ${hf_repo}"
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
@@ -895,7 +921,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! "${skip_upload}"; then
     git push
     cd ${this_folder}
     else
-        log "Skip uploading to hugging face since ${packed_model} does not exist. Please run Stage 8 first."
+        log "Skip uploading to hugging face since ${packed_model} does not exist. Please run Stage 10 first."
     fi
 fi
 

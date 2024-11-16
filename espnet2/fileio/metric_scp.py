@@ -7,6 +7,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 
+
 class MetricReader(collections.abc.Mapping):
     """Reader class for 'metric.scp'.
 
@@ -25,19 +26,18 @@ class MetricReader(collections.abc.Mapping):
     def __init__(self, fname: Union[str, Path]):
         self.fname = Path(fname)
         self._data = dict(read_2columns_text(fname))
-    
+
     def __getitem__(self, key: str) -> float:
         return json.loads(self._data[key])
-    
+
     def __contains__(self, key: object) -> bool:
         return key in self._data.keys()
-    
+
     def __len__(self) -> int:
         return len(self._data)
-    
+
     def __iter__(self) -> collections.abc.Iterator:
         return iter(self._data)
-    
+
     def keys(self):
         return self._data.keys()
-    

@@ -53,7 +53,8 @@ def collect_stats(
 
                 # 1. Write shape file
                 for name in batch:
-                    if name.endswith("_lengths"):
+                    # Skip lengths and metrics (for universa only)
+                    if name.endswith("_lengths") or name == "metrics":
                         continue
                     for i, (key, data) in enumerate(zip(keys, batch[name])):
                         if f"{name}_lengths" in batch:
@@ -117,7 +118,13 @@ def collect_stats(
         # batch_keys and stats_keys are used by aggregate_stats_dirs.py
         with (output_dir / mode / "batch_keys").open("w", encoding="utf-8") as f:
             f.write(
-                "\n".join(filter(lambda x: not x.endswith("_lengths"), batch)) + "\n"
+                "\n".join(
+                    filter(
+                        lambda x: not x.endswith("_lengths") and not x == "metrics",
+                        batch,
+                    )
+                )
+                + "\n"
             )
         with (output_dir / mode / "stats_keys").open("w", encoding="utf-8") as f:
             f.write("\n".join(sum_dict) + "\n")

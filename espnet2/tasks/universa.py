@@ -58,7 +58,6 @@ class UniversaTask(AbsTask):
         universa_choices,
     ]
 
-
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
 
@@ -83,6 +82,12 @@ class UniversaTask(AbsTask):
             type=str_or_none,
             default=None,
             help="The mapping of metric to type",
+        )
+        group.add_argument(
+            "--metric_pad_value",
+            type=float,
+            default=-1e10,
+            help="The padding value for metrics",
         )
         group.add_argument(
             "--token_list",
@@ -153,7 +158,7 @@ class UniversaTask(AbsTask):
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
             class_choices.add_arguments(group)
-        
+
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
@@ -164,7 +169,7 @@ class UniversaTask(AbsTask):
         # To differentiate the padding value for metrics' value
         return UniversaCollateFn(
             metrics_list=metrics_list,
-            float_pad_value=-1e10,
+            float_pad_value=args.metric_pad_value,
             int_pad_value=0,
             not_sequence=["metrics"],
         )
@@ -216,7 +221,7 @@ class UniversaTask(AbsTask):
                 "ref_text",
             )
         return retval
-    
+
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetUniversaModel:
@@ -228,7 +233,7 @@ class UniversaTask(AbsTask):
             if isinstance(args.token_list, str):
                 with open(args.token_list, "r") as f:
                     token_list = [line.rstrip() for line in f]
-                
+
                 # Overwriting token_list to keep it as "portable"
                 args.token_list = list(token_list)
             elif isinstance(args.token_list, (tuple, list)):
@@ -241,7 +246,7 @@ class UniversaTask(AbsTask):
             if args.use_ref_text:
                 raise ValueError("token_list is required when use_ref_text is True")
             token_list, vocab_size = None, None
-        
+
         # 1. frontend
         # Extract source features in the model
         frontend_class = frontend_choices.get_class(args.frontend)
@@ -256,10 +261,12 @@ class UniversaTask(AbsTask):
             vocab_size=vocab_size,
             use_ref_audio=args.use_ref_audio,
             use_ref_text=args.use_ref_text,
+            metric_pad_value=args.metric_pad_value,
             **args.universa_conf
         )
 
         # 3. Build model
-        model = ESPnetUniversaModel(frontend=frontend, universa=universa, **args.model_conf)
+        model = ESPnetUniversaModel(
+            frontend=frontend, universa=universa, **args.model_conf
+        )
         return model
-    

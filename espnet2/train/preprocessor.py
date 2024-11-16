@@ -2692,7 +2692,7 @@ class UniversaProcessor(AbsPreprocessor):
                 )
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
         return data
-    
+
     @typechecked
     def _metric_process(
         self, data: Dict[str, Union[np.ndarray, Dict[str, float]]]
@@ -2701,7 +2701,9 @@ class UniversaProcessor(AbsPreprocessor):
             metric = data["metric"]
             for key, value in metric.items():
                 if key in data:
-                    raise ValueError(f"Metric key {key} is the same as base keys, considering change metric name")
+                    raise ValueError(
+                        f"Metric key {key} is the same as base keys, considering change metric name"
+                    )
                 if self.metric2type is not None and key in self.metric2type:
                     if self.metric2type[key] == "int":
                         metric[key] = int(value)
@@ -2710,7 +2712,9 @@ class UniversaProcessor(AbsPreprocessor):
                     elif self.metric2type[key] == "str":
                         metric[key] = str(value)
                     else:
-                        raise ValueError(f"Unsupported metric type: {self.metric2type[key]}")
+                        raise ValueError(
+                            f"Unsupported metric type: {self.metric2type[key]}"
+                        )
                 else:
                     metric[key] = float(value)
             data["metric"] = metric
@@ -2723,5 +2727,5 @@ class UniversaProcessor(AbsPreprocessor):
 
         data = self._audio_process(data)
         data = self._text_process(data)
-        data  = self._metric_process(data)
+        data = self._metric_process(data)
         return data
