@@ -6,13 +6,17 @@ import logging
 from espnet2.fileio.metric_scp import MetricReader
 from espnet2.fileio.read_text import read_2columns_text
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Prepare metric ID")
     parser.add_argument("metric_scp", type=str, help="metric.scp information")
     parser.add_argument("metric2id", type=str, help="output metric2id")
     parser.add_argument("--metric2type", type=str, default=None, help="metric type")
-    parser.add_argument("--reading_size", type=int, default=-1, help="reading size (for efficient loading)")
+    parser.add_argument(
+        "--reading_size",
+        type=int,
+        default=-1,
+        help="reading size (for efficient loading)",
+    )
     args = parser.parse_args()
 
     if args.metric2type is not None:
@@ -22,7 +26,9 @@ if __name__ == "__main__":
                 f.write(f"{key}\n")
     else:
         metric_reader = MetricReader(args.metric_scp)
-        reading_size = args.reading_size if args.reading_size > 0 else len(metric_reader)
+        reading_size = (
+            args.reading_size if args.reading_size > 0 else len(metric_reader)
+        )
         metric2id = set()
         id = 0
         with open(args.metric2id, "w") as f:
@@ -37,4 +43,3 @@ if __name__ == "__main__":
                 row_num += 1
                 if row_num > reading_size:
                     print(f"Reading size reached {reading_size}, stop reading.")
-        

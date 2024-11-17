@@ -28,7 +28,6 @@ import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
-
 from espnet2.fileio.metric_scp import MetricReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader

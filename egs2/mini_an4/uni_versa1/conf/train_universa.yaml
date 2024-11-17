@@ -92,4 +92,3 @@ cudnn_deterministic: false # setting to false accelerates the training speed but
                            # in the case of GAN-TTS training, we strongly recommend setting to false
 cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
                            # therefore, we set to false as a default (recommend trying both cases)
-

@@ -316,9 +316,9 @@ if ! "${skip_data_prep}"; then
             else
                 _suf=""
             fi
-            
+
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-            
+
             for extra_file in ${utt_extra_files}; do
                 cp "data/${dset}/${extra_file}" "${data_feats}${_suf}/${dset}"
             done
@@ -332,7 +332,7 @@ if ! "${skip_data_prep}"; then
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_tgt_opts} \
                 "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
-            
+
             if [ ${use_ref_wav} = true ]; then
                 _ref_opts=
                 if [ -e data/"${dset}"/ref_segments ]; then
@@ -407,7 +407,7 @@ if ! "${skip_data_prep}"; then
             <"${data_feats}/org/${dset}/wav.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
-            
+
             if [ ${use_ref_wav} = true ]; then
                 <"${data_feats}/org/${dset}/utt2num_samples.ref" \
                     awk -v min_length="${_min_length}" -v max_length="${_max_length}" \

@@ -12,15 +12,15 @@ import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import typechecked
 
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.spk.pooling.mean_pooling import MeanPooling
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.universa.abs_universa import AbsUniversa
-from espnet2.universa.base.loss import masked_mse_loss, masked_l1_loss
-from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.spk.pooling.mean_pooling import MeanPooling
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.universa.base.loss import masked_l1_loss, masked_mse_loss
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
