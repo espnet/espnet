@@ -52,10 +52,10 @@ universa_conf:
 
   pooling_type: mean
   projector_type: linear
-  multi_branch: false
+  multi_branch: true
 
 # Frontend
-
+frontend: default
 
 ########################
 # Training parameters  #
