@@ -61,7 +61,12 @@ class LogMel(torch.nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)
-        mel_feat = torch.clamp(mel_feat, min=1e-10)
+        if mel_feat.dtype == torch.float16:
+            # NOTE(jiatong): clamp min value to avoid -inf 
+            # in log in mixed precision training (or tf32)
+            mel_feat = torch.clamp(mel_feat, min=1e-7)
+        else:
+            mel_feat = torch.clamp(mel_feat, min=1e-10)
 
         if self.log_base is None:
             logmel_feat = mel_feat.log()

@@ -4,8 +4,9 @@
 """UniversaBase related modules."""
 
 from contextlib import contextmanager
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Sequence, Tuple, Union
 
+import logging
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -39,9 +40,9 @@ class UniversaBase(AbsUniversa):
         use_ref_audio: bool = True,
         use_ref_text: bool = True,
         embedding_size: int = 512,
-        normalize: bool = True,
+        use_normalize: bool = True,
         audio_encoder_type: str = "transformer",
-        audio_encoder_params: Dict[str, Sequence] = {
+        audio_encoder_params: Dict[str, Union[float, int, bool, str]] = {
             "num_blocks": 3,
             "attention_heads": 4,
             "linear_units": 2048,
@@ -61,7 +62,7 @@ class UniversaBase(AbsUniversa):
         vocab_size: Optional[int] = None,
         ignore_id: int = -1,
         text_encoder_type: str = "transformer",
-        text_encoder_params: Dict[str, Sequence] = {
+        text_encoder_params: Dict[str, Union[float, int, bool, str]] = {
             "num_blocks": 3,
             "attention_heads": 4,
             "linear_units": 2048,
@@ -79,19 +80,19 @@ class UniversaBase(AbsUniversa):
         },
         # Attention modules
         cross_attention_type: str = "multihead",
-        cross_attention_params: Dict[str, Sequence] = {
+        cross_attention_params: Dict[str, Union[float, int]] = {
             "n_head": 4,
             "dropout_rate": 0.1,
         },
         # MultiTask predictors
         pooling_type: str = "mean",
-        pooling_params: Dict[str, Sequence] = {},
+        pooling_params: Dict[str, Union[float, int, bool, str]] = {},
         projector_type: str = "linear",
-        projector_params: Dict[str, Sequence] = {},
+        projector_params: Dict[str, Union[float, int, bool, str]] = {},
         multi_branch: bool = False,
         use_mse: bool = False,
         use_l1: bool = True,
-        metric_pad_value: float = -1e10,
+        metric_pad_value: float = -1e7,
         loss_weights: Optional[Dict[str, float]] = None,
         **kwargs,
     ):
@@ -105,7 +106,7 @@ class UniversaBase(AbsUniversa):
             use_ref_audio (bool): Whether to use reference audio.
             use_ref_text (bool): Whether to use reference text.
             embedding_size (int): Embedding size.
-            normalize (bool): Whether to normalize input features.
+            use_normalize (bool): Whether to normalize input features.
             audio_encoder_type (str): Audio encoder type.
             audio_encoder_params (Dict[str, Sequence]): Audio encoder parameters.
             text_encoder_type (str): Text encoder type.
@@ -136,7 +137,7 @@ class UniversaBase(AbsUniversa):
         self.use_ref_text = use_ref_text
         self.embedding_size = embedding_size
         pooling_dim = embedding_size
-        self.normalize = normalize
+        self.use_normalize = use_normalize
         self.use_mse = use_mse
         self.use_l1 = use_l1
         assert (
@@ -161,7 +162,8 @@ class UniversaBase(AbsUniversa):
             )
         else:
             raise ValueError(f"Not supported: {audio_encoder_type}")
-        self.normalize = UtteranceMVN(norm_means=True, norm_vars=True)
+        if self.use_normalize:
+            self.normalize = UtteranceMVN(norm_means=True, norm_vars=True)
 
         # Initialize reference audio encoder
         if self.use_ref_audio:
@@ -174,7 +176,8 @@ class UniversaBase(AbsUniversa):
             else:
                 raise ValueError(f"Not supported: {audio_encoder_type}")
             pooling_dim += embedding_size
-            self.ref_normalize = UtteranceMVN(norm_means=True, norm_vars=True)
+            if self.use_normalize:
+                self.ref_normalize = UtteranceMVN(norm_means=True, norm_vars=True)
 
         # Initialize text encoder
         if self.use_ref_text:
@@ -209,19 +212,19 @@ class UniversaBase(AbsUniversa):
             for i in range(self.metric_size):
                 # Initialize pooling
                 if pooling_type == "mean":
-                    self.pooling[i] = MeanPooling(
+                    self.pooling.append(MeanPooling(
                         input_size=pooling_dim, use_masking=True, **pooling_params
-                    )
+                    ))
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
                 # Initialize projector
                 if projector_type == "linear":
-                    self.projector[i] = torch.nn.Linear(
+                    self.projector.append(torch.nn.Linear(
                         pooling_dim,
                         1,
                         **projector_params,
-                    )
+                    ))
                 else:
                     raise ValueError(f"Not supported: {projector_type}")
         else:
@@ -300,7 +303,7 @@ class UniversaBase(AbsUniversa):
             final_metrics = torch.stack(final_metrics, dim=-1)
 
         # 1. Feats normalization
-        if self.normalize:
+        if self.use_normalize:
             with autocast(False):
                 feats, feats_lengths = self.normalize(audio, audio_lengths)
                 if use_ref_audio:
@@ -348,7 +351,9 @@ class UniversaBase(AbsUniversa):
         if self.multi_branch:
             for i in range(self.metric_size):
                 pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
-                pred_metric = self.projector[i](pooling_output)
+                with autocast(False):
+                    # skip numeric stability with float16
+                    pred_metric = self.projector[i](pooling_output)
                 metric_loss = 0.0
                 # NOTE(jiatong): we use > instead of != to handle the case
                 # where the metric_pad_value is not 0
@@ -371,9 +376,10 @@ class UniversaBase(AbsUniversa):
             stats["loss"] = loss.detach()
         else:
             pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
-            pred_metric = self.projector(pooling_output)
+            with autocast(False):
+                # skip numeric stability with float16
+                pred_metric = self.projector(pooling_output)
             final_metric_mask = final_metrics > self.metric_pad_value + 1e-6
-            print(final_metrics, pred_metric, flush=True)
             if self.use_mse:
                 metric_mse_loss = masked_mse_loss(
                     pred_metric, final_metrics, final_metric_mask
@@ -410,3 +416,4 @@ class UniversaBase(AbsUniversa):
 
         """
         pass
+

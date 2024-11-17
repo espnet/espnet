@@ -86,7 +86,7 @@ class UniversaTask(AbsTask):
         group.add_argument(
             "--metric_pad_value",
             type=float,
-            default=-1e10,
+            default=-1e7,
             help="The padding value for metrics",
         )
         group.add_argument(
@@ -169,7 +169,8 @@ class UniversaTask(AbsTask):
         # To differentiate the padding value for metrics' value
         return UniversaCollateFn(
             metrics_list=metrics_list,
-            float_pad_value=args.metric_pad_value,
+            float_pad_value=0.0,
+            metric_pad_value=args.metric_pad_value,
             int_pad_value=0,
             not_sequence=["metrics"],
         )

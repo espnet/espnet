@@ -247,7 +247,8 @@ class UniversaCollateFn(CommonCollateFn):
     def __init__(
         self,
         metrics_list: List[str],
-        float_pad_value: Union[float, int] = -1e10,
+        float_pad_value: Union[float, int] = 0.0,
+        metric_pad_value: Union[float, int] = -1e10,
         int_pad_value: int = -32768,
         not_sequence: Collection[str] = (),
     ):
@@ -257,11 +258,14 @@ class UniversaCollateFn(CommonCollateFn):
             not_sequence=not_sequence,
         )
         self.metrics_list = metrics_list
+        self.metric_pad_value = metric_pad_value
 
     def __repr__(self):
         return (
             f"{self.__class__}(float_pad_value={self.float_pad_value}, "
-            f"int_pad_value={self.float_pad_value})"
+            f"int_pad_value={self.float_pad_value}), "
+            f"metrics_list={self.metrics_list}",
+            f"metric_pad_value={self.metric_pad_value}",
         )
 
     def __call__(
@@ -308,7 +312,7 @@ class UniversaCollateFn(CommonCollateFn):
         output_metrics = {}
         for metric in self.metrics_list:
             tensor = torch.tensor(
-                [m.get(metric, self.float_pad_value) for m in metrics_data]
+                [m.get(metric, self.metric_pad_value) for m in metrics_data]
             )
             output_metrics[metric] = tensor
         output["metrics"] = output_metrics
