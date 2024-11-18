@@ -22,6 +22,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.universa.abs_universa import AbsUniversa
 from espnet2.universa.base import UniversaBase
 from espnet2.universa.espnet_model import ESPnetUniversaModel
+from espnet2.torch_utils.initialize import initialize
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str_or_none
@@ -94,6 +95,20 @@ class UniversaTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--init",
+            type=lambda x: str_or_none(x.lower()),
+            default=None,
+            help="The initialization method",
+            choices=[
+                "chainer",
+                "xavier_uniform",
+                "xavier_normal",
+                "kaiming_uniform",
+                "kaiming_normal",
+                None,
+            ],
         )
         group.add_argument(
             "--model_conf",
@@ -270,4 +285,8 @@ class UniversaTask(AbsTask):
         model = ESPnetUniversaModel(
             frontend=frontend, universa=universa, **args.model_conf
         )
+
+        # 4. Initialize
+        if args.init is not None:
+            initialize(model, args.init)
         return model

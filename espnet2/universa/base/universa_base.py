@@ -318,16 +318,16 @@ class UniversaBase(AbsUniversa):
                 metric_loss = 0.0
                 # NOTE(jiatong): we use > instead of != to handle the case
                 # where the metric_pad_value is not 0
-                final_metric_mask = final_metrics[i] > self.metric_pad_value + 1e-6
+                final_metric_mask = final_metrics[i] > (self.metric_pad_value + 1e-6)
                 if self.use_mse:
                     metric_mse_loss = masked_mse_loss(
-                        pred_metric, final_metrics[i], final_metric_mask
+                        pred_metric.squeee(-1), final_metrics[i], final_metric_mask
                     )
                     metric_loss = metric_loss + metric_mse_loss
                     stats[self.id2metric[i] + "_mse"] = metric_mse_loss.detach()
                 if self.use_l1:
                     metric_l1_loss = masked_l1_loss(
-                        pred_metric, final_metrics[i], final_metric_mask
+                        pred_metric.squeeze(-1), final_metrics[i], final_metric_mask
                     )
                     metric_loss = metric_loss + metric_l1_loss
                     stats[self.id2metric[i] + "_l1"] = metric_l1_loss.detach()
