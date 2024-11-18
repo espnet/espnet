@@ -19,7 +19,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.universa.abs_universa import AbsUniversa
 from espnet2.universa.base.loss import masked_l1_loss, masked_mse_loss
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 if V(torch.__version__) >= V("1.6.0"):
@@ -308,7 +308,7 @@ class UniversaBase(AbsUniversa):
         # 3. Multi-branch pooling and projectors
         loss = 0.0
         stats = {}
-        audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
+        audio_enc_mask = make_non_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
                 pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
@@ -323,17 +323,17 @@ class UniversaBase(AbsUniversa):
                     metric_mse_loss = masked_mse_loss(
                         pred_metric, final_metrics[i], final_metric_mask
                     )
-                    metric_loss += metric_mse_loss
+                    metric_loss = metric_loss + metric_mse_loss
                     stats[self.id2metric[i] + "_mse"] = metric_mse_loss.detach()
                 if self.use_l1:
                     metric_l1_loss = masked_l1_loss(
                         pred_metric, final_metrics[i], final_metric_mask
                     )
-                    metric_loss += metric_l1_loss
+                    metric_loss = metric_loss + metric_l1_loss
                     stats[self.id2metric[i] + "_l1"] = metric_l1_loss.detach()
-                metric_loss *= self.loss_weights[i]
+                metric_loss = metric_loss * self.loss_weights[i]
                 stats[self.id2metric[i] + "_overall"] = metric_loss.detach()
-                loss += metric_loss
+                loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
             pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
@@ -345,18 +345,18 @@ class UniversaBase(AbsUniversa):
                 metric_mse_loss = masked_mse_loss(
                     pred_metric, final_metrics, final_metric_mask
                 )
-                loss += metric_mse_loss
+                loss = loss + metric_mse_loss
                 stats["mse"] = metric_mse_loss.detach()
             if self.use_l1:
                 metric_l1_loss = masked_l1_loss(
                     pred_metric, final_metrics, final_metric_mask
                 )
-                loss += metric_l1_loss
+                loss = loss + metric_l1_loss
                 stats["l1"] = metric_l1_loss.detach()
             stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable((-loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     @typechecked
@@ -409,7 +409,7 @@ class UniversaBase(AbsUniversa):
         enc_list = [audio_enc]
         if use_ref_audio:
             ref_audio_mask = (
-                make_pad_mask(ref_audio_enc_lengths).to(audio_enc.device).unsqueeze(1)
+                ~make_pad_mask(ref_audio_enc_lengths).to(audio_enc.device).unsqueeze(1)
             )
             ref_audio_info = self.cross_attention(
                 audio_enc, ref_audio_enc, ref_audio_enc, ref_audio_mask
@@ -417,7 +417,7 @@ class UniversaBase(AbsUniversa):
             enc_list.append(ref_audio_info)
         if use_ref_text:
             ref_text_mask = (
-                make_pad_mask(ref_text_enc_lengths).to(audio_enc.device).unsqueeze(1)
+                ~make_pad_mask(ref_text_enc_lengths).to(audio_enc.device).unsqueeze(1)
             )
             ref_text_info = self.cross_attention(
                 audio_enc, ref_text_enc, ref_text_enc, ref_text_mask
