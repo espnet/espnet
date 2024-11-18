@@ -19,7 +19,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.universa.abs_universa import AbsUniversa
 from espnet2.universa.base.loss import masked_l1_loss, masked_mse_loss
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 if V(torch.__version__) >= V("1.6.0"):
@@ -308,7 +308,7 @@ class UniversaBase(AbsUniversa):
         # 3. Multi-branch pooling and projectors
         loss = 0.0
         stats = {}
-        audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
+        audio_enc_mask = make_non_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
                 pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
