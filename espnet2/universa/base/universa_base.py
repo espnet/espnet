@@ -92,7 +92,7 @@ class UniversaBase(AbsUniversa):
         multi_branch: bool = False,
         use_mse: bool = False,
         use_l1: bool = True,
-        metric_pad_value: float = -1e7,
+        metric_pad_value: float = -100,
         loss_weights: Optional[Dict[str, float]] = None,
         **kwargs,
     ):
@@ -282,18 +282,7 @@ class UniversaBase(AbsUniversa):
         """
         batch_size = audio.shape[0]
 
-        use_ref_audio = self.use_ref_audio and ref_audio is not None
-        use_ref_text = self.use_ref_text and ref_text is not None
-
-        if use_ref_text:
-            assert (
-                ref_text.shape[0] == batch_size
-            ), "mismatch batch size with ref_text {}".format(ref_text.shape[0])
-            ref_text[ref_text == -1] = self.ignore_id
-            # for data-parallel
-            ref_text = ref_text[:, : ref_text_lengths.max()]
-
-        # 0. Prepare metrics
+        # 1. Prepare metrics
         final_metrics = []
         for i in range(self.metric_size):
             if self.id2metric[i] not in metrics:
@@ -305,50 +294,18 @@ class UniversaBase(AbsUniversa):
                 final_metrics.append(metrics[self.id2metric[i]].to(audio.device))
         if not self.multi_branch:
             final_metrics = torch.stack(final_metrics, dim=-1)
-
-        # 1. Feats normalization
-        if self.use_normalize:
-            with autocast(False):
-                feats, feats_lengths = self.normalize(audio, audio_lengths)
-                if use_ref_audio:
-                    ref_feats, ref_feats_lengths = self.ref_normalize(
-                        ref_audio, ref_audio_lengths
-                    )
-                if use_ref_text:
-                    ref_text_embed = self.text_embedding(ref_text)
-
+        
         # 2. Encode audio
-        audio_enc, audio_enc_lengths, _ = self.audio_encoder(feats, feats_lengths)
-        if use_ref_audio:
-            ref_audio_enc, ref_audio_enc_lengths, _ = self.ref_audio_encoder(
-                ref_feats, ref_feats_lengths
-            )
-        if use_ref_text:
-            ref_text_enc, ref_text_enc_lengths, _ = self.text_encoder(
-                ref_text_embed, ref_text_lengths
-            )
+        audio_enc, audio_enc_lengths = self.encode(
+            audio,
+            audio_lengths,
+            ref_audio,
+            ref_audio_lengths,
+            ref_text,
+            ref_text_lengths,
+        )
 
-        # 3. Cross attention
-        enc_list = [audio_enc]
-        if use_ref_audio:
-            ref_audio_mask = (
-                make_pad_mask(ref_audio_enc_lengths).to(audio_enc.device).unsqueeze(1)
-            )
-            ref_audio_info = self.cross_attention(
-                audio_enc, ref_audio_enc, ref_audio_enc, ref_audio_mask
-            )
-            enc_list.append(ref_audio_info)
-        if use_ref_text:
-            ref_text_mask = (
-                make_pad_mask(ref_text_enc_lengths).to(audio_enc.device).unsqueeze(1)
-            )
-            ref_text_info = self.cross_attention(
-                audio_enc, ref_text_enc, ref_text_enc, ref_text_mask
-            )
-            enc_list.append(ref_text_info)
-        audio_enc = torch.cat(enc_list, dim=-1)
-
-        # 4. Multi-branch pooling and projectors
+        # 3. Multi-branch pooling and projectors
         loss = 0.0
         stats = {}
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
@@ -403,10 +360,82 @@ class UniversaBase(AbsUniversa):
         return loss, stats, weight
 
     @typechecked
+    def encode(
+        self,
+        audio: torch.Tensor,
+        audio_lengths: torch.Tensor,
+        ref_audio: Optional[torch.Tensor] = None,
+        ref_audio_lengths: Optional[torch.Tensor] = None,
+        ref_text: Optional[torch.Tensor] = None,
+        ref_text_lengths: Optional[torch.Tensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        batch_size = audio.shape[0]
+
+        use_ref_audio = self.use_ref_audio and ref_audio is not None
+        use_ref_text = self.use_ref_text and ref_text is not None
+
+        if use_ref_text:
+            assert (
+                ref_text.shape[0] == batch_size
+            ), "mismatch batch size with ref_text {}".format(ref_text.shape[0])
+            ref_text[ref_text == -1] = self.ignore_id
+            # for data-parallel
+            ref_text = ref_text[:, : ref_text_lengths.max()]
+
+        # 1. Feats normalization
+        if self.use_normalize:
+            with autocast(False):
+                feats, feats_lengths = self.normalize(audio, audio_lengths)
+                if use_ref_audio:
+                    ref_feats, ref_feats_lengths = self.ref_normalize(
+                        ref_audio, ref_audio_lengths
+                    )
+                if use_ref_text:
+                    ref_text_embed = self.text_embedding(ref_text)
+
+        # 2. Encode audio
+        audio_enc, audio_enc_lengths, _ = self.audio_encoder(feats, feats_lengths)
+        if use_ref_audio:
+            ref_audio_enc, ref_audio_enc_lengths, _ = self.ref_audio_encoder(
+                ref_feats, ref_feats_lengths
+            )
+        if use_ref_text:
+            ref_text_enc, ref_text_enc_lengths, _ = self.text_encoder(
+                ref_text_embed, ref_text_lengths
+            )
+
+        # 3. Cross attention
+        enc_list = [audio_enc]
+        if use_ref_audio:
+            ref_audio_mask = (
+                make_pad_mask(ref_audio_enc_lengths).to(audio_enc.device).unsqueeze(1)
+            )
+            ref_audio_info = self.cross_attention(
+                audio_enc, ref_audio_enc, ref_audio_enc, ref_audio_mask
+            )
+            enc_list.append(ref_audio_info)
+        if use_ref_text:
+            ref_text_mask = (
+                make_pad_mask(ref_text_enc_lengths).to(audio_enc.device).unsqueeze(1)
+            )
+            ref_text_info = self.cross_attention(
+                audio_enc, ref_text_enc, ref_text_enc, ref_text_mask
+            )
+            enc_list.append(ref_text_info)
+        audio_enc = torch.cat(enc_list, dim=-1)
+
+        return audio_enc, audio_enc_lengths
+
+    @typechecked
     def inference(
         self,
         audio: torch.Tensor,
         audio_lengths: torch.Tensor,
+        ref_audio: Optional[torch.Tensor] = None,
+        ref_audio_lengths: Optional[torch.Tensor] = None,
+        ref_text: Optional[torch.Tensor] = None,
+        ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Return predicted output as a dict.
@@ -419,4 +448,5 @@ class UniversaBase(AbsUniversa):
             Dict[str, torch.Tensor]: Predicted output.
 
         """
+
         pass

@@ -64,7 +64,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
             Dict[str, torch.Tensor]: Statistics to be monitored.
             Tensor: Weight scalar tensor to summarize losses.
         """
-        with autocast():
+        with autocast(False):
             # Extract features
             feats, feats_lengths = self._extract_feats(audio, audio_lengths)
 
@@ -132,16 +132,15 @@ class ESPnetUniversaModel(AbsESPnetModel):
         """
         # for data-parallel
         audio = audio[:, : audio_lengths.max()]
-        with autocast(False):
-            if self.frontend is not None:
-                # Frontend
-                #  e.g. STFT and Feature extract
-                #       data_loader may send time-domain signal in this case
-                # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-                feats, feats_lengths = self.frontend(audio, audio_lengths)
-            else:
-                feats, feats_lengths = audio, audio_lengths
-            return feats, feats_lengths
+        if self.frontend is not None:
+            # Frontend
+            #  e.g. STFT and Feature extract
+            #       data_loader may send time-domain signal in this case
+            # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            feats, feats_lengths = self.frontend(audio, audio_lengths)
+        else:
+            feats, feats_lengths = audio, audio_lengths
+        return feats, feats_lengths
 
     @typechecked
     def inference(
@@ -155,7 +154,12 @@ class ESPnetUniversaModel(AbsESPnetModel):
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Return predicted output as a dict."""
+
         return self.universa.inference(
             audio=audio,
             audio_lengths=audio_lengths,
+            ref_audio=ref_audio,
+            ref_audio_lengths=ref_audio_lengths,
+            ref_text=ref_text,
+            ref_text_lengths=ref_text_lengths,
         )

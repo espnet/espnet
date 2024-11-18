@@ -35,6 +35,5 @@ def masked_l1_loss(input, target, mask):
         torch.Tensor: Masked L1 loss.
     """
     abs_diff = torch.abs(input * mask - target * mask)
-    masked_abs_diff = abs_diff * mask
-    loss = torch.sum(masked_abs_diff) / torch.sum(mask)
+    loss = torch.sum(abs_diff) / torch.sum(mask)
     return loss

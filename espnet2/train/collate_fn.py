@@ -259,6 +259,8 @@ class UniversaCollateFn(CommonCollateFn):
         )
         self.metrics_list = metrics_list
         self.metric_pad_value = metric_pad_value
+        # NOTE(jiatong): special treatment for metrics
+        logging.warning("We only support metric with float type now!")
 
     def __repr__(self):
         return (
@@ -306,8 +308,6 @@ class UniversaCollateFn(CommonCollateFn):
                 lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
                 output[key + "_lengths"] = lens
 
-        # NOTE(jiatong): special treatment for metrics
-        logging.warning("We only support metric with float type now!")
         metrics_data = [d["metrics"] for d in data]
         output_metrics = {}
         for metric in self.metrics_list:
