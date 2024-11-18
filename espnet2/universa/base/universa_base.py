@@ -3,10 +3,10 @@
 
 """UniversaBase related modules."""
 
+import logging
 from contextlib import contextmanager
 from typing import Dict, Optional, Sequence, Tuple, Union
 
-import logging
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -212,19 +212,23 @@ class UniversaBase(AbsUniversa):
             for i in range(self.metric_size):
                 # Initialize pooling
                 if pooling_type == "mean":
-                    self.pooling.append(MeanPooling(
-                        input_size=pooling_dim, use_masking=True, **pooling_params
-                    ))
+                    self.pooling.append(
+                        MeanPooling(
+                            input_size=pooling_dim, use_masking=True, **pooling_params
+                        )
+                    )
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
                 # Initialize projector
                 if projector_type == "linear":
-                    self.projector.append(torch.nn.Linear(
-                        pooling_dim,
-                        1,
-                        **projector_params,
-                    ))
+                    self.projector.append(
+                        torch.nn.Linear(
+                            pooling_dim,
+                            1,
+                            **projector_params,
+                        )
+                    )
                 else:
                     raise ValueError(f"Not supported: {projector_type}")
         else:
@@ -445,3 +449,4 @@ class UniversaBase(AbsUniversa):
 
         """
 
+        pass
