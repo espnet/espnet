@@ -1,0 +1,93 @@
+# This is a debug config for CI
+
+########################
+# Model architecture   #
+########################
+universa: base
+universa_conf:
+  # Embedding
+  embedding_dim: 256
+
+  # Audio Encoders
+  audio_encoder_type: transformer
+  audio_encoder_params:
+    num_blocks: 4
+    attention_heads: 4
+    linear_units: 1024
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    concat_after: false
+    positionwise_layer_type: linear
+    positionwise_conv_kernel_size: 1
+    layer_drop_rate: 0.1
+    qk_norm: false
+    use_flash_attn: false
+
+  # Text Encoders
+  text_encoder_type: transformer
+  text_encoder_params:
+    num_blocks: 4
+    attention_heads: 4
+    linear_units: 1024
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: linear
+    normalize_before: true
+    concat_after: false
+    positionwise_layer_type: linear
+    positionwise_conv_kernel_size: 1
+    layer_drop_rate: 0.1
+    qk_norm: false
+    use_flash_attn: false
+
+  # Attention
+  cross_attention_type: multihead
+  cross_attention_params:
+    n_head: 4
+    dropout_rate: 0.1
+
+  pooling_type: mean
+  projector_type: linear
+  multi_branch: true
+
+# Frontend
+frontend: default
+
+########################
+# Training parameters  #
+########################
+max_epoch: 100
+batch_type: sorted
+batch_size: 64
+grad_clip: -1             # gradient clipping norm
+grad_noise: false         # whether to use gradient noise injection
+sort_in_batch: descending # how to sort data in making batch
+sort_batch: descending    # how to sort created batches
+num_workers: 1            # number of workers of data loader
+use_amp: false            # whether to use pytorch amp
+log_interval: 1          # log interval in iterations
+keep_nbest_models: 1      # number of models to keep
+num_att_plot: 0           # number of attention figures to be saved in every check
+seed: 777                 # random seed number
+patience: null            # patience for early stopping
+unused_parameters: false   # needed for multi gpu case
+init: xavier_uniform
+
+# Optimizer
+optim: adamw
+optim_conf:
+  lr: 0.001
+
+# Scheduler
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
+                           # in the case of GAN-TTS training, we strongly recommend setting to false
+cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
+                           # therefore, we set to false as a default (recommend trying both cases)
