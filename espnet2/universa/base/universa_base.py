@@ -294,7 +294,7 @@ class UniversaBase(AbsUniversa):
                 final_metrics.append(metrics[self.id2metric[i]].to(audio.device))
         if not self.multi_branch:
             final_metrics = torch.stack(final_metrics, dim=-1)
-        
+
         # 2. Encode audio
         audio_enc, audio_enc_lengths = self.encode(
             audio,
