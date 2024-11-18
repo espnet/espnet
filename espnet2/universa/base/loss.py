@@ -17,9 +17,8 @@ def masked_mse_loss(input, target, mask):
     Returns:
         torch.Tensor: Masked MSE loss.
     """
-    squared_diff = (input - target) ** 2
-    masked_squared_diff = squared_diff * mask
-    loss = torch.sum(masked_squared_diff) / torch.sum(mask)
+    squared_diff = (input * mask - target * mask) ** 2
+    loss = torch.sum(squared_diff) / torch.sum(mask)
     return loss
 
 
@@ -35,7 +34,6 @@ def masked_l1_loss(input, target, mask):
     Returns:
         torch.Tensor: Masked L1 loss.
     """
-    abs_diff = torch.abs(input - target)
-    masked_abs_diff = abs_diff * mask
-    loss = torch.sum(masked_abs_diff) / torch.sum(mask)
+    abs_diff = torch.abs(input * mask - target * mask)
+    loss = torch.sum(abs_diff) / torch.sum(mask)
     return loss

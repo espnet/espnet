@@ -32,7 +32,7 @@ class MeanPooling(AbsPooling):
         if self.use_masking and mask is not None:
             x = x.masked_fill(mask.unsqueeze(-1), 0)
             x = torch.sum(x, dim=1)
-            x = x / (torch.sum(mask, dim=1, keepdim=True) + 1e-6)
+            x = x / (x.size(1) - torch.sum(mask, dim=1, keepdim=True) + 1e-6)
         else:
             x = torch.mean(x, dim=-1)
 

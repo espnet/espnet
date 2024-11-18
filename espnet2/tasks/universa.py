@@ -86,7 +86,7 @@ class UniversaTask(AbsTask):
         group.add_argument(
             "--metric_pad_value",
             type=float,
-            default=-1e7,
+            default=-100,
             help="The padding value for metrics",
         )
         group.add_argument(
