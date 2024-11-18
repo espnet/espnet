@@ -89,9 +89,6 @@ def main(args):
         reader_conf["layer"] = int(reader_conf["layer"])
     reader = reader_class(use_gpu=args.use_gpu, **reader_conf)
 
-    os.environ["http_proxy"] = "http://127.0.0.1:7890"
-    os.environ["https_proxy"] = "http://127.0.0.1:7890"
-
     dump_feature(
         reader,
         in_filetype=args.in_filetype,

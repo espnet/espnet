@@ -599,7 +599,7 @@ if ! "${skip_data_prep}"; then
             log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
             nj=1
             scripts/feats/perform_kmeans.sh \
-                --stage 3 --stop-stage 3 \
+                --stage 1 --stop-stage 3 \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
                 --other_sets "${test_sets} ${train_sp_sets}" \
@@ -608,6 +608,7 @@ if ! "${skip_data_prep}"; then
                 --audio_format "${audio_format}" \
                 --feature_type "${kmeans_feature_type}" \
                 --layer "${layer}" \
+                --RVQ_layers "${RVQ_layers}" \
                 --feature_conf "${kmeans_feature_conf}" \
                 --km_dir "${km_dir}" \
                 --portion "${portion}" \
@@ -632,7 +633,7 @@ if ! "${skip_data_prep}"; then
                     token_files="${token_file}"
                 else
                     for i in $(seq ${RVQ_layers}); do
-                        cp "${_dump_dir}/pseudo_labels_km${nclusters}_RVQ_$((i-1)).txt" "${data_feats}/${dset}/${token_file}_RVQ_$((i-1))"
+                        cp "${_dump_dir}/pseudo_labels_RVQ_$((i-1))_km${nclusters}.txt" "${data_feats}/${dset}/${token_file}_RVQ_$((i-1))"
                         token_files+="${token_file}_RVQ_$((i-1)) "
                     done
                 fi

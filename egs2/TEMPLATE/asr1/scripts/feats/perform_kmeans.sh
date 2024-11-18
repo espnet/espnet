@@ -38,6 +38,8 @@ portion=0.1         # Portion of data from training set used to train kmeans mod
 storage_save_mode=false     # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 
+RVQ_layers=1
+
 feature_conf=       # feature configuration in json string format
 feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert
 layer=              # The layer index of SSL models to extract features from.
@@ -208,6 +210,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         ${python} pyscripts/utils/learn_kmeans.py \
             --km_path ${km_dir}/km_${nclusters}.mdl \
             --n_clusters ${nclusters} \
+            --RVQ_layers ${RVQ_layers} \
             --percent -1 \
             --in_filetype mat \
             "scp:${km_dir}/train.scp" || exit 1;
@@ -270,6 +273,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             ${python} pyscripts/feats/dump_km_label.py \
                 ${_opts} \
                 --km_path "${km_dir}/km_${nclusters}.mdl" \
+                --RVQ_layers "${RVQ_layers}" \
                 --out_filetype "mat" \
                 --use_gpu ${use_gpu} \
                 --utt2num_samples "${_dump_dir}/logdir/utt2num_samples.JOB" \
@@ -277,9 +281,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 "ark,t:${_dump_dir}/logdir/pseudo_labels_km${nclusters}.JOB.txt" || exit 1;
 
         # concatenate scp files
-        for n in $(seq ${_nj}); do
-            cat "${_dump_dir}"/logdir/pseudo_labels_km${nclusters}.${n}.txt || exit 1;
-        done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_km${nclusters}.txt || exit 1;
+        for layer_idx in $(seq 1 $((RVQ_layers))); do
+            tail_="km${nclusters}"
+            if [ ${RVQ_layers} > 1 ]; then
+                tail_="RVQ_$((layer_idx-1))_km${nclusters}"
+            fi
+            for n in $(seq ${_nj}); do
+                cat "${_dump_dir}"/logdir/pseudo_labels_${tail_}.${n}.txt || exit 1;
+            done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_${tail_}.txt || exit 1;
+        done 
     done
 fi
 

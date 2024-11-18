@@ -9,9 +9,8 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
 
-import logging
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -54,7 +53,6 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         discrete_token_layers: int = 1,
     ):
         """Initialize ESPnetSVSModel module."""
-        assert check_argument_types()
         super().__init__(
             text_extract=text_extract,
             feats_extract=feats_extract,
@@ -175,11 +173,12 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
             """
+            # print(self.discrete_token_layers, discrete_token_lengths, feats_lengths, flush=True)
+            # print(discrete_token.shape, flush=True)
+            # print(discrete_token, flush=True)
             origin_discrete_token_lengths = (
                 discrete_token_lengths // self.discrete_token_layers
             )
-            # for i in range(discrete_token.shape[0]):
-            #     logging.info(f'{i}: {discrete_token_lengths[i]} {discrete_token[i].shape}')
             for i in range(label.size(0)):
                 dur_len = sum(duration_phn[i])
                 if origin_discrete_token_lengths[i] > dur_len:
