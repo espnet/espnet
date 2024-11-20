@@ -40,7 +40,7 @@ def load_kaldi(input):
 
 
 DATA_TYPES = {
-    "sound": lambda x: soundfile.read(x)[0],
+    "sound": lambda x: print(x,flush=True) and soundfile.read(x)[0],
     "multi_columns_sound": lambda x: np.concatenate(
         [soundfile.read(xx, always_2d=True)[0] for xx in x.split()], axis=1
     ),

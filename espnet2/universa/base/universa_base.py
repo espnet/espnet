@@ -308,13 +308,15 @@ class UniversaBase(AbsUniversa):
         # 3. Multi-branch pooling and projectors
         loss = 0.0
         stats = {}
-        audio_enc_mask = make_non_pad_mask(audio_enc_lengths).to(audio_enc.device)
+        audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
                 pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
+                # print("pooling_output, audio_enc_mask", pooling_output, audio_enc_mask)
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
+                # print("pred_metric", pred_metric)
                 metric_loss = 0.0
                 # NOTE(jiatong): we use > instead of != to handle the case
                 # where the metric_pad_value is not 0
@@ -331,6 +333,7 @@ class UniversaBase(AbsUniversa):
                     )
                     metric_loss = metric_loss + metric_l1_loss
                     stats[self.id2metric[i] + "_l1"] = metric_l1_loss.detach()
+                    # print("final_metrics[i] and final_metric_mask", final_metrics[i], final_metric_mask, flush=True)
                 metric_loss = metric_loss * self.loss_weights[i]
                 stats[self.id2metric[i] + "_overall"] = metric_loss.detach()
                 loss = loss + metric_loss
@@ -449,4 +452,30 @@ class UniversaBase(AbsUniversa):
 
         """
 
-        pass
+        # 1. Encode audio
+        audio_enc, audio_enc_lengths = self.encode(
+            audio,
+            audio_lengths,
+            ref_audio,
+            ref_audio_lengths,
+            ref_text,
+            ref_text_lengths,
+        )
+
+        # 2. Multi-branch pooling and projectors
+        audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
+        if self.multi_branch:
+            pred_metrics = []
+            for i in range(self.metric_size):
+                pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
+                # print("pooling_output, audio_enc_mask", pooling_output, audio_enc_mask)
+                with autocast(False):
+                    # skip numeric stability with float16
+                    pred_metric = self.projector[i](pooling_output)
+                pred_metrics.append(pred_metric)
+        else:
+            pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
+            with autocast(False):
+                # skip numeric stability with float16
+                pred_metric = self.projector(pooling_output)
+        return pred_metric
