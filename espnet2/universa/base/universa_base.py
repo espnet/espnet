@@ -311,7 +311,8 @@ class UniversaBase(AbsUniversa):
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
+                pooling_output = self.pooling[i](audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+                pooling_output = pooling_output.permute(0, 2, 1) # revert to (B, T, C)
                 # print("pooling_output, audio_enc_mask", pooling_output, audio_enc_mask)
                 with autocast(False):
                     # skip numeric stability with float16
@@ -339,7 +340,8 @@ class UniversaBase(AbsUniversa):
                 loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
-            pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
+            pooling_output = self.pooling(audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+            pooling_output = pooling_output.permute(0, 2, 1) # revert to (B, T, C)
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metric = self.projector(pooling_output)
