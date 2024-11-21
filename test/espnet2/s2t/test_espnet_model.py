@@ -17,7 +17,8 @@ def test_espnet_model(encoder_arch, decoder_arch):
         "<nospeech>",
         "<en>",
         "<asr>",
-        "<st_en>" "<notimestamps>",
+        "<st_en>",
+        "<notimestamps>",
         "<0.00>",
         "<30.00>",
         "a",
@@ -28,8 +29,12 @@ def test_espnet_model(encoder_arch, decoder_arch):
     ]
     vocab_size = len(token_list)
     enc_out = 4
-    encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
-    decoder = decoder_arch(vocab_size, enc_out, linear_units=4, num_blocks=2)
+    encoder = encoder_arch(
+        20, output_size=enc_out, linear_units=4, num_blocks=2, use_flash_attn=False
+    )
+    decoder = decoder_arch(
+        vocab_size, enc_out, linear_units=4, num_blocks=2, use_flash_attn=False
+    )
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
 
     model = ESPnetS2TModel(

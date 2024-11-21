@@ -16,21 +16,21 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.callhm.ctm.filt.sys|2628|21594|88.7|8.4|2.9|2.1|13.4|46.2|
-|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.ctm.filt.sys|4459|42989|91.2|6.1|2.8|1.5|10.4|41.5|
-|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.swbd.ctm.filt.sys|1831|21395|93.7|3.7|2.6|1.0|7.3|34.8|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.callhm.ctm.filt.sys|2628|21594|89.1|8.4|2.5|2.1|13.1|46.0|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.ctm.filt.sys|4459|42989|91.8|6.1|2.1|1.6|9.8|41.3|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.swbd.ctm.filt.sys|1831|21395|94.5|3.8|1.7|1.0|6.4|34.5|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/eval2000|4322|181952|93.1|3.3|3.6|10.7|17.7|67.7|
+|decode_asr_asr_model_valid.acc.ave/eval2000|4351|193404|93.0|3.3|3.7|5.3|12.3|67.9|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/eval2000|4322|47227|83.0|12.6|4.4|15.3|32.3|67.7|
+|decode_asr_asr_model_valid.acc.ave/eval2000|4351|50250|82.9|12.4|4.7|9.8|26.9|67.9|
 
 
 # Conformer
