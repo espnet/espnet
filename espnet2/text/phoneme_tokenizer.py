@@ -7,7 +7,7 @@ from typing import Iterable, List, Optional, Union
 import g2p_en
 import jamo
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
@@ -200,11 +200,15 @@ def pypinyin_g2p_phone(text) -> List[str]:
         for phone in pinyin(text, style=Style.TONE3)
         for p in [
             get_initials(phone[0], strict=True),
-            get_finals(phone[0][:-1], strict=True) + phone[0][-1]
-            if phone[0][-1].isdigit()
-            else get_finals(phone[0], strict=True)
-            if phone[0][-1].isalnum()
-            else phone[0],
+            (
+                get_finals(phone[0][:-1], strict=True) + phone[0][-1]
+                if phone[0][-1].isdigit()
+                else (
+                    get_finals(phone[0], strict=True)
+                    if phone[0][-1].isalnum()
+                    else phone[0]
+                )
+            ),
         ]
         # Remove the case of individual tones as a phoneme
         if len(p) != 0 and not p.isdigit()
@@ -432,14 +436,14 @@ class IsG2p:  # pylint: disable=too-few-public-methods
 
 
 class PhonemeTokenizer(AbsTokenizer):
+    @typechecked
     def __init__(
         self,
         g2p_type: Union[None, str],
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        non_linguistic_symbols: Union[None, Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
     ):
-        assert check_argument_types()
         if g2p_type is None:
             self.g2p = split_by_space
         elif g2p_type == "g2p_en":

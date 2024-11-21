@@ -1,32 +1,30 @@
-# ESPnet2 ASR2 Recipe TEMPLATE
+# Automatic Speech Recognition with Discrete Units
 
 This is a template of ASR2 recipe for ESPnet2.
 The difference from ASR1 is that discrete tokens are used as input instead of conventional audios / spectrum features.
 
 ## Table of Contents
 
-* [ESPnet2 ASR2 Recipe TEMPLATE](#espnet2-asr2-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Wav format](#3-wav-format)
-    * [4\. Generate discrete tokens](#4-generate-discrete-tokens)
-    * [5\. Generate dump folder](#5-generate-dump-folder)
-    * [6\. Removal of long / short data](#6-removal-of-long--short-data)
-    * [7\. Input / Output Token list generation](#7-input-output-token-list-generation)
-    * [8\. LM statistics collection](#8-lm-statistics-collection)
-    * [9\. LM training](#9-lm-training)
-    * [10\. LM perplexity](#10-lm-perplexity)
-    * [11\. Ngram-LM training](#11-ngram-lm-training)
-    * [12\. ASR statistics collection](#12-asr-statistics-collection)
-    * [13\. ASR training](#13-asr-training)
-    * [14\. ASR inference](#14-asr-inference)
-    * [15\. ASR scoring](#15-asr-scoring)
-    * [16\-18\. (Optional) Pack results for upload](#16-18-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [LibriSpeech training](#librispeech-training)
-  * [Related works](#related-works)
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Speed perturbation](#2-speed-perturbation)
+  * [3\. Wav format](#3-wav-format)
+  * [4\. Removal of long / short data](#4-removal-of-long--short-data)
+  * [5\. Generate discrete tokens](#5-generate-discrete-tokens)
+  * [6\. Generate dump raw folder](#6-generate-dump-raw-folder)
+  * [7\. Input and Output token list generation](#7-input-and-output-token-list-generation)
+  * [8\. LM statistics collection](#8-lm-statistics-collection)
+  * [9\. LM training](#9-lm-training)
+  * [10\. LM perplexity](#10-lm-perplexity)
+  * [11\. Ngram-LM training](#11-ngram-lm-training)
+  * [12\. ASR statistics collection](#12-asr-statistics-collection)
+  * [13\. ASR training](#13-asr-training)
+  * [14\. ASR inference](#14-asr-inference)
+  * [15\. ASR scoring](#15-asr-scoring)
+  * [16\-18\. (Optional) Pack results for upload](#16-18-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [LibriSpeech training](#librispeech-training)
+* [Related works](#related-works)
 
 ## Recipe flow
 
@@ -51,7 +49,13 @@ Augment training data with speed perturbation. `data/${train_set}_spXX` would be
 
 Format the wave files in `wav.scp` to a single format (wav / flac / kaldi_ark).
 
-### 4. Generate discrete tokens
+### 4. Removal of long / short data
+
+Remove utterances by the following conditions
+  1. Too short / long utterances.
+  2. 0-length in target text.
+
+### 5. Generate discrete tokens
 
 The discrete tokens of the input speech signals are generated. For ASR2 task, the input is the discrete tokens (from self-supervised learning (SSL) features) and the target is the ASR transcriptions. After getting the discrete tokens (usually in integers), they will be converted to CJK characters, which are more convenient in tokenization.
 #### Input / Target / Process of data preparation
@@ -63,16 +67,11 @@ The discrete tokens of the input speech signals are generated. For ASR2 task, th
   4. (Optional) Measure the discrete tokens quality if forced-alignment is accessible.
 
 
-### 5. Generate dump folder
+### 6. Generate dump raw folder
 
-Dumping stage.
-This stage move necessary files for training from `data` folder to `dump` folder.
+This stage move necessary files for training from `dump/extracted` folder to `dump/raw` folder.
 
-### 6. Removal of long / short data
-
-TODO.
-
-### 7. Token list generation
+### 7. Input and Output token list generation
 
 Token list (BPE / Char / etc) generation for both input and targets.
 
@@ -127,16 +126,15 @@ ASR inference stage.
 
 ASR scoring stage: error rates (char / word / token) are computed.
 
-### 16-18. (Optional) Pack results for upload
+### 16. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
-If you want to run this stage, you need to register your account in zenodo.
+It packs the trained model files to prepare for uploading to Hugging Face.
 
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 
-#### Stage 16-18: Upload model
+#### 17: (Optional) Upload model
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 

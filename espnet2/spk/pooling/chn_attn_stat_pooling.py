@@ -5,8 +5,8 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
 class ChnAttnStatPooling(AbsPooling):
-    """
-    Aggregates frame-level features to single utterance-level feature.
+    """Aggregates frame-level features to single utterance-level feature.
+
     Proposed in B.Desplanques et al., "ECAPA-TDNN: Emphasized Channel
     Attention, Propagation and Aggregation in TDNN Based Speaker Verification"
 
@@ -26,8 +26,16 @@ class ChnAttnStatPooling(AbsPooling):
             nn.Conv1d(128, input_size, kernel_size=1),
             nn.Softmax(dim=2),
         )
+        self._output_size = input_size * 2
 
-    def forward(self, x):
+    def output_size(self):
+        return self._output_size
+
+    def forward(self, x, task_tokens: torch.Tensor = None):
+        if task_tokens is not None:
+            raise ValueError(
+                "ChannelAttentiveStatisticsPooling is not adequate for task_tokens"
+            )
         t = x.size()[-1]
         global_x = torch.cat(
             (
@@ -43,9 +51,7 @@ class ChnAttnStatPooling(AbsPooling):
         w = self.attention(global_x)
 
         mu = torch.sum(x * w, dim=2)
-        sg = torch.sqrt(
-            (torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-4, max=1e4)
-        )
+        sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-4, max=1e4))
 
         x = torch.cat((mu, sg), dim=1)
 

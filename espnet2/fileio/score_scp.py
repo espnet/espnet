@@ -4,17 +4,17 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text
 
 try:
     import music21 as m21  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     m21 = None
 try:
     import miditoolkit  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     miditoolkit = None
 
 
@@ -40,12 +40,12 @@ class XMLReader(collections.abc.Mapping):
         >>> tempo, note_list = reader['key1']
     """
 
+    @typechecked
     def __init__(
         self,
-        fname,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        dtype: type = np.int16,
     ):
-        assert check_argument_types()
         assert m21 is not None, (
             "Cannot load music21 package. ",
             "Please install Muskit modules via ",
@@ -58,7 +58,16 @@ class XMLReader(collections.abc.Mapping):
     def __getitem__(self, key):
         score = m21.converter.parse(self.data[key])
         m = score.metronomeMarkBoundaries()
-        tempo = int(m[0][2].number)
+
+        # NOTE(Yuxun): tempo with '(playback only)' returns None in item[2].number
+        tempo = None
+        for item in m:
+            tempo_number = item[2].number
+            if tempo_number is not None:
+                tempo = tempo_number
+                break
+        tempo = int(tempo)
+
         part = score.parts[0].flat
         notes_list = []
         prepitch = -1
@@ -73,7 +82,7 @@ class XMLReader(collections.abc.Mapping):
                             note = n
                             break
                 if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
-                    if note.pitch.midi == prepitch:  # same pitch
+                    if note.pitch.midi == prepitch or prepitch == 0:  # same pitch
                         notes_list[-1].et += dur
                     else:  # different pitch
                         notes_list.append(NOTE("—", note.pitch.midi, st, st + dur))
@@ -141,12 +150,12 @@ class XMLWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
         scpfile: Union[Path, str],
     ):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)
@@ -212,13 +221,13 @@ class MIDReader(collections.abc.Mapping):
         >>> tempo, note_list = reader['key1']
     """
 
+    @typechecked
     def __init__(
         self,
-        fname,
-        add_rest=True,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        add_rest: bool = True,
+        dtype: type = np.int16,
     ):
-        assert check_argument_types()
         assert miditoolkit is not None, (
             "Cannot load miditoolkit package. ",
             "Please install Muskit modules via ",
@@ -284,12 +293,12 @@ class SingingScoreReader(collections.abc.Mapping):
 
     """
 
+    @typechecked
     def __init__(
         self,
-        fname,
-        dtype=np.int16,
+        fname: Union[Path, str],
+        dtype: type = np.int16,
     ):
-        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.data = read_2columns_text(fname)
@@ -331,12 +340,12 @@ class SingingScoreWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
         scpfile: Union[Path, str],
     ):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)

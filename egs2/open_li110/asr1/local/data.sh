@@ -14,6 +14,8 @@ stage=1       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 # missing tig because of only 6 utt in cv
+# (Jinchuan): can config these lang settings to prepare the corpus partially.
+# e.g., we only adopt the OpenSLR part during the OWSM v3 preparation
 langs="ab af bg cv eo fy-NL hu ka lv mt pl sah\
  st tn ta xh uk zh-HK ar bn cy es ga-IE hy-AM kab\
  mdf myv pt sat th ur zh-TW as br da et gl ia kk\
@@ -22,10 +24,16 @@ langs="ab af bg cv eo fy-NL hu ka lv mt pl sah\
  ba ckb dv fa ha ig ky yo ml nn-NO ro sr tr vot bas\
  cnh el fi hi it lg mn or ru sv-SE tt yue be cs en\
  fr hsb ja jv lt mr pa-IN rw sw ug zh-CN si af in hr sv"
+ voxforge_lang="de en es fr it nl pt ru"
+commonvoice_lang="ab bg cv eo fy-NL hu ka lv mt pl sah ta uk zh-HK ar bn cy es ga-IE hy-AM kab mdf myv pt sat th ur zh-TW as br da et gl ia kk nan-tw sk uz az ca de eu gn id mk nl sl tok vi ba ckb dv fa ha ig ky ml nn-NO ro sr tr vot bas cnh el fi hi it lg mn or ru tt yue be cs fr hsb ja lt pa-IN rw sw ug zh-CN"
+googlei18n_lang_30_32_37="af st tn xh bn"
+googlei18n_lang_asr="jv su si bn ne"
+googlei18n_lang_tts="jv km ne su es ml mr ta te ca es es es es es eu gl gu kn yo"
+mls_lang="en de fr it es nl pl pt"
+voxpopuli_lang="en de fr es pl it ro hu cs nl fi hr sk sl et lt"
 extra_langs="rm-sursilv rm-vallader kmr mhr sv-SE" # for cv only
 lid=true
 nlsyms_txt=data/local/nlsyms.txt
-
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -42,13 +50,6 @@ set -o pipefail
 . utils/parse_options.sh
 
 langs=$(echo "${langs}" | tr _ " ")
-voxforge_lang="de en es fr it nl pt ru"
-commonvoice_lang="ab bg cv eo fy-NL hu ka lv mt pl sah ta uk zh-HK ar bn cy es ga-IE hy-AM kab mdf myv pt sat th ur zh-TW as br da et gl ia kk nan-tw sk uz az ca de eu gn id mk nl sl tok vi ba ckb dv fa ha ig ky ml nn-NO ro sr tr vot bas cnh el fi hi it lg mn or ru tt yue be cs fr hsb ja lt pa-IN rw sw ug zh-CN"
-googlei18n_lang_30_32_37="af st tn xh bn"
-googlei18n_lang_asr="jv su si bn ne"
-googlei18n_lang_tts="jv km ne su es ml mr ta te ca es es es es es eu gl gu kn yo"
-mls_lang="en de fr it es nl pl pt"
-voxpopuli_lang="en de fr es pl it ro hu cs nl fi hr sk sl et lt"
 
 train_set=train_li110_lid
 train_dev=dev_li110_lid
@@ -61,6 +62,7 @@ mkdir -p ${VOXFORGE}
 mkdir -p ${MLS}
 mkdir -p ${GOOGLEI18N}
 mkdir -p ${VOXPOPULI}
+mkdir -p data/local
 
 for lang in ${langs}; do
 
@@ -307,7 +309,9 @@ for lang in ${langs}; do
                     '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " $1 "_" $2}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
                 awk -v lang_id="${lang_id}" -F '[\t]' \
-                    '{print $1 "-" lang_id "_openslr " $2}' \
+                    '{printf "%s-%s_openslr ", $1, lang_id; \
+                     for(i=2;i<=NF;i=i+1)printf " %s", $i; \
+                     print ""}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/text
                 if [ ${lang_id} = bn_in ]; then
                     awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' \
@@ -323,7 +327,87 @@ for lang in ${langs}; do
                 sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
                 utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
                 echo "${data_folder}"
-                utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
+
+                # (Jinchuan) filter out some utterances based on a blanklist
+                cat ${target_dir}/text \
+                  | grep -v "taf_02330_01989228272-ta_in_openslr" \
+                  | grep -v "taf_06478_02041764997-ta_in_openslr" \
+                  | grep -v "tag_01424_01843292347-ta_in_openslr" \
+                  | grep -v "tag_03762_01642809597-ta_in_openslr" \
+                  | grep -v "gam_04310_00312579915-gl_es_openslr" \
+                  | grep -v "gam_04310_00875880434-gl_es_openslr" \
+                  | grep -v "gam_04310_01272779927-gl_es_openslr" \
+                  | grep -v "gam_05223_01373016588-gl_es_openslr" \
+                  | grep -v "gam_07049_00701050358-gl_es_openslr" \
+                  | grep -v "gam_05223_02087127029-gl_es_openslr" \
+                  | grep -v "gam_05223_01076963606-gl_es_openslr" \
+                  | grep -v "euf_00295_01893521215-eu_es_openslr" \
+                  | grep -v "euf_00295_01314140210-eu_es_openslr" \
+                  | grep -v "euf_00610_01211560433-eu_es_openslr" \
+                  | grep -v "euf_01208_00009874634-eu_es_openslr" \
+                  | grep -v "euf_03349_01550395205-eu_es_openslr" \
+                  | grep -v "euf_03853_00628540968-eu_es_openslr" \
+                  | grep -v "euf_07060_00213730043-eu_es_openslr" \
+                  | grep -v "eum_01523_01219168900-eu_es_openslr" \
+                  | grep -v "eum_04766_00657333269-eu_es_openslr" \
+                  | grep -v "euf_07060_00697458723-eu_es_openslr" \
+                  | grep -v "euf_09799_01620824283-eu_es_openslr" \
+                  | grep -v "eum_03853_01282461583-eu_es_openslr" \
+                  | grep -v "euf_00610_00465860256-eu_es_openslr" \
+                  | grep -v "euf_00610_01106303804-eu_es_openslr" \
+                  | grep -v "euf_00610_01239270609-eu_es_openslr" \
+                  | grep -v "euf_02121_00669162674-eu_es_openslr" \
+                  | grep -v "euf_02436_00929534179-eu_es_openslr" \
+                  | grep -v "euf_03853_00231456470-eu_es_openslr" \
+                  | grep -v "euf_04766_01544413009-eu_es_openslr" \
+                  | grep -v "euf_05679_00485762773-eu_es_openslr" \
+                  | grep -v "euf_01523_00324147950-eu_es_openslr" \
+                  | grep -v "euf_05679_00485762773-eu_es_openslr" \
+                  | grep -v "euf_05679_01258317050-eu_es_openslr" \
+                  | grep -v "euf_05679_01258317050-eu_es_openslr" \
+                  | grep -v "euf_06592_01380421524-eu_es_openslr" \
+                  | grep -v "euf_07508_01494379061-eu_es_openslr" \
+                  | grep -v "euf_07973_00596090881-eu_es_openslr" \
+                  | grep -v "euf_08421_02024937525-eu_es_openslr" \
+                  | grep -v "euf_08886_01771093684-eu_es_openslr" \
+                  | grep -v "euf_07060_00947694199-eu_es_openslr" \
+                  | grep -v "euf_09697_01506375999-eu_es_openslr" \
+                  | grep -v "eum_00610_00749334522-eu_es_openslr" \
+                  | grep -v "eum_01523_00553420190-eu_es_openslr" \
+                  | grep -v "eum_01523_00660931350-eu_es_openslr" \
+                  | grep -v "eum_02436_01611638784-eu_es_openslr" \
+                  | grep -v "eum_03034_01804305674-eu_es_openslr" \
+                  | grep -v "eum_03349_00719942678-eu_es_openslr" \
+                  | grep -v "eum_03853_00698864714-eu_es_openslr" \
+                  | grep -v "eum_03853_00895225013-eu_es_openslr" \
+                  | grep -v "eum_03853_00966800196-eu_es_openslr" \
+                  | grep -v "eum_03853_01197480723-eu_es_openslr" \
+                  | grep -v "eum_03853_02038204575-eu_es_openslr" \
+                  | grep -v "eum_05679_00339573054-eu_es_openslr" \
+                  | grep -v "eum_06592_00411103064-eu_es_openslr" \
+                  | grep -v "eum_07049_01039749170-eu_es_openslr" \
+                  | grep -v "eum_07060_00855763987-eu_es_openslr" \
+                  | grep -v "eum_07505_00338870879-eu_es_openslr" \
+                  | grep -v "eum_07505_02114724564-eu_es_openslr" \
+                  | grep -v "eum_07508_02094607114-eu_es_openslr" \
+                  | grep -v "eum_07973_01835601291-eu_es_openslr" \
+                  | grep -v "eum_08784_00597657108-eu_es_openslr" \
+                  | grep -v "eum_08784_00887767889-eu_es_openslr" \
+                  | grep -v "eum_08886_02045745379-eu_es_openslr" \
+                  | grep -v "eum_09697_01037765726-eu_es_openslr" \
+                  | grep -v "euf_00610_00465074885-eu_es_openslr" \
+                  | grep -v "eum_01523_01943879076-eu_es_openslr" \
+                  | grep -v "eum_00610_00892063759-eu_es_openslr" \
+                  | grep -v "euf_07060_01902085033-eu_es_openslr" \
+                  | sed -e 's/\[snap\]//g' \
+                  | sed -e 's/\[external\]//g' \
+                  | sed -e 's/\[breath\]//g' \
+                  | sed -e 's/\[abrupt\]//g' \
+                  | sed -e 's/\[hesitation\]//g' \
+                  > ${target_dir}/text.tmp
+                mv ${target_dir}/text.tmp ${target_dir}/text
+
+                utils/fix_data_dir.sh ${target_dir}
 
                 utils/subset_data_dir.sh \
                     data/openslr${openslr_id}_${lang_id} \
@@ -368,9 +452,20 @@ for lang in ${langs}; do
                 awk -v lang_id="${lang_id}" -F '[_\t]' \
                     '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " "_" $1 "_" $2}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
-                awk -v lang_id="${lang_id}" -F '[\t]' \
-                    '{print $1 "-" lang_id "_openslr " $2}' \
-                    ${data_folder}/line_index.tsv  > ${target_dir}/text
+                if [ ${dialect_lang} = "41-jv_id-male" ]; then
+                    awk -v lang_id="${lang_id}" -F '[\t]' \
+                        '{printf "%s-%s_openslr ", $1, lang_id; \
+                        for(i=3;i<=NF;i=i+1)printf " %s", $i; \
+                        print ""}' \
+                        ${data_folder}/line_index.tsv  > ${target_dir}/text
+                    echo "fix this"
+                else
+                    awk -v lang_id="${lang_id}" -F '[\t]' \
+                        '{printf "%s-%s_openslr ", $1, lang_id; \
+                        for(i=2;i<=NF;i=i+1)printf " %s", $i; \
+                        print ""}' \
+                        ${data_folder}/line_index.tsv  > ${target_dir}/text
+                fi
                 awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' \
                     '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3 ".wav"}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
@@ -378,7 +473,7 @@ for lang in ${langs}; do
                 sort ${target_dir}/text -o ${target_dir}/text
                 sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
                 utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
-                utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
+                utils/fix_data_dir.sh ${target_dir}
 
                 utils/subset_data_dir.sh \
                     data/openslr${openslr_id}_${lang_id}_${gender} \
@@ -457,7 +552,9 @@ for lang in ${langs}; do
                 ${prefix_info}/utt_spk_text.tsv  > ${target_dir}/utt2spk
 
             awk -v lang_id="${lang_id}" -F '[_\t]' \
-                '{print $2 "_" $1 "-" lang_id "_openslr " $3}' \
+                '{printf "%s_%s-%s_openslr ", $2, $1, lang_id; \
+                for(i=3;i<=NF;i=i+1)printf " %s", $i; \
+                print ""}' \
                 ${prefix_info}/utt_spk_text.tsv  > ${target_dir}/text
 
             awk -v lang_id="${lang_id}" -v src_dir="${prefix_info}" -F '[_\t]' \
@@ -468,7 +565,17 @@ for lang in ${langs}; do
             sort ${target_dir}/text -o ${target_dir}/text
             sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
             utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
-            utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
+
+            # (Jinchuan) filter out some utterances based on a blanklist
+            cat ${target_dir}/text \
+                | grep -v "1654e_3ac524c1f0-nepali_openslr" \
+                | grep -v "31a35_a3f015e74a-nepali_openslr" \
+                | grep -v "aead3_7c495eea55-nepali_openslr" \
+                | grep -v "e4714_229db8775b-nepali_openslr" \
+                > ${target_dir}/text.tmp
+            mv ${target_dir}/text.tmp ${target_dir}/text
+
+            utils/fix_data_dir.sh ${target_dir}
 
             utils/subset_data_dir.sh \
                 data/openslr${openslr_id}_${lang_id} \
@@ -522,13 +629,16 @@ for lang in ${langs}; do
             log "sub-stage0: Download data to ${GOOGLEI18N}"
             echo "pending"
         fi
-
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             log "sub-stage 1: Data Preparation for Openslr low-resource ASR corpora"
             for direct_lang in ${processing_list}; do
                 openslr_id=$(echo ${direct_lang} | cut -f1 -d-)
                 prefix=$(echo ${direct_lang} | cut -f2 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${prefix}
+                # (Jinchuan): bn_in will override bn_bd
+                if [ ${direct_lang} = "37-bn_bd" ] || [ ${direct_lang} = "37-bn_in" ]; then
+                    lang=${prefix}
+                fi
                 target_dir=data/openslr${openslr_id}_${lang}
                 mkdir -p ${target_dir}
 
@@ -537,12 +647,21 @@ for lang in ${langs}; do
                     ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
 
                 awk -v lang="${lang}" -F '[\t]' \
-                    '{print $1 "-" lang "_openslr " $2}' \
+                    '{printf "%s-%s_openslr ", $1, lang; \
+                     for(i=2;i<=NF;i=i+1)printf " %s", $i; \
+                     print ""}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/text
 
-                awk -v lang="${lang}" -v src_dir="${data_folder}" -F '[_\t]' \
-                    '{print $1 "_" $2 "_" $3 "-" lang "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3 ".wav"}' \
-                    ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+                # (Jinchuan) tsv file for bn_id has extra '.wav' suffix
+                if [ ${lang} = "bn_in" ]; then
+                    awk -v lang="${lang}" -v src_dir="${data_folder}" -F '[_\t]' \
+                        '{print $1 "_" $2 "_" $3 "-" lang "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3}' \
+                        ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+                else
+                    awk -v lang="${lang}" -v src_dir="${data_folder}" -F '[_\t]' \
+                        '{print $1 "_" $2 "_" $3 "-" lang "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3 ".wav"}' \
+                        ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+                fi
 
                 sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
                 sort ${target_dir}/text -o ${target_dir}/text
@@ -668,61 +787,61 @@ for lang in ${extra_langs}; do
 done
 
 # Full test set for reference
-test_set="test_ab_commonvoice test_fy_NL_commonvoice test_or_commonvoice \
-test_af_openslr32 test_ga_IE_commonvoice test_pa_IN_commonvoice \
-test_ar_commonvoice test_gl_commonvoice \
-test_as_commonvoice test_gl_openslr77 test_pl_commonvoice \
-test_az_commonvoice test_gn_commonvoice test_pl_mls \
-test_ba_commonvoice test_gu_openslr78 test_pl_voxpopuli \
-test_bas_commonvoice test_ha_commonvoice test_pt_commonvoice \
-test_be_commonvoice test_hi_commonvoice test_pt_mls \
-test_bg_commonvoice test_hr_voxpopuli test_pt_voxforge \
-test_bn_commonvoice test_hsb_commonvoice test_rm_sursilv_commonvoice \
-test_bn_openslr37 test_hu_commonvoice \
-test_bn_openslr53 test_hu_voxpopuli test_rm_vallader_commonvoice \
-test_br_commonvoice test_hy_AM_commonvoice \
-test_ca_commonvoice test_ia_commonvoice test_ro_commonvoice \
-test_ca_openslr69 test_id_commonvoice test_ro_voxpopuli \
-test_ckb_commonvoice test_ig_commonvoice test_ru_commonvoice \
-test_cnh_commonvoice test_it_commonvoice test_ru_voxforge \
-test_cs_commonvoice test_it_mls test_rw_commonvoice \
-test_cs_voxpopuli test_it_voxforge test_sah_commonvoice \
-test_cv_commonvoice test_it_voxpopuli test_sat_commonvoice \
-test_cy_commonvoice test_ja_commonvoice test_si_openslr52 \
-test_da_commonvoice test_jv_openslr35 test_sk_commonvoice \
-test_de_commonvoice test_jv_openslr41_female test_sk_voxpopuli \
-test_de_mls test_jv_openslr41_male test_sl_commonvoice \
-test_de_voxforge test_kab_commonvoice test_sl_voxpopuli \
-test_de_voxpopuli test_ka_commonvoice test_sr_commonvoice \
-test_dv_commonvoice test_kk_commonvoice test_st_openslr32 \
-test_el_commonvoice test_km_openslr42_male test_su_openslr36 \
-test_en_commonvoice test_kmr_commonvoice test_su_openslr44_female \
-test_en_mls test_su_openslr44_male \
-test_en_openslr70 test_kn_openslr79 test_sv_SE_commonvoice \
-test_en_voxforge test_ky_commonvoice \
-test_en_voxpopuli test_lg_commonvoice test_sw_commonvoice \
-test_eo_commonvoice test_lt_commonvoice test_ta_commonvoice \
-test_es_commonvoice test_lt_voxpopuli test_ta_openslr65 \
-test_es_mls test_lv_commonvoice test_te_openslr66 \
-test_es_openslr61 test_mdf_commonvoice test_th_commonvoice \
-test_es_openslr71 test_mhr_commonvoice test_tig_commonvoice \
-test_es_openslr72 test_tn_openslr32 \
-test_es_openslr73 test_mk_commonvoice test_tok_commonvoice \
-test_es_openslr74 test_ml_commonvoice test_tr_commonvoice \
-test_es_openslr75 test_ml_openslr63 test_tt_commonvoice \
-test_es_voxforge test_mn_commonvoice test_ug_commonvoice \
-test_es_voxpopuli test_mr_commonvoice test_uk_commonvoice \
-test_et_commonvoice test_mr_openslr64 test_ur_commonvoice \
-test_et_voxpopuli test_mt_commonvoice test_uz_commonvoice \
-test_eu_commonvoice test_myv_commonvoice test_vi_commonvoice \
-test_eu_openslr76 test_nan_tw_commonvoice test_vot_commonvoice \
-test_fa_commonvoice test_ne_openslr43_female test_xh_openslr32 \
-test_fi_commonvoice test_ne_openslr54 test_yo_openslr86 \
-test_fi_voxpopuli test_nl_commonvoice test_yue_commonvoice \
-test_fr_commonvoice test_nl_mls test_zh_CN_commonvoice \
-test_fr_mls test_nl_voxforge test_zh_HK_commonvoice \
-test_fr_voxforge test_nl_voxpopuli test_zh_TW_commonvoice \
-test_fr_voxpopuli test_nn_NO_commonvoice"
+# test_set="test_ab_commonvoice test_fy_NL_commonvoice test_or_commonvoice \
+# test_af_openslr32 test_ga_IE_commonvoice test_pa_IN_commonvoice \
+# test_ar_commonvoice test_gl_commonvoice \
+# test_as_commonvoice test_gl_openslr77 test_pl_commonvoice \
+# test_az_commonvoice test_gn_commonvoice test_pl_mls \
+# test_ba_commonvoice test_gu_openslr78 test_pl_voxpopuli \
+# test_bas_commonvoice test_ha_commonvoice test_pt_commonvoice \
+# test_be_commonvoice test_hi_commonvoice test_pt_mls \
+# test_bg_commonvoice test_hr_voxpopuli test_pt_voxforge \
+# test_bn_commonvoice test_hsb_commonvoice test_rm_sursilv_commonvoice \
+# test_bn_openslr37 test_hu_commonvoice \
+# test_bn_openslr53 test_hu_voxpopuli test_rm_vallader_commonvoice \
+# test_br_commonvoice test_hy_AM_commonvoice \
+# test_ca_commonvoice test_ia_commonvoice test_ro_commonvoice \
+# test_ca_openslr69 test_id_commonvoice test_ro_voxpopuli \
+# test_ckb_commonvoice test_ig_commonvoice test_ru_commonvoice \
+# test_cnh_commonvoice test_it_commonvoice test_ru_voxforge \
+# test_cs_commonvoice test_it_mls test_rw_commonvoice \
+# test_cs_voxpopuli test_it_voxforge test_sah_commonvoice \
+# test_cv_commonvoice test_it_voxpopuli test_sat_commonvoice \
+# test_cy_commonvoice test_ja_commonvoice test_si_openslr52 \
+# test_da_commonvoice test_jv_openslr35 test_sk_commonvoice \
+# test_de_commonvoice test_jv_openslr41_female test_sk_voxpopuli \
+# test_de_mls test_jv_openslr41_male test_sl_commonvoice \
+# test_de_voxforge test_kab_commonvoice test_sl_voxpopuli \
+# test_de_voxpopuli test_ka_commonvoice test_sr_commonvoice \
+# test_dv_commonvoice test_kk_commonvoice test_st_openslr32 \
+# test_el_commonvoice test_km_openslr42_male test_su_openslr36 \
+# test_en_commonvoice test_kmr_commonvoice test_su_openslr44_female \
+# test_en_mls test_su_openslr44_male \
+# test_en_openslr70 test_kn_openslr79 test_sv_SE_commonvoice \
+# test_en_voxforge test_ky_commonvoice \
+# test_en_voxpopuli test_lg_commonvoice test_sw_commonvoice \
+# test_eo_commonvoice test_lt_commonvoice test_ta_commonvoice \
+# test_es_commonvoice test_lt_voxpopuli test_ta_openslr65 \
+# test_es_mls test_lv_commonvoice test_te_openslr66 \
+# test_es_openslr61 test_mdf_commonvoice test_th_commonvoice \
+# test_es_openslr71 test_mhr_commonvoice test_tig_commonvoice \
+# test_es_openslr72 test_tn_openslr32 \
+# test_es_openslr73 test_mk_commonvoice test_tok_commonvoice \
+# test_es_openslr74 test_ml_commonvoice test_tr_commonvoice \
+# test_es_openslr75 test_ml_openslr63 test_tt_commonvoice \
+# test_es_voxforge test_mn_commonvoice test_ug_commonvoice \
+# test_es_voxpopuli test_mr_commonvoice test_uk_commonvoice \
+# test_et_commonvoice test_mr_openslr64 test_ur_commonvoice \
+# test_et_voxpopuli test_mt_commonvoice test_uz_commonvoice \
+# test_eu_commonvoice test_myv_commonvoice test_vi_commonvoice \
+# test_eu_openslr76 test_nan_tw_commonvoice test_vot_commonvoice \
+# test_fa_commonvoice test_ne_openslr43_female test_xh_openslr32 \
+# test_fi_commonvoice test_ne_openslr54 test_yo_openslr86 \
+# test_fi_voxpopuli test_nl_commonvoice test_yue_commonvoice \
+# test_fr_commonvoice test_nl_mls test_zh_CN_commonvoice \
+# test_fr_mls test_nl_voxforge test_zh_HK_commonvoice \
+# test_fr_voxforge test_nl_voxpopuli test_zh_TW_commonvoice \
+# test_fr_voxpopuli test_nn_NO_commonvoice"
 
 log "Using test sets: ${test_set}"
 

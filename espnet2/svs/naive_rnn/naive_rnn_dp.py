@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 import logging
 
@@ -34,6 +34,7 @@ class NaiveRNNDP(AbsSVS):
     predict the singing voice features
     """
 
+    @typechecked
     def __init__(
         self,
         # network structure related
@@ -124,7 +125,6 @@ class NaiveRNNDP(AbsSVS):
             predict_pitch (bool): Whether to predict pitch when use_discrete_tokens.
 
         """
-        assert check_argument_types()
         super().__init__()
 
         # store hyperparameters

@@ -13,11 +13,13 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 import soundfile as sf
 import torch
-from typeguard import check_argument_types
+from packaging.version import parse as V
+from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
+from espnet2.tasks.gan_svs import GANSVSTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -31,16 +33,68 @@ class SingingGenerate:
     """SingingGenerate class
 
     Examples:
+        Example 1: SVS
         >>> import soundfile
-        >>> svs = SingingGenerate("config.yml", "model.pth")
-        >>> wav = svs("Hello World")[0]
-        >>> soundfile.write("out.wav", wav.numpy(), svs.fs, "PCM_16")
+        >>> import numpy as np
+        >>> svs = svs = SingingGenerate(
+        ...     "config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl"
+        ... )
+        >>> batch = {
+        ...     "score": (
+        ...         75,  # tempo
+        ...         [
+        ...             (0.0, 0.25, "r_en", 63.0, "r_en"),
+        ...             (0.25, 0.5, "—", 63.0, "en"),
+        ...         ],
+        ...     ),
+        ...     "text": "r en en",
+        ...     "label": (
+        ...         np.array(
+        ...             [
+        ...                 [0.0, 0.125],
+        ...                 [0.125, 0.25],
+        ...                 [0.25, 0.375],
+        ...             ]
+        ...         ),
+        ...         ["r", "en", "en"],
+        ...     ),
+        ... }
+        >>> output_dict = svs(batch)
+        >>> soundfile.write("out.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
+
+        Example 2: GAN SVS
+        >>> import soundfile
+        >>> import numpy as np
+        >>> svs = SingingGenerate("config.yaml", "model.pth")
+        >>> batch = {
+        ...     "score": (
+        ...         75,  # tempo
+        ...         [
+        ...             (0.0, 0.25, "r_en", 63.0, "r_en"),
+        ...             (0.25, 0.5, "—", 63.0, "en"),
+        ...         ],
+        ...     ),
+        ...     "text": "r en en",
+        ...     "label": (
+        ...         np.array(
+        ...             [
+        ...                 [0.0, 0.125],
+        ...                 [0.125, 0.25],
+        ...                 [0.25, 0.375],
+        ...             ]
+        ...         ),
+        ...         ["r", "en", "en"],
+        ...     ),
+        ... }
+        >>> output_dict = svs(batch, sids=np.array([1]))
+        >>> soundfile.write("out_gan.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Optional[Union[Path, str]],
-        model_file: Optional[Union[Path, str]] = None,
+        train_config: Union[Path, str, None],
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -52,8 +106,8 @@ class SingingGenerate:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_checkpoint: Union[Path, str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_checkpoint: Union[Path, str, None] = None,
         discrete_token_layers: int = 1,
         mix_type: str = "frame",
         dtype: str = "float32",
@@ -61,12 +115,19 @@ class SingingGenerate:
         seed: int = 777,
         always_fix_seed: bool = False,
         prefer_normalized_feats: bool = False,
+        svs_task: str = "svs",
     ):
         """Initialize SingingGenerate module."""
-        assert check_argument_types()
 
         # setup model
-        model, train_args = SVSTask.build_model_from_file(
+        if svs_task == "svs":
+            SVSTaskClass = SVSTask
+        elif svs_task == "gan_svs":
+            SVSTaskClass = GANSVSTask
+        else:
+            raise ValueError(f"Unsupported task: {svs_task}")
+
+        model, train_args = SVSTaskClass.build_model_from_file(
             train_config, model_file, device
         )
         model.to(dtype=getattr(torch, dtype)).eval()
@@ -78,7 +139,7 @@ class SingingGenerate:
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
         self.duration_calculator = DurationCalculator()
-        self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
+        self.preprocess_fn = SVSTaskClass.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
@@ -87,7 +148,7 @@ class SingingGenerate:
         self.discrete_token_layers = discrete_token_layers
         self.mix_type = mix_type
         if vocoder_checkpoint is not None:
-            vocoder = SVSTask.build_vocoder_from_file(
+            vocoder = SVSTaskClass.build_vocoder_from_file(
                 vocoder_config, vocoder_checkpoint, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
@@ -121,26 +182,26 @@ class SingingGenerate:
         self.decode_conf = decode_conf
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         text: Union[Dict[str, Tuple], torch.Tensor, np.ndarray],
-        singing: Union[torch.Tensor, np.ndarray] = None,
-        label: Union[torch.Tensor, np.ndarray] = None,
-        midi: Union[torch.Tensor, np.ndarray] = None,
-        duration_phn: Union[torch.Tensor, np.ndarray] = None,
-        duration_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
-        duration_syb: Union[torch.Tensor, np.ndarray] = None,
-        phn_cnt: Union[torch.Tensor, np.ndarray] = None,
-        slur: Union[torch.Tensor, np.ndarray] = None,
-        pitch: Union[torch.Tensor, np.ndarray] = None,
-        energy: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        singing: Union[torch.Tensor, np.ndarray, None] = None,
+        label: Union[torch.Tensor, np.ndarray, None] = None,
+        midi: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_phn: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_ruled_phn: Union[torch.Tensor, np.ndarray, None] = None,
+        duration_syb: Union[torch.Tensor, np.ndarray, None] = None,
+        phn_cnt: Union[torch.Tensor, np.ndarray, None] = None,
+        slur: Union[torch.Tensor, np.ndarray, None] = None,
+        pitch: Union[torch.Tensor, np.ndarray, None] = None,
+        energy: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         discrete_token: Optional[torch.Tensor] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
-        assert check_argument_types()
 
         # check inputs
         if self.use_sids and sids is None:
@@ -339,8 +400,9 @@ class SingingGenerate:
         return SingingGenerate(**kwargs)
 
 
+@typechecked
 def inference(
-    output_dir: str,
+    output_dir: Union[Path, str],
     batch_size: int,
     dtype: str,
     ngpu: int,
@@ -360,9 +422,9 @@ def inference(
     vocoder_tag: Optional[str] = None,
     discrete_token_layers: int = 1,
     mix_type: str = "frame",
+    svs_task: Optional[str] = "svs",
 ):
     """Perform SVS model decoding."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -393,6 +455,7 @@ def inference(
         mix_type=mix_type,
         dtype=dtype,
         device=device,
+        svs_task=svs_task,
     )
 
     # 3. Build data-iterator
@@ -698,6 +761,12 @@ def get_parser():
         type=str,
         default="frame",
         help="multi token mix type, 'sequence' or 'frame'.",
+    )
+    group.add_argument(
+        "--svs_task",
+        default="svs",
+        type=str_or_none,
+        help="SVS task name. svs or gan_svs",
     )
 
     return parser

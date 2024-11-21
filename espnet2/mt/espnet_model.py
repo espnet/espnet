@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -32,6 +32,7 @@ else:
 class ESPnetMTModel(AbsESPnetModel):
     """Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -49,11 +50,11 @@ class ESPnetMTModel(AbsESPnetModel):
         report_bleu: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        patch_size: int = 1,
         extract_feats_in_collect_stats: bool = True,
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
     ):
-        assert check_argument_types()
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -64,6 +65,7 @@ class ESPnetMTModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
+        self.patch_size = patch_size
         self.token_list = token_list.copy()
 
         if share_decoder_input_output_embed:
@@ -235,8 +237,10 @@ class ESPnetMTModel(AbsESPnetModel):
 
         # for data-parallel
         src_text = src_text[:, : src_text_lengths.max()]
-        src_text, _ = add_sos_eos(src_text, self.src_sos, self.src_eos, self.ignore_id)
-        src_text_lengths = src_text_lengths + 1
+        src_text, _ = add_sos_eos(
+            src_text, self.src_sos, self.src_eos, self.ignore_id, repeat=self.patch_size
+        )
+        src_text_lengths = src_text_lengths + self.patch_size
 
         if self.frontend is not None:
             # Frontend

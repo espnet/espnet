@@ -81,6 +81,12 @@ def get_parser():
         '"mat" is the matrix format in kaldi',
     )
     parser.add_argument(
+        "--audio_sample_rate",
+        type=int,
+        default=16000,
+        help="input audio sampling rate (could be different from fs used in SSL)",
+    )
+    parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
     )
     parser.add_argument(
@@ -121,6 +127,7 @@ class ApplyKmeans(object):
 def dump_label(
     rspecifier,
     in_filetype,
+    audio_sample_rate,
     wspecifier,
     out_filetype,
     km_path,
@@ -159,6 +166,7 @@ def dump_label(
             )
         if reader_conf.get("layer", None):
             reader_conf["layer"] = int(reader_conf["layer"])
+        reader_conf["audio_sample_rate"] = audio_sample_rate
 
         reader = reader_class(**reader_conf)
         iterator = build_data_iterator(

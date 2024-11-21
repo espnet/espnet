@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -35,6 +35,7 @@ else:
 class ESPnetSVSModel(AbsESPnetModel):
     """ESPnet model for singing voice synthesis task."""
 
+    @typechecked
     def __init__(
         self,
         text_extract: Optional[AbsFeatsExtract],
@@ -51,7 +52,6 @@ class ESPnetSVSModel(AbsESPnetModel):
         svs: AbsSVS,
     ):
         """Initialize ESPnetSVSModel module."""
-        assert check_argument_types()
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract

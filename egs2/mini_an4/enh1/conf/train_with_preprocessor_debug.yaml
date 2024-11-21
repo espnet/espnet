@@ -36,6 +36,8 @@ channel_reordering: true
 categories:
 - 1ch_16k
 - 2ch_16k
+- 1ch_16k_reverb
+- 2ch_16k_reverb
 
 criterions:
   # The first criterion
@@ -51,5 +53,5 @@ criterions:
 
 max_epoch: 1
 num_iters_per_epoch: 1
-batch_type: folded
+batch_type: sorted
 batch_size: 2

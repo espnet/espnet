@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import math
 import sys
 from itertools import chain
 from pathlib import Path
@@ -10,9 +9,8 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import humanfriendly
 import numpy as np
 import torch
-import torch_complex
 import yaml
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.bin.enh_inference import (
     build_model_from_args_and_file,
@@ -24,7 +22,6 @@ from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
@@ -54,17 +51,17 @@ class SeparateSpeechStreaming:
         >>>     for chunks in output_chunks ]
     """
 
+    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
-        inference_config: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
+        inference_config: Union[Path, str, None] = None,
         ref_channel: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",
         enh_s2t_task: bool = False,
     ):
-        assert check_argument_types()
 
         task = EnhancementTask if not enh_s2t_task else EnhS2TTask
 
@@ -135,6 +132,7 @@ class SeparateSpeechStreaming:
         self.streaming_states = None
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self, speech_mix: Union[torch.Tensor, np.ndarray], fs: int = 8000
     ) -> List[torch.Tensor]:
@@ -147,7 +145,6 @@ class SeparateSpeechStreaming:
             [separated_audio1, separated_audio2, ...]
 
         """
-        assert check_argument_types()
 
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
@@ -218,6 +215,7 @@ def humanfriendly_or_none(value: str):
     return humanfriendly.parse_size(value)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -235,9 +233,9 @@ def inference(
     inference_config: Optional[str],
     allow_variable_data_keys: bool,
     ref_channel: Optional[int],
+    output_format: str,
     enh_s2t_task: bool,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -293,7 +291,11 @@ def inference(
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(
-            SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
+            SoundScpWriter(
+                f"{output_dir}/wavs/{i + 1}",
+                f"{output_dir}/spk{i + 1}.scp",
+                format=output_format,
+            )
         )
 
     import tqdm
@@ -392,6 +394,12 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("Output data related")
+    group.add_argument(
+        "--output_format",
+        type=str,
+        default="wav",
+        help="Output format for the separated speech",
+    )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(

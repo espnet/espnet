@@ -27,7 +27,7 @@
 # limitations under the License.
 
 import multiprocessing
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numba
 import torch
@@ -54,8 +54,7 @@ class GPURNNT:
         num_threads: int,
         stream,
     ):
-        """
-        Helper class to launch the CUDA Kernels to compute the Transducer Loss.
+        """Helper class to launch the CUDA Kernels to compute the Transducer Loss.
 
         Args:
             minibatch: Int representing the batch size.
@@ -97,8 +96,8 @@ class GPURNNT:
             self.num_threads_ = numba.get_num_threads()
 
     def log_softmax(self, acts: torch.Tensor, denom: torch.Tensor):
-        """
-        Computes the log softmax denominator of the input activation tensor
+        """Computes the log softmax denominator of the input activation tensor
+
         and stores the result in denom.
 
         Args:
@@ -139,8 +138,7 @@ class GPURNNT:
         label_lengths: torch.Tensor,
         input_lengths: torch.Tensor,
     ) -> global_constants.RNNTStatus:
-        """
-        Compute both the loss and the gradients.
+        """Compute both the loss and the gradients.
 
         Args:
             acts: A flattened tensor of shape [B, T, U, V+1] representing the
@@ -301,9 +299,9 @@ class GPURNNT:
         )
 
     def _prepare_workspace(self) -> Tuple[int, Tuple[torch.Tensor, ...]]:
-        """
-        Helper method that uses the workspace and constructs slices of it
-            that can be used.
+        """Helper method that uses the workspace and constructs slices of it
+
+        that can be used.
 
         Returns:
             An int, representing the offset of the used workspace (practically, the
@@ -355,9 +353,9 @@ class MultiblankGPURNNT(GPURNNT):
         num_threads: int,
         stream,
     ):
-        """
-        Helper class to launch the CUDA Kernels to compute Multi-blank Transducer Loss
-            (https://arxiv.org/pdf/2211.03541).
+        """Helper class to launch the CUDA Kernels to compute Multi-blank
+
+        Transducer Loss(https://arxiv.org/pdf/2211.03541).
 
         Args:
             sigma: Hyper-parameter related to the logit-normalization method
@@ -414,8 +412,7 @@ class MultiblankGPURNNT(GPURNNT):
         label_lengths: torch.Tensor,
         input_lengths: torch.Tensor,
     ) -> global_constants.RNNTStatus:
-        """
-        Compute both the loss and the gradients.
+        """Compute both the loss and the gradients.
 
         Args:
             acts: A flattened tensor of shape [B, T, U, V+1] representing
@@ -585,10 +582,10 @@ class MultiblankGPURNNT(GPURNNT):
             acts, None, costs, pad_labels, label_lengths, input_lengths
         )
 
-    def _prepare_workspace(self) -> (int, Tuple[torch.Tensor]):
-        """
-        Helper method that uses the workspace and constructs slices of it that
-            can be used.
+    def _prepare_workspace(self) -> Union[int, Tuple[torch.Tensor]]:
+        """Helper method that uses the workspace and constructs slices of it that
+
+        can be used.
 
         Returns:
             An int, representing the offset of the used workspace (practically,

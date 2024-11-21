@@ -1,0 +1,1 @@
+../../../../egs/chime6/asr1/local/make_noise_list.py

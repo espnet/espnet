@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -30,6 +30,7 @@ else:
 class ESPnetDiscreteASRModel(ESPnetMTModel):
     """Encoder-Decoder model"""
 
+    @typechecked
     def __init__(
         self,
         vocab_size: int,
@@ -51,11 +52,11 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         report_bleu: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        patch_size: int = 1,
         extract_feats_in_collect_stats: bool = True,
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
     ):
-        assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
 
         super().__init__(
@@ -74,6 +75,7 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
             report_bleu=report_bleu,
             sym_space=sym_space,
             sym_blank=sym_blank,
+            patch_size=patch_size,
             extract_feats_in_collect_stats=extract_feats_in_collect_stats,
             share_decoder_input_output_embed=share_decoder_input_output_embed,
             share_encoder_decoder_input_embed=share_encoder_decoder_input_embed,

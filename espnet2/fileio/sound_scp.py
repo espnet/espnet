@@ -1,10 +1,10 @@
 import collections.abc
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import soundfile
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.read_text import read_2columns_text, read_multi_columns_text
 
@@ -115,6 +115,7 @@ class SoundScpReader(collections.abc.Mapping):
         but it increases the required amount of memory.
     """
 
+    @typechecked
     def __init__(
         self,
         fname,
@@ -123,7 +124,6 @@ class SoundScpReader(collections.abc.Mapping):
         multi_columns: bool = False,
         concat_axis=1,
     ):
-        assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
         self.always_2d = always_2d
@@ -197,6 +197,7 @@ class SoundScpWriter:
 
     """
 
+    @typechecked
     def __init__(
         self,
         outdir: Union[Path, str],
@@ -205,9 +206,8 @@ class SoundScpWriter:
         multi_columns: bool = False,
         output_name_format: str = "{key}.{audio_format}",
         output_name_format_multi_columns: str = "{key}-CH{channel}.{audio_format}",
-        subtype: str = None,
+        subtype: Optional[str] = None,
     ):
-        assert check_argument_types()
         self.dir = Path(outdir)
         self.dir.mkdir(parents=True, exist_ok=True)
         scpfile = Path(scpfile)

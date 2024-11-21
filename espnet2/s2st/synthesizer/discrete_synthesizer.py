@@ -4,16 +4,14 @@
 
 """Translatotron Synthesizer related modules for ESPnet2."""
 
-import logging
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -32,6 +30,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
 
     """
 
+    @typechecked
     def __init__(
         self,
         # decoder related
@@ -83,17 +82,16 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
                 assume that spembs will be provided as the input.
             spk_embed_integration_type (str): How to integrate speaker embedding.
         """
-        assert check_argument_types()
         super().__init__()
 
         self.spks = None
         if spks is not None and spks > 1:
             self.spks = spks
-            self.sid_emb = torch.nn.Embedding(spks, encoder_output_size)
+            self.sid_emb = torch.nn.Embedding(spks, idim)
         self.langs = None
         if langs is not None and langs > 1:
             self.langs = langs
-            self.lid_emb = torch.nn.Embedding(langs, encoder_output_size)
+            self.lid_emb = torch.nn.Embedding(langs, idim)
 
         self.spk_embed_dim = None
         if spk_embed_dim is not None and spk_embed_dim > 0:
@@ -105,7 +103,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
             dec_idim = idim + spk_embed_dim
         elif self.spk_embed_integration_type == "add":
             dec_idim = idim
-            self.projection = torch.nn.Linear(self.spk_embed_dim, encoder_output_size)
+            self.projection = torch.nn.Linear(self.spk_embed_dim, dec_idim)
         else:
             raise ValueError(f"{spk_embed_integration_type} is not supported.")
 
@@ -238,6 +236,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
         cache: List[torch.Tensor] = None,
+        **kwargs,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
@@ -255,15 +254,15 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         # FIXME(jiatong): the spk/lang embedding may be execute too many times
         # consider add before the search
         if self.spks is not None:
-            sid_embs = self.sid_emb(sids.view(-1))
+            sid_embs = self.sid_emb(self.spks.view(-1))
             memory = memory + sid_embs.unsqueeze(1)
         if self.langs is not None:
-            lid_embs = self.lid_emb(lids.view(-1))
+            lid_embs = self.lid_emb(self.langs.view(-1))
             memory = memory + lid_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
-            memory = self._integrate_with_spk_embed(memory, spembs)
+            memory = self._integrate_with_spk_embed(memory, self.spk_embed_dim)
 
-        return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache)
+        return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache=cache)
 
     def score(self, ys, state, x):
         """Score."""

@@ -31,20 +31,19 @@ jobs:
     needs: process_labels
     # Outputs from Previous jobs are strings. Take care in case of using True/False.
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [2.0.1]
+        pytorch-version: [2.1.2]
         chainer-version: [6.0.0]
         use-conda: [false]
         include:
           - os: ubuntu-latest
-            python-version: "3.7"
-            pytorch-version: 1.11.0
+            python-version: "3.10"
+            pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -100,30 +99,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7]
-        pytorch-version: [1.11.0, 1.12.1, 1.13.1]
+        python-version: ["3.10", "3.11"]
+        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
         chainer-version: [6.0.0]
         use-conda: [false]
         include:
           - os: ubuntu-latest
-            python-version: "3.8"
-            pytorch-version: 2.0.1
-            chainer-verssion: 6.0.0
-            use-conda: false
-          - os: ubuntu-latest
-            python-version: "3.9"
-            pytorch-version: 2.0.1
-            chainer-verssion: 6.0.0
-            use-conda: false
-          - os: ubuntu-latest
             python-version: "3.10"
-            pytorch-version: 2.0.1
+            pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -194,20 +182,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7]
-        pytorch-version: [1.11.0]
-        chainer-version: [6.0.0]
+        python-version: ["3.10"]
+        pytorch-version: ["1.13.1"]
+        chainer-version: ["6.0.0"]
         use-conda: [false]
         include:
           - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 2.0.1
+            python-version: "3.11"
+            pytorch-version: 2.4.0
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -240,18 +227,96 @@ jobs:
         with:
           flags: test_configuration_espnet2
 
+  unit_test_espnetez_and_integration_test_espnetez:
+    runs-on: ${{ matrix.os }}
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11"]
+        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
+        chainer-version: [6.0.0]
+        use-conda: [false]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"
+            pytorch-version: 1.13.1
+            chainer-verssion: 6.0.0
+            use-conda: false
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq
+          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: ${{ matrix.chainer-version }}
+          USE_CONDA: ${{ matrix.use-conda }}
+        run: |
+          ./ci/install.sh
+
+      - name: test python
+        run: ./ci/test_python_espnetez.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_python_espnetez
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+      - name: install kaldi
+        run: |
+          ./ci/install_kaldi.sh
+
+      - name: test utils
+        run: ./ci/test_utils.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_utils
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+      - name: test espnetez integration
+        run: ./ci/test_integration_espnetez.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_integration_espnetez
+
+
   test_import:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [2.0.1]
+        pytorch-version: [2.4.0]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -291,8 +356,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@master
     - run: ci/check_kaldi_symlinks.sh

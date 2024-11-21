@@ -4,7 +4,6 @@ from pathlib import Path
 import miditoolkit
 import miditoolkit.midi.containers as ct
 import music21 as m21
-import numpy as np
 
 from espnet2.fileio.score_scp import (
     NOTE,
@@ -92,6 +91,7 @@ def test_XMLReader(tmp_path: Path):
     with p.open("w") as f:
         f.write(f"abc {xml_path}\n")
 
+    print(p)
     reader = XMLReader(p)
     val = reader["abc"]
 

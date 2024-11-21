@@ -6,7 +6,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -84,7 +84,7 @@ frontend_choices = ClassChoices(
         s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
 )
 tgt_feats_extract_choices = ClassChoices(
     name="tgt_feats_extract",
@@ -148,7 +148,7 @@ encoder_choices = ClassChoices(
         linear=LinearEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
+    default="transformer",
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
@@ -215,7 +215,7 @@ synthesizer_choices = ClassChoices(
         discrete_unit=TransformerDiscreteSynthesizer,
     ),
     type_check=AbsSynthesizer,
-    default="translatotron",
+    default="discrete_unit",
 )
 loss_choices = ClassChoices(
     name="loss",
@@ -270,20 +270,16 @@ class S2STTask(STTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
-
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-
         group.add_argument(
             "--s2st_type",
             type=str,
-            default="translatotron",
+            default="discrete_unit",
             help="Types of S2ST",
             choices=[
                 "translatotron",
                 "translatotron2",
                 "discrete_unit",
+                "unity",
             ],
         )
         group.add_argument(
@@ -431,8 +427,9 @@ class S2STTask(STTask):
             action=NestedDictAction,
             default=[
                 {
-                    "name": "syn_loss",
+                    "name": "synthesis",
                     "conf": {},
+                    "type": "attention",
                 },
             ],
             help="The criterions binded with the loss wrappers.",
@@ -487,21 +484,19 @@ class S2STTask(STTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
         if args.src_token_type == "none":
             args.src_token_type = None
         if args.unit_token_list is None:
@@ -528,28 +523,31 @@ class S2STTask(STTask):
                 g2p_type=[args.tgt_g2p, args.src_g2p, None],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "speech_volume_normalize")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                short_noise_thres=(
+                    args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize
+                    if hasattr(args, "speech_volume_normalize")
+                    else None
+                ),
                 speech_name="src_speech",
                 text_name=["tgt_text", "src_text", "tgt_speech"],
             )
         else:
             retval = None
-        assert check_return_type(retval)
         return retval
 
     @classmethod
@@ -571,12 +569,11 @@ class S2STTask(STTask):
             retval = ("src_text", "tgt_text")
         else:
             retval = ("tgt_speech",)
-        assert check_return_type(retval)
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetS2STModel:
-        assert check_argument_types()
         if args.tgt_token_list is not None:
             if isinstance(args.tgt_token_list, str):
                 with open(args.tgt_token_list, encoding="utf-8") as f:
@@ -831,7 +828,6 @@ class S2STTask(STTask):
         if args.init is not None:
             initialize(model, args.init)
 
-        assert check_return_type(model)
         return model
 
     @classmethod

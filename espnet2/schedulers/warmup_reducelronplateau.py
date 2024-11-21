@@ -1,9 +1,10 @@
 """ReduceLROnPlateau (with Warm up) learning rate scheduler module."""
+
 from typing import Union
 
 import torch
 from torch import inf
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.schedulers.abs_scheduler import (
     AbsBatchStepScheduler,
@@ -34,6 +35,7 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
 
     """
 
+    @typechecked
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -50,7 +52,6 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         eps=1e-8,
         verbose=False,
     ):
-        assert check_argument_types()
         self.warmup_steps = warmup_steps
         self.step_num = 0
         self.lr_scale = warmup_steps**-1

@@ -10,10 +10,10 @@ Reference:
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -184,6 +184,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 class EBranchformerEncoder(AbsEncoder):
     """E-Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -213,8 +214,9 @@ class EBranchformerEncoder(AbsEncoder):
         merge_conv_kernel: int = 3,
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -343,11 +345,27 @@ class EBranchformerEncoder(AbsEncoder):
             raise ValueError("Support only linear.")
 
         if attention_layer_type == "selfattn":
+            # Default to flash attention unless overrided by user
+            if use_flash_attn:
+                try:
+                    from espnet2.torch_utils.get_flash_attn_compatability import (
+                        is_flash_attn_supported,
+                    )
+
+                    use_flash_attn = is_flash_attn_supported()
+                    import flash_attn
+                except Exception:
+                    use_flash_attn = False
+
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                qk_norm,
+                use_flash_attn,
+                False,
+                False,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -397,9 +415,11 @@ class EBranchformerEncoder(AbsEncoder):
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 cgmlp_layer(*cgmlp_layer_args),
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
-                positionwise_layer(*positionwise_layer_args)
-                if use_ffn and macaron_ffn
-                else None,
+                (
+                    positionwise_layer(*positionwise_layer_args)
+                    if use_ffn and macaron_ffn
+                    else None
+                ),
                 dropout_rate,
                 merge_conv_kernel,
             ),

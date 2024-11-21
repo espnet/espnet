@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -39,6 +39,7 @@ else:
 class ESPnetS2STModel(AbsESPnetModel):
     """ESPnet speech-to-speech translation model"""
 
+    @typechecked
     def __init__(
         self,
         s2st_type: str,
@@ -72,7 +73,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
     ):
-        assert check_argument_types()
 
         super().__init__()
         self.sos = tgt_vocab_size - 1 if tgt_vocab_size else None
@@ -328,21 +328,23 @@ class ESPnetS2STModel(AbsESPnetModel):
                 loss=loss.item(),
                 asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
                 cer_asr_ctc=cer_asr_ctc,
-                src_attn_loss=src_attn_loss.item()
-                if src_attn_loss is not None
-                else None,
+                src_attn_loss=(
+                    src_attn_loss.item() if src_attn_loss is not None else None
+                ),
                 acc_src_attn=acc_src_attn,
                 cer_src_attn=cer_src_attn,
                 wer_src_attn=wer_src_attn,
-                tgt_attn_loss=tgt_attn_loss.item()
-                if tgt_attn_loss is not None
-                else None,
+                tgt_attn_loss=(
+                    tgt_attn_loss.item() if tgt_attn_loss is not None else None
+                ),
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
                 syn_loss=syn_loss.item() if syn_loss is not None else None,
-                syn_guided_attn_loss=syn_guided_attn_loss.item()
-                if syn_guided_attn_loss is not None
-                else None,
+                syn_guided_attn_loss=(
+                    syn_guided_attn_loss.item()
+                    if syn_guided_attn_loss is not None
+                    else None
+                ),
                 syn_l1_loss=l1_loss.item(),
                 syn_mse_loss=mse_loss.item(),
                 syn_bce_loss=bce_loss.item(),
@@ -441,9 +443,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 loss=loss.item(),
                 asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
                 cer_asr_ctc=cer_asr_ctc,
-                tgt_attn_loss=tgt_attn_loss.item()
-                if tgt_attn_loss is not None
-                else None,
+                tgt_attn_loss=(
+                    tgt_attn_loss.item() if tgt_attn_loss is not None else None
+                ),
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
                 syn_loss=syn_loss.item() if syn_loss is not None else None,
@@ -552,22 +554,22 @@ class ESPnetS2STModel(AbsESPnetModel):
                 loss=loss.item(),
                 asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
                 cer_asr_ctc=cer_asr_ctc,
-                src_attn_loss=src_attn_loss.item()
-                if src_attn_loss is not None
-                else None,
+                src_attn_loss=(
+                    src_attn_loss.item() if src_attn_loss is not None else None
+                ),
                 acc_src_attn=acc_src_attn,
                 cer_src_attn=cer_src_attn,
                 wer_src_attn=wer_src_attn,
-                tgt_attn_loss=tgt_attn_loss.item()
-                if tgt_attn_loss is not None
-                else None,
+                tgt_attn_loss=(
+                    tgt_attn_loss.item() if tgt_attn_loss is not None else None
+                ),
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
                 st_ctc_loss=st_ctc_loss.item() if st_ctc_loss is not None else None,
                 cer_st_ctc=cer_st_ctc,
-                unit_attn_loss=unit_attn_loss.item()
-                if unit_attn_loss is not None
-                else None,
+                unit_attn_loss=(
+                    unit_attn_loss.item() if unit_attn_loss is not None else None
+                ),
                 acc_unit_attn=acc_unit_attn if acc_unit_attn is not None else None,
             )
 
@@ -633,14 +635,14 @@ class ESPnetS2STModel(AbsESPnetModel):
                 loss=loss.item(),
                 asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
                 cer_asr_ctc=cer_asr_ctc,
-                tgt_attn_loss=tgt_attn_loss.item()
-                if tgt_attn_loss is not None
-                else None,
+                tgt_attn_loss=(
+                    tgt_attn_loss.item() if tgt_attn_loss is not None else None
+                ),
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
-                unit_attn_loss=unit_attn_loss.item()
-                if unit_attn_loss is not None
-                else None,
+                unit_attn_loss=(
+                    unit_attn_loss.item() if unit_attn_loss is not None else None
+                ),
                 acc_unit_attn=acc_unit_attn if acc_unit_attn is not None else None,
             )
 
@@ -651,6 +653,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
+    @typechecked
     def inference(
         self,
         src_speech: torch.Tensor,
@@ -668,7 +671,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        assert check_argument_types()
 
         # 0. Target feature extract
         # NOTE(jiatong): only for teaching-forcing in spectrogram
@@ -1008,7 +1010,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ctc = self.st_ctc
         else:
             raise RuntimeError(
-                "Cannot recognize the ctc-type (need 'src'/'tgt', but found ".format(
+                "Cannot recognize the ctc-type: need 'src'/'tgt', but found {}".format(
                     ctc_type
                 )
             )
