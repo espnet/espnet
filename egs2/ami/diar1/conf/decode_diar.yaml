@@ -1,0 +1,3 @@
+# The initial version is copy from egs2/librimix/diar1/conf/decode_diar.yaml
+fs: 8000
+num_spk: 4 # The number of speakers will be estimated if "num_spk" is "None"

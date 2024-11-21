@@ -12,7 +12,7 @@ log() {
 }
 
 # Stage control variables
-stage=2       # Start from 0 if you need to start from data preparation
+stage=0       # Start from 0 if you need to start from data preparation
 stop_stage=100
 
 # Directory for AMI diarization setup
@@ -36,7 +36,7 @@ if_mini=false
 # Default is only_words, as vocal sounds are subjectively labeled.
 sound_type=only_words
 
-num_spk=2
+num_spk=4
 
 . utils/parse_options.sh || exit 1;
 
@@ -102,7 +102,8 @@ python3 local/prepare_kaldi_files.py \
     --mic_type "${mic_type}" \
     --if_mini ${if_mini} \
     --sound_type ${sound_type} \
-    --kaldi_files_base_dir ./data
+    --kaldi_files_base_dir ./data \
+    --num_spk ${num_spk}
 
 # converts the utt2spk file to spk2utt file
 for dir in data/test data/train data/dev; do
