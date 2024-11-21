@@ -112,6 +112,7 @@ class BeatsEncoder(AbsEncoder):
             if None. Otherwise use upto `max_layer`.
         use_weighted_representation: Use weighted representations
             from max_layer if True. Weights are randomly initialized.
+        downsampling_rate: Downsampling rate for the encoder. Applied if > 1.
         beats_config: `BEATsConfig` object. If provided, we will try
             to override the config in the checkpoint. This can be used
             to change dropouts etc for fine-tuning the model while
@@ -127,6 +128,7 @@ class BeatsEncoder(AbsEncoder):
         adapter_layers: int = 0,
         max_layer: int = None,
         use_weighted_representation: bool = False,
+        downsampling_rate: int = 1,  # No downsampling by default
         beats_config: Optional[BEATsConfig] = None,
         specaug_config: Optional[Dict] = None,
     ) -> None:
@@ -181,20 +183,39 @@ class BeatsEncoder(AbsEncoder):
         )
         self.dropout_input = nn.Dropout(config.dropout_input)
         assert not config.deep_norm or not config.layer_norm_first
-        # Add adapter layer to config.
+
         self.encoder = TransformerEncoder(config)
         self.layer_norm = LayerNorm(self.embed)
+
         self.use_weighted_representation = use_weighted_representation
         if self.use_weighted_representation:
             if self.max_layer is None:
                 logging.warning(
                     f"max_layer must be provided when using weighted representations."
-                    f"Set to {config.encoder_layers}."
+                    f"Set to {config.encoder_layers-1}."
                 )
-                self.max_layer = config.encoder_layers
+                self.max_layer = config.encoder_layers - 1  # 0 based index
             self.layer_weights = nn.Parameter(
-                torch.ones(self.max_layer) / self.max_layer, requires_grad=True
-            )  # Uniform init
+                torch.ones((self.max_layer + 1, 1)), requires_grad=True
+            )
+            # TODO(shikhar): Remove this after testing the current impl from Shih-Lun's code.
+            # self.register_parameter(
+            #     "encoder_repr_layer_weights",
+            #     nn.Parameter(torch.ones((self.max_layer + 1, 1))),
+            # )
+
+        # Downsampling modules
+        self.encoder_downsample_rate = downsampling_rate
+        self.downsample_conv = None
+        if self.encoder_downsample_rate > 1:
+            self.downsample_conv = nn.Conv1d(
+                in_channels=config.encoder_embed_dim,
+                out_channels=config.encoder_embed_dim,
+                kernel_size=int(
+                    round(self.encoder_downsample_rate * 1.5)
+                ),  # kernel multiplier from Shih-Lun's code
+                stride=self.encoder_downsample_rate,
+            )
 
         self.transformer_adapter = None
         if adapter_layers != 0:
@@ -244,12 +265,12 @@ class BeatsEncoder(AbsEncoder):
         features: torch.Tensor,
         padding_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Forward padding mask."""
+        """Forward padding mask. Featuires: BTC, padding_mask: BT."""
         extra = padding_mask.size(1) % features.size(1)
         if extra > 0:
             padding_mask = padding_mask[:, :-extra]
         padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
-        padding_mask = padding_mask.all(-1)  # remove empty sequences
+        padding_mask = padding_mask.all(-1)  # remove totally empty sequences
         return padding_mask
 
     def preprocess(
@@ -323,6 +344,7 @@ class BeatsEncoder(AbsEncoder):
         features = self.layer_norm(features)
 
         if padding_mask is not None:
+            # features is BTC
             padding_mask = self.forward_padding_mask(features, padding_mask)
 
         if self.post_extract_proj is not None:
@@ -333,16 +355,40 @@ class BeatsEncoder(AbsEncoder):
             features, padding_mask=padding_mask, layer=max_layer
         )
 
+        # TODO(shikhar): Remove this after testing the current impl from Shih-Lun's code.
+        # if self.use_weighted_representation:
+        #     for i, (x_i, _) in enumerate(layer_results):
+        #         if i >= max_layer:
+        #             break
+        #         if i == 0:
+        #             features = self.layer_weights[i] * x_i
+        #         else:
+        #             features += self.layer_weights[i] * x_i
+        #     # T x B x C -> B x T x C
+        #     features = features.transpose(0, 1)
+
         if self.use_weighted_representation:
-            for i, (x_i, _) in enumerate(layer_results):
-                if i >= max_layer:
-                    break
-                if i == 0:
-                    features = self.layer_weights[i] * x_i
-                else:
-                    features += self.layer_weights[i] * x_i
-            # T x B x C -> B x T x C
-            features = features.transpose(0, 1)
+            repr_layer_weights = nn.functional.softmax(self.layer_weights, dim=-2)
+            assert (
+                max_layer > 0
+            ), "max_layer must be non-zero when using weighted representations."
+            features = (
+                torch.stack(
+                    [
+                        layer_result_i.transpose(0, 1)
+                        for layer_result_i, _ in layer_results[: max_layer + 1]
+                    ],
+                    dim=-2,
+                )
+                * repr_layer_weights
+            )
+            features = features.sum(dim=-2)  # BTC
+
+        if self.downsample_conv is not None:
+            features = self.downsample_conv(features.transpose(1, 2)).transpose(
+                1, 2
+            )  # BTC
+            padding_mask = self.forward_padding_mask(features, padding_mask)
 
         if self.transformer_adapter:
             features, _ = self.transformer_adapter(

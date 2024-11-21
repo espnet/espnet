@@ -1,15 +1,15 @@
 batch_type: folded
 unused_parameters: true
-batch_size: 64
-accum_grad: 8
-max_epoch: 30
+batch_size: 32
+accum_grad: 2
+max_epoch: 20
 grad_clip: 2
 patience: none
 best_model_criterion:  # criterion to save best models
 -   - valid
     - acc
     - max
-keep_nbest_models: 5  # save nbest models and average these checkpoints
+keep_nbest_models: 10  # save nbest models and average these checkpoints
 use_amp: true    # whether to use automatic mixed precision
 num_att_plot: 0  # do not save attention plots to save time in the demo
 num_workers: 2   # number of workers in dataloader
@@ -43,8 +43,9 @@ encoder_conf:
         - 0
         - 0.12
         num_time_mask: 5
-    adapter_layers: 2
-    max_layer: 12
+    adapter_layers: 3
+    downsampling_rate: 3 # CNN downsampling over beats encoder
+    max_layer: 11 # 0 based index
     use_weighted_representation: true
 
 decoder: hugging_face_transformers
@@ -61,7 +62,7 @@ token_type: hugging_face
 model_conf:
     ctc_weight: 0.0  # No CTC, only attention branch
     lsm_weight: 0.1  # label smoothing weight
-    length_normalized_loss: true
+    length_normalized_loss: true  # length normalization
     # BART Dictionary customizations
     ignore_id: 1
     sym_blank: "<pad>"
@@ -76,4 +77,4 @@ optim_conf:
 
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 8000
+    warmup_steps: 2500 # 8000

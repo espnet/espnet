@@ -3,19 +3,25 @@
 set -euo pipefail
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
+mynametag=pt.test_downsample_impl.test_weighting_impl.scratch_bart.3ladapter.match_contest.${timestamp}
 
-# wandb_init_args="--use_wandb true --wandb_project DCASE_AAC --wandb_model_log_interval 0"
-wandb_init_args=""
+wandb_init_args="--use_wandb true --wandb_entity shikhar --wandb_name ${mynametag} --wandb_project DCASE_AAC --wandb_model_log_interval 0"
 other_args="$@"
 
+expdir=/compute/babel-13-33/sbharad2/expdir
+dumpdir=/compute/babel-13-33/sbharad2/dumpdir
+# local_data_opts=/compute/babel-13-33/sbharad2/expdir
+asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
 
 ./asr.sh \
-    --asr_tag pt.${timestamp} \
-    --asr_speech_fold_length 1600 \
+    --asr_tag ${mynametag} \
+    --expdir ${expdir} \
+    --dumpdir ${dumpdir} \
+    --asr_speech_fold_length ${asr_speech_fold_length} \
     --feats_normalize uttmvn \
-    --stage 1 \
+    --stage 11 \
     --stop_stage 13 \
-    --ngpu 2 \
+    --ngpu 1 \
     --gpu_inference true \
     --nj 10 \
     --inference_nj 1 \
@@ -30,4 +36,4 @@ other_args="$@"
     --asr_config conf/beats_bart_pt.yaml \
     --inference_asr_model valid.acc.best.pth \
     --asr_args "${wandb_init_args} ${other_args}" \
-    --local_score_opts "exp/asr_pt.${timestamp}/inference_beam_size10_ctc_weight0.0_hugging_face_decoderTrue_asr_model_valid.acc.best"
+    --local_score_opts "exp/asr_${mynametag}/inference_beam_size10_ctc_weight0.0_hugging_face_decoderTrue_asr_model_valid.acc.best"

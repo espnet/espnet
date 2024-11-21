@@ -2,7 +2,7 @@ batch_type: folded
 unused_parameters: true
 batch_size: 64
 accum_grad: 2
-max_epoch: 50
+max_epoch: 40
 grad_clip: 2
 patience: none
 best_model_criterion:  # criterion to save best models
@@ -12,7 +12,7 @@ best_model_criterion:  # criterion to save best models
 keep_nbest_models: 5  # save nbest models and average these checkpoints
 use_amp: true    # whether to use automatic mixed precision
 num_att_plot: 0  # do not save attention plots to save time in the demo
-num_workers: 2   # number of workers in dataloader
+num_workers: 2   # number of workers in dataloader - was 128
 
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
@@ -70,9 +70,11 @@ model_conf:
 
 optim: adamw
 optim_conf:
-    lr: 0.00005 # 5e-5
-    weight_decay: 0.001
+    lr: 0.00002 # 2e-5
+    weight_decay: 0.001 # 1e-3
 
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 4000
+    warmup_steps: 1000 #1k
+
+# https://github.com/slSeanWU/beats-conformer-bart-audio-captioner/blob/main/config/training_config.json

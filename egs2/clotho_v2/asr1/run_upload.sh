@@ -1,30 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Runs fine-tuning
+# Runs model upload to huggingface
 
+# wandb_init_args="--use_wandb true --wandb_project DCASE_AAC --wandb_model_log_interval 0"
 wandb_init_args=""
 other_args="$@"
 
 expdir=/compute/babel-13-33/sbharad2/expdir
 dumpdir=/compute/babel-13-33/sbharad2/dumpdir
+local_data_opts=/compute/babel-13-33/sbharad2/expdir
 
-pt_tag=scratch_bart.splen30s.lr2e-4.lossnormT.20241120.113058
 
-ckpt_name=valid.acc.ave
-ckpt_name=10epoch
+expdir=exp/
+# asr_tag=pt.initfix.bigbatch512.lr2e-4.weighted12layers.20241103.145125
+# hf_repo=shikhar7ssu/dcase23.aac.pt
 
-pre_trained_model_path=${expdir}/asr_pt.${pt_tag}/${ckpt_name}.pth
-ft_tag=${pt_tag}.match_contest.${ckpt_name}
-asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
+asr_tag=ft_lr5e-5.initfix.bigbatch512.lr2e-4.weighted12layers.20241103.145125
+hf_repo=espnet/DCASE23.AudioCaptioning.FineTuned
+
 
 ./asr.sh \
-    --asr_tag ft.${ft_tag} \
+    --asr_tag ${asr_tag} \
+    --hf_repo ${hf_repo} \
+    --skip_packing false \
+    --skip_upload_hf false \
+    --lang en \
     --expdir ${expdir} \
     --dumpdir ${dumpdir} \
     --feats_normalize uttmvn \
-    --stage 11 \
-    --asr_speech_fold_length ${asr_speech_fold_length} \
-    --stop_stage 13 \
+    --stage 14 \
+    --stop_stage 15 \
     --asr_stats_dir ${expdir}/asr_stats_finetune \
     --ngpu 2 \
     --gpu_inference true \
@@ -39,7 +44,6 @@ asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
     --valid_set validation \
     --test_sets "evaluation" \
     --asr_config conf/beats_bart_ft.yaml \
-    --pretrained_model ${pre_trained_model_path} \
-    --inference_asr_model valid.acc.ave_5best.pth \
+    --inference_asr_model valid.acc.ave.pth \
     --asr_args "${wandb_init_args} ${other_args}" \
-    --local_score_opts ${expdir}/asr_ft.${ft_tag}/inference_beam_size10_ctc_weight0.0_hugging_face_decoderTrue_asr_model_${ckpt_name}
+    --local_data_opts "${local_data_opts}"
