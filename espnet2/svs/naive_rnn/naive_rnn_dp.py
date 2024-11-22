@@ -3,13 +3,12 @@
 
 """NaiveRNN-DP-SVS related modules."""
 
+import logging
 from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked
-
-import logging
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.loss import DiscreteLoss
@@ -293,7 +292,9 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(dunits * dim_direction, self.proj_out_dim * reduction_factor)
+        self.feat_out = torch.nn.Linear(
+            dunits * dim_direction, self.proj_out_dim * reduction_factor
+        )
         self.pitch_predictor = torch.nn.Linear(
             dunits * dim_direction, 1 * reduction_factor
         )
@@ -563,7 +564,7 @@ class NaiveRNNDP(AbsSVS):
             )
         if self.predict_pitch:
             stats["pitch_loss"] = pitch_loss.item()
-            
+
         if self.use_discrete_token:
             gen_token = torch.argmax(after_outs, dim=2)
             token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
@@ -571,7 +572,7 @@ class NaiveRNNDP(AbsSVS):
                 (gen_token == discrete_token) * token_mask
             ).sum().item() / discrete_token_lengths.sum().item()
             stats["acc"] = acc
-            
+
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         if joint_training:
@@ -676,7 +677,7 @@ class NaiveRNNDP(AbsSVS):
             after_outs = before_outs + self.postnet(
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
-            
+
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             token = after_outs[0]
@@ -691,7 +692,7 @@ class NaiveRNNDP(AbsSVS):
                     f0 = f0[:token_len]
                 else:
                     f0 = F.pad(f0, (0, 0, 0, token_len - len(f0)), value=0)
-            
+
             # logging.info(f'gen token{token.shape}: {token.squeeze(1)}')
             return dict(
                 feat_gen=token,

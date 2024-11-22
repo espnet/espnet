@@ -134,7 +134,7 @@ def dump_label(
     RVQ_layers,
     use_gpu,
     online_feature_extract,
-    **kwargs
+    **kwargs,
 ):
     if online_feature_extract:
         assert "feature_conf" in kwargs
@@ -143,8 +143,24 @@ def dump_label(
     else:
         feature_conf = None
 
-    apply_kmeans = [ApplyKmeans(km_path.replace('.mdl', f'_RVQ_{i}.mdl') if RVQ_layers > 1 else km_path, use_gpu=use_gpu) for i in range(RVQ_layers)]
-    writers = [file_writer_helper(wspecifier.replace(f'_km', f'_RVQ_{i}_km') if RVQ_layers > 1 else wspecifier, filetype=out_filetype) for i in range(RVQ_layers)]
+    apply_kmeans = [
+        ApplyKmeans(
+            km_path.replace(".mdl", f"_RVQ_{i}.mdl") if RVQ_layers > 1 else km_path,
+            use_gpu=use_gpu,
+        )
+        for i in range(RVQ_layers)
+    ]
+    writers = [
+        file_writer_helper(
+            (
+                wspecifier.replace(f"_km", f"_RVQ_{i}_km")
+                if RVQ_layers > 1
+                else wspecifier
+            ),
+            filetype=out_filetype,
+        )
+        for i in range(RVQ_layers)
+    ]
 
     dist = [np.array([]) for i in range(RVQ_layers)]
     all_dist = np.array([])
@@ -177,21 +193,19 @@ def dump_label(
         )
 
         for utt_ids, data in iterator:
-            feats, feats_lens = reader.get_feats(
-                data["speech"], data["speech_lengths"]
-            )
-            #print(utt_ids, feats.shape, flush=True)
+            feats, feats_lens = reader.get_feats(data["speech"], data["speech_lengths"])
+            # print(utt_ids, feats.shape, flush=True)
             for idx, utt in enumerate(utt_ids):
                 feat = feats[idx][: feats_lens[idx]].numpy()
                 for i in range(RVQ_layers):
                     lab, dis = apply_kmeans[i](feat)
-                    #print(dis.shape, flush=True)
+                    # print(dis.shape, flush=True)
                     dist[i] = np.concatenate((dist[i], dis))
-                    #print(dist[i].shape, flush=True)
+                    # print(dist[i].shape, flush=True)
                     writers[i][utt] = lab
                     feat = feat - apply_kmeans[i].C_np.transpose()[lab]
-                #print("a", (feat ** 2).sum(1).shape, flush=True)
-                all_dist = np.concatenate((all_dist, (feat ** 2).sum(1)))
+                # print("a", (feat ** 2).sum(1).shape, flush=True)
+                all_dist = np.concatenate((all_dist, (feat**2).sum(1)))
         for i in range(RVQ_layers):
             print(i, np.mean(dist[i]))
         print("All", np.mean(all_dist))
@@ -204,4 +218,3 @@ if __name__ == "__main__":
     logging.info(str(args))
 
     dump_label(**vars(args))
-

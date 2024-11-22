@@ -172,7 +172,7 @@ class Dio(AbsFeatsExtract):
         f0 = interp_fn(np.arange(0, f0.shape[0]))
 
         return f0
-    
+
     @staticmethod
     def _convert_to_discrete_f0(f0: np.array) -> np.array:
         if (f0 == 0).all():

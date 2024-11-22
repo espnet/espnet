@@ -191,12 +191,12 @@ Then, you can get the following directories in the recipe directory.
 │   │   ├── eval/      # evaluation set
 │   │   ├── dev/       # validation set after filtering
 │   │   └── tr_no_dev/ # training set after filtering
-│   └── extracted/ # log direcotry for feature extraction 
+│   └── extracted/ # log direcotry for feature extraction
 │       └── [model_name]/ # pretrained model workspace
 │           └── [layer_index]/ # specific layer for pretrained model
-│               ├── eval/      
-│               ├── dev/       
-│               ├── tr_no_dev/ 
+│               ├── eval/
+│               ├── dev/
+│               ├── tr_no_dev/
 │               └── tr_no_dev_subset[portion]/ # subset of train set
 └── exp/ # experiment directory
     ├── svs_stats_raw_phn_none_jp  # statistics
@@ -240,7 +240,7 @@ $ ./run.sh --stage 8 --stop_stage 8
 ```
 This might help you understand each stage's processing and directory structure.
 
-### Data Preparation 
+### Data Preparation
 
 First, ensure that the settings in `run.sh` such as `fs` and `n_shift` match those in pretrained models (use 6th layer of model *wavlm_large* as the exmpale).
 
@@ -250,7 +250,7 @@ $ ./run.sh \
     --stage 1 \
     --stop_stage 3 \
     --fs 16000 \
-    --n_shift 320 
+    --n_shift 320
 ```
 
 **NOTICE: This setting is mainly for self-supervised learning (SSL) model.**
@@ -272,15 +272,15 @@ The following application of RVQ discrete tokens is used in *Multi layer token*.
 *Multi layer token* will combine multi layers of discrete tokens extracted in *Single layer token* or *RVQ*.
 Therefore, to utilize this type of tokens, you should get corresponding discrete tokens in *Single layer token* at first.
 
-In this setting, `kmeans_feature` should be specified in the format `multi/[tag]` where `[tag]` is the new name for combined tokens. 
+In this setting, `kmeans_feature` should be specified in the format `multi/[tag]` where `[tag]` is the new name for combined tokens.
 Discrete tokens in all layers should be listed in `multi_token`, seprated by a blank space.
 
-For exmpale, if you want to combine discrete tokens from 6th layer of hubert large, 6th layer and 23rd layer of wavlm large, you should set `multi_token="hubert_large_ll60k_128_6_RVQ_0 wavlm_large_128_6_RVQ_0 wavlm_large_128_23_RVQ_0"` with the setting `RVQ_layers=2`. 
+For exmpale, if you want to combine discrete tokens from 6th layer of hubert large, 6th layer and 23rd layer of wavlm large, you should set `multi_token="hubert_large_ll60k_128_6_RVQ_0 wavlm_large_128_6_RVQ_0 wavlm_large_128_23_RVQ_0"` with the setting `RVQ_layers=2`.
 If the setting is `RVQ_layers=1`, the configuration will be `multi_token="hubert_large_ll60k_128_6 wavlm_large_128_6 wavlm_large_128_23"`.
 
 When input these token into SVS2 model, it should be mix in a single token sequence. You can set `mix_type="frame"` or `mix_type="sequence"` to get the single token sequence.
 
-Exmpale for `mix_type`: 
+Exmpale for `mix_type`:
 ```py
 l_A=[1, 2, 3]
 l_B=[a, b, c].

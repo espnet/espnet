@@ -292,7 +292,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             for n in $(seq ${_nj}); do
                 cat "${_dump_dir}"/logdir/pseudo_labels_${tail_}.${n}.txt || exit 1;
             done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_${tail_}.txt || exit 1;
-        done 
+        done
     done
 fi
 

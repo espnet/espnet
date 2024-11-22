@@ -278,14 +278,18 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen"]
             else:
                 input_feat = output_dict["feat_gen_denorm"]
-            logging.info(f'type: {self.mix_type}')
-            logging.info(f'layer: {self.discrete_token_layers}')
+            logging.info(f"type: {self.mix_type}")
+            logging.info(f"layer: {self.discrete_token_layers}")
             if self.discrete_token_layers > 1:
                 if self.mix_type == "frame":
-                    input_feat = input_feat.view(
-                        -1, self.discrete_token_layers
-                    )[:,[0, 1, ]]#2,3]]
-                    logging.info(f'222: {input_feat.shape} {input_feat}')
+                    input_feat = input_feat.view(-1, self.discrete_token_layers)[
+                        :,
+                        [
+                            0,
+                            1,
+                        ],
+                    ]  # 2,3]]
+                    logging.info(f"222: {input_feat.shape} {input_feat}")
                 elif self.mix_type == "sequence":
                     input_feat = input_feat.view(
                         self.discrete_token_layers, -1
@@ -392,7 +396,9 @@ class SingingGenerate:
                 vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
-                kwargs.update(vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file)
+                kwargs.update(
+                    vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file
+                )
 
             else:
                 raise ValueError(f"{vocoder_tag} is unsupported format.")
