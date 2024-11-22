@@ -184,15 +184,15 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         return x, ys_in_lens
 
     def reload_pretrained_parameters(self):
-        # self.decoder.load_state_dict(self.decoder_pretrained_params)
+        self.decoder.load_state_dict(self.decoder_pretrained_params)
 
-        # if self.lm_head_pretrained_params is not None:
-        # self.lm_head.load_state_dict(self.lm_head_pretrained_params)
+        if self.lm_head_pretrained_params is not None:
+            self.lm_head.load_state_dict(self.lm_head_pretrained_params)
 
-        # logging.info("Pretrained Transformers model parameters reloaded!")
-        logging.info(
-            "Skipping loading of pretrained Transformers model parameters for DCASE!"
-        )
+        logging.info("Pretrained Transformers model parameters reloaded!")
+        # logging.info(
+        #     "Skipping loading of pretrained Transformers model parameters for DCASE!"
+        # )
 
     def add_prefix_postfix(self, enc_out, hlens, ys_in_pad, ys_in_lens):
         args = {}

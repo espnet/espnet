@@ -28,6 +28,10 @@ if __name__ == "__main__":
     missing_audio = []
     N_PROCESSED = 0
     N_ZERO_LENGTH_CAPTIONS = 0
+    # We also skip examples with less than 6 words
+    # according to Shih-Lun's paper Section 3.1:
+    # https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10447215
+    N_SMALL_LENGTH_CAPTIONS = 0
     N_ZERO_LENGTH_AUDIO = 0
     N_VERY_LONG_AUDIO = 0
     AUDIO_LENGTH_THRESHOLD = 30  # seconds
@@ -53,6 +57,9 @@ if __name__ == "__main__":
                 if len(text) == 0:
                     N_ZERO_LENGTH_CAPTIONS += 1
                     continue
+                if len(text.split()) < 6:
+                    N_SMALL_LENGTH_CAPTIONS += 1
+                    continue
                 print(f"{uttid} {audio_path}", file=wav_scp_f)
                 print(f"{uttid} {text}", file=text_f)
                 print(f"{uttid} dummy", file=utt2spk_f)
@@ -62,5 +69,6 @@ if __name__ == "__main__":
     print(
         f"Processed {N_PROCESSED} audio files. Skipped {N_VERY_LONG_AUDIO}"
         f"long audio, {N_ZERO_LENGTH_AUDIO} empty audio and "
-        f"{N_ZERO_LENGTH_CAPTIONS} empty caption items."
+        f"{N_ZERO_LENGTH_CAPTIONS} empty caption items. {N_SMALL_LENGTH_CAPTIONS} "
+        "were skipped because they had less than 6 words."
     )

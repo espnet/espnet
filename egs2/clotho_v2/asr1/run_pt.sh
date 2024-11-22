@@ -3,14 +3,14 @@
 set -euo pipefail
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=pt.test_downsample_impl.test_weighting_impl.scratch_bart.3ladapter.match_contest.${timestamp}
+mynametag=pt.cleanacaps.bs512-warmup8k.load_bart.3ladapter.${timestamp}
 
 wandb_init_args="--use_wandb true --wandb_entity shikhar --wandb_name ${mynametag} --wandb_project DCASE_AAC --wandb_model_log_interval 0"
 other_args="$@"
 
 expdir=/compute/babel-13-33/sbharad2/expdir
-dumpdir=/compute/babel-13-33/sbharad2/dumpdir
-# local_data_opts=/compute/babel-13-33/sbharad2/expdir
+dumpdir=/compute/babel-13-33/sbharad2/dumpdir_clean
+local_data_opts=/compute/babel-13-33/sbharad2/expdir
 asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
 
 ./asr.sh \
@@ -18,10 +18,11 @@ asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
     --expdir ${expdir} \
     --dumpdir ${dumpdir} \
     --asr_speech_fold_length ${asr_speech_fold_length} \
+    --local_data_opts ${local_data_opts} \
     --feats_normalize uttmvn \
     --stage 11 \
     --stop_stage 13 \
-    --ngpu 1 \
+    --ngpu 2 \
     --gpu_inference true \
     --nj 10 \
     --inference_nj 1 \

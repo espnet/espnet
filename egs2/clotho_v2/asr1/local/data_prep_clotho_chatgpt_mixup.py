@@ -352,9 +352,11 @@ with open(output_txt_path, "w") as text_f, open(
 ) as wav_scp_f, open(output_utt2spk_path, "w") as utt2spk_f:
     for i in range(len(dset)):
         uttid, audio_path, text = results[i]
-        if uttid is None:
+        if uttid is None or len(uttid) == 0:
             N_ERROR += 1
             continue
+        # Remove new lines and carriage returns
+        text = text.replace("\n", " ").replace("\r", " ").strip()
         print(f"{uttid} {audio_path}", file=wav_scp_f)
         print(f"{uttid} {text}", file=text_f)
         print(f"{uttid} dummy", file=utt2spk_f)

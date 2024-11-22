@@ -25,7 +25,7 @@ fi
 
 log "stage 1: Data preparation"
 
-
+set -ex
 ## DOWNLOAD DATA if CLOTHO_V2 is set to downloads
 if [ "${CLOTHO_V2}" == "downloads" ]; then
     # If there is no argument, the default download directory is set to currentdir/downloads
