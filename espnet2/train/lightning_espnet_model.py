@@ -38,21 +38,16 @@ class LitESPnetModel(L.LightningModule):
         new_stats = {}
         for k, v in stats.items():
             if v is not None:
-                # NOTE(Yifan): Not sure if this is a bug, but the best model scores in
-                # ModelCheckpoint callbacks are on CPU. To avoid errors when resuming,
-                # the values are moved to CPU.
-                new_stats[f"{mode}/{k}"] = (
-                    v.cpu()
-                    if isinstance(v, torch.Tensor)
-                    else torch.tensor(v, device="cpu")
-                )
+                new_stats[f"{mode}/{k}"] = v.item()
 
         self.log_dict(
             new_stats,
             prog_bar=True,
             logger=True,
+            sync_dist=(mode == "valid"),
+            # NOTE(Yifan): must convert weight to a number to avoid device mismatch
+            # when resuming training from a checkpoint with checkpoint callbacks
             batch_size=weight.item(),
-            # batch_size=weight.cpu(),    # NOTE(Yifan): move to CPU to avoid errors mentioned above
         )
 
         return loss
@@ -90,11 +85,18 @@ class LitESPnetModel(L.LightningModule):
         }
 
     def train_dataloader(self):
-        train_iter_factory = self.task_class.build_iter_factory(
-            args=self.args,
-            distributed_option=DistributedOption(distributed=True),
-            mode="train",
-        )
+        if self.args.multiple_iterator:
+            train_iter_factory = self.task_class.build_multiple_iter_factory(
+                args=self.args,
+                distributed_option=DistributedOption(distributed=True),
+                mode="train",
+            )
+        else:
+            train_iter_factory = self.task_class.build_iter_factory(
+                args=self.args,
+                distributed_option=DistributedOption(distributed=True),
+                mode="train",
+            )
         return train_iter_factory.build_iter(epoch=self.current_epoch)
 
     def val_dataloader(self):

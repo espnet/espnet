@@ -41,6 +41,7 @@ gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
+use_lightning=false     # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -186,6 +187,7 @@ Options:
     --dumpdir            # Directory to dump features (default="${dumpdir}").
     --expdir             # Directory to save experiments (default="${expdir}").
     --python             # Specify python to execute espnet commands (default="${python}").
+    --use_lightning      # Whether to use pytorch lightning trainer for training (default="${use_lightning}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -1416,31 +1418,62 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         jobname="${asr_exp}/train.log"
     fi
 
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.launch \
-        --cmd "${cuda_cmd} --name ${jobname}" \
-        --log "${asr_exp}"/train.log \
-        --ngpu "${ngpu}" \
-        --num_nodes "${num_nodes}" \
-        --init_file_prefix "${asr_exp}"/.dist_init_ \
-        --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.${asr_task}_train \
-            --use_preprocessor true \
-            --bpemodel "${bpemodel}" \
-            --token_type "${token_type}" \
-            --token_list "${token_list}" \
-            --non_linguistic_symbols "${nlsyms_txt}" \
-            --cleaner "${cleaner}" \
-            --g2p "${g2p}" \
-            --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-            --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-            --resume true \
-            ${pretrained_model:+--init_param $pretrained_model} \
-            --ignore_init_mismatch ${ignore_init_mismatch} \
-            --fold_length "${_fold_length}" \
-            --output_dir "${asr_exp}" \
-            ${_opts} ${asr_args}
+    if "${use_lightning}"; then
+        log "Use PyTorch Lightning trainer"
+        ${python} pyscripts/utils/rotate_logfile.py "${asr_exp}"/train.log
 
+        ${cuda_cmd} --name "${jobname}" \
+            --gpu "${ngpu}" \
+            --num_tasks "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            "${asr_exp}"/train.log \
+            srun --export=ALL \
+            ${python} -m espnet2.bin.lightning_train \
+                --task asr \
+                --lightning_conf "{devices: ${ngpu}, num_nodes: ${num_nodes}, default_root_dir: ${asr_exp}}" \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${token_type}" \
+                --token_list "${token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
+                --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
+                --resume true \
+                ${pretrained_model:+--init_param $pretrained_model} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
+                --fold_length "${_fold_length}" \
+                --output_dir "${asr_exp}" \
+                ${_opts} ${asr_args}
+    
+    else
+        log "Use ESPnet trainer"
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${jobname}" \
+            --log "${asr_exp}"/train.log \
+            --ngpu "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            ${python} -m espnet2.bin.${asr_task}_train \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${token_type}" \
+                --token_list "${token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
+                --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
+                --resume true \
+                ${pretrained_model:+--init_param $pretrained_model} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
+                --fold_length "${_fold_length}" \
+                --output_dir "${asr_exp}" \
+                ${_opts} ${asr_args}
+    fi
 fi
 
 

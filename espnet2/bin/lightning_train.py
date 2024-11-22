@@ -27,7 +27,7 @@ def get_base_parser():
         type=str,
         required=True,
         choices=list(task_choices.keys()),
-        help="Task to execute",
+        help="Task to execute.",
     )
     return parser
 
@@ -60,72 +60,6 @@ def main():
 
     # Instantiate the Lightning Model
     lit_model = LitESPnetModel(args=args)
-
-    # Create callbacks
-    # Save full last checkpoint to resume training
-    last_ckpt_callback = ModelCheckpoint(
-        dirpath=args.output_dir,
-        save_last="link",
-        filename="step{step}",
-        auto_insert_metric_name=False,
-        save_on_train_epoch_end=True,
-        save_weights_only=False,
-    )
-
-    # Save best models (weights only)
-    best_ckpt_callbacks = []
-    for phase, metric, mode in args.best_model_criterion:
-        monitor = f"{phase}/{metric}"
-        best_ckpt_callbacks.append(
-            ModelCheckpoint(
-                save_top_k=args.keep_nbest_models,
-                monitor=monitor,
-                mode=mode,  # "min" or "max"
-                dirpath=args.output_dir,
-                save_last=False,
-                # Add monitor to filename to avoid overwriting when multiple metrics are used
-                filename="epoch{epoch}_step{step}_" + monitor.replace("/", "."),
-                auto_insert_metric_name=False,
-                save_on_train_epoch_end=False,
-                save_weights_only=True,
-                enable_version_counter=False,  # just overwrite
-            )
-        )
-
-    # Average best models after training
-    ave_ckpt_callback = AverageCheckpointsCallback(
-        output_dir=args.output_dir, best_ckpt_callbacks=best_ckpt_callbacks
-    )
-
-    # Monitor learning rate
-    lr_callback = LearningRateMonitor()
-
-    # Create loggers
-    loggers = []
-
-    if args.use_tensorboard:
-        tb_logger = TensorBoardLogger(
-            save_dir=args.output_dir,
-            name="lightning_logs",
-        )
-        loggers.append(tb_logger)
-
-    if args.use_wandb:
-        wandb_latest_id = None
-        # Resume the latest run if exists by setting the version
-        if (Path(args.output_dir) / "wandb" / "latest-run").exists():
-            wandb_latest_id = (
-                (Path(args.output_dir) / "wandb" / "latest-run")
-                .resolve()
-                .name.split("-")[-1]
-            )
-        wandb_logger = WandbLogger(
-            project=args.wandb_project or "ESPnet_" + task_class.__name__,
-            name=args.wandb_name or str(Path(".").resolve()).replace("/", "_"),
-            save_dir=args.output_dir,
-            version=wandb_latest_id,
-        )
-        loggers.append(wandb_logger)
 
     # Instantiate the strategy
     trainer_conf = copy.deepcopy(args.lightning_conf)
@@ -180,6 +114,71 @@ def main():
 
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
+
+    # Create callbacks
+    # Save full last checkpoint to resume training
+    last_ckpt_callback = ModelCheckpoint(
+        dirpath=args.output_dir,
+        save_last="link",
+        filename="step{step}",
+        auto_insert_metric_name=False,
+        save_on_train_epoch_end=True,
+        save_weights_only=False,
+    )
+
+    # Save best models (weights only)
+    best_ckpt_callbacks = []
+    for monitor, mode, nbest in trainer_conf.pop("best_model_criterion", []):
+        best_ckpt_callbacks.append(
+            ModelCheckpoint(
+                save_top_k=nbest,
+                monitor=monitor,
+                mode=mode,  # "min" or "max"
+                dirpath=args.output_dir,
+                save_last=False,
+                # Add monitor to filename to avoid overwriting when multiple metrics are used
+                filename="epoch{epoch}_step{step}_" + monitor.replace("/", "."),
+                auto_insert_metric_name=False,
+                save_on_train_epoch_end=False,
+                save_weights_only=True,
+                enable_version_counter=False,  # just overwrite
+            )
+        )
+
+    # Average best models after training
+    ave_ckpt_callback = AverageCheckpointsCallback(
+        output_dir=args.output_dir, best_ckpt_callbacks=best_ckpt_callbacks
+    )
+
+    # Monitor learning rate
+    lr_callback = LearningRateMonitor()
+
+    # Create loggers
+    loggers = []
+
+    if args.use_tensorboard:
+        tb_logger = TensorBoardLogger(
+            save_dir=args.output_dir,
+            name="lightning_logs",
+        )
+        loggers.append(tb_logger)
+
+    if args.use_wandb:
+        wandb_latest_id = None
+        # Resume the latest run if exists by setting the version
+        if (Path(args.output_dir) / "wandb" / "latest-run").exists():
+            wandb_latest_id = (
+                (Path(args.output_dir) / "wandb" / "latest-run")
+                .resolve()
+                .name.split("-")[-1]
+            )
+        wandb_logger = WandbLogger(
+            project=args.wandb_project or "ESPnet_" + task_class.__name__,
+            name=args.wandb_name or str(Path(".").resolve()).replace("/", "_"),
+            save_dir=args.output_dir,
+            version=wandb_latest_id,
+        )
+        loggers.append(wandb_logger)
 
     # Instantiate the Lightning Trainer
     trainer = L.Trainer(
