@@ -10,14 +10,10 @@ Fine-tuning is performed only on the standard development set of Clotho_v2 datas
 
 
 ### Steps to run
-For running AAC pre-training
+For running AAC pre-training and fine-tuning
 1. Download AudioCaps and set the path to its root directory in db.sh (This recipe downloads clotho for you). Also download clotho mixup data (wav ids and captions) from [this repo](https://huggingface.co/datasets/slseanwu/clotho-chatgpt-mixup-50K) and set `CLOTHO_CHATGPT_MIXUP` in db.sh. The code will take care of mixing and creating the audio files.
 2. Download the BEATs checkpoint: [BEATs_iter3+](https://onedrive.live.com/?authkey=%21AGXnEG4l3mlIzfA&id=6B83B49411CA81A7%2125960&cid=6B83B49411CA81A7&parId=root&parQt=sharedby&o=OneUp) and change the `beats_ckpt_path` path in `conf/beats_bart_pt.yaml`
-3. Launch with `run_pt.sh`
-
-For running fine-tuning, inference and scoring:
-1. Set the value of `pt_tag` in `run_ft.sh` and
-2. Launch with `run_ft.sh`
+3. Launch with `run.sh`
 
 
 ## Trained checkpoints
