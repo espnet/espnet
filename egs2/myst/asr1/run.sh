@@ -18,16 +18,20 @@ inference_config=conf/decode_asr.yaml
 nbpe=5000
 bpemode=unigram
 
-# if your sox support flac file, set local_data_opts and audio_format as below.
-local_data_opts=""
-audio_format=flac
+# if your sox supports flac file, set local_data_opts and audio_format as below.
+#local_data_opts=""
+#audio_format=flac
 
 # if your sox does not support flac file, set local_data_opts and audio_format as below.
 local_data_opts="--flac2wav true"
 audio_format=wav
 
+# set a higher min_wav_duration to avoid TooShortUttError in stage 11
+min_wav_duration=0.3
+
 ./asr.sh \
     --lang en \
+    --gpu_inference true \
     --token_type bpe \
     --bpemode "${bpemode}" \
     --nbpe "${nbpe}" \
@@ -46,4 +50,5 @@ audio_format=wav
     --bpe_train_text "data/${train_set}/text" \
     --local_data_opts "${local_data_opts}" \
     --audio_format ${audio_format} \
+    --min_wav_duration ${min_wav_duration} \
     "$@"
