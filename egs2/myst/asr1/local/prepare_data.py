@@ -88,7 +88,8 @@ for original_partition_name, data_partition_name in zip(original_partition_list,
     _ = os.system(cmd)
 
     # remove utf-8 whitespaces
-    cmd = f"iconv -f utf-8 -t ascii//TRANSLIT {text_file} > {text_file}.ascii; mv {text_file}.ascii {text_file}"
+    cmd = f"iconv -f utf-8 -t ascii//TRANSLIT {text_file} > {text_file}.ascii; \
+        mv {text_file}.ascii {text_file}"
     _ = os.system(cmd)
 
     # validata data
