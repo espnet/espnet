@@ -49,16 +49,16 @@ num_workers: 4
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel
-batch_bins: 1600000
+batch_bins: 16000000
 accum_grad: 4
-max_epoch: 70
+max_epoch: 20
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10
+keep_nbest_models: 4
 
 use_amp: true
 cudnn_deterministic: false
