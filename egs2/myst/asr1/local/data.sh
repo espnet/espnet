@@ -61,7 +61,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then    
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Data preparation"
     # Set the base directory of the original dataset
     original_dir="${MYST}/myst_child_conv_speech/data"
