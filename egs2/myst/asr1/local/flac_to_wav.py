@@ -1,14 +1,16 @@
-import os
-import glob
-from tqdm import tqdm
-from multiprocessing import Pool
 import argparse
+import glob
+import os
+from multiprocessing import Pool
+
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--njobs", type=int, default=4)
 parser.add_argument("--myst_dir", type=str)
 parser.add_argument("--multiprocessing", action="store_true")
 args = parser.parse_args()
+
 
 def flac2wav(filepath):
     assert filepath.endswith(".flac")
@@ -19,8 +21,9 @@ def flac2wav(filepath):
         os.remove(filepath)
     return
 
+
 # get file list
-filepaths = glob.glob(os.path.join(args.myst_dir, '**/*.flac'), recursive=True)
+filepaths = glob.glob(os.path.join(args.myst_dir, "**/*.flac"), recursive=True)
 
 # multiprocessing
 if args.multiprocessing:
