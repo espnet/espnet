@@ -17,7 +17,7 @@ asr_expdir=$1
 splits=(evaluation)
 
 for split in ${splits[@]}; do
-	for decode_file in $((ls -d ${asr_expdir}/*/*/* && ls -d ${asr_expdir}/*/*) | grep "${split}/text"); do
+	for decode_file in $((ls -d ${asr_expdir}/*/*/* && ls -d ${asr_expdir}/*/*) | grep "${split}/text$"); do
 		echo "Decode file: ${decode_file} for split:${split}"
 		python local/evaluation.py --decode_file=${decode_file} --split=${split}
 	done
