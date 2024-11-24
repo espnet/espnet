@@ -385,36 +385,38 @@ class SpeakerTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        # for SASV task, two or three losses are used: spk, spf, and pmos
         losses = []
         loss_weights = []
-        if args.spf_num is not None:
-            num_losses = len([loss for loss in args.loss if "name" in loss])
-            for i in range(num_losses):
-                loss_conf = args.loss[i].get("loss_conf", {})
-                loss_class = loss_choices.get_class(args.loss[i]["name"])
-                if args.loss[i]["name"] != "mse":
-                    loss = loss_class(
-                        nout=projector_output_size,
-                        nclasses=args.spk_num if i == 0 else args.spf_num,
-                        **loss_conf,
-                    )
-                else: # mse has no classes
-                    loss = loss_class(
-                        nout=projector_output_size,
-                        **loss_conf,
-                    )
-                losses.append(loss)
-                loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
-        else:  # for spk task, loss is a single loss
-            loss_class = loss_choices.get_class(args.loss)
-            loss = loss_class(
-                nout=projector_output_size,
-                nclasses=args.spk_num,
-                **args.loss_conf,
-            )
-            losses.append(loss)
+        loss_types = []
 
+        num_losses = len([loss for loss in args.loss if "name" in loss])
+
+        for i in range(num_losses):
+            loss_types.append(args.loss[i].get("type", "spk"))
+            loss_conf = args.loss[i].get("loss_conf", {})
+            loss_class = loss_choices.get_class(args.loss[i]["name"])
+
+            if loss_types[i] == "spk":
+                nclasses = args.spk_num
+            elif loss_types[i] == "spf":
+                nclasses = args.spf_num
+            else:
+                nclasses = None
+            if nclasses is not None:
+                loss = loss_class(
+                    nout=projector_output_size,
+                    nclasses=nclasses,
+                    **loss_conf,
+                )
+            else: # mse has no classes
+                loss = loss_class(
+                    nout=projector_output_size,
+                    **loss_conf,
+                )
+            losses.append(loss)
+            loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
+
+        print(f"building model with {len(losses)} losses")
         model = ESPnetSpeakerModel(
             frontend=frontend,
             specaug=specaug,
@@ -424,6 +426,7 @@ class SpeakerTask(AbsTask):
             projector=projector,
             loss=losses,
             loss_weights=loss_weights,
+            loss_names=loss_types,
             # **args.model_conf, # uncomment when model_conf exists
         )
 

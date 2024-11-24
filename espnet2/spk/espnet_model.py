@@ -49,6 +49,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         projector: Optional[AbsProjector],
         loss: Optional[List[AbsLoss]],
         loss_weights: Optional[List[float]] = None,
+        loss_names: Optional[List[str]] = None,
     ):
 
         super().__init__()
@@ -61,6 +62,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.projector = projector
         self.loss = loss
         self.loss_weights = loss_weights
+        self.loss_names = loss_names
 
     @typechecked
     def forward(
@@ -120,44 +122,40 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             return spk_embd
 
         # 4. calculate loss
-        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        # for SASV, loss will either be a list of:
-        #  two losses: spk_loss and spf_loss or
-        #  three losses: spk_loss, spf_loss, and pmos_loss
-        if len(self.loss) > 1:
-            labels = [spk_labels, spf_labels, pmos_labels][:len(self.loss)]
-            loss_names = ['spk', 'spf', 'pmos'][:len(self.loss)]
-            # Check all required labels are present
-            for name, label in zip(loss_names[1:], labels[1:]):
-                if label is None:
-                    raise ValueError(f"{name}_labels is None, cannot compute {name}_loss")
-            # calculate individual losses
-            losses = [loss_fn(spk_embd, label.squeeze()) for loss_fn, label in zip(self.loss, labels)]  
-
-            # calculate weighted sum of losses
-            if self.loss_weights is not None:
-                loss = sum(w * l for w, l in zip(self.loss_weights, losses))
+        loss_names = self.loss_names
+        labels = []
+        for i, loss in enumerate(self.loss):
+            if loss_names[i] == "spk":
+                assert spk_labels is not None, "spk_labels is None, cannot compute loss"
+                labels.append(spk_labels)
+            elif loss_names[i] == "spf":
+                assert spf_labels is not None, "spf_labels is None, cannot compute loss"
+                labels.append(spf_labels)
+            elif loss_names[i] == "pmos":
+                assert pmos_labels is not None, "pmos_labels is None, cannot compute loss"
+                labels.append(pmos_labels)
             else:
-                loss = sum(losses)
-
-            # Prepare stats dictionary
-            stats = {f"{name}_loss": loss.detach() 
-                    for name, loss in zip(loss_names, losses)}
-            stats["loss"] = loss.detach()
+                raise NotImplementedError(f"Loss name {loss_names[i]} is not supported")
             
-            # Make gathered results
-            loss, stats, weight = force_gatherable(
-                (loss, stats, batch_size), loss.device
-            )
-            return loss, stats, weight
+        assert len(self.loss) == len(labels), "Number of losses and labels do not match"
+        losses = [loss_fn(spk_embd, label.squeeze()) for loss_fn, label in zip(self.loss, labels)]
 
-        else:  # for spk task, loss will be a single loss
-            loss = self.loss[0](spk_embd, spk_labels.squeeze())
-            stats = dict(loss=loss.detach())
-            loss, stats, weight = force_gatherable(
-                (loss, stats, batch_size), loss.device
-            )
-            return loss, stats, weight
+        # calculate weighted sum of losses
+        if self.loss_weights is not None:
+            loss = sum(w * l for w, l in zip(self.loss_weights, losses))
+        else:
+            loss = sum(losses)
+
+        # Prepare stats dictionary
+        stats = {f"{name}_loss": loss.detach() 
+                for name, loss in zip(loss_names, losses)}
+        stats["loss"] = loss.detach()
+
+        # Make gathered results
+        loss, stats, weight = force_gatherable(
+            (loss, stats, batch_size), loss.device
+        )
+        return loss, stats, weight
 
     def extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor

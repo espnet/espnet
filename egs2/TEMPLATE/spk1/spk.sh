@@ -86,6 +86,7 @@ embed_avg_args=   # Arguments for embedding averaging
 # Use pseudomos scores
 pseudomos=false   # Use pseudomos scores for training
 train_utt2pmos=   # absolue path to utt2pmos file, required if pseudomos is true
+valid_utt2pmos=   # absolue path to utt2pmos file, required if pseudomos is true
 
 # Label related
 no_labels=false    # No labels for inference
@@ -520,6 +521,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             exit 1
         fi
         spf_args+=" --train_data_path_and_name_and_type "${train_utt2pmos}",pmos_labels,text"
+
+        # check that valid_utt2pmos is set
+        if [ -z "${valid_utt2pmos}" ]; then
+            log "Not validating with pseudomos scores."
+        else
+            spf_args+=" --valid_data_path_and_name_and_type "${valid_utt2pmos}",pmos_labels,text"
+        fi
+
     fi
 
     # if embed_avg is enabled, then also add trial3 and trial4 arguments for valid
