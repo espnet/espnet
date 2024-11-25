@@ -6,10 +6,12 @@ set -u
 set -o pipefail
 
 ./uni_versa.sh \
-    --nj 8 \
-    --inference_nj 8 \
+    --audio_format flac.ark \
+    --nj 10 \
+    --inference_nj 10 \
     --train_config conf/train_universa.yaml \
     --inference_config conf/decode_universa.yaml \
+    --dumpdir dump_ark \
     --train_set train_temp \
     --valid_set dev_temp \
     --test_sets "dev_temp test_temp" \
