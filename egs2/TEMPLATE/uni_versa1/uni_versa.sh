@@ -80,7 +80,7 @@ inference_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
-inference_model=train.total_count.best.pth # Model path for decoding.
+inference_model=valid.loss.best.pth # Model path for decoding.
                                    # e.g.
                                    # inference_model=train.loss.best.pth
                                    # inference_model=3epoch.pth
@@ -89,10 +89,7 @@ inference_model=train.total_count.best.pth # Model path for decoding.
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # Scoring related
-scoring_config="" # Config for scoring.
-scoring_args=""   # Arguments for scoring.
-                  # Note that it will overwrite args in scoring config.
-scoring_tag=""    # Suffix for scoring directory.
+sys_info=         # System information for system-level evaluation.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -174,10 +171,7 @@ Options:
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # Scoring related
-    --scoring_config     # Config for scoring (default="${scoring_config}").
-    --scoring_args       # Arguments for scoring (default="${scoring_args}").
-    --scoring_tag        # Suffix for scoring directory (default="${scoring_tag}").
-
+    --sys_info       # System information for system-level evaluation (default="${sys_info}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set          # Name of training set (required).
@@ -266,17 +260,6 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="$(echo "${inference_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
     fi
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-fi
-if [ -z "${scoring_tag}" ]; then
-    if [ -n "${scoring_config}" ]; then
-        scoring_tag="$(basename "${scoring_config}" .yaml)"
-    else
-        scoring_tag=scoring
-    fi
-    # Add overwritten arg's info
-    if [ -n "${scoring_args}" ]; then
-        scoring_tag+="$(echo "${scoring_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
-    fi
 fi
 
 # The directory used for collect-stats mode
@@ -515,8 +498,7 @@ if ! "${skip_train}"; then
 
         _opts=
         if [ -n "${train_config}" ]; then
-            # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.universa_train --print_config --optim adam
+            # To gen3 -m espnet2.bin.universa_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -552,7 +534,7 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${universa_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
+        log "Generate '${universa_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${universa_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${universa_stats_dir}/run.sh"; chmod +x "${universa_stats_dir}/run.sh"
 
         # 3. Submit jobs
@@ -714,24 +696,24 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
-        _opts=
-        if [ -n "${inference_config}" ]; then
-            _opts+="--config ${inference_config} "
-        fi
-
-        _scp=wav.scp
-        if [[ "${audio_format}" == *ark* ]]; then
-            _type=kaldi_ark
-        else
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
-        fi
-
         log "Generate '${universa_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
         mkdir -p "${universa_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${universa_exp}/${inference_tag}/run.sh"; chmod +x "${universa_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do
+            _opts=
+            if [ -n "${inference_config}" ]; then
+                _opts+="--config ${inference_config} "
+            fi
+
+            _scp=wav.scp
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
+
             _data="${data_feats}/${dset}"
             _dir="${universa_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
@@ -752,6 +734,15 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/universa_inference.*.log'"
+
+            # Add reference audio and text if required
+            if [ ${use_ref_wav} = true ]; then
+                _opts+="--data_path_and_name_and_type ${_data}/ref_wav.scp,ref_audio,${_type} "
+            fi
+            if [ ${use_ref_text} = true ]; then
+                _opts+="--data_path_and_name_and_type ${_data}/text,ref_text,text "
+            fi
+
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/universa_inference.JOB.log \
                 ${python} -m espnet2.bin.universa_inference \
@@ -764,22 +755,10 @@ if ! "${skip_eval}"; then
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/universa_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            if [ -e "${_logdir}/output.${_nj}/codes" ]; then
-                mkdir -p "${_dir}"/codes
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/codes/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/codes/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
-                mkdir -p "${_dir}"/wav
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                    rm -rf "${_logdir}/output.${i}"/wav
-                done
-                find "${_dir}/wav" -name "*.wav" | while read -r line; do
-                    echo "$(basename "${line}" .wav) ${line}"
-                done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
-            fi
+            # shellcheck disable=SC2068
+            for n in $(seq "${_nj}"); do
+                cat "${_logdir}"/output.${n}/metric.scp || exit 1
+            done > "${_dir}/metric.scp"
         done
     fi
 
@@ -796,55 +775,38 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _gt_wavscp="${_data}/wav.scp"
+            _ref_metrics="${_data}/metric.scp"
             _dir="${universa_exp}/${inference_tag}/${dset}"
-            _gen_wavscp="${_dir}/wav/wav.scp"
+            _pred_metrics="${_dir}/metric.scp"
 
             log "Begin evaluation on ${dset}, results are written under ${_dir}"
 
-            # 1. Split the key file
-            _scoredir="${_dir}/${scoring_tag}"
-            _logdir="${_scoredir}/log"
-            mkdir -p ${_scoredir}
-            mkdir -p ${_logdir}
+            log "Perform utt-level evaluation, results are written in ${_dir}/utt_result.json"
+            python pyscripts/utils/universa_eval.py \
+                --level utt \
+                --ref_metrics "${_ref_metrics}" \
+                --pred_metrics "${_pred_metrics}" \
+                --skip_missing true \
+                --out_file "${_dir}/utt_result.json"
+            
+            log "Utterance-level evaluation results are as follows:"
+            cat "${_dir}/utt_result.json"
 
-            # Get the minimum number among ${nj} and the number lines of input files
-            _nj=$(min "${inference_nj}" "$(<${_gen_wavscp} wc -l)" )
-
-            key_file=${_gen_wavscp}
-            split_scps=""
-            for n in $(seq "${_nj}"); do
-                split_scps+=" ${_logdir}/test.${n}.scp"
-            done
-            # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
-
-            # 2. Generate run.sh
-            log "Generate '${_scoredir}/run.sh'. You can resume the process from stage 9 using this script"
-            echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${_scoredir}/run.sh"; chmod +x "${_scoredir}/run.sh"
-
-            # 3. Submit jobs
-            log "Evaluation started... log: '${_logdir}/universa_evaluate.*.log'"
-            # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/universa_evaluate.JOB.log \
-                ${python} -m versa.bin.espnet_scorer \
-                    --pred "${_logdir}"/test.JOB.scp \
-                    --gt "${_gt_wavscp}" \
-                    --output_file "${_logdir}/result.JOB.txt" \
-                    --score_config "${scoring_config}" \
-                    ${scoring_args} || { cat $(grep -l -i error "${_logdir}"/universa_evaluate.*.log) ; exit 1; }
-
-            # 4. Aggregate the results
-            ${python} pyscripts/utils/aggregate_universa_eval.py \
-                --logdir "${_logdir}" \
-                --scoredir "${_scoredir}" \
-                --nj "${_nj}"
+            if [ -n "${sys_info}" ]; then
+                log "Perform system-level evaluation using ${sys_info}, results are written in ${_dir}/sys_result.json"
+                python pyscripts/utils/universa_eval.py \
+                    --level sys \
+                    --ref_metrics "${_ref_metrics}" \
+                    --pred_metrics "${_pred_metrics}" \
+                    --sys_info "${sys_info}" \
+                    --skip_missing true \
+                    --out_file "${_dir}/sys_result.json"
+                
+                log "System-level evaluation results are as follows:"
+                cat "${_dir}/sys_result.json"
+            fi
 
         done
-
-        # 5. Show results
-        # TODO(jiatong)
-
     fi
 else
     log "Skip the evaluation stages"

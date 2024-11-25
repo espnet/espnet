@@ -4,9 +4,10 @@
 """Universa ESPnet model definition."""
 
 from contextlib import contextmanager
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
+import numpy as np
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -35,6 +36,8 @@ class ESPnetUniversaModel(AbsESPnetModel):
         super().__init__()
         self.frontend = frontend
         self.universa = universa
+        self.use_ref_audio = universa.use_ref_audio
+        self.use_ref_text = universa.use_ref_text
 
     @typechecked
     def forward(
@@ -95,7 +98,7 @@ class ESPnetUniversaModel(AbsESPnetModel):
                     ref_text_lengths=ref_text_lengths,
                 )
 
-            return self.universa(**batch)
+        return self.universa(**batch)
 
     def collect_feats(
         self,
@@ -152,14 +155,39 @@ class ESPnetUniversaModel(AbsESPnetModel):
         ref_text: Optional[torch.Tensor] = None,
         ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> Dict[str, Union[np.array, torch.Tensor]]:
         """Return predicted output as a dict."""
 
+        with autocast(False):
+            # Extract features
+            feats, feats_lengths = self._extract_feats(audio, audio_lengths)
+
+            # Extract reference features if necessary
+            if ref_audio is not None:
+                ref_feats, ref_feats_lengths = self._extract_feats(
+                    ref_audio, ref_audio_lengths
+                )
+            else:
+                ref_feats, ref_feats_lengths = None, None
+
+            # Make batch for universa inputs
+            batch = dict(
+                audio=feats,
+                audio_lengths=feats_lengths,
+            )
+
+            # Update batch with reference features and text
+            if ref_feats is not None:
+                batch.update(
+                    ref_audio=ref_feats,
+                    ref_audio_lengths=ref_feats_lengths,
+                )
+            if ref_text is not None:
+                batch.update(
+                    ref_text=ref_text,
+                    ref_text_lengths=ref_text_lengths,
+                )
+
         return self.universa.inference(
-            audio=audio,
-            audio_lengths=audio_lengths,
-            ref_audio=ref_audio,
-            ref_audio_lengths=ref_audio_lengths,
-            ref_text=ref_text,
-            ref_text_lengths=ref_text_lengths,
+            **batch,
         )

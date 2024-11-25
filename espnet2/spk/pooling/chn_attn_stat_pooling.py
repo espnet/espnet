@@ -47,6 +47,7 @@ class ChnAttnStatPooling(AbsPooling):
                 "ChannelAttentiveStatisticsPooling is not adequate for task_tokens"
             )
         
+        t = x.size()[-1]
         if self.use_masking and mask is not None:
             x = x.masked_fill(mask.unsqueeze(1), 0)
             sum_x = torch.sum(x, dim=-1)
@@ -56,13 +57,12 @@ class ChnAttnStatPooling(AbsPooling):
             global_x = torch.cat(
                 (
                     x,
-                    mean_x.repeat(1, 1, x.size()[2]),
-                    std_x.repeat(1, 1, x.size()[2]),
+                    mean_x.repeat(1, 1, t),
+                    std_x.repeat(1, 1, t),
                 ),
                 dim=1,
             )
         else:
-            t = x.size()[-1]
             global_x = torch.cat(
                 (
                     x,
