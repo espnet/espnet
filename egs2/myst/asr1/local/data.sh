@@ -37,7 +37,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -d "${MYST}/myst_child_conv_speech" ]; then
-	    echo "stage 1: Download data to ${MYST}"
+	    echo "stage 1: Please download data from https://catalog.ldc.upenn.edu/LDC2021S05 and save to ${MYST}"
         exit 1
     else
         log "stage 1: ${MYST}/myst_child_conv_speech is already existing. Skip data downloading"
