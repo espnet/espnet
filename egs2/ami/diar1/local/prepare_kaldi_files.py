@@ -2,7 +2,6 @@
 import argparse
 import os
 import re
-import yaml
 
 def float2str(number, size=6):
     number = str(int(number * 100))  # convert to integer after multiplying by 100
@@ -16,30 +15,11 @@ def gen_utt_id(wav_id: str, spk_id: str, utt_start_time: float, utt_end_time: fl
 def prepare_kaldi_files(
     config_path: str, mic_type: str, if_mini: str, 
     sound_type: str, dataset_type: str, kaldi_files_base_dir: str, 
-    num_spk: str
+    num_spk: str, segmented_dataset_dir: str
 ) -> None:
     # dataset_type: "train", "dev", "test"
-    if if_mini == "true":
-        if_mini = True
-    elif if_mini == "false":
-        if_mini = False
-    else:
-        raise ValueError("if_mini must be 'true' or 'false'")
     
     assert num_spk == "4" or num_spk == "None", f"num_spk should be 4 or None, but get {num_spk}"
-    
-    if sound_type == "word_and_vocalsounds":
-        assert mic_type == "ihm", "Only data with ihm microphone type is available for word_and_vocalsounds sound type."
-        assert not if_mini, "Only full dataset is available for word_and_vocalsounds sound type."
-    if sound_type == "only_words":
-        assert not if_mini, "Only full dataset is available for only_words sound type."
-
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
-    
-    dataset = "AMI-SDM" if mic_type == "sdm" else "AMI"
-    task = "SpeakerDiarization"
-    task_option = "mini" if if_mini else sound_type
     kaldi_files_dir = os.path.join(kaldi_files_base_dir, dataset_type)
 
     if not os.path.exists(kaldi_files_dir):
@@ -49,25 +29,11 @@ def prepare_kaldi_files(
     utt2spk = open(os.path.join(kaldi_files_dir, "utt2spk"), "w", encoding="utf-8")
     segments = open(os.path.join(kaldi_files_dir, "segments"), "w", encoding="utf-8")
 
-    databases = config["Databases"]
-    protocols = config["Protocols"]
-
     # wav_id_txt is the txt file contains a list of wav_ids, uri with the same meaning of wav_id
-    wav_id_txt = protocols[dataset][task][task_option][dataset_type]["uri"] 
+    wav_id_txt = os.path.join(segmented_dataset_dir, dataset_type, "wav_ids.txt")
 
-    # wav_path_template is like amicorpus/{uri}/audio/{uri}.Mix-Headset.wav
-    wav_path_template = databases[dataset] 
-
-    # rttm_path_template is like ami_diarization_setup/only_words/rttms/train/{uri}.rttm
-    rttm_path_template = protocols[dataset][task][task_option][dataset_type]["annotation"] 
-
-    # lab_path_template is like ami_diarization_setup/only_words/labs/train/{uri}.lab
-    # lab file contain the utterance start and end time information
-    # like: 5.57 6.01 speech, according to this file, we can get utt_id
-    lab_path_template = protocols[dataset][task][task_option][dataset_type]["lab"]
-
-    # we may not use uem file when creating kaldi-style data directory
-    uem_path_template = protocols[dataset][task][task_option][dataset_type]["annotated"]
+    wav_path_template = f"{segmented_dataset_dir}/{dataset_type}/wav/{{uri}}.wav" 
+    rttm_path_template = f"{segmented_dataset_dir}/{dataset_type}/rttm/{{uri}}.rttm" 
 
     wav_ids = []
     with open(wav_id_txt, "r") as f:
@@ -80,7 +46,6 @@ def prepare_kaldi_files(
 
     for wav_id in wav_ids:
         rttm_path = rttm_path_template.format(uri=wav_id)
-        lab_path = lab_path_template.format(uri=wav_id)
         
         ### ======== Detect wav files with more or less than 4 speakers ======== ###
         unique_speaker_set = set()
@@ -98,7 +63,7 @@ def prepare_kaldi_files(
             continue # For num_spk == 4, since there are several files in ami that with 
                      # 3 or 5 speakers, we choose to neglect these files. 
 
-        ### ======== Prepare segments, utt2spk ======== ###
+        ### ======================= Prepare segments, utt2spk ================== ###
         with open(rttm_path, "r") as f:
             f.seek(0)
             for line_id, line in enumerate(f):
@@ -115,7 +80,7 @@ def prepare_kaldi_files(
                 segments_entries.append(f"{utt_id} {wav_id} {spk_start_time} {spk_end_time}\n")
                 utt2spk_entries.append(f"{utt_id} {spk_id}\n")
 
-        ### ======== Prepare wav.scp ======== ###
+        ### ====================== Prepare wav.scp ============================== ###
         wav_path = wav_path_template.format(uri=wav_id)
         wavscp_entries.append(f"{wav_id} {wav_path}\n")
     
@@ -153,10 +118,13 @@ parser.add_argument(
     "--kaldi_files_base_dir", type=str, required=True, 
     help="Directory to store kaldi style data files, typically located at ./data, under this base dir, there are /train, /dev, /test."
 )
-
 parser.add_argument(
     "--num_spk", type=str, required=True, 
     help="The number of speakers in a wav file. Only accept 4 or None. "
+)
+parser.add_argument(
+    "--segmented_dataset_dir", type=str, required=True, 
+    help="Directory to store the segmented wavs and rttms, typically located at ./segmented_dataset, under this base dir, there are /train, /dev, /test."
 )
 
 args = parser.parse_args()
@@ -164,17 +132,20 @@ args = parser.parse_args()
 ### prepare train
 prepare_kaldi_files(
     args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "train", args.kaldi_files_base_dir, args.num_spk
+    args.sound_type, "train", args.kaldi_files_base_dir, args.num_spk, 
+    args.segmented_dataset_dir
 )
 ### prepare dev
 prepare_kaldi_files(
     args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "dev", args.kaldi_files_base_dir, args.num_spk
+    args.sound_type, "dev", args.kaldi_files_base_dir, args.num_spk, 
+    args.segmented_dataset_dir
 )
 ### prepare test
 prepare_kaldi_files(
     args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "test", args.kaldi_files_base_dir, args.num_spk
+    args.sound_type, "test", args.kaldi_files_base_dir, args.num_spk, 
+    args.segmented_dataset_dir
 )
 
 print("Successfully complete Kaldi-style preparation")

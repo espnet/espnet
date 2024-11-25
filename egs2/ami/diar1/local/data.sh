@@ -33,6 +33,7 @@ if_mini=false
 # - only_words: Annotate only spoken words.
 # - word_and_vocalsounds: Annotate both spoken words and vocal sounds (e.g., laughter, coughing).
 #                         Note: This could only be used when 'mic_type' is 'ihm'.
+# - None: if use mini dataset, the sound_type should be None
 # Default is only_words, as vocal sounds are subjectively labeled.
 sound_type=only_words
 
@@ -63,7 +64,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     # our fork
     if [ ! -d "$setup_dir" ] ; then
         git clone "$URL" "$setup_dir"
-        log "git successfully downloaded AMI-diarization-setup"
+        log "Git successfully downloaded AMI-diarization-setup"
     fi
 fi
 
@@ -90,30 +91,50 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
         log "mic_type should be 'ihm' or 'sdm', but got ${mic_type}"
         exit 1
     fi
+
     log "AMI data with mic_type ${mic_type} and if_mini ${if_mini} successfully downloaded"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
-# Create Kaldi-style files
-mkdir -p data/
+    # Split wav files to short segments, and generate corresponding RTTM files. 
+    mkdir -p segmented_dataset/
 
-python3 local/prepare_kaldi_files.py \
-    --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
-    --mic_type "${mic_type}" \
-    --if_mini ${if_mini} \
-    --sound_type ${sound_type} \
-    --kaldi_files_base_dir ./data \
-    --num_spk ${num_spk}
+    log "Start segmenting the dataset"
+    python3 local/segment_wav_rttm.py \
+        --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
+        --mic_type "${mic_type}" \
+        --if_mini ${if_mini} \
+        --sound_type ${sound_type} \
+        --segment_output_dir ./segmented_dataset \
+        --duration 20
+    
+    log "Successfully segmented the dataset"
+fi
 
-# converts the utt2spk file to spk2utt file
-for dir in data/test data/train data/dev; do
-    utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
-    sort $dir/utt2spk -o $dir/utt2spk
-done
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
+    # Create Kaldi-style files
+    mkdir -p data/
 
-for dir in data/test data/train data/dev; do
-    utils/fix_data_dir.sh $dir
-done
+    python3 local/prepare_kaldi_files.py \
+        --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
+        --mic_type "${mic_type}" \
+        --if_mini ${if_mini} \
+        --sound_type ${sound_type} \
+        --kaldi_files_base_dir ./data \
+        --num_spk ${num_spk} \
+        --segmented_dataset_dir ./segmented_dataset
+
+    # converts the utt2spk file to spk2utt file
+    for dir in data/test data/train data/dev; do
+        utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
+        sort $dir/utt2spk -o $dir/utt2spk
+    done
+
+    for dir in data/test data/train data/dev; do
+        utils/fix_data_dir.sh $dir
+    done
+
+    log "Successfully prepared Kaldi-style files"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
