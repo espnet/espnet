@@ -3,8 +3,8 @@
 """Inference script for ESPnet Universa model."""
 
 import argparse
-import logging
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
@@ -54,7 +54,7 @@ class UniversaInference:
         self.always_fix_seed = always_fix_seed
         logging.info(f"Frontend: {model.frontend}")
         logging.info(f"Universa: {model.universa}")
-    
+
     @torch.no_grad()
     @typechecked
     def __call__(
@@ -78,7 +78,7 @@ class UniversaInference:
             logging.warning("Universa model not pretrained with ref_audio is used.")
         if not self.model.use_ref_text and ref_text is not None:
             logging.warning("Universa model not pretrained with ref_text is used.")
-        
+
         # prepare batch
         batch = dict(audio=audio, audio_lengths=audio_lengths)
         if ref_audio is not None:
@@ -92,18 +92,18 @@ class UniversaInference:
         # inference
         if self.always_fix_seed:
             set_all_random_seed(self.seed)
-        
+
         output_dict = self.model.inference(**batch, **kwargs)
         return output_dict
-    
+
     @property
     def use_ref_audio(self):
         return self.model.use_ref_audio
-    
+
     @property
     def use_ref_text(self):
         return self.model.use_ref_text
-    
+
     @staticmethod
     def from_pretrained(
         model_tag: Optional[str] = None,
@@ -153,8 +153,10 @@ def inference(
     if model_file is None and model_tag is None:
         raise ValueError("model_file or model_tag must be specified.")
     if model_file is not None and model_tag is not None:
-        raise ValueError("model_file and model_tag cannot be specified at the same time.")
-    
+        raise ValueError(
+            "model_file and model_tag cannot be specified at the same time."
+        )
+
     if ngpu == 0:
         device = "cpu"
     else:
@@ -162,7 +164,7 @@ def inference(
 
     # 1. set random seed
     set_all_random_seed(seed)
-    
+
     # 2. setup UniversaInference (build model)
     universa_inference = UniversaInference.from_pretrained(
         model_tag=model_tag,
@@ -181,10 +183,12 @@ def inference(
         batch_size=batch_size,
         num_workers=num_workers,
         key_file=key_file,
-        preprocess_fn=UniversaTask.build_preprocess_fn(universa_inference.train_args, False),
+        preprocess_fn=UniversaTask.build_preprocess_fn(
+            universa_inference.train_args, False
+        ),
         collate_fn=UniversaTask.build_collate_fn(universa_inference.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
-        inference=True
+        inference=True,
     )
 
     # 4. start for-loop inference
@@ -196,15 +200,14 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
 
             results = universa_inference(**batch)
-            
+
             for i in range(_bs):
                 key = keys[i]
                 # NOTE(jiatong): assume the prediction target is 1-dimensional.
-                metrics_info = {
-                    k: float(v[i, 0]) for k, v in results.items()
-                }
+                metrics_info = {k: float(v[i, 0]) for k, v in results.items()}
                 writer["metric.scp"][key] = json.dumps(metrics_info)
-    
+
+
 def get_parser():
     parser = config_argparse.ArgumentParser(
         description="Universa Inference",
@@ -285,6 +288,7 @@ def get_parser():
     )
     return parser
 
+
 def main(cmd=None):
     """Run Universa model inference."""
     print(get_commandline_args(), file=sys.stderr)
@@ -297,4 +301,3 @@ def main(cmd=None):
 
 if __name__ == "__main__":
     main()
-

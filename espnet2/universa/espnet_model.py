@@ -6,8 +6,8 @@
 from contextlib import contextmanager
 from typing import Dict, Optional, Tuple, Union
 
-import torch
 import numpy as np
+import torch
 from packaging.version import parse as V
 from typeguard import typechecked
 

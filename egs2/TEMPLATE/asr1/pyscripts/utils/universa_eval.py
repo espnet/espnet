@@ -4,34 +4,54 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import os
-import sys
-from typing import List, Set
-import numpy as np
-import scipy
 import json
 import logging
+import os
+import sys
 from collections import defaultdict
+from typing import List, Set
+
+import numpy as np
+import scipy
+
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Universal evaluation script")
     parser.add_argument(
-        "--level", type=str, default="utt", choices=["utt", "sys"],
+        "--level",
+        type=str,
+        default="utt",
+        choices=["utt", "sys"],
     )
     parser.add_argument(
-        "--ref_metrics", type=str, required=True, help="reference metrics file",
+        "--ref_metrics",
+        type=str,
+        required=True,
+        help="reference metrics file",
     )
     parser.add_argument(
-        "--pred_metrics", type=str, required=True, help="metrics prediction file",
+        "--pred_metrics",
+        type=str,
+        required=True,
+        help="metrics prediction file",
     )
     parser.add_argument(
-        "--out_file", type=str, required=True, help="output file",
+        "--out_file",
+        type=str,
+        required=True,
+        help="output file",
     )
     parser.add_argument(
-        "--sys_info", type=str, default=None, help="system information file",
+        "--sys_info",
+        type=str,
+        default=None,
+        help="system information file",
     )
     parser.add_argument(
-        "--skip_missing", type=bool, default=False, help="skip missing utterances",
+        "--skip_missing",
+        type=bool,
+        default=False,
+        help="skip missing utterances",
     )
     return parser
 
@@ -55,6 +75,7 @@ def calculate_metrics(ref_metric_scores, pred_metric_scores, prefix="utt"):
         "{}_ktau".format(prefix): ktau,
     }
 
+
 def load_sys_info(sys_info_file: str):
     utt2sys = {}
     with open(sys_info_file, "r") as f:
@@ -65,6 +86,7 @@ def load_sys_info(sys_info_file: str):
             parts = line.split(maxsplit=1)
             utt2sys[parts[0]] = parts[1]
     return utt2sys
+
 
 def load_metrics(metrics_file, detect_metric_names=False):
     utt2metrics = {}
@@ -85,12 +107,19 @@ def load_metrics(metrics_file, detect_metric_names=False):
 
     return utt2metrics, metric_names
 
-if __name__== "__main__":
+
+if __name__ == "__main__":
     args = get_parser().parse_args()
-    ref_metrics, ref_metric_names = load_metrics(args.ref_metrics, detect_metric_names=True)
-    pred_metrics, metric_names = load_metrics(args.pred_metrics, detect_metric_names=True)
+    ref_metrics, ref_metric_names = load_metrics(
+        args.ref_metrics, detect_metric_names=True
+    )
+    pred_metrics, metric_names = load_metrics(
+        args.pred_metrics, detect_metric_names=True
+    )
     sys_info = load_sys_info(args.sys_info) if args.sys_info else None
-    assert sys_info is not None or args.level == "utt", "System information is required for system-level evaluation"
+    assert (
+        sys_info is not None or args.level == "utt"
+    ), "System information is required for system-level evaluation"
     final_result = {}
     for metric in metric_names:
         if metric not in ref_metric_names:
@@ -105,7 +134,9 @@ if __name__== "__main__":
                 logging.warning(f"Missing utterance: {utt} in reference metric.scp")
             if metric not in pred_metrics[utt]:
                 if args.skip_missing:
-                    logging.warning(f"Missing metric: {metric} in prediction metric.scp")
+                    logging.warning(
+                        f"Missing metric: {metric} in prediction metric.scp"
+                    )
                     continue
                 raise ValueError(f"Missing metric: {metric} in prediction metric.scp")
             if metric not in ref_metrics[utt]:
@@ -125,7 +156,9 @@ if __name__== "__main__":
                 ref_metric[sys_id].append(ref_metrics[utt][metric])
 
         if args.level == "utt":
-            eval_results = calculate_metrics(ref_metric, pred_metric, prefix="utt_{}".format(metric))
+            eval_results = calculate_metrics(
+                ref_metric, pred_metric, prefix="utt_{}".format(metric)
+            )
         else:
             pred_sys_avg = []
             ref_sys_avg = []
@@ -136,7 +169,9 @@ if __name__== "__main__":
                 sys_ref_avg = np.mean(sys_ref_metrics)
                 pred_sys_avg.append(sys_pred_avg)
                 ref_sys_avg.append(sys_ref_avg)
-            eval_results = calculate_metrics(ref_sys_avg, pred_sys_avg, prefix="sys_{}".format(metric))
+            eval_results = calculate_metrics(
+                ref_sys_avg, pred_sys_avg, prefix="sys_{}".format(metric)
+            )
         final_result.update(eval_results)
     with open(args.out_file, "w") as f:
         json.dump(final_result, f, indent=4)
@@ -144,6 +179,3 @@ if __name__== "__main__":
 
 # Example usage:
 # python universa_eval.py --level utt --ref_metrics ref_metrics.scp --pred_metrics pred_metrics.scp --out_file result.json
-
-        
-            

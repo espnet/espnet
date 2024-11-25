@@ -5,12 +5,12 @@
 
 import logging
 from contextlib import contextmanager
-from typing import Dict, Optional, Sequence, Tuple, Union, List
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
-import numpy as np
 from typeguard import typechecked
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
@@ -312,7 +312,9 @@ class UniversaBase(AbsUniversa):
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
@@ -337,7 +339,9 @@ class UniversaBase(AbsUniversa):
                 loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
-            pooling_output = self.pooling(audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metric = self.projector(pooling_output)
@@ -383,7 +387,7 @@ class UniversaBase(AbsUniversa):
             ref_text[ref_text == -1] = self.ignore_id
             # for data-parallel
             ref_text = ref_text[:, : ref_text_lengths.max()]
-        
+
         # 1. Feats normalization
         if self.use_normalize:
             with autocast(False):
@@ -462,18 +466,21 @@ class UniversaBase(AbsUniversa):
 
         # 2. Multi-branch pooling and projectors
 
-
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             pred_metrics = []
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
                 pred_metrics.append(pred_metric)
         else:
-            pooling_output = self.pooling(audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metrics = self.projector(pooling_output)

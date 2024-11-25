@@ -19,7 +19,9 @@ class ChnAttnStatPooling(AbsPooling):
         use_masking: whether to use masking
     """
 
-    def __init__(self, input_size: int = 1536, hidden_size: int = 128, use_masking: bool = False):
+    def __init__(
+        self, input_size: int = 1536, hidden_size: int = 128, use_masking: bool = False
+    ):
         super().__init__()
         self.attention = nn.Sequential(
             nn.Conv1d(input_size * 3, hidden_size, kernel_size=1),
@@ -46,7 +48,7 @@ class ChnAttnStatPooling(AbsPooling):
             raise ValueError(
                 "ChannelAttentiveStatisticsPooling is not adequate for task_tokens"
             )
-        
+
         t = x.size()[-1]
         if self.use_masking and mask is not None:
             x = x.masked_fill(mask.unsqueeze(1), 0)

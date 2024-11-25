@@ -788,7 +788,7 @@ if ! "${skip_eval}"; then
                 --pred_metrics "${_pred_metrics}" \
                 --skip_missing true \
                 --out_file "${_dir}/utt_result.json"
-            
+
             log "Utterance-level evaluation results are as follows:"
             cat "${_dir}/utt_result.json"
 
@@ -801,7 +801,7 @@ if ! "${skip_eval}"; then
                     --sys_info "${sys_info}" \
                     --skip_missing true \
                     --out_file "${_dir}/sys_result.json"
-                
+
                 log "System-level evaluation results are as follows:"
                 cat "${_dir}/sys_result.json"
             fi
