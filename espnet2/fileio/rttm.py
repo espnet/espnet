@@ -8,7 +8,7 @@ from typeguard import typechecked
 
 
 @typechecked
-def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, float]]]:
+def load_rttm_text(path: Union[Path, str]) -> Dict[str, Tuple[List[str], List[Tuple[str, int, int]], int]]:
     """Read a RTTM file
 
     Note: only support speaker information now
