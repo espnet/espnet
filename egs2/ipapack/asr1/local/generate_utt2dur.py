@@ -1,3 +1,4 @@
+import os
 import sys
 
 import kaldiio
@@ -9,9 +10,8 @@ def generate_utt2dur(scp_file, utt2dur_file, frame_shift=0.01):
         for line in tqdm(scp):
             utt_id, path = line.strip().split(" ", 1)
             try:
-                base_path = (
-                    "/ocean/projects/cis210027p/kchang1/espnet/egs2/ipapack/asr1/"
-                )
+                # should be PATH/espnet/egs2/ipapack/asr1
+                base_path = os.getcwd()
                 features = kaldiio.load_mat(base_path + path)
                 num_frames = features.shape[0]
                 duration = num_frames * frame_shift  # duration in seconds
@@ -22,8 +22,10 @@ def generate_utt2dur(scp_file, utt2dur_file, frame_shift=0.01):
 
 
 ftype = sys.argv[1]
+# should be PATH/espnet/egs2/ipapack/asr1/data/
 scp_path = (
-    "/ocean/projects/cis210027p/kchang1/espnet/egs2/ipapack/asr1/data/"
+    os.getcwd()
+    + "/data/"
     + ftype
     + "/feats.scp"
 )
