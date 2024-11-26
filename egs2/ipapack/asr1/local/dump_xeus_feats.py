@@ -2,12 +2,11 @@ import argparse
 import logging
 from typing import List, Optional, Tuple, Union
 
-import torch
 import numpy as np
-
-from espnet2.tasks.ssl import SSLTask
+import torch
 from pyscripts.feats.ssl_feature_utils import BaseFeatureReader, dump_feature
 
+from espnet2.tasks.ssl import SSLTask
 
 # adapted from https://github.com/simpleoier/ESPnet_SSL_ASR_tutorial_misc/blob/main/dump_feats.py
 
@@ -17,11 +16,9 @@ class XEUSFeatureReader(BaseFeatureReader):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         assert -1 <= layer <= 18
         self.layer = layer
-    
+
         xeus_model, xeus_train_args = SSLTask.build_model_from_file(
-            config_file=None,
-            model_file=checkpoint_path,
-            device=self.device
+            config_file=None, model_file=checkpoint_path, device=self.device
         )
         self.model = xeus_model
 
@@ -35,12 +32,14 @@ class XEUSFeatureReader(BaseFeatureReader):
             wavs = x.to(self.device)
             # TODO: allow linear combo of layers??
             # source: https://www.wavlab.org/activities/2024/xeus/
-            feats = self.model.encode(wavs, data_lens, use_mask=False, use_final_output=False)[0][self.layer]
+            feats = self.model.encode(
+                wavs, data_lens, use_mask=False, use_final_output=False
+            )[0][self.layer]
             # ex: [1, 1097, 1024] for 1 file that's 20 s
 
             # based on https://github.com/pytorch/audio/blob/ba696ea3dfec4cbe693bf06a84c75dc196077f5b/src/torchaudio/models/wav2vec2/model.py#L85
-                # just return the length of the original data
-                # the # frames of each item pre-padding
+            # just return the length of the original data
+            # the # frames of each item pre-padding
         return feats.cpu(), x_lens
 
 
@@ -86,11 +85,10 @@ def get_parser():
 
 
 if __name__ == "__main__":
-    checkpoint_path='/ocean/projects/cis210027p/kchang1/XEUS/model/xeus_checkpoint.pth'
-    reader = XEUSFeatureReader(
-                checkpoint_path=checkpoint_path,
-                layer=-1
-            )
+    checkpoint_path = (
+        "/ocean/projects/cis210027p/kchang1/XEUS/model/xeus_checkpoint.pth"
+    )
+    reader = XEUSFeatureReader(checkpoint_path=checkpoint_path, layer=-1)
 
     logging.basicConfig(
         level=logging.DEBUG,
@@ -113,5 +111,5 @@ if __name__ == "__main__":
         wspecifier=args.wspecifier,
         utt2num_samples=args.utt2num_samples,
         write_num_frames=args.write_num_frames,
-        batch_bins=22500000
+        batch_bins=22500000,
     )
