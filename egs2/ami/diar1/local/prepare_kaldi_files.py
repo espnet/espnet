@@ -13,8 +13,7 @@ def gen_utt_id(wav_id: str, spk_id: str, utt_start_time: float, utt_end_time: fl
 
 
 def prepare_kaldi_files(
-    config_path: str, mic_type: str, if_mini: str, 
-    sound_type: str, dataset_type: str, kaldi_files_base_dir: str, 
+    dataset_type: str, kaldi_files_base_dir: str, 
     num_spk: str, segmented_dataset_dir: str
 ) -> None:
     # dataset_type: "train", "dev", "test"
@@ -97,23 +96,7 @@ def prepare_kaldi_files(
     
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--ami_diarization_config", type=str, required=True, 
-    help="Path to the config file of AMI diarization, \
-    typically located at ./ami_diarization_setup/pyannote/database.yml."
-)
-parser.add_argument(
-    "--mic_type", type=str, required=True, 
-    help="Microphone type, options: 'ihm', 'sdm'. (ihm: individual head mic, sdm: single distant mic)"
-)
-parser.add_argument(
-    "--if_mini", type=str, required=True, 
-    help="If true, use the subset of corresponding dataset."
-)
-parser.add_argument(
-    "--sound_type", type=str, required=True, 
-    help="Sound type, options: 'only_words', 'word_and_vocal'"
-)
+
 parser.add_argument(
     "--kaldi_files_base_dir", type=str, required=True, 
     help="Directory to store kaldi style data files, typically located at ./data, under this base dir, there are /train, /dev, /test."
@@ -131,20 +114,17 @@ args = parser.parse_args()
 
 ### prepare train
 prepare_kaldi_files(
-    args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "train", args.kaldi_files_base_dir, args.num_spk, 
+    "train", args.kaldi_files_base_dir, args.num_spk, 
     args.segmented_dataset_dir
 )
 ### prepare dev
 prepare_kaldi_files(
-    args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "dev", args.kaldi_files_base_dir, args.num_spk, 
+    "dev", args.kaldi_files_base_dir, args.num_spk, 
     args.segmented_dataset_dir
 )
 ### prepare test
 prepare_kaldi_files(
-    args.ami_diarization_config, args.mic_type, args.if_mini, 
-    args.sound_type, "test", args.kaldi_files_base_dir, args.num_spk, 
+    "test", args.kaldi_files_base_dir, args.num_spk, 
     args.segmented_dataset_dir
 )
 

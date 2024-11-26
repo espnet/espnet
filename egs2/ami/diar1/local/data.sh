@@ -12,7 +12,7 @@ log() {
 }
 
 # Stage control variables
-stage=0       # Start from 0 if you need to start from data preparation
+stage=2 # Start from 0 if you need to start from data preparation
 stop_stage=100
 
 # Directory for AMI diarization setup
@@ -116,10 +116,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
     mkdir -p data/
 
     python3 local/prepare_kaldi_files.py \
-        --ami_diarization_config ./${setup_dir}/pyannote/database.yml \
-        --mic_type "${mic_type}" \
-        --if_mini ${if_mini} \
-        --sound_type ${sound_type} \
         --kaldi_files_base_dir ./data \
         --num_spk ${num_spk} \
         --segmented_dataset_dir ./segmented_dataset

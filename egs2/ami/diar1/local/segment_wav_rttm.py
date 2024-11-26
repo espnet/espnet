@@ -3,6 +3,15 @@ import os
 import argparse
 import soundfile
 import yaml
+from tqdm import tqdm
+
+logger = logging.getLogger('segment_wav_rttm.py')
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter("{asctime} ({name}:{lineno}:{levelname}) {message}", style='{')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 def segment_wav_rttm(
     config_path: str, 
@@ -10,8 +19,8 @@ def segment_wav_rttm(
     if_mini: str,
     sound_type: str, 
     dataset_type: str, 
-    segment_output_dir: str, # The estimated duration of the segmented wav files, which is not the exact duration of each segment, but the lower bound of the duration of each segment.
-    duration: float = 20.0 # the duration of the segmented wav files. 
+    segment_output_dir: str,
+    duration: float = 20.0 
 ) -> None:
     """
     Segment the WAV files and corresponding RTTM files in the dataset.
@@ -53,7 +62,7 @@ def segment_wav_rttm(
             this value.
     """
     ### ======================= Load config file ======================= ###
-    logging.info(f"Start segmenting {dataset_type} dataset")
+    logger.info(f"Start segmenting {dataset_type} dataset")
 
     if if_mini == "true":
         if_mini = True
@@ -103,7 +112,8 @@ def segment_wav_rttm(
             wav_ids.append(line.strip())
 
     ### =============== Segment each wav and corresponding rttm file =============== ###
-    for wav_id in wav_ids:
+    for wav_id in tqdm(wav_ids, desc=f"{dataset_type} dataset"):
+
         wav_path = wav_path_template.format(uri=wav_id)
         rttm_path = rttm_path_template.format(uri=wav_id)
         
@@ -119,43 +129,51 @@ def segment_wav_rttm(
         with open(rttm_path, "r") as f:
             lines = f.readlines()
             num_lines = len(lines)
-            for line_id, line in enumerate(lines):
-    
+            line_id = 0
+            while line_id < num_lines:
+                line = lines[line_id]
                 sps = line.strip().split()
                 assert len(sps) == 10, f"Error in {rttm_path} at line {line_id + 1}"
 
                 label_type, wav_id, channel, spk_start_time, spk_duration, _, _, spk_id, _, _ = sps
                 assert label_type == "SPEAKER", f"Error in {rttm_path} at line {line_id + 1}"
 
-                segment_rttm_entries.append(line)
+                relative_spk_start_time = round(float(spk_start_time) - last_segment_end_time, 2)
+                relative_line = f"{label_type} {wav_id}_{segment_id} {channel} {str(relative_spk_start_time)} {spk_duration} <NA> <NA> {spk_id} <NA> <NA>\n"
+                segment_rttm_entries.append(relative_line)
 
-                # curr_time = float(spk_start_time) + float(spk_duration)
                 curr_spk_start_time = float(spk_start_time)
                 curr_spk_end_time = float(spk_start_time) + float(spk_duration)
 
                 if curr_spk_end_time - last_segment_end_time >= duration:
+
                     ### Detect whether there are overlapped speakers (fully and partially)
                     for next_line_id in range(line_id + 1, num_lines):
-                        sps = lines[next_line_id].strip().split()
-                        assert len(sps) == 10, f"Error in {rttm_path} at line {next_line_id + 1}"
-                        label_type, wav_id, channel, spk_start_time, spk_duration, _, _, spk_id, _, _ = sps
-                        assert label_type == "SPEAKER", f"Error in {rttm_path} at line {next_line_id + 1}"
+                        sps_next = lines[next_line_id].strip().split()
+                        assert len(sps_next) == 10, f"Error in {rttm_path} at line {next_line_id + 1}"
+                        label_type_next, wav_id_next, channel_next, spk_start_time_next, spk_duration_next, _, _, spk_id_next, _, _ = sps_next
 
-                        next_spk_start_time = float(spk_start_time)
-                        next_spk_end_time = float(spk_start_time) + float(spk_duration)
+                        assert label_type_next == "SPEAKER", f"Error in {rttm_path} at line {next_line_id + 1}"
+                        relative_spk_start_time_next = round(float(spk_start_time_next) - last_segment_end_time, 2)
+                        relative_line_next = f"{label_type_next} {wav_id_next}_{segment_id} {channel_next} {str(relative_spk_start_time_next)} {spk_duration_next} <NA> <NA> {spk_id_next} <NA> <NA>\n"
+
+                        next_spk_start_time = float(spk_start_time_next)
+                        next_spk_end_time = float(spk_start_time_next) + float(spk_duration_next)
 
                         if next_spk_start_time >= curr_spk_end_time:
                             # No overlap
                             break
                         if next_spk_start_time >= curr_spk_start_time and next_spk_end_time <= curr_spk_end_time:
                             # Fully overlap
-                            segment_rttm_entries.append(lines[next_line_id])
+                            segment_rttm_entries.append(relative_line_next)
+                            line_id += 1 # read and append, then line_id += 1
                             continue
                         if next_spk_start_time >= curr_spk_start_time and next_spk_end_time > curr_spk_end_time:
                             # Partially overlap
                             curr_spk_start_time = next_spk_start_time
                             curr_spk_end_time = next_spk_end_time
-                            segment_rttm_entries.append(lines[next_line_id])
+                            segment_rttm_entries.append(relative_line_next)
+                            line_id += 1
                             continue
 
                     if len(segment_rttm_entries) == 0:
@@ -166,6 +184,14 @@ def segment_wav_rttm(
                     segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{segment_id}.wav")
                     segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{segment_id}.rttm")
 
+                    # Check if correct duration
+                    line_last = segment_rttm_entries[-1].strip().split()
+                    assert float(line_last[3]) + float(line_last[4]) - (curr_spk_end_time - last_segment_end_time) < 1e-3, (
+                        f"Error in {line_last}, the duration of segment rttm must equal to the duration of the segment wav.\n"
+                        f"rttm duration: {float(line_last[3]) + float(line_last[4])}\n"
+                        f"wav duration: {curr_spk_end_time - last_segment_end_time}"
+                    )
+
                     soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):int(curr_spk_end_time * sr)], sr)
                     with open(segment_rttm_path, "w") as f:
                         f.writelines(segment_rttm_entries)
@@ -175,6 +201,8 @@ def segment_wav_rttm(
                     segmented_wav_ids.append(f"{wav_id}_{segment_id}")
                     segment_id += 1
                     last_segment_end_time = curr_spk_end_time
+                
+                line_id += 1
 
             if curr_spk_end_time - last_segment_end_time > 0:
                 # Process the last segment, which is less than duration
@@ -191,14 +219,14 @@ def segment_wav_rttm(
                 
                 segmented_wav_ids.append(f"{wav_id}_{segment_id}")
                 segment_id += 1
-        
-        logging.info(f"Complete segmenting {wav_id}")
+
 
     # Write segmented wav file list to a txt file. 
+    segmented_wav_ids.sort()
     with open(os.path.join(segment_output_dir, dataset_type, "wav_ids.txt"), "w") as f:
-        f.writelines(segmented_wav_ids)
+        f.write("\n".join(segmented_wav_ids) + "\n")
     
-    logging.info(f"Complete segmenting {dataset_type} dataset")
+    logger.info(f"Complete segmenting {dataset_type} dataset, {len(segmented_wav_ids)} segments are generated in total.")
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
