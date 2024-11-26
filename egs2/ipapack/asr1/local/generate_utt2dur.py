@@ -23,11 +23,6 @@ def generate_utt2dur(scp_file, utt2dur_file, frame_shift=0.01):
 
 ftype = sys.argv[1]
 # should be PATH/espnet/egs2/ipapack/asr1/data/
-scp_path = (
-    os.getcwd()
-    + "/data/"
-    + ftype
-    + "/feats.scp"
-)
+scp_path = os.getcwd() + "/data/" + ftype + "/feats.scp"
 utt2dur_path = "data/" + ftype + "_utt2dur"
 generate_utt2dur(scp_path, utt2dur_path)
