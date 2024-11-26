@@ -2,7 +2,7 @@
 
 Phoneme recognition is a common task in speech benchmarks (e.g. SUPERB), as one desideratum of speech models is to learn basic pronunciation units. TIMIT is one of the most famous datasets for phoneme recognition. However, TIMIT only includes American English.
 
-This recipe targets IPAPack [1], which provides one of the largest multilingual phonemically transcribed datasets (aside from the CMU Wilderness dataset - 14000 hours across 700 languages), with 1,000 hours of speech across 115 languages. 
+This recipe targets IPAPack [1], which provides one of the largest multilingual phonemically transcribed datasets (aside from the CMU Wilderness dataset - 14000 hours across 700 languages), with 1,000 hours of speech across 115 languages.
 
 IPAPack is derived from:
 * FLEURS [2] - "the speech version of the FLoRes machine translation benchmark"
@@ -20,7 +20,7 @@ In the test sest, there are at least five unseen languages: Vietnamese, Tamil, H
 
 The dataset uses IPA for phonemic transcriptions (as opposed to ARPAbet) and did not perform normalization (see "Phoneme tokenizer" in [1]). However, all phonemes in the training data are supported by panphon / epitran.
 
-Note: a 20,000 hour will be released soon, with consistent and clean Unicode tokenization of IPA symbols. 
+Note: a 20,000 hour will be released soon, with consistent and clean Unicode tokenization of IPA symbols.
 
 
 In the results below, we can interpret the WER as phoneme error rate, because each phoneme is its own word after preprocessing the transcriptions.
@@ -166,4 +166,3 @@ Søren Wichmann. 2022. Texistepec Popoluca DoReCo dataset. In Frank Seifart, Lud
 Alena Witzlack-Makarevich, Saudah Namyalo, Anatol Kiriggwajjo, and Zarina Molochieva. 2022. Ruuli DoReCo dataset. In Frank Seifart, Ludger Paschen, and Matthew Stave, editors, Language Documentation Reference Corpus (DoReCo) 1.2. Leibniz-Zentrum Allgemeine Sprachwissenschaft & laboratoire Dynamique Du Langage (UMR5596, CNRS & Université Lyon 2), Berlin & Lyon.
 
 Xianming Xu and Bibo Bai. 2022. Sadu DoReCo dataset. In Frank Seifart, Ludger Paschen, and Matthew Stave, editors, Language Documentation Reference Corpus (DoReCo) 1.2. Leibniz-Zentrum Allgemeine Sprachwissenschaft & laboratoire Dynamique Du Langage (UMR5596, CNRS & Université Lyon 2), Berlin & Lyon.
-
