@@ -9,9 +9,13 @@ logger = logging.getLogger('segment_wav_rttm.py')
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
-formatter = logging.Formatter("{asctime} ({name}:{lineno}:{levelname}) {message}", style='{')
+formatter = logging.Formatter("{asctime} ({name}:{lineno}) {message}", style='{')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+def encode_segment_id(segment_id: int) -> str:
+    # encode segment id as 3-digit string, e.g. 32 -> '032'
+    return str(segment_id).zfill(3)
 
 def segment_wav_rttm(
     config_path: str, 
@@ -139,7 +143,7 @@ def segment_wav_rttm(
                 assert label_type == "SPEAKER", f"Error in {rttm_path} at line {line_id + 1}"
 
                 relative_spk_start_time = round(float(spk_start_time) - last_segment_end_time, 2)
-                relative_line = f"{label_type} {wav_id}_{segment_id} {channel} {str(relative_spk_start_time)} {spk_duration} <NA> <NA> {spk_id} <NA> <NA>\n"
+                relative_line = f"{label_type} {wav_id}_{encode_segment_id(segment_id)} {channel} {str(relative_spk_start_time)} {spk_duration} <NA> <NA> {spk_id} <NA> <NA>\n"
                 segment_rttm_entries.append(relative_line)
 
                 curr_spk_start_time = float(spk_start_time)
@@ -155,7 +159,7 @@ def segment_wav_rttm(
 
                         assert label_type_next == "SPEAKER", f"Error in {rttm_path} at line {next_line_id + 1}"
                         relative_spk_start_time_next = round(float(spk_start_time_next) - last_segment_end_time, 2)
-                        relative_line_next = f"{label_type_next} {wav_id_next}_{segment_id} {channel_next} {str(relative_spk_start_time_next)} {spk_duration_next} <NA> <NA> {spk_id_next} <NA> <NA>\n"
+                        relative_line_next = f"{label_type_next} {wav_id_next}_{encode_segment_id(segment_id)} {channel_next} {str(relative_spk_start_time_next)} {spk_duration_next} <NA> <NA> {spk_id_next} <NA> <NA>\n"
 
                         next_spk_start_time = float(spk_start_time_next)
                         next_spk_end_time = float(spk_start_time_next) + float(spk_duration_next)
@@ -181,8 +185,8 @@ def segment_wav_rttm(
                         last_segment_end_time = curr_spk_end_time
                         continue
 
-                    segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{segment_id}.wav")
-                    segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{segment_id}.rttm")
+                    segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{encode_segment_id(segment_id)}.wav")
+                    segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{encode_segment_id(segment_id)}.rttm")
 
                     # Check if correct duration
                     line_last = segment_rttm_entries[-1].strip().split()
@@ -198,7 +202,7 @@ def segment_wav_rttm(
                     
                     # Clear the segment_rttm_entries
                     segment_rttm_entries = []
-                    segmented_wav_ids.append(f"{wav_id}_{segment_id}")
+                    segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
                     segment_id += 1
                     last_segment_end_time = curr_spk_end_time
                 
@@ -210,14 +214,14 @@ def segment_wav_rttm(
                     # No speaker in this duration, skip
                     continue
 
-                segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{segment_id}.wav")
-                segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{segment_id}.rttm")
+                segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{encode_segment_id(segment_id)}.wav")
+                segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{encode_segment_id(segment_id)}.rttm")
 
                 soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):], sr)
                 with open(segment_rttm_path, "w") as f:
                     f.writelines(segment_rttm_entries)
                 
-                segmented_wav_ids.append(f"{wav_id}_{segment_id}")
+                segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
                 segment_id += 1
 
 
