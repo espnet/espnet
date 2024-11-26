@@ -123,7 +123,7 @@ class DiarizeSpeech:
     @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], fs: int = 8000
-    ) -> Union[List[torch.Tensor], Tuple]:
+    ) -> Union[List[torch.Tensor], np.ndarray, Tuple]:
         """Inference
 
         Args:
@@ -318,7 +318,7 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return waves, spk_prediction if self.enh_s2t_task else spk_prediction
+        return (waves, spk_prediction) if self.enh_s2t_task else spk_prediction
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
