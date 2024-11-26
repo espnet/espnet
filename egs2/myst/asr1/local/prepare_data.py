@@ -88,19 +88,3 @@ for original_partition_name, data_partition_name in zip(
         text_data = ""
         utt2spk_data = ""
         wav_scp_data = ""
-
-    # Sort and make the spk2utt file unique
-    for f in text_file, utt2spk_file, wav_scp_file:
-        cmd = f"sort {f} -o {f}"
-        _ = os.system(cmd)
-    cmd = f"utils/utt2spk_to_spk2utt.pl {utt2spk_file} > {spk2utt_file}"
-    _ = os.system(cmd)
-
-    # remove utf-8 whitespaces
-    cmd = f"iconv -f utf-8 -t ascii//TRANSLIT {text_file} > {text_file}.ascii; \
-        mv {text_file}.ascii {text_file}"
-    _ = os.system(cmd)
-
-    # validata data
-    cmd = f"utils/validate_data_dir.sh --no-feats {data_partition}"
-    _ = os.system(cmd)

@@ -73,6 +73,29 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     else
         python local/prepare_data.py --original-dir $original_dir --data-dir $data_dir
     fi
+
+    partitions="train dev test"
+
+    for dset in $partitions; do
+        data_partition=$data_dir/$dset
+        text_file=$data_partition/text
+        utt2spk_file=$data_partition/utt2spk
+        wav_scp_file=$data_partition/wav.scp
+        spk2utt_file=$data_partition/spk2utt
+        # Sort and make the spk2utt file unique
+        for f in $text_file $utt2spk_file $wav_scp_file; do
+            sort "$f" -o "$f"
+        done
+
+        utils/utt2spk_to_spk2utt.pl "$utt2spk_file" > "$spk2utt_file"
+
+        # Remove utf-8 whitespaces
+        iconv -f utf-8 -t ascii//TRANSLIT "$text_file" > "${text_file}.ascii"
+        mv "${text_file}.ascii" "$text_file"
+
+        # Validate data
+        utils/validate_data_dir.sh --no-feats "$data_partition"
+    done
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
