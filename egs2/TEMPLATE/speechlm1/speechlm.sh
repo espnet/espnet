@@ -692,14 +692,15 @@ if [ -n "${download_model}" ]; then
 fi
 
 if ! "${skip_eval}"; then
+
+    if ! ${skip_data_prep}; then
+        for test_set in ${test_sets}; do
+            test_jsons+="${data_feats}/${test_set}/data.json "
+        done
+    fi
+
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Inference: training_dir=${speechlm_exp}"
-
-        if ! ${skip_data_prep}; then
-            for test_set in ${test_sets}; do
-                test_jsons+="${data_feats}/${test_set}/data.json "
-            done
-        fi
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -765,12 +766,6 @@ if ! "${skip_eval}"; then
         else
             _cmd="${decode_cmd}"
             _ngpu=0
-        fi
-
-        if ! ${skip_data_prep}; then
-            for test_set in ${test_sets}; do
-                test_jsons+="${data_feats}/${test_set}/data.json "
-            done
         fi
 
         for test_json in ${test_jsons}; do

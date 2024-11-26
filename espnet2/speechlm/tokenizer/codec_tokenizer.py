@@ -107,28 +107,6 @@ class CodecTokenizer(AbsTokenizer):
             self.size_codebook = self.codec.quantizer.bins
             self.sample_rate = self.codec.sample_rate
             self.subsample = np.prod(self.codec.encoder.ratios)
-
-        elif self.codec_choice == "inhouse":
-            try:
-                from models.soundstream import SoundStream
-                from omegaconf import OmegaConf
-            except ImportError:
-                raise ImportError("fail to use inhouse codec")
-
-            model_path = "encodec_16k_6kbps_multiDisc/ckpt_01135000.pth"
-            model_config = "encodec_16k_6kbps_multiDisc/config.yaml"
-            config = OmegaConf.load(model_config)
-            model = SoundStream(**config.generator.config)
-
-            state_dict = torch.load(model_path, map_location="cpu")
-            model.load_state_dict(state_dict["codec_model"])
-            model = model.to(device)
-            self.codec = model
-
-            self.n_codebook = 8
-            self.sample_rate = 16000
-            self.size_codebook = 1024
-            self.subsample = 320
         
         elif self.codec_choice == "HifiCodec":
             # NOTE(Jinchuan): make sure you have clone the repository:
@@ -155,7 +133,7 @@ class CodecTokenizer(AbsTokenizer):
             try:
                 from UniAudio.codec.models.soundstream import SoundStream
             except:
-                raise ValueError("Please clone HifiCodec repository")
+                raise ValueError("Please clone UniAudio repository")
             
             config = yaml.safe_load(open(config_path))["generator"]["config"]
             self.model = SoundStream(**config).to(device)
@@ -192,9 +170,6 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "EnCodec":
             encoded_frames = self.codec.encode(wavs)
             codes = encoded_frames[0][0].transpose(1, 2)
-
-        elif self.codec_choice == "inhouse":
-            codes = self.codec.encode(wavs).permute(1, 2, 0)
         
         elif self.codec_choice == "HifiCodec":
             codes = self.model.encode(wavs.squeeze(1))
@@ -259,10 +234,6 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "EnCodec":
             encoded_frames = [(codes.transpose(1, 2), None)]
             waveform = self.codec.decode(encoded_frames).squeeze(1)
-
-        elif self.codec_choice == "inhouse":
-            codes = codes.permute(2, 0, 1)
-            waveform = self.codec.decode(codes).squeeze(1)
         
         elif self.codec_choice == "HifiCodec":
             waveform = self.model(codes).squeeze(1)

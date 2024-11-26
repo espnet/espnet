@@ -202,6 +202,15 @@ SPEECHLM_TASKS["ag_codecssl"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["whisper_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "ssl", "kaldi_ark")],
+    targets=[("text.prev", "text_bpe", "text"), ("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["whisper_st"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "ssl", "kaldi_ark")],
+    targets=[("text.prev", "text_bpe", "text"), ("text.ctc", "text_bpe", "text"), ("text", "text_bpe", "text")],
+)
 
 # END OF TASK DEFINITION #
 

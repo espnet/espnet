@@ -29,6 +29,7 @@ class HFTransformerDecoder(AbsTransformer):
         hf_model_tag: str,
         token_bias: dict,
         attention_choice: str = "sdpa",
+        activation_checkpointing: bool = False,
         n_ctx: int = 8192,
     ):
         super(HFTransformerDecoder, self).__init__()
