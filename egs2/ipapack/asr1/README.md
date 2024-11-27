@@ -62,10 +62,6 @@ In the results below, we can interpret the WER as phoneme error rate, because ea
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/test_doreco|5093|396745|70.3|17.5|12.2|3.3|33.0|100.0|
 
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
 
 
 ## exp/asr_train_asr_xeus_transformer_extracted_word
@@ -81,10 +77,6 @@ In the results below, we can interpret the WER as phoneme error rate, because ea
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.best/test_doreco|5093|396745|72.1|15.0|12.8|5.6|33.5|100.0|
 
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
 
 
 # References
