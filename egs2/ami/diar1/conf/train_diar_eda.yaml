@@ -1,7 +1,7 @@
-# The initial version is copy from egs2/librimix/diar1/conf/train_diar.yaml
-#    This config file is for SA-EEND.
-#    For the details about SA-EEND, refer to the following paper:
-#    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
+#    The initial version of this file is copied from egs2/librimix/diar1/conf/train_diar_eda.yaml
+#    This config file is for EEND-EDA pre-training stage (training on fixed number of speakers).
+#    For the details about EEND-EDA, refer to the following papers:
+#    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
 
 # network architecture
 # encoder related
@@ -15,23 +15,23 @@ encoder_conf:
     attention_heads: 4
     attention_dropout_rate: 0.1
 
-# decoder related
-decoder: linear
-
-# minibatch related
-batch_type: folded
-batch_size: 1
+# attractor related
+attractor: rnn
+attractor_conf:
+    unit: 256 # same as encoder output size
+    layer: 1
+    dropout: 0.1
+    attractor_grad: True
 
 # optimization related
 optim: adam
-accum_grad: 2
 grad_clip: 5
-max_epoch: 200
+max_epoch: 250
 optim_conf:
-    lr: 0.0002
+    lr: 0.002
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 100000
+    warmup_steps: 30000
 
 # others:
 best_model_criterion:
@@ -40,6 +40,9 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
+batch_type: numel
+batch_bins: 15000000
+accum_grad: 6
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -52,7 +55,7 @@ specaug_conf:
     - 0
     - 30
     num_freq_mask: 2
-    apply_time_mask: True
+    apply_time_mask: true
     time_mask_width_range:
     - 0
     - 40
