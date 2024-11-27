@@ -89,6 +89,7 @@ MUST_C=downloads
 MUSTARD=
 MUSTARD_PLUS=
 NSC=
+MYST=downloads
 NIT_SONG070=
 JMD=downloads
 JSSS=downloads
