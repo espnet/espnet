@@ -571,7 +571,7 @@ if ! "${skip_eval}"; then
             log "Evaluation started... log: '${_logdir}/codec_evaluate.*.log'"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/codec_evaluate.JOB.log \
-                ${python} -m speech_evaluation.bin.espnet_scorer \
+                ${python} -m versa.bin.scorer \
                     --pred "${_logdir}"/test.JOB.scp \
                     --gt "${_gt_wavscp}" \
                     --output_file "${_logdir}/result.JOB.txt" \

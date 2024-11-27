@@ -1,7 +1,7 @@
 # This is a debug config for CI
 
 # minibatch related
-batch_type: folded
+batch_type: sorted
 batch_size: 2
 accum_grad: 1
 max_epoch: 1
@@ -46,3 +46,5 @@ asr_decoder_conf:
     attention_heads: 2
     linear_units: 2
     num_blocks: 1
+
+use_preprocessor: true
