@@ -49,6 +49,7 @@ from espnet.utils.cli_utils import get_commandline_args
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
     from transformers.file_utils import ModelOutput
+    from transformers.models.bart.modeling_bart import BartConfig, BartDecoder
 
     is_transformers_available = True
 except ImportError:
@@ -244,21 +245,27 @@ class Speech2Text:
 
             if decoder.causal_lm:
                 hugging_face_model = AutoModelForCausalLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
                 hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
 
                 transformer = get_hugging_face_model_network(hugging_face_model)
                 transformer.load_state_dict(decoder.decoder.state_dict())
-
-                lm_head = get_hugging_face_model_lm_head(hugging_face_model)
+                if decoder.ensure_untied_lm_head:
+                    lm_head = copy.deepcopy(
+                        get_hugging_face_model_lm_head(hugging_face_model)
+                    )
+                else:
+                    lm_head = get_hugging_face_model_lm_head(hugging_face_model)
                 lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
                 hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
+                if decoder.ensure_untied_lm_head:
+                    hugging_face_model.lm_head = copy.deepcopy(decoder.lm_head)
                 hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
 
                 if hasattr(hugging_face_model, "model"):
@@ -290,7 +297,6 @@ class Speech2Text:
                 hugging_face_decoder_conf["pad_token_id"] = (
                     hugging_face_model.config.eos_token_id
                 )
-
             beam_search = None
             beam_search_transducer = None
         else:

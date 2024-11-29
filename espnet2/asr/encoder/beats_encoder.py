@@ -28,6 +28,12 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+from transformers.models.wav2vec2_conformer.modeling_wav2vec2_conformer import (
+    Wav2Vec2ConformerConfig,
+    Wav2Vec2ConformerEncoder,
+)
+from transformers.models.bart.modeling_bart import BartLearnedPositionalEmbedding
+
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -106,31 +112,35 @@ class BeatsEncoder(AbsEncoder):
         beats_ckpt_path: Path to a pretrained BEATs checkpoint. If
             `beats_config` is provided and it does not match the
             config in the checkpoint, code might throw an error.
-        adapter_layers: Number of transformer-based adapter layers
-            after encoder.
         max_layer: Propagate input through all layers for encoding
             if None. Otherwise use upto `max_layer`.
+        downsampling_rate: Downsampling rate for the encoder. Applied if > 1.
+        adapter_config: Path to a config file for the wav2vec2 adapter.
         use_weighted_representation: Use weighted representations
             from max_layer if True. Weights are randomly initialized.
-        downsampling_rate: Downsampling rate for the encoder. Applied if > 1.
         beats_config: `BEATsConfig` object. If provided, we will try
             to override the config in the checkpoint. This can be used
             to change dropouts etc for fine-tuning the model while
             starting from a pretrained checkpoint.
         specaug_config: Dictionary containing parameters for SpecAugment.
             If provided, SpecAugment will be applied.
+        add_positional_information: Add learned positional embeddings.
+        max_positions: Maximum number of positions for positional embeddings.
+            Required if `add_positional_information` is True.
     """
 
     def __init__(
         self,
         input_size: int,
         beats_ckpt_path: str = None,
-        adapter_layers: int = 0,
         max_layer: int = None,
+        downsampling_rate: int = 1,
+        adapter_config: str = "",
         use_weighted_representation: bool = False,
-        downsampling_rate: int = 1,  # No downsampling by default
         beats_config: Optional[BEATsConfig] = None,
         specaug_config: Optional[Dict] = None,
+        add_positional_information: bool = False,
+        max_positions: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -191,18 +201,13 @@ class BeatsEncoder(AbsEncoder):
         if self.use_weighted_representation:
             if self.max_layer is None:
                 logging.warning(
-                    f"max_layer must be provided when using weighted representations."
-                    f"Set to {config.encoder_layers-1}."
+                    f"max_layer must be provided when using weighted"
+                    f" representations. Set to {config.encoder_layers-1}."
                 )
                 self.max_layer = config.encoder_layers - 1  # 0 based index
             self.layer_weights = nn.Parameter(
                 torch.ones((self.max_layer + 1, 1)), requires_grad=True
             )
-            # TODO(shikhar): Remove this after testing the current impl from Shih-Lun's code.
-            # self.register_parameter(
-            #     "encoder_repr_layer_weights",
-            #     nn.Parameter(torch.ones((self.max_layer + 1, 1))),
-            # )
 
         # Downsampling modules
         self.encoder_downsample_rate = downsampling_rate
@@ -217,11 +222,26 @@ class BeatsEncoder(AbsEncoder):
                 stride=self.encoder_downsample_rate,
             )
 
-        self.transformer_adapter = None
-        if adapter_layers != 0:
-            adapter_config = deepcopy(config)
-            adapter_config.encoder_layers = adapter_layers
-            self.transformer_adapter = TransformerEncoder(adapter_config)
+        # Adapter module
+        self.conformer_adapter = None
+        if adapter_config:
+            conformer_config = Wav2Vec2ConformerConfig.from_json_file(adapter_config)
+            self.conformer_adapter = Wav2Vec2ConformerEncoder(conformer_config)
+
+        # Positional embeddings applied before cross-attention with decoder.
+        self.cross_embed_positions = None
+        if add_positional_information:
+            assert (
+                max_positions is not None
+            ), "max_positions must be provided in the config."
+            learned_pos_dim = (
+                config.encoder_embed_dim
+                if not self.conformer_adapter
+                else self.conformer_adapter.config.hidden_size
+            )
+            self.cross_embed_positions = BartLearnedPositionalEmbedding(
+                max_positions, learned_pos_dim
+            )
 
     def reload_pretrained_parameters(self):
         """Initialization function for BEATs.
@@ -355,17 +375,10 @@ class BeatsEncoder(AbsEncoder):
             features, padding_mask=padding_mask, layer=max_layer
         )
 
-        # TODO(shikhar): Remove this after testing the current impl from Shih-Lun's code.
-        # if self.use_weighted_representation:
-        #     for i, (x_i, _) in enumerate(layer_results):
-        #         if i >= max_layer:
-        #             break
-        #         if i == 0:
-        #             features = self.layer_weights[i] * x_i
-        #         else:
-        #             features += self.layer_weights[i] * x_i
-        #     # T x B x C -> B x T x C
-        #     features = features.transpose(0, 1)
+        if max_layer is not None:
+            features = layer_results[max_layer][0].transpose(
+                0, 1
+            )  # use the output from the max_layer
 
         if self.use_weighted_representation:
             repr_layer_weights = nn.functional.softmax(self.layer_weights, dim=-2)
@@ -390,10 +403,17 @@ class BeatsEncoder(AbsEncoder):
             )  # BTC
             padding_mask = self.forward_padding_mask(features, padding_mask)
 
-        if self.transformer_adapter:
-            features, _ = self.transformer_adapter(
-                features, padding_mask=padding_mask, layer=None
-            )
+        if self.conformer_adapter:
+            # to handle incompatibility btw torch & huggingface
+            conformer_attn_mask = ~padding_mask
+            # run through conformer
+            features = self.conformer_adapter(
+                features,
+                attention_mask=conformer_attn_mask,
+            ).last_hidden_state
+
+        if self.cross_embed_positions is not None:
+            features = features + self.cross_embed_positions(features)
 
         return features, padding_mask
 
