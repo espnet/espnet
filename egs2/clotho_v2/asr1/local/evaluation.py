@@ -4,6 +4,9 @@ to evaluate the audio captioning predictions."""
 import argparse
 
 from aac_metrics import Evaluate
+from string import punctuation
+
+strip_punct_table = str.maketrans("", "", punctuation)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -27,7 +30,9 @@ def _parse_and_read_file(file_path: str):
         with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 uttid, prediction = line.strip().split(maxsplit=1)
-                read_data[uttid] = prediction.strip()
+                read_data[uttid] = (
+                    prediction.strip().lower().translate(strip_punct_table)
+                )
     except Exception as exc:
         raise ValueError(f"Error reading file {file_path}") from exc
     if len(read_data) == 0:
