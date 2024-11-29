@@ -3,8 +3,11 @@
 import glob
 import os
 import sys
-
+import random
 import pandas as pd
+from string import punctuation
+
+strip_punct_table = str.maketrans("", "", punctuation)
 
 if __name__ == "__main__":
     ROOT_DATA_DIR = sys.argv[1]
@@ -23,8 +26,9 @@ if __name__ == "__main__":
         )
         captions_df = pd.read_csv(all_captions_path)
         N_PROCESSED = 0
+        N_CAPTIONS_PROCESSED = 0
         if data_split == "development":
-            dir_write_name = "development_clotho"
+            dir_write_name = "development_clotho_all"
         else:
             dir_write_name = data_split  # for validation and evaluation
         with open(
@@ -61,23 +65,50 @@ if __name__ == "__main__":
                         # Missing audio file
                         missing_audio += [audio_path]
                         continue
-                    print(f"{uttid} dummy", file=utt2spk_f)
-                    print(f"{uttid} {audio_path}", file=wav_scp_f)
                     if data_split == "evaluation":
+                        print(f"{uttid} dummy", file=utt2spk_f)
+                        print(f"{uttid} {audio_path}", file=wav_scp_f)
                         for i in range(1, N_REF + 1):
-                            text_i = row[f"caption_{i}"].strip()
+                            text_i = (
+                                row[f"caption_{i}"]
+                                .strip()
+                                .lower()
+                                .translate(strip_punct_table)
+                            )
+                            # Put each caption in a separate file
                             print(f"{uttid} {text_i}", file=text_f[i - 1])
+                            N_CAPTIONS_PROCESSED += 1
                     else:
-                        text = row["caption_1"].strip()
-                        print(f"{uttid} {text}", file=text_f[0])
+                        for caption_idx in range(1, N_REF + 1):
+                            text = (
+                                row[f"caption_{caption_idx}"]
+                                .strip()
+                                .lower()
+                                .translate(strip_punct_table)
+                            )
+                            # NOTE(shikhar): These files are sorted. Therefore adding
+                            # cpation index first to maintain the order of audio seen
+                            # during training.
+                            print(f"{caption_idx}_{uttid} dummy", file=utt2spk_f)
+                            print(f"{caption_idx}_{uttid} {audio_path}", file=wav_scp_f)
+                            print(
+                                f"{caption_idx}_{uttid} {text}", file=text_f[0]
+                            )  # put in same file but with different id
+                            N_CAPTIONS_PROCESSED += 1
+                            if data_split == "validation":
+                                # We don't need all captions for validation set.
+                                break
                     N_PROCESSED += 1
                     if N_PROCESSED % 1000 == 0:
-                        print(f"Processed {N_PROCESSED} audio files.")
+                        print(
+                            f"Processed {N_PROCESSED} audio files and"
+                            f" {N_CAPTIONS_PROCESSED} captions."
+                        )
                         continue
             finally:
                 for f in text_f:
                     f.close()
         print(
             f"For split {data_split}: Processed {N_PROCESSED} audio and their"
-            f" captions. {len(missing_audio)} audio files were missing."
+            f" {N_CAPTIONS_PROCESSED} captions. {len(missing_audio)} audio files were missing."
         )

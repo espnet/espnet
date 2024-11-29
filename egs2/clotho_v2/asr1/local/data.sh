@@ -25,7 +25,6 @@ fi
 
 log "stage 1: Data preparation"
 
-set -ex
 ## DOWNLOAD DATA if CLOTHO_V2 is set to downloads
 if [ "${CLOTHO_V2}" == "downloads" ]; then
     # If there is no argument, the default download directory is set to currentdir/downloads
@@ -89,7 +88,7 @@ if [ ! -d ${CLOTHO_CHATGPT_MIXUP} ]; then
     exit 1
 fi
 
-SPLITS=(development_clotho validation evaluation) # map dev, val, eval to development, validation, evaluation
+SPLITS=(development_clotho_all validation evaluation) # map dev, val, eval to development, validation, evaluation
 N_REF=5
 for split_name in "${SPLITS[@]}"; do
     mkdir -p "data/${split_name}"

@@ -3,8 +3,10 @@
 import json
 import os
 import sys
-
+from string import punctuation
 from scipy.io import wavfile
+
+strip_punct_table = str.maketrans("", "", punctuation)
 
 if __name__ == "__main__":
     ROOT_DATA_DIR = sys.argv[1]
@@ -53,7 +55,7 @@ if __name__ == "__main__":
                 os.path.join(ROOT_DATA_DIR, DATA_DIR, train_id, "metadata.json")
             ) as f:
                 meta = json.load(f)
-                text = meta["caption"].strip()
+                text = meta["caption"].strip().lower().translate(strip_punct_table)
                 if len(text) == 0:
                     N_ZERO_LENGTH_CAPTIONS += 1
                     continue
