@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Runs pre-training
 asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
+inference_ckpt=valid.acc.ave_5best
 
 ./asr.sh \
     --asr_tag pt \
@@ -23,19 +24,20 @@ asr_speech_fold_length=4800 # 480000/16000 = 30 seconds
     --test_sets "validation evaluation" \
     --asr_config conf/beats_bart_pt.yaml \
     --asr_speech_fold_length ${asr_speech_fold_length} \
-    --inference_asr_model latest.pth \
-    --local_score_opts "exp/asr_pt/ctc_weight0.0_hugging_face_decoderTrue_asr_model_latest"
+    --inference_asr_model ${inference_ckpt}.pth \
+    --local_score_opts "exp/asr_pt/inference_ctc_weight0.0_hugging_face_decoderTrue_asr_model_${inference_ckpt}"
 
 
 # Runs fine-tuning
-inference_ckpt=valid.acc.ave_5best
+pt_ckpt=valid.acc.ave_5best
+inference_ckpt=latest
 
 ./asr.sh \
     --asr_tag ft \
     --feats_normalize uttmvn \
-    --stage 1 \
-    --asr_speech_fold_length ${asr_speech_fold_length} \
+    --stage 15 \
     --stop_stage 15 \
+    --asr_speech_fold_length ${asr_speech_fold_length} \
     --asr_stats_dir exp/asr_stats_finetune \
     --ngpu 2 \
     --gpu_inference true \
@@ -50,6 +52,6 @@ inference_ckpt=valid.acc.ave_5best
     --valid_set validation \
     --test_sets "evaluation" \
     --asr_config conf/beats_bart_ft.yaml \
-    --pretrained_model exp/asr_pt/latest.pth \
+    --pretrained_model exp/asr_pt/${pt_ckpt}.pth \
     --inference_asr_model ${inference_ckpt}.pth \
-    --local_score_opts exp/asr_ft/ctc_weight0.0_hugging_face_decoderTrue_asr_model_${inference_ckpt}
+    --local_score_opts exp/asr_ft/inference_ctc_weight0.0_hugging_face_decoderTrue_asr_model_${inference_ckpt}
