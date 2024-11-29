@@ -1,19 +1,18 @@
 batch_type: folded
 unused_parameters: true
-batch_size: 64 # 32
-accum_grad: 8 # 2
-max_epoch: 80
-grad_clip: 2
+batch_size: 64
+accum_grad: 1
+max_epoch: 10
+grad_clip: 1
 patience: none
-best_model_criterion:  # criterion to save best models
+best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 5  # save nbest models and average these checkpoints
-use_amp: true    # whether to use automatic mixed precision
-num_att_plot: 0  # do not save attention plots to save time in the demo
+keep_nbest_models: 5
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
 num_workers: 2   # number of workers in dataloader
-
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
@@ -31,7 +30,9 @@ freeze_param: [
 
 encoder: beats
 encoder_conf:
-    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # /u/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt # _finetuned_on_AS2M_cpt1
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats 
+    # (iter3+, Beats finetuned model 1) and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
     specaug_config:
         apply_freq_mask: true
         freq_mask_width_range:
@@ -43,18 +44,25 @@ encoder_conf:
         - 0
         - 0.12
         num_time_mask: 5
-    adapter_layers: 3
+    adapter_config: conf/wav2vec2_conformer_config.json
     downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 11 # 0 based index
-    use_weighted_representation: true
+    max_layer: 10 # 0 based index
+    use_weighted_representation: false
+    add_positional_information: true
+    max_positions: 1024 # These many positional embeddings will be learned
 
+# Pleae note that the decoder is not the standard BART-base, 
+# but a custom one whose config is defined in the file below
 decoder: hugging_face_transformers
 decoder_conf:
     model_name_or_path: facebook/bart-base
+    config_path: conf/bart_decoder_config.json
+    load_pretrained_weights: false
+    ensure_untied_lm_head: true
 
-# The initilization is only for the linear layer between the BEATs encoder and the BART decoder.
-# BEATs and BART weights override this for encoder and decoder respectively.
-init: kaiming_uniform
+# This takes care of BART and adapter layers' initialization 
+# (essentially everything else other than BEATs encoder backbone)
+init: normal
 
 token_type: hugging_face
 
@@ -77,4 +85,4 @@ optim_conf:
 
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 8000 # 2500
+    warmup_steps: 2500 # 2.5k
