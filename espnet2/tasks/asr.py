@@ -260,6 +260,7 @@ class ASRTask(AbsTask):
                 "xavier_normal",
                 "kaiming_uniform",
                 "kaiming_normal",
+                "normal",
                 None,
             ],
         )
