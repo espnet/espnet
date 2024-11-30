@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import logging
 import sys
 from distutils.version import LooseVersion
