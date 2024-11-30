@@ -221,10 +221,9 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
-
 CLOTHO_V2=downloads
-AUDIOCAPS=/compute/babel-13-33/sbharad2/audiocaps
-CLOTHO_CHATGPT_MIXUP=/compute/babel-13-33/sbharad2/chatgpt
+AUDIOCAPS=
+CLOTHO_CHATGPT_MIXUP=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
