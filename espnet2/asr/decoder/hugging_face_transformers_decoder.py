@@ -7,7 +7,8 @@
 import copy
 import logging
 import os
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Optional, Tuple
+
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked

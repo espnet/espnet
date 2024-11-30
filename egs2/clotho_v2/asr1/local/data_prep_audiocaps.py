@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from string import punctuation
+
 from scipy.io import wavfile
 
 strip_punct_table = str.maketrans("", "", punctuation)

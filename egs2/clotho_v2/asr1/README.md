@@ -1,7 +1,7 @@
 # Clotho Audio Captioning RECIPE
 
 This recipe implements the DCASE 2023 Automated Audio Captioning (AAC) task with a BEATs encoder BART decoder model on the Clotho_v2 dataset, very close to what is described in [this paper](https://arxiv.org/abs/2309.17352) and reusing part of code from the [original implementation](https://github.com/slSeanWU/beats-conformer-bart-audio-captioner?tab=readme-ov-file).
-More specifically, we provide the pre-training and fine-tuning code for second last row in Table 2 (without Instructor embedding) from the paper. 
+More specifically, we provide the pre-training and fine-tuning code for second last row in Table 2 (without Instructor embedding) from the paper.
 We also reuse the code from the [BEATs repository](https://github.com/microsoft/unilm/tree/master/beats) for this implementation.
 
 # Training Details and Requirements

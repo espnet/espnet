@@ -2,9 +2,9 @@
 to evaluate the audio captioning predictions."""
 
 import argparse
+from string import punctuation
 
 from aac_metrics import Evaluate
-from string import punctuation
 
 strip_punct_table = str.maketrans("", "", punctuation)
 
