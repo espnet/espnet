@@ -58,6 +58,7 @@ class ARParallelLM(AbsCoreLM):
         self,
         dec_seq: torch.Tensor,
         prefix_len: torch.Tensor = None,
+        pos_id: torch.Tensor = None,
         conti_feats: Tuple = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
@@ -77,7 +78,8 @@ class ARParallelLM(AbsCoreLM):
         x = install_continuous_features(x, conti_feats)
 
         # transformer output
-        x = self.decoders(x)
+        x = self.decoders(x, pos_id=pos_id)
+        assert 1 == 2
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
         # lm logits

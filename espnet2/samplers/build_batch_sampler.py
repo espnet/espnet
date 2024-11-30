@@ -8,6 +8,7 @@ from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.samplers.bucket_batch_sampler import BucketBatchSampler
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "
@@ -66,6 +67,19 @@ BATCH_TYPES = dict(
     "    utterance_id_a 1000,80\n"
     "    utterance_id_b 1453,80\n"
     "    utterance_id_c 1241,80\n",
+    bucket="BucketBatchSampler supports sequence packing so that fixed batch size and "
+    "batch length can be achieved. This is super friendly for static computing graph "
+    "such as SpeechLM training"
+    "\n\n"
+    "Given shape (length) of each example, form a batch with "
+    "batch_size=2, batch_bins=1500: \n "
+    "    utterance_id_a 1000\n"
+    "    utterance_id_b 500\n"
+    "    utterance_id_c 700\n"
+    "    utterance_id_d 800\n"
+    " ->\n "
+    "    utterance_id_a, utterance_id_b # packed sequence 1\n " 
+    "    utterance_id_c, utterance_id_d # packed sequence 2\n " ,
 )
 
 
@@ -160,6 +174,14 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+        )
+    
+    elif type == "bucket":
+        retval = BucketBatchSampler(
+            batch_bins=batch_bins,
+            batch_size=batch_size,
+            shape_files=shape_files,
+            allow_duplication=allow_duplication,
         )
 
     else:

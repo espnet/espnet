@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 import torch
 import torch.nn.functional as F
@@ -36,15 +36,17 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         self,
         dec_seq: torch.Tensor,
         dec_seq_lengths: torch.Tensor,
-        prefix_len: torch.Tensor,
-        conti_feats,
+        prefix_len: Optional[torch.Tensor] = None,
+        conti_feats = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        prefix_len = prefix_len.squeeze(1)
+        prefix_len = prefix_len.squeeze(1) if prefix_len is not None else None
+        pos_id = kwargs.get("pos_id", None)
 
         logits, targets = self.corelm(
             dec_seq,
             prefix_len,
+            pos_id,
             conti_feats,
         )
 

@@ -809,7 +809,7 @@ class AbsTask(ABC):
             default=False,
             help="If true, allow duplication in sampler shape files. "
                  "This is usually for data re-weighting "
-                 "Currently only for numel sampler"
+                 "Currently only for numel sampler and bucket sampler"
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])

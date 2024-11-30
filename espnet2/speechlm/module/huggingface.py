@@ -56,20 +56,28 @@ class HFTransformerDecoder(AbsTransformer):
         )
         self.emb = self.model.get_input_embeddings()
 
+        if activation_checkpointing:
+            self.model.gradient_checkpointing_enable()
+
         self.kv_cache = None
         self.use_cache = False
 
         self.token_bias = token_bias.copy()
         self.d_model = self.lm_head.in_features
         self._n_ctx = n_ctx
+        self.attention_choice = attention_choice
 
     def forward(
         self,
         x: torch.Tensor,
+        pos_id: torch.Tensor = None,
     ):
+        if pos_id is not None:
+            assert self.attention_choice  == "flash_attention_2"
 
         output = self.model(
             inputs_embeds=x,
+            position_ids=pos_id,
             past_key_values=self.kv_cache,
             use_cache=self.use_cache,
         )

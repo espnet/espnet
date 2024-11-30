@@ -398,3 +398,130 @@ def common_collate_fn(
 
     output = (uttids, output)
     return output
+
+class BucketCollateFn:
+    """Functor class of bucket_collate_fn()"""
+
+    @typechecked
+    def __init__(
+        self,
+        float_pad_value: Union[float, int] = 0.0,
+        int_pad_value: int = -32768,
+        batch_bins: int = 8192,
+        batch_size: int = 4,
+        not_sequence: Collection[str] = (),
+        not_process: Collection[str] = (),
+    ):
+        self.float_pad_value = float_pad_value
+        self.int_pad_value = int_pad_value
+        self.batch_bins = batch_bins
+        self.batch_size = batch_size
+        self.not_sequence = set(not_sequence)
+        self.not_process = set(not_process)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__}(float_pad_value={self.float_pad_value}, "
+            f"int_pad_value={self.float_pad_value}), "
+            f"batch_bins={self.batch_bins}), "
+            f"batch_size={self.batch_size})"
+        )
+
+    def __call__(
+        self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
+    ) -> Tuple[List[str], Dict[str, Union[torch.Tensor, Tuple]]]:
+        return bucket_collate_fn(
+            data,
+            float_pad_value=self.float_pad_value,
+            int_pad_value=self.int_pad_value,
+            batch_bins=self.batch_bins,
+            batch_size=self.batch_size,
+            not_sequence=self.not_sequence,
+            not_process=self.not_process,
+        )
+
+@typechecked
+def bucket_collate_fn(
+    data: Collection[Tuple[str, Dict[str, np.ndarray]]],
+    float_pad_value: Union[float, int] = 0.0,
+    int_pad_value: int = -32768,
+    batch_bins: int = 8192,
+    batch_size: int = 4,
+    not_sequence: Collection[str] = (),
+    not_process: Collection[str] = (),
+) -> Tuple[List[str], Dict[str, Union[torch.Tensor, Tuple]]]:
+    """ Form the packed batch for SpeechLM training """
+
+    # (1) format check
+    uttids = [u for u, _ in data]
+    data = [d for _, d in data]
+
+    assert all(set(data[0]) == set(d) for d in data), "dict-keys mismatching"
+    assert all(
+        not k.endswith("_lengths") for k in data[0]
+    ), f"*_lengths is reserved: {list(data[0])}"
+
+    # (2) form the sequence
+    seq_name = 'dec_seq' # hardcode in current setup, as only for SpeechLM
+    nq = data[0][seq_name].shape[1] # in shape [T, nq]
+
+    # (2.1) initialization
+    all_seq = torch.ones(batch_size, batch_bins, nq).long() * int_pad_value
+    all_pos = torch.ones(batch_size, batch_bins).long() * 0
+    all_seq_id = torch.ones(batch_size, batch_bins).long() * 1000000
+    all_seq_lengths = torch.ones(batch_size).long() * 0
+
+    # (2.2) split into packs
+    cur_len, cur_count, cur_batch = 0, 0, 0
+    pack_names = [[] for _ in range(batch_size)]
+    for uttid, info in zip(uttids, data):
+        this_seq = torch.Tensor(info[seq_name]).long()
+        this_len = len(this_seq)
+        if this_len > batch_bins:
+            raise ValueError(f"Utterance {uttid} is longer than the specified batch_bins: {batch_bins} vs. {this_len}")
+        
+        if cur_len + this_len <= batch_bins:
+            all_seq[cur_batch, cur_len: cur_len + this_len] = this_seq
+            all_pos[cur_batch, cur_len: cur_len + this_len] = torch.arange(this_len)
+            all_seq_id[cur_batch, cur_len: cur_len + this_len] = cur_count
+            cur_len += this_len
+            cur_count += 1
+            pack_names[cur_batch].append(uttid)
+            
+        else:
+            # save length of the last pack
+            all_seq_lengths[cur_batch] = cur_len
+            # move to the next pack
+            cur_batch += 1
+
+            if cur_batch >= batch_size:
+                raise ValueError(f"should only have {batch_size} packs. Cannot fit {uttid}")
+            
+            all_seq[cur_batch, :this_len] = this_seq
+            all_pos[cur_batch, :this_len] = torch.arange(this_len)
+            all_seq_id[cur_batch, :this_len] = 0
+            pack_names[cur_batch].append(uttid)
+
+            cur_len = this_len
+            cur_count = 1
+            
+    all_seq_lengths[cur_batch] = cur_len
+    
+    pack_names = ["_".join(n) for n in pack_names]
+    # [B, 1, batch_bins, batch_bins]
+    mask = (all_seq_id.unsqueeze(1) == all_seq_id.unsqueeze(2)).tril().unsqueeze(1)
+
+    # (3) return
+    ans = {
+        seq_name: all_seq,
+        seq_name + "_lengths": all_seq_lengths,
+        "pos_id": all_pos,
+        "mask": mask,
+        "prefix_len": None,
+        "conti_feats": None,
+    }
+
+    return pack_names, ans
+
+
+

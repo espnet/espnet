@@ -35,7 +35,7 @@ from espnet2.torch_utils.initialize import initialize
 # Others
 from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.collate_fn import CommonCollateFn, BucketCollateFn
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Preprocessor
@@ -268,11 +268,20 @@ class SpeechLMTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        return CommonCollateFn(
-            int_pad_value=args.token_list.index("<pad>"),
-            not_process=["conti_feats"],
-            not_sequence=["prefix_len"],
-        )
+        if args.batch_type == "bucket":
+            return BucketCollateFn(
+                int_pad_value=args.token_list.index("<pad>"),
+                batch_bins=args.batch_bins,
+                batch_size=args.batch_size,
+                not_process=["conti_feats"],
+                not_sequence=["prefix_len"],
+            )
+        else:
+            return CommonCollateFn(
+                int_pad_value=args.token_list.index("<pad>"),
+                not_process=["conti_feats"],
+                not_sequence=["prefix_len"],
+            )
 
     @classmethod
     @typechecked
