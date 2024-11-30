@@ -30,7 +30,7 @@ freeze_param: [
 
 encoder: beats
 encoder_conf:
-    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats 
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
     # (iter3+, Beats finetuned model 1) and update the path below
     beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
     specaug_config:
@@ -51,7 +51,7 @@ encoder_conf:
     add_positional_information: true
     max_positions: 1024 # These many positional embeddings will be learned
 
-# Pleae note that the decoder is not the standard BART-base, 
+# Pleae note that the decoder is not the standard BART-base,
 # but a custom one whose config is defined in the file below
 decoder: hugging_face_transformers
 decoder_conf:
@@ -60,7 +60,7 @@ decoder_conf:
     load_pretrained_weights: false
     ensure_untied_lm_head: true
 
-# This takes care of BART and adapter layers' initialization 
+# This takes care of BART and adapter layers' initialization
 # (essentially everything else other than BEATs encoder backbone)
 init: normal
 

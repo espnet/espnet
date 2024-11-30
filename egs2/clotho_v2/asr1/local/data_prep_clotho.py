@@ -2,10 +2,11 @@
 
 import glob
 import os
-import sys
 import random
-import pandas as pd
+import sys
 from string import punctuation
+
+import pandas as pd
 
 strip_punct_table = str.maketrans("", "", punctuation)
 
