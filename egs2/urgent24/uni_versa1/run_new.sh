@@ -10,9 +10,13 @@ set -o pipefail
     --inference_nj 8 \
     --train_config conf/train_universa.yaml \
     --inference_config conf/decode_universa.yaml \
-    --train_set train_mcd \
+    --train_set train_utmos \
     --valid_set dev_temp \
     --test_sets "dev_temp test_temp" \
-    --tag mcd_only \
+    --tag utmos_only \
+    --dumpdir dump_ark \
+    --audio_format flac.ark \
     --nbpe 500  \
+    --inference_nj 1 \
+    --gpu_inference true \
     --ngpu 1 "$@"
