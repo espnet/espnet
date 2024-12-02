@@ -55,23 +55,30 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         Args:
             vocab_size (int): The size of the vocabulary.
             encoder_output_size (int): The size of the encoder output.
-            model_name_or_path (str): The name or path of the pre-trained Transformers model.
-            causal_lm (bool, optional): Whether to use a causal language model. Defaults to False.
-                This overrides the model_name_or_path if provided.
-            prefix (str, optional): Prefix to be added to the input tokens. Defaults to "".
-            postfix (str, optional): Postfix to be added to the input tokens. Defaults to "".
-            config_path (str, optional): Path to the configuration json file. Defaults to None. If
-                this is set, it can be used to override the default decoder configuration. More documentation here:
-                https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoModelForSeq2SeqLM.from_pretrained.kwargs
-            load_pretrained_weights (bool): Whether to load the pre-trained weights. Defaults to True.
-            ensure_untied_lm_head (bool): True ensures that the language model head is not
-                shared with the input token embeddings. When False, the original structure is
-                kept, ie, if the original Transformers implementation has tying of weights,
-                it is retained. Defaults to False.
+            model_name_or_path (str): The name or path of the pre-trained
+                 Transformers model.
+            causal_lm (bool, optional): Whether to use a causal language
+                model. Defaults to False. This overrides the
+                model_name_or_path if provided.
+            prefix (str, optional): Prefix to be added to the input
+                tokens. Defaults to "".
+            postfix (str, optional): Postfix to be added to the input
+                tokens. Defaults to "".
+            config_path (str, optional): Path to the configuration json
+                file. Defaults to None. If this is set, it can be used to
+                override the default decoder configuration.
+            load_pretrained_weights (bool): Whether to load the pre-trained
+                weights. Defaults to True.
+            ensure_untied_lm_head (bool): True ensures that the language model
+                head is not shared with the input token embeddings. When False,
+                the original structure is kept, ie, if the original Transformers
+                implementation has tying of weights, it is retained. Defaults
+                to False.
 
         Raises:
             ImportError: If the `transformers` library is not available.
-            Exception: If the word embeddings attribute cannot be found in the model.
+            Exception: If the word embeddings attribute cannot be found in
+                the model.
         """
         super().__init__()
 

@@ -23,11 +23,18 @@ import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from packaging.version import parse as V
 from torch.nn import LayerNorm, Parameter
-from transformers.models.bart.modeling_bart import BartLearnedPositionalEmbedding
-from transformers.models.wav2vec2_conformer.modeling_wav2vec2_conformer import (
-    Wav2Vec2ConformerConfig,
-    Wav2Vec2ConformerEncoder,
-)
+
+try:
+    from transformers.models.bart.modeling_bart import BartLearnedPositionalEmbedding
+    from transformers.models.wav2vec2_conformer.modeling_wav2vec2_conformer import (
+        Wav2Vec2ConformerConfig,
+        Wav2Vec2ConformerEncoder,
+    )
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
+
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
@@ -155,6 +162,16 @@ class BeatsEncoder(AbsEncoder):
         # 3. Checkpoint and user-provided config: Merge the two, but
         #    override with user-provided config
         # 4. No checkpoint and user-provided config: Use user-provided config
+        if adapter_config or add_positional_information:
+            # We need transformers library for adapter and positional embeddings
+            if not is_transformers_available:
+                raise ImportError(
+                    "`transformers` is not available. Please install it "
+                    " via `pip install transformers` or"
+                    " `cd /path/to/espnet/tools && "
+                    ". ./activate_python.sh"
+                    " && ./installers/install_transformers.sh`."
+                )
         config = BEATsConfig()  # Default config
         if beats_ckpt_path and beats_config:
             logging.warning(
