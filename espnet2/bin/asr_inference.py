@@ -50,7 +50,6 @@ from espnet.utils.cli_utils import get_commandline_args
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
     from transformers.file_utils import ModelOutput
-    from transformers.models.bart.modeling_bart import BartConfig, BartDecoder
 
     is_transformers_available = True
 except ImportError:
@@ -298,6 +297,7 @@ class Speech2Text:
                 hugging_face_decoder_conf["pad_token_id"] = (
                     hugging_face_model.config.eos_token_id
                 )
+
             beam_search = None
             beam_search_transducer = None
         else:
