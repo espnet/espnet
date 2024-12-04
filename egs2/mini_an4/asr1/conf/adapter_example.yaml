@@ -1,0 +1,41 @@
+optim: SGD
+patience: 20
+grad_clip: 5
+optim_conf:
+  lr: 0.00027
+
+
+scheduler: warmuplr
+
+scheduler_conf:
+  warmup_steps: 40000
+max_epoch: 20
+
+frontend_conf:
+ n_fft: 512
+ hop_length: 256
+
+frontend: s3prl
+frontend_conf:
+
+    frontend_conf:
+      upstream: wav2vec2_large_ll60k #currently adaptes support wav2vec2.0 and hubert only
+      add_adapters: True
+      adapter_down_dim: 192
+      adapter_layers: [8, 9, 10, 11]
+    download_dir: ./hub
+    multilayer_feature: False
+
+
+
+model_conf:
+  ctc_weight: 1.0
+  lsm_weight: 0.3
+  length_normalized_loss: false
+
+  extract_feats_in_collect_stats: false
+
+init: xavier_uniform
+
+
+batch_size: 32
