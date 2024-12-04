@@ -35,7 +35,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${VOXPOPULI}/LICENSE.txt" ]; then
-	echo "stage 1: Download data to ${VOXPOPULI}"
+	echo "stage 1: Please download data to ${VOXPOPULI}"
     else
         log "stage 1: ${VOXPOPULI}/LICENSE.txt is already existing. Skip data downloading"
     fi
