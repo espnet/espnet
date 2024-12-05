@@ -229,7 +229,7 @@ if [[ `hostname` == capricornus_tyx_2258 ]]; then
     NATSUME=/data3/tyx/dataset/Natsume_Singing_DB
     ITAKO=/data3/tyx/dataset/itako
     NAMINE=/data3/tyx/dataset/namine_ritsu_utagoe_db
-    
+
 fi
 
 # For only CMU TIR environment

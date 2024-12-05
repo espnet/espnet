@@ -35,9 +35,11 @@ class MERTFrontend(AbsFrontend):
                 "All the RVQ-based models in MERT now only support 24 kHz audio."
             )
         if save_dir is not None:
-            model = AutoModel.from_pretrained(download_path, trust_remote_code=True, cache_dir=save_dir) 
+            model = AutoModel.from_pretrained(
+                download_path, trust_remote_code=True, cache_dir=save_dir
+            )
         else:
-            model = AutoModel.from_pretrained(download_path, trust_remote_code=True) 
+            model = AutoModel.from_pretrained(download_path, trust_remote_code=True)
         model.eval()
 
         if layer != -1:

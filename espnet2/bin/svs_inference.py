@@ -278,8 +278,8 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen"]
             else:
                 input_feat = output_dict["feat_gen_denorm"]
-            logging.info(f'type: {self.mix_type}')
-            logging.info(f'layer: {self.discrete_token_layers}')
+            logging.info(f"type: {self.mix_type}")
+            logging.info(f"layer: {self.discrete_token_layers}")
             if self.discrete_token_layers > 1:
                 # NOTE(Yuxun): vocoder can only accept 'frame' type, [T, L]
                 if self.mix_type == "frame":
@@ -395,7 +395,9 @@ class SingingGenerate:
                 vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
-                kwargs.update(vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file)
+                kwargs.update(
+                    vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file
+                )
 
             else:
                 raise ValueError(f"{vocoder_tag} is unsupported format.")

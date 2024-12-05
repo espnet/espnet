@@ -42,7 +42,7 @@ def get_parser():
     parser.add_argument("--max_no_improvement", default=100, type=int)
     parser.add_argument("--n_init", default=20, type=int)
     parser.add_argument("--reassignment_ratio", default=0.0, type=float)
-    
+
     parser.add_argument(
         "--RVQ_layers",
         type=int,
@@ -161,11 +161,16 @@ def learn_kmeans(
             seed,
         )
         km_model.fit(feat)
-        km_path_ = km_path.replace('.mdl', f'_RVQ_{i}.mdl') if RVQ_layers > 1 else km_path
+        km_path_ = (
+            km_path.replace(".mdl", f"_RVQ_{i}.mdl") if RVQ_layers > 1 else km_path
+        )
         joblib.dump(km_model, km_path_)
 
         inertia = -km_model.score(feat) / len(feat)
-        logger.info("{}total intertia: %.5f".format(f'RVQ_{i} ' if RVQ_layers > 1 else ""), inertia)
+        logger.info(
+            "{}total intertia: %.5f".format(f"RVQ_{i} " if RVQ_layers > 1 else ""),
+            inertia,
+        )
         c = km_model.predict(feat)
         r = km_model.cluster_centers_[c]
         feat = feat - km_model.cluster_centers_[km_model.predict(feat)]
@@ -178,5 +183,3 @@ if __name__ == "__main__":
     logging.info(str(args))
 
     learn_kmeans(**vars(args))
-
-
