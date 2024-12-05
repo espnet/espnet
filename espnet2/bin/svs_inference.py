@@ -281,11 +281,14 @@ class SingingGenerate:
             logging.info(f'type: {self.mix_type}')
             logging.info(f'layer: {self.discrete_token_layers}')
             if self.discrete_token_layers > 1:
+                # NOTE(Yuxun): vocoder can only accept 'frame' type, [T, L]
                 if self.mix_type == "frame":
+                    # logging.info(f'src frame({input_feat.shape}) {input_feat.squeeze(1)}')
                     input_feat = input_feat.view(
                         -1, self.discrete_token_layers
-                    )[:,[0, 1, ]]#2,3]]
-                    logging.info(f'222: {input_feat.shape} {input_feat}')
+                    )
+                    # input_feat = input_feat.T
+                    # logging.info(f'tgt frame({input_feat.shape}) {input_feat}')
                 elif self.mix_type == "sequence":
                     input_feat = input_feat.view(
                         self.discrete_token_layers, -1
