@@ -252,7 +252,7 @@ class Speech2Text:
 
                 transformer = get_hugging_face_model_network(hugging_face_model)
                 transformer.load_state_dict(decoder.decoder.state_dict())
-                if decoder.ensure_untied_lm_head:
+                if decoder.separate_lm_head:
                     lm_head = copy.deepcopy(
                         get_hugging_face_model_lm_head(hugging_face_model)
                     )
@@ -264,7 +264,7 @@ class Speech2Text:
                     decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
-                if decoder.ensure_untied_lm_head:
+                if decoder.separate_lm_head:
                     hugging_face_model.lm_head = copy.deepcopy(decoder.lm_head)
                 hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
 
