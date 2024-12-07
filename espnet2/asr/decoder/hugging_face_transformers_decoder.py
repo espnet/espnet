@@ -7,7 +7,7 @@
 import copy
 import logging
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -45,9 +45,9 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
-        config_path: Optional[str] = None,
+        overriding_architecture_config: Optional[Union[str, dict]] = {},
         load_pretrained_weights: bool = True,
-        ensure_untied_lm_head: bool = False,
+        separate_lm_head: bool = False,
     ):
         """
         Initializes the HuggingFaceTransformersDecoder.
@@ -64,12 +64,13 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 tokens. Defaults to "".
             postfix (str, optional): Postfix to be added to the input
                 tokens. Defaults to "".
-            config_path (str, optional): Path to the configuration json
-                file. Defaults to None. If this is set, it can be used to
-                override the default decoder configuration.
+            overriding_architecture_config (str or dict, optional): Path to the configuration json
+                file or the json dictionary itself. Defaults to None. If this
+                is set, it can be used to override the default decoder
+                configuration.
             load_pretrained_weights (bool): Whether to load the pre-trained
                 weights. Defaults to True.
-            ensure_untied_lm_head (bool): True ensures that the language model
+            separate_lm_head (bool): True ensures that the language model
                 head is not shared with the input token embeddings. When False,
                 the original structure is kept, ie, if the original Transformers
                 implementation has tying of weights, it is retained. Defaults
@@ -90,12 +91,15 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             )
 
         self.load_pretrained_weights = load_pretrained_weights
-        self.ensure_untied_lm_head = ensure_untied_lm_head
-        self.overriding_architecture_config = (
-            vars(get_model_conf(model_path="", conf_path=config_path))
-            if config_path
-            else {}
-        )
+        self.separate_lm_head = separate_lm_head
+
+        self.overriding_architecture_config = overriding_architecture_config
+        if type(overriding_architecture_config) == str:
+            # It is path to a json config file
+            self.overriding_architecture_config = vars(
+                get_model_conf(model_path="", conf_path=overriding_architecture_config)
+            )
+
         self.causal_lm = causal_lm
 
         if self.causal_lm:
@@ -143,7 +147,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
         model.resize_token_embeddings(vocab_size)
 
-        if self.ensure_untied_lm_head:
+        if self.separate_lm_head:
             self.lm_head = copy.deepcopy(get_hugging_face_model_lm_head(model))
         else:
             self.lm_head = get_hugging_face_model_lm_head(model)
@@ -361,17 +365,3 @@ def get_hugging_face_model_lm_head(model):
         raise Exception("Can not find the LM head attribute")
 
     return lm_head
-
-
-def read_config_file(config_path):
-    assert os.path.exists(
-        config_path
-    ), f"Config file supplied but not found: {config_path}"
-    config_dict = {}
-    with open(config_path, "r") as f:
-        config_dict = json.load(f)
-        config_dict["ignore_mismatched_sizes"] = (
-            True  # Loaded config could be different from pre-trained model.
-        )
-
-    return config_dict

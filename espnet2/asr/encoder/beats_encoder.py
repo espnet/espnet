@@ -49,7 +49,7 @@ else:
         yield
 
 
-class BEATsConfig:
+class BeatsConfig:
     def __init__(self, cfg=None):
         self.input_patch_size: int = 16  # patch size of patch embedding
         self.embed_dim: int = 512  # patch embedding dimension
@@ -115,7 +115,7 @@ class BeatsEncoder(AbsEncoder):
 
     (https://arxiv.org/abs/2212.09058)
     Args:
-        beats_ckpt_path: Path to a pretrained BEATs checkpoint. If
+        beats_ckpt_path: Path to a pretrained Beats checkpoint. If
             `beats_config` is provided and it does not match the
             config in the checkpoint, code might throw an error.
         max_layer: Propagate input through all layers for encoding
@@ -124,7 +124,7 @@ class BeatsEncoder(AbsEncoder):
         adapter_config: Path to a config file for the wav2vec2 adapter.
         use_weighted_representation: Use weighted representations
             from max_layer if True. Weights are randomly initialized.
-        beats_config: `BEATsConfig` object. If provided, we will try
+        beats_config: `BeatsConfig` object. If provided, we will try
             to override the config in the checkpoint. This can be used
             to change dropouts etc for fine-tuning the model while
             starting from a pretrained checkpoint.
@@ -143,7 +143,7 @@ class BeatsEncoder(AbsEncoder):
         downsampling_rate: int = 1,
         adapter_config: str = "",
         use_weighted_representation: bool = False,
-        beats_config: Optional[BEATsConfig] = None,
+        beats_config: Optional[BeatsConfig] = None,
         specaug_config: Optional[Dict] = None,
         add_positional_information: bool = False,
         max_positions: Optional[int] = None,
@@ -172,7 +172,7 @@ class BeatsEncoder(AbsEncoder):
                     ". ./activate_python.sh"
                     " && ./installers/install_transformers.sh`."
                 )
-        config = BEATsConfig()  # Default config
+        config = BeatsConfig()  # Default config
         if beats_ckpt_path and beats_config:
             logging.warning(
                 "Both pretrained checkpoint and config are provided."
@@ -181,11 +181,11 @@ class BeatsEncoder(AbsEncoder):
         self.loaded_state_dict_ = None
         if beats_ckpt_path is not None:
             self.loaded_state_dict_ = torch.load(beats_ckpt_path)
-            logging.info(f"Loaded BEATs pretrained config from {beats_ckpt_path}.")
-            config = BEATsConfig(self.loaded_state_dict_["cfg"])
+            logging.info(f"Loaded Beats pretrained config from {beats_ckpt_path}.")
+            config = BeatsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:
-            config.update(beats_config)
-            logging.info("Overriding BEATs config with user-provided config.")
+            config.update(vars(beats_config))
+            logging.info("Overriding Beats config with user-provided config.")
 
         self.specaug = None
         if specaug_config is not None:
@@ -260,16 +260,16 @@ class BeatsEncoder(AbsEncoder):
             )
 
     def reload_pretrained_parameters(self):
-        """Initialization function for BEATs.
+        """Initialization function for Beats.
 
         This must be called last in the initialization procedure.
         The initialization occurs in three steps:
-        1. ESPNet initializes all modules.
-        2. This function initializes BEATs encoder overriding 1.
+        1. ESPnet initializes all modules.
+        2. This function initializes Beats encoder overriding 1.
         3. Optionally, if we have the pretrained checkpoint, we load the
             weights from the checkpoint overriding 2 and 1.
         """
-        logging.info("BEATs Initialization function called.")
+        logging.info("Beats Initialization function called.")
         if self.post_extract_proj:
             torch.nn.init.xavier_normal_(self.post_extract_proj.weight)
             if self.post_extract_proj.bias is not None:
@@ -278,7 +278,7 @@ class BeatsEncoder(AbsEncoder):
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
 
-        # BEATs has different initialization from ESPNet for other modules,
+        # Beats has different initialization from ESPnet for other modules,
         #  so override.
         self.encoder.apply(init_bert_params)
         if self.loaded_state_dict_ is not None:
@@ -288,12 +288,12 @@ class BeatsEncoder(AbsEncoder):
             )
             # strict=False to ignore Weights in the predictor
             logging.info(
-                f"Loaded BEATs pretrained model. Following keys were missing"
+                f"Loaded Beats pretrained model. Following keys were missing"
                 f" in your custom model: {load_info.missing_keys}. "
                 f"Follwing keys could not be loaded from the pretrained"
                 f"checkpoint: {load_info.unexpected_keys}."
                 "It is expected to have 'predictor' listed above if you are"
-                "fine-tuning with only the BEATs backbone."
+                "fine-tuning with only the Beats backbone."
             )
 
     def forward_padding_mask(
@@ -338,7 +338,16 @@ class BeatsEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Wrapper for compatibility with ESPNets' AbsEncoder Interface."""
+        """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
+        Args:
+            xs_pad: (B, T, D)
+            ilens: (B,)
+            prev_states: None
+        Returns:
+            audio_representation: (B, T, D)
+            output_lens: (B,)
+            masks: None
+        """
 
         # NOTE(shikhar): If xs is not provided then the operation is costly,
         # because this function tries to create a tensor of size maxlen x maxlen.
@@ -346,16 +355,16 @@ class BeatsEncoder(AbsEncoder):
         mask = make_pad_mask(
             lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
         ).to(xs_pad.device)
-        # Adjust shapes to be compatible with BEATs code
+        # Adjust shapes to be compatible with Beats code
         xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
         # masks = None
-        last_hidden, mask = self.extract_features(
+        audio_representation, mask = self.extract_features(
             xs_pad,
             mask,
             max_layer=self.max_layer,
         )
         output_lens = (~mask).sum(-1)
-        return last_hidden, output_lens, None
+        return audio_representation, output_lens, None
 
     def extract_features(
         self,
@@ -399,8 +408,8 @@ class BeatsEncoder(AbsEncoder):
         if self.use_weighted_representation:
             repr_layer_weights = nn.functional.softmax(self.layer_weights, dim=-2)
             assert (
-                max_layer > 0
-            ), "max_layer must be non-zero when using weighted representations."
+                max_layer is not None
+            ), "max_layer must not be None when using weighted representations."
             features = (
                 torch.stack(
                     [

@@ -54,9 +54,9 @@ encoder_conf:
 decoder: hugging_face_transformers
 decoder_conf:
     model_name_or_path: facebook/bart-base
-    config_path: conf/bart_decoder_config.json
+    overriding_architecture_config: conf/bart_decoder_config.json
     load_pretrained_weights: false
-    ensure_untied_lm_head: true
+    separate_lm_head: true
 
 # Initialization does not matter we use a pre-trained model
 init: normal
