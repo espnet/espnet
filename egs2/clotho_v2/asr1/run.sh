@@ -12,7 +12,7 @@ inference_ckpt=valid.acc.ave_5best
     --stop_stage 15 \
     --ngpu 2 \
     --gpu_inference true \
-    --nj 10 \
+    --nj 8 \
     --inference_nj 1 \
     --max_wav_duration 30 \
     --token_type hugging_face \
@@ -35,7 +35,7 @@ inference_ckpt=latest
 ./asr.sh \
     --asr_tag ft \
     --feats_normalize uttmvn \
-    --stage 15 \
+    --stage 1 \
     --stop_stage 15 \
     --asr_speech_fold_length ${asr_speech_fold_length} \
     --asr_stats_dir exp/asr_stats_finetune \
