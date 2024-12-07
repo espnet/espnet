@@ -94,7 +94,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.separate_lm_head = separate_lm_head
 
         self.overriding_architecture_config = overriding_architecture_config
-        if type(overriding_architecture_config) == str:
+        if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
             self.overriding_architecture_config = vars(
                 get_model_conf(model_path="", conf_path=overriding_architecture_config)
