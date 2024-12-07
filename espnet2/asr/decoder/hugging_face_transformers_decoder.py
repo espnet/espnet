@@ -64,10 +64,10 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 tokens. Defaults to "".
             postfix (str, optional): Postfix to be added to the input
                 tokens. Defaults to "".
-            overriding_architecture_config (str or dict, optional): Path to the configuration json
-                file or the json dictionary itself. Defaults to None. If this
-                is set, it can be used to override the default decoder
-                configuration.
+            overriding_architecture_config (str or dict, optional): Path to the
+                configuration json file or the json dictionary itself. Defaults
+                to None. If this is set, it can be used to override the
+                default decoder configuration.
             load_pretrained_weights (bool): Whether to load the pre-trained
                 weights. Defaults to True.
             separate_lm_head (bool): True ensures that the language model
@@ -85,8 +85,10 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
         if not is_transformers_available:
             raise ImportError(
-                "`transformers` is not available. Please install it via `pip install"
-                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                "`transformers` is not available. Please install it "
+                "via `pip install"
+                " transformers` or `cd /path/to/espnet/tools "
+                "&& . ./activate_python.sh"
                 " && ./installers/install_transformers.sh`."
             )
 
