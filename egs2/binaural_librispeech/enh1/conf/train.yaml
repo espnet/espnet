@@ -1,0 +1,72 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 70
+batch_type: folded
+batch_size: 8
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+    use_builtin_complex: False
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: wpe_beamformer
+separator_conf:
+    num_spk: 1
+    loss_type: mask_mse
+    use_wpe: False
+    wnet_type: blstmp
+    wlayers: 3
+    wunits: 300
+    wprojs: 320
+    wdropout_rate: 0.0
+    taps: 5
+    delay: 3
+    use_dnn_mask_for_wpe: True
+    use_beamformer: True
+    bnet_type: blstmp
+    blayers: 3
+    bunits: 512
+    bprojs: 512
+    badim: 320
+    ref_channel: 3
+    use_noise_mask: True
+    beamformer_type: mvdr_souden
+    bdropout_rate: 0.0
+
+
+criterions:
+  # The first criterion
+  - name: mse
+    conf:
+      compute_on_mask: True
+      mask_type: PSM^2
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
