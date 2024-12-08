@@ -229,14 +229,27 @@ class IterableESPnetDataset(IterableDataset):
             # 4. Force data-precision
             for name in data:
                 value = data[name]
-                if not isinstance(value, np.ndarray):
+                if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                     raise RuntimeError(
-                        f"All values must be converted to np.ndarray object "
-                        f'by preprocessing, but "{name}" is still {type(value)}.'
+                        f"All values must be converted to np.ndarray or "
+                        "dict (universa-only) object by preprocessing, "
+                        f'but "{name}" is still {type(value)}.'
                     )
 
                 # Cast to desired type
-                if value.dtype.kind == "f":
+                if type(value) == dict:
+                    # NOTE(jiatong): Universa metric case
+                    for k, v in value.items():
+                        if isinstance(v, np.ndarray):
+                            if v.dtype.kind == "f":
+                                value[k] = v.astype(self.float_dtype)
+                            elif v.dtype.kind == "i":
+                                value[k] = v.astype(self.int_dtype)
+                            else:
+                                raise NotImplementedError(
+                                    f"Not supported dtype: {v.dtype}"
+                                )
+                elif value.dtype.kind == "f":
                     value = value.astype(self.float_dtype)
                 elif value.dtype.kind == "i":
                     value = value.astype(self.int_dtype)
