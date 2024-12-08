@@ -3,6 +3,7 @@
 
 """NaiveRNN-DP-SVS related modules."""
 
+import logging
 from typing import Dict, Optional, Tuple
 
 import torch
@@ -10,6 +11,7 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.discrete.loss import DiscreteLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
@@ -17,7 +19,7 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 
@@ -71,6 +73,9 @@ class NaiveRNNDP(AbsSVS):
         init_type: str = "xavier_uniform",
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        use_discrete_token: bool = False,
+        discrete_token_layers: int = 1,
+        predict_pitch: bool = False,
     ):
         """Initialize NaiveRNNDP module.
 
@@ -115,6 +120,8 @@ class NaiveRNNDP(AbsSVS):
             use_masking (bool): Whether to mask padded part in loss calculation.
             use_weighted_masking (bool): Whether to apply weighted masking in
                 loss calculation.
+            use_discrete_token (bool): Whether to use discrete tokens as targets.
+            predict_pitch (bool): Whether to predict pitch when use_discrete_tokens.
 
         """
         super().__init__()
@@ -127,8 +134,11 @@ class NaiveRNNDP(AbsSVS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
-
         self.midi_embed_integration_type = midi_embed_integration_type
+        self.use_discrete_token = use_discrete_token
+        self.discrete_token_layers = discrete_token_layers
+        self.proj_out_dim = self.odim * self.discrete_token_layers
+        self.predict_pitch = predict_pitch
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -282,7 +292,12 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(dunits * dim_direction, odim * reduction_factor)
+        self.feat_out = torch.nn.Linear(
+            dunits * dim_direction, self.proj_out_dim * reduction_factor
+        )
+        self.pitch_predictor = torch.nn.Linear(
+            dunits * dim_direction, 1 * reduction_factor
+        )
 
         # define postnet
         self.postnet = (
@@ -300,9 +315,16 @@ class NaiveRNNDP(AbsSVS):
         )
 
         # define loss function
-        self.criterion = FastSpeechLoss(
-            use_masking=use_masking, use_weighted_masking=use_weighted_masking
-        )
+        if self.use_discrete_token:
+            self.criterion = DiscreteLoss(
+                use_masking=use_masking,
+                use_weighted_masking=use_weighted_masking,
+                predict_pitch=self.predict_pitch,
+            )
+        else:
+            self.criterion = FastSpeechLoss(
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+            )
 
         # initialize parameters
         self._reset_parameters(
@@ -334,6 +356,9 @@ class NaiveRNNDP(AbsSVS):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
+        discrete_token: torch.Tensor = None,
+        discrete_token_lengths: torch.Tensor = None,
+        discrete_token_lengths_frame: torch.Tensor = None,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -341,7 +366,7 @@ class NaiveRNNDP(AbsSVS):
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, Lmax, odim).
+            feats (Tensor): Batch of padded target features (B, T_frame, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, Tmax).
@@ -351,17 +376,19 @@ class NaiveRNNDP(AbsSVS):
                 value (LongTensor): Batch of padded melody (B, Tmax).
             melody_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded melody (B, ).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            pitch (FloatTensor): Batch of padded f0 (B, T_frame).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
-            slur (LongTensor): Batch of padded slur (B, Tmax).
+            slur (LongTensor): Batch of padded slur (B, T_frame).
             slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
+            discrete_token_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
 
         GS Fix:
@@ -394,6 +421,8 @@ class NaiveRNNDP(AbsSVS):
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
         duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
+        if self.predict_pitch:
+            log_f0 = pitch[:, : pitch_lengths.max()]
         batch_size = feats.size(0)
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
@@ -446,7 +475,10 @@ class NaiveRNNDP(AbsSVS):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
-        olens = feats_lengths
+        if self.use_discrete_token:
+            olens = discrete_token_lengths_frame
+        else:
+            olens = feats_lengths
         if self.reduction_factor > 1:
             olens_in = olens.new(
                 [
@@ -467,7 +499,7 @@ class NaiveRNNDP(AbsSVS):
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
-
+        log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -486,20 +518,60 @@ class NaiveRNNDP(AbsSVS):
             )
             max_olen = max(olens)
             ys = feats[:, :max_olen]
+            if self.predict_pitch:
+                log_f0 = log_f0[:, :max_olen]
         else:
-            ys = feats
-            olens = feats_lengths
+            if self.use_discrete_token:
+                ys = discrete_token
+                olens = discrete_token_lengths
+            else:
+                ys = feats
+                olens = feats_lengths
 
         # calculate loss values
         ilens = label_lengths
-        l1_loss, duration_loss = self.criterion(
-            after_outs, before_outs, d_outs, ys, ds, ilens, olens
-        )
-        loss = l1_loss + duration_loss
+        if self.predict_pitch:
+            out_loss, duration_loss, pitch_loss = self.criterion(
+                after_outs,
+                before_outs,
+                d_outs,
+                ys,
+                ds,
+                ilens,
+                olens,
+                log_f0_outs,
+                log_f0,
+                pitch_lengths,
+            )
+            loss = out_loss + duration_loss + pitch_loss
+        else:
+            out_loss, duration_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            )
+            loss = out_loss + duration_loss
 
-        stats = dict(
-            loss=loss.item(), l1_loss=l1_loss.item(), duration_loss=duration_loss.item()
-        )
+        if self.use_discrete_token:
+            stats = dict(
+                loss=loss.item(),
+                CE_loss=out_loss.item(),
+                duration_loss=duration_loss.item(),
+            )
+        else:
+            stats = dict(
+                loss=loss.item(),
+                out_loss=out_loss.item(),
+                duration_loss=duration_loss.item(),
+            )
+        if self.predict_pitch:
+            stats["pitch_loss"] = pitch_loss.item()
+
+        if self.use_discrete_token:
+            gen_token = torch.argmax(after_outs, dim=2)
+            token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
+            acc = (
+                (gen_token == discrete_token) * token_mask
+            ).sum().item() / discrete_token_lengths.sum().item()
+            stats["acc"] = acc
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -525,6 +597,7 @@ class NaiveRNNDP(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         joint_training: bool = False,
         use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -532,18 +605,19 @@ class NaiveRNNDP(AbsSVS):
 
         Args:
             text (LongTensor): Batch of padded character ids (Tmax).
-            feats (Tensor): Batch of padded target features (Lmax, odim).
+            feats (Tensor): Batch of padded target features (T_frame, odim).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (Tmax).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (Tmax).
-            pitch (FloatTensor): Batch of padded f0 (Tmax).
+            pitch (FloatTensor): Batch of padded f0 (T_frame).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (Tmax).
-            slur (LongTensor): Batch of padded slur (B, Tmax).
+            slur (LongTensor): Batch of padded slur (B, T_frame).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
+            discrete_token (Optional[Tensor]): Batch of discrete tokens (T_frame).
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
@@ -595,6 +669,7 @@ class NaiveRNNDP(AbsSVS):
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
+        log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -603,9 +678,35 @@ class NaiveRNNDP(AbsSVS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        return dict(
-            feat_gen=after_outs[0], prob=None, att_w=None
-        )  # outs, probs, att_ws
+        if self.use_discrete_token:
+            after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
+            token = after_outs[0]
+            f0 = log_f0_outs[0]
+            if use_teacher_forcing:
+                layer = self.discrete_token_layers
+                token = discrete_token.unsqueeze(-1)
+                f0 = pitch
+                # logging.info(f'GT pitch({pitch.shape}): {pitch.squeeze(1)}')
+                token_len = len(token) // layer
+                if len(f0) > len(token):
+                    f0 = f0[:token_len]
+                else:
+                    f0 = F.pad(f0, (0, 0, 0, token_len - len(f0)), value=0)
+
+            # logging.info(f'gen token{token.shape}: {token.squeeze(1)}')
+            return dict(
+                feat_gen=token,
+                prob=None,
+                att_w=None,
+                pitch=f0.squeeze(-1) if self.predict_pitch else None,
+            )  # outs, probs, att_ws, pitch_outs
+        else:
+            if use_teacher_forcing:
+                after_outs = feats.unsqueeze(0)
+                # logging.info(f'after_out: {after_outs.shape}')
+            return dict(
+                feat_gen=after_outs[0], prob=None, att_w=None
+            )  # outs, probs, att_ws
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
