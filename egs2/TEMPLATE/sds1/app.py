@@ -13,7 +13,49 @@ from espnet2.sds.eval.ASR_WER import handle_espnet_ASR_WER
 from espnet2.sds.eval.TTS_speech_quality import TTS_psuedomos
 from espnet2.sds.eval.LLM_Metrics import perplexity, vert, bert_score, DialoGPT_perplexity
 from espnet2.sds.utils.chat import Chat
+import argparse
 
+access_token = os.environ.get("HF_TOKEN")
+ASR_name=None
+LLM_name=None
+TTS_name=None
+ASR_options=[]
+LLM_options=[]
+TTS_options=[]
+Eval_options=[]
+upload_to_hub=None
+def read_args():
+    global access_token
+    global ASR_name
+    global LLM_name
+    global TTS_name
+    global ASR_options
+    global LLM_options
+    global TTS_options
+    global Eval_options
+    global upload_to_hub
+    parser = argparse.ArgumentParser(description="Run the app with HF_TOKEN as a command-line argument.")
+    parser.add_argument("--HF_TOKEN", required=True, help="Provide the Hugging Face token.")
+    parser.add_argument("--asr_options", required=True, help="Provide the possible ASR options available to user.")
+    parser.add_argument("--llm_options", required=True, help="Provide the possible LLM options available to user.")
+    parser.add_argument("--tts_options", required=True, help="Provide the possible TTS options available to user.")
+    parser.add_argument("--eval_options", required=True, help="Provide the possible automatic evaluation metrics available to user.")
+    parser.add_argument("--default_asr_model", required=False, default="pyf98/owsm_ctc_v3.1_1B", help="Provide the default ASR model.")
+    parser.add_argument("--default_llm_model", required=False, default="meta-llama/Llama-3.2-1B-Instruct", help="Provide the default ASR model.")
+    parser.add_argument("--default_tts_model", required=False, default="kan-bayashi/ljspeech_vits", help="Provide the default ASR model.")
+    parser.add_argument("--upload_to_hub", required=False, default=None, help="Hugging Face dataset to upload user data")
+    args = parser.parse_args()
+    access_token=args.HF_TOKEN
+    ASR_name=args.default_asr_model
+    LLM_name=args.default_llm_model
+    TTS_name=args.default_tts_model
+    ASR_options=args.asr_options.split(",")
+    LLM_options=args.llm_options.split(",")
+    TTS_options=args.tts_options.split(",")
+    Eval_options=args.eval_options.split(",")
+    upload_to_hub=args.upload_to_hub
+
+read_args()
 from huggingface_hub import HfApi
 
 api = HfApi()
@@ -28,11 +70,10 @@ chat = Chat(2)
 chat.init_chat({"role": "system", "content": "You are a helpful and friendly AI assistant. The user is talking to you with their voice and you should respond in a conversational style. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words."})
 user_role = "user"
 
-text2speech=ESPnetTTSModel()
-text2speech.warmup()
+text2speech=None
+s2t=None
+LM_pipe=None
 
-s2t = OWSMCTCModel()
-s2t.warmup()
 latency_ASR=0.0
 latency_LM=0.0
 latency_TTS=0.0
@@ -45,9 +86,63 @@ audio_output1 = None
 LLM_response_arr=[]
 total_response_arr=[]
 
-access_token = os.environ.get("HF_TOKEN")
-LM_pipe=HuggingFaceLLM(access_token=access_token)
-LM_pipe.warmup()
+def handle_selection(option):
+    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
+    global text2speech
+    tag = option 
+    if tag=="ChatTTS":
+        text2speech = ChatTTSModel()
+    else:
+        text2speech = ESPnetTTSModel(tag)
+    text2speech.warmup()
+    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
+
+def handle_LLM_selection(option):
+    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
+    global LM_pipe
+    LM_pipe = HuggingFaceLLM(access_token=access_token,tag = option)
+    LM_pipe.warmup()
+    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
+
+def handle_ASR_selection(option):
+    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
+    if option=="librispeech_asr":
+        option="espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
+    global s2t
+    if option=="espnet/owsm_v3.1_ebf":
+        s2t = OWSMModel()
+    elif option=="espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp":
+        s2t = ESPnetASRModel(tag=option)
+    elif option=="whisper":
+        s2t = WhisperASRModel()
+    else:
+        s2t = OWSMCTCModel(tag=option)
+
+    s2t.warmup()
+    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
+
+def handle_eval_selection(option, TTS_audio_output, LLM_Output, ASR_audio_output, ASR_transcript):
+    global LLM_response_arr
+    global total_response_arr
+    yield (option,gr.Textbox(visible=True))
+    if option=="Latency":
+        text=f"ASR Latency: {latency_ASR:.2f}\nLLM Latency: {latency_LM:.2f}\nTTS Latency: {latency_TTS:.2f}"
+        yield (None,text)
+    elif option=="TTS Intelligibility":
+        yield (None,handle_espnet_TTS_intelligibility(TTS_audio_output,LLM_Output))
+    elif option=="TTS Speech Quality":
+        yield (None,TTS_psuedomos(TTS_audio_output))
+    elif option=="ASR WER":
+        yield (None,handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript))
+    elif option=="Text Dialog Metrics":
+        yield (None,perplexity(LLM_Output.replace("\n"," "))+vert(LLM_response_arr)+bert_score(total_response_arr)+DialoGPT_perplexity(ASR_transcript.replace("\n"," "),LLM_Output.replace("\n"," ")))
+
+for _ in handle_selection(TTS_name):
+    continue
+for _ in handle_ASR_selection(ASR_name):
+    continue
+for _ in handle_LLM_selection(LLM_name):
+    continue
 vad_model=WebrtcVADModel()
 
 callback = gr.CSVLogger()
@@ -206,13 +301,14 @@ def transcribe(stream, new_chunk, option, asr_option):
         if current_record_time-start_record_time>300:
             gr.Info("Conversations are limited to 5 minutes. The session will restart in approximately 60 seconds. Please wait for the demo to reset. Close this message once you have read it.", duration=None)
             yield stream,gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False),gr.Audio(visible=False)
-            # api.upload_folder(
-            #     folder_path="flagged_data_points",
-            #     path_in_repo="checkpoint_"+str(start_record_time),
-            #     repo_id="Siddhant/Cascaded_demo_data",
-            #     repo_type="dataset",
-            #     token=access_token,
-            # )
+            if upload_to_hub is not None:
+                api.upload_folder(
+                    folder_path="flagged_data_points",
+                    path_in_repo="checkpoint_"+str(start_record_time),
+                    repo_id=upload_to_hub,
+                    repo_type="dataset",
+                    token=access_token,
+                )
             chat.buffer=[{"role": "system", "content": "You are a helpful and friendly AI assistant. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words."}]
             text_str=""
             audio_output = None
@@ -229,57 +325,6 @@ def transcribe(stream, new_chunk, option, asr_option):
     yield (stream,asr_output_str,text_str1, audio_output, audio_output1)
 
 
-def handle_selection(option):
-    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
-    global text2speech
-    tag = option 
-    if tag=="ChatTTS":
-        text2speech = ChatTTSModel()
-    else:
-        text2speech = ESPnetTTSModel(tag)
-    text2speech.warmup()
-    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
-
-def handle_LLM_selection(option):
-    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
-    global LM_pipe
-    LM_pipe = HuggingFaceLLM(access_token=access_token,tag = option)
-    LM_pipe.warmup()
-    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
-
-def handle_ASR_selection(option):
-    yield gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False)
-    if option=="librispeech_asr":
-        option="espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
-    global s2t
-    if option=="espnet/owsm_v3.1_ebf":
-        s2t = OWSMModel()
-    elif option=="espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp":
-        s2t = ESPnetASRModel(tag=option)
-    elif option=="whisper":
-        s2t = WhisperASRModel()
-    else:
-        s2t = OWSMCTCModel(tag=option)
-
-    s2t.warmup()
-    yield gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True)
-
-def handle_eval_selection(option, TTS_audio_output, LLM_Output, ASR_audio_output, ASR_transcript):
-    global LLM_response_arr
-    global total_response_arr
-    yield (option,gr.Textbox(visible=True))
-    if option=="Latency":
-        text=f"ASR Latency: {latency_ASR:.2f}\nLLM Latency: {latency_LM:.2f}\nTTS Latency: {latency_TTS:.2f}"
-        yield (None,text)
-    elif option=="TTS Intelligibility":
-        yield (None,handle_espnet_TTS_intelligibility(TTS_audio_output,LLM_Output))
-    elif option=="TTS Speech Quality":
-        yield (None,TTS_psuedomos(TTS_audio_output))
-    elif option=="ASR WER":
-        yield (None,handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript))
-    elif option=="Text Dialog Metrics":
-        yield (None,perplexity(LLM_Output.replace("\n"," "))+vert(LLM_response_arr)+bert_score(total_response_arr)+DialoGPT_perplexity(ASR_transcript.replace("\n"," "),LLM_Output.replace("\n"," ")))
-
 with gr.Blocks(
         title="E2E Spoken Dialog System",
     ) as demo:
@@ -288,21 +333,21 @@ with gr.Blocks(
                 user_audio = gr.Audio(sources=["microphone"], streaming=True, waveform_options=gr.WaveformOptions(sample_rate=16000))
                 with gr.Row():
                     ASR_radio = gr.Radio(
-                        choices=["pyf98/owsm_ctc_v3.1_1B", "espnet/owsm_ctc_v3.2_ft_1B", "espnet/owsm_v3.1_ebf", "librispeech_asr", "whisper"], 
+                        choices=ASR_options, 
                         label="Choose ASR:",
-                        value="pyf98/owsm_ctc_v3.1_1B",
+                        value=ASR_name,
                     )
                 with gr.Row():
                     LLM_radio = gr.Radio(
-                        choices=["meta-llama/Llama-3.2-1B-Instruct", "HuggingFaceTB/SmolLM2-1.7B-Instruct"], 
+                        choices=LLM_options, 
                         label="Choose LLM:",
-                        value="meta-llama/Llama-3.2-1B-Instruct"
+                        value=LLM_name,
                     )
                 with gr.Row():
                     radio = gr.Radio(
-                        choices=["kan-bayashi/ljspeech_vits", "kan-bayashi/libritts_xvector_vits", "kan-bayashi/vctk_multi_spk_vits", "ChatTTS"], 
+                        choices=TTS_options, 
                         label="Choose TTS:",
-                        value="kan-bayashi/ljspeech_vits"
+                        value=TTS_name,
                     )
                 with gr.Row():
                     feedback_btn = gr.Button(
@@ -369,7 +414,7 @@ with gr.Blocks(
         natural_response = gr.Textbox(label="natural_response",visible=False,interactive=False)
         diversity_response = gr.Textbox(label="diversity_response",visible=False,interactive=False)
         ip_address = gr.Textbox(label="ip_address",visible=False,interactive=False)
-        callback.setup([user_audio, output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address],"flagged_data_points")
+        callback.setup([user_audio, output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address],"flagged_data_points")
         user_audio.stream(transcribe, inputs=[state, user_audio, radio, ASR_radio], outputs=[state, output_asr_text, output_text, output_audio, output_audio1]).then(lambda *args: callback.flag(list(args)),[user_audio], None,preprocess=False)
         radio.change(fn=handle_selection, inputs=[radio], outputs=[output_asr_text, output_text, output_audio])
         LLM_radio.change(fn=handle_LLM_selection, inputs=[LLM_radio], outputs=[output_asr_text, output_text, output_audio])
@@ -377,14 +422,14 @@ with gr.Blocks(
         eval_radio.change(fn=handle_eval_selection, inputs=[eval_radio,output_audio,output_text,output_audio1,output_asr_text], outputs=[eval_radio,output_eval_text])
         output_audio.play(
             flash_buttons, [], [natural_response,diversity_response]+btn_list
-        ).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1], None,preprocess=False)
-        natural_btn1.click(natural_vote1_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn2.click(natural_vote2_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn3.click(natural_vote3_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn4.click(natural_vote4_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn1.click(relevant_vote1_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn2.click(relevant_vote2_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn3.click(relevant_vote3_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn4.click(relevant_vote4_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,natural_response,diversity_response,ip_address], None,preprocess=False)
+        ).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio], None,preprocess=False)
+        natural_btn1.click(natural_vote1_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn2.click(natural_vote2_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn3.click(natural_vote3_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn4.click(natural_vote4_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn1.click(relevant_vote1_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn2.click(relevant_vote2_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn3.click(relevant_vote3_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn4.click(relevant_vote4_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
 
 demo.launch(share=True)
