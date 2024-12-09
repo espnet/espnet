@@ -39,7 +39,7 @@ def vert(LLM_response_arr):
         metric_arr.append(metric)
 
         str1+=(f'{metric_name}: {metric}\n')
-    str1+=(f'VERT: {round(100*gmean(metric), 2)}\n')
+    str1+=(f'VERT: {round(gmean(metric_arr), 2)}\n')
     return str1
 
 def bert_score(total_response_arr):
