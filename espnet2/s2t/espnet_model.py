@@ -219,9 +219,9 @@ class ESPnetS2TModel(AbsESPnetModel):
         """
         Process input through the model's components and compute the loss.
 
-        This method orchestrates the flow of input data through the frontend, 
-        encoder, and decoder, calculating the loss for both CTC and attention-based 
-        branches as necessary. It handles different types of input, computes 
+        This method orchestrates the flow of input data through the frontend,
+        encoder, and decoder, calculating the loss for both CTC and attention-based
+        branches as necessary. It handles different types of input, computes
         relevant statistics, and returns the final loss along with statistics.
 
         Args:
@@ -266,8 +266,8 @@ class ESPnetS2TModel(AbsESPnetModel):
             ...                                      text_ctc, text_ctc_lengths)
 
         Note:
-            This method is typically called during the training loop, where it is 
-            essential to compute both the forward pass and the associated loss for 
+            This method is typically called during the training loop, where it is
+            essential to compute both the forward pass and the associated loss for
             model optimization.
 
         Todo:
@@ -399,28 +399,28 @@ class ESPnetS2TModel(AbsESPnetModel):
         phases of the model to collect the features for further processing.
 
         Args:
-            speech (torch.Tensor): A tensor of shape (Batch, Length, ...) representing 
+            speech (torch.Tensor): A tensor of shape (Batch, Length, ...) representing
                 the input speech signals.
-            speech_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the 
+            speech_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the
                 lengths of each input speech signal.
-            text (torch.Tensor): A tensor of shape (Batch, Length) containing the target 
+            text (torch.Tensor): A tensor of shape (Batch, Length) containing the target
                 text sequences.
-            text_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the lengths 
+            text_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the lengths
                 of each target text sequence.
-            text_prev (torch.Tensor): A tensor of shape (Batch, Length) containing the 
+            text_prev (torch.Tensor): A tensor of shape (Batch, Length) containing the
                 previous text sequences.
-            text_prev_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the 
+            text_prev_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the
                 lengths of each previous text sequence.
-            text_ctc (torch.Tensor): A tensor of shape (Batch, Length) representing the 
+            text_ctc (torch.Tensor): A tensor of shape (Batch, Length) representing the
                 CTC target text sequences.
-            text_ctc_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the 
+            text_ctc_lengths (torch.Tensor): A tensor of shape (Batch,) indicating the
                 lengths of each CTC target text sequence.
             **kwargs: Additional keyword arguments that may be needed for other processing.
 
         Returns:
             Dict[str, torch.Tensor]: A dictionary containing:
                 - "feats": A tensor of extracted features of shape (Batch, NFrames, Dim).
-                - "feats_lengths": A tensor of lengths for the extracted features of shape 
+                - "feats_lengths": A tensor of lengths for the extracted features of shape
                   (Batch,).
 
         Examples:
@@ -429,17 +429,17 @@ class ESPnetS2TModel(AbsESPnetModel):
             >>> speech_lengths = torch.tensor([16000] * 32)  # All signals have the same length
             >>> text_tensor = torch.randint(0, 100, (32, 20))  # Example target text tensor
             >>> text_lengths = torch.tensor([20] * 32)  # All texts have the same length
-            >>> features = model.collect_feats(speech_tensor, speech_lengths, text_tensor, 
-            ...                                  text_lengths, text_tensor, text_lengths, 
+            >>> features = model.collect_feats(speech_tensor, speech_lengths, text_tensor,
+            ...                                  text_lengths, text_tensor, text_lengths,
             ...                                  text_tensor, text_lengths)
             >>> print(features["feats"].shape)  # Should output the shape of extracted features
 
         Note:
-            The method assumes that the `frontend` is set up properly to handle the 
+            The method assumes that the `frontend` is set up properly to handle the
             feature extraction from the raw speech input.
 
         Raises:
-            AssertionError: If the input dimensions do not match or if there are issues 
+            AssertionError: If the input dimensions do not match or if there are issues
             with the speech lengths.
         """
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
@@ -451,27 +451,27 @@ class ESPnetS2TModel(AbsESPnetModel):
         """
         Processes the input speech through the frontend and encoder.
 
-        This method is primarily responsible for extracting features from 
-        the raw speech input and then passing those features through the 
-        encoder to produce encoded outputs. This function is also used 
+        This method is primarily responsible for extracting features from
+        the raw speech input and then passing those features through the
+        encoder to produce encoded outputs. This function is also used
         during inference in `s2t_inference.py`.
 
         Args:
-            speech: A tensor of shape (Batch, Length, ...) representing 
+            speech: A tensor of shape (Batch, Length, ...) representing
                 the input speech waveforms.
-            speech_lengths: A tensor of shape (Batch,) indicating the 
+            speech_lengths: A tensor of shape (Batch,) indicating the
                 lengths of each input sequence in the batch.
 
         Returns:
             A tuple containing:
-                - encoder_out: A tensor of shape (Batch, Length2, Dim2) 
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2)
                   representing the output of the encoder.
-                - encoder_out_lens: A tensor of shape (Batch,) 
+                - encoder_out_lens: A tensor of shape (Batch,)
                   representing the lengths of the encoder outputs.
 
         Note:
-            This method incorporates optional data augmentation, 
-            normalization, and pre-encoding steps, depending on the 
+            This method incorporates optional data augmentation,
+            normalization, and pre-encoding steps, depending on the
             model configuration.
 
         Examples:
