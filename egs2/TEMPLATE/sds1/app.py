@@ -13,6 +13,7 @@ from espnet2.sds.eval.ASR_WER import handle_espnet_ASR_WER
 from espnet2.sds.eval.TTS_speech_quality import TTS_psuedomos
 from espnet2.sds.eval.LLM_Metrics import perplexity, vert, bert_score, DialoGPT_perplexity
 from espnet2.sds.utils.chat import Chat
+from espnet2.sds.end_to_end.mini_omni_e2e import MiniOmniE2EModel
 import argparse
 
 access_token = os.environ.get("HF_TOKEN")
@@ -73,6 +74,7 @@ user_role = "user"
 text2speech=None
 s2t=None
 LM_pipe=None
+client=None
 
 latency_ASR=0.0
 latency_LM=0.0
@@ -136,6 +138,49 @@ def handle_eval_selection(option, TTS_audio_output, LLM_Output, ASR_audio_output
         yield (None,handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript))
     elif option=="Text Dialog Metrics":
         yield (None,perplexity(LLM_Output.replace("\n"," "))+vert(LLM_response_arr)+bert_score(total_response_arr)+DialoGPT_perplexity(ASR_transcript.replace("\n"," "),LLM_Output.replace("\n"," ")))
+
+def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
+    global LLM_response_arr
+    global total_response_arr
+    yield (option,gr.Textbox(visible=True))
+    if option=="Latency":
+        text=f"Total Latency: {latency_TTS:.2f}"
+        yield (None,text)
+    elif option=="TTS Intelligibility":
+        yield (None,handle_espnet_TTS_intelligibility(TTS_audio_output,LLM_Output))
+    elif option=="TTS Speech Quality":
+        yield (None,TTS_psuedomos(TTS_audio_output))
+    elif option=="Text Dialog Metrics":
+        yield (None,perplexity(LLM_Output.replace("\n"," "))+vert(LLM_response_arr))
+
+def handle_type_selection(option,TTS_radio,ASR_radio,LLM_radio):
+    global client
+    global LM_pipe
+    global s2t
+    global text2speech
+    yield (gr.Radio(visible=False),gr.Radio(visible=False),gr.Radio(visible=False),gr.Radio(visible=False), gr.Textbox(visible=False),gr.Textbox(visible=False),gr.Audio(visible=False),gr.Radio(visible=False),gr.Radio(visible=False))
+    if option=="Cascaded":
+        client=None
+        for _ in handle_selection(TTS_radio):
+            continue
+        for _ in handle_ASR_selection(ASR_radio):
+            continue
+        for _ in handle_LLM_selection(LLM_radio):
+            continue
+        yield (gr.Radio(visible=True),gr.Radio(visible=True),gr.Radio(visible=True),gr.Radio(visible=False),gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True),gr.Radio(visible=True, interactive=True),gr.Radio(visible=False))
+    else:
+        text2speech=None
+        s2t=None
+        LM_pipe=None
+        handle_E2E_selection()
+        yield (gr.Radio(visible=False),gr.Radio(visible=False),gr.Radio(visible=False),gr.Radio(visible=True),gr.Textbox(visible=True),gr.Textbox(visible=True),gr.Audio(visible=True),gr.Radio(visible=False),gr.Radio(visible=True, interactive=True))
+
+
+def handle_E2E_selection():
+    global client
+    client =  MiniOmniE2EModel()
+    client.warmup()
+    
 
 for _ in handle_selection(TTS_name):
     continue
@@ -263,36 +308,44 @@ def transcribe(stream, new_chunk, option, asr_option):
         stream=np.concatenate((stream,y))
     orig_sr=sr
     sr=16000
-    array=vad_model(y,orig_sr)
+    if client is not None:
+        array=vad_model(y,orig_sr, binary=True)
+    else:
+        array=vad_model(y,orig_sr)
     
     if array is not None:
         print("VAD: end of speech detected")
         start_time = time.time()
-        prompt=s2t(array)
-        if len(prompt.strip().split())<2:
-            text_str1=text_str    
-            yield (stream, asr_output_str, text_str1, audio_output, audio_output1)
-            return
-        
-        
-        asr_output_str=prompt
-        total_response_arr.append(prompt.replace("\n"," "))
-        start_LM_time=time.time()
-        latency_ASR=(start_LM_time - start_time)
-        chat.append({"role": user_role, "content": prompt})
-        chat_messages = chat.to_list()
-        generated_text = LM_pipe(chat_messages)
-        start_TTS_time=time.time()
-        latency_LM=(start_TTS_time - start_LM_time)
+        if client is not None:
+            (text_str, audio_output)=client(array, orig_sr)
+            asr_output_str=""
+            latency_TTS=(time.time() - start_time)
+        else:
+            prompt=s2t(array)
+            if len(prompt.strip().split())<2:
+                text_str1=text_str    
+                yield (stream, asr_output_str, text_str1, audio_output, audio_output1)
+                return
+            
+            
+            asr_output_str=prompt
+            total_response_arr.append(prompt.replace("\n"," "))
+            start_LM_time=time.time()
+            latency_ASR=(start_LM_time - start_time)
+            chat.append({"role": user_role, "content": prompt})
+            chat_messages = chat.to_list()
+            generated_text = LM_pipe(chat_messages)
+            start_TTS_time=time.time()
+            latency_LM=(start_TTS_time - start_LM_time)
 
-        chat.append({"role": "assistant", "content": generated_text})
-        text_str=generated_text
-        LLM_response_arr.append(text_str.replace("\n"," "))
-        total_response_arr.append(text_str.replace("\n"," "))
-        audio_output=text2speech(text_str)
+            chat.append({"role": "assistant", "content": generated_text})
+            text_str=generated_text
+            LLM_response_arr.append(text_str.replace("\n"," "))
+            total_response_arr.append(text_str.replace("\n"," "))
+            audio_output=text2speech(text_str)
+            latency_TTS=(time.time() - start_TTS_time)
         audio_output1=(orig_sr,stream)
         stream=y
-        latency_TTS=(time.time() - start_TTS_time)
     text_str1=text_str
     if ((text_str!="") and (start_record_time is None)):
         start_record_time=time.time()
@@ -332,6 +385,12 @@ with gr.Blocks(
             with gr.Column(scale=1):
                 user_audio = gr.Audio(sources=["microphone"], streaming=True, waveform_options=gr.WaveformOptions(sample_rate=16000))
                 with gr.Row():
+                    type_radio = gr.Radio(
+                        choices=["Cascaded", "E2E"], 
+                        label="Choose type of Spoken Dialog:",
+                        value="Cascaded",
+                    )
+                with gr.Row():
                     ASR_radio = gr.Radio(
                         choices=ASR_options, 
                         label="Choose ASR:",
@@ -348,6 +407,13 @@ with gr.Blocks(
                         choices=TTS_options, 
                         label="Choose TTS:",
                         value=TTS_name,
+                    )
+                with gr.Row():
+                    E2Eradio = gr.Radio(
+                        choices=["mini-omni"], 
+                        label="Choose E2E model:",
+                        value="mini-omni",
+                        visible=False,
                     )
                 with gr.Row():
                     feedback_btn = gr.Button(
@@ -384,6 +450,11 @@ with gr.Blocks(
                     choices=["Latency", "TTS Intelligibility", "TTS Speech Quality", "ASR WER","Text Dialog Metrics"],
                     label="Choose Evaluation metrics:",
                 )
+                eval_radio_E2E = gr.Radio(
+                    choices=["Latency", "TTS Intelligibility", "TTS Speech Quality","Text Dialog Metrics"],
+                    label="Choose Evaluation metrics:",
+                    visible=False,
+                )
                 output_eval_text = gr.Textbox(label="Evaluation Results")
                 state = gr.State()
         with gr.Row():
@@ -414,22 +485,24 @@ with gr.Blocks(
         natural_response = gr.Textbox(label="natural_response",visible=False,interactive=False)
         diversity_response = gr.Textbox(label="diversity_response",visible=False,interactive=False)
         ip_address = gr.Textbox(label="ip_address",visible=False,interactive=False)
-        callback.setup([user_audio, output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address],"flagged_data_points")
+        callback.setup([user_audio, output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address],"flagged_data_points")
         user_audio.stream(transcribe, inputs=[state, user_audio, radio, ASR_radio], outputs=[state, output_asr_text, output_text, output_audio, output_audio1]).then(lambda *args: callback.flag(list(args)),[user_audio], None,preprocess=False)
         radio.change(fn=handle_selection, inputs=[radio], outputs=[output_asr_text, output_text, output_audio])
         LLM_radio.change(fn=handle_LLM_selection, inputs=[LLM_radio], outputs=[output_asr_text, output_text, output_audio])
         ASR_radio.change(fn=handle_ASR_selection, inputs=[ASR_radio], outputs=[output_asr_text, output_text, output_audio])
         eval_radio.change(fn=handle_eval_selection, inputs=[eval_radio,output_audio,output_text,output_audio1,output_asr_text], outputs=[eval_radio,output_eval_text])
+        eval_radio_E2E.change(fn=handle_eval_selection_E2E, inputs=[eval_radio_E2E,output_audio,output_text], outputs=[eval_radio_E2E,output_eval_text])
+        type_radio.change(fn=handle_type_selection,inputs=[type_radio,radio,ASR_radio,LLM_radio], outputs=[radio,ASR_radio,LLM_radio, E2Eradio,output_asr_text, output_text, output_audio,eval_radio,eval_radio_E2E])
         output_audio.play(
             flash_buttons, [], [natural_response,diversity_response]+btn_list
-        ).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio], None,preprocess=False)
-        natural_btn1.click(natural_vote1_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn2.click(natural_vote2_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn3.click(natural_vote3_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        natural_btn4.click(natural_vote4_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn1.click(relevant_vote1_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn2.click(relevant_vote2_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn3.click(relevant_vote3_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
-        relevant_btn4.click(relevant_vote4_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,ASR_radio,LLM_radio,radio,natural_response,diversity_response,ip_address], None,preprocess=False)
+        ).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio], None,preprocess=False)
+        natural_btn1.click(natural_vote1_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn2.click(natural_vote2_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn3.click(natural_vote3_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        natural_btn4.click(natural_vote4_last_response,[],[natural_response,ip_address]+natural_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn1.click(relevant_vote1_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn2.click(relevant_vote2_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn3.click(relevant_vote3_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
+        relevant_btn4.click(relevant_vote4_last_response,[],[diversity_response,ip_address]+relevant_btn_list).then(lambda *args: callback.flag(list(args)),[user_audio,output_asr_text, output_text, output_audio,output_audio1,type_radio, ASR_radio, LLM_radio, radio, E2Eradio, natural_response,diversity_response,ip_address], None,preprocess=False)
 
 demo.launch(share=True)
