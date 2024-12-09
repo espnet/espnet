@@ -10,7 +10,7 @@ from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -50,9 +50,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
         svs: AbsSVS,
+        discrete_token_layers: int = 1,
     ):
         """Initialize ESPnetSVSModel module."""
-        assert check_argument_types()
         super().__init__(
             text_extract=text_extract,
             feats_extract=feats_extract,
@@ -67,6 +67,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             energy_normalize=energy_normalize,
             svs=svs,
         )
+        self.discrete_token_layers = discrete_token_layers
 
     def forward(
         self,
@@ -123,13 +124,15 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete token tensor (B, T_frame).
+            discrete_token_lengths (Optional[Tensor]): Discrete token length tensor (B,).
             kwargs: "utt_id" is among the input.
 
         Returns:
@@ -170,12 +173,20 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
             """
+            # print(self.discrete_token_layers, discrete_token_lengths, feats_lengths, flush=True)
+            # print(discrete_token.shape, flush=True)
+            # print(discrete_token, flush=True)
+            origin_discrete_token_lengths = (
+                discrete_token_lengths // self.discrete_token_layers
+            )
             for i in range(label.size(0)):
                 dur_len = sum(duration_phn[i])
-                if discrete_token_lengths[i] > dur_len:
-                    discrete_token_lengths[i] = dur_len
+                if origin_discrete_token_lengths[i] > dur_len:
+                    delta = origin_discrete_token_lengths[i] - dur_len
+                    end = duration_phn_lengths[i] - 1
+                    duration_phn[i][end] += delta
                 else:  # decrease duration at the end of sequence
-                    delta = dur_len - discrete_token_lengths[i]
+                    delta = dur_len - origin_discrete_token_lengths[i]
                     end = duration_phn_lengths[i] - 1
                     while delta > 0 and end >= 0:
                         new = duration_phn[i][end] - delta
@@ -186,7 +197,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                         else:  # stop
                             delta -= duration_phn[i][end] - new
                             duration_phn[i][end] = new
-            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
+            #            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -254,7 +265,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                 pitch, pitch_lengths = self.pitch_extract(
                     input=singing,
                     input_lengths=singing_lengths,
-                    feats_lengths=discrete_token_lengths,
+                    feats_lengths=origin_discrete_token_lengths,
                 )
 
             if self.energy_extract is not None and energy is None:
@@ -354,6 +365,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             batch.update(
                 discrete_token=discrete_token,
                 discrete_token_lengths=discrete_token_lengths,
+                discrete_token_lengths_frame=origin_discrete_token_lengths,
             )
 
         return self.svs(**batch)
@@ -411,13 +423,15 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete tokens tensor (B, T_frame)
+            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths tensor (B,)
 
         Returns:
             Dict[str, Tensor]: Dict of features.
@@ -449,12 +463,17 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                         duration_phn[i][end] = new
         feats = feats[:, : feats_lengths.max()]
         """
+        origin_discrete_token_lengths = (
+            discrete_token_lengths // self.discrete_token_layers
+        )
         for i in range(label.size(0)):
             dur_len = sum(duration_phn[i])
-            if discrete_token_lengths[i] > dur_len:
-                discrete_token_lengths[i] = dur_len
+            if origin_discrete_token_lengths[i] > dur_len:
+                delta = origin_discrete_token_lengths[i] - dur_len
+                end = duration_phn_lengths[i] - 1
+                duration_phn[i][end] += delta
             else:  # decrease duration at the end of sequence
-                delta = dur_len - discrete_token_lengths[i]
+                delta = dur_len - origin_discrete_token_lengths[i]
                 end = duration_phn_lengths[i] - 1
                 while delta > 0 and end >= 0:
                     new = duration_phn[i][end] - delta
@@ -465,13 +484,13 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                     else:  # stop
                         delta -= duration_phn[i][end] - new
                         duration_phn[i][end] = new
-        discrete_token = discrete_token[:, : discrete_token_lengths.max()]
+        #        discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 input=singing,
                 input_lengths=singing_lengths,
-                feats_lengths=discrete_token_lengths,
+                feats_lengths=origin_discrete_token_lengths,
             )
         if self.energy_extract is not None:
             energy, energy_lengths = self.energy_extract(
@@ -533,8 +552,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            pitch (Optional[Tensor): Pitch tensor (T_wav).
+            pitch (Optional[Tensor): Pitch tensor (T_frame).
             energy (Optional[Tensor): Energy tensor.
+            discrete_token (Optional[Tensor]): Discrete tokens (T_frame)
 
         Returns:
             Dict[str, Tensor]: Dict of outputs.
@@ -630,11 +650,14 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             # if self.svs.require_raw_singing:
             #     input_dict.update(singing=singing)
 
+        origin_discrete_token_lengths = (
+            len(discrete_token) // self.discrete_token_layers
+        )
         if decode_config["use_teacher_forcing"]:
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(discrete_token)]),
+                    feats_lengths=torch.LongTensor([origin_discrete_token_lengths]),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -692,6 +715,8 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
+        if discrete_token is not None:
+            input_dict.update(discrete_token=discrete_token)
 
         output_dict = self.svs.inference(**input_dict, **decode_config)
         """

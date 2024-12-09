@@ -80,7 +80,12 @@ sos_eos="<sos/eos>" # sos and eos symbols.
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
-portion=1.0                 # portion of data used after K-means 
+multi_token=None
+RVQ_layers=1
+token_name=""
+discrete_token_layers=1
+mix_type="frame"
+portion=1.0
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
@@ -90,20 +95,6 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 token_joint=false       # whether to use a single bpe system for both source and target languages
-src_case="ts"
-src_token_type=bpe      # Tokenization type (char or bpe) for source languages.
-src_nbpe=30             # The number of BPE vocabulary for source language.
-src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe).
-src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language.
-src_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE of source language
-src_bpe_char_cover=1.0  # character coverage when modeling BPE for source language
-tgt_case="ts"
-tgt_token_type=bpe      # Tokenization type (char or bpe) for target language.
-tgt_nbpe=30             # The number of BPE vocabulary for target language.
-tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
-tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
-tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
-tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
 
 # Training related
 train_config=""    # Config for training.
@@ -132,8 +123,6 @@ inference_model=valid.loss.best.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
-download_ckpt=none  # path of pretrain model checkpoint
-download_dir=ckpt  # director of pretrain model to save
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -148,32 +137,15 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 singing_fold_length=800 # fold_length for singing data.
 
-src_bpe_train_text=  # Text file path of bpe training set for source language.
-tgt_bpe_train_text=  # Text file path of bpe training set for target language.
-lm_train_text=   # Text file path of language model training set.
-lm_dev_text=     # Text file path of language model development set.
-lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
-asr_text_fold_length=150   # fold_length for text data during ASR training.
-lm_fold_length=150         # fold_length for LM training.
-src_lang=wavlm_large_21_km2000  # source language abbrev. id (e.g., es)
-tgt_lang=en                     # target language abbrev. id (e.g., en)
 
-# Language model related
-use_lm=true       # Use language model for ASR decoding.
-lm_tag=           # Suffix to the result dir for language model training.
-lm_exp=           # Specify the directory path for LM experiment.
-                  # If this option is specified, lm_tag is ignored.
-lm_stats_dir=     # Specify the directory path for LM statistics.
-lm_config=        # Config for language model training.
-lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
-                  # Note that it will overwrite args in lm config.
-use_word_lm=false # Whether to use word language model.
-num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
+
+preset_layer=
+preset_token=
 
 # Upload model related
 hf_repo=
@@ -315,66 +287,7 @@ if [ "${lang}" != noinfo ]; then
 fi
 token_list="${token_listdir}/tokens.txt"
 
-# The tgt bpedir is set for all cases when using bpe
-if "${token_joint}"; then
-    tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
-else
-    tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}_${tgt_case}_${tgt_lang}"
-fi
-tgt_bpeprefix="${tgt_bpedir}"/bpe
-tgt_bpemodel="${tgt_bpeprefix}".model
-tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
-tgt_chartoken_list="${token_listdir}"/char/tgt_tokens.txt
-if "${token_joint}"; then
-    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    src_bpedir="${tgt_bpedir}"
-    src_bpeprefix="${tgt_bpeprefix}"
-    src_bpemodel="${tgt_bpemodel}"
-    src_bpetoken_list="${tgt_bpetoken_list}"
-    src_chartoken_list="${tgt_chartoken_list}"
-else
-    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}_${src_case}_${src_lang}"
-    src_bpeprefix="${src_bpedir}"/bpe
-    src_bpemodel="${src_bpeprefix}".model
-    src_bpetoken_list="${src_bpedir}"/tokens.txt
-    src_chartoken_list="${token_listdir}"/char_${src_lang}/src_tokens.txt
-fi
-
-tgt_wordtoken_list="${token_listdir}"/word_${tgt_lang}/tgt_tokens.txt
-if "${token_joint}"; then
-    src_wordtoken_list="${tgt_wordtoken_list}"
-else
-    src_wordtoken_list="${token_listdir}"/word_${src_lang}/src_tokens.txt
-fi
-
-# Set token types for src and tgt langs
-if [ "${src_token_type}" = bpe ]; then
-    src_token_list="${src_bpetoken_list}"
-elif [ "${src_token_type}" = char ]; then
-    src_token_list="${src_chartoken_list}"
-    src_bpemodel=none
-elif [ "${src_token_type}" = word ]; then
-    src_token_list="${src_wordtoken_list}"
-    src_bpemodel=none
-else
-    log "Error: not supported --src_token_type '${src_token_type}'"
-    exit 2
-fi
-if [ "${tgt_token_type}" = bpe ]; then
-    tgt_token_list="${tgt_bpetoken_list}"
-elif [ "${tgt_token_type}" = char ]; then
-    tgt_token_list="${tgt_chartoken_list}"
-    tgt_bpemodel=none
-elif [ "${tgt_token_type}" = word ]; then
-    tgt_token_list="${tgt_wordtoken_list}"
-    tgt_bpemodel=none
-else
-    log "Error: not supported --tgt_token_type '${tgt_token_type}'"
-    exit 2
-fi
-
 mert_url="m-a-p/MERT-v1-330M"
-# mert_url="m-a-p/MERT-v1-95M"
 encodec_url="facebook/encodec_48khz"
 if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
@@ -385,20 +298,41 @@ else
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
     # TODO(simpleoier): to support features beyond s3prl
     if [ ${kmeans_feature_type} = "mert" ]; then
-        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url},save_dir=${download_dir}}}"
+        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url}}}"
     elif [ ${kmeans_feature_type} = "encodec" ]; then
         kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
-    else
-        if [ ${download_ckpt} = none ]; then
-            s3prl_conf="{upstream=${kmeans_feature_type}}"
-        else
-            s3prl_conf="{upstream=${kmeans_feature_type},path_or_url=${download_ckpt}}"
-        fi
-        # NOTE(Yuxun) update download_dir & add download_ckpt
-        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=${download_dir},multilayer_feature=False,layer=${layer}}}"
+    elif [ ${kmeans_feature_type} != "multi" ]; then
+        s3prl_conf="{upstream=${kmeans_feature_type}}"
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
     fi
 fi
-km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+if [ ${kmeans_feature_type} = "multi" ]; then
+    token_name=${layer}
+    discrete_token_layers=$(echo "$multi_token" | tr -cd ' ' | wc -c)
+    ((discrete_token_layers++))
+    token_file=token_multi_${token_name}
+else
+    token_name=${kmeans_feature_type}_${nclusters}_${layer}
+    multi_token=${token_name}
+    if [ ${kmeans_feature} = "mfcc" ]; then
+        token_file=token_${kmeans_feature_type}_${nclusters}
+    else
+        token_file=token_${kmeans_feature_type}_${nclusters}_${layer}
+    fi
+    km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+fi
+
+if [ "$preset_layer" != none  ]; then
+    discrete_token_layers=${preset_layer}
+fi
+
+if [ "$preset_token" != none ]; then
+    echo "hello: $preset_token"
+    token_file=${preset_token}
+fi
+
+# token_file=token_multi_ad_3rs
+# discrete_token_layers=3
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
@@ -448,6 +382,7 @@ if [ -z "${svs_stats_dir}" ]; then
         svs_stats_dir+="_${lang}"
     fi
 fi
+
 # The directory used for training commands
 if [ -z "${svs_exp}" ]; then
     svs_exp="${expdir}/svs_${tag}"
@@ -565,7 +500,7 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}/utt2lang" \
                     > "${data_feats}${_suf}/${dset}/utt2lid"
 
-		        utt_extra_files="${utt_extra_files} utt2lid"
+		utt_extra_files="${utt_extra_files} utt2lid"
             done
         fi
     fi
@@ -625,7 +560,6 @@ if ! "${skip_data_prep}"; then
                 mkdir -p "${_dump_dir}"
                 mkdir -p "${_dump_dir}/data"
                 mkdir -p "${_dump_dir}/logdir"
-#                nj=1
                 nutt=$(<"${_dump_dir}"/wav.scp wc -l)
                 _nj=$((nj<nutt?nj:nutt))
 
@@ -661,11 +595,11 @@ if ! "${skip_data_prep}"; then
                 done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_km${nclusters}.txt || exit 1;
 
             done
-        else
+        elif [ ${kmeans_feature_type} != "multi" ]; then
             log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
-
+            nj=1
             scripts/feats/perform_kmeans.sh \
-                --stage 1 --stop-stage 4 \
+                --stage 1 --stop-stage 3 \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
                 --other_sets "${test_sets} ${train_sp_sets}" \
@@ -674,6 +608,7 @@ if ! "${skip_data_prep}"; then
                 --audio_format "${audio_format}" \
                 --feature_type "${kmeans_feature_type}" \
                 --layer "${layer}" \
+                --RVQ_layers "${RVQ_layers}" \
                 --feature_conf "${kmeans_feature_conf}" \
                 --km_dir "${km_dir}" \
                 --portion "${portion}" \
@@ -685,86 +620,36 @@ if ! "${skip_data_prep}"; then
                 --cuda_cmd "${cuda_cmd}" \
                 ${kmeans_opts}
         fi
-
-        # NOTE(Yuxun): update ${nj}
-        log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
-        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
-            cp "${_dump_dir}/pseudo_labels_km${nclusters}.txt" "${data_feats}/${dset}/token_${kmeans_feature_type}_${nclusters}_${layer}"
-            # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files} token_${kmeans_feature_type}_${nclusters}_${layer}" "${data_feats}/${dset}"
-        done
-
-
-#        log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
-
-#        # Get uniq chars
-#        if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
-#            if [ ${nclusters} -ge 20900 ]; then
-#                echo "Warning: too many clusters, be careful with the distinct token list."
-#            fi
-#            python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
-#                > "${km_dir}/../"distinct_cjk_token_lists
-#        fi
-
-#        _suf=
-#        if [ -n "${layer}" ]; then
-#            _suf="layer${layer}/"
-#        fi
-
-#        if [ "${src_case}" = ts ]; then
-#            echo "keep the original discrete token sequence"
-#            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-#                awk '
-#                    (FILENAME==ARGV[1]) {a[$1]=$2}
-#                    (FILENAME==ARGV[2]) {
-#                        out="";
-#                        for (i=2; i<=NF; i++) {
-#                            out=out""a[$i];
-#                        }
-#                        print($1,out);
-#                    }' "${km_dir}/../"distinct_cjk_token_lists \
-#                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-#                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
-#            done
-#        elif [ "${src_case}" = rm ]; then
-#            echo "remove repetitions in the discrete token sequence"
-#            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-#                 awk '
-#                    (FILENAME==ARGV[1]) {a[$1]=$2}
-#                    (FILENAME==ARGV[2]) {
-#                        out="";
-#                        for (i=2; i<=NF; i++) {
-#                            if ($i != $(i-1)) {out=out""a[$i]}
-#                        }
-#                        print($1,out);
-#                    }' "${km_dir}/../"distinct_cjk_token_lists \
-#                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-#                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
-#            done
-#        else
-#            echo "Unrecognized src_case ${src_case}" && exit 1;
-#        fi
-
-#        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-#            cp data/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
-#        done
-
-#        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-#            cp data/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
-#        done
-
-#        if [ -n "${speed_perturb_factors}" ]; then
-#            _dirs="data/${train_set} "
-#            for factor in ${speed_perturb_factors}; do
-#                if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
-#                    _dirs+="data/${train_set}_sp${factor} "
-#                fi
-#            done
-#            utils/combine_data.sh \
-#                --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
-#                "data/${train_set}_sp" ${_dirs}
-#        fi
+        if [ ${kmeans_feature_type} != "multi" ]; then
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                if [ ${kmeans_feature_type} = "mfcc" ]; then
+                    _dump_dir="${data_extract}/${kmeans_feature_type}/${dset}"
+                else
+                    _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
+                fi
+                token_files=""
+                if [ ${RVQ_layers} = 1 ]; then
+                    cp "${_dump_dir}/pseudo_labels_km${nclusters}.txt" "${data_feats}/${dset}/${token_file}"
+                    token_files="${token_file}"
+                else
+                    for i in $(seq ${RVQ_layers}); do
+                        cp "${_dump_dir}/pseudo_labels_RVQ_$((i-1))_km${nclusters}.txt" "${data_feats}/${dset}/${token_file}_RVQ_$((i-1))"
+                        token_files+="${token_file}_RVQ_$((i-1)) "
+                    done
+                fi
+                # fix_data_dir.sh leaves only utts which exist in all files
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files} ${token_file}" "${data_feats}/${dset}"
+            done
+        else
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                pyscripts/feats/combine_tokens.py \
+                    --dir "${data_feats}/${dset}/" \
+                    --tokens "${multi_token}" \
+                    --target ${token_file} \
+                    --mix_type ${mix_type}
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files} token_multi_${token_name}" "${data_feats}/${dset}"
+            done
+        fi
     fi
 
 
@@ -785,152 +670,6 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${blank}:0" \
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
-
-#        src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-#        tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-
-#        if "${token_joint}"; then
-#            log "Merge src and target data if joint BPE"
-
-#            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-#            [ -n "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-#            # Set the new text as the target text
-#            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-#        fi
-
-#        # First generate tgt lang
-#        if [ "${tgt_token_type}" = bpe ]; then
-#            log "Stage 5b: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
-
-#            mkdir -p "${tgt_bpedir}"
-#            # shellcheck disable=SC2002
-#            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${tgt_bpedir}"/train.txt
-
-#            if [ -n "${tgt_bpe_nlsyms}" ]; then
-#                _opts_spm="--user_defined_symbols=${tgt_bpe_nlsyms}"
-#            else
-#                _opts_spm=""
-#            fi
-
-#            spm_train \
-#                --input="${tgt_bpedir}"/train.txt \
-#                --vocab_size="${tgt_nbpe}" \
-#                --model_type="${tgt_bpemode}" \
-#                --model_prefix="${tgt_bpeprefix}" \
-#                --character_coverage=${tgt_bpe_char_cover} \
-#                --input_sentence_size="${tgt_bpe_input_sentence_size}" \
-#                ${_opts_spm}
-
-#            {
-#            echo "${blank}"
-#            echo "${oov}"
-#            # Remove <unk>, <s>, </s> from the vocabulary
-#            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-#            echo "${sos_eos}"
-#            } > "${tgt_token_list}"
-
-#        elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
-#            log "Stage 5b: Generate character level token_list from ${tgt_bpe_train_text} for tgt_lang"
-
-#            _opts="--non_linguistic_symbols ${nlsyms_txt}"
-
-#            # shellcheck disable=SC2002
-#            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
-
-#            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-#            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-#            ${python} -m espnet2.bin.tokenize_text  \
-#                --token_type "${tgt_token_type}" \
-#                --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
-#                --field 1- \
-#                --cleaner "${cleaner}" \
-#                --g2p "${g2p}" \
-#                --write_vocabulary true \
-#                --add_symbol "${blank}:0" \
-#                --add_symbol "${oov}:1" \
-#                --add_symbol "${sos_eos}:-1"
-
-#        else
-#            log "Error: not supported --token_type '${tgt_token_type}'"
-#            exit 2
-#        fi
-
-#        # Create word-list for word-LM training
-#        if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
-#            log "Generate word level token_list from ${data_feats}/lm_train.txt"
-#            ${python} -m espnet2.bin.tokenize_text \
-#                --token_type word \
-#                --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
-#                --field 2- \
-#                --cleaner "${cleaner}" \
-#                --g2p "${g2p}" \
-#                --write_vocabulary true \
-#                --vocabulary_size "${word_vocab_size}" \
-#                --add_symbol "${blank}:0" \
-#                --add_symbol "${oov}:1" \
-#                --add_symbol "${sos_eos}:-1"
-#        fi
-
-#        # Then generate src lang
-#        if "${token_joint}"; then
-#            log "Stage 5c: Skip separate token construction for src_lang when setting ${token_joint} as true"
-#        else
-#            if [ "${src_token_type}" = bpe ]; then
-#                log "Stage 5c: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
-
-#                mkdir -p "${src_bpedir}"
-#                # shellcheck disable=SC2002
-#                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${src_bpedir}"/train.txt
-
-#                if [ -n "${src_bpe_nlsyms}" ]; then
-#                    _opts_spm="--user_defined_symbols=${src_bpe_nlsyms}"
-#                else
-#                    _opts_spm=""
-#                fi
-
-#                spm_train \
-#                    --input="${src_bpedir}"/train.txt \
-#                    --vocab_size="${src_nbpe}" \
-#                    --model_type="${src_bpemode}" \
-#                    --model_prefix="${src_bpeprefix}" \
-#                    --character_coverage=${src_bpe_char_cover} \
-#                    --input_sentence_size="${src_bpe_input_sentence_size}" \
-#                    ${_opts_spm}
-
-#                {
-#                echo "${blank}"
-#                echo "${oov}"
-#                # Remove <unk>, <s>, </s> from the vocabulary
-#                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-#                echo "${sos_eos}"
-#                } > "${src_token_list}"
-
-#            elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
-#                log "Stage 5c: Generate character level token_list from ${src_bpe_train_text} for src_lang"
-
-#                _opts="--non_linguistic_symbols ${nlsyms_txt}"
-
-#                # shellcheck disable=SC2002
-#                cat ${src_bpe_train_text} | tr '\t' ' ' | cut -f 2- -d" "  > "${data_feats}"/token_train_${src_lang}.txt
-
-#                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-#                # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-#                ${python} -m espnet2.bin.tokenize_text  \
-#                    --token_type "${src_token_type}" \
-#                    --input "${data_feats}/token_train_${src_lang}.txt" --output "${src_token_list}" ${_opts} \
-#                    --field 1- \
-#                    --cleaner "${cleaner}" \
-#                    --g2p "${g2p}" \
-#                    --write_vocabulary true \
-#                    --add_symbol "${blank}:0" \
-#                    --add_symbol "${oov}:1" \
-#                    --add_symbol "${sos_eos}:-1"
-
-#            else
-#                log "Error: not supported --token_type '${src_token_type}'"
-#                exit 2
-#            fi
-#        fi
     fi
 else
     log "Skip the stages for data preparation"
@@ -989,6 +728,8 @@ if ! "${skip_train}"; then
         _opts+="--energy_extract_conf n_fft=${n_fft} "
         _opts+="--energy_extract_conf hop_length=${n_shift} "
         _opts+="--energy_extract_conf win_length=${win_length} "
+        _opts+="--discrete_token_layers ${discrete_token_layers} "
+        _opts+="--nclusters ${nclusters} "
 
         if [ -n "${teacher_dumpdir}" ]; then
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
@@ -1062,12 +803,12 @@ if ! "${skip_train}"; then
                 --train_data_path_and_name_and_type "${_train_dir}/label,label,duration" \
                 --train_data_path_and_name_and_type "${_train_dir}/score.scp,score,score" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},singing,${_type}" \
-                --train_data_path_and_name_and_type "${_train_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int" \
+                --train_data_path_and_name_and_type "${_train_dir}/${token_file},discrete_token,text_int" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/label,label,duration" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/score.scp,score,score" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},singing,${_type}" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/${token_file},discrete_token,text_int" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1180,7 +921,7 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},singing,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/score.scp,score,score "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/${token_file},discrete_token,text_int "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
@@ -1190,7 +931,7 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/label,label,duration "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score.scp,score,score "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${token_file},discrete_token,text_int "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
         else
@@ -1333,6 +1074,9 @@ if ! "${skip_train}"; then
             jobname="${svs_exp}/train.log"
         fi
 
+        _opts+="--discrete_token_layers ${discrete_token_layers} "
+        _opts+="--nclusters ${nclusters} "
+
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
@@ -1445,6 +1189,9 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
 
+            _opts+="--discrete_token_layers ${discrete_token_layers} "
+            _opts+="--mix_type ${mix_type} "
+
 
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
@@ -1469,6 +1216,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/label,label,duration" \
                     --data_path_and_name_and_type "${_data}/score.scp,score,score" \
                     --data_path_and_name_and_type "${_data}/${_scp},singing,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${token_file},discrete_token,text_int" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${svs_exp}"/"${inference_model}" \
                     --train_config "${svs_exp}"/config.yaml \
@@ -1526,6 +1274,20 @@ if ! "${skip_eval}"; then
             _gt_wavscp="${_data}/wav.scp"
             _dir="${svs_exp}/${inference_tag}/${dset}"
             _gen_wavdir="${_dir}/wav"
+            _gt_token_file="${_data}/${token_file}"
+            _gen_token_scp="${_dir}/norm/feats.scp"
+
+            # Objective Evaluation - Accuracy
+            log "Begin Scoring for token accuracy on ${dset}, results are written under ${_dir}/Accuracy_res"
+
+            mkdir -p "${_dir}/MCD_res"
+            ${python} pyscripts/utils/evaluate_token_accuracy.py \
+                ${_gen_token_scp} \
+                ${_gt_token_file} \
+                "${multi_token}" \
+                --outdir "${_dir}/Accuracy_res" \
+                --discrete_token_layers ${discrete_token_layers} \
+                --mix_type ${mix_type}
 
             # Objective Evaluation - MCD
             log "Begin Scoring for MCD metrics on ${dset}, results are written under ${_dir}/MCD_res"

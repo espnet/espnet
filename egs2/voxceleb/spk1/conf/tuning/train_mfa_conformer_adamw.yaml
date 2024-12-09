@@ -1,0 +1,104 @@
+# ECAPA-TDNN reproduce recipe configuration.
+
+# Frontend
+frontend: melspec_torch
+frontend_conf:
+    preemp: true
+    n_fft: 512
+    log: true
+    win_length: 400
+    hop_length: 160
+    n_mels: 80
+    normalize: mn
+
+# Encoder
+encoder: mfaconformer
+encoder_conf:
+  output_size: 512
+  attention_heads: 8
+  linear_units: 2048
+  num_blocks: 6
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  input_layer: conv2d2
+  normalize_before: true
+  macaron_style: true
+  rel_pos_type: latest
+  pos_enc_layer_type: rel_pos
+  selfattention_layer_type: rel_selfattn
+  activation_type: swish
+  use_cnn_module: true
+  cnn_module_kernel: 15
+
+# Pooling
+pooling: chn_attn_stat
+
+# Projector
+projector: rawnet3
+projector_conf:
+  output_size: 192
+
+# Preprocessor
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 5
+  noise_apply_prob: 0.5
+  noise_info:
+  - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  - [1.0, 'dump/raw/musan_music.scp', [1, 1], [5, 15]]
+  rir_apply_prob: 0.5
+  rir_scp: dump/raw/rirs.scp
+
+# Model config
+model_conf:
+  extract_feats_in_collect_stats: false
+
+# Loss
+loss: aamsoftmax_sc_topk
+loss_conf:
+  margin: 0.3
+  scale: 30
+  K: 3
+  mp: 0.06
+  k_top: 5
+
+# Training related
+max_epoch: 40
+num_att_plot: 0
+num_workers: 6
+cudnn_deterministic: False
+cudnn_benchmark: True
+drop_last_iter: True
+iterator_type: category
+valid_iterator_type: sequence
+shuffle_within_batch: False
+log_interval: 100
+batch_size: 512
+valid_batch_size: 40
+keep_nbest_models: 3
+grad_clip: 9999
+best_model_criterion:
+- - valid
+  - eer
+  - min
+
+# Optimizer
+optim: adamw
+optim_conf:
+  lr: 0.001
+  weight_decay: 0.0000001
+  amsgrad: False
+
+# Scheduler
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+  first_cycle_steps: 250000
+  cycle_mult: 1.0
+  max_lr: 0.001
+  min_lr: 0.00000001
+  warmup_steps: 10000
+  gamma: 0.7

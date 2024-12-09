@@ -6,7 +6,7 @@
 svs: xiaoice                     # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
-    duration_dim: 512            # duration embedding range
+    duration_dim: 718            # duration embedding range
     adim: 384
     aheads: 4
     elayers: 6                   # number of lstm layers in encoder

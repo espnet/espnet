@@ -6,7 +6,7 @@
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -60,6 +60,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: padding_idx for input_layer=embed
     """
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -80,8 +81,9 @@ class TransformerEncoder(AbsEncoder):
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
         layer_drop_rate: float = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -148,12 +150,31 @@ class TransformerEncoder(AbsEncoder):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
+
+        # Default to flash attention unless overrided by user
+        if use_flash_attn:
+            try:
+                from espnet2.torch_utils.get_flash_attn_compatability import (
+                    is_flash_attn_supported,
+                )
+
+                use_flash_attn = is_flash_attn_supported()
+                import flash_attn
+            except Exception:
+                use_flash_attn = False
+
         self.encoders = repeat(
             num_blocks,
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    qk_norm,
+                    use_flash_attn,
+                    False,
+                    False,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,

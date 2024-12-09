@@ -13,7 +13,7 @@ n_fft=2048
 n_shift=300
 win_length=1200
 
-score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
+score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats
 
 opts="--audio_format wav "
 
@@ -33,7 +33,7 @@ pitch_extract=dio
 
 ./svs.sh \
     --lang jp \
-    --local_data_opts "--stage 0" \
+    --local_data_opts "--stage 2" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
     --fs "${fs}" \

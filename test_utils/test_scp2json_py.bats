@@ -34,5 +34,5 @@ teardown() {
 
 @test "scp2json.py" {
     cat $tmpdir/test.scp | python $utils/scp2json.py --key text  > $tmpdir/out.json
-    jsondiff $tmpdir/out.json $tmpdir/valid
+    jdiff $tmpdir/out.json $tmpdir/valid
 }

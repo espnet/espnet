@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy
 import torch
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
@@ -296,6 +296,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
 class BranchformerEncoder(AbsEncoder):
     """Branchformer encoder module."""
 
+    @typechecked
     def __init__(
         self,
         input_size: int,
@@ -321,8 +322,9 @@ class BranchformerEncoder(AbsEncoder):
         zero_triu: bool = False,
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -414,11 +416,27 @@ class BranchformerEncoder(AbsEncoder):
             raise ValueError("unknown input_layer: " + input_layer)
 
         if attention_layer_type == "selfattn":
+            # Default to flash attention unless overrided by user
+            if use_flash_attn:
+                try:
+                    from espnet2.torch_utils.get_flash_attn_compatability import (
+                        is_flash_attn_supported,
+                    )
+
+                    use_flash_attn = is_flash_attn_supported()
+                    import flash_attn
+                except Exception:
+                    use_flash_attn = False
+
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                qk_norm,
+                use_flash_attn,
+                False,
+                False,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -489,9 +507,11 @@ class BranchformerEncoder(AbsEncoder):
             num_blocks,
             lambda lnum: BranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args)
-                if use_attn
-                else None,
+                (
+                    encoder_selfattn_layer(*encoder_selfattn_layer_args)
+                    if use_attn
+                    else None
+                ),
                 cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
                 dropout_rate,
                 merge_method,

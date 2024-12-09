@@ -9,6 +9,7 @@ def get_parser():
 
 def main(cmd=None):
     r"""ASVSpoof training.
+
     Example:
         % python asvspoof_train.py asr --print_config --optim adadelta \
                 > conf/train_asvspoof.yaml

@@ -60,7 +60,12 @@ def get_parser():
         default=None,
         help="Specify the utt2num_samples file.",
     )
-
+    parser.add_argument(
+        "--RVQ_layers",
+        type=int,
+        default=1,
+        help="Number of RVQ layers.",
+    )
     parser.add_argument(
         "--in_filetype",
         type=str,
@@ -76,6 +81,12 @@ def get_parser():
         choices=["mat", "hdf5", "sound.hdf5", "sound"],
         help="Specify the file format for the rspecifier. "
         '"mat" is the matrix format in kaldi',
+    )
+    parser.add_argument(
+        "--audio_sample_rate",
+        type=int,
+        default=16000,
+        help="input audio sampling rate (could be different from fs used in SSL)",
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
@@ -105,25 +116,27 @@ class ApplyKmeans(object):
             dist = (
                 x.pow(2).sum(1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
             )
-            return dist.argmin(dim=1).cpu().numpy()
+            return dist.argmin(dim=1).cpu().numpy(), dist.min(dim=1).cpu().numpy()
         else:
             dist = (
                 (x**2).sum(1, keepdims=True)
                 - 2 * np.matmul(x, self.C_np)
                 + self.Cnorm_np
             )
-            return np.argmin(dist, axis=1)
+            return np.argmin(dist, axis=1), np.min(dist, axis=1)
 
 
 def dump_label(
     rspecifier,
     in_filetype,
+    audio_sample_rate,
     wspecifier,
     out_filetype,
     km_path,
+    RVQ_layers,
     use_gpu,
     online_feature_extract,
-    **kwargs
+    **kwargs,
 ):
     if online_feature_extract:
         assert "feature_conf" in kwargs
@@ -132,17 +145,34 @@ def dump_label(
     else:
         feature_conf = None
 
-    apply_kmeans = ApplyKmeans(km_path, use_gpu=use_gpu)
+    apply_kmeans = [
+        ApplyKmeans(
+            km_path.replace(".mdl", f"_RVQ_{i}.mdl") if RVQ_layers > 1 else km_path,
+            use_gpu=use_gpu,
+        )
+        for i in range(RVQ_layers)
+    ]
+    writers = [
+        file_writer_helper(
+            (
+                wspecifier.replace(f"_km", f"_RVQ_{i}_km")
+                if RVQ_layers > 1
+                else wspecifier
+            ),
+            filetype=out_filetype,
+        )
+        for i in range(RVQ_layers)
+    ]
 
+    dist = [np.array([]) for i in range(RVQ_layers)]
+    all_dist = np.array([])
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
-        with file_writer_helper(
-            wspecifier,
-            filetype=out_filetype,
-        ) as writer:
-            for utt, feat in file_reader_helper(rspecifier, in_filetype):
-                lab = apply_kmeans(feat)
-                writer[utt] = lab
+        for utt, feat in file_reader_helper(rspecifier, in_filetype):
+            for i in range(RVQ_layers):
+                lab = apply_kmeans[i](feats)
+                writers[i][utt] = lab
+                feats = feats - apply_kmeans[i].C_np.transpose()[lab]
     else:
         assert feature_conf["type"] in feature_reader_choice
         reader_class = feature_reader_choice[feature_conf["type"]]
@@ -154,6 +184,7 @@ def dump_label(
             )
         if reader_conf.get("layer", None):
             reader_conf["layer"] = int(reader_conf["layer"])
+        reader_conf["audio_sample_rate"] = audio_sample_rate
 
         reader = reader_class(**reader_conf)
         iterator = build_data_iterator(
@@ -162,19 +193,24 @@ def dump_label(
             utt2num_samples=args.utt2num_samples,
             batch_bins=kwargs.get("batch_bins", 1),
         )
-        with file_writer_helper(
-            wspecifier,
-            filetype=out_filetype,
-        ) as writer:
-            for utt_ids, data in iterator:
-                feats, feats_lens = reader.get_feats(
-                    data["speech"], data["speech_lengths"]
-                )
 
-                for idx, utt in enumerate(utt_ids):
-                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
-                    writer[utt] = lab
-
+        for utt_ids, data in iterator:
+            feats, feats_lens = reader.get_feats(data["speech"], data["speech_lengths"])
+            # print(utt_ids, feats.shape, flush=True)
+            for idx, utt in enumerate(utt_ids):
+                feat = feats[idx][: feats_lens[idx]].numpy()
+                for i in range(RVQ_layers):
+                    lab, dis = apply_kmeans[i](feat)
+                    # print(dis.shape, flush=True)
+                    dist[i] = np.concatenate((dist[i], dis))
+                    # print(dist[i].shape, flush=True)
+                    writers[i][utt] = lab
+                    feat = feat - apply_kmeans[i].C_np.transpose()[lab]
+                # print("a", (feat ** 2).sum(1).shape, flush=True)
+                all_dist = np.concatenate((all_dist, (feat**2).sum(1)))
+        for i in range(RVQ_layers):
+            print(i, np.mean(dist[i]))
+        print("All", np.mean(all_dist))
     logger.info("finished successfully")
 
 

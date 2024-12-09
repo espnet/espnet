@@ -32,5 +32,5 @@ criterions:
 
 max_epoch: 1
 num_iters_per_epoch: 1
-batch_type: folded
+batch_type: sorted
 batch_size: 2

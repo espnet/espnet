@@ -1,4 +1,5 @@
 """Reporter module."""
+
 import dataclasses
 import datetime
 import logging
@@ -13,7 +14,7 @@ import humanfriendly
 import numpy as np
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
@@ -21,8 +22,8 @@ Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 _reserved = {"time", "total_count"}
 
 
-def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
-    assert check_argument_types()
+@typechecked
+def to_reported_value(v: Num, weight: Optional[Num] = None) -> "ReportedValue":
     if isinstance(v, (torch.Tensor, np.ndarray)):
         if np.prod(v.shape) != 1:
             raise ValueError(f"v must be 0 or 1 dimension: {len(v.shape)}")
@@ -37,12 +38,11 @@ def to_reported_value(v: Num, weight: Num = None) -> "ReportedValue":
         retval = WeightedAverage(v, weight)
     else:
         retval = Average(v)
-    assert check_return_type(retval)
     return retval
 
 
+@typechecked
 def aggregate(values: Sequence["ReportedValue"]) -> Num:
-    assert check_argument_types()
 
     for v in values:
         if not isinstance(v, type(values[0])):
@@ -81,7 +81,6 @@ def aggregate(values: Sequence["ReportedValue"]) -> Num:
 
     else:
         raise NotImplementedError(f"type={type(values[0])}")
-    assert check_return_type(retval)
     return retval
 
 
@@ -116,8 +115,8 @@ class SubReporter:
     See the docstring of Reporter for the usage.
     """
 
+    @typechecked
     def __init__(self, key: str, epoch: int, total_count: int):
-        assert check_argument_types()
         self.key = key
         self.epoch = epoch
         self.start_time = time.perf_counter()
@@ -150,12 +149,12 @@ class SubReporter:
 
         self._seen_keys_in_the_step = set()
 
+    @typechecked
     def register(
         self,
         stats: Dict[str, Optional[Union[Num, Dict[str, Num]]]],
-        weight: Num = None,
+        weight: Optional[Num] = None,
     ) -> None:
-        assert check_argument_types()
         if self._finished:
             raise RuntimeError("Already finished")
         if len(self._seen_keys_in_the_step) == 0:
@@ -285,8 +284,8 @@ class Reporter:
 
     """
 
+    @typechecked
     def __init__(self, epoch: int = 0):
-        assert check_argument_types()
         if epoch < 0:
             raise ValueError(f"epoch must be 0 or more: {epoch}")
         self.epoch = epoch
@@ -499,8 +498,8 @@ class Reporter:
             p.parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(p)
 
+    @typechecked
     def _plot_stats(self, keys: Sequence[str], key2: str):
-        assert check_argument_types()
         # str is also Sequence[str]
         if isinstance(keys, str):
             raise TypeError(f"Input as [{keys}]")
@@ -516,11 +515,13 @@ class Reporter:
         epochs = np.arange(1, self.get_epoch() + 1)
         for key in keys:
             y = [
-                self.stats[e][key][key2]
-                if e in self.stats
-                and key in self.stats[e]
-                and key2 in self.stats[e][key]
-                else np.nan
+                (
+                    self.stats[e][key][key2]
+                    if e in self.stats
+                    and key in self.stats[e]
+                    and key2 in self.stats[e][key]
+                    else np.nan
+                )
                 for e in epochs
             ]
             assert len(epochs) == len(y), "Bug?"
@@ -537,7 +538,7 @@ class Reporter:
         return plt
 
     def tensorboard_add_scalar(
-        self, summary_writer, epoch: int = None, key1: str = None
+        self, summary_writer, epoch: int = None, key1: Optional[str] = None
     ):
         if epoch is None:
             epoch = self.get_epoch()

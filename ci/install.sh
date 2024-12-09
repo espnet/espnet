@@ -13,7 +13,7 @@ ${CXX:-g++} -v
     # To skip error
     mkdir -p kaldi/egs/wsj/s5/utils && touch kaldi/egs/wsj/s5/utils/parse_options.sh
     if ${USE_CONDA}; then
-        ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
+        ./setup_miniforge.sh venv espnet ${ESPNET_PYTHON_VERSION}
         # To install via pip instead of conda
     else
         ./setup_venv.sh "$(command -v python3)" venv
@@ -21,7 +21,7 @@ ${CXX:-g++} -v
 
     . ./activate_python.sh
     # FIXME(kamo): Failed to compile pesq
-    make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done gtn.done longformer.done whisper.done parallel-wavegan.done muskits.done lora.done
+    make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done longformer.done whisper.done parallel-wavegan.done muskits.done lora.done sph2pipe versa.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
@@ -32,6 +32,11 @@ python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 python3 -m pip install tensorboardx
 # NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
 python3 -c "import matplotlib.pyplot"
+# NOTE(wangyou): onnxruntime and onnx2torch are used for testing dnsmos functions
+cat >> constraints.txt << EOF
+torch==${TH_VERSION}
+EOF
+python3 -m pip install -c constraints.txt onnxruntime onnx2torch --extra-index-url https://download.pytorch.org/whl/cpu
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707

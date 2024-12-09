@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 import socket
 from typing import Optional
@@ -108,6 +109,34 @@ class DistributedOption:
             if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
 
+    def init_deepspeed(self):
+        try:
+            import deepspeed
+        except ImportError:
+            raise
+
+        if not torch.distributed.is_initialized():
+            raise ValueError(
+                "Should initailize torch distributed before initializing deepspeed"
+            )
+
+        # NOTE(Jinchuan): init torch distributed backend first. Then
+        # deepspeed will find that backend automatically.
+        os.environ["LOCAL_RANK"] = str(self.local_rank)
+        os.environ["RANK"] = str(self.dist_rank)
+        os.environ["WORLD_SIZE"] = str(self.dist_world_size)
+        if int(os.environ["OMP_NUM_THREADS"]) == 1:
+            logging.warning(
+                "\n=================================================================\n"
+                "Found OMP_NUM_THREADS=1 in environment variables. "
+                "With some advanced features, DeepSpeed may have heavy cpu workload "
+                "so that OMP_NUM_THREADS=1 is not sufficient. "
+                "Try to increase it in your path.sh \n"
+                "================================================================="
+            )
+
+        deepspeed.init_distributed()
+
 
 def resolve_distributed_mode(args):
     # Note that args.distributed is set by only this function.
@@ -197,7 +226,7 @@ def free_port():
         return sock.getsockname()[1]
 
 
-def get_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -217,7 +246,7 @@ def get_rank(prior=None, launcher: str = None) -> Optional[int]:
         return _int_or_none(os.environ.get("RANK"))
 
 
-def get_world_size(prior=None, launcher: str = None) -> int:
+def get_world_size(prior=None, launcher: Optional[str] = None) -> int:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -237,7 +266,7 @@ def get_world_size(prior=None, launcher: str = None) -> int:
         return int(os.environ.get("WORLD_SIZE", "1"))
 
 
-def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_local_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     # LOCAL_RANK is same as GPU device id
 
     if prior is None:
@@ -280,7 +309,7 @@ def get_local_rank(prior=None, launcher: str = None) -> Optional[int]:
         return None
 
 
-def get_master_addr(prior=None, launcher: str = None) -> Optional[str]:
+def get_master_addr(prior=None, launcher: Optional[str] = None) -> Optional[str]:
     if prior is None:
         if launcher == "slurm":
             if not is_in_slurm_step():
@@ -303,7 +332,7 @@ def get_master_port(prior=None) -> Optional[int]:
         return _int_or_none(os.environ.get("MASTER_PORT"))
 
 
-def get_node_rank(prior=None, launcher: str = None) -> Optional[int]:
+def get_node_rank(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     """Get Node Rank.
 
     Use for "multiprocessing distributed" mode.
@@ -336,7 +365,7 @@ def get_node_rank(prior=None, launcher: str = None) -> Optional[int]:
         return _int_or_none(os.environ.get("RANK"))
 
 
-def get_num_nodes(prior=None, launcher: str = None) -> Optional[int]:
+def get_num_nodes(prior=None, launcher: Optional[str] = None) -> Optional[int]:
     """Get the number of nodes.
 
     Use for "multiprocessing distributed" mode.

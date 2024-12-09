@@ -8,13 +8,14 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.discrete.discrete_acoustic import Discrete_Acoustic
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
@@ -126,6 +127,7 @@ svs_choices = ClassChoices(
         naive_rnn=NaiveRNN,
         naive_rnn_dp=NaiveRNNDP,
         xiaoice=XiaoiceSing,
+        discrete_acoustic=Discrete_Acoustic,
         # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
         joint_score2wav=JointScore2Wav,
@@ -177,9 +179,9 @@ class SVSTask(AbsTask):
     trainer = Trainer
 
     @classmethod
+    @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
-        assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -257,30 +259,24 @@ class SVSTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
-        group.add_argument(
-            "--src_bpemodel",
-            type=str_or_none,
-            default=None,
-            help="The model file of sentencepiece (for source language)",
-        )
-        group.add_argument(
-            "--src_token_type",
-            type=str,
-            default=None,
-            choices=["bpe", "char", "word", "phn"],
-            help="The source text will be tokenized " "in the specified level token",
-        )
-        group.add_argument(
-            "--src_token_list",
-            type=str_or_none,
-            default=None,
-            help="A text mapping int-id to token (for source language)",
-        )
+
         parser.add_argument(
             "--fs",
             type=int,
             default=24000,  # BUG: another fs in feats_extract_conf
             help="sample rate",
+        )
+        parser.add_argument(
+            "--discrete_token_layers",
+            type=int,
+            default=1,
+            help="layers of discrete tokens",
+        )
+        parser.add_argument(
+            "--nclusters",
+            type=int,
+            default=1024,
+            help="number of cluster centers",
         )
 
         for class_choices in cls.class_choices_list:
@@ -289,13 +285,10 @@ class SVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -303,10 +296,10 @@ class SVSTask(AbsTask):
         )
 
     @classmethod
+    @typechecked
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -321,8 +314,7 @@ class SVSTask(AbsTask):
             )
         else:
             retval = None
-        # FIXME (jiatong): sometimes checking is not working here
-        # assert check_return_type(retval)
+
         return retval
 
     @classmethod
@@ -366,8 +358,8 @@ class SVSTask(AbsTask):
         return retval
 
     @classmethod
+    @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSVSModel:
-        assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -382,6 +374,7 @@ class SVSTask(AbsTask):
 
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
+
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -396,7 +389,8 @@ class SVSTask(AbsTask):
             odim = args.odim
 
         if args.model_type == "discrete_svs":
-            odim = 1024 + 1
+            odim = args.nclusters
+            discrete_token_layers = args.discrete_token_layers
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -407,7 +401,15 @@ class SVSTask(AbsTask):
 
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
-        svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
+        if args.model_type == "discrete_svs":
+            svs = svs_class(
+                idim=vocab_size,
+                odim=odim,
+                discrete_token_layers=discrete_token_layers,
+                **args.svs_conf,
+            )
+        else:
+            svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
         # 4. Extra components
         score_feats_extract = None
@@ -416,6 +418,7 @@ class SVSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        discrete_token_layers = 1
         logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
@@ -466,6 +469,8 @@ class SVSTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+        if getattr(args, "discrete_token_layers", None) is not None:
+            discrete_token_layers = args.discrete_token_layers
 
         # 5. Build model
         if args.model_type == "svs":
@@ -497,10 +502,10 @@ class SVSTask(AbsTask):
                 normalize=normalize,
                 pitch_normalize=pitch_normalize,
                 energy_normalize=energy_normalize,
+                discrete_token_layers=discrete_token_layers,
                 svs=svs,
                 **args.model_conf,
             )
-        assert check_return_type(model)
         return model
 
     @classmethod

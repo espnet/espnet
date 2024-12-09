@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 import os
 
-from egs2.TEMPLATE.svs1.pyscripts.utils.prep_segments import (
-    DataHandler,
-    LabelInfo,
-    SegInfo,
-    get_parser,
-)
+from pyscripts.utils.prep_segments import DataHandler, LabelInfo, SegInfo, get_parser
+
 from espnet2.fileio.score_scp import MIDReader
 
 
@@ -16,59 +12,59 @@ class NatsumeDataHandler(DataHandler):
         if input_type == "hts":
             error_dict = {
                 "01": [
-                    lambda i, labels, segment, segments, threshold: self.replace_labels(
-                        i, "a", labels, segment, segments
-                    )
-                    if labels[i].label_id == "cl" and labels[i + 1].label_id == "s"
-                    else (labels, segment, segments, False),
-                    lambda i, labels, segment, segments, threshold: self.skip_labels(
-                        i, labels, segment, segments
-                    )
-                    if labels[i].label_id == "e" and labels[i + 1].label_id == "e"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.replace_labels(i, "a", labels, segment, segments)
+                        if labels[i].label_id == "cl" and labels[i + 1].label_id == "s"
+                        else (labels, segment, segments, False)
+                    ),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.skip_labels(i, labels, segment, segments)
+                        if labels[i].label_id == "e" and labels[i + 1].label_id == "e"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "03": [
-                    lambda i, labels, segment, segments, threshold: self.replace_labels(
-                        i, "z", labels, segment, segments
-                    )
-                    if labels[i].label_id == "s"
-                    and labels[i - 1].label_id == "o"
-                    and labels[i - 2].label_id == "o"
-                    else (labels, segment, segments, False),
-                    lambda i, labels, segment, segments, threshold: self.add_pause(
-                        labels, segment, segments, threshold
-                    )
-                    if (labels[i].label_id == "m" and labels[i + 1].label_id == "e")
-                    or (labels[i].label_id == "t" and labels[i + 2].label_id == "d")
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.replace_labels(i, "z", labels, segment, segments)
+                        if labels[i].label_id == "s"
+                        and labels[i - 1].label_id == "o"
+                        and labels[i - 2].label_id == "o"
+                        else (labels, segment, segments, False)
+                    ),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.add_pause(labels, segment, segments, threshold)
+                        if (labels[i].label_id == "m" and labels[i + 1].label_id == "e")
+                        or (labels[i].label_id == "t" and labels[i + 2].label_id == "d")
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "50": [
-                    lambda i, labels, segment, segments, threshold: self.skip_labels(
-                        i, labels, segment, segments
-                    )
-                    if labels[i].label_id == "o" and labels[i + 1].label_id == "a"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.skip_labels(i, labels, segment, segments)
+                        if labels[i].label_id == "o" and labels[i + 1].label_id == "a"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "08": [
-                    lambda i, labels, segment, segments, threshold: self.skip_labels(
-                        i, labels, segment, segments
-                    )
-                    if labels[i].label_id == "w" and labels[i - 1].label_id == "e"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.skip_labels(i, labels, segment, segments)
+                        if labels[i].label_id == "w" and labels[i - 1].label_id == "e"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "41": [
-                    lambda i, labels, segment, segments, threshold: self.replace_labels(
-                        i + 1, "a", labels, segment, segments
-                    )
-                    if labels[i].label_id == "a" and labels[i + 1].label_id == "o"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.replace_labels(i + 1, "a", labels, segment, segments)
+                        if labels[i].label_id == "a" and labels[i + 1].label_id == "o"
+                        else (labels, segment, segments, False)
+                    ),
                     # Note that we already changed labels[i + 1] to "a".
                     # So the if condition is different from the previous one.
-                    lambda i, labels, segment, segments, threshold: self.skip_labels(
-                        i, labels, segment, segments
-                    )
-                    if labels[i].label_id == "a" and labels[i + 1].label_id == "a"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.skip_labels(i, labels, segment, segments)
+                        if labels[i].label_id == "a" and labels[i + 1].label_id == "a"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "10": [
                     lambda i, labels, segment, segments, threshold: (
@@ -85,26 +81,26 @@ class NatsumeDataHandler(DataHandler):
         elif input_type == "xml":
             error_dict = {
                 "01": [
-                    lambda i, labels, segment, segments, threshold: self.replace_lyrics(
-                        i, "め", labels, segment, segments
-                    )
-                    if labels[i].lyric == "え" and labels[i - 1].lyric == "の"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.replace_lyrics(i, "め", labels, segment, segments)
+                        if labels[i].lyric == "え" and labels[i - 1].lyric == "の"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "03": [
-                    lambda i, labels, segment, segments, threshold: self.add_pause(
-                        labels, segment, segments, threshold
-                    )
-                    if (labels[i].lyric == "か" and labels[i - 1].lyric == "の")
-                    or (labels[i].lyric == "と" and labels[i + 1].lyric == "な")
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.add_pause(labels, segment, segments, threshold)
+                        if (labels[i].lyric == "か" and labels[i - 1].lyric == "の")
+                        or (labels[i].lyric == "と" and labels[i + 1].lyric == "な")
+                        else (labels, segment, segments, False)
+                    ),
                 ],
                 "23": [
-                    lambda i, labels, segment, segments, threshold: self.add_pause(
-                        labels, segment, segments, threshold
-                    )
-                    if labels[i].lyric == "む" and labels[i - 1].lyric == "い"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.add_pause(labels, segment, segments, threshold)
+                        if labels[i].lyric == "む" and labels[i - 1].lyric == "い"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
             }
         return error_dict
@@ -116,34 +112,49 @@ class NatsumeDataHandler(DataHandler):
         if input_type == "hts":
             error_correction = {
                 "12": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if labels[i + 1].label_id == "m" and labels[i + 2].label_id == "o"
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if labels[i + 1].label_id == "m"
+                        and labels[i + 2].label_id == "o"
+                        else (labels, None, None, False)
+                    ),
                 ],
                 "31": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if labels[i + 1].label_id == "s"
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if labels[i + 1].label_id == "s"
+                        else (labels, None, None, False)
+                    ),
                 ],
                 "26": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if labels[i + 1].label_id == "o"
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if labels[i + 1].label_id == "o"
+                        else (labels, None, None, False)
+                    ),
                 ],
                 "10": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if labels[i + 1].label_id == "k" and labels[i + 2].label_id == "i"
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if labels[i + 1].label_id == "k"
+                        and labels[i + 2].label_id == "i"
+                        else (labels, None, None, False)
+                    ),
                 ],
                 "24": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if i == 389
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if i == 389
+                        else (labels, None, None, False)
+                    ),
                 ],
                 "07": [
-                    lambda: self.skip_labels(i, labels, None, None)
-                    if labels[i + 1].label_id == "m" and labels[i - 1].label_id == "o"
-                    else (labels, None, None, False),
+                    lambda: (
+                        self.skip_labels(i, labels, None, None)
+                        if labels[i + 1].label_id == "m"
+                        and labels[i - 1].label_id == "o"
+                        else (labels, None, None, False)
+                    ),
                 ],
             }
 

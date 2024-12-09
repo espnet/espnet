@@ -7,24 +7,25 @@ See also https://espnet.github.io/espnet/installation.html
 
 ## Contents
 ```
-installers/        # Instllation scripts for extra tools
-Makefile           # Makefile to make an environment for experiments in espnet
-check_install.py   # To check the status of installation
-extra_path.sh      # Setup script for environment variables for extra tools
-setup_cuda_env.sh  # Setup script for environment variables for cuda
-setup_anaconda.sh  # To generate activate_python.sh with conda environment
-setup_python.sh    # To generate activate_python.sh with the specified python
-setup_venv.sh      # To generate activate_python.sh with venv of your python
+installers/         # Instllation scripts for extra tools
+Makefile            # Makefile to make an environment for experiments in espnet
+check_install.py    # To check the status of installation
+extra_path.sh       # Setup script for environment variables for extra tools
+setup_cuda_env.sh   # Setup script for environment variables for cuda
+setup_anaconda.sh   # To generate activate_python.sh with Anaconda environment
+setup_miniforge.sh  # To generate activate_python.sh with conda-forge environment
+setup_python.sh     # To generate activate_python.sh with the specified python
+setup_venv.sh       # To generate activate_python.sh with venv of your python
 ```
 
 ## Install
 
 ```sh
-# ./setup_anaconda.sh <conda-root|default="venv"> <env-name|default=root env> <python-version|default=latest python>
+# ./setup_miniforge.sh <conda-root|default="venv"> <env-name|default=root env> <python-version|default=latest python>
 # e.g.
-./setup_anaconda.sh miniconda espnet
+./setup_miniforge.sh miniconda espnet
 # If the conda-root already exists at the path, it tries to create in the conda
-# ./setup_anaconda.sh /some/where/miniconda espnet
+# ./setup_miniforge.sh /some/where/miniconda espnet
 
 # make TH_VERSION=<torch-ver|default=latest torch>
 # e.g.

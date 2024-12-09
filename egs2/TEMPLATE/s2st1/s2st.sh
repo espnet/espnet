@@ -23,21 +23,21 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1              # Processes starts from the specified stage.
-stop_stage=10000     # Processes is stopped at the specified stage.
-skip_data_prep=false # Skip data preparation stages.
-skip_train=false     # Skip training stages.
-skip_eval=false      # Skip decoding and evaluation stages.
-skip_upload=true     # Skip packing and uploading stages.
-skip_upload_hf=true  # Skip uploading to hugging face stages.
-ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes.
-nj=32                # The number of parallel jobs.
-inference_nj=32      # The number of parallel jobs in decoding.
-gpu_inference=false  # Whether to perform gpu decoding.
-dumpdir=dump         # Directory to dump features.
-expdir=exp           # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands.
+stage=1                 # Processes starts from the specified stage.
+stop_stage=10000        # Processes is stopped at the specified stage.
+skip_data_prep=false    # Skip data preparation stages.
+skip_train=false        # Skip training stages.
+skip_eval=false         # Skip decoding and evaluation stages.
+skip_packing=true       # Skip the packing stage.
+skip_upload_hf=true     # Skip uploading to huggingface stage.
+ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1             # The number of nodes.
+nj=32                   # The number of parallel jobs.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
+dumpdir=dump            # Directory to dump features.
+expdir=exp              # Directory to save experiments.
+python=python3          # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -163,20 +163,21 @@ Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_s
 
 Options:
     # General configuration
-    --stage          # Processes starts from the specified stage (default="${stage}").
-    --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
-    --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes (default="${num_nodes}").
-    --nj             # The number of parallel jobs (default="${nj}").
-    --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
-    --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
-    --dumpdir        # Directory to dump features (default="${dumpdir}").
-    --expdir         # Directory to save experiments (default="${expdir}").
-    --python         # Specify python to execute espnet commands (default="${python}").
+    --stage              # Processes starts from the specified stage (default="${stage}").
+    --stop_stage         # Processes is stopped at the specified stage (default="${stop_stage}").
+    --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
+    --skip_train         # Skip training stages (default="${skip_train}").
+    --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes          # The number of nodes (default="${num_nodes}").
+    --nj                 # The number of parallel jobs (default="${nj}").
+    --inference_nj       # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference      # Whether to perform gpu decoding (default="${gpu_inference}").
+    --dumpdir            # Directory to dump features (default="${dumpdir}").
+    --expdir             # Directory to save experiments (default="${expdir}").
+    --python             # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -499,29 +500,40 @@ if ! "${skip_data_prep}"; then
                 done
 
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp.${src_lang},wav.scp,wav.scp.${tgt_lang},reco2file_and_channel,reco2dur}
-                _opts=
-                if [ -e data/"${dset}"/segments ]; then
+
+                _src_opts=
+		_tgt_opts=
+                if [ -e data/"${dset}"/segments.${src_lang} ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
                     # into utterances. The file format of segments:
                     #   <segment_id> <record_id> <start_time> <end_time>
                     #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
                     # Where the time is written in seconds.
                     # Note(jiatong): we just consider the case for input speech only for now
-                    _opts+="--segments data/${dset}/segments "
+                    _src_opts+="--segments data/${dset}/segments.${src_lang} "
+                fi
+                if [ -e data/"${dset}"/segments.${tgt_lang} ]; then
+                    # "segments" is used for splitting wav files which are written in "wav".scp
+                    # into utterances. The file format of segments:
+                    #   <segment_id> <record_id> <start_time> <end_time>
+                    #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
+                    # Where the time is written in seconds.
+                    # Note(jiatong): we just consider the case for input speech only for now
+                    _tgt_opts+="--segments data/${dset}/segments.${tgt_lang} "
                 fi
 
                 log "Format target wav.scp"
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${tgt_lang}" \
-                    --out_filename "wav.scp.${tgt_lang}" \
+                    --out_filename "wav.scp.${tgt_lang}" ${_tgt_opts} \
                     "data/${dset}/wav.scp.${tgt_lang}" "${data_feats}${_suf}/${dset}"
 
                 log "Format source wav.scp"
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${src_lang}" \
-                    --out_filename "wav.scp.${src_lang}" ${_opts} \
+		    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
                     "data/${dset}/wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}"
                 ln -sf "wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}/wav.scp"
 
@@ -1535,7 +1547,7 @@ fi
 
 
 packed_model="${s2st_exp}/${s2st_exp##*/}_${inference_s2st_model%.*}.zip"
-if ! "${skip_upload}"; then
+if ! "${skip_packing}"; then
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         log "Stage 10: Pack model: ${packed_model}"
 
@@ -1565,72 +1577,21 @@ if ! "${skip_upload}"; then
             --option "${s2st_exp}"/images \
             --outpath "${packed_model}"
     fi
-
-
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        log "Stage 11: Upload model to Zenodo: ${packed_model}"
-
-        # To upload your model, you need to do:
-        #   1. Sign up to Zenodo: https://zenodo.org/
-        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
-
-        if command -v git &> /dev/null; then
-            _creator_name="$(git config user.name)"
-            _checkout="
-git checkout $(git show -s --format=%H)"
-
-        else
-            _creator_name="$(whoami)"
-            _checkout=""
-        fi
-        # /some/where/espnet/egs2/foo/s2st1/ -> foo/s2st1
-        _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/s2st1 -> foo
-        _corpus="${_task%/*}"
-        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-        # Generate description file
-        cat << EOF > "${s2st_exp}"/description
-This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-<p>&nbsp;</p>
-<ul>
-<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-<li><strong>Evaluate in the recipe</strong><pre>
-<code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-</pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${s2st_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>S2ST config</strong><pre><code>$(cat "${s2st_exp}"/config.yaml)</code></pre></li>
-</ul>
-EOF
-
-        # NOTE(kamo): The model file is uploaded here, but not published yet.
-        #   Please confirm your record at Zenodo and publish it by yourself.
-
-        # shellcheck disable=SC2086
-        espnet_model_zoo_upload \
-            --file "${packed_model}" \
-            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${src_lang}_${tgt_lang}" \
-            --description_file "${s2st_exp}"/description \
-            --creator_name "${_creator_name}" \
-            --license "CC-BY-4.0" \
-            --use_sandbox false \
-            --publish false
-    fi
 else
-    log "Skip the uploading stages"
+    log "Skip the packing stage"
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 12: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 10 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

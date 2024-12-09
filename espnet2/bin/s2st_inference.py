@@ -14,7 +14,7 @@ import numpy as np
 import soundfile as sf
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
@@ -27,7 +27,6 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
@@ -36,10 +35,11 @@ from espnet.utils.cli_utils import get_commandline_args
 class Speech2Speech:
     """Speech2Speech class."""
 
+    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
+        train_config: Union[Path, str, None] = None,
+        model_file: Union[Path, str, None] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -50,15 +50,16 @@ class Speech2Speech:
         backward_window: int = 1,
         forward_window: int = 3,
         nbest: int = 1,
+        normalize_length: bool = False,
         beam_size: int = 5,
         penalty: float = 0.0,
         st_subtask_beam_size: int = 5,
         st_subtask_penalty: float = 0.0,
         st_subtask_nbest: int = 1,
-        st_subtask_token_type: str = None,
-        st_subtask_bpemodel: str = None,
-        vocoder_config: Union[Path, str] = None,
-        vocoder_file: Union[Path, str] = None,
+        st_subtask_token_type: Optional[str] = None,
+        st_subtask_bpemodel: Optional[str] = None,
+        vocoder_config: Union[Path, str, None] = None,
+        vocoder_file: Union[Path, str, None] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -66,7 +67,6 @@ class Speech2Speech:
         prefer_normalized_feats: bool = False,
     ):
         """Initialize Speech2Speech module."""
-        assert check_argument_types()
 
         # setup model
         model, train_args = S2STTask.build_model_from_file(
@@ -86,15 +86,16 @@ class Speech2Speech:
         self.st_subtask_minlenratio = st_subtask_minlenratio
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.model.require_vocoder:
+        if self.model.require_vocoder and vocoder_file is not None:
             vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
                 vocoder.to(dtype=getattr(torch, dtype)).eval()
             self.vocoder = vocoder
+        else:
+            self.vocoder = None
         logging.info(f"S2ST:\n{self.model}")
         if self.vocoder is not None:
             logging.info(f"Vocoder:\n{self.vocoder}")
@@ -131,6 +132,7 @@ class Speech2Speech:
                 vocab_size=len(token_list),
                 token_list=None,  # No need to print out the lengthy discrete unit
                 pre_beam_score_key="full",
+                normalize_length=normalize_length,
             )
 
             # TODO(karita): make all scorers batchfied
@@ -176,6 +178,7 @@ class Speech2Speech:
                     eos=model.eos,
                     vocab_size=len(model.tgt_token_list),
                     pre_beam_score_key="full",
+                    normalize_length=normalize_length,
                     return_hs=True,
                 )
                 # TODO(karita): make all st_subtask_scorers batchfied
@@ -210,7 +213,7 @@ class Speech2Speech:
                 if st_subtask_token_type is None:
                     st_subtask_token_type = train_args.tgt_token_type
                 elif st_subtask_token_type == "bpe":
-                    if st_subtask_tokenizer is not None:
+                    if st_subtask_bpemodel is not None:
                         self.st_subtask_tokenizer = build_tokenizer(
                             token_type=st_subtask_token_type,
                             bpemodel=st_subtask_bpemodel,
@@ -231,19 +234,19 @@ class Speech2Speech:
             )
 
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
-        src_speech_lengths: Union[torch.Tensor, np.ndarray],
-        tgt_speech: Union[torch.Tensor, np.ndarray] = None,
-        tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
-        spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Union[torch.Tensor, np.ndarray] = None,
-        lids: Union[torch.Tensor, np.ndarray] = None,
+        src_speech_lengths: Union[torch.Tensor, np.ndarray, None] = None,
+        tgt_speech: Union[torch.Tensor, np.ndarray, None] = None,
+        tgt_speech_lengths: Union[torch.Tensor, np.ndarray, None] = None,
+        spembs: Union[torch.Tensor, np.ndarray, None] = None,
+        sids: Union[torch.Tensor, np.ndarray, None] = None,
+        lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run speech-to-speech."""
-        assert check_argument_types()
 
         # check inputs
         if self.use_speech and tgt_speech is None:
@@ -254,6 +257,15 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'lids'")
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
+
+        # Input as audio signal
+        if isinstance(src_speech, np.ndarray):
+            src_speech = torch.tensor(src_speech.astype(np.float32))
+
+        if src_speech_lengths is None:
+            src_speech_lengths = src_speech.new_full(
+                [1], dtype=torch.long, fill_value=src_speech.size(1)
+            )
 
         # prepare batch
         batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)
@@ -497,6 +509,7 @@ class Speech2Speech:
         return Speech2Speech(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -520,6 +533,7 @@ def inference(
     forward_window: int,
     always_fix_seed: bool,
     nbest: int,
+    normalize_length: bool,
     beam_size: int,
     penalty: float,
     st_subtask_nbest: int,
@@ -533,7 +547,6 @@ def inference(
     vocoder_tag: Optional[str],
 ):
     """Run text-to-speech inference."""
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -565,6 +578,7 @@ def inference(
         backward_window=backward_window,
         forward_window=forward_window,
         nbest=nbest,
+        normalize_length=normalize_length,
         beam_size=beam_size,
         penalty=penalty,
         st_subtask_nbest=st_subtask_nbest,
@@ -598,7 +612,7 @@ def inference(
     )
 
     # 6. Start for-loop
-    output_dir = Path(output_dir)
+    output_dir: Path = Path(output_dir)
     (output_dir / "norm").mkdir(parents=True, exist_ok=True)
     (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
     (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)
@@ -730,12 +744,14 @@ def inference(
                 )
 
             if output_dict.get("st_subtask_token") is not None:
-                writer["token"][key] = " ".join(output_dict["st_subtask_token"])
-                writer["token_int"][key] == " ".join(
+                st_subtask_wrtier["token"][key] = " ".join(
+                    output_dict["st_subtask_token"]
+                )
+                st_subtask_wrtier["token_int"][key] == " ".join(
                     map(str, output_dict["st_subtask_token_int"])
                 )
                 if output_dict.get("st_subtask_text") is not None:
-                    writer["text"][key] = output_dict["st_subtask_text"]
+                    st_subtask_wrtier["text"][key] = output_dict["st_subtask_text"]
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
@@ -954,6 +970,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
     return parser
 

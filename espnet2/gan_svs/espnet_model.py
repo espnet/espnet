@@ -9,8 +9,9 @@ from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
-from typeguard import check_argument_types
+from typeguard import typechecked
 
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
@@ -34,8 +35,10 @@ else:
 class ESPnetGANSVSModel(AbsGANESPnetModel):
     """ESPnet model for GAN-based singing voice synthesis task."""
 
+    @typechecked
     def __init__(
         self,
+        postfrontend: Optional[AbsFrontend],
         text_extract: Optional[AbsFeatsExtract],
         feats_extract: Optional[AbsFeatsExtract],
         score_feats_extract: Optional[AbsFeatsExtract],
@@ -50,7 +53,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         svs: AbsGANSVS,
     ):
         """Initialize ESPnetGANSVSModel module."""
-        assert check_argument_types()
         super().__init__()
         self.text_extract = text_extract
         self.feats_extract = feats_extract
@@ -64,6 +66,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.svs = svs
+        self.postfrontend = postfrontend
         assert hasattr(
             svs, "generator"
         ), "generator module must be registered as svs.generator"
@@ -253,6 +256,14 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     feats_lengths=feats_lengths,
                 )
 
+            if self.postfrontend is not None:
+                # extract features using pretrained SSL models like HuBERT
+                ssl_feats, ssl_feats_lengths = self.postfrontend(
+                    singing, singing_lengths
+                )
+            else:
+                ssl_feats, ssl_feats_lengths = None, None
+
             # Normalize
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
@@ -325,6 +336,10 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
+        if self.postfrontend is not None:
+            batch.update(ssl_feats=ssl_feats, ssl_feats_lengths=ssl_feats_lengths)
+        else:
+            batch.update(ssl_feats=None, ssl_feats_lengths=None)
         return self.svs(**batch)
 
     def collect_feats(
@@ -440,3 +455,207 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             feats_dict.update(ying=ying, ying_lengths=ying_lengths)
 
         return feats_dict
+
+    def inference(
+        self,
+        text: torch.Tensor,
+        singing: Optional[torch.Tensor] = None,
+        label: Optional[torch.Tensor] = None,
+        phn_cnt: Optional[torch.Tensor] = None,
+        midi: Optional[torch.Tensor] = None,
+        duration_phn: Optional[torch.Tensor] = None,
+        duration_ruled_phn: Optional[torch.Tensor] = None,
+        duration_syb: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        **decode_config,
+    ) -> Dict[str, torch.Tensor]:
+        """Caclualte features and return them as a dict.
+
+        Args:
+            text (Tensor): Text index tensor (T_text).
+            singing (Tensor): Singing waveform tensor (T_wav).
+            label (Option[Tensor]): Label tensor (T_label).
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (T_syb)
+            midi (Option[Tensor]): Midi tensor (T_l abel).
+            duration_phn (Optional[Tensor]): duration tensor (T_label).
+            duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
+            duration_syb (Optional[Tensor]): duration tensor (T_phone).
+            slur (Optional[Tensor]): slur tensor (T_phone).
+            spembs (Optional[Tensor]): Speaker embedding tensor (D,).
+            sids (Optional[Tensor]): Speaker ID tensor (1,).
+            lids (Optional[Tensor]): Language ID tensor (1,).
+            pitch (Optional[Tensor): Pitch tensor (T_wav).
+            energy (Optional[Tensor): Energy tensor.
+
+        Returns:
+            Dict[str, Tensor]: Dict of outputs.
+        """
+        label_lengths = torch.tensor([len(label)])
+        midi_lengths = torch.tensor([len(midi)])
+        duration_phn_lengths = torch.tensor([len(duration_phn)])
+        duration_ruled_phn_lengths = torch.tensor([len(duration_ruled_phn)])
+        duration_syb_lengths = torch.tensor([len(duration_syb)])
+        slur_lengths = torch.tensor([len(slur)])
+
+        # unsqueeze of singing needed otherwise causing error in STFT dimension
+        # for data-parallel
+        text = text.unsqueeze(0)
+
+        label = label.unsqueeze(0)
+        midi = midi.unsqueeze(0)
+        duration_phn = duration_phn.unsqueeze(0)
+        duration_ruled_phn = duration_ruled_phn.unsqueeze(0)
+        duration_syb = duration_syb.unsqueeze(0)
+        phn_cnt = phn_cnt.unsqueeze(0)
+        slur = slur.unsqueeze(0)
+
+        # Extract auxiliary features
+        # melody : 128 midi pitch
+        # duration :
+        #   input-> phone-id seqence
+        #   output -> frame level or syllable level
+        batch_size = text.size(0)
+        assert batch_size == 1
+        if isinstance(self.score_feats_extract, FrameScoreFeats):
+            (
+                label_lab,
+                label_lab_lengths,
+                midi_lab,
+                midi_lab_lengths,
+                duration_lab,
+                duration_lab_lengths,
+            ) = expand_to_frame(
+                duration_phn, duration_phn_lengths, label, midi, duration_phn
+            )
+
+            # for data-parallel
+            label_lab = label_lab[:, : label_lab_lengths.max()]
+            midi_lab = midi_lab[:, : midi_lab_lengths.max()]
+            duration_lab = duration_lab[:, : duration_lab_lengths.max()]
+
+            (
+                label_score,
+                label_score_lengths,
+                midi_score,
+                midi_score_lengths,
+                duration_score,
+                duration_score_phn_lengths,
+            ) = expand_to_frame(
+                duration_ruled_phn,
+                duration_ruled_phn_lengths,
+                label,
+                midi,
+                duration_ruled_phn,
+            )
+
+            # for data-parallel
+            label_score = label_score[:, : label_score_lengths.max()]
+            midi_score = midi_score[:, : midi_score_lengths.max()]
+            duration_score = duration_score[:, : duration_score_phn_lengths.max()]
+            duration_score_syb = None
+
+        elif isinstance(self.score_feats_extract, SyllableScoreFeats):
+            # Remove unused paddings at end
+            label_lab = label[:, : label_lengths.max()]
+            midi_lab = midi[:, : midi_lengths.max()]
+            duration_lab = duration_phn[:, : duration_phn_lengths.max()]
+
+            label_score = label[:, : label_lengths.max()]
+            midi_score = midi[:, : midi_lengths.max()]
+            duration_score = duration_ruled_phn[:, : duration_ruled_phn_lengths.max()]
+            duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
+            slur = slur[:, : slur_lengths.max()]
+
+        input_dict = dict(text=text)
+        if decode_config["use_teacher_forcing"] or getattr(self.svs, "use_gst", False):
+            if singing is None:
+                raise RuntimeError("missing required argument: 'singing'")
+            if self.feats_extract is not None:
+                feats = self.feats_extract(singing[None])[0][0]
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats = singing
+            if self.normalize is not None:
+                feats = self.normalize(feats[None])[0][0]
+            input_dict.update(feats=feats)
+            # if self.svs.require_raw_singing:
+            #     input_dict.update(singing=singing)
+
+        if decode_config["use_teacher_forcing"]:
+            if self.pitch_extract is not None:
+                pitch = self.pitch_extract(
+                    singing[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                )[0][0]
+            if self.pitch_normalize is not None:
+                pitch = self.pitch_normalize(pitch[None])[0][0]
+            if pitch is not None:
+                input_dict.update(pitch=pitch)
+
+            if self.energy_extract is not None:
+                energy = self.energy_extract(
+                    singing[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                )[0][0]
+            if self.energy_normalize is not None:
+                energy = self.energy_normalize(energy[None])[0][0]
+            if energy is not None:
+                input_dict.update(energy=energy)
+
+        # label
+        label = dict()
+        if label_lab is not None:
+            label_lab = label_lab.to(dtype=torch.long)
+            label.update(lab=label_lab)
+        if label_score is not None:
+            label_score = label_score.to(dtype=torch.long)
+            label.update(score=label_score)
+        input_dict.update(label=label)
+
+        # melody
+        melody = dict()
+        if midi_lab is not None:
+            midi_lab = midi_lab.to(dtype=torch.long)
+            melody.update(lab=midi_lab)
+        if midi_score is not None:
+            midi_score = midi_score.to(dtype=torch.long)
+            melody.update(score=midi_score)
+        input_dict.update(melody=melody)
+
+        # duration
+        duration = dict()
+        if duration_lab is not None:
+            duration_lab = duration_lab.to(dtype=torch.long)
+            duration.update(lab=duration_lab)
+        if duration_score is not None:
+            duration_phn_score = duration_score.to(dtype=torch.long)
+            duration.update(score_phn=duration_phn_score)
+        if duration_score_syb is not None:
+            duration_syb_score = duration_score_syb.to(dtype=torch.long)
+            duration.update(score_syb=duration_syb_score)
+        input_dict.update(duration=duration)
+
+        if slur is not None:
+            input_dict.update(slur=slur)
+        if spembs is not None:
+            input_dict.update(spembs=spembs)
+        if sids is not None:
+            input_dict.update(sids=sids)
+        if lids is not None:
+            input_dict.update(lids=lids)
+
+        output_dict = self.svs.inference(**input_dict, **decode_config)
+
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
+            # NOTE: normalize.inverse is in-place operation
+            feat_gen_denorm = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+            output_dict.update(feat_gen_denorm=feat_gen_denorm)
+
+        return output_dict

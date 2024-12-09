@@ -13,8 +13,7 @@ from espnet2.spk.loss.abs_loss import AbsLoss
 
 
 class AAMSoftmax(AbsLoss):
-    """
-    Additive angular margin softmax.
+    """Additive angular margin softmax.
 
     Paper: Deng, Jiankang, et al. "Arcface: Additive angular margin loss for
     deep face recognition." Proceedings of the IEEE/CVF conference on computer

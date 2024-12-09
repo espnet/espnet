@@ -5,6 +5,7 @@
 """Test VISinger related modules."""
 
 import pytest
+import scipy
 import torch
 
 from espnet2.gan_svs.vits import VITS
@@ -216,10 +217,10 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_upsample_scales": (2, 2, 4, 16),
-                    "decoder_upsample_kernel_sizes": (4, 4, 8, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_upsample_scales": [2, 2, 4, 16],
+                    "decoder_upsample_kernel_sizes": [4, 4, 8, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -343,10 +344,10 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_upsample_scales": (16, 16),
-                    "decoder_upsample_kernel_sizes": (32, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_upsample_scales": [16, 16],
+                    "decoder_upsample_kernel_sizes": [32, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -440,12 +441,12 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_downsample_scales": (16, 16),
-                    "decoder_downsample_kernel_sizes": (32, 32),
-                    "decoder_upsample_scales": (16, 16),
-                    "decoder_upsample_kernel_sizes": (32, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_downsample_scales": [16, 16],
+                    "decoder_downsample_kernel_sizes": [32, 32],
+                    "decoder_upsample_scales": [16, 16],
+                    "decoder_upsample_kernel_sizes": [32, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -539,12 +540,12 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_downsample_scales": (16, 16),
-                    "decoder_downsample_kernel_sizes": (32, 32),
-                    "decoder_upsample_scales": (16, 16),
-                    "decoder_upsample_kernel_sizes": (32, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_downsample_scales": [16, 16],
+                    "decoder_downsample_kernel_sizes": [32, 32],
+                    "decoder_upsample_scales": [16, 16],
+                    "decoder_upsample_kernel_sizes": [32, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -638,12 +639,12 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_downsample_scales": (16, 16),
-                    "decoder_downsample_kernel_sizes": (32, 32),
-                    "decoder_upsample_scales": (16, 16),
-                    "decoder_upsample_kernel_sizes": (32, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_downsample_scales": [16, 16],
+                    "decoder_downsample_kernel_sizes": [32, 32],
+                    "decoder_upsample_scales": [16, 16],
+                    "decoder_upsample_kernel_sizes": [32, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -699,12 +700,12 @@ def get_test_data():
                     "use_conformer_conv_in_text_encoder": True,
                     "decoder_kernel_size": 7,
                     "decoder_channels": 16,
-                    "decoder_downsample_scales": (16, 16),
-                    "decoder_downsample_kernel_sizes": (32, 32),
-                    "decoder_upsample_scales": (16, 16),
-                    "decoder_upsample_kernel_sizes": (32, 32),
-                    "decoder_resblock_kernel_sizes": (3, 5),
-                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "decoder_downsample_scales": [16, 16],
+                    "decoder_downsample_kernel_sizes": [32, 32],
+                    "decoder_upsample_scales": [16, 16],
+                    "decoder_upsample_kernel_sizes": [32, 32],
+                    "decoder_resblock_kernel_sizes": [3, 5],
+                    "decoder_resblock_dilations": [[1, 3], [1, 3]],
                     "use_weight_norm_in_decoder": True,
                     "posterior_encoder_kernel_size": 5,
                     "posterior_encoder_layers": 2,
@@ -763,10 +764,10 @@ def make_vits_generator_args(**kwargs):
             "use_conformer_conv_in_text_encoder": True,
             "decoder_kernel_size": 7,
             "decoder_channels": 16,
-            "decoder_upsample_scales": (16, 16),
-            "decoder_upsample_kernel_sizes": (32, 32),
-            "decoder_resblock_kernel_sizes": (3, 5),
-            "decoder_resblock_dilations": [(1, 3), (1, 3)],
+            "decoder_upsample_scales": [16, 16],
+            "decoder_upsample_kernel_sizes": [32, 32],
+            "decoder_resblock_kernel_sizes": [3, 5],
+            "decoder_resblock_dilations": [[1, 3], [1, 3]],
             "use_weight_norm_in_decoder": True,
             "posterior_encoder_kernel_size": 5,
             "posterior_encoder_layers": 2,
@@ -887,6 +888,10 @@ def make_vits_loss_args(**kwargs):
     get_test_data(),
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
+    try:
+        from scipy.signal import kaiser
+    except ImportError:
+        pytest.skip("Compatibility issue with scipy.")
     idim = 10
     odim = 5
     gen_args = make_vits_generator_args(**gen_dict)
@@ -1072,6 +1077,10 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
 def test_multi_speaker_vits_is_trainable_and_decodable(
     gen_dict, dis_dict, loss_dict, spks, spk_embed_dim, langs
 ):
+    try:
+        from scipy.signal import kaiser
+    except ImportError:
+        pytest.skip("Compatibility issue with scipy.")
     idim = 10
     odim = 5
     global_channels = 8
@@ -1330,9 +1339,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
     device = torch.device("cuda")
     model.to(device)
     inputs = {
-        k: {k2: v2.to(device) for k2, v2 in v.items()}
-        if isinstance(v, dict)
-        else v.to(device)
+        k: (
+            {k2: v2.to(device) for k2, v2 in v.items()}
+            if isinstance(v, dict)
+            else v.to(device)
+        )
         for k, v in inputs.items()
     }
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -1398,9 +1409,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             pitch=torch.randn(16, 1),
         )
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         model.inference(**inputs)
@@ -1461,9 +1474,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             feats=torch.randn(16, odim),
         )
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
@@ -1550,9 +1565,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
     device = torch.device("cuda")
     model.to(device)
     inputs = {
-        k: {k2: v2.to(device) for k2, v2 in v.items()}
-        if isinstance(v, dict)
-        else v.to(device)
+        k: (
+            {k2: v2.to(device) for k2, v2 in v.items()}
+            if isinstance(v, dict)
+            else v.to(device)
+        )
         for k, v in inputs.items()
     }
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -1624,9 +1641,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         model.inference(**inputs)
@@ -1693,9 +1712,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         output_dict = model.inference(**inputs, use_teacher_forcing=True)

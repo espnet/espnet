@@ -24,23 +24,23 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1              # Processes starts from the specified stage.
-stop_stage=10000     # Processes is stopped at the specified stage.
-skip_stages=         # Spicify the stage to be skipped
-skip_data_prep=false # Skip data preparation stages.
-skip_train=false     # Skip training stages.
-skip_eval=false      # Skip decoding and evaluation stages.
-skip_upload=true     # Skip packing and uploading to zenodo.
-skip_upload_hf=true  # Skip uploading to hugging face stages.
-eval_valid_set=false # Run decoding for the validation set
-ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes.
-nj=32                # The number of parallel jobs.
-inference_nj=32      # The number of parallel jobs in decoding.
-gpu_inference=false  # Whether to perform gpu decoding.
-dumpdir=dump         # Directory to dump features.
-expdir=exp           # Directory to save experiments.
-python=python3       # Specify python to execute espnet commands.
+stage=1                 # Processes starts from the specified stage.
+stop_stage=10000        # Processes is stopped at the specified stage.
+skip_stages=            # Spicify the stage to be skipped
+skip_data_prep=false    # Skip data preparation stages.
+skip_train=false        # Skip training stages.
+skip_eval=false         # Skip decoding and evaluation stages.
+skip_packing=true       # Skip the packing stage.
+skip_upload_hf=true     # Skip uploading to huggingface stage.
+eval_valid_set=false    # Run decoding for the validation set
+ngpu=1                  # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1             # The number of nodes.
+nj=32                   # The number of parallel jobs.
+inference_nj=32         # The number of parallel jobs in decoding.
+gpu_inference=false     # Whether to perform gpu decoding.
+dumpdir=dump            # Directory to dump features.
+expdir=exp              # Directory to save experiments.
+python=python3          # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -54,8 +54,10 @@ audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feat
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
 fs=16k               # Sampling rate.
+min_wav_duration=0.1 # Minimum duration in second.
+max_wav_duration=30  # Maximum duration in second.
 
-# Kmeans related
+# Kmeans / Codec related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
 portion=0.1
@@ -63,8 +65,12 @@ nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 gpu_kmeans=true             # Whether to use gpu for kmeans.
+codec_choice=ESPnet
+codec_checkpoint_path=      # path to codec checkpoint file
+codec_config_path=          # path to codec config file
 
 # Tokenization related
+tokenization_choice=ssl # ssl or codec
 oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
@@ -163,23 +169,23 @@ Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_s
 
 Options:
     # General configuration
-    --stage          # Processes starts from the specified stage (default="${stage}").
-    --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
-    --skip_stages    # Spicify the stage to be skipped (default="${skip_stages}").
-    --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
-    --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --skip_upload_hf    # Skip packing and uploading stages (default="${skip_upload_hf}").
-    --eval_valid_set # Run decoding for the validation set (default="${eval_valid_set}").
-    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes (default="${num_nodes}").
-    --nj             # The number of parallel jobs (default="${nj}").
-    --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
-    --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
-    --dumpdir        # Directory to dump features (default="${dumpdir}").
-    --expdir         # Directory to save experiments (default="${expdir}").
-    --python         # Specify python to execute espnet commands (default="${python}").
+    --stage              # Processes starts from the specified stage (default="${stage}").
+    --stop_stage         # Processes is stopped at the specified stage (default="${stop_stage}").
+    --skip_stages        # Spicify the stage to be skipped (default="${skip_stages}").
+    --skip_data_prep     # Skip data preparation stages (default="${skip_data_prep}").
+    --skip_train         # Skip training stages (default="${skip_train}").
+    --skip_eval          # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_packing       # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_hf     # Skip uploading to huggingface stage (default="${skip_upload_hf}").
+    --eval_valid_set     # Run decoding for the validation set (default="${eval_valid_set}").
+    --ngpu               # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes          # The number of nodes (default="${num_nodes}").
+    --nj                 # The number of parallel jobs (default="${nj}").
+    --inference_nj       # The number of parallel jobs in decoding (default="${inference_nj}").
+    --gpu_inference      # Whether to perform gpu decoding (default="${gpu_inference}").
+    --dumpdir            # Directory to dump features (default="${dumpdir}").
+    --expdir             # Directory to save experiments (default="${expdir}").
+    --python             # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -191,6 +197,8 @@ Options:
     --feats_type       # Feature type (raw, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw or raw_copy, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
+    --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
+    --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Kmeans related
     --kmeans_opts       # The options given to kmeans step (default="${kmeans_opts}").
@@ -336,6 +344,16 @@ else
     exit 2
 fi
 
+if [ ${tokenization_choice} == "codec" ]; then
+    if [ ! ${src_token_type} == "null" ]; then
+        echo "src_token_type should only be null if tokenization_choice is codec" && exit 1;
+    fi
+fi
+
+ref_text_files_str="text "
+# shellcheck disable=SC2206
+ref_text_files=(${ref_text_files_str// / })
+
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang} utt2spk"
 # Use the same text as ASR for bpe training if not specified.
@@ -388,6 +406,16 @@ else
     src_wordtoken_list="${token_listdir}"/word_${src_lang}/src_tokens.txt
 fi
 
+# NOTE(Jinchuan): null means each token will not have explicit meaning.
+# those are discrete tokens that are already dumped into disk before the
+# training. e.g., speech codec tokens.
+tgt_null_list="${token_listdir}"/null_${tgt_lang}/src_tokens.txt
+if "${token_joint}"; then
+    src_null_list="${tgt_null_list}"
+else
+    src_null_list="${token_listdir}"/null_${src_lang}/src_tokens.txt
+fi
+
 # Set token types for src and tgt langs
 if [ "${src_token_type}" = bpe ]; then
     src_token_list="${src_bpetoken_list}"
@@ -396,6 +424,9 @@ elif [ "${src_token_type}" = char ]; then
     src_bpemodel=none
 elif [ "${src_token_type}" = word ]; then
     src_token_list="${src_wordtoken_list}"
+    src_bpemodel=none
+elif [ "${src_token_type}" = null ]; then
+    src_token_list="${src_null_list}"
     src_bpemodel=none
 else
     log "Error: not supported --src_token_type '${src_token_type}'"
@@ -409,10 +440,20 @@ elif [ "${tgt_token_type}" = char ]; then
 elif [ "${tgt_token_type}" = word ]; then
     tgt_token_list="${tgt_wordtoken_list}"
     tgt_bpemodel=none
+elif [ "${tgt_token_type}" = null ]; then
+    tgt_token_list="${tgt_null_list}"
+    tgt_bpemodel=none
 else
     log "Error: not supported --tgt_token_type '${tgt_token_type}'"
     exit 2
 fi
+
+if [ ${tokenization_choice} == "ssl" ]; then
+    input_src_type="text"
+else
+    input_src_type="kaldi_ark"
+fi
+
 # NOTE: keep for future development.
 # shellcheck disable=SC2317
 if ${use_word_lm}; then
@@ -560,26 +601,25 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 if "${skip_data_prep}"; then
-    skip_stages+=" 1 2 3 4 5 6"
+    skip_stages+="1 2 3 4 5 6 "
 fi
 if "${skip_train}"; then
-    skip_stages+=" 5 6 7 8 9 10 11 12 13"
+    skip_stages+="5 6 7 8 9 10 11 12 13 "
 elif ! "${use_lm}"; then
-    skip_stages+=" 8 9 10"
+    skip_stages+="8 9 10 "
 fi
 if ! "${use_ngram}"; then
-    skip_stages+=" 11"
+    skip_stages+="11 "
 fi
 if "${skip_eval}"; then
-    skip_stages+=" 14 15"
+    skip_stages+="14 15 "
 fi
 
-if "${skip_upload}" && "${skip_upload_hf}"; then
-    skip_stages+=" 16 17 18"
-elif "${skip_upload}"; then
-    skip_stages+=" 17"
-elif "${skip_upload_hf}"; then
-    skip_stages+=" 18"
+if "${skip_packing}"; then
+    skip_stages+="16 "
+fi
+if "${skip_upload_hf}"; then
+    skip_stages+="17 "
 fi
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
@@ -647,8 +687,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         # i.e. the input file format and rate is same as the output.
 
         for dset in ${_dsets}; do
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}/${dset}"
-            rm -f "${data_audio}/${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            if [ "${dset}" = "${train_set}" ] || [[ "${dset}" == ${train_set}_sp* ]] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}${_suf}/${dset}"
+            rm -f "${data_audio}${_suf}/${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
             _opts=
             if [ -e "data/${dset}"/segments ]; then
@@ -663,13 +709,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                 --multi-columns-input "${multi_columns_input_wav_scp}" \
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
-                "data/${dset}/wav.scp" "${data_audio}/${dset}"
+                "data/${dset}/wav.scp" "${data_audio}${_suf}/${dset}"
 
-            echo "${feats_type}" > "${data_audio}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
-                echo "multi_${audio_format}" > "${data_audio}/${dset}/audio_format"
+                echo "multi_${audio_format}" > "${data_audio}${_suf}/${dset}/audio_format"
             else
-                echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
+                echo "${audio_format}" > "${data_audio}${_suf}/${dset}/audio_format"
             fi
         done
     else
@@ -680,93 +726,199 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
-    log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
+    log "Stage 4: Remove long/short data: ${data_audio}/org -> ${data_audio}"
 
-    scripts/feats/perform_kmeans.sh \
-        --stage 1 --stop-stage 4 \
-        --train_set "${train_set}" \
-        --dev_set "${valid_set}" \
-        --other_sets "${test_sets} ${train_sp_sets}" \
-        --datadir "${data_audio}" \
-        --featdir "${data_extract}" \
-        --audio_format "${audio_format}" \
-        --feature_type "${kmeans_feature_type}" \
-        --layer "${layer}" \
-        --feature_conf "${kmeans_feature_conf}" \
-        --km_dir "${km_dir}" \
-        --portion "${portion}" \
-        --nclusters "${nclusters}" \
-        --storage_save_mode ${storage_save_mode} \
-        --use_gpu ${gpu_kmeans} \
-        --nj ${nj} \
-        --cpu_cmd "${train_cmd}" \
-        --cuda_cmd "${cuda_cmd}" \
-        ${kmeans_opts}
+    # NOTE(kamo): Not applying to test_sets to keep original data
+    for dset in "${train_set}" ${train_sp_sets} "${valid_set}"; do
 
-    log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
+        # Copy data dir
+        utils/copy_data_dir.sh --validate_opts --non-print "${data_audio}/org/${dset}" "${data_audio}/${dset}"
+        cp "${data_audio}/org/${dset}/feats_type" "${data_audio}/${dset}/feats_type"
 
-    # Get uniq chars
-    if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
-        if [ ${nclusters} -ge 20900 ]; then
-            echo "Warning: too many clusters, be careful with the distinct token list."
+        # Remove short utterances
+        _feats_type="$(<${data_audio}/${dset}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+
+            # utt2num_samples is created by format_wav_scp.sh
+            <"${data_audio}/org/${dset}/utt2num_samples" \
+                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                    >"${data_audio}/${dset}/utt2num_samples"
+            <"${data_audio}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_audio}/${dset}/utt2num_samples"  \
+                >"${data_audio}/${dset}/wav.scp"
+        else
+            log "Error: not supported: --feats_type ${feats_type}"
+            exit 2
         fi
-        python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
-            > "${km_dir}/../"distinct_cjk_token_lists
-    fi
 
-    _suf=
-    if [ -n "${layer}" ]; then
-        _suf="layer${layer}/"
-    fi
-
-    if [ "${src_case}" = ts ]; then
-        echo "keep the original discrete token sequence"
-        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-            awk '
-                (FILENAME==ARGV[1]) {a[$1]=$2}
-                (FILENAME==ARGV[2]) {
-                    out="";
-                    for (i=2; i<=NF; i++) {
-                        out=out""a[$i];
-                    }
-                    print($1,out);
-                }' "${km_dir}/../"distinct_cjk_token_lists \
-                "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                > "data/${dset}"/text.${src_case}.${src_lang}
+        # Remove empty text
+        # shellcheck disable=SC2068
+        for ref_txt in ${ref_text_files[@]}; do
+            <"${data_audio}/org/${dset}/${ref_txt}" \
+                awk ' { if( NF != 1 ) print $0; } ' >"${data_audio}/${dset}/${ref_txt}"
         done
-    elif [ "${src_case}" = rm ]; then
-        echo "remove repetitions in the discrete token sequence"
-        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-            awk '
-                (FILENAME==ARGV[1]) {a[$1]=$2}
-                (FILENAME==ARGV[2]) {
-                    out="";
-                    for (i=2; i<=NF; i++) {
-                        if ($i != $(i-1)) {out=out""a[$i]}
-                    }
-                    print($1,out);
-                }' "${km_dir}/../"distinct_cjk_token_lists \
-                "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                > "data/${dset}/text.${src_case}.${src_lang}"
-        done
-    else
-        echo "Unrecognized src_case ${src_case}" && exit 1;
-    fi
 
-    for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-        cp data/${dset}/text data/${dset}/text.${tgt_case}.${tgt_lang}
+        # fix_data_dir.sh leaves only utts which exist in all files
+        utils/fix_data_dir.sh \
+            ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
+            "${data_audio}/${dset}"
+
+        # Check how many samples are removed
+        org_num_samples=$(wc -l "${data_audio}/org/${dset}/utt2spk" | cut -d' ' -f1)
+        filtered_num_samples=$(wc -l "${data_audio}/${dset}/utt2spk" | cut -d' ' -f1)
+        echo "filter samples: removed $((org_num_samples - filtered_num_samples)) samples with empty text"
     done
+fi
 
-    if [ -n "${speed_perturb_factors}" ]; then
-        _dirs="data/${train_set} "
-        for factor in ${speed_perturb_factors}; do
-            if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
-                _dirs+="data/${train_set}_sp${factor} "
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
+    log "Stage 5a: Perform Kmeans using ${kmeans_feature_type} features"
+
+    if "${eval_valid_set}"; then
+        _dev_set="org/${valid_set}"
+    else
+        _dev_set="${valid_set}"
+    fi
+
+    if [ "${tokenization_choice}" == "ssl" ]; then
+        scripts/feats/perform_kmeans.sh \
+            --stage 1 --stop-stage 4 \
+            --train_set "${train_set}" \
+            --dev_set "${_dev_set}" \
+            --other_sets "${test_sets} ${train_sp_sets}" \
+            --datadir "${data_audio}" \
+            --featdir "${data_extract}" \
+            --audio_format "${audio_format}" \
+            --feature_type "${kmeans_feature_type}" \
+            --layer "${layer}" \
+            --feature_conf "${kmeans_feature_conf}" \
+            --km_dir "${km_dir}" \
+            --portion "${portion}" \
+            --nclusters "${nclusters}" \
+            --storage_save_mode ${storage_save_mode} \
+            --use_gpu ${gpu_kmeans} \
+            --nj ${nj} \
+            --cpu_cmd "${train_cmd}" \
+            --cuda_cmd "${cuda_cmd}" \
+            ${kmeans_opts}
+
+        log "Stage 5b: Prepare token_list and convert number indices to CJK tokens"
+
+        # Get uniq chars
+        if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
+            if [ ${nclusters} -ge 20900 ]; then
+                echo "Warning: too many clusters, be careful with the distinct token list."
             fi
+            python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
+                > "${km_dir}/../"distinct_cjk_token_lists
+        fi
+
+        _suf=
+        if [ -n "${layer}" ]; then
+            _suf="layer${layer}"
+        fi
+
+        if [ "${src_case}" = ts ]; then
+            echo "keep the original discrete token sequence"
+            for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+                awk '
+                    (FILENAME==ARGV[1]) {a[$1]=$2}
+                    (FILENAME==ARGV[2]) {
+                        out="";
+                        for (i=2; i<=NF; i++) {
+                            out=out""a[$i];
+                        }
+                        print($1,out);
+                    }' "${km_dir}/../"distinct_cjk_token_lists \
+                    "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/pseudo_labels_km${nclusters}.txt" \
+                    > "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"/text.${src_case}.${src_lang}
+            done
+        elif [ "${src_case}" = rm ]; then
+            echo "remove repetitions in the discrete token sequence"
+            for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+                awk '
+                    (FILENAME==ARGV[1]) {a[$1]=$2}
+                    (FILENAME==ARGV[2]) {
+                        out="";
+                        for (i=2; i<=NF; i++) {
+                            if ($i != $(i-1)) {out=out""a[$i]}
+                        }
+                        print($1,out);
+                    }' "${km_dir}/../"distinct_cjk_token_lists \
+                    "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/pseudo_labels_km${nclusters}.txt" \
+                    > "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text.${src_case}.${src_lang}"
+            done
+        else
+            echo "Unrecognized src_case ${src_case}" && exit 1;
+        fi
+
+        for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text \
+                ${data_extract}/${kmeans_feature_type}/${_suf}/${dset}/text.${tgt_case}.${tgt_lang}
         done
-        utils/combine_data.sh \
-            --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
-            "data/${train_set}_sp" ${_dirs}
+
+        if ${eval_valid_set}; then
+            utils/copy_data_dir.sh --validate_opts --non-print ${data_audio}/org/${valid_set} \
+                ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/org/${valid_set}/text.${src_case}.${src_lang} \
+                ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+            cp ${data_extract}/${kmeans_feature_type}/${_suf}/org/${valid_set}/text.${tgt_case}.${tgt_lang} \
+                ${data_extract}/${kmeans_feature_type}/${_suf}/${valid_set}
+
+            utils/fix_data_dir.sh --utt_extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+                "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"
+        fi
+
+        if [ -n "${speed_perturb_factors}" ]; then
+            _dirs="${data_extract}/${kmeans_feature_type}/${_suf}/${train_set} "
+            for factor in ${speed_perturb_factors}; do
+                if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
+                    _dirs+="${data_extract}/${kmeans_feature_type}/${_suf}/${train_set}_sp${factor} "
+                fi
+            done
+            utils/combine_data.sh \
+                --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+                "${data_extract}/${kmeans_feature_type}/${_suf}/${train_set}_sp" ${_dirs}
+        fi
+
+    elif [ "${tokenization_choice}" == "codec" ]; then
+        for dset in "${train_set}" ${train_sp_sets} "${_dev_set}" ${test_sets}; do
+            # NOTE (Jinchuan) bias=2, reserve two slots for <blk> and <unk>
+            scripts/feats/codec_tokenization.sh \
+                --src_dir ${data_audio}/${dset} \
+                --tgt_dir ${data_feats}/${dset} \
+                --codec_fs ${fs} \
+                --dump_audio false \
+                --file_name wav.scp \
+                --nj ${nj} \
+                --bias 2 \
+                --codec_choice ${codec_choice} \
+                --checkpoint_path ${codec_checkpoint_path} \
+                --config_path ${codec_config_path}
+
+                cp ${data_feats}/${dset}/wav.scp ${data_feats}/${dset}/text.${src_case}.${src_lang}
+                cp ${data_audio}/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
+                cp ${data_audio}/${dset}/utt2spk    ${data_feats}/${dset}/utt2spk
+        done
+
+        if [ -n "${speed_perturb_factors}" ]; then
+            _dirs="${data_feats}/${train_set} "
+            for factor in ${speed_perturb_factors}; do
+                if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
+                    _dirs+="${data_feats}/${train_set}_sp${factor} "
+                fi
+            done
+            utils/combine_data.sh \
+                --extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+                "${data_feats}/${train_set}_sp" ${_dirs}
+        fi
+
+    else
+        echo "unrecognized tokenization choice ${tokenization_choice}. Exit" && exit 1;
     fi
 fi
 
@@ -774,72 +926,56 @@ fi
 if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
+
+
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
-            _dsets="${valid_set} ${test_sets}"
+            _dsets="org/${valid_set} ${test_sets}"
         else
             _dsets="${test_sets}"
         fi
     else
-        _dsets="${train_set} ${valid_set} ${test_sets}"
+        if "${eval_valid_set}"; then
+            _dsets="${train_set} ${valid_set} org/${valid_set} ${test_sets}"
+        else
+            _dsets="${train_set} ${valid_set} ${test_sets}"
+        fi
     fi
     if [ "${feats_type}" = raw ]; then
-        log "Stage 5: data/ -> ${data_feats}"
+        # NOTE(Jinchuan): data prep with codec tokenization has been done. Skip this part
+        if [ "${tokenization_choice}" == "codec"]; then
+            continue
+        fi
+        log "Stage 6: ${data_extract} -> ${data_feats}"
+
+        _suf=
+        if [ -n "${layer}" ]; then
+            _suf="layer${layer}"
+        fi
 
         for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
-            mkdir -p "${data_feats}${_suf}/${dset}"
+            mkdir -p "${data_feats}/${dset}"
 
             for extra_file in ${utt_extra_files}; do
                 # with regex to suuport multi-references
-                for single_file in data/"${dset}"/*; do
+                for single_file in "${data_extract}/${kmeans_feature_type}/${_suf}/${dset}"/*; do
                     base=$(basename "${single_file}")
-                    [ "${base}" = "${extra_file}" ] && cp ${single_file} "${data_feats}${_suf}/${dset}"
+                    [ "${base}" = "${extra_file}" ] && cp ${single_file} "${data_feats}/${dset}"
                 done
             done
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
     fi
-fi
 
-
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
-    log "Stage 6: Data filtering: ${data_feats}/org -> ${data_feats}"
-
-    # NOTE(kamo): Not applying to test_sets to keep original data
-    for dset in "${train_set}" "${valid_set}"; do
-        # Copy data dir
-        mkdir -p "${data_feats}/${dset}"
-        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-
-        for utt_extra_file in ${utt_extra_files}; do
-            cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
-        done
-
-        # Remove empty text
-        cat "${data_feats}/org/${dset}/text.${tgt_case}.${tgt_lang}" | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}"
-        utils/filter_scp.pl "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}" "${data_feats}/org/${dset}/utt2spk" > "${data_feats}/${dset}/utt2spk"
-        utils/fix_data_dir.sh \
-            --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
-
-        # Check how many samples are removed
-        org_num_samples=$(wc -l "${data_feats}/org/${dset}/utt2spk" | cut -d' ' -f1)
-        filtered_num_samples=$(wc -l "${data_feats}/${dset}/utt2spk" | cut -d' ' -f1)
-        echo "filter samples with empty texts: removed $((org_num_samples - filtered_num_samples)) samples with empty text"
-
-        # TODO: Add other data cleaning -- currently being done as part of data.sh
-    done
-
-    # shellcheck disable=SC2002
-    cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+    # shellcheck disable=SC2002,SC2068,SC2005
+    for lm_txt in ${lm_train_text[@]}; do
+        suffix=$(echo "$(basename ${lm_txt})" | sed 's/text//')
+        <${lm_txt} awk -v suffix=${suffix} ' { if( NF != 1 ) {$1=$1 suffix; print $0; }} '
+    done > "${data_feats}/lm_train.txt"
 fi
 
 
@@ -981,6 +1117,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
+
+        elif [ "${src_token_type}" = "null" ]; then
+            log "Stage 7b: Generate token_list from existing src vocabulary and special tokens"
+            mkdir -p "$(dirname ${src_token_list})"
+            echo ${blank} > ${src_token_list}
+            echo ${oov} >> ${src_token_list}
+            cat "${data_feats}"/${valid_set}/token_lists/codec_token_list >> ${src_token_list}
+            echo ${sos_eos} >> ${src_token_list}
 
         else
             log "Error: not supported --token_type '${src_token_type}'"
@@ -1235,9 +1379,9 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
             --train_data_path_and_name_and_type "${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-            --train_data_path_and_name_and_type "${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text" \
+            --train_data_path_and_name_and_type "${_asr_train_dir}/text.${src_case}.${src_lang},src_text,${input_src_type}" \
             --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-            --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+            --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${src_case}.${src_lang},src_text,${input_src_type}" \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --output_dir "${_logdir}/stats.JOB" \
@@ -1304,13 +1448,13 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             log "${_split_dir}/.done exists. Spliting is skipped"
         fi
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,${input_src_type} "
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
         _opts+="--multiple_iterator true "
     else
-        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text "
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,${input_src_type} "
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${asr_stats_dir}/train/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${tgt_token_type} "
@@ -1349,7 +1493,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
             --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-            --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+            --valid_data_path_and_name_and_type "${_asr_valid_dir}/text.${src_case}.${src_lang},src_text,${input_src_type}" \
             --valid_shape_file "${asr_stats_dir}/valid/text_shape.${tgt_token_type}" \
             --valid_shape_file "${asr_stats_dir}/valid/src_text_shape.${src_token_type}" \
             --resume true \
@@ -1458,7 +1602,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~
             ${python} -m ${asr_inference_tool} \
                 --batch_size ${batch_size} \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${_data}/${_scp},src_text,text" \
+                --data_path_and_name_and_type "${_data}/${_scp},src_text,${input_src_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --mt_train_config "${asr_exp}"/config.yaml \
                 --mt_model_file "${asr_exp}"/"${inference_asr_model}" \
@@ -1508,7 +1652,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
 
             # Tokenize text to ${_tok_type} level
             paste \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+                <(perl -p -e 's/^(\S+) (\*\s*)+/$1 /' "${_data}/text.${tgt_case}.${tgt_lang}" | \
                     ${python} -m espnet2.bin.tokenize_text  \
                         -f 2- --input - --output - \
                         --token_type ${_tok_type} \
@@ -1520,7 +1664,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
 
             # NOTE(kamo): Don't use cleaner for hyp
             paste \
-                <(<"${_dir}/text"  \
+                <(perl -p -e 's/^(\S+) (\*\s*)+/$1 /' "${_dir}/text" | \
                     ${python} -m espnet2.bin.tokenize_text  \
                         -f 2- --input - --output - \
                         --token_type ${_tok_type} \
@@ -1579,70 +1723,16 @@ if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~
         --outpath "${packed_model}"
 fi
 
-
-if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ] && ! [[ " ${skip_stages} " =~ [[:space:]]17[[:space:]] ]]; then
-    log "Stage 17: Upload model to Zenodo: ${packed_model}"
-    log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
-
-    # To upload your model, you need to do:
-    #   1. Sign up to Zenodo: https://zenodo.org/
-    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
-
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="
-git checkout $(git show -s --format=%H)"
-
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
-    fi
-    # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/asr1 -> foo
-    _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-    # Generate description file
-    cat << EOF > "${asr_exp}"/description
-This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-<p>&nbsp;</p>
-<ul>
-<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-<li><strong>Evaluate in the recipe</strong><pre>
-<code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-</pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
-<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
-</ul>
-EOF
-
-    # NOTE(kamo): The model file is uploaded here, but not published yet.
-    #   Please confirm your record at Zenodo and publish it by yourself.
-
-    # shellcheck disable=SC2086
-    espnet_model_zoo_upload \
-        --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_model_name}, lang=${lang}" \
-        --description_file "${asr_exp}"/description \
-        --creator_name "${_creator_name}" \
-        --license "CC-BY-4.0" \
-        --use_sandbox false \
-        --publish false
-fi
-
-
-if [ ${stage} -le 18 ] && [ ${stop_stage} -ge 18 ] && ! [[ " ${skip_stages} " =~ [[:space:]]18[[:space:]] ]]; then
+if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ] && ! [[ " ${skip_stages} " =~ [[:space:]]18[[:space:]] ]]; then
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
-    log "Stage 18: Upload model to HuggingFace: ${hf_repo}"
+    log "Stage 17: Upload model to HuggingFace: ${hf_repo}"
+
+    if [ ! -f "${packed_model}" ]; then
+        log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
+        exit 1
+    fi
 
     gitlfs=$(git lfs --version 2> /dev/null || true)
     [ -z "${gitlfs}" ] && \

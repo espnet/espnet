@@ -8,10 +8,10 @@ from setuptools import find_packages, setup
 
 requirements = {
     "install": [
-        "setuptools>=38.5.1",
+        "setuptools>=38.5.1,<74.0.0",
         "packaging",
         "configargparse>=1.2.1",
-        "typeguard==2.13.3",
+        "typeguard",
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
@@ -39,7 +39,6 @@ requirements = {
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
-        "pytorch_wpe",
         "fast-bss-eval==0.1.3",
         # SPK
         "asteroid_filterbanks==0.4.0",
@@ -54,7 +53,6 @@ requirements = {
     "train": [
         "matplotlib",
         "pillow==9.5.0",
-        "editdistance==0.5.2",
         "wandb",
         "tensorboard>=1.14",
     ],
@@ -93,14 +91,14 @@ requirements = {
         "pytest-runner",
     ],
     "test": [
-        "pytest>=3.3.0",
+        "pytest>=7.0.0",
         "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",
         "hacking>=2.0.0",
         "mock>=2.0.0",
         "pycodestyle",
-        "jsondiff<2.0.0,>=1.2.0",
+        "jsondiff>=2.0.0",
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
@@ -108,13 +106,15 @@ requirements = {
     ],
     "doc": [
         "Jinja2<3.1",
-        "Sphinx==2.1.2",
+        "sphinx<9.0.0",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
         "commonmark==0.8.1",
-        "recommonmark>=0.4.0",
+        "myst-parser",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
+        "jupyterlab<5",
+        "sphinx-markdown-builder",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])

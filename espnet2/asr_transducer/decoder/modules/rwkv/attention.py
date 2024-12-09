@@ -2,14 +2,15 @@
 
 Based/Modified from https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py.
 
-Some variables are renamed according to https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.
+Some variables are renamed according to
+https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.
 
-"""  # noqa
+"""
 
 import math
 from importlib.util import find_spec
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import torch
 
@@ -83,7 +84,7 @@ class WKVLinearAttention(torch.autograd.Function):
 
         """
         time_decay, time_first, key, value, output = ctx.saved_tensors
-        grad_dtype = ctx.input_dtype
+        grad_dtype = ctx.input_dtype  # noqa
 
         batch, _, dim = key.size()
 
@@ -297,6 +298,8 @@ class SelfAttention(torch.nn.Module):
 
         """
         num_state, den_state, max_state = state
+
+        time_decay = -torch.exp(time_decay)
 
         max_for_output = torch.maximum(max_state, (time_first + key))
 

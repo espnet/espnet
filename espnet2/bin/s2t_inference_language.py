@@ -3,48 +3,30 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.quantization
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
-from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.s2t import S2TTask
-from espnet2.text.build_tokenizer import build_tokenizer
-from espnet2.text.token_id_converter import TokenIDConverter
-from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.utils.cli_utils import get_commandline_args
 
-# Alias for typing
-ListOfHypothesis = List[
-    Tuple[
-        Optional[str],
-        List[str],
-        List[int],
-        Hypothesis,
-    ]
-]
 
-
-class Speech2Text:
+class Speech2Language:
+    @typechecked
     def __init__(
         self,
-        s2t_train_config: Union[Path, str] = None,
-        s2t_model_file: Union[Path, str] = None,
-        token_type: str = None,
-        bpemodel: str = None,
+        s2t_train_config: Union[Path, str, None] = None,
+        s2t_model_file: Union[Path, str, None] = None,
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
@@ -52,13 +34,13 @@ class Speech2Text:
         quantize_s2t_model: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
+        first_lang_sym: str = "<abk>",
+        last_lang_sym: str = "<zul>",
     ):
-        assert check_argument_types()
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+        qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
-        # 1. Build S2T model
         s2t_model, s2t_train_args = S2TTask.build_model_from_file(
             s2t_train_config, s2t_model_file, device
         )
@@ -68,111 +50,60 @@ class Speech2Text:
             logging.info("Use quantized s2t model for decoding.")
 
             s2t_model = torch.quantization.quantize_dynamic(
-                s2t_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                s2t_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
             )
 
-        decoder = s2t_model.decoder
-        token_list = s2t_model.token_list
-        scorers = dict(
-            decoder=decoder,
-        )
-
-        # 4. Build BeamSearch object
-        weights = dict(
-            decoder=1.0,
-        )
-        beam_search = BeamSearch(
-            beam_size=nbest,
-            weights=weights,
-            scorers=scorers,
-            sos=s2t_model.sos,
-            eos=s2t_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key="full",
-        )
-
-        # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
-
-            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-            for scorer in scorers.values():
-                if isinstance(scorer, torch.nn.Module):
-                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
-
-        # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
-        if token_type is None:
-            token_type = s2t_train_args.token_type
-        if bpemodel is None:
-            bpemodel = s2t_train_args.bpemodel
-
-        if token_type is None:
-            tokenizer = None
-        elif (
-            token_type == "bpe"
-            or token_type == "hugging_face"
-            or "whisper" in token_type
-        ):
-            if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
-            else:
-                tokenizer = None
-        else:
-            tokenizer = build_tokenizer(token_type=token_type)
-
-        if bpemodel not in ["whisper_en", "whisper_multilingual"]:
-            converter = TokenIDConverter(token_list=token_list)
-        else:
-            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
-            beam_search.set_hyp_primer(
-                list(converter.tokenizer.sot_sequence_including_notimestamps)
-            )
-        logging.info(f"Text tokenizer: {tokenizer}")
+        logging.info(f"Decoding device={device}, dtype={dtype}")
 
         self.s2t_model = s2t_model
         self.s2t_train_args = s2t_train_args
-        self.converter = converter
-        self.tokenizer = tokenizer
-        self.beam_search = beam_search
+        self.preprocessor_conf = s2t_train_args.preprocessor_conf
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
 
+        token_list = s2t_model.token_list
+        self.first_lang_id = token_list.index(first_lang_sym)
+        self.last_lang_id = token_list.index(last_lang_sym)
+
     @torch.no_grad()
+    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
-    ) -> ListOfHypothesis:
-        """Inference for a short utterance.
+    ) -> List[Tuple[str, float]]:
+        """Predict the language in input speech.
+
+        The input speech will be padded or trimmed to the fixed length,
+        which is consistent with training.
 
         Args:
-            speech: Input speech
+            speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
+
         Returns:
-            text, token, token_int, hyp
+            List of (language, probability)
 
         """
-        assert check_argument_types()
-
-        self.beam_search.set_hyp_primer([self.s2t_model.sos])
 
         # Preapre speech
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
+
+        # Only support single-channel speech
+        if speech.dim() > 1:
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
+            speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
+
+        speech_length = int(
+            self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
+        )
+        # Pad or trim speech to the fixed length
+        if speech.size(-1) >= speech_length:
+            speech = speech[:speech_length]
+        else:
+            speech = F.pad(speech, (0, speech_length - speech.size(-1)))
 
         # Batchify input
         # speech: (nsamples,) -> (1, nsamples)
@@ -189,46 +120,20 @@ class Speech2Text:
         enc, enc_olens = self.s2t_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
-        # c. Pass the encoder result to the beam search
-        results = self._decode_single_sample(enc[0])
+        # c. Forward Decoder by one step
+        ys = torch.tensor(
+            [self.s2t_model.sos] * len(enc), dtype=torch.long, device=self.device
+        ).unsqueeze(-1)
+        logp, _ = self.s2t_model.decoder.batch_score(ys, [None], enc)
+        assert len(logp) == 1, len(logp)
 
-        assert check_return_type(results)
-        return results
-
-    def _decode_single_sample(self, enc: torch.Tensor):
-        if hasattr(self.beam_search.nn_dict, "decoder"):
-            if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
-                # Setup: required for S4 autoregressive generation
-                for module in self.beam_search.nn_dict.decoder.modules():
-                    if hasattr(module, "setup_step"):
-                        module.setup_step()
-
-        nbest_hyps = self.beam_search(x=enc, maxlenratio=-1, minlenratio=-1)
-        nbest_hyps = nbest_hyps[: self.nbest]
-
+        prob = torch.softmax(logp[0, self.first_lang_id : self.last_lang_id + 1], -1)
+        best_results = torch.topk(prob, self.nbest)
         results = []
-        for hyp in nbest_hyps:
-            assert isinstance(hyp, Hypothesis), type(hyp)
-
-            # remove sos/eos and get results
-            last_pos = -1
-            if isinstance(hyp.yseq, list):
-                token_int = hyp.yseq[:last_pos]
-            else:
-                token_int = hyp.yseq[:last_pos].tolist()
-            token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
-
-            # remove blank symbol id
-            token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
-
-            # Change integer-ids to tokens
-            token = self.converter.ids2tokens(token_int)
-
-            if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            else:
-                text, text_nospecial = None, None
-            results.append((text, token, token_int, hyp))
+        for idx, val in zip(best_results.indices, best_results.values):
+            results.append(
+                (self.s2t_model.token_list[idx + self.first_lang_id], val.item())
+            )
 
         return results
 
@@ -237,14 +142,14 @@ class Speech2Text:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build Speech2Language instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2Text instance.
+            Speech2Language: Speech2Language instance.
 
         """
         if model_tag is not None:
@@ -260,9 +165,10 @@ class Speech2Text:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return Speech2Text(**kwargs)
+        return Speech2Language(**kwargs)
 
 
+@typechecked
 def inference(
     output_dir: str,
     batch_size: int,
@@ -277,14 +183,13 @@ def inference(
     s2t_train_config: Optional[str],
     s2t_model_file: Optional[str],
     model_tag: Optional[str],
-    token_type: Optional[str],
-    bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     quantize_s2t_model: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
+    first_lang_sym: str,
+    last_lang_sym: str,
 ):
-    assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
@@ -304,21 +209,21 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text_kwargs = dict(
+    speech2language_kwargs = dict(
         s2t_train_config=s2t_train_config,
         s2t_model_file=s2t_model_file,
-        token_type=token_type,
-        bpemodel=bpemodel,
         device=device,
         dtype=dtype,
         nbest=nbest,
         quantize_s2t_model=quantize_s2t_model,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
+        first_lang_sym=first_lang_sym,
+        last_lang_sym=last_lang_sym,
     )
-    speech2text = Speech2Text.from_pretrained(
+    speech2language = Speech2Language.from_pretrained(
         model_tag=model_tag,
-        **speech2text_kwargs,
+        **speech2language_kwargs,
     )
 
     # 3. Build data-iterator
@@ -328,8 +233,10 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2TTask.build_preprocess_fn(speech2text.s2t_train_args, False),
-        collate_fn=S2TTask.build_collate_fn(speech2text.s2t_train_args, False),
+        preprocess_fn=S2TTask.build_preprocess_fn(
+            speech2language.s2t_train_args, False
+        ),
+        collate_fn=S2TTask.build_collate_fn(speech2language.s2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -345,27 +252,22 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             logging.info(keys[0])
-            # N-best list of (text, token, token_int, hyp_object)
+            # N-best list of (lang, prob)
             try:
-                results = speech2text(**batch)
+                results = speech2language(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
-                hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                results = [[" ", ["<space>"], [2], hyp]] * nbest
+                results = [(" ", 0.0)] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
+            for n, (lang, prob) in zip(range(1, nbest + 1), results):
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
                 # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
-
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                ibest_writer["score"][key] = str(prob)
+                ibest_writer["text"][key] = lang
 
 
 def get_parser():
@@ -415,7 +317,7 @@ def get_parser():
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
-    group = parser.add_argument_group("The model configuration related")
+    group = parser.add_argument_group("Model configuration related")
     group.add_argument(
         "--s2t_train_config",
         type=str,
@@ -431,6 +333,15 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+    group.add_argument(
+        "--first_lang_sym",
+        type=str,
+        default="<abk>",
+        help="The first language symbol.",
+    )
+    group.add_argument(
+        "--last_lang_sym", type=str, default="<zul>", help="The last language symbol."
     )
 
     group = parser.add_argument_group("Quantization related")
@@ -466,23 +377,6 @@ def get_parser():
         help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-
-    group = parser.add_argument_group("Text converter related")
-    group.add_argument(
-        "--token_type",
-        type=str_or_none,
-        default=None,
-        choices=["char", "bpe", "word", None],
-        help="The token type for S2T model. "
-        "If not given, refers from the training args",
-    )
-    group.add_argument(
-        "--bpemodel",
-        type=str_or_none,
-        default=None,
-        help="The model path of sentencepiece. "
-        "If not given, refers from the training args",
-    )
 
     return parser
 

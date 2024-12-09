@@ -28,7 +28,8 @@ stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
-skip_upload_hf=true  # Skip uploading to hugging face stages.
+skip_packing=true    # Skip the packing stage.
+skip_upload_hf=true  # Skip uploading to huggingface stage.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -168,7 +169,8 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_upload_hf    # Skip packing and uploading stages (default="${skip_upload_hf}").
+    --skip_packing   # Skip the packing stage (default="${skip_packing}").
+    --skip_upload_hf # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
@@ -1766,13 +1768,21 @@ if ! "${skip_upload_hf}"; then
             --option "${enh_st_exp}"/images \
             --outpath "${packed_model}"
     fi
+else
+    log "Skip the packing stages"
+fi
 
-
+if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
         log "Stage 17: Upload model to HuggingFace: ${hf_repo}"
+
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 16 first."
+            exit 1
+        fi
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
@@ -1816,7 +1826,7 @@ if ! "${skip_upload_hf}"; then
         cd ${this_folder}
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip uploading to HuggingFace stage"
 fi
 
 
