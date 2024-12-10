@@ -11,7 +11,7 @@ def test_override_beats_config():
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})
+    beats_config = {"encoder_layers": 2}
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
