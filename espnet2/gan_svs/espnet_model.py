@@ -33,7 +33,75 @@ else:
 
 
 class ESPnetGANSVSModel(AbsGANESPnetModel):
-    """ESPnet model for GAN-based singing voice synthesis task."""
+    """
+    ESPnet model for GAN-based singing voice synthesis task.
+
+    This model utilizes a Generative Adversarial Network (GAN) architecture
+    for the task of singing voice synthesis (SVS). It processes input text,
+    singing audio, and various feature tensors to generate synthetic singing
+    voices. The model comprises components for feature extraction, normalization,
+    and GAN-based synthesis.
+
+    Attributes:
+        text_extract (Optional[AbsFeatsExtract]): Feature extractor for text.
+        feats_extract (Optional[AbsFeatsExtract]): Feature extractor for singing.
+        score_feats_extract (Optional[AbsFeatsExtract]): Feature extractor for
+            score-related features.
+        label_extract (Optional[AbsFeatsExtract]): Feature extractor for labels.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extractor for pitch.
+        duration_extract (Optional[AbsFeatsExtract]): Feature extractor for duration.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extractor for energy.
+        ying_extract (Optional[AbsFeatsExtract]): Feature extractor for ying.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            layer for features.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            layer for pitch features.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            layer for energy features.
+        svs (AbsGANSVS): The main GAN-based SVS component.
+        postfrontend (Optional[AbsFrontend]): Post-processing frontend for feature
+            extraction.
+
+    Args:
+        postfrontend (Optional[AbsFrontend]): Post-processing frontend.
+        text_extract (Optional[AbsFeatsExtract]): Text feature extractor.
+        feats_extract (Optional[AbsFeatsExtract]): Singing feature extractor.
+        score_feats_extract (Optional[AbsFeatsExtract]): Score feature extractor.
+        label_extract (Optional[AbsFeatsExtract]): Label feature extractor.
+        pitch_extract (Optional[AbsFeatsExtract]): Pitch feature extractor.
+        ying_extract (Optional[AbsFeatsExtract]): Ying feature extractor.
+        duration_extract (Optional[AbsFeatsExtract]): Duration feature extractor.
+        energy_extract (Optional[AbsFeatsExtract]): Energy feature extractor.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Feature normalization.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]): Pitch normalization.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]): Energy normalization.
+        svs (AbsGANSVS): GAN-based SVS component.
+
+    Raises:
+        AssertionError: If the svs does not have 'generator' or 'discriminator'
+            attributes.
+
+    Examples:
+        # Example of creating an ESPnetGANSVSModel instance
+        model = ESPnetGANSVSModel(
+            postfrontend=None,
+            text_extract=my_text_extract,
+            feats_extract=my_feats_extract,
+            score_feats_extract=my_score_feats_extract,
+            label_extract=my_label_extract,
+            pitch_extract=my_pitch_extract,
+            duration_extract=my_duration_extract,
+            energy_extract=my_energy_extract,
+            normalize=my_normalize,
+            pitch_normalize=my_pitch_normalize,
+            energy_normalize=my_energy_normalize,
+            svs=my_svs
+        )
+
+    Note:
+        Ensure that the `svs` object has `generator` and `discriminator`
+        attributes to function correctly with this model.
+    """
 
     @typechecked
     def __init__(
@@ -106,34 +174,43 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Return generator or discriminator loss with dict format.
+        """
+        Return generator or discriminator loss with dict format.
+
+        This method processes the input tensors, extracts necessary features,
+        and computes the loss for either the generator or discriminator
+        based on the provided inputs.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label (Option[Tensor]): Label tensor (B, T_label).
-            label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
-            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            midi (Option[Tensor]): Midi tensor (B, T_label).
-            midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            duration_phn (Optional[Tensor]): duration tensor (B, T_label).
-            duration_phn_lengths (Optional[Tensor]): duration length tensor (B,).
-            duration_ruled_phn (Optional[Tensor]): duration tensor (B, T_phone).
-            duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
-            duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
-            duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
-            slur (Optional[Tensor]): slur tensor (B, T_slur).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            feats (Optional[Tensor]): Feature tensor (B, T_feats).
+            feats_lengths (Optional[Tensor]): Feature lengths tensor (B,).
+            label (Optional[Tensor]): Label tensor (B, T_label).
+            label_lengths (Optional[Tensor]): Label length tensor (B,).
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb).
+            midi (Optional[Tensor]): Midi tensor (B, T_label).
+            midi_lengths (Optional[Tensor]): Midi length tensor (B,).
+            duration_phn (Optional[Tensor]): Duration tensor (B, T_label).
+            duration_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_ruled_phn (Optional[Tensor]): Duration tensor (B, T_phone).
+            duration_ruled_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_syb (Optional[Tensor]): Duration tensor (B, T_syllable).
+            duration_syb_lengths (Optional[Tensor]): Duration length tensor (B,).
+            slur (Optional[Tensor]): Slur tensor (B, T_slur).
+            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence.
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
+            ying (Optional[Tensor]): Ying tensor.
+            ying_lengths (Optional[Tensor]): Ying length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             forward_generator (bool): Whether to forward generator.
-            kwargs: "utt_id" is among the input.
+            kwargs: Additional arguments, with "utt_id" being among the input.
 
         Returns:
             Dict[str, Any]:
@@ -142,6 +219,19 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> model = ESPnetGANSVSModel(...)
+            >>> loss_info = model.forward(
+            ...     text=text_tensor,
+            ...     text_lengths=text_lengths_tensor,
+            ...     singing=singing_tensor,
+            ...     singing_lengths=singing_lengths_tensor,
+            ... )
+            >>> print(loss_info['loss'])
+
+        Note:
+            The method requires that the `svs` object has both `generator`
+            and `discriminator` modules registered.
         """
         with autocast(False):
             # Extract features
@@ -371,32 +461,60 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Calculate features and return them as a dict.
+        """
+            Calculate features and return them as a dict.
+
+        This function extracts various features from the provided singing
+        waveform and related tensors. It computes and returns a dictionary
+        containing the extracted features, such as singing features, pitch,
+        energy, and additional features if available.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label (Option[Tensor]): Label tensor (B, T_label).
-            label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
-            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            midi (Option[Tensor]): Midi tensor (B, T_label).
-            midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            duration_phn (Optional[Tensor]): duration tensor (T_label).
-            duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
-            duration_syb (Optional[Tensor]): duration tensor (T_phone).
-            slur (Optional[Tensor]): slur tensor (B, T_slur).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            label (Optional[Tensor]): Label tensor (B, T_label).
+            label_lengths (Optional[Tensor]): Label length tensor (B,).
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb).
+            midi (Optional[Tensor]): Midi tensor (B, T_label).
+            midi_lengths (Optional[Tensor]): Midi length tensor (B,).
+            duration_phn (Optional[Tensor]): Duration tensor (B, T_label).
+            duration_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_ruled_phn (Optional[Tensor]): Duration tensor (B, T_phone).
+            duration_ruled_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_syb (Optional[Tensor]): Duration tensor (B, T_syllable).
+            duration_syb_lengths (Optional[Tensor]): Duration length tensor (B,).
+            slur (Optional[Tensor]): Slur tensor (B, T_slur).
+            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence.
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            energy (Optional[Tensor): Energy tensor.
-            energy_lengths (Optional[Tensor): Energy length tensor (B,).
+            energy (Optional[Tensor]): Energy tensor.
+            energy_lengths (Optional[Tensor]): Energy length tensor (B,).
+            ying (Optional[Tensor]): Ying tensor.
+            ying_lengths (Optional[Tensor]): Ying length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
 
         Returns:
-            Dict[str, Tensor]: Dict of features.
+            Dict[str, Tensor]: A dictionary containing the extracted features
+            such as 'feats', 'feats_lengths', 'pitch', 'pitch_lengths',
+            'energy', 'energy_lengths', and 'ying', 'ying_lengths' if
+            they were computed.
+
+        Examples:
+            >>> model = ESPnetGANSVSModel(...)
+            >>> feats_dict = model.collect_feats(
+            ...     text=torch.tensor([[1, 2, 3]]),
+            ...     text_lengths=torch.tensor([3]),
+            ...     singing=torch.randn(1, 16000),
+            ...     singing_lengths=torch.tensor([16000]),
+            ...     pitch=torch.randn(1, 16000),
+            ...     energy=torch.randn(1, 16000)
+            ... )
+            >>> print(feats_dict.keys())
+            dict_keys(['feats', 'feats_lengths', 'pitch', 'pitch_lengths',
+            'energy', 'energy_lengths'])
         """
         feats = None
         if self.feats_extract is not None:
@@ -474,26 +592,50 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
+        """
+        Calculate features and return them as a dict.
+
+        This method performs inference by calculating various features based on
+        the input text and optional singing waveform, returning a dictionary
+        containing the generated outputs.
 
         Args:
             text (Tensor): Text index tensor (T_text).
-            singing (Tensor): Singing waveform tensor (T_wav).
-            label (Option[Tensor]): Label tensor (T_label).
-            phn_cnt (Optional[Tensor]): Number of phones in each syllable (T_syb)
-            midi (Option[Tensor]): Midi tensor (T_l abel).
-            duration_phn (Optional[Tensor]): duration tensor (T_label).
-            duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
-            duration_syb (Optional[Tensor]): duration tensor (T_phone).
-            slur (Optional[Tensor]): slur tensor (T_phone).
-            spembs (Optional[Tensor]): Speaker embedding tensor (D,).
-            sids (Optional[Tensor]): Speaker ID tensor (1,).
-            lids (Optional[Tensor]): Language ID tensor (1,).
-            pitch (Optional[Tensor): Pitch tensor (T_wav).
-            energy (Optional[Tensor): Energy tensor.
+            singing (Tensor, optional): Singing waveform tensor (T_wav).
+            label (Tensor, optional): Label tensor (T_label).
+            phn_cnt (Tensor, optional): Number of phones in each syllable (T_syb).
+            midi (Tensor, optional): Midi tensor (T_label).
+            duration_phn (Tensor, optional): Duration tensor (T_label).
+            duration_ruled_phn (Tensor, optional): Duration tensor (T_phone).
+            duration_syb (Tensor, optional): Duration tensor (T_phone).
+            slur (Tensor, optional): Slur tensor (T_phone).
+            pitch (Tensor, optional): Pitch tensor (T_wav).
+            energy (Tensor, optional): Energy tensor.
+            spembs (Tensor, optional): Speaker embedding tensor (D,).
+            sids (Tensor, optional): Speaker ID tensor (1,).
+            lids (Tensor, optional): Language ID tensor (1,).
+            **decode_config: Additional decoding configurations.
 
         Returns:
-            Dict[str, Tensor]: Dict of outputs.
+            Dict[str, Tensor]: A dictionary containing the generated outputs,
+            which may include features like "feat_gen" and others based on
+            the inference process.
+
+        Raises:
+            RuntimeError: If 'singing' is required but not provided when
+            using teacher forcing.
+
+        Examples:
+            >>> text_tensor = torch.tensor([1, 2, 3, 4])
+            >>> singing_tensor = torch.tensor([0.1, 0.2, 0.3])
+            >>> output = model.inference(text_tensor, singing=singing_tensor)
+            >>> print(output.keys())
+            dict_keys(['feat_gen', ...])  # Output will depend on the model
+
+        Note:
+            The input tensors must be properly shaped as per the expected
+            dimensions for the model to function correctly. Ensure that the
+            appropriate decode configurations are provided as needed.
         """
         label_lengths = torch.tensor([len(label)])
         midi_lengths = torch.tensor([len(midi)])

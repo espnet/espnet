@@ -59,7 +59,94 @@ AVAILABLE_DISCRIMINATORS = {
 
 
 class JointScore2Wav(AbsGANSVS):
-    """General class to jointly train score2mel and vocoder parts."""
+    """
+    General class to jointly train score2mel and vocoder parts.
+
+    This class is designed for end-to-end training of a score-to-mel model
+    and a vocoder, enabling the generation of high-quality singing voice
+    waveforms from textual input and acoustic features. The architecture
+    supports various configurations for score-to-mel models and vocoders.
+
+    Attributes:
+        segment_size (int): Segment size for random windowed inputs.
+        use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+        generator (torch.nn.ModuleDict): Dictionary containing the score2mel
+            and vocoder models.
+        discriminator (object): Discriminator model for adversarial training.
+        generator_adv_loss (object): Loss function for the generator's
+            adversarial training.
+        discriminator_adv_loss (object): Loss function for the discriminator's
+            adversarial training.
+        use_feat_match_loss (bool): Whether to use feature matching loss.
+        use_mel_loss (bool): Whether to use mel spectrogram loss.
+        fs (int): Sampling rate for saving waveform during inference.
+        _cache (Optional[tuple]): Cached outputs for generator to reuse.
+
+    Args:
+        idim (int): Input vocabulary size.
+        odim (int): Acoustic feature dimension.
+        segment_size (int, optional): Segment size for random windowed inputs.
+            Defaults to 32.
+        sampling_rate (int, optional): Sampling rate for saving waveforms.
+            Defaults to 22050.
+        score2mel_type (str, optional): Type of score2mel model.
+            Defaults to "xiaoice".
+        score2mel_params (Dict[str, Any], optional): Parameters for the
+            score2mel model. Defaults to a predefined set.
+        vocoder_type (str, optional): Type of vocoder model.
+            Defaults to "hifigan_generator".
+        vocoder_params (Dict[str, Any], optional): Parameters for the vocoder
+            model. Defaults to a predefined set.
+        use_pqmf (bool, optional): Whether to use PQMF for multi-band vocoder.
+            Defaults to False.
+        pqmf_params (Dict[str, Any], optional): Parameters for PQMF module.
+            Defaults to a predefined set.
+        discriminator_type (str, optional): Type of discriminator model.
+            Defaults to "hifigan_multi_scale_multi_period_discriminator".
+        discriminator_params (Dict[str, Any], optional): Parameters for the
+            discriminator. Defaults to a predefined set.
+        generator_adv_loss_params (Dict[str, Any], optional): Parameters for
+            generator adversarial loss. Defaults to a predefined set.
+        discriminator_adv_loss_params (Dict[str, Any], optional): Parameters
+            for discriminator adversarial loss. Defaults to a predefined set.
+        use_feat_match_loss (bool, optional): Whether to use feature match loss.
+            Defaults to True.
+        feat_match_loss_params (Dict[str, Any], optional): Parameters for
+            feature match loss. Defaults to a predefined set.
+        use_mel_loss (bool, optional): Whether to use mel loss. Defaults to True.
+        mel_loss_params (Dict[str, Any], optional): Parameters for mel loss.
+            Defaults to a predefined set.
+        lambda_score2mel (float, optional): Loss scaling coefficient for
+            score2mel model loss. Defaults to 1.0.
+        lambda_adv (float, optional): Loss scaling coefficient for adversarial
+            loss. Defaults to 1.0.
+        lambda_feat_match (float, optional): Loss scaling coefficient for
+            feature match loss. Defaults to 2.0.
+        lambda_mel (float, optional): Loss scaling coefficient for mel loss.
+            Defaults to 45.0.
+        cache_generator_outputs (bool, optional): Whether to cache generator
+            outputs. Defaults to False.
+
+    Examples:
+        # Create an instance of JointScore2Wav
+        model = JointScore2Wav(idim=256, odim=80, segment_size=32)
+
+        # Forward pass through the model
+        output = model(
+            text=torch.randint(0, 100, (8, 50)),
+            text_lengths=torch.tensor([50]*8),
+            feats=torch.randn(8, 100, 80),
+            feats_lengths=torch.tensor([100]*8),
+            singing=torch.randn(8, 16000),
+            singing_lengths=torch.tensor([16000]*8)
+        )
+
+        # Run inference
+        wav_output = model.inference(
+            text=torch.randint(0, 100, (50,)),
+            feats=torch.randn(100, 80)
+        )
+    """
 
     @typechecked
     def __init__(
@@ -326,12 +413,107 @@ class JointScore2Wav(AbsGANSVS):
 
     @property
     def require_raw_singing(self):
-        """Return whether or not singing is required."""
+        """
+        Return whether or not singing is required.
+
+        This property indicates if the model requires raw singing data as input
+        for its operations. In the context of the JointScore2Wav model, this
+        property is set to True, meaning that the model depends on the raw
+        singing waveform for training and inference.
+
+        Returns:
+            bool: True if raw singing is required, False otherwise.
+
+        Examples:
+            >>> model = JointScore2Wav(...)
+            >>> model.require_raw_singing
+            True
+        """
         return True
 
     @property
     def require_vocoder(self):
-        """Return whether or not vocoder is required."""
+        """
+            General class to jointly train score2mel and vocoder parts.
+
+        This class integrates the score-to-melody conversion and vocoding
+        processes in a single model. It is designed for end-to-end training
+        of singing voice synthesis systems, allowing for efficient training
+        and inference.
+
+        Attributes:
+            segment_size (int): Size of segments for random windowed inputs.
+            use_pqmf (bool): Flag indicating whether to use PQMF for
+                multi-band vocoding.
+            generator (torch.nn.ModuleDict): Dictionary containing the
+                score-to-melody and vocoder generators.
+            discriminator (object): Discriminator for adversarial training.
+            generator_adv_loss (object): Loss function for generator's
+                adversarial training.
+            discriminator_adv_loss (object): Loss function for discriminator's
+                adversarial training.
+            use_feat_match_loss (bool): Flag indicating whether to use
+                feature matching loss.
+            feat_match_loss (object): Loss function for feature matching.
+            use_mel_loss (bool): Flag indicating whether to use mel loss.
+            mel_loss (object): Loss function for mel spectrogram matching.
+            lambda_score2mel (float): Coefficient for scaling score-to-mel loss.
+            lambda_adv (float): Coefficient for scaling adversarial loss.
+            lambda_feat_match (float): Coefficient for scaling feature match loss.
+            lambda_mel (float): Coefficient for scaling mel loss.
+            cache_generator_outputs (bool): Flag indicating whether to cache
+                generator outputs.
+            fs (int): Sampling rate for saving waveforms during inference.
+            spks (list): List of speaker IDs for compatibility.
+            langs (list): List of language IDs for compatibility.
+            spk_embed_dim (int): Dimension of speaker embeddings.
+
+        Args:
+            idim (int): Input vocabulary size.
+            odim (int): Acoustic feature dimension. The actual output
+                channels will be 1 since the model is the end-to-end
+                text-to-wave model but for compatibility odim is used to
+                indicate the acoustic feature dimension.
+            segment_size (int): Segment size for random windowed inputs.
+            sampling_rate (int): Sampling rate, not used for training but
+                referred to in saving waveform during inference.
+            score2mel_type (str): The text-to-melody model type.
+            score2mel_params (Dict[str, Any]): Parameter dict for
+                text-to-melody model.
+            vocoder_type (str): The vocoder model type.
+            vocoder_params (Dict[str, Any]): Parameter dict for vocoder model.
+            use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+            pqmf_params (Dict[str, Any]): Parameter dict for PQMF module.
+            discriminator_type (str): Discriminator type.
+            discriminator_params (Dict[str, Any]): Parameter dict for
+                discriminator.
+            generator_adv_loss_params (Dict[str, Any]): Parameter dict for
+                generator adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]): Parameter dict
+                for discriminator adversarial loss.
+            use_feat_match_loss (bool): Whether to use feature match loss.
+            feat_match_loss_params (Dict[str, Any]): Parameter dict for
+                feature match loss.
+            use_mel_loss (bool): Whether to use mel loss.
+            mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.
+            lambda_score2mel (float): Loss scaling coefficient for
+                text-to-melody model loss.
+            lambda_adv (float): Loss scaling coefficient for adversarial loss.
+            lambda_feat_match (float): Loss scaling coefficient for feature
+                match loss.
+            lambda_mel (float): Loss scaling coefficient for mel loss.
+            cache_generator_outputs (bool): Whether to cache generator outputs.
+
+        Examples:
+            >>> model = JointScore2Wav(idim=100, odim=80)
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ... singing, singing_lengths)
+
+        Note:
+            The class requires the PyTorch library and the ESPnet2 framework
+            for GAN-based speech synthesis. Ensure that the necessary
+            dependencies are installed.
+        """
         return False
 
     def forward(
@@ -353,26 +535,37 @@ class JointScore2Wav(AbsGANSVS):
         lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator or discriminator forward pass.
+
+        This method is responsible for executing either the generator or
+        discriminator forward pass based on the provided `forward_generator`
+        flag. It computes the loss and statistics required for training
+        the model.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
-            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            text_lengths (LongTensor): Batch of lengths of each input
+                batch (B,).
             feats (Tensor): Batch of padded target features (B, Lmax, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
+            feats_lengths (LongTensor): Batch of the lengths of each
+                target (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
+            label (Optional[Dict]): Key is "lab" or "score"; value
+                (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): Key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded
+                label ids (B, ).
+            melody (Optional[Dict]): Key is "lab" or "score"; value
+                (LongTensor): Batch of padded melody (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded duration (B, Tmax).
+            duration (Optional[Dict]): Key is "lab", "score_phn" or
+                "score_syb"; value (LongTensor): Batch of padded
+                duration (B, Tmax).
             slur (FloatTensor): Batch of padded slur (B, Tmax).
-            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            spembs (Optional[Tensor]): Batch of speaker embeddings
+                (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             forward_generator (bool): Whether to forward generator.
@@ -384,6 +577,18 @@ class JointScore2Wav(AbsGANSVS):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> text = torch.randint(0, 100, (32, 50))  # Batch of text
+            >>> text_lengths = torch.randint(1, 50, (32,))
+            >>> feats = torch.rand(32, 100, 80)  # Target features
+            >>> feats_lengths = torch.randint(1, 100, (32,))
+            >>> singing = torch.rand(32, 16000)  # Singing waveform
+            >>> singing_lengths = torch.randint(1, 16000, (32,))
+            >>> output = model.forward(
+            ...     text, text_lengths, feats, feats_lengths,
+            ...     singing, singing_lengths, forward_generator=True
+            ... )
+            >>> print(output.keys())  # Should print keys: loss, stats, weight, optim_idx
         """
 
         label = label["score"]
@@ -712,33 +917,74 @@ class JointScore2Wav(AbsGANSVS):
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """
+            General class to jointly train score2mel and vocoder parts.
+
+        This class implements a joint training approach for a score-to-mel
+        model and a vocoder. It supports various configurations for
+        different models, allowing for flexibility in training and
+        inference.
+
+        Attributes:
+            segment_size (int): Segment size for random windowed inputs.
+            use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+            generator (torch.nn.ModuleDict): Dictionary containing the score2mel
+                and vocoder models.
+            discriminator (Discriminator): Discriminator model.
+            generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for
+                the generator.
+            discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss
+                for the discriminator.
+            use_feat_match_loss (bool): Flag indicating if feature match loss
+                is used.
+            feat_match_loss (FeatureMatchLoss): Feature match loss module.
+            use_mel_loss (bool): Flag indicating if mel loss is used.
+            mel_loss (MelSpectrogramLoss): Mel spectrogram loss module.
+            lambda_score2mel (float): Loss scaling coefficient for score2mel
+                model loss.
+            lambda_adv (float): Loss scaling coefficient for adversarial loss.
+            lambda_feat_match (float): Loss scaling coefficient for feature match
+                loss.
+            lambda_mel (float): Loss scaling coefficient for mel loss.
+            cache_generator_outputs (bool): Whether to cache generator outputs.
+            fs (int): Sampling rate for saving waveform during inference.
+            _cache (Optional[Tuple]): Cached outputs for generator during training.
 
         Args:
-            text (Tensor): Input text index tensor (T_text,).
-            feats (Tensor): Feature tensor (T_feats, aux_channels).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded duration (B, Tmax).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            slur (LongTensor): Batch of padded slur (B, Tmax).
-            sids (Tensor): Speaker index tensor (1,).
-            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
-            lids (Tensor): Language index tensor (1,).
-            noise_scale (float): Noise scale value for flow.
-            noise_scale_dur (float): Noise scale value for duration predictor.
-            alpha (float): Alpha parameter to control the speed of generated singing.
-            max_len (Optional[int]): Maximum length.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
+            idim (int): Input vocabulary size.
+            odim (int): Acoustic feature dimension.
+            segment_size (int): Segment size for random windowed inputs.
+            sampling_rate (int): Sampling rate for saving waveform.
+            score2mel_type (str): The score2mel model type.
+            score2mel_params (Dict[str, Any]): Parameter dict for score2mel model.
+            vocoder_type (str): The vocoder model type.
+            vocoder_params (Dict[str, Any]): Parameter dict for vocoder model.
+            use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+            pqmf_params (Dict[str, Any]): Parameter dict for PQMF module.
+            discriminator_type (str): Discriminator type.
+            discriminator_params (Dict[str, Any]): Parameter dict for discriminator.
+            generator_adv_loss_params (Dict[str, Any]): Parameter dict for
+                generator adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]): Parameter dict for
+                discriminator adversarial loss.
+            use_feat_match_loss (bool): Whether to use feature match loss.
+            feat_match_loss_params (Dict[str, Any]): Parameter dict for feature
+                match loss.
+            use_mel_loss (bool): Whether to use mel loss.
+            mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.
+            lambda_score2mel (float): Loss scaling coefficient for score2mel
+                model loss.
+            lambda_adv (float): Loss scaling coefficient for adversarial loss.
+            lambda_feat_match (float): Loss scaling coefficient for feature match
+                loss.
+            lambda_mel (float): Loss scaling coefficient for mel loss.
+            cache_generator_outputs (bool): Whether to cache generator outputs.
 
-        Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * feat_gan (Tensor): Generated feature tensor (T_text, C).
-
+        Examples:
+            >>> model = JointScore2Wav(idim=256, odim=80)
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ...                         singing, singing_lengths)
+            >>> inference_output = model.inference(text, feats)
         """
         output_dict = self.generator["score2mel"].inference(
             text=text,

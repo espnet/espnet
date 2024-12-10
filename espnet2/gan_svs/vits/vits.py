@@ -67,14 +67,82 @@ else:
 
 
 class VITS(AbsGANSVS):
-    """VITS module (generator + discriminator).
+    """
+    VITS module (generator + discriminator).
 
     This is a module of VITS described in `Conditional Variational Autoencoder
     with Adversarial Learning for End-to-End Text-to-Speech`_.
 
+    This class integrates both a generator and a discriminator for the VITS
+    model, enabling the generation of high-quality singing voice synthesis
+    using adversarial training.
+
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        generator (VISingerGenerator): The generator model for synthesizing
+            audio.
+        discriminator (Discriminator): The discriminator model for evaluating
+            the generated audio.
+        lambda_adv (float): Coefficient for the adversarial loss.
+        lambda_mel (float): Coefficient for the mel spectrogram loss.
+        lambda_feat_match (float): Coefficient for the feature matching loss.
+        lambda_dur (float): Coefficient for duration loss.
+        lambda_kl (float): Coefficient for KL divergence loss.
+        lambda_pitch (float): Coefficient for pitch loss.
+        lambda_phoneme (float): Coefficient for phoneme loss.
+        lambda_c_yin (float): Coefficient for yin loss.
+        fs (int): Sampling rate for saving waveform during inference.
+        use_flow (bool): Indicates whether to use flow in the generator.
+        use_phoneme_predictor (bool): Indicates whether to use a phoneme
+            predictor.
+        use_avocodo (bool): Indicates whether to use Avocodo in the model.
+
+    Args:
+        idim (int): Input vocabulary size.
+        odim (int): Acoustic feature dimension. The actual output channels will
+            be 1 since VITS is the end-to-end text-to-wave model but for the
+            compatibility odim is used to indicate the acoustic feature dimension.
+        sampling_rate (int): Sampling rate, not used for the training but it
+            will be referred in saving waveform during the inference.
+        generator_type (str): Generator type.
+        vocoder_generator_type (str): Type of vocoder generator to use in the
+            model.
+        generator_params (Dict[str, Any]): Parameter dict for generator.
+        discriminator_type (str): Discriminator type.
+        discriminator_params (Dict[str, Any]): Parameter dict for discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameter dict for generator
+            adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameter dict for
+            discriminator adversarial loss.
+        feat_match_loss_params (Dict[str, Any]): Parameter dict for feat match
+            loss.
+        mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.
+        lambda_adv (float): Loss scaling coefficient for adversarial loss.
+        lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.
+        lambda_feat_match (float): Loss scaling coefficient for feat match
+            loss.
+        lambda_dur (float): Loss scaling coefficient for duration loss.
+        lambda_kl (float): Loss scaling coefficient for KL divergence loss.
+        lambda_pitch (float): Loss scaling coefficient for pitch loss.
+        lambda_phoneme (float): Loss scaling coefficient for phoneme loss.
+        lambda_c_yin (float): Loss scaling coefficient for yin loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+
+    Examples:
+        # Initialize the VITS model
+        vits_model = VITS(idim=100, odim=80)
+
+        # Perform inference
+        generated_waveform = vits_model.inference(text_tensor, feats_tensor)
+
+    Note:
+        This implementation requires the PyTorch library and assumes that
+        the user has a compatible environment set up for GAN training.
+
+    Raises:
+        ValueError: If the generator or discriminator type is not available.
     """
 
     @typechecked
@@ -415,12 +483,10 @@ class VITS(AbsGANSVS):
 
     @property
     def require_raw_singing(self):
-        """Return whether or not singing is required."""
         return True
 
     @property
     def require_vocoder(self):
-        """Return whether or not vocoder is required."""
         return False
 
     def forward(
@@ -445,7 +511,13 @@ class VITS(AbsGANSVS):
         lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
+
+        This method takes the input text and various features to produce the
+        output of the generator or discriminator in the VITS model. It can
+        perform both forward generator and discriminator passes based on the
+        `forward_generator` flag.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
@@ -459,7 +531,7 @@ class VITS(AbsGANSVS):
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, T_text).
             label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
+                value (LongTensor): Batch of the lengths of padded label ids (B,).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
@@ -479,6 +551,17 @@ class VITS(AbsGANSVS):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> model = VITS(...)
+            >>> output = model.forward(
+            ...     text=text_tensor,
+            ...     text_lengths=text_lengths_tensor,
+            ...     feats=feats_tensor,
+            ...     feats_lengths=feats_lengths_tensor,
+            ...     singing=singing_tensor,
+            ...     singing_lengths=singing_lengths_tensor,
+            ...     forward_generator=True
+            ... )
         """
 
         if ssl_feats is not None:
@@ -953,33 +1036,53 @@ class VITS(AbsGANSVS):
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """
+            Run inference to generate a waveform from input text and features.
+
+        This method processes the input text, features, and optional parameters
+        to produce a generated waveform using the VITS model.
 
         Args:
             text (Tensor): Input text index tensor (T_text,).
             feats (Tensor): Feature tensor (T_feats, aux_channels).
             ssl_feats (Tensor): SSL Feature tensor (T_feats, hubert_channels).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, T_text).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, T_text).
+            label (Optional[Dict]): Dictionary containing label data. Keys can be
+                "lab" or "score"; values are LongTensors representing padded
+                label ids (B, T_text).
+            melody (Optional[Dict]): Dictionary containing melody data. Keys can be
+                "lab" or "score"; values are LongTensors representing padded
+                melody (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             slur (LongTensor): Batch of padded slur (B, T_text).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
-            noise_scale (float): Noise scale value for flow.
-            noise_scale_dur (float): Noise scale value for duration predictor.
-            alpha (float): Alpha parameter to control the speed of generated singing.
-            max_len (Optional[int]): Maximum length.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
-            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded duration (B, T_text).
+            noise_scale (float): Noise scale value for flow (default: 0.667).
+            noise_scale_dur (float): Noise scale value for duration predictor
+                (default: 0.8).
+            alpha (float): Alpha parameter to control the speed of generated
+                singing (default: 1.0).
+            max_len (Optional[int]): Maximum length of the output (default: None).
+            use_teacher_forcing (bool): Whether to use teacher forcing during
+                inference (default: False).
+            duration (Optional[Dict]): Dictionary containing duration data. Keys can
+                be "lab", "score_phn" or "score_syb"; values are LongTensors
+                representing padded duration (B, T_text).
 
         Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
+            Dict[str, Tensor]: A dictionary containing the generated waveform
+            tensor (T_wav,).
 
+        Examples:
+            >>> model = VITS(...)
+            >>> text = torch.tensor([1, 2, 3, 4])  # Example text input
+            >>> feats = torch.randn(10, 80)  # Example features
+            >>> generated = model.inference(text, feats)
+            >>> waveform = generated['wav']  # Access the generated waveform
+
+        Note:
+            Ensure that the input text and features are appropriately padded and
+            shaped for the model to process correctly.
         """
         # setup
         label = label["lab"]

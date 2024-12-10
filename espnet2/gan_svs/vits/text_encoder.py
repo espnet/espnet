@@ -19,17 +19,70 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class TextEncoder(torch.nn.Module):
-    """Text encoder module in VISinger.
+    """
+        TextEncoder class for encoding text input in the VISinger model.
 
-    This is a module of text encoder described in `Conditional Variational Autoencoder
-    with Adversarial Learning for End-to-End Text-to-Speech`_.
-
-    Instead of the relative positional Transformer, we use conformer architecture as
-    the encoder module, which contains additional convolution layers.
+    This module implements a text encoder as described in the paper
+    `Conditional Variational Autoencoder with Adversarial Learning for
+    End-to-End Text-to-Speech`_. It utilizes a conformer architecture, which
+    incorporates convolutional layers in addition to the standard attention
+    mechanism.
 
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        attention_dim (int): The dimension of attention.
+        encoder (Encoder): The conformer-based encoder module.
+        emb_phone_dim (int): The dimension of phone embeddings.
+        emb_phone (torch.nn.Embedding): Embedding layer for phone inputs.
+        emb_pitch_dim (int): The dimension of pitch embeddings.
+        emb_pitch (torch.nn.Embedding): Embedding layer for pitch inputs.
+        emb_slur (Optional[torch.nn.Embedding]): Embedding layer for slur inputs.
+        emb_dur (torch.nn.Linear): Linear layer for duration inputs.
+        pre_net (torch.nn.Linear): Preprocessing layer for the main input.
+        pre_dur_net (torch.nn.Linear): Preprocessing layer for duration input.
+        proj (torch.nn.Conv1d): Convolutional layer for projection.
+        proj_pitch (torch.nn.Conv1d): Convolutional layer for pitch projection.
+
+    Args:
+        vocabs (int): Vocabulary size.
+        attention_dim (int): Dimension of the attention mechanism.
+        attention_heads (int): Number of attention heads.
+        linear_units (int): Number of linear units in positionwise layers.
+        blocks (int): Number of encoder blocks.
+        positionwise_layer_type (str): Type of positionwise layer.
+        positionwise_conv_kernel_size (int): Kernel size for positionwise layers.
+        positional_encoding_layer_type (str): Type of positional encoding layer.
+        self_attention_layer_type (str): Type of self-attention layer.
+        activation_type (str): Type of activation function.
+        normalize_before (bool): Whether to apply LayerNorm before attention.
+        use_macaron_style (bool): Whether to use Macaron-style components.
+        use_conformer_conv (bool): Whether to use convolution in conformer.
+        conformer_kernel_size (int): Kernel size for conformer convolution.
+        dropout_rate (float): Dropout rate for layers.
+        positional_dropout_rate (float): Dropout rate for positional encoding.
+        attention_dropout_rate (float): Dropout rate for attention layers.
+        use_slur (bool): Whether to use slur embedding.
+
+    Examples:
+        >>> text_encoder = TextEncoder(vocabs=5000)
+        >>> phone_tensor = torch.randint(0, 5000, (32, 100))
+        >>> phone_lengths = torch.randint(1, 101, (32,))
+        >>> midi_tensor = torch.randint(0, 129, (32, 100))
+        >>> duration_tensor = torch.rand((32, 100))
+        >>> encoded_output = text_encoder(phone_tensor, phone_lengths, midi_tensor,
+        ...                                duration_tensor)
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            - Encoded hidden representation (B, attention_dim, T_text).
+            - Mask tensor for padded parts (B, 1, T_text).
+            - Encoded hidden representation for duration (B, attention_dim, T_text).
+            - Encoded hidden representation for pitch (B, attention_dim, T_text).
+
+    Raises:
+        ValueError: If the input tensors do not match the expected dimensions.
     """
 
     def __init__(
@@ -134,22 +187,39 @@ class TextEncoder(torch.nn.Module):
         dur: torch.Tensor,
         slur: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+            Text encoder module in VISinger.
+
+        This is a module of text encoder described in `Conditional Variational Autoencoder
+        with Adversarial Learning for End-to-End Text-to-Speech`_.
+
+        Instead of the relative positional Transformer, we use conformer architecture as
+        the encoder module, which contains additional convolution layers.
+
+        .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
+            Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
         Args:
-            phone (Tensor): Input index tensor (B, T_text).
-            phone_lengths (Tensor): Length tensor (B,).
-            midi_id (Tensor): Input midi tensor (B, T_text).
-            dur (Tensor): Input duration tensor (B, T_text).
+                phone (Tensor): Input index tensor (B, T_text).
+                phone_lengths (Tensor): Length tensor (B,).
+                midi_id (Tensor): Input midi tensor (B, T_text).
+                dur (Tensor): Input duration tensor (B, T_text).
+
+        Examples:
+            >>> encoder = TextEncoder(vocabs=1000)
+            >>> phone_tensor = torch.randint(0, 1000, (2, 10))
+            >>> phone_lengths = torch.tensor([10, 8])
+            >>> midi_id = torch.randint(0, 129, (2, 10))
+            >>> dur = torch.rand((2, 10))
+            >>> output = encoder(phone_tensor, phone_lengths, midi_id, dur)
+            >>> print(output)
 
         Returns:
-            Tensor: Encoded hidden representation (B, attention_dim, T_text).
-            Tensor: Mask tensor for padded part (B, 1, T_text).
-            Tensor: Encoded hidden representation for duration
-                (B, attention_dim, T_text).
-            Tensor: Encoded hidden representation for pitch
-                (B, attention_dim, T_text).
-
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                Encoded hidden representation (B, attention_dim, T_text),
+                Mask tensor for padded part (B, 1, T_text),
+                Encoded hidden representation for duration (B, attention_dim, T_text),
+                Encoded hidden representation for pitch (B, attention_dim, T_text).
         """
         phone_end = self.emb_phone(phone) * math.sqrt(self.emb_phone_dim)
         pitch_end = self.emb_pitch(midi_id) * math.sqrt(self.emb_pitch_dim)
