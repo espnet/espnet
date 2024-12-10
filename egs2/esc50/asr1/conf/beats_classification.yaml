@@ -1,0 +1,84 @@
+token_type: word
+
+optim: adamw
+optim_conf:
+    lr: 3.0e-5
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.98]
+
+accum_grad: 1
+
+batch_size: 60 # 300 sec (5 sec per sample) # 1600 samples in train set ==> 1600/60 = 27 steps per epoch
+max_epoch: 2962 # originally 80K steps, @27 steps per epoch ~3k
+
+
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+    first_cycle_steps: 80000 # Only one cycle, so this is last epoch step
+    warmup_steps: 8000 # paper mentions epochs??!
+    max_lr: 3.0e-5
+    min_lr: 0
+
+# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
+frontend: none
+input_size: 1 # important to set input_size to 1 if frontend is none
+normalize: none # BEATs code does global mean and variance normalization
+
+# Initialization for the decoder
+init: normal
+
+model_conf:
+    ctc_weight: 0.0  # No CTC, only attention branch
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: true
+
+batch_type: folded
+unused_parameters: true
+grad_clip: 1
+patience: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+# freeze_param: [
+#     "encoder.encoder",
+#     "encoder.layer_norm",
+#     "encoder.patch_embedding",
+#     "encoder.post_extract_proj",
+# ]
+
+encoder: beats
+encoder_conf:
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
+    # (iter3+, Beats finetuned model 1) and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt
+    # values from Appendix A.1 of the BEATs paper
+    fbank_mean: 11.72215 
+    fbank_std: 10.60431
+    beats_config:
+        layer_wise_gradient_decay_ratio: 0.2
+        encoder_layerdrop: 0.1
+        dropout: 0.0
+    # TODO(shikhar): specaug = 0.2 ??, roll augmentation???
+    specaug_config:
+        apply_freq_mask: false # true
+        freq_mask_width_range:
+        - 0
+        - 64
+        num_freq_mask: 2
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0
+        - 0.12
+        num_time_mask: 5
+    use_weighted_representation: false
+
+# Simple linear decoder for classification.
+decoder: linear_decoder
+decoder_conf:
+    pooling: mean
