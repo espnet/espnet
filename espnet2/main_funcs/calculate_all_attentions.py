@@ -28,15 +28,41 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 def calculate_all_attentions(
     model: AbsESPnetModel, batch: Dict[str, torch.Tensor]
 ) -> Dict[str, List[torch.Tensor]]:
-    """Derive the outputs from the all attention layers
+    """
+        Derive the outputs from all attention layers in a given model.
+
+    This function registers forward hooks on the attention layers of the provided
+    model and collects the attention outputs during a forward pass using a given
+    batch of data. The collected attention outputs are returned in a structured
+    dictionary format.
 
     Args:
-        model:
-        batch: same as forward
-    Returns:
-        return_dict: A dict of a list of tensor.
-        key_names x batch x (D1, D2, ...)
+        model (AbsESPnetModel): The ESPnet model containing attention layers.
+        batch (Dict[str, torch.Tensor]): A dictionary of input tensors for the
+            model's forward pass. It should include all necessary input features
+            and lengths.
 
+    Returns:
+        Dict[str, List[torch.Tensor]]: A dictionary where keys are the names of
+            the attention layers and values are lists of tensors representing the
+            attention outputs. The shape of each tensor will depend on the specific
+            attention mechanism, typically in the form of key_names x batch x (D1,
+            D2, ...).
+
+    Examples:
+        >>> model = MyESPnetModel()
+        >>> batch = {
+        ...     'input': torch.randn(2, 10, 20),
+        ...     'input_lengths': torch.tensor([10, 10]),
+        ... }
+        >>> attentions = calculate_all_attentions(model, batch)
+        >>> print(attentions.keys())
+        dict_keys(['layer1_att', 'layer2_att', ...])
+
+    Note:
+        The function runs in evaluation mode (with `torch.no_grad()`) to prevent
+        gradients from being calculated, which can improve performance during
+        inference.
     """
     bs = len(next(iter(batch.values())))
     assert all(len(v) == bs for v in batch.values()), {
