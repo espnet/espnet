@@ -221,39 +221,39 @@ def nbest_am_lm_scores(
     batch_size: int = 500,
 ):
     """
-    Compute acoustic model (AM) scores and language model (LM) scores for 
+    Compute acoustic model (AM) scores and language model (LM) scores for
     n-best paths from the provided lattice.
 
-    This function computes the AM scores and LM scores based on the 
-    n-best paths generated from the input lattice. It is compatible with 
+    This function computes the AM scores and LM scores based on the
+    n-best paths generated from the input lattice. It is compatible with
     both CTC decoding and TLG decoding methods.
 
     Args:
-        lats (k2.Fsa): An FSA (finite-state acceptor) representing the 
+        lats (k2.Fsa): An FSA (finite-state acceptor) representing the
             lattice containing the paths from which scores will be computed.
-        num_paths (int): The number of n-best paths to compute from the 
+        num_paths (int): The number of n-best paths to compute from the
             input lattice.
-        device (str, optional): The device to perform computations on 
-            (default is "cuda"). It can be set to "cpu" for CPU 
+        device (str, optional): The device to perform computations on
+            (default is "cuda"). It can be set to "cpu" for CPU
             computations.
-        batch_size (int, optional): The size of batches to process during 
+        batch_size (int, optional): The size of batches to process during
             the computation to manage memory usage (default is 500).
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor, List[List[int]], 
+        Tuple[torch.Tensor, torch.Tensor, List[List[int]],
         torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
             - am_scores: A 1-D tensor of acoustic model scores for each path.
-            - lm_scores: A 1-D tensor of language model scores for each path 
+            - lm_scores: A 1-D tensor of language model scores for each path
               (may be None if not applicable).
-            - token_ids: A list of lists containing token IDs for each path 
+            - token_ids: A list of lists containing token IDs for each path
               after removing repeated tokens and blank tokens.
             - new2old: A tensor mapping new token IDs to their original IDs.
             - path_to_seq_map: A tensor mapping paths to sequences.
-            - seq_to_path_splits: A tensor representing the splits of 
+            - seq_to_path_splits: A tensor representing the splits of
               sequences to paths.
 
     Raises:
-        AssertionError: If `k2` is not installed or if the input lattice is 
+        AssertionError: If `k2` is not installed or if the input lattice is
             not valid.
 
     Examples:
@@ -263,7 +263,7 @@ def nbest_am_lm_scores(
         >>> print(len(token_ids))    # Output: 10
 
     Note:
-        The `k2` library must be installed for this function to work. 
+        The `k2` library must be installed for this function to work.
         Follow the installation instructions in 'tools/installers'.
     """
     assert (
