@@ -8,6 +8,62 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class NumElementsBatchSampler(AbsSampler):
+    """
+        NumElementsBatchSampler is a batch sampler that creates mini-batches of data
+    based on the number of elements (bins) specified. This sampler is designed to
+    work with variable-length sequences, ensuring that each batch contains a
+    specified maximum number of bins while maintaining a minimum batch size.
+    The samples can be sorted in various orders within each batch and across
+    batches.
+
+    Attributes:
+        batch_bins (int): The maximum number of bins allowed per batch.
+        shape_files (Union[Tuple[str, ...], List[str]]): List of paths to files
+            containing sequence lengths.
+        sort_in_batch (str): The order in which to sort elements within each
+            batch; options are "ascending" or "descending".
+        sort_batch (str): The order in which to sort batches; options are
+            "ascending" or "descending".
+        drop_last (bool): Whether to drop the last incomplete batch if it has
+            fewer than `min_batch_size` elements.
+        batch_list (List[Tuple[str, ...]]): The final list of batches created
+            by the sampler.
+
+    Args:
+        batch_bins (int): Maximum number of bins in each batch.
+        shape_files (Union[Tuple[str, ...], List[str]]): List of shape files
+            containing sequence lengths.
+        min_batch_size (int, optional): Minimum number of samples in a batch.
+            Defaults to 1.
+        sort_in_batch (str, optional): Sorting order for elements in a batch.
+            Can be "ascending" or "descending". Defaults to "descending".
+        sort_batch (str, optional): Sorting order for batches. Can be
+            "ascending" or "descending". Defaults to "ascending".
+        drop_last (bool, optional): If True, drop the last batch if it is
+            smaller than `min_batch_size`. Defaults to False.
+        padding (bool, optional): If True, ensures all features have the same
+            dimension across the corpus. Defaults to True.
+
+    Returns:
+        Iterator[Tuple[str, ...]]: An iterator over the batches.
+
+    Raises:
+        ValueError: If `sort_batch` or `sort_in_batch` is not "ascending" or
+        "descending".
+        RuntimeError: If the keys in the shape files do not match or if no
+        batches can be created.
+
+    Examples:
+        >>> sampler = NumElementsBatchSampler(batch_bins=10,
+        ...                                    shape_files=["file1.csv", "file2.csv"])
+        >>> for batch in sampler:
+        ...     print(batch)
+
+    Note:
+        This sampler is useful for training models with variable-length input
+        sequences, such as in speech or language processing tasks.
+    """
+
     @typechecked
     def __init__(
         self,

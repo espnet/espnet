@@ -18,15 +18,42 @@ def average_nbest_models(
     nbest: Union[Collection[int], int],
     suffix: Optional[str] = None,
 ) -> None:
-    """Generate averaged model from n-best models
+    """
+        Generate averaged model from n-best models.
+
+    This function averages the parameters of the n-best models based on specified
+    criteria and saves the averaged model to the output directory. It creates
+    symlinks for easy access to the best and averaged models.
 
     Args:
-        output_dir: The directory contains the model file for each epoch
-        reporter: Reporter instance
-        best_model_criterion: Give criterions to decide the best model.
-            e.g. [("valid", "loss", "min"), ("train", "acc", "max")]
-        nbest: Number of best model files to be averaged
-        suffix: A suffix added to the averaged model file name
+        output_dir (Path): The directory contains the model file for each epoch.
+        reporter (Reporter): Reporter instance for tracking and managing model
+            performance.
+        best_model_criterion (Sequence[Sequence[str]]): Criteria to decide the
+            best model, e.g. [("valid", "loss", "min"), ("train", "acc", "max")].
+        nbest (Union[Collection[int], int]): Number of best model files to be
+            averaged. This can be a single integer or a collection of integers.
+        suffix (Optional[str]): A suffix added to the averaged model file name.
+
+    Raises:
+        UserWarning: If no nbest values are provided, a warning will be issued
+            and defaults to 1.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> from espnet2.train.reporter import Reporter
+        >>> reporter = Reporter()
+        >>> average_nbest_models(
+        ...     output_dir=Path("/path/to/models"),
+        ...     reporter=reporter,
+        ...     best_model_criterion=[("valid", "loss", "min")],
+        ...     nbest=3,
+        ...     suffix="final"
+        ... )
+
+    Note:
+        Ensure that the model files exist in the specified output directory before
+        calling this function.
     """
     if isinstance(nbest, int):
         nbests = [nbest]

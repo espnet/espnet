@@ -4,18 +4,26 @@ import torch
 
 
 def get_layer(l_name, library=torch.nn):
-    """Return layer object handler from library e.g. from torch.nn
+    """
+        Return layer object handler from a specified library, such as torch.nn.
 
-    E.g. if l_name=="elu", returns torch.nn.ELU.
+    This function searches for a layer in the given library based on its name.
+    If a matching layer is found, it returns the corresponding layer object handler.
+
+    Example:
+        If `l_name` is "elu", the function will return `torch.nn.ELU`.
 
     Args:
-        l_name (string): Case insensitive name for layer in library (e.g. .'elu').
-        library (module): Name of library/module where to search for object handler
-        with l_name e.g. "torch.nn".
+        l_name (str): Case insensitive name for the layer in the library (e.g. 'elu').
+        library (module): Name of the library/module to search for the object handler
+                          with `l_name`, e.g. `torch.nn`.
 
     Returns:
-        layer_handler (object): handler for the requested layer e.g. (torch.nn.ELU)
+        layer_handler (object): Handler for the requested layer (e.g. `torch.nn.ELU`).
 
+    Raises:
+        NotImplementedError: If no matching layer is found or if multiple matches
+        are found for the specified layer name.
     """
 
     all_torch_layers = [x for x in dir(torch.nn)]

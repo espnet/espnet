@@ -16,12 +16,45 @@ from torch import nn
 
 
 class HubertPretrainLoss(nn.Module):
-    """Hubert criterion module.
+    """
+        Hubert criterion module.
+
+    This module implements the Hubert pretraining loss used for masked and
+    unmasked frames. It is designed to compute the loss for both masked and
+    unmasked predictions, as well as additional losses if applicable.
+
+    Attributes:
+        pred_masked_weight (float): Weight for predictive loss for masked frames.
+        pred_nomask_weight (float): Weight for predictive loss for unmasked frames.
+        loss_weights (float): Weights for additional loss terms (not first one).
 
     Args:
-        pred_masked_weight: weight for predictive loss for masked frames
-        pred_nomask_weight: weight for predictive loss for unmasked frames
-        loss_weights: weights for additional loss terms (not first one)
+        pred_masked_weight (float): Weight for predictive loss for masked frames.
+            Defaults to 1.0.
+        pred_nomask_weight (float): Weight for predictive loss for unmasked frames.
+            Defaults to 0.0.
+        loss_weights (float): Weights for additional loss terms. Defaults to 10.0.
+
+    Returns:
+        Tuple[float, List[Tensor], List[Tensor]]: A tuple containing:
+            - loss (float): The computed loss value.
+            - logp_m_list (List[Tensor]): List of logits for masked predictions.
+            - logp_u_list (List[Tensor]): List of logits for unmasked predictions.
+
+    Raises:
+        NotImplementedError: If the model does not support extra loss terms.
+
+    Examples:
+        >>> loss_module = HubertPretrainLoss()
+        >>> loss, logp_m, logp_u = loss_module(model, enc_outputs)
+
+    Note:
+        This implementation utilizes code from Fairseq and is based on the work
+        of Abdelrahman Mohamed and Wei-Ning Hsu.
+
+        References:
+            - Paper: https://arxiv.org/pdf/2106.07447.pdf
+            - Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
     """
 
     def __init__(
@@ -36,6 +69,43 @@ class HubertPretrainLoss(nn.Module):
         self.loss_weights = loss_weights
 
     def forward(self, model, enc_outputs, reduce=True):
+        """
+        Computes the forward pass of the Hubert pretraining loss.
+
+        This method calculates the total loss based on the model's predictions
+        for both masked and unmasked frames. It uses cross-entropy loss for the
+        masked and unmasked predictions and includes additional loss terms if
+        specified. The final loss is weighted according to the configured
+        parameters.
+
+        Args:
+            model: The model used to obtain predictions and targets.
+            enc_outputs: The encoded outputs from the model that are used to
+                compute the loss.
+            reduce: A boolean indicating whether to reduce the loss. If True,
+                the loss will be summed; otherwise, it will not be reduced.
+
+        Returns:
+            A tuple containing:
+                - loss (float): The computed loss value.
+                - logp_m_list (list): The list of logits for masked frames.
+                - logp_u_list (list): The list of logits for unmasked frames.
+
+        Examples:
+            >>> model = HubertModel()
+            >>> enc_outputs = model.encode(inputs)
+            >>> loss_fn = HubertPretrainLoss()
+            >>> loss, logp_m, logp_u = loss_fn(model, enc_outputs)
+
+        Note:
+            This method assumes that the model has methods `get_logits` and
+            `get_targets`, and it also checks for the existence of
+            `get_extra_losses` if additional loss weights are utilized.
+
+        Raises:
+            NotImplementedError: If the model's extra losses are not a list
+            containing a single element.
+        """
         loss = 0.0
         sample_size = 0
         reduction = "sum" if reduce else "none"

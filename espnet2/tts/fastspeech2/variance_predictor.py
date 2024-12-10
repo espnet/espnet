@@ -12,14 +12,40 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class VariancePredictor(torch.nn.Module):
-    """Variance predictor module.
+    """
+        Variance predictor module.
 
-    This is a module of variacne predictor described in `FastSpeech 2:
+    This module implements the variance predictor described in `FastSpeech 2:
     Fast and High-Quality End-to-End Text to Speech`_.
 
     .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
-        https://arxiv.org/abs/2006.04558
+       https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        conv (torch.nn.ModuleList): List of convolutional layers for variance
+            prediction.
+        linear (torch.nn.Linear): Linear layer for output prediction.
+
+    Args:
+        idim (int): Input dimension.
+        n_layers (int): Number of convolutional layers.
+        n_chans (int): Number of channels of convolutional layers.
+        kernel_size (int): Kernel size of convolutional layers.
+        bias (bool): Whether to use bias in convolutional layers.
+        dropout_rate (float): Dropout rate.
+
+    Examples:
+        >>> vp = VariancePredictor(idim=256)
+        >>> input_tensor = torch.rand(8, 100, 256)  # (B, Tmax, idim)
+        >>> masks = torch.zeros(8, 100, dtype=torch.uint8)  # No padding
+        >>> output = vp(input_tensor, masks)
+        >>> print(output.shape)  # Output shape will be (8, 100, 1)
+
+    Raises:
+        TypeError: If any of the arguments are of the wrong type.
+
+    Note:
+        This module is designed for use in text-to-speech synthesis models.
     """
 
     @typechecked
@@ -64,15 +90,31 @@ class VariancePredictor(torch.nn.Module):
         self.linear = torch.nn.Linear(n_chans, 1)
 
     def forward(self, xs: torch.Tensor, x_masks: torch.Tensor = None) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method processes the input sequences through the convolutional layers
+        and returns the predicted variance for each sequence. It can handle padded
+        inputs using the provided masks.
 
         Args:
-            xs (Tensor): Batch of input sequences (B, Tmax, idim).
-            x_masks (ByteTensor): Batch of masks indicating padded part (B, Tmax).
+            xs (Tensor): Batch of input sequences with shape (B, Tmax, idim).
+            x_masks (ByteTensor, optional): Batch of masks indicating padded parts
+                with shape (B, Tmax). Default is None.
 
         Returns:
-            Tensor: Batch of predicted sequences (B, Tmax, 1).
+            Tensor: Batch of predicted sequences with shape (B, Tmax, 1).
 
+        Examples:
+            >>> vp = VariancePredictor(idim=80)
+            >>> input_tensor = torch.rand(32, 100, 80)  # (B, Tmax, idim)
+            >>> mask_tensor = torch.zeros(32, 100, dtype=torch.bool)  # No padding
+            >>> output = vp.forward(input_tensor, mask_tensor)
+            >>> print(output.shape)  # Should print: torch.Size([32, 100, 1])
+
+        Note:
+            Ensure that the input tensor `xs` is appropriately shaped and
+            the mask tensor, if provided, matches the dimensions of `xs`.
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for f in self.conv:

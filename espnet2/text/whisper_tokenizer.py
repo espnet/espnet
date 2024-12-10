@@ -36,6 +36,51 @@ dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
+    """
+    A tokenizer for the OpenAI Whisper model.
+
+    This class handles the tokenization process for both transcribing
+    and translating text using the OpenAI Whisper model. It supports
+    various languages and can utilize additional tokens if specified.
+
+    Attributes:
+        model (str): The model type of the Whisper tokenizer.
+        language (str): The language code for the tokenizer.
+        task (str): The task to perform, either 'transcribe' or 'translate'.
+        tokenizer: The initialized tokenizer from the Whisper library.
+
+    Args:
+        model_type (str): The type of the Whisper model to use. Should be
+            either "whisper_en" or "whisper_multilingual".
+        language (str): The language code to use. Defaults to "en".
+        task (str): The task to perform. Can be either "transcribe" or
+            "translate". Defaults to "transcribe".
+        sot (bool): A flag indicating whether to include start-of-token
+            symbols. Defaults to False.
+        speaker_change_symbol (str): The symbol to use for speaker changes.
+            Defaults to "<sc>".
+        added_tokens_txt (Optional[str]): A path to a text file containing
+            additional tokens to be added to the tokenizer.
+
+    Raises:
+        ValueError: If the specified language or task is unsupported
+            for the Whisper model.
+
+    Examples:
+        >>> tokenizer = OpenAIWhisperTokenizer(
+        ...     model_type="whisper_multilingual",
+        ...     language="fr",
+        ...     task="transcribe"
+        ... )
+        >>> tokens = tokenizer.text2tokens("Bonjour, comment ça va?")
+        >>> text = tokenizer.tokens2text(tokens)
+
+    Note:
+        Ensure that the Whisper library is properly installed. If the
+        library is not found, an error message will be printed, and
+        an exception will be raised.
+    """
+
     @typechecked
     def __init__(
         self,
@@ -100,7 +145,69 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         )
 
     def text2tokens(self, line: str) -> List[str]:
+        """
+            Convert a text line into a list of tokens.
+
+        This method utilizes the underlying tokenizer to tokenize the provided
+        text line. It does not add any special tokens during the tokenization
+        process.
+
+        Args:
+            line (str): The input text line to be tokenized.
+
+        Returns:
+            List[str]: A list of tokens generated from the input text line.
+
+        Examples:
+            >>> tokenizer = OpenAIWhisperTokenizer(model_type="whisper_en")
+            >>> tokens = tokenizer.text2tokens("Hello, how are you?")
+            >>> print(tokens)
+            ['Hello', ',', 'how', 'are', 'you', '?']
+
+        Note:
+            This method assumes that the tokenizer has been properly initialized
+            and is ready for use.
+        """
         return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
+        """
+            A tokenizer for OpenAI's Whisper model.
+
+        This tokenizer is responsible for converting text to tokens and vice versa,
+        tailored for the specific requirements of the Whisper model.
+
+        Attributes:
+            model (str): The type of Whisper model being used.
+            language (str): The language for tokenization, mapped from a code.
+            task (str): The task for which the model is used (transcribe/translate).
+            tokenizer: The actual tokenizer instance used for token conversion.
+
+        Args:
+            model_type (str): The model type, either "whisper_en" or
+                "whisper_multilingual".
+            language (str, optional): The language code for tokenization. Defaults to "en".
+            task (str, optional): The task to perform with the model. Can be "transcribe"
+                or "translate". Defaults to "transcribe".
+            sot (bool, optional): Whether to include start of transcription token.
+                Defaults to False.
+            speaker_change_symbol (str, optional): Symbol to denote speaker changes.
+                Defaults to "<sc>".
+            added_tokens_txt (Optional[str], optional): Path to a text file containing
+                additional tokens to add. Defaults to None.
+
+        Raises:
+            ValueError: If an unsupported language or task is specified or if the
+                tokenizer model type is unsupported.
+
+        Examples:
+            >>> tokenizer = OpenAIWhisperTokenizer(model_type="whisper_en")
+            >>> tokens = tokenizer.text2tokens("Hello, world!")
+            >>> text = tokenizer.tokens2text(tokens)
+            >>> print(text)  # Output: "Hello, world!"
+
+        Note:
+            Make sure to have the Whisper package installed properly. If not, an
+            error will be raised during initialization.
+        """
         return self.tokenizer.tokenizer.convert_tokens_to_string(tokens)

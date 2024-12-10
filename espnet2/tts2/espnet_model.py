@@ -27,7 +27,57 @@ else:
 
 
 class ESPnetTTS2Model(AbsESPnetModel):
-    """ESPnet model for text-to-speech task."""
+    """
+        ESPnet model for text-to-speech task.
+
+    This class implements a text-to-speech (TTS) model using the ESPnet framework.
+    It integrates feature extraction for pitch and energy, as well as normalization
+    and synthesis of speech from text inputs.
+
+    Attributes:
+        discrete_feats_extract (AbsFeatsExtractDiscrete): Feature extractor for
+            discrete speech features.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extractor for pitch.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extractor for energy.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]): Normalizer
+            for pitch features.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]): Normalizer
+            for energy features.
+        tts (AbsTTS2): Text-to-speech synthesis module.
+
+    Args:
+        discrete_feats_extract (AbsFeatsExtractDiscrete): Feature extractor for
+            discrete speech.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extractor for pitch.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extractor for energy.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]): Normalizer
+            for pitch.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]): Normalizer
+            for energy.
+        tts (AbsTTS2): TTS synthesis module.
+
+    Examples:
+        # Example of creating an ESPnetTTS2Model instance
+        model = ESPnetTTS2Model(discrete_feats_extract, pitch_extract, energy_extract,
+                                pitch_normalize, energy_normalize, tts)
+
+        # Example of using the forward method
+        loss, stats, weight = model.forward(text_tensor, text_lengths_tensor,
+                                            discrete_speech_tensor,
+                                            discrete_speech_lengths_tensor,
+                                            speech_tensor, speech_lengths_tensor)
+
+        # Example of using the inference method
+        output = model.inference(text_tensor, speech=speech_tensor)
+
+    Note:
+        The model requires various feature extractors and normalizers which must
+        be implemented separately. Ensure that all dependencies are satisfied.
+
+    Todo:
+        - Implement additional feature extraction methods.
+        - Improve documentation for custom feature extractors.
+    """
 
     @typechecked
     def __init__(
@@ -67,31 +117,53 @@ class ESPnetTTS2Model(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Caclualte outputs and return the loss tensor.
+        """
+        Calculate outputs and return the loss tensor.
+
+        This method processes input tensors related to text and speech and computes
+        the necessary outputs, including loss and statistics for monitoring during
+        training. It handles both auxiliary features such as pitch and energy, as
+        well as discrete features extracted from the speech waveform.
 
         Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, T_wav).
-            speech_lengths (Tensor): Speech length tensor (B,).
-            discrete_speech (Tensor): Discrete speech tensor (B, T_token).
-            discrete_speech_lengths (Tensor): Discrete speech length tensor (B,).
-            duration (Optional[Tensor]): Duration tensor.
-            duration_lengths (Optional[Tensor]): Duration length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor.
-            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            energy (Optional[Tensor]): Energy tensor.
-            energy_lengths (Optional[Tensor]): Energy length tensor (B,).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
-            sids (Optional[Tensor]): Speaker ID tensor (B, 1).
-            lids (Optional[Tensor]): Language ID tensor (B, 1).
-            kwargs: "utt_id" is among the input.
+            text (torch.Tensor): Text index tensor (B, T_text).
+            text_lengths (torch.Tensor): Text length tensor (B,).
+            discrete_speech (torch.Tensor): Discrete speech tensor (B, T_token).
+            discrete_speech_lengths (torch.Tensor): Discrete speech length tensor (B,).
+            speech (torch.Tensor): Speech waveform tensor (B, T_wav).
+            speech_lengths (torch.Tensor): Speech length tensor (B,).
+            durations (Optional[torch.Tensor]): Duration tensor (B,).
+            durations_lengths (Optional[torch.Tensor]): Duration length tensor (B,).
+            pitch (Optional[torch.Tensor]): Pitch tensor (B, T_pitch).
+            pitch_lengths (Optional[torch.Tensor]): Pitch length tensor (B,).
+            energy (Optional[torch.Tensor]): Energy tensor (B, T_energy).
+            energy_lengths (Optional[torch.Tensor]): Energy length tensor (B,).
+            spembs (Optional[torch.Tensor]): Speaker embedding tensor (B, D).
+            sids (Optional[torch.Tensor]): Speaker ID tensor (B, 1).
+            lids (Optional[torch.Tensor]): Language ID tensor (B, 1).
+            kwargs: Additional arguments, including "utt_id".
 
         Returns:
-            Tensor: Loss scalar tensor.
-            Dict[str, float]: Statistics to be monitored.
-            Tensor: Weight tensor to summarize losses.
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+                - Loss scalar tensor.
+                - A dictionary containing statistics to be monitored.
+                - Weight tensor to summarize losses.
 
+        Examples:
+            >>> model = ESPnetTTS2Model(...)
+            >>> text = torch.randint(0, 100, (2, 10))
+            >>> text_lengths = torch.tensor([10, 9])
+            >>> discrete_speech = torch.randint(0, 50, (2, 20))
+            >>> discrete_speech_lengths = torch.tensor([20, 18])
+            >>> speech = torch.randn(2, 16000)
+            >>> speech_lengths = torch.tensor([16000, 14000])
+            >>> outputs = model.forward(text, text_lengths, discrete_speech,
+            ...                          discrete_speech_lengths, speech,
+            ...                          speech_lengths)
+
+        Note:
+            Ensure that all input tensors are correctly shaped and
+            contain valid data types as expected by the model.
         """
         with autocast(False):
             # Extract features
@@ -238,7 +310,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
         energy: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
+        """
+        Caclualte features and return them as a dict.
 
         Args:
             text (Tensor): Text index tensor (T_text).
@@ -246,13 +319,23 @@ class ESPnetTTS2Model(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            durations (Optional[Tensor): Duration tensor.
-            pitch (Optional[Tensor): Pitch tensor.
-            energy (Optional[Tensor): Energy tensor.
+            durations (Optional[Tensor]): Duration tensor.
+            pitch (Optional[Tensor]): Pitch tensor.
+            energy (Optional[Tensor]): Energy tensor.
 
         Returns:
             Dict[str, Tensor]: Dict of outputs.
 
+        Examples:
+            >>> model = ESPnetTTS2Model(...)
+            >>> text = torch.tensor([...])  # Example text tensor
+            >>> output = model.inference(text)
+            >>> print(output.keys())
+            dict_keys(['feat_gen', 'other_output_keys'])
+
+        Note:
+            Ensure that the input tensors are properly shaped and normalized
+            as required by the model.
         """
         input_dict = dict(text=text)
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):

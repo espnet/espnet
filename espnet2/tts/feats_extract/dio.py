@@ -20,21 +20,40 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Dio(AbsFeatsExtract):
-    """F0 estimation with dio + stonemask algorithm.
+    """
+    F0 estimation with dio + stonemask algorithm.
 
-    This is f0 extractor based on dio + stonmask algorithm introduced in `WORLD:
-    a vocoder-based high-quality speech synthesis system for real-time applications`_.
+    This class implements an F0 extractor based on the DIO (Dynamic
+    Interpolation of the Observed) and Stonemask algorithms introduced in
+    `WORLD: a vocoder-based high-quality speech synthesis system for real-time
+    applications`_.
 
     .. _`WORLD: a vocoder-based high-quality speech synthesis system for real-time
         applications`: https://doi.org/10.1587/transinf.2015EDP7457
 
+    Attributes:
+        fs (int): Sampling frequency in Hz.
+        n_fft (int): Number of FFT points.
+        hop_length (int): Hop length for the analysis.
+        frame_period (float): Frame period calculated from hop length and fs.
+        f0min (int): Minimum frequency for F0 extraction.
+        f0max (int): Maximum frequency for F0 extraction.
+        use_token_averaged_f0 (bool): Flag to use token-averaged F0.
+        use_continuous_f0 (bool): Flag to use continuous F0.
+        use_log_f0 (bool): Flag to use logarithmic F0.
+        reduction_factor (int or None): Factor for reduction when averaging.
+
     Note:
-        This module is based on NumPy implementation. Therefore, the computational graph
-        is not connected.
+        This module is based on NumPy implementation. Therefore, the
+        computational graph is not connected.
 
     Todo:
         Replace this module with PyTorch-based implementation.
 
+    Examples:
+        dio = Dio(fs=22050, n_fft=1024, hop_length=256)
+        input_tensor = torch.randn(5, 1024)  # Batch of 5 inputs
+        pitch, pitch_lengths = dio.forward(input_tensor)
     """
 
     @typechecked
@@ -67,9 +86,52 @@ class Dio(AbsFeatsExtract):
         self.reduction_factor = reduction_factor
 
     def output_size(self) -> int:
+        """
+            Returns the output size of the Dio F0 extractor.
+
+        This method returns a fixed output size of 1, which represents the
+        dimensionality of the output features produced by the Dio algorithm.
+
+        Returns:
+            int: The output size, which is always 1.
+
+        Examples:
+            >>> dio_extractor = Dio()
+            >>> output_size = dio_extractor.output_size()
+            >>> print(output_size)
+            1
+        """
         return 1
 
     def get_parameters(self) -> Dict[str, Any]:
+        """
+        Returns the parameters of the Dio instance as a dictionary.
+
+        This method gathers the configuration parameters used in the Dio
+        instance and returns them in a dictionary format. This is useful for
+        inspecting the current settings of the F0 extractor.
+
+        Returns:
+            A dictionary containing the following keys and their values:
+                - fs: The sampling frequency.
+                - n_fft: The FFT size.
+                - hop_length: The hop length.
+                - f0min: The minimum F0 value.
+                - f0max: The maximum F0 value.
+                - use_token_averaged_f0: Whether to use token-averaged F0.
+                - use_continuous_f0: Whether to use continuous F0.
+                - use_log_f0: Whether to use logarithmic F0.
+                - reduction_factor: The reduction factor for averaging.
+
+        Examples:
+            >>> dio = Dio()
+            >>> params = dio.get_parameters()
+            >>> print(params)
+            {'fs': 22050, 'n_fft': 1024, 'hop_length': 256, 'f0min': 80,
+             'f0max': 400, 'use_token_averaged_f0': True,
+             'use_continuous_f0': True, 'use_log_f0': True,
+             'reduction_factor': None}
+        """
         return dict(
             fs=self.fs,
             n_fft=self.n_fft,
@@ -90,6 +152,45 @@ class Dio(AbsFeatsExtract):
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+            Extract F0 features from the input tensor using the DIO + Stonemask
+        algorithm.
+
+        This method processes the input tensor to extract fundamental frequency (F0)
+        features, optionally adjusting the output based on provided lengths and
+        averaging the results based on durations.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (B, T), where B is the
+                batch size and T is the number of time frames.
+            input_lengths (torch.Tensor, optional): Lengths of each input in the
+                batch. If None, assumes all inputs have the same length.
+            feats_lengths (torch.Tensor, optional): Target lengths for the output
+                F0 features. If provided, the output will be adjusted accordingly.
+            durations (torch.Tensor, optional): Durations for averaging F0 values
+                when `use_token_averaged_f0` is True.
+            durations_lengths (torch.Tensor, optional): Lengths of the durations
+                tensor.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - pitch (torch.Tensor): Extracted F0 features of shape (B, T, 1).
+                - pitch_lengths (torch.Tensor): Lengths of the extracted F0 features
+                  for each input in the batch.
+
+        Examples:
+            >>> dio = Dio()
+            >>> input_tensor = torch.randn(2, 16000)  # Example input
+            >>> output, lengths = dio.forward(input_tensor)
+
+        Note:
+            The output shape will be (B, T, 1), where B is the batch size and T is
+            the number of time frames.
+
+        Raises:
+            AssertionError: If `reduction_factor` is not set correctly when
+            `use_token_averaged_f0` is True.
+        """
         # If not provide, we assume that the inputs have the same length
         if input_lengths is None:
             input_lengths = (

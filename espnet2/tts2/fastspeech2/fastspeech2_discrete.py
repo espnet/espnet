@@ -30,11 +30,111 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class FastSpeech2Discrete(AbsTTS2):
-    """FastSpeech2 module with discrete output.
+    """
+    FastSpeech2 module with discrete output.
 
     This is a module of discrete-output Fastspeech2: it uses the same
     Fastspeech2 architecture as tts1, but with discrete token as output.
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End-of-sequence token index.
+        reduction_factor (int): Reduction factor for output sequences.
+        encoder_type (str): Type of encoder used ("transformer" or "conformer").
+        decoder_type (str): Type of decoder used ("transformer" or "conformer").
+        stop_gradient_from_pitch_predictor (bool): If True, stop gradient
+            from the pitch predictor.
+        stop_gradient_from_energy_predictor (bool): If True, stop gradient
+            from the energy predictor.
+        use_scaled_pos_enc (bool): If True, use scaled positional encoding.
+        discrete_token_layers (int): Number of discrete token layers.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        adim (int): Dimension of attention (default: 384).
+        aheads (int): Number of attention heads (default: 4).
+        elayers (int): Number of encoder layers (default: 6).
+        eunits (int): Number of encoder hidden units (default: 1536).
+        dlayers (int): Number of decoder layers (default: 6).
+        dunits (int): Number of decoder hidden units (default: 1536).
+        postnet_layers (int): Number of postnet layers (default: 5).
+        postnet_chans (int): Number of postnet channels (default: 512).
+        postnet_filts (int): Kernel size of postnet (default: 5).
+        postnet_dropout_rate (float): Dropout rate in postnet (default: 0.5).
+        positionwise_layer_type (str): Type of positionwise layer (default: "conv1d").
+        positionwise_conv_kernel_size (int): Kernel size for positionwise conv (default: 1).
+        use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding (default: True).
+        use_batch_norm (bool): Whether to use batch normalization in encoder prenet (default: True).
+        encoder_normalize_before (bool): Whether to apply layernorm before encoder block (default: True).
+        decoder_normalize_before (bool): Whether to apply layernorm before decoder block (default: True).
+        encoder_concat_after (bool): Whether to concatenate attention layer's input and output in encoder (default: False).
+        decoder_concat_after (bool): Whether to concatenate attention layer's input and output in decoder (default: False).
+        reduction_factor (int): Reduction factor (default: 1).
+        encoder_type (str): Encoder type ("transformer" or "conformer") (default: "transformer").
+        decoder_type (str): Decoder type ("transformer" or "conformer") (default: "transformer").
+        transformer_enc_dropout_rate (float): Dropout rate in encoder (default: 0.1).
+        transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding (default: 0.1).
+        transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module (default: 0.1).
+        transformer_dec_dropout_rate (float): Dropout rate in decoder (default: 0.1).
+        transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding (default: 0.1).
+        transformer_dec_attn_dropout_rate (float): Dropout rate in decoder self-attention module (default: 0.1).
+        conformer_rel_pos_type (str): Relative pos encoding type in conformer (default: "legacy").
+        conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer (default: "rel_pos").
+        conformer_self_attn_layer_type (str): Self-attention layer type in conformer (default: "rel_selfattn").
+        conformer_activation_type (str): Activation function type in conformer (default: "swish").
+        use_macaron_style_in_conformer (bool): Whether to use macaron style FFN (default: True).
+        use_cnn_in_conformer (bool): Whether to use CNN in conformer (default: True).
+        zero_triu (bool): Whether to use zero triu in relative self-attention (default: False).
+        conformer_enc_kernel_size (int): Kernel size of encoder conformer (default: 7).
+        conformer_dec_kernel_size (int): Kernel size of decoder conformer (default: 31).
+        duration_predictor_layers (int): Number of duration predictor layers (default: 2).
+        duration_predictor_chans (int): Number of duration predictor channels (default: 384).
+        duration_predictor_kernel_size (int): Kernel size of duration predictor (default: 3).
+        duration_predictor_dropout_rate (float): Dropout rate in duration predictor (default: 0.1).
+        energy_predictor_layers (int): Number of energy predictor layers (default: 2).
+        energy_predictor_chans (int): Number of energy predictor channels (default: 384).
+        energy_predictor_kernel_size (int): Kernel size of energy predictor (default: 3).
+        energy_predictor_dropout (float): Dropout rate in energy predictor (default: 0.5).
+        energy_embed_kernel_size (int): Kernel size of energy embedding (default: 9).
+        energy_embed_dropout (float): Dropout rate for energy embedding (default: 0.5).
+        stop_gradient_from_energy_predictor (bool): Whether to stop gradient from energy predictor (default: False).
+        pitch_predictor_layers (int): Number of pitch predictor layers (default: 2).
+        pitch_predictor_chans (int): Number of pitch predictor channels (default: 384).
+        pitch_predictor_kernel_size (int): Kernel size of pitch predictor (default: 3).
+        pitch_predictor_dropout (float): Dropout rate in pitch predictor (default: 0.5).
+        pitch_embed_kernel_size (int): Kernel size of pitch embedding (default: 9).
+        pitch_embed_dropout (float): Dropout rate for pitch embedding (default: 0.5).
+        stop_gradient_from_pitch_predictor (bool): Whether to stop gradient from pitch predictor (default: False).
+        spks (Optional[int]): Number of speakers. If set to > 1, assume that the sids will be provided as the input (default: None).
+        langs (Optional[int]): Number of languages. If set to > 1, assume that the lids will be provided as the input (default: None).
+        spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0, assume that spembs will be provided as the input (default: None).
+        spk_embed_integration_type (str): How to integrate speaker embedding (default: "add").
+        init_type (str): How to initialize transformer parameters (default: "xavier_uniform").
+        init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the encoder (default: 1.0).
+        init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the decoder (default: 1.0).
+        use_masking (bool): Whether to apply masking for padded part in loss calculation (default: False).
+        use_weighted_masking (bool): Whether to apply weighted masking in loss calculation (default: False).
+        ignore_id (int): Adjust this in collate_fn (default: 0).
+        discrete_token_layers (int): Number of discrete token layers (default: 1).
+
+    Examples:
+        >>> model = FastSpeech2Discrete(idim=300, odim=80)
+        >>> text = torch.randint(0, 300, (2, 50))
+        >>> text_lengths = torch.tensor([50, 45])
+        >>> discrete_feats = torch.randint(0, 80, (2, 60))
+        >>> discrete_feats_lengths = torch.tensor([60, 50])
+        >>> durations = torch.randint(0, 100, (2, 51))
+        >>> durations_lengths = torch.tensor([51, 50])
+        >>> pitch = torch.randn(2, 51, 1)
+        >>> pitch_lengths = torch.tensor([51, 50])
+        >>> energy = torch.randn(2, 51, 1)
+        >>> energy_lengths = torch.tensor([51, 50])
+        >>> loss, stats, weight = model.forward(text, text_lengths, discrete_feats,
+        ...                                    discrete_feats_lengths, durations,
+        ...                                    durations_lengths, pitch, pitch_lengths,
+        ...                                    energy, energy_lengths)
     """
 
     @typechecked
@@ -493,7 +593,13 @@ class FastSpeech2Discrete(AbsTTS2):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the FastSpeech2 model with
+        discrete output. It takes in various input features, processes them
+        through the model architecture, and computes the loss and other
+        statistics.
 
         Args:
             text (LongTensor): Batch of padded token ids (B, T_text).
@@ -516,6 +622,23 @@ class FastSpeech2Discrete(AbsTTS2):
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.randint(0, 100, (2, 10))
+            >>> text_lengths = torch.tensor([10, 8])
+            >>> discrete_feats = torch.randn(2, 15)
+            >>> discrete_feats_lengths = torch.tensor([15, 15])
+            >>> durations = torch.randint(1, 5, (2, 11))
+            >>> durations_lengths = torch.tensor([11, 11])
+            >>> pitch = torch.randn(2, 11, 1)
+            >>> pitch_lengths = torch.tensor([11, 11])
+            >>> energy = torch.randn(2, 11, 1)
+            >>> energy_lengths = torch.tensor([11, 11])
+            >>> output = model.forward(
+            ...     text, text_lengths, discrete_feats,
+            ...     discrete_feats_lengths, durations,
+            ...     durations_lengths, pitch, pitch_lengths,
+            ...     energy, energy_lengths
+            ... )
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         discrete_feats = discrete_feats[

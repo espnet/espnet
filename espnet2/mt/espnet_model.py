@@ -30,7 +30,95 @@ else:
 
 
 class ESPnetMTModel(AbsESPnetModel):
-    """Encoder-Decoder model"""
+    """
+    Encoder-Decoder model for machine translation.
+
+    This class implements an encoder-decoder architecture specifically for
+    machine translation tasks. It allows for various configurations of
+    frontends, encoders, decoders, and post-encoders. The model can also
+    compute loss using label smoothing and track BLEU scores during
+    evaluation.
+
+    Attributes:
+        sos (int): Start of sequence token ID.
+        eos (int): End of sequence token ID.
+        src_sos (int): Source start of sequence token ID.
+        src_eos (int): Source end of sequence token ID.
+        vocab_size (int): Size of the target vocabulary.
+        src_vocab_size (int): Size of the source vocabulary.
+        ignore_id (int): Token ID to ignore during loss computation.
+        patch_size (int): Size of the patch for feature extraction.
+        token_list (List[str]): List of tokens for BLEU score calculation.
+        frontend (AbsFrontend): Frontend module for feature extraction.
+        preencoder (AbsPreEncoder): Pre-encoder module.
+        postencoder (AbsPostEncoder): Post-encoder module.
+        encoder (AbsEncoder): Encoder module.
+        decoder (AbsDecoder): Decoder module.
+        criterion_mt (LabelSmoothingLoss): Loss function for machine translation.
+        mt_error_calculator (MTErrorCalculator): Calculator for BLEU scores.
+        extract_feats_in_collect_stats (bool): Flag to extract features.
+
+    Args:
+        vocab_size (int): Size of the target vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of target tokens.
+        frontend (Optional[AbsFrontend]): Frontend module for feature extraction.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module.
+        encoder (AbsEncoder): Encoder module.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module.
+        decoder (AbsDecoder): Decoder module.
+        src_vocab_size (int, optional): Size of the source vocabulary. Default is 0.
+        src_token_list (Union[Tuple[str, ...], List[str]], optional): List of
+            source tokens. Default is an empty list.
+        ignore_id (int, optional): Token ID to ignore during loss computation.
+            Default is -1.
+        lsm_weight (float, optional): Weight for label smoothing. Default is 0.0.
+        length_normalized_loss (bool, optional): Whether to use length-normalized
+            loss. Default is False.
+        report_bleu (bool, optional): Whether to report BLEU score. Default is True.
+        sym_space (str, optional): Symbol for space. Default is "<space>".
+        sym_blank (str, optional): Symbol for blank. Default is "<blank>".
+        patch_size (int, optional): Size of the patch for feature extraction.
+            Default is 1.
+        extract_feats_in_collect_stats (bool, optional): Flag to extract features
+            in collect stats. Default is True.
+        share_decoder_input_output_embed (bool, optional): Whether to share
+            decoder input and output embeddings. Default is False.
+        share_encoder_decoder_input_embed (bool, optional): Whether to share
+            encoder and decoder input embeddings. Default is False.
+
+    Examples:
+        # Create a machine translation model
+        model = ESPnetMTModel(
+            vocab_size=5000,
+            token_list=["<blank>", "<space>", "hello", "world"],
+            frontend=None,
+            preencoder=None,
+            encoder=SomeEncoder(),
+            postencoder=None,
+            decoder=SomeDecoder(),
+            src_vocab_size=3000,
+            src_token_list=["<blank>", "<space>", "hola", "mundo"],
+            ignore_id=-1,
+            lsm_weight=0.1,
+            length_normalized_loss=True,
+            report_bleu=True,
+            sym_space="<space>",
+            sym_blank="<blank>",
+            patch_size=1,
+            extract_feats_in_collect_stats=True,
+            share_decoder_input_output_embed=False,
+            share_encoder_decoder_input_embed=False,
+        )
+
+    Note:
+        The `forward` method computes the output and loss for a given input
+        batch. The `encode` method extracts features from the source text
+        and passes them through the encoder.
+
+    Raises:
+        AssertionError: If the input tensor dimensions do not match expected
+        dimensions.
+    """
 
     @typechecked
     def __init__(
@@ -122,14 +210,39 @@ class ESPnetMTModel(AbsESPnetModel):
         src_text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+        Frontend + Encoder + Decoder + Calc loss
+
+        This method processes the input through the frontend, encoder, and decoder
+        to calculate the loss for the given input text and source text.
 
         Args:
-            text: (Batch, Length)
-            text_lengths: (Batch,)
-            src_text: (Batch, length)
-            src_text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
+            text: A tensor of shape (Batch, Length) representing the target text.
+            text_lengths: A tensor of shape (Batch,) containing the lengths of each
+                sequence in the target text.
+            src_text: A tensor of shape (Batch, Length) representing the source text.
+            src_text_lengths: A tensor of shape (Batch,) containing the lengths of
+                each sequence in the source text.
+            kwargs: Additional arguments, where "utt_id" is among the input.
+
+        Returns:
+            A tuple containing:
+                - loss: A tensor representing the calculated loss.
+                - stats: A dictionary with keys 'loss', 'acc', and 'bleu', containing
+                    the corresponding statistics.
+                - weight: A tensor representing the batch size for gathering.
+
+        Raises:
+            AssertionError: If the dimensions of input tensors do not match.
+
+        Examples:
+            >>> model = ESPnetMTModel(...)
+            >>> text = torch.tensor([[1, 2, 3], [4, 5, 6]])
+            >>> text_lengths = torch.tensor([3, 3])
+            >>> src_text = torch.tensor([[7, 8, 9], [10, 11, 12]])
+            >>> src_text_lengths = torch.tensor([3, 3])
+            >>> loss, stats, weight = model.forward(text, text_lengths, src_text,
+            ...                                      src_text_lengths)
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -175,6 +288,49 @@ class ESPnetMTModel(AbsESPnetModel):
         src_text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        """
+        Collect features from the source text and return them along with their
+        lengths.
+
+        This method extracts features from the source text tensor and returns
+        them in a dictionary. If the `extract_feats_in_collect_stats` attribute
+        is set to `True`, actual features are extracted; otherwise, dummy
+        features are generated.
+
+        Args:
+            text (torch.Tensor): The target text tensor of shape (Batch, Length).
+            text_lengths (torch.Tensor): The lengths of the target text of shape
+                (Batch,).
+            src_text (torch.Tensor): The source text tensor of shape (Batch, Length).
+            src_text_lengths (torch.Tensor): The lengths of the source text of
+                shape (Batch,).
+            **kwargs: Additional keyword arguments, if any.
+
+        Returns:
+            Dict[str, torch.Tensor]: A dictionary containing:
+                - "feats" (torch.Tensor): The extracted features.
+                - "feats_lengths" (torch.Tensor): The lengths of the extracted
+                  features.
+
+        Raises:
+            AssertionError: If the `src_text_lengths` tensor does not have a
+                dimension of 1.
+
+        Examples:
+            >>> model = ESPnetMTModel(vocab_size=1000, token_list=["<blank>", "<sos>", "<eos>"],
+            ...                       encoder=encoder, decoder=decoder)
+            >>> text = torch.randint(0, 1000, (32, 20))
+            >>> text_lengths = torch.randint(1, 21, (32,))
+            >>> src_text = torch.randint(0, 1000, (32, 15))
+            >>> src_text_lengths = torch.randint(1, 16, (32,))
+            >>> feats = model.collect_feats(text, text_lengths, src_text,
+            ...                              src_text_lengths)
+            >>> print(feats["feats"].shape)  # Output: (Batch, NSamples, Dim)
+
+        Note:
+            This method is particularly useful for feature extraction during
+            model evaluation or inference.
+        """
         if self.extract_feats_in_collect_stats:
             feats, feats_lengths = self._extract_feats(src_text, src_text_lengths)
         else:

@@ -29,6 +29,62 @@ from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
 
 
 class VISinger2VocoderGenerator(torch.nn.Module):
+    """
+        VISinger2 Vocoder Generator Module.
+
+    This class implements the VISinger2 Vocoder Generator, a component of the
+    HiFi-GAN architecture. It synthesizes audio from input features using
+    residual blocks and upsampling techniques.
+
+    This implementation is based on the VISinger2 project, available at:
+    https://github.com/zhangyongmao/VISinger2.
+
+    Attributes:
+        upsample_factor (int): Total upsample factor calculated from the
+            upsample scales.
+        num_upsamples (int): Number of upsampling layers.
+        num_blocks (int): Number of residual blocks.
+
+    Args:
+        in_channels (int): Number of input channels (default: 80).
+        out_channels (int): Number of output channels (default: 1).
+        channels (int): Number of hidden representation channels (default: 512).
+        global_channels (int): Number of global conditioning channels (default: -1).
+        kernel_size (int): Kernel size of initial and final conv layer (default: 7).
+        upsample_scales (List[int]): List of upsampling scales (default: [8, 8, 2, 2]).
+        upsample_kernel_sizes (List[int]): List of kernel sizes for upsample layers
+            (default: [16, 16, 4, 4]).
+        resblock_kernel_sizes (List[int]): List of kernel sizes for residual blocks
+            (default: [3, 7, 11]).
+        resblock_dilations (List[List[int]]): List of lists of dilations for
+            residual blocks (default: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]).
+        n_harmonic (int): Number of harmonics used to synthesize a sound signal
+            (default: 64).
+        use_additional_convs (bool): Whether to use additional conv layers in
+            residual blocks (default: True).
+        bias (bool): Whether to add bias parameter in convolution layers (default: True).
+        nonlinear_activation (str): Activation function module name
+            (default: "LeakyReLU").
+        nonlinear_activation_params (Dict[str, Any]): Hyperparameters for activation
+            function (default: {"negative_slope": 0.1}).
+        use_weight_norm (bool): Whether to use weight norm (default: True). If set
+            to true, it will be applied to all of the conv layers.
+
+    Examples:
+        # Initialize the generator
+        generator = VISinger2VocoderGenerator()
+
+        # Forward pass with input tensors
+        output = generator(c, ddsp, g)
+
+    Raises:
+        AssertionError: If the kernel size is not an odd number or if the lengths
+            of upsample_scales and upsample_kernel_sizes do not match.
+
+    Note:
+        This implementation follows the official HiFi-GAN generator structure
+        while integrating VISinger2 specific features.
+    """
 
     @typechecked
     def __init__(
@@ -192,16 +248,29 @@ class VISinger2VocoderGenerator(torch.nn.Module):
         self.reset_parameters()
 
     def forward(self, c, ddsp, g: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+            Calculate forward propagation.
+
+        This method computes the forward pass for the VISinger2 Vocoder
+        Generator, processing input tensors through several layers of
+        convolution and residual blocks to produce an output tensor.
 
         Args:
-            c (Tensor): Input tensor (B, in_channels, T).
-            ddsp (Tensor): Input tensor (B, n_harmonic + 2, T * hop_length).
-            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
+            c (Tensor): Input tensor of shape (B, in_channels, T).
+            ddsp (Tensor): Input tensor of shape (B, n_harmonic + 2, T * hop_length).
+            g (Optional[Tensor]): Global conditioning tensor of shape
+                (B, global_channels, 1). Defaults to None.
 
         Returns:
-            Tensor: Output tensor (B, out_channels, T).
+            Tensor: Output tensor of shape (B, out_channels, T).
 
+        Examples:
+            >>> generator = VISinger2VocoderGenerator()
+            >>> c = torch.randn(1, 80, 256)  # Example input tensor
+            >>> ddsp = torch.randn(1, 66, 1024)  # Example DDSP input tensor
+            >>> output = generator.forward(c, ddsp)
+            >>> print(output.shape)  # Output tensor shape
+            torch.Size([1, 1, 256])
         """
 
         c = self.input_conv(c)
@@ -238,11 +307,26 @@ class VISinger2VocoderGenerator(torch.nn.Module):
         return c
 
     def reset_parameters(self):
-        """Reset parameters.
+        """
+        Reset parameters.
 
         This initialization follows the official implementation manner.
-        https://github.com/jik876/hifi-gan/blob/master/models.py
+        It resets the weights of convolutional layers to a normal distribution
+        with mean 0 and standard deviation 0.01.
 
+        The method iterates through all modules of the model and applies
+        the parameter reset to each convolutional layer.
+
+        Examples:
+            >>> model = VISinger2VocoderGenerator()
+            >>> model.reset_parameters()  # Reset parameters to their initial values
+
+        Note:
+            This method is typically called during the initialization of the
+            model to ensure that the parameters start from a well-defined state.
+
+        Raises:
+            None
         """
 
         def _reset_parameters(m: torch.nn.Module):
@@ -253,7 +337,27 @@ class VISinger2VocoderGenerator(torch.nn.Module):
         self.apply(_reset_parameters)
 
     def remove_weight_norm(self):
-        """Remove weight normalization module from all of the layers."""
+        """
+        Remove weight normalization module from all of the layers.
+
+        This method iterates through all the layers of the model and removes
+        weight normalization if it has been applied. It is useful when you want
+        to switch from weight-normalized layers back to standard layers, typically
+        before saving the model or for inference purposes.
+
+        Raises:
+            ValueError: If a layer does not have weight normalization applied,
+            this will be caught and logged, but no exception will be raised.
+
+        Examples:
+            >>> model = VISinger2VocoderGenerator(use_weight_norm=True)
+            >>> model.remove_weight_norm()  # Removes weight normalization from all layers
+
+        Note:
+            The removal of weight normalization can affect the performance of the model,
+            so it should be used with caution. Make sure to validate the model after
+            this operation.
+        """
 
         def _remove_weight_norm(m: torch.nn.Module):
             try:
@@ -265,7 +369,26 @@ class VISinger2VocoderGenerator(torch.nn.Module):
         self.apply(_remove_weight_norm)
 
     def apply_weight_norm(self):
-        """Apply weight normalization module from all of the layers."""
+        """
+            Apply weight normalization module to all convolutional layers.
+
+        This method iterates through all the layers of the module and applies
+        weight normalization to each layer that is an instance of either
+        `torch.nn.Conv1d` or `torch.nn.ConvTranspose1d`. This normalization can
+        help stabilize training by reducing the risk of exploding or vanishing
+        gradients.
+
+        The weight normalization is implemented using `torch.nn.utils.weight_norm`.
+
+        Examples:
+            >>> model = VISinger2VocoderGenerator()
+            >>> model.apply_weight_norm()
+            # This applies weight normalization to all applicable layers in the model.
+
+        Note:
+            Weight normalization is generally recommended for stabilizing the
+            training of GANs and similar architectures.
+        """
 
         def _apply_weight_norm(m: torch.nn.Module):
             if isinstance(m, torch.nn.Conv1d) or isinstance(
@@ -278,6 +401,36 @@ class VISinger2VocoderGenerator(torch.nn.Module):
 
 
 class Generator_Harm(torch.nn.Module):
+    """
+    Initialize harmonic generator module.
+
+        This module generates harmonics from input pitch and harmonic data.
+        It uses a convolutional neural network architecture to process the
+        input and produce harmonic signals.
+
+        Args:
+            hidden_channels (int): Number of channels in the input and hidden
+                layers.
+            n_harmonic (int): Number of harmonic channels.
+            kernel_size (int): Size of the convolutional kernel.
+            padding (int): Amount of padding added to the input.
+            dropout_rate (float): Dropout rate for regularization.
+            sample_rate (int): Sampling rate of the input audio.
+            hop_size (int): Hop size used in the analysis of the input audio.
+
+        Examples:
+            >>> generator = Generator_Harm(hidden_channels=192, n_harmonic=64)
+            >>> f0 = torch.randn(1, 1, 100)  # Example pitch tensor
+            >>> harm = torch.randn(1, 192, 100)  # Example harmonic data
+            >>> mask = torch.ones(1, 1, 100)  # Example mask
+            >>> output = generator(f0, harm, mask)
+            >>> output.shape
+            torch.Size([1, 64, 25600])  # Output shape after generating harmonics
+
+        Returns:
+            Tensor: Harmonic signal tensor of shape (B, n_harmonic, T * hop_length).
+    """
+
     def __init__(
         self,
         hidden_channels: int = 192,
@@ -323,16 +476,19 @@ class Generator_Harm(torch.nn.Module):
         self.hop_size = hop_size
 
     def forward(self, f0, harm, mask):
-        """Generate harmonics from F0 and harmonic data.
+        """
+        Initialize harmonic generator module.
+
+        This module generates harmonics from input pitch (F0) and harmonic data.
 
         Args:
-            f0 (Tensor): Pitch (F0) tensor (B, 1, T).
-            harm (Tensor): Harmonic data tensor (B, hidden_channels, T).
-            mask (Tensor): Mask tensor for harmonic data (B, 1, T).
-
-        Returns:
-            Tensor: Harmonic signal tensor (B, n_harmonic, T * hop_length).
-
+            hidden_channels (int): Number of channels in the input and hidden layers.
+            n_harmonic (int): Number of harmonic channels.
+            kernel_size (int): Size of the convolutional kernel.
+            padding (int): Amount of padding added to the input.
+            dropout_rate (float): Dropout rate.
+            sample_rate (int): Sampling rate of the input audio.
+            hop_size (int): Hop size used in the analysis of the input audio.
         """
 
         pitch = f0.transpose(1, 2)
@@ -368,6 +524,29 @@ class Generator_Harm(torch.nn.Module):
 
 
 class Generator_Noise(torch.nn.Module):
+    """
+    Initialize the Generator_Noise module.
+
+        Args:
+            win_length (int, optional): Window length. If None, set to `n_fft`.
+            hop_length (int): Hop length.
+            n_fft (int): FFT size.
+            hidden_channels (int): Number of hidden representation channels.
+            kernel_size (int): Size of the convolutional kernel.
+            padding (int): Size of the padding applied to the input.
+            dropout_rate (float): Dropout rate.
+
+        Examples:
+            >>> generator = Generator_Noise(win_length=1024, hop_length=256)
+            >>> x = torch.randn(1, 192, 100)  # Example input tensor
+            >>> mask = torch.ones(1, 1, 100)  # Example mask tensor
+            >>> output = generator(x, mask)
+            >>> print(output.shape)  # Output shape will be (1, 1, 25600)
+
+        Returns:
+            Tensor: Output tensor (B, 1, T * hop_size).
+    """
+
     def __init__(
         self,
         win_length: int = 1024,
@@ -413,13 +592,17 @@ class Generator_Noise(torch.nn.Module):
         self.window = torch.hann_window(self.win_size)
 
     def forward(self, x, mask):
-        """Forward Generator Noise.
+        """
+        Initialize the Generator_Noise module.
 
         Args:
-            x (Tensor): Input tensor (B, hidden_channels, T).
-            mask (Tensor): Mask tensor (B, 1, T).
-        Returns:
-            Tensor: Output tensor (B, 1, T * hop_size).
+            win_length (int, optional): Window length. If None, set to `n_fft`.
+            hop_length (int): Hop length.
+            n_fft (int): FFT size.
+            hidden_channels (int): Number of hidden representation channels.
+            kernel_size (int): Size of the convolutional kernel.
+            padding (int): Size of the padding applied to the input.
+            dropout_rate (float): Dropout rate.
         """
         istft_x = x
         istft_x = self.istft_pre(istft_x)
@@ -451,7 +634,38 @@ class Generator_Noise(torch.nn.Module):
 
 
 class MultiFrequencyDiscriminator(torch.nn.Module):
-    """Multi-Frequency Discriminator module in UnivNet."""
+    """
+    Multi-Frequency Discriminator module in UnivNet.
+
+    This module implements a multi-frequency discriminator that processes input
+    signals through multiple STFT (Short-Time Fourier Transform) layers,
+    enabling the extraction of frequency features across different time scales.
+
+    Attributes:
+        stfts (ModuleList): List of STFT layers for different hop lengths.
+        domain (str): Domain of input signal, can be "double" or "single".
+        discriminators (ModuleList): List of frequency discriminators for each hop
+            length.
+
+    Args:
+        sample_rate (int): Sample rate of the input audio. Default is 22050.
+        hop_lengths (list): List of hop lengths used for STFT. Default is
+            [128, 256, 512].
+        hidden_channels (list): List of number of channels in hidden layers.
+            Default is [256, 512, 512].
+        domain (str): Domain of input signal. Default is "double".
+        mel_scale (bool): Whether to use mel-scale frequency. Default is True.
+        divisors (list): List of divisors for each layer in the discriminator.
+            Default is [32, 16, 8, 4, 2, 1, 1].
+        strides (list): List of strides for each layer in the discriminator.
+            Default is [1, 2, 1, 2, 1, 2, 1].
+
+    Examples:
+        >>> discriminator = MultiFrequencyDiscriminator()
+        >>> input_tensor = torch.randn(1, 1, 22050)  # Example input
+        >>> output_features = discriminator(input_tensor)
+        >>> len(output_features)  # Should return the number of discriminators
+    """
 
     def __init__(
         self,
@@ -511,13 +725,32 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
             )
 
     def forward(self, x):
-        """Forward pass of Multi-Frequency Discriminator module.
+        """
+            Calculate forward propagation.
+
+        This method computes the forward pass of the VISinger2 vocoder generator
+        by processing the input tensors and applying a series of convolutional and
+        residual blocks to generate the output tensor.
 
         Args:
-            x (Tensor): Input tensor (B, 1, T * hop_size).
+            c (Tensor): Input tensor (B, in_channels, T).
+            ddsp (Tensor): Input tensor (B, n_harmonic + 2, T * hop_length).
+            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
+                                  This can be set to None if no global conditioning is used.
 
         Returns:
-            List[Tensor]: List of feature maps.
+            Tensor: Output tensor (B, out_channels, T).
+
+        Examples:
+            >>> generator = VISinger2VocoderGenerator()
+            >>> c = torch.randn(1, 80, 100)  # Example input
+            >>> ddsp = torch.randn(1, 66, 400)  # Example ddsp input
+            >>> output = generator.forward(c, ddsp)
+            >>> print(output.shape)  # Should print: torch.Size([1, 1, 100])
+
+        Note:
+            The input tensor `c` should match the expected number of input channels,
+            while `ddsp` should contain the appropriate harmonic data.
         """
 
         feats = list()
@@ -534,6 +767,46 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
 
 
 class BaseFrequenceDiscriminator(torch.nn.Module):
+    """
+    Base Frequency Discriminator.
+
+    This class implements a base frequency discriminator used for
+    evaluating the quality of generated audio signals by comparing
+    them against real audio samples. The discriminator is composed
+    of multiple layers that progressively reduce the dimensionality
+    of the input through convolutional operations.
+
+    Args:
+        in_channels (int): Number of input channels.
+        hidden_channels (int, optional): Number of channels in hidden
+            layers. Defaults to 512.
+        divisors (List[int], optional): List of divisors for the number
+            of channels in each layer. The length of the list determines
+            the number of layers. Defaults to [32, 16, 8, 4, 2, 1, 1].
+        strides (List[int], optional): List of stride values for each
+            layer. The length of the list determines the number of layers.
+            Defaults to [1, 2, 1, 2, 1, 2, 1].
+
+    Examples:
+        >>> discriminator = BaseFrequenceDiscriminator(in_channels=1)
+        >>> input_tensor = torch.randn(8, 1, 128, 128)  # (B, C, H, W)
+        >>> outputs = discriminator(input_tensor)
+        >>> for output in outputs:
+        ...     print(output.shape)
+        (8, 512, 64, 64)
+        (8, 256, 32, 32)
+        (8, 128, 16, 16)
+        (8, 64, 8, 8)
+        (8, 32, 4, 4)
+        (8, 16, 2, 2)
+        (8, 1, 1, 1)
+
+    Returns:
+        List[torch.Tensor]: List of output tensors from each layer of
+        the discriminator, where the first tensor corresponds to the
+        output of the first layer, and so on.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -583,16 +856,35 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
             self.discriminators += [seq]
 
     def forward(self, x):
-        """Perform forward pass through the base frequency discriminator.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass of the VISinger2 Vocoder
+        Generator. It processes the input tensors through a series of
+        convolutional layers and residual blocks, generating an output
+        tensor representing the synthesized audio.
 
         Args:
-            x (torch.Tensor): Input tensor of shape
-                              (B, in_channels, freq_bins, time_steps).
+            c (Tensor): Input tensor (B, in_channels, T) representing
+                        the conditioning information.
+            ddsp (Tensor): Input tensor (B, n_harmonic + 2, T * hop_length)
+                           containing harmonic features.
+            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
+                                  This tensor can provide additional information
+                                  for the generation process. If not provided,
+                                  it defaults to None.
 
         Returns:
-            List[torch.Tensor]: List of output tensors from each layer of the
-                                discriminator, where the first tensor corresponds to
-                                the output of the first layer, and so on.
+            Tensor: Output tensor (B, out_channels, T) representing the
+                    generated audio waveform.
+
+        Examples:
+            >>> generator = VISinger2VocoderGenerator()
+            >>> c = torch.randn(2, 80, 100)  # Example conditioning input
+            >>> ddsp = torch.randn(2, 66, 512)  # Example harmonic features
+            >>> output = generator(c, ddsp)
+            >>> print(output.shape)
+            torch.Size([2, 1, 100])  # Example output shape
         """
 
         outs = []
@@ -604,6 +896,50 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
 
 
 class VISinger2Discriminator(torch.nn.Module):
+    """
+    Discriminator module for VISinger2, including MSD, MPD, and MFD.
+
+    This class implements a multi-scale, multi-period, and multi-frequency
+    discriminator for the VISinger2 vocoder architecture. It leverages
+    various discriminators to evaluate the quality of generated audio
+    signals.
+
+    Args:
+        scales (int): Number of scales to be used in the multi-scale
+            discriminator.
+        scale_downsample_pooling (str): Type of pooling used for downsampling.
+        scale_downsample_pooling_params (Dict[str, Any]): Parameters for the
+            downsampling pooling layer.
+        scale_discriminator_params (Dict[str, Any]): Parameters for the scale
+            discriminator.
+        follow_official_norm (bool): Whether to follow the official normalization.
+        periods (List[int]): List of periods to be used in the multi-period
+            discriminator.
+        period_discriminator_params (Dict[str, Any]): Parameters for the period
+            discriminator.
+        multi_freq_disc_params (Dict[str, Any]): Parameters for the
+            multi-frequency discriminator.
+        use_spectral_norm (bool): Whether to use spectral normalization or not.
+
+    Returns:
+        List[Tensor]: The outputs from the various discriminators.
+
+    Examples:
+        >>> discriminator = VISinger2Discriminator(scales=2)
+        >>> input_tensor = torch.randn(1, 1, 22050)  # Example input
+        >>> outputs = discriminator(input_tensor)
+        >>> print(len(outputs))  # Outputs from different discriminators
+
+    Note:
+        The multi-scale discriminator is implemented using HiFiGAN's
+        HiFiGANMultiScaleDiscriminator, the multi-period discriminator
+        with HiFiGANMultiPeriodDiscriminator, and the multi-frequency
+        discriminator with MultiFrequencyDiscriminator.
+
+    Todo:
+        - Refactor parameters to improve flexibility.
+    """
+
     def __init__(
         self,
         # Multi-scale discriminator related
@@ -710,6 +1046,38 @@ class VISinger2Discriminator(torch.nn.Module):
         )
 
     def forward(self, x):
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the VISinger2 Vocoder
+        Generator, taking in conditioning and DDSP inputs to produce
+        an audio output.
+
+        Args:
+            c (Tensor): Input tensor (B, in_channels, T), where B is the
+                batch size, in_channels is the number of input channels,
+                and T is the time dimension.
+            ddsp (Tensor): Input tensor (B, n_harmonic + 2, T * hop_length),
+                representing the DDSP features.
+            g (Optional[Tensor]): Global conditioning tensor (B,
+                global_channels, 1). This can be used to provide additional
+                context to the generation process.
+
+        Returns:
+            Tensor: Output tensor (B, out_channels, T), which contains the
+                generated audio signal.
+
+        Examples:
+            >>> generator = VISinger2VocoderGenerator()
+            >>> c = torch.randn(1, 80, 100)  # Example conditioning input
+            >>> ddsp = torch.randn(1, 66, 1000)  # Example DDSP input
+            >>> output = generator.forward(c, ddsp)
+            >>> print(output.shape)  # Should be (1, 1, 100)
+
+        Note:
+            Ensure that the input tensors are properly shaped according to
+            the expected dimensions, as mismatches can lead to runtime errors.
+        """
         msd_outs = self.msd(x)
         mpd_outs = self.mpd(x)
         mfd_outs = self.mfd(x)
@@ -720,6 +1088,38 @@ class VISinger2Discriminator(torch.nn.Module):
 
 
 class LayerNorm(torch.nn.Module):
+    """
+    Layer normalization module.
+
+    This module applies layer normalization to the input tensor, normalizing
+    across the specified number of channels. Layer normalization is useful
+    in stabilizing the learning process and improving convergence in
+    deep learning models.
+
+    Attributes:
+        channels (int): The number of channels to normalize.
+        eps (float): A small constant added for numerical stability.
+        gamma (torch.nn.Parameter): Scale parameter for the normalized output.
+        beta (torch.nn.Parameter): Shift parameter for the normalized output.
+
+    Args:
+        channels (int): Number of channels to normalize.
+        eps (float): A small constant to prevent division by zero. Default is 1e-5.
+
+    Returns:
+        Tensor: Normalized output tensor.
+
+    Examples:
+        >>> layer_norm = LayerNorm(channels=10)
+        >>> input_tensor = torch.randn(2, 10, 5)  # Batch size 2, 10 channels, 5 time steps
+        >>> output_tensor = layer_norm(input_tensor)
+        >>> print(output_tensor.shape)
+        torch.Size([2, 10, 5])  # Output shape is the same as input shape
+
+    Note:
+        The normalization is performed over the last dimension (channels).
+    """
+
     def __init__(self, channels, eps=1e-5):
         super().__init__()
         self.channels = channels
@@ -729,12 +1129,78 @@ class LayerNorm(torch.nn.Module):
         self.beta = torch.nn.Parameter(torch.zeros(channels))
 
     def forward(self, x):
+        """
+            Calculate forward propagation through the LayerNorm layer.
+
+        This method applies layer normalization to the input tensor, which is useful
+        for stabilizing the learning process by normalizing the inputs to each layer.
+
+        Args:
+            x (Tensor): Input tensor of shape (B, C, T), where B is the batch size,
+                        C is the number of channels, and T is the sequence length.
+
+        Returns:
+            Tensor: Normalized output tensor of the same shape as input x.
+
+        Examples:
+            >>> layer_norm = LayerNorm(channels=10)
+            >>> input_tensor = torch.randn(5, 10, 20)  # Batch size of 5, 10 channels
+            >>> output_tensor = layer_norm(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([5, 10, 20])
+
+        Note:
+            The layer normalization is applied independently to each channel, which
+            means that for each input tensor, the mean and variance are computed
+            along the channel dimension.
+        """
         x = x.transpose(1, -1)
         x = F.layer_norm(x, (self.channels,), self.gamma, self.beta, self.eps)
         return x.transpose(1, -1)
 
 
 class ConvReluNorm(torch.nn.Module):
+    """
+    Convolutional Layer with ReLU Activation and Layer Normalization.
+
+    This module consists of multiple convolutional layers followed by layer
+    normalization and ReLU activation with dropout. It is designed to
+    facilitate learning in deep neural networks by maintaining stable
+    activations through normalization and regularization via dropout.
+
+    Attributes:
+        in_channels (int): Number of input channels.
+        hidden_channels (int): Number of hidden channels.
+        out_channels (int): Number of output channels.
+        kernel_size (int): Size of the convolutional kernel.
+        n_layers (int): Number of convolutional layers.
+        dropout_rate (float): Dropout rate for regularization.
+        conv_layers (ModuleList): List of convolutional layers.
+        norm_layers (ModuleList): List of layer normalization layers.
+        relu_drop (Sequential): Sequential container for ReLU and dropout.
+        proj (Conv1d): Final projection layer.
+
+    Args:
+        in_channels (int): Number of input channels.
+        hidden_channels (int): Number of hidden representation channels.
+        out_channels (int): Number of output channels.
+        kernel_size (int): Size of the convolutional kernel.
+        n_layers (int): Number of convolutional layers (must be > 1).
+        dropout_rate (float): Dropout rate for the layers.
+
+    Raises:
+        AssertionError: If `n_layers` is less than or equal to 1.
+
+    Examples:
+        >>> model = ConvReluNorm(in_channels=64, hidden_channels=128,
+        ...                       out_channels=32, kernel_size=3,
+        ...                       n_layers=4, dropout_rate=0.1)
+        >>> input_tensor = torch.randn(10, 64, 100)  # (batch_size, channels, length)
+        >>> output_tensor = model(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([10, 32, 100])  # Output shape
+    """
+
     def __init__(
         self,
         in_channels,
@@ -779,6 +1245,39 @@ class ConvReluNorm(torch.nn.Module):
         self.proj.bias.data.zero_()
 
     def forward(self, x):
+        """
+        Calculate forward propagation.
+
+        This method takes the input tensors and processes them through the
+        generator's architecture, producing an output tensor that can be used
+        for audio synthesis.
+
+        Args:
+            c (Tensor): Input tensor (B, in_channels, T) representing the
+                conditioning information.
+            ddsp (Tensor): Input tensor (B, n_harmonic + 2, T * hop_length)
+                representing the harmonic content and additional features.
+            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
+                This tensor can be used to provide additional context or
+                information for the generation process. If not provided, the
+                model will proceed without global conditioning.
+
+        Returns:
+            Tensor: Output tensor (B, out_channels, T) representing the
+                generated audio signal.
+
+        Examples:
+            >>> generator = VISinger2VocoderGenerator()
+            >>> c = torch.randn(1, 80, 100)  # Example conditioning tensor
+            >>> ddsp = torch.randn(1, 66, 800)  # Example DDSP tensor
+            >>> output = generator(c, ddsp)
+            >>> print(output.shape)  # Should be (1, 1, 100)
+
+        Note:
+            The method applies several convolutional and upsampling layers to
+            the input tensors, followed by residual blocks, to synthesize the
+            output audio signal.
+        """
         x = self.conv_layers[0](x)
         x = self.norm_layers[0](x)
         x = self.relu_drop(x)
@@ -793,6 +1292,49 @@ class ConvReluNorm(torch.nn.Module):
 
 
 class TorchSTFT(torch.nn.Module):
+    """
+    Compute Short-Time Fourier Transform (STFT) for audio signals.
+
+    This class performs the Short-Time Fourier Transform (STFT) on input audio
+    signals, converting them from the time domain to the frequency domain.
+    It supports options for normalization and mel scale conversion.
+
+    Attributes:
+        fft_size (int): Size of the FFT.
+        hop_size (int): Hop size for the STFT.
+        win_size (int): Window size for the STFT.
+        ref_level_db (float): Reference level in dB.
+        min_level_db (float): Minimum level in dB.
+        window (Tensor): Hann window tensor for STFT.
+        normalized (bool): Whether to normalize the output.
+        domain (str): Domain type ('linear', 'log', or 'double').
+        mel_scale (MelScale): Instance of MelScale if mel_scale is True.
+
+    Args:
+        sample_rate (int): Sample rate of the audio signal.
+        fft_size (int): Size of the FFT.
+        hop_size (int): Hop size for the STFT.
+        win_size (int): Window size for the STFT.
+        normalized (bool, optional): If True, normalize the output. Default is False.
+        domain (str, optional): Domain of the output ('linear', 'log', 'double').
+            Default is 'linear'.
+        mel_scale (bool, optional): If True, apply mel scale conversion. Default is False.
+        ref_level_db (float, optional): Reference level in dB. Default is 20.
+        min_level_db (float, optional): Minimum level in dB. Default is -100.
+
+    Examples:
+        >>> stft = TorchSTFT(sample_rate=22050, fft_size=1024, hop_size=256, win_size=1024)
+        >>> audio = torch.randn(1, 1, 22050)  # Simulated audio signal
+        >>> mag, phase = stft.transform(audio)
+
+    Returns:
+        Tuple[Tensor, Tensor]: Magnitude and phase tensors after STFT transformation.
+
+    Note:
+        The `transform` method will return different outputs based on the `domain`
+        specified during initialization.
+    """
+
     def __init__(
         self,
         sample_rate,
@@ -825,6 +1367,47 @@ class TorchSTFT(torch.nn.Module):
         )
 
     def transform(self, x):
+        """
+            Short-Time Fourier Transform (STFT) module for audio processing.
+
+        This module performs the Short-Time Fourier Transform (STFT) on an input
+        audio signal, providing both magnitude and phase information. It can also
+        convert the resulting STFT to a mel frequency representation if required.
+
+        Attributes:
+            fft_size (int): The size of the FFT.
+            hop_size (int): The hop length between frames.
+            win_size (int): The window size for the STFT.
+            ref_level_db (int): Reference level in decibels.
+            min_level_db (int): Minimum level in decibels.
+            window (Tensor): The Hann window used for the STFT.
+            normalized (bool): Whether to normalize the output.
+            domain (str): The domain of the output ('linear', 'log', or 'double').
+            mel_scale (MelScale or None): Mel scale converter if mel_scale is True.
+
+        Args:
+            sample_rate (int): Sample rate of the input audio signal.
+            fft_size (int): Size of the FFT.
+            hop_size (int): Hop size for the STFT.
+            win_size (int): Window size for the STFT.
+            normalized (bool, optional): If True, normalize the output. Defaults to False.
+            domain (str, optional): The domain of the output ('linear', 'log', 'double').
+                Defaults to 'linear'.
+            mel_scale (bool, optional): If True, convert the STFT to mel frequency.
+                Defaults to False.
+            ref_level_db (int, optional): Reference level in decibels. Defaults to 20.
+            min_level_db (int, optional): Minimum level in decibels. Defaults to -100.
+
+        Examples:
+            >>> stft = TorchSTFT(sample_rate=22050, fft_size=1024, hop_size=256)
+            >>> audio_input = torch.randn(1, 1, 22050)  # Example audio input
+            >>> magnitude, phase = stft.transform(audio_input)
+
+        Methods:
+            transform(x): Computes the STFT of the input tensor and returns magnitude
+                and phase.
+            complex(x): Computes the complex STFT of the input tensor.
+        """
         x_stft = torch.stft(
             x,
             self.fft_size,
@@ -858,6 +1441,48 @@ class TorchSTFT(torch.nn.Module):
             return torch.cat((mag, log_mag), dim=1), phase
 
     def complex(self, x):
+        """
+            Short-Time Fourier Transform (STFT) module.
+
+        This module computes the Short-Time Fourier Transform of an input signal.
+        It allows for various configurations such as window size, FFT size, and
+        normalization. The output can be returned in different domains including
+        linear, log, and double.
+
+        Attributes:
+            fft_size (int): Size of the FFT.
+            hop_size (int): Number of samples between successive frames.
+            win_size (int): Size of the window used for STFT.
+            ref_level_db (float): Reference level in decibels.
+            min_level_db (float): Minimum level in decibels.
+            window (Tensor): Hann window tensor.
+            normalized (bool): Flag to determine if the output should be normalized.
+            domain (str): Domain of the output signal.
+            mel_scale (MelScale): Mel scale transformation object if mel_scale is True.
+
+        Args:
+            sample_rate (int): Sample rate of the audio signal.
+            fft_size (int): Size of the FFT.
+            hop_size (int): Hop size for the STFT.
+            win_size (int): Window size for the STFT.
+            normalized (bool, optional): Whether to normalize the output. Defaults to False.
+            domain (str, optional): Domain of the output ('linear', 'log', or 'double').
+                Defaults to 'linear'.
+            mel_scale (bool, optional): Whether to apply mel scale transformation.
+                Defaults to False.
+            ref_level_db (float, optional): Reference level in decibels. Defaults to 20.
+            min_level_db (float, optional): Minimum level in decibels. Defaults to -100.
+
+        Examples:
+            >>> stft = TorchSTFT(sample_rate=22050, fft_size=1024, hop_size=256,
+            ...                   win_size=1024, normalized=True, domain='log')
+            >>> input_signal = torch.randn(1, 1, 22050)  # (batch_size, channels, time)
+            >>> magnitude, phase = stft.transform(input_signal)
+
+        Methods:
+            transform(x): Computes the STFT of the input tensor.
+            complex(x): Computes the complex representation of the STFT.
+        """
         x_stft = torch.stft(
             x,
             self.fft_size,
@@ -872,19 +1497,37 @@ class TorchSTFT(torch.nn.Module):
 
 
 class MelScale(torch.nn.Module):
-    """Turn a normal STFT into a mel frequency STFT, using a conversion
+    """
+    Turn a normal STFT into a mel frequency STFT using triangular filter banks.
 
-    matrix.  This uses triangular filter banks.
     User can control which device the filter bank (fb) is (e.g. fb.to(spec_f.device)).
+
     Args:
         n_mels (int, optional): Number of mel filterbanks. (Default: 128)
-        sample_rate (int, optional): Sample rate of audio signal. (Default: 16000)
+        sample_rate (int, optional): Sample rate of audio signal. (Default: 24000)
         f_min (float, optional): Minimum frequency. (Default: 0.)
         f_max (float or None, optional): Maximum frequency.
             (Default: sample_rate // 2)
         n_stft (int, optional): Number of bins in STFT. Calculated from first input
-            if None is given.  See n_fft in :class:Spectrogram.
-            (Default: None)
+            if None is given. See n_fft in :class:Spectrogram. (Default: None)
+
+    Attributes:
+        n_mels (int): The number of mel filterbanks.
+        sample_rate (int): The sample rate of the audio signal.
+        f_min (float): The minimum frequency.
+        f_max (float): The maximum frequency.
+        fb (Tensor): The filter bank matrix for converting STFT to mel scale.
+
+    Returns:
+        Tensor: Mel frequency spectrogram of size (..., n_mels, time).
+
+    Examples:
+        >>> mel_scale = MelScale(n_mels=128, sample_rate=24000)
+        >>> spectrogram = torch.randn(1, 1025, 100)  # Example STFT
+        >>> mel_spectrogram = mel_scale(spectrogram)
+
+    Raises:
+        AssertionError: If f_min is greater than f_max.
     """
 
     __constants__ = ["n_mels", "sample_rate", "f_min", "f_max"]
@@ -918,12 +1561,38 @@ class MelScale(torch.nn.Module):
         self.register_buffer("fb", fb)
 
     def forward(self, specgram: torch.Tensor) -> torch.Tensor:
-        """Forward MelScale
+        """
+            Turn a normal STFT into a mel frequency STFT using triangular filter banks.
+
+        The user can control which device the filter bank (fb) is on
+        (e.g., fb.to(spec_f.device)).
 
         Args:
-            specgram (Tensor): A spectrogram STFT of dimension (..., freq, time).
+            n_mels (int, optional): Number of mel filterbanks. (Default: 128)
+            sample_rate (int, optional): Sample rate of audio signal. (Default: 16000)
+            f_min (float, optional): Minimum frequency. (Default: 0.0)
+            f_max (float or None, optional): Maximum frequency.
+                (Default: sample_rate // 2)
+            n_stft (int, optional): Number of bins in STFT. Calculated from first input
+                if None is given. See n_fft in :class:Spectrogram.
+                (Default: None)
+
+        Attributes:
+            n_mels (int): Number of mel filterbanks.
+            sample_rate (int): Sample rate of audio signal.
+            f_min (float): Minimum frequency.
+            f_max (float): Maximum frequency.
+            fb (Tensor): Frequency bin conversion matrix.
+
         Returns:
             Tensor: Mel frequency spectrogram of size (..., n_mels, time).
+
+        Examples:
+            >>> mel_scale = MelScale(n_mels=128, sample_rate=16000)
+            >>> mel_spec = mel_scale(specgram)
+
+        Raises:
+            AssertionError: If f_min is greater than f_max.
         """
 
         # pack batch
@@ -956,23 +1625,42 @@ def create_fb_matrix(
     sample_rate: int,
     norm: Optional[str] = None,
 ) -> torch.Tensor:
-    """Create a frequency bin conversion matrix.
+    """
+    Create a frequency bin conversion matrix.
+
+    This function generates a triangular filter bank matrix used for
+    converting frequencies to mel scale. Each filter bank represents
+    a triangular filter, and the output matrix can be used to apply
+    these filters to a spectrogram.
 
     Args:
-        n_freqs (int): Number of frequencies to highlight/apply
-        f_min (float): Minimum frequency (Hz)
-        f_max (float): Maximum frequency (Hz)
-        n_mels (int): Number of mel filterbanks
-        sample_rate (int): Sample rate of the audio waveform
-        norm (Optional[str]): If 'slaney',
-        divide the triangular mel weights by the width of the mel band
-        (area normalization). (Default: None)
+        n_freqs (int): Number of frequencies to highlight/apply.
+        f_min (float): Minimum frequency (Hz).
+        f_max (float): Maximum frequency (Hz).
+        n_mels (int): Number of mel filterbanks.
+        sample_rate (int): Sample rate of the audio waveform.
+        norm (Optional[str]): If 'slaney', divides the triangular mel
+            weights by the width of the mel band (area normalization).
+            (Default: None).
+
     Returns:
-        Tensor: Triangular filter banks (fb matrix) of size (n_freqs, n_mels)
-        meaning number of frequencies to highlight/apply to x the number of filterbanks.
-        Each column is a filterbank so that assuming there is a matrix A of
-        size (..., n_freqs), the applied result would be
-        A * create_fb_matrix(A.size(-1), ...).
+        Tensor: Triangular filter banks (fb matrix) of size (n_freqs, n_mels),
+            meaning number of frequencies to highlight/apply to the number
+            of filterbanks. Each column is a filterbank so that assuming
+            there is a matrix A of size (..., n_freqs), the applied result
+            would be A * create_fb_matrix(A.size(-1), ...).
+
+    Raises:
+        ValueError: If `norm` is not None or 'slaney'.
+
+    Examples:
+        >>> fb_matrix = create_fb_matrix(1024, 0.0, 8000.0, 128, 22050)
+        >>> fb_matrix.shape
+        torch.Size([1024, 128])
+
+    Note:
+        The triangular filter banks are constructed in a way similar to
+        Librosa's implementation for creating mel filter banks.
     """
 
     if norm is not None and norm != "slaney":

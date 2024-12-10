@@ -62,7 +62,81 @@ AVAILABLE_DISCRIMINATORS = {
 
 
 class JointText2Wav(AbsGANTTS):
-    """General class to jointly train text2mel and vocoder parts."""
+    """
+        Joint text-to-wav module for end-to-end training.
+
+    This class serves as a general framework to jointly train the text-to-mel and
+    vocoder components in a GAN-based TTS system. It combines the functionalities
+    of text-to-mel generation and vocoder processing to synthesize high-quality
+    speech waveforms from input text.
+
+    Attributes:
+        segment_size (int): Segment size for random windowed inputs.
+        use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+        generator (torch.nn.ModuleDict): Contains the text2mel and vocoder models.
+        discriminator (torch.nn.Module): Discriminator model for adversarial training.
+        generator_adv_loss (GeneratorAdversarialLoss): Loss function for generator.
+        discriminator_adv_loss (DiscriminatorAdversarialLoss): Loss function for
+            discriminator.
+        use_feat_match_loss (bool): Whether to use feature matching loss.
+        feat_match_loss (FeatureMatchLoss): Loss function for feature matching.
+        use_mel_loss (bool): Whether to use mel loss.
+        mel_loss (MelSpectrogramLoss): Loss function for mel spectrogram.
+        lambda_text2mel (float): Loss scaling coefficient for text2mel model loss.
+        lambda_adv (float): Loss scaling coefficient for adversarial loss.
+        lambda_feat_match (float): Loss scaling coefficient for feature matching loss.
+        lambda_mel (float): Loss scaling coefficient for mel loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+        _cache (Any): Cached outputs from the generator.
+        fs (int): Sampling rate for saving wav files.
+        spks (int): Number of speakers.
+        langs (int): Number of languages.
+        spk_embed_dim (int): Speaker embedding dimension.
+
+    Args:
+        idim (int): Input vocabulary size.
+        odim (int): Acoustic feature dimension.
+        segment_size (int): Segment size for random windowed inputs.
+        sampling_rate (int): Sampling rate for saving waveform during inference.
+        text2mel_type (str): The type of text2mel model to use.
+        text2mel_params (Dict[str, Any]): Parameter dictionary for text2mel model.
+        vocoder_type (str): The type of vocoder model to use.
+        vocoder_params (Dict[str, Any]): Parameter dictionary for vocoder model.
+        use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+        pqmf_params (Dict[str, Any]): Parameter dictionary for PQMF module.
+        discriminator_type (str): Type of discriminator to use.
+        discriminator_params (Dict[str, Any]): Parameter dictionary for discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameters for generator adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameters for discriminator
+            adversarial loss.
+        use_feat_match_loss (bool): Whether to use feature matching loss.
+        feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+        use_mel_loss (bool): Whether to use mel loss.
+        mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+        lambda_text2mel (float): Coefficient for text2mel loss.
+        lambda_adv (float): Coefficient for adversarial loss.
+        lambda_feat_match (float): Coefficient for feature matching loss.
+        lambda_mel (float): Coefficient for mel loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+
+    Examples:
+        # Initialize the JointText2Wav model
+        model = JointText2Wav(idim=256, odim=80)
+
+        # Forward pass with text and features
+        output = model.forward(text=torch.randint(0, 256, (1, 10)),
+                               text_lengths=torch.tensor([10]),
+                               feats=torch.randn(1, 20, 80),
+                               feats_lengths=torch.tensor([20]),
+                               speech=torch.randn(1, 16000),
+                               speech_lengths=torch.tensor([16000]))
+
+        # Run inference
+        inference_output = model.inference(text=torch.randint(0, 256, (10,)))
+
+    Raises:
+        ValueError: If the input dimensions are inconsistent or invalid.
+    """
 
     @typechecked
     def __init__(
@@ -360,7 +434,8 @@ class JointText2Wav(AbsGANTTS):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
@@ -378,6 +453,18 @@ class JointText2Wav(AbsGANTTS):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> model = JointText2Wav(idim=40, odim=80)
+            >>> text = torch.randint(0, 100, (2, 10))  # Batch of 2, length 10
+            >>> text_lengths = torch.tensor([10, 9])
+            >>> feats = torch.randn(2, 80, 40)  # Batch of 2, 80 time steps, 40 features
+            >>> feats_lengths = torch.tensor([80, 70])
+            >>> speech = torch.randn(2, 16000)  # Batch of 2, 16000 samples
+            >>> speech_lengths = torch.tensor([16000, 15000])
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ...                        speech, speech_lengths)
+            >>> print(output.keys())
+            dict_keys(['loss', 'stats', 'weight', 'optim_idx'])
         """
         if forward_generator:
             return self._forward_generator(

@@ -7,10 +7,44 @@ import torch
 
 
 class GaussianUpsampling(torch.nn.Module):
-    """Gaussian upsampling with fixed temperature as in:
+    """
+        Gaussian upsampling with fixed temperature as described in:
 
     https://arxiv.org/abs/2010.04301
 
+    This module expands the hidden states based on the specified durations,
+    using a Gaussian function to compute the attention weights for the
+    upsampling process.
+
+    Attributes:
+        delta (float): The temperature parameter that controls the spread of the
+            Gaussian function.
+
+    Args:
+        hs (Tensor): Batched hidden state to be expanded (B, T_text, adim).
+        ds (Tensor): Batched token duration (B, T_text).
+        h_masks (Tensor, optional): Mask tensor for hidden states (B, T_feats).
+        d_masks (Tensor, optional): Mask tensor for durations (B, T_text).
+
+    Returns:
+        Tensor: Expanded hidden state (B, T_feat, adim).
+
+    Raises:
+        Warning: If the predicted durations include all zero sequences, a warning
+            will be logged, and the first element will be filled with 1.
+
+    Examples:
+        >>> import torch
+        >>> upsampler = GaussianUpsampling(delta=0.1)
+        >>> hs = torch.randn(2, 5, 256)  # Example hidden states
+        >>> ds = torch.tensor([[1, 2, 0], [2, 1, 1]])  # Example durations
+        >>> expanded_hs = upsampler(hs, ds)
+        >>> print(expanded_hs.shape)
+        torch.Size([2, T_feat, 256])  # Shape will depend on the durations
+
+    Note:
+        The behavior of this function may differ based on the input masks and
+        the provided durations.
     """
 
     def __init__(self, delta=0.1):
@@ -18,17 +52,37 @@ class GaussianUpsampling(torch.nn.Module):
         self.delta = delta
 
     def forward(self, hs, ds, h_masks=None, d_masks=None):
-        """Upsample hidden states according to durations.
+        """
+            Gaussian upsampling with fixed temperature as in:
+
+        https://arxiv.org/abs/2010.04301
+
+        Attributes:
+            delta (float): Temperature parameter for the Gaussian function.
 
         Args:
             hs (Tensor): Batched hidden state to be expanded (B, T_text, adim).
             ds (Tensor): Batched token duration (B, T_text).
-            h_masks (Tensor): Mask tensor (B, T_feats).
-            d_masks (Tensor): Mask tensor (B, T_text).
+            h_masks (Tensor, optional): Mask tensor (B, T_feats). Default is None.
+            d_masks (Tensor, optional): Mask tensor (B, T_text). Default is None.
 
         Returns:
             Tensor: Expanded hidden state (B, T_feat, adim).
 
+        Raises:
+            Warning: If the predicted durations include all zero sequences.
+
+        Examples:
+            >>> model = GaussianUpsampling(delta=0.1)
+            >>> hs = torch.randn(2, 5, 10)  # Example hidden states
+            >>> ds = torch.tensor([[1, 2, 0, 0, 0], [1, 0, 0, 0, 0]])  # Durations
+            >>> output = model.forward(hs, ds)
+            >>> print(output.shape)  # Should print the shape of expanded hidden states
+
+        Note:
+            The method handles cases where the duration tensor contains all zeros
+            by filling the first element with 1, as this situation should not occur
+            during teacher forcing.
         """
         B = ds.size(0)
         device = ds.device

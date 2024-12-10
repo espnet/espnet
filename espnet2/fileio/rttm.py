@@ -9,9 +9,40 @@ from typeguard import typechecked
 
 @typechecked
 def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, float]]]:
-    """Read a RTTM file
+    """
+        Read a RTTM (Rich Transcription Time Marked) file and extract speaker
+    information.
 
-    Note: only support speaker information now
+    This function reads a RTTM file and organizes the speaker annotations
+    into a structured dictionary. The dictionary maps utterance IDs to a
+    list of tuples containing speaker IDs and their corresponding start
+    and end times.
+
+    Note: This function currently only supports speaker information.
+
+    Args:
+        path (Union[Path, str]): The file path to the RTTM file to be read.
+
+    Returns:
+        Dict[str, List[Tuple[str, float, float]]]: A dictionary where the keys
+        are utterance IDs and the values are lists of tuples. Each tuple
+        contains the speaker ID, start time, and end time for each speaker
+        in the utterance.
+
+    Raises:
+        AssertionError: If the line in the RTTM file does not contain exactly
+        9 fields or if the label type is not "SPEAKER" or "END".
+
+    Examples:
+        >>> rttm_data = load_rttm_text('path/to/rttm/file.rttm')
+        >>> print(rttm_data)
+        {
+            'file1': [
+                ('spk1', 0, 1023),
+                ('spk2', 4000, 3023),
+                ('spk1', 500, 4023)
+            ]
+        }
     """
 
     data = {}
@@ -43,26 +74,48 @@ def load_rttm_text(path: Union[Path, str]) -> Dict[str, List[Tuple[str, float, f
 
 
 class RttmReader(collections.abc.Mapping):
-    """Reader class for 'rttm.scp'.
+    """
+    Reader class for 'rttm.scp'.
+
+    This class provides functionality to read RTTM (Rich Transcription Time
+    Markup) files, specifically tailored for the ESPnet framework. The RTTM
+    format supported by this class extends the standard format by using
+    sample numbers instead of absolute time and includes an END label to
+    represent the duration of a recording.
+
+    The standard RTTM format can be found at:
+    https://catalog.ldc.upenn.edu/docs/LDC2004T12/RTTM-format-v13.pdf
+
+    Attributes:
+        fname (str): The filename of the RTTM file to be read.
+        data (Dict[str, List[Tuple[str, float, float]]]): Parsed RTTM data
+            where keys are utterance IDs and values are tuples containing
+            speaker list, speaker events, and maximum duration.
+
+    Args:
+        fname (str): The path to the RTTM file.
 
     Examples:
+        >>> reader = RttmReader('rttm')
+        >>> spk_label = reader["file1"]
+
+        The RTTM file may contain lines such as:
         SPEAKER file1 1 0 1023 <NA> <NA> spk1 <NA>
         SPEAKER file1 2 4000 3023 <NA> <NA> spk2 <NA>
         SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>
         END     file1 <NA> 4023 <NA> <NA> <NA> <NA>
 
-        This is an extend version of standard RTTM format for espnet.
-        The difference including:
-        1. Use sample number instead of absolute time
-        2. has a END label to represent the duration of a recording
-        3. replace duration (5th field) with end time
-        (For standard RTTM,
-            see https://catalog.ldc.upenn.edu/docs/LDC2004T12/RTTM-format-v13.pdf)
-        ...
+        This example shows how to instantiate the reader and access the
+        speaker labels for a given file.
 
-        >>> reader = RttmReader('rttm')
-        >>> spk_label = reader["file1"]
+    Note:
+        The reader currently supports only speaker information.
+        Ensure that the RTTM file is formatted correctly to avoid
+        assertion errors.
 
+    Raises:
+        AssertionError: If the RTTM line does not have exactly 9 fields or
+            if the label type is not "SPEAKER" or "END".
     """
 
     @typechecked
@@ -92,4 +145,54 @@ class RttmReader(collections.abc.Mapping):
         return iter(self.data)
 
     def keys(self):
+        """
+                Read and parse RTTM (Rich Transcription Time Marked) files.
+
+        This module provides functionality to read RTTM files and extract speaker
+        information. The `load_rttm_text` function reads the file and returns a
+        dictionary containing speaker events associated with each utterance.
+
+        Note: This implementation currently only supports speaker information.
+
+        Attributes:
+            - RttmReader: A class for reading RTTM files.
+
+        Args:
+            path (Union[Path, str]): The file path to the RTTM file to be read.
+
+        Returns:
+            Dict[str, List[Tuple[str, float, float]]]: A dictionary where each key
+            is an utterance ID and the value is a list of tuples containing speaker
+            ID, start time, and end time.
+
+        Raises:
+            AssertionError: If the RTTM line does not contain exactly 9 fields or if
+            the label type is not "SPEAKER" or "END".
+
+        Examples:
+            >>> data = load_rttm_text("path/to/rttm/file.rttm")
+            >>> print(data)
+            {'file1': (['spk1', 'spk2'], [(spk1, start1, end1), (spk2, start2, end2)], max_duration)}
+
+        RttmReader class:
+            Reader class for 'rttm.scp'.
+
+            Examples:
+                SPEAKER file1 1 0 1023 <NA> <NA> spk1 <NA>
+                SPEAKER file1 2 4000 3023 <NA> <NA> spk2 <NA>
+                SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>
+                END     file1 <NA> 4023 <NA> <NA> <NA> <NA>
+
+                This is an extended version of the standard RTTM format for espnet.
+                The differences include:
+                1. Use of sample number instead of absolute time.
+                2. Inclusion of an END label to represent the duration of a recording.
+                3. Replacement of duration (5th field) with end time.
+                (For standard RTTM, see
+                https://catalog.ldc.upenn.edu/docs/LDC2004T12/RTTM-format-v13.pdf)
+
+            Examples:
+                >>> reader = RttmReader('path/to/rttm/file.rttm')
+                >>> spk_label = reader["file1"]
+        """
         return self.data.keys()

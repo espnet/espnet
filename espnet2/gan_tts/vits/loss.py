@@ -12,7 +12,44 @@ import torch.distributions as D
 
 
 class KLDivergenceLoss(torch.nn.Module):
-    """KL divergence loss."""
+    """
+    KL divergence loss.
+
+    This module computes the Kullback-Leibler (KL) divergence loss between two
+    distributions, which is commonly used in variational inference methods.
+
+    The KL divergence measures how one probability distribution diverges from
+    a second expected probability distribution.
+
+    Attributes:
+        None
+
+    Args:
+        z_p (Tensor): Flow hidden representation (B, H, T_feats).
+        logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).
+        m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).
+        logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).
+        z_mask (Tensor): Mask tensor (B, 1, T_feats).
+
+    Returns:
+        Tensor: KL divergence loss.
+
+    Examples:
+        >>> kl_loss = KLDivergenceLoss()
+        >>> z_p = torch.randn(32, 64, 100)
+        >>> logs_q = torch.randn(32, 64, 100)
+        >>> m_p = torch.randn(32, 64, 100)
+        >>> logs_p = torch.randn(32, 64, 100)
+        >>> z_mask = torch.ones(32, 1, 100)
+        >>> loss = kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
+        >>> print(loss)
+
+    Note:
+        This loss is useful for training generative models like VITS.
+
+    Raises:
+        None
+    """
 
     def forward(
         self,
@@ -49,7 +86,34 @@ class KLDivergenceLoss(torch.nn.Module):
 
 
 class KLDivergenceLossWithoutFlow(torch.nn.Module):
-    """KL divergence loss without flow."""
+    """
+        KL divergence loss without flow.
+
+    This class implements the calculation of the Kullback-Leibler (KL) divergence
+    loss in a variational inference framework, specifically designed for cases
+    where flow-based representations are not used.
+
+    Attributes:
+        None
+
+    Args:
+        m_q (Tensor): Posterior encoder projected mean (B, H, T_feats).
+        logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).
+        m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).
+        logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).
+
+    Returns:
+        Tensor: KL divergence loss, averaged over the batch.
+
+    Examples:
+        >>> kl_loss = KLDivergenceLossWithoutFlow()
+        >>> m_q = torch.randn(32, 64, 100)  # Example tensor for m_q
+        >>> logs_q = torch.randn(32, 64, 100)  # Example tensor for logs_q
+        >>> m_p = torch.randn(32, 64, 100)  # Example tensor for m_p
+        >>> logs_p = torch.randn(32, 64, 100)  # Example tensor for logs_p
+        >>> loss = kl_loss(m_q, logs_q, m_p, logs_p)
+        >>> print(loss)  # Output will be the calculated KL divergence loss
+    """
 
     def forward(
         self,

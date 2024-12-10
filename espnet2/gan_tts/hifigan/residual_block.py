@@ -13,7 +13,37 @@ import torch
 
 
 class ResidualBlock(torch.nn.Module):
-    """Residual block module in HiFiGAN."""
+    """
+        HiFiGAN Residual block modules.
+
+    This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
+
+    Attributes:
+        use_additional_convs (bool): Flag to indicate the use of additional
+            convolution layers.
+        convs1 (ModuleList): List of first set of convolutional layers.
+        convs2 (ModuleList): List of second set of convolutional layers (if used).
+
+    Args:
+        kernel_size (int): Kernel size of dilation convolution layer.
+        channels (int): Number of channels for convolution layer.
+        dilations (List[int]): List of dilation factors.
+        bias (bool): Whether to add bias parameter in convolution layers.
+        use_additional_convs (bool): Whether to use additional convolution layers.
+        nonlinear_activation (str): Activation function module name.
+        nonlinear_activation_params (Dict[str, Any]): Hyperparameters for activation
+            function.
+
+    Examples:
+        >>> residual_block = ResidualBlock()
+        >>> input_tensor = torch.randn(2, 512, 100)  # (Batch, Channels, Time)
+        >>> output_tensor = residual_block(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([2, 512, 100])
+
+    Raises:
+        AssertionError: If kernel_size is not an odd number.
+    """
 
     def __init__(
         self,
@@ -80,14 +110,42 @@ class ResidualBlock(torch.nn.Module):
                 ]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+                Residual block module in HiFiGAN.
+
+        This module implements a residual block used in the HiFiGAN architecture.
+        The code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
+
+        Attributes:
+            use_additional_convs (bool): Flag indicating whether to use additional
+                convolution layers.
+            convs1 (ModuleList): List of sequential convolutional layers for the
+                primary convolutions.
+            convs2 (ModuleList): List of sequential convolutional layers for the
+                additional convolutions (if used).
 
         Args:
-            x (Tensor): Input tensor (B, channels, T).
+            kernel_size (int): Kernel size of dilation convolution layer.
+            channels (int): Number of channels for convolution layer.
+            dilations (List[int]): List of dilation factors.
+            use_additional_convs (bool): Whether to use additional convolution layers.
+            bias (bool): Whether to add bias parameter in convolution layers.
+            nonlinear_activation (str): Activation function module name.
+            nonlinear_activation_params (Dict[str, Any]): Hyperparameters for activation
+                function.
+
+        Examples:
+            >>> residual_block = ResidualBlock(kernel_size=3, channels=512)
+            >>> input_tensor = torch.randn(1, 512, 16000)  # (B, channels, T)
+            >>> output_tensor = residual_block(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([1, 512, 16000])
 
         Returns:
             Tensor: Output tensor (B, channels, T).
 
+        Raises:
+            AssertionError: If kernel_size is not an odd number.
         """
         for idx in range(len(self.convs1)):
             xt = self.convs1[idx](x)

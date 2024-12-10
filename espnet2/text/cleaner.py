@@ -18,13 +18,38 @@ except (ImportError, SyntaxError):
 
 
 class TextCleaner:
-    """Text cleaner.
+    """
+        Text cleaner.
+
+    This class provides various text cleaning functionalities based on specified
+    cleaner types. It supports different cleaning methods including tacotron,
+    jaconv, Vietnamese, Korean, and whisper text normalization.
+
+    Attributes:
+        cleaner_types (list): A list of cleaner types to be applied.
+
+    Args:
+        cleaner_types (Optional[Collection[str]]): A collection of cleaner types.
+            If None, an empty list is used. It can also be a single string.
+
+    Returns:
+        str: The cleaned text after applying the specified cleaners.
+
+    Raises:
+        RuntimeError: If an unsupported cleaner type is specified or if the
+        Vietnamese cleaner is requested but not available.
 
     Examples:
         >>> cleaner = TextCleaner("tacotron")
         >>> cleaner("(Hello-World);   &  jr. & dr.")
         'HELLO WORLD, AND JUNIOR AND DOCTOR'
 
+    Note:
+        Make sure to install required dependencies for all cleaner types to work
+        properly, especially for Vietnamese cleaning.
+
+    Todo:
+        - Add more cleaner types and functionalities as needed.
     """
 
     @typechecked

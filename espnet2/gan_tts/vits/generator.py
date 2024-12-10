@@ -24,7 +24,8 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class VITSGenerator(torch.nn.Module):
-    """Generator module in VITS.
+    """
+    Generator module in VITS.
 
     This is a module of VITS described in `Conditional Variational Autoencoder
     with Adversarial Learning for End-to-End Text-to-Speech`_.
@@ -35,6 +36,108 @@ class VITSGenerator(torch.nn.Module):
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        segment_size (int): Size of segments for decoding.
+        text_encoder (TextEncoder): The text encoder component.
+        decoder (HiFiGANGenerator): The decoder component.
+        posterior_encoder (PosteriorEncoder): The posterior encoder component.
+        flow (ResidualAffineCouplingBlock): The flow component.
+        duration_predictor (StochasticDurationPredictor): The duration predictor.
+        upsample_factor (int): Factor for upsampling.
+        spks (Optional[int]): Number of speakers, if applicable.
+        global_emb (torch.nn.Embedding): Global embedding layer for speakers.
+        spk_embed_dim (Optional[int]): Dimension of speaker embedding, if applicable.
+        spemb_proj (torch.nn.Linear): Projection layer for speaker embeddings.
+        langs (Optional[int]): Number of languages, if applicable.
+        lang_emb (torch.nn.Embedding): Global embedding layer for languages.
+        maximum_path (function): Function for maximum path computation.
+
+    Args:
+        vocabs (int): Input vocabulary size.
+        aux_channels (int): Number of acoustic feature channels.
+        hidden_channels (int): Number of hidden channels.
+        spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+            sids will be provided as the input and use sid embedding layer.
+        langs (Optional[int]): Number of languages. If set to > 1, assume that the
+            lids will be provided as the input and use sid embedding layer.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+            assume that spembs will be provided as the input.
+        global_channels (int): Number of global conditioning channels.
+        segment_size (int): Segment size for decoder.
+        text_encoder_attention_heads (int): Number of heads in conformer block
+            of text encoder.
+        text_encoder_ffn_expand (int): Expansion ratio of FFN in conformer block
+            of text encoder.
+        text_encoder_blocks (int): Number of conformer blocks in text encoder.
+        text_encoder_positionwise_layer_type (str): Position-wise layer type in
+            conformer block of text encoder.
+        text_encoder_positionwise_conv_kernel_size (int): Position-wise convolution
+            kernel size in conformer block of text encoder. Only used when the
+            above layer type is conv1d or conv1d-linear.
+        text_encoder_positional_encoding_layer_type (str): Positional encoding layer
+            type in conformer block of text encoder.
+        text_encoder_self_attention_layer_type (str): Self-attention layer type in
+            conformer block of text encoder.
+        text_encoder_activation_type (str): Activation function type in conformer
+            block of text encoder.
+        text_encoder_normalize_before (bool): Whether to apply layer norm before
+            self-attention in conformer block of text encoder.
+        text_encoder_dropout_rate (float): Dropout rate in conformer block of
+            text encoder.
+        text_encoder_positional_dropout_rate (float): Dropout rate for positional
+            encoding in conformer block of text encoder.
+        text_encoder_attention_dropout_rate (float): Dropout rate for attention in
+            conformer block of text encoder.
+        text_encoder_conformer_kernel_size (int): Conformer conv kernel size. It
+            will be used when only use_conformer_conv_in_text_encoder = True.
+        use_macaron_style_in_text_encoder (bool): Whether to use macaron style FFN
+            in conformer block of text encoder.
+        use_conformer_conv_in_text_encoder (bool): Whether to use convolution in
+            conformer block of text encoder.
+        decoder_kernel_size (int): Decoder kernel size.
+        decoder_channels (int): Number of decoder initial channels.
+        decoder_upsample_scales (List[int]): List of upsampling scales in decoder.
+        decoder_upsample_kernel_sizes (List[int]): List of kernel size for
+            upsampling layers in decoder.
+        decoder_resblock_kernel_sizes (List[int]): List of kernel size for resblocks
+            in decoder.
+        decoder_resblock_dilations (List[List[int]]): List of list of dilations for
+            resblocks in decoder.
+        use_weight_norm_in_decoder (bool): Whether to apply weight normalization in
+            decoder.
+        posterior_encoder_kernel_size (int): Posterior encoder kernel size.
+        posterior_encoder_layers (int): Number of layers of posterior encoder.
+        posterior_encoder_stacks (int): Number of stacks of posterior encoder.
+        posterior_encoder_base_dilation (int): Base dilation of posterior encoder.
+        posterior_encoder_dropout_rate (float): Dropout rate for posterior encoder.
+        use_weight_norm_in_posterior_encoder (bool): Whether to apply weight
+            normalization in posterior encoder.
+        flow_flows (int): Number of flows in flow.
+        flow_kernel_size (int): Kernel size in flow.
+        flow_base_dilation (int): Base dilation in flow.
+        flow_layers (int): Number of layers in flow.
+        flow_dropout_rate (float): Dropout rate in flow.
+        use_weight_norm_in_flow (bool): Whether to apply weight normalization in
+            flow.
+        use_only_mean_in_flow (bool): Whether to use only mean in flow.
+        stochastic_duration_predictor_kernel_size (int): Kernel size in stochastic
+            duration predictor.
+        stochastic_duration_predictor_dropout_rate (float): Dropout rate in
+            stochastic duration predictor.
+        stochastic_duration_predictor_flows (int): Number of flows in stochastic
+            duration predictor.
+        stochastic_duration_predictor_dds_conv_layers (int): Number of DDS conv
+            layers in stochastic duration predictor.
+
+    Examples:
+        >>> generator = VITSGenerator(vocabs=1000)
+        >>> text = torch.randint(0, 1000, (1, 50))  # Example input
+        >>> text_lengths = torch.tensor([50])
+        >>> feats = torch.randn(1, 513, 100)  # Example features
+        >>> feats_lengths = torch.tensor([100])
+        >>> output = generator(text, text_lengths, feats, feats_lengths)
+        >>> waveform, dur_nll, attn, start_idxs, text_mask, feats_mask, \
+        >>>     (z, z_p, m_p, logs_p, m_q, logs_q) = output
     """
 
     def __init__(
@@ -281,32 +384,40 @@ class VITSGenerator(torch.nn.Module):
             torch.Tensor,
         ],
     ]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs forward propagation through the VITS generator. It takes
+        text and feature inputs, processes them through the text encoder, posterior
+        encoder, and flow, and finally generates the waveform output using the
+        decoder.
 
         Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, aux_channels, T_feats).
-            feats_lengths (Tensor): Feature length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
+            text (Tensor): Text index tensor of shape (B, T_text).
+            text_lengths (Tensor): Text length tensor of shape (B,).
+            feats (Tensor): Feature tensor of shape (B, aux_channels, T_feats).
+            feats_lengths (Tensor): Feature length tensor of shape (B,).
+            sids (Optional[Tensor]): Speaker index tensor of shape (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor of shape
+                (B, spk_embed_dim).
+            lids (Optional[Tensor]): Language index tensor of shape (B,) or (B, 1).
 
         Returns:
-            Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: Duration negative log-likelihood (NLL) tensor (B,).
-            Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
-            Tensor: Segments start index tensor (B,).
-            Tensor: Text mask tensor (B, 1, T_text).
-            Tensor: Feature mask tensor (B, 1, T_feats).
-            tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-                - Tensor: Posterior encoder hidden representation (B, H, T_feats).
-                - Tensor: Flow hidden representation (B, H, T_feats).
-                - Tensor: Expanded text encoder projected mean (B, H, T_feats).
-                - Tensor: Expanded text encoder projected scale (B, H, T_feats).
-                - Tensor: Posterior encoder projected mean (B, H, T_feats).
-                - Tensor: Posterior encoder projected scale (B, H, T_feats).
-
+            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor,
+                  Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]]:
+                - Tensor: Waveform tensor of shape (B, 1, segment_size * upsample_factor).
+                - Tensor: Duration negative log-likelihood (NLL) tensor of shape (B,).
+                - Tensor: Monotonic attention weight tensor of shape (B, 1, T_feats, T_text).
+                - Tensor: Segments start index tensor of shape (B,).
+                - Tensor: Text mask tensor of shape (B, 1, T_text).
+                - Tensor: Feature mask tensor of shape (B, 1, T_feats).
+                - tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+                    - Tensor: Posterior encoder hidden representation of shape (B, H, T_feats).
+                    - Tensor: Flow hidden representation of shape (B, H, T_feats).
+                    - Tensor: Expanded text encoder projected mean of shape (B, H, T_feats).
+                    - Tensor: Expanded text encoder projected scale of shape (B, H, T_feats).
+                    - Tensor: Posterior encoder projected mean of shape (B, H, T_feats).
+                    - Tensor: Posterior encoder projected scale of shape (B, H, T_feats).
         """
         # forward text encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)

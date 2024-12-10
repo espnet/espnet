@@ -84,6 +84,62 @@ loss_choices = ClassChoices(
 
 
 class UASRTask(AbsTask):
+    """
+        UASRTask is a class for Unsupervised ASR (Automatic Speech Recognition) tasks.
+
+    This class inherits from AbsTask and provides functionalities to manage
+    the configurations, training, and evaluation of UASR models. It includes
+    methods to build collate functions, preprocess functions, and the UASR
+    model itself. The class also defines various choices for frontends,
+    segmenters, discriminators, generators, and loss functions.
+
+    Attributes:
+        num_optimizers (int): Number of optimizers used in training.
+        class_choices_list (List[ClassChoices]): List of class choices
+            for frontend, segmenter, discriminator, generator, and loss.
+        trainer (Type[UASRTrainer]): Trainer class used for training
+            procedures.
+
+    Args:
+        parser (argparse.ArgumentParser): Argument parser to add task-related
+            arguments.
+
+    Returns:
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]]]: A function that
+        collates the input data for training or evaluation.
+
+    Yields:
+        Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        A function that preprocesses the input data.
+
+    Raises:
+        RuntimeError: If the token list is not a string or a list.
+
+    Examples:
+        # To add task arguments to the parser
+        UASRTask.add_task_arguments(parser)
+
+        # To build the collate function
+        collate_fn = UASRTask.build_collate_fn(args, train=True)
+
+        # To build the preprocess function
+        preprocess_fn = UASRTask.build_preprocess_fn(args, train=True)
+
+        # To build the model
+        model = UASRTask.build_model(args)
+
+        # To build optimizers for the model
+        optimizers = UASRTask.build_optimizers(args, model)
+
+    Note:
+        If you need to modify the training or evaluation procedures,
+        you can change the trainer class here.
+
+    Todo:
+        - Consider adding more frontend or loss options in the future.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 2
 
@@ -105,6 +161,35 @@ class UASRTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+                Adds task-specific arguments to the argument parser.
+
+        This method is responsible for adding various command-line arguments that are
+        specific to the UASR task. These arguments can include configurations for the
+        frontend, segmenter, discriminator, generator, and loss functions, as well as
+        other task-related parameters.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which task
+                arguments will be added.
+
+        Examples:
+            To use the `add_task_arguments` method, create an argument parser and
+            call the method as follows:
+
+            ```python
+            import argparse
+            from uasr_task import UASRTask
+
+            parser = argparse.ArgumentParser()
+            UASRTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            This method cannot use `add_arguments(..., required=True)` for the `--print_config`
+            mode, hence the workaround with required tokens.
+        """
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -224,6 +309,38 @@ class UASRTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+            Build a collate function for the UASRTask.
+
+        This method constructs a collate function that is used to process a batch
+        of data during training or evaluation. The collate function handles padding
+        of input sequences and ensures that the data is in the correct format for
+        further processing.
+
+        Args:
+            args (argparse.Namespace): Command line arguments containing configuration
+                settings such as padding values.
+            train (bool): A flag indicating whether the collate function is being
+                built for training or evaluation.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                     Tuple[List[str], Dict[str, torch.Tensor]]]: A callable collate
+                     function that takes a collection of tuples and returns a tuple
+                     containing a list of keys and a dictionary of padded tensors.
+
+        Examples:
+            >>> collate_fn = UASRTask.build_collate_fn(args, train=True)
+            >>> batch = [("id1", {"feature": np.array([1.0, 2.0])}),
+            ...          ("id2", {"feature": np.array([3.0, 4.0, 5.0])})]
+            >>> keys, padded_data = collate_fn(batch)
+
+        Note:
+            The padding values are determined by the `int_pad_value` attribute
+            from the provided arguments. It is important to ensure that the
+            data passed to this function is in the expected format to avoid
+            errors during processing.
+        """
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=args.int_pad_value)
 
@@ -232,6 +349,43 @@ class UASRTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+            Builds a preprocessing function based on the provided arguments.
+
+        This method returns a callable that can preprocess the input data
+        depending on the configuration specified in the arguments. If
+        preprocessing is not enabled, it returns None.
+
+        Args:
+            cls: The class type of the UASRTask.
+            args (argparse.Namespace): Command-line arguments containing
+                configurations for preprocessing.
+            train (bool): A flag indicating whether the function is being
+                built for training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A preprocessing function that takes a string input and a
+                dictionary of feature data, returning a processed dictionary
+                of features, or None if preprocessing is disabled.
+
+        Examples:
+            To build a preprocessing function for training:
+
+            ```python
+            preprocess_fn = UASRTask.build_preprocess_fn(args, train=True)
+            ```
+
+            To use the preprocessing function on some input data:
+
+            ```python
+            processed_data = preprocess_fn(input_data, feature_dict)
+            ```
+
+        Note:
+            Ensure that `args.use_preprocessor` is set to True in order
+            for the preprocessing function to be created.
+        """
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -250,6 +404,31 @@ class UASRTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the names of the required data for the UASR task.
+
+        The method determines which data is necessary based on whether the
+        task is in training or inference mode. In training mode, both
+        "speech" and "text" data are required. In inference mode, only
+        "speech" data is required.
+
+        Args:
+            train (bool): A flag indicating whether the task is in training
+                mode. Defaults to True.
+            inference (bool): A flag indicating whether the task is in
+                inference mode. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required
+            data.
+
+        Examples:
+            >>> UASRTask.required_data_names(train=True, inference=False)
+            ('speech', 'text')
+
+            >>> UASRTask.required_data_names(train=False, inference=True)
+            ('speech',)
+        """
         if not inference:
             retval = ("speech", "text")
         else:
@@ -261,12 +440,69 @@ class UASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the optional data names used in the UASR task.
+
+        This method provides a tuple of strings representing the names of optional
+        data that can be utilized during training or inference in the UASR task.
+        By default, it includes "pseudo_labels" and "input_cluster_id". This
+        allows for greater flexibility in managing the data that the task can
+        operate on.
+
+        Args:
+            train (bool): A flag indicating whether the data is for training.
+                          Defaults to True.
+            inference (bool): A flag indicating whether the data is for inference.
+                              Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the optional data names.
+
+        Examples:
+            >>> optional_data = UASRTask.optional_data_names()
+            >>> print(optional_data)
+            ('pseudo_labels', 'input_cluster_id')
+
+        Note:
+            This method is part of the UASRTask class which is designed for
+            Unsupervised Automatic Speech Recognition tasks.
+        """
         retval = ("pseudo_labels", "input_cluster_id")
         return retval
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetUASRModel:
+        """
+                Builds and returns an instance of the ESPnetUASRModel.
+
+        This method constructs the model based on the provided arguments. It
+        initializes various components of the model, such as the frontend,
+        segmenter, discriminator, generator, and loss functions. The function
+        also handles loading pre-trained weights from a Fairseq checkpoint if
+        specified.
+
+        Args:
+            args (argparse.Namespace): Command line arguments containing
+                configuration options for the model components.
+
+        Returns:
+            ESPnetUASRModel: An instance of the ESPnetUASRModel class.
+
+        Raises:
+            RuntimeError: If `token_list` is neither a string nor a list.
+
+        Examples:
+            # Example usage of build_model
+            parser = argparse.ArgumentParser()
+            UASRTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            model = UASRTask.build_model(args)
+
+        Note:
+            The method assumes that `args.token_list` is provided and that it
+            contains the necessary information for building the model.
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -382,6 +618,41 @@ class UASRTask(AbsTask):
         args: argparse.Namespace,
         model: ESPnetUASRModel,
     ) -> List[torch.optim.Optimizer]:
+        """
+            Build optimizers for the UASR model.
+
+        This method constructs and returns a list of optimizers for the model's
+        generator and discriminator. The method checks for the presence of the
+        necessary parameters in the model and creates the optimizers based on
+        the provided configuration.
+
+        Args:
+            args (argparse.Namespace): The argument namespace containing
+                configuration options for the optimizers.
+            model (ESPnetUASRModel): The UASR model for which optimizers are
+                being built.
+
+        Returns:
+            List[torch.optim.Optimizer]: A list of optimizers for the model's
+            generator and discriminator.
+
+        Raises:
+            ValueError: If the specified optimizer classes are not found in the
+                available optimizer classes.
+
+        Examples:
+            >>> from espnet2.uasr.espnet_model import ESPnetUASRModel
+            >>> args = argparse.Namespace(optim='adam', optim_conf={'lr': 0.001},
+            ...                            optim2='sgd', optim2_conf={'lr': 0.01})
+            >>> model = ESPnetUASRModel(...)
+            >>> optimizers = UASRTask.build_optimizers(args, model)
+            >>> len(optimizers)
+            2
+
+        Note:
+            Ensure that the model has the required attributes (`generator` and
+            `discriminator`) before calling this method.
+        """
         # check
         assert hasattr(model, "generator")
         assert hasattr(model, "discriminator")

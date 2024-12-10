@@ -4,16 +4,15 @@ import torch
 
 
 def get_human_readable_count(number: int) -> str:
-    """Return human_readable_count
+    """
+        Return a human-readable count of a given integer number.
 
-    Originated from:
-    https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pytorch_lightning/core/memory.py
+    This function abbreviates an integer number using the suffixes K, M, B, and T
+    for thousands, millions, billions, and trillions, respectively.
 
-    Abbreviates an integer number with K, M, B, T for thousands, millions,
-    billions and trillions, respectively.
     Examples:
         >>> get_human_readable_count(123)
-        '123  '
+        '123 '
         >>> get_human_readable_count(1234)  # (one thousand)
         '1 K'
         >>> get_human_readable_count(2e6)   # (two million)
@@ -24,10 +23,15 @@ def get_human_readable_count(number: int) -> str:
         '4 T'
         >>> get_human_readable_count(5e15)  # (more than trillion)
         '5,000 T'
+
     Args:
-        number: a positive integer number
-    Return:
+        number: A positive integer number.
+
+    Returns:
         A string formatted according to the pattern described above.
+
+    Raises:
+        AssertionError: If the input number is negative.
     """
     assert number >= 0
     labels = [" ", "K", "M", "B", "T"]
@@ -41,11 +45,70 @@ def get_human_readable_count(number: int) -> str:
 
 
 def to_bytes(dtype) -> int:
+    """
+        Convert a PyTorch data type to the corresponding byte size.
+
+    This function takes a PyTorch data type as input and returns the size in bytes
+    by extracting the number of bits represented by the type and converting it to bytes.
+
+    Args:
+        dtype: A PyTorch data type (e.g., torch.float16, torch.float32, etc.).
+
+    Returns:
+        An integer representing the size of the data type in bytes.
+
+    Examples:
+        >>> to_bytes(torch.float16)
+        2
+        >>> to_bytes(torch.float32)
+        4
+        >>> to_bytes(torch.float64)
+        8
+    """
     # torch.float16 -> 16
     return int(str(dtype)[-2:]) // 8
 
 
 def model_summary(model: torch.nn.Module) -> str:
+    """
+        Generate a summary of the given PyTorch model, including the total number of
+    parameters, trainable parameters, and model structure.
+
+    This function inspects the provided PyTorch model and returns a string
+    summary containing important information about the model's architecture,
+    including the class name, total number of parameters, number of trainable
+    parameters, the percentage of trainable parameters, the size of the model
+    in bytes, and the data type of the model parameters.
+
+    Args:
+        model (torch.nn.Module): The PyTorch model to summarize.
+
+    Returns:
+        str: A formatted string containing the model summary.
+
+    Examples:
+        >>> import torch
+        >>> class SimpleModel(torch.nn.Module):
+        ...     def __init__(self):
+        ...         super(SimpleModel, self).__init__()
+        ...         self.fc = torch.nn.Linear(10, 5)
+        ...
+        ...     def forward(self, x):
+        ...         return self.fc(x)
+        >>> model = SimpleModel()
+        >>> print(model_summary(model))
+        Model structure:
+        SimpleModel(
+          (fc): Linear(in_features=10, out_features=5, bias=True)
+        )
+
+        Model summary:
+            Class Name: SimpleModel
+            Total Number of model parameters: 55
+            Number of trainable parameters: 55 (100.0%)
+            Size: 448 B
+            Type: torch.float32
+    """
     message = "Model structure:\n"
     message += str(model)
     tot_params = sum(p.numel() for p in model.parameters())

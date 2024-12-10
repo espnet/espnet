@@ -9,6 +9,32 @@ from espnet2.utils.types import str2bool
 
 
 class SamePad(torch.nn.Module):
+    """
+        SamePad is a PyTorch module that applies same padding to input tensors. It is
+    used to ensure that the output tensor maintains the same length as the input
+    tensor, after applying convolution operations.
+
+    Attributes:
+        remove (int): The number of elements to remove from the input tensor,
+            determined by the kernel size and whether causal padding is used.
+
+    Args:
+        kernel_size (int): The size of the convolutional kernel.
+        causal (bool): If True, applies causal padding; otherwise, applies
+            symmetric padding.
+
+    Methods:
+        forward(x: torch.Tensor) -> torch.Tensor:
+            Applies same padding to the input tensor.
+
+    Examples:
+        >>> same_pad = SamePad(kernel_size=3, causal=False)
+        >>> input_tensor = torch.randn(1, 2, 10)  # (Batch, Channel, Length)
+        >>> output_tensor = same_pad(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([1, 2, 10])  # Output shape remains the same as input shape
+    """
+
     def __init__(self, kernel_size, causal=False):
         super().__init__()
         if causal:
@@ -17,13 +43,101 @@ class SamePad(torch.nn.Module):
             self.remove = 1 if kernel_size % 2 == 0 else 0
 
     def forward(self, x):
+        """
+            Forward pass for the ConvDiscriminator.
+
+        This method takes an input tensor and processes it through the
+        convolutional layers defined in the network. It also handles an
+        optional padding mask to manage the output tensor based on
+        padding conditions.
+
+        Args:
+            x (torch.Tensor): The input tensor of shape (Batch, Time, Channel).
+            padding_mask (Optional[torch.Tensor]): A mask tensor that indicates
+                which elements in the input tensor should be ignored during
+                processing. Should have shape (Batch, Time) and will be
+                broadcasted accordingly.
+
+        Returns:
+            torch.Tensor: The output tensor after processing, of shape
+            (Batch, Time, Channel) where the Channel dimension is reduced to
+            a single output dimension.
+
+        Examples:
+            >>> discriminator = ConvDiscriminator(input_dim=128)
+            >>> input_tensor = torch.randn(32, 100, 128)  # (Batch, Time, Channel)
+            >>> padding_mask = torch.zeros(32, 100, dtype=torch.bool)
+            >>> output = discriminator.forward(input_tensor, padding_mask)
+            >>> output.shape
+            torch.Size([32, 100, 1])
+
+        Note:
+            The output is computed by transposing the input tensor to fit
+            the expected shape for convolutional operations, and then
+            transposing back to the original shape before returning.
+        """
         if self.remove > 0:
             x = x[:, :, : -self.remove]
         return x
 
 
 class ConvDiscriminator(AbsDiscriminator):
-    """convolutional discriminator for UASR."""
+    """
+    Convolutional discriminator for Unsupervised Automatic Speech Recognition (UASR).
+
+    This class implements a convolutional neural network (CNN) based discriminator
+    designed for the UASR task. It utilizes various convolutional layers and
+    configurations to process input features and produce discriminative outputs.
+
+    Attributes:
+        conv_channels (int): Number of channels for convolutional layers.
+        conv_kernel (int): Size of the convolutional kernel.
+        conv_dilation (int): Dilation rate for convolutional layers.
+        conv_depth (int): Number of convolutional layers in the network.
+        linear_emb (bool): Whether to use a linear embedding.
+        causal (bool): If True, applies causal convolution.
+        max_pool (bool): If True, applies max pooling in the output layer.
+        act_after_linear (bool): If True, applies activation after the linear layer.
+        dropout (float): Dropout rate for regularization.
+        spectral_norm (bool): If True, applies spectral normalization to conv layers.
+        weight_norm (bool): If True, applies weight normalization to conv layers.
+
+    Args:
+        input_dim (int): Dimension of the input features.
+        cfg (Optional[Dict], optional): Configuration dictionary. Defaults to None.
+        conv_channels (int, optional): Number of channels for convolutional layers.
+            Defaults to 384.
+        conv_kernel (int, optional): Size of the convolutional kernel. Defaults to 8.
+        conv_dilation (int, optional): Dilation rate for convolutional layers.
+            Defaults to 1.
+        conv_depth (int, optional): Number of convolutional layers. Defaults to 2.
+        linear_emb (str2bool, optional): Use linear embedding. Defaults to False.
+        causal (str2bool, optional): Use causal convolution. Defaults to True.
+        max_pool (str2bool, optional): Use max pooling in output layer. Defaults to False.
+        act_after_linear (str2bool, optional): Apply activation after linear layer.
+            Defaults to False.
+        dropout (float, optional): Dropout rate. Defaults to 0.0.
+        spectral_norm (str2bool, optional): Use spectral normalization. Defaults to False.
+        weight_norm (str2bool, optional): Use weight normalization. Defaults to False.
+
+    Returns:
+        torch.Tensor: The output of the discriminator.
+
+    Examples:
+        >>> discriminator = ConvDiscriminator(input_dim=128)
+        >>> input_tensor = torch.randn(32, 100, 128)  # (Batch, Time, Features)
+        >>> output = discriminator(input_tensor)
+        >>> print(output.shape)
+        torch.Size([32, 1])  # Output shape depends on the architecture
+
+    Note:
+        The input tensor is expected to be in the shape (Batch, Time, Features).
+        The output is processed through various convolutional layers and may
+        undergo padding and pooling based on the configuration.
+
+    Raises:
+        ValueError: If input_dim is not positive.
+    """
 
     @typechecked
     def __init__(
@@ -148,6 +262,41 @@ class ConvDiscriminator(AbsDiscriminator):
 
     @typechecked
     def forward(self, x: torch.Tensor, padding_mask: Optional[torch.Tensor]):
+        """
+            Forward pass for the ConvDiscriminator.
+
+        This method processes the input tensor `x` through the convolutional layers
+        defined in the network. It expects the input tensor to be in the shape of
+        (Batch, Time, Channel) and transforms it accordingly. The method also
+        applies padding based on the provided `padding_mask` if available.
+
+        Args:
+            x (torch.Tensor): The input tensor with shape (Batch, Time, Channel).
+            padding_mask (Optional[torch.Tensor]): A tensor used to mask out certain
+                elements of the input. It should have the shape (Batch, Time) and
+                can be used to apply a maximum pooling or to set specific values to
+                negative infinity.
+
+        Returns:
+            torch.Tensor: The output tensor after passing through the network, with
+            shape (Batch, Channel).
+
+        Examples:
+            >>> discriminator = ConvDiscriminator(input_dim=128)
+            >>> input_tensor = torch.randn(32, 100, 128)  # (Batch, Time, Channel)
+            >>> output = discriminator(input_tensor, None)
+            >>> output.shape
+            torch.Size([32, 1])
+
+        Note:
+            The input tensor `x` will be transposed to match the expected shape for
+            convolution operations. If a `padding_mask` is provided, it will be used
+            to handle padding accordingly.
+
+        Raises:
+            ValueError: If the shape of `x` is not compatible with the expected
+            input dimensions.
+        """
 
         # (Batch, Time, Channel) -> (Batch, Channel, Time)
         x = x.transpose(1, 2)

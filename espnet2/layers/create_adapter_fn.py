@@ -45,6 +45,39 @@ def create_houlsby_adapter(
     bottleneck: int = 32,
     target_layers: List[int] = [],
 ):
+    """
+        Create a Houlsby adapter for a given model by replacing specified target layers.
+
+    This function searches for target layers within the provided model and replaces
+    them with Houlsby adapters. The function raises errors if the required libraries
+    are not available or if the specified target layers do not exist in the model.
+
+    Args:
+        model (torch.nn.Module): The base model that will have Houlsby adapters
+            added.
+        bottleneck (int): The size of the bottleneck layer in the Houlsby adapter.
+            Defaults to 32.
+        target_layers (List[int]): A list of indices representing the target
+            layers to replace. If empty, all layers will be replaced.
+
+    Raises:
+        ImportError: If the required `transformers` or `s3prl` libraries are not
+            installed.
+        AssertionError: If the model does not have an S3PRL frontend.
+        ValueError: If none of the specified target layers are found in the model.
+
+    Examples:
+        >>> from espnet2.models import YourModel
+        >>> model = YourModel()
+        >>> create_houlsby_adapter(model, bottleneck=16, target_layers=[0, 1, 2])
+
+    Note:
+        Ensure that the model provided has an S3PRL frontend, as this function
+        currently only supports models with such frontends.
+
+    Todo:
+        - Extend support for other types of frontends and layers in future versions.
+    """
     if not is_transformers_available:
         raise ImportError(
             "`transformers` is not available. Please install it via `pip install"
@@ -91,9 +124,13 @@ def create_lora_adapter(
     target_modules: List[str] = ["query"],
     bias_type: Optional[str] = "none",
 ):
-    """Create LoRA adapter for the base model.
+    """
+        Create LoRA adapter for the base model.
 
-    See: https://arxiv.org/pdf/2106.09685.pdf
+    This function adds Low-Rank Adaptation (LoRA) layers to specified target
+    modules within a given model, allowing for efficient fine-tuning of the
+    model parameters. The implementation is based on the concept outlined in
+    the paper: https://arxiv.org/pdf/2106.09685.pdf.
 
     Args:
         model (torch.nn.Module): Base model to be adapted.
@@ -103,13 +140,37 @@ def create_lora_adapter(
         target_modules (List[str]): List of module(s) to apply LoRA adaptation.
             e.g. ["query", "key", "value"] for all layers,
             while ["encoder.encoders.blocks.0.attn.key"] for a specific layer.
-        bias_type (str): Bias training type for LoRA adaptaion, can be
-            one of ["none", "all", "lora_only"].
-            "none" means not training any bias vectors;
-            "all" means training all bias vectors, include LayerNorm biases;
-            "lora_only" means only training bias vectors in LoRA adapted modules.
+        bias_type (str): Bias training type for LoRA adaptation, can be one of
+            ["none", "all", "lora_only"]. "none" means not training any bias
+            vectors; "all" means training all bias vectors, including LayerNorm
+            biases; "lora_only" means only training bias vectors in LoRA adapted
+            modules.
 
+    Returns:
+        None
 
+    Raises:
+        ImportError: If loralib is not installed.
+        ValueError: If target modules are not found in the base model.
+
+    Examples:
+        # Create a model instance (example)
+        model = SomeModel()
+
+        # Apply LoRA adaptation
+        create_lora_adapter(
+            model=model,
+            rank=16,
+            alpha=32,
+            dropout_rate=0.1,
+            target_modules=["query", "key"],
+            bias_type="lora_only"
+        )
+
+    Note:
+        This function requires the loralib library to be installed. Please
+        follow the instructions at https://github.com/microsoft/LoRA for
+        installation.
     """
 
     if not is_lora_available:
@@ -153,11 +214,43 @@ def create_lora_adapter(
 
 @typechecked
 def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
-    """Create a new houlsby adapter module for the given target module.
+    """
+    Create a new Houlsby adapter module for the given target module.
 
-    Currently, only support:
-    Wav2Vec2EncoderLayerStableLayerNorm &
-    TransformerSentenceEncoderLayer
+    This function supports the creation of Houlsby adapters for specific types
+    of modules, specifically:
+    - Wav2Vec2EncoderLayerStableLayerNorm
+    - TransformerSentenceEncoderLayer
+
+    Args:
+        target_module (torch.nn.Module): The target module for which the
+            Houlsby adapter is to be created. This should be an instance of
+            either Wav2Vec2EncoderLayerStableLayerNorm or
+            TransformerSentenceEncoderLayer.
+        bottleneck (int): The bottleneck dimension for the Houlsby adapter.
+
+    Returns:
+        torch.nn.Module: A new Houlsby adapter module with the specified
+        bottleneck dimension added to the target module.
+
+    Raises:
+        ImportError: If the required modules for creating the Houlsby adapter
+            are not properly installed.
+        NotImplementedError: If the target module type is not supported.
+
+    Examples:
+        >>> from transformers.models.wav2vec2 import Wav2Vec2EncoderLayerStableLayerNorm
+        >>> target_layer = Wav2Vec2EncoderLayerStableLayerNorm(...)
+        >>> adapter = create_new_houlsby_module(target_layer, bottleneck=32)
+
+        >>> from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
+        >>> target_layer = TransformerSentenceEncoderLayer(...)
+        >>> adapter = create_new_houlsby_module(target_layer, bottleneck=32)
+
+    Note:
+        Ensure that the appropriate modules are installed for the target module
+        type. If using S3PRL, make sure it is properly installed as per the
+        installation instructions.
     """
     if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
 
@@ -224,7 +317,35 @@ def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
 def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
 ):
-    """Create a new lora module for the given target module."""
+    """
+        Create a new LoRA module for the given target module.
+
+    This function constructs a LoRA (Low-Rank Adaptation) module based on the
+    provided target module's type. It supports both embedding and linear layers,
+    and integrates the specified rank, alpha, and dropout rate parameters.
+
+    Args:
+        target_module (torch.nn.Module): The target module for which to create the
+            LoRA adaptation. Must be an instance of `torch.nn.Embedding` or
+            `torch.nn.Linear`.
+        rank (int): Rank of the LoRA matrices. This controls the low-rank
+            approximation.
+        alpha (int): Constant number for LoRA scaling.
+        dropout_rate (float): Dropout probability for LoRA layers.
+
+    Returns:
+        torch.nn.Module: A new LoRA module that adapts the target module.
+
+    Raises:
+        ValueError: If the target module is not of a supported type.
+
+    Examples:
+        >>> import torch
+        >>> target_linear = torch.nn.Linear(10, 5)
+        >>> lora_module = create_new_lora_module(target_linear, rank=8, alpha=8,
+        ...                                        dropout_rate=0.1)
+        >>> print(lora_module)
+    """
     bias = hasattr(target_module, "bias") and target_module.bias is not None
 
     if isinstance(target_module, torch.nn.Embedding):

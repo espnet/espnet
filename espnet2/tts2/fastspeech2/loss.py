@@ -15,7 +15,47 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class FastSpeech2LossDiscrete(torch.nn.Module):
-    """Loss function module for FastSpeech2."""
+    """
+    Loss function module for FastSpeech2, designed for calculating various
+    loss components used in training the FastSpeech2 model. This module
+    computes the cross-entropy loss for discrete features, as well as losses
+    for duration, pitch, and energy predictors.
+
+    Attributes:
+        use_masking (bool): Indicates whether to apply masking for padded parts
+            in loss calculations.
+        use_weighted_masking (bool): Indicates whether to use weighted masking
+            in loss calculations.
+        ce_criterion (torch.nn.CrossEntropyLoss): Cross-entropy loss criterion.
+        mse_criterion (torch.nn.MSELoss): Mean squared error loss criterion.
+        duration_criterion (DurationPredictorLoss): Duration prediction loss criterion.
+
+    Args:
+        use_masking (bool): Whether to apply masking for padded part in loss
+            calculation. Default is True.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation. Default is False.
+        ignore_id (int): Index to ignore in the loss calculation. Default is -1.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            CrossEntropy loss value, Duration predictor loss value,
+            Pitch predictor loss value, Energy predictor loss value.
+
+    Examples:
+        >>> loss_module = FastSpeech2LossDiscrete()
+        >>> ce_loss, duration_loss, pitch_loss, energy_loss = loss_module(
+        ...     after_outs, before_outs, d_outs, p_outs, e_outs, ys, ds, ps, es, ilens, olens
+        ... )
+
+    Note:
+        This class is part of the ESPnet2 toolkit and is specifically designed
+        for FastSpeech2, which utilizes discrete speech targets.
+
+    Raises:
+        AssertionError: If both `use_masking` and `use_weighted_masking`
+            are set to True.
+    """
 
     @typechecked
     def __init__(
@@ -61,27 +101,49 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
         ilens: torch.Tensor,
         olens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation for the FastSpeech2 model, computing the loss
+        values for cross-entropy, duration, pitch, and energy predictions.
 
         Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).
-            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
-            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
-            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).
-            ys (Tensor): Batch of target features in discrete space (B, T_feats).
-            ds (LongTensor): Batch of durations (B, T_text).
-            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
-            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).
-            ilens (LongTensor): Batch of the lengths of each input (B,).
-            olens (LongTensor): Batch of the lengths of each target (B,).
+            after_outs (torch.Tensor): Batch of outputs after postnets
+                (B, T_feats, odim).
+            before_outs (torch.Tensor): Batch of outputs before postnets
+                (B, T_feats, odim).
+            d_outs (torch.LongTensor): Batch of outputs of duration predictor
+                (B, T_text).
+            p_outs (torch.Tensor): Batch of outputs of pitch predictor
+                (B, T_text, 1).
+            e_outs (torch.Tensor): Batch of outputs of energy predictor
+                (B, T_text, 1).
+            ys (torch.Tensor): Batch of target features in discrete space
+                (B, T_feats).
+            ds (torch.LongTensor): Batch of durations (B, T_text).
+            ps (torch.Tensor): Batch of target token-averaged pitch
+                (B, T_text, 1).
+            es (torch.Tensor): Batch of target token-averaged energy
+                (B, T_text, 1).
+            ilens (torch.LongTensor): Batch of the lengths of each input (B,).
+            olens (torch.LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
-            Tensor: CrossEntropy loss value.
-            Tensor: Duration predictor loss value.
-            Tensor: Pitch predictor loss value.
-            Tensor: Energy predictor loss value.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                A tuple containing the following loss values:
+                - CrossEntropy loss value.
+                - Duration predictor loss value.
+                - Pitch predictor loss value.
+                - Energy predictor loss value.
 
+        Examples:
+            >>> loss_function = FastSpeech2LossDiscrete()
+            >>> ce_loss, duration_loss, pitch_loss, energy_loss = loss_function(
+            ...     after_outs, before_outs, d_outs, p_outs, e_outs, ys, ds, ps, es, ilens, olens
+            ... )
+
+        Note:
+            The method applies masking to handle padded parts in the loss calculation
+            if `use_masking` is set to True. If `use_weighted_masking` is also True,
+            weighted masking will be applied for loss computation.
         """
         if len(before_outs.size()) == 3:
             batch_size, max_len, vocab_size = before_outs.size()

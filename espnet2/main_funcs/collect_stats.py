@@ -27,12 +27,64 @@ def collect_stats(
     log_interval: Optional[int],
     write_collected_feats: bool,
 ) -> None:
-    """Perform on collect_stats mode.
+    """
+    Perform on collect_stats mode.
 
-    Running for deriving the shape information from data
-    and gathering statistics.
-    This method is used before executing train().
+    This function runs to derive shape information from data and gather
+    statistics. It is used before executing the training process. It
+    processes both training and validation datasets, collecting necessary
+    statistics for each feature key.
 
+    Attributes:
+        model (Union[AbsESPnetModel, None]): The ESPnet model to use for
+            feature extraction. If None, feature extraction is skipped.
+        train_iter (DataLoader and Iterable[Tuple[List[str], Dict[str,
+            torch.Tensor]]]): The training data iterator providing batches of
+            data.
+        valid_iter (DataLoader and Iterable[Tuple[List[str], Dict[str,
+            torch.Tensor]]]): The validation data iterator providing batches
+            of data.
+        output_dir (Path): The directory where collected statistics will be
+            saved.
+        ngpu (Optional[int]): The number of GPUs to use for computation. If
+            None, CPU will be used.
+        log_interval (Optional[int]): Interval for logging progress. If None,
+            it will be automatically set based on the number of iterations.
+        write_collected_feats (bool): Flag indicating whether to write
+            collected features as npy files.
+
+    Args:
+        model: The model to collect statistics from.
+        train_iter: The iterator for the training dataset.
+        valid_iter: The iterator for the validation dataset.
+        output_dir: The output directory for saving statistics.
+        ngpu: The number of GPUs to use.
+        log_interval: The logging interval for iterations.
+        write_collected_feats: Flag to determine if features should be
+            written.
+
+    Returns:
+        None: This function does not return any value.
+
+    Raises:
+        TypeError: If the train_iter or valid_iter is not iterable.
+
+    Examples:
+        >>> from espnet2.train.abs_espnet_model import AbsESPnetModel
+        >>> from torch.utils.data import DataLoader
+        >>> model = AbsESPnetModel()
+        >>> train_loader = DataLoader(...)
+        >>> valid_loader = DataLoader(...)
+        >>> collect_stats(model, train_loader, valid_loader, Path('./output'),
+        ...               ngpu=1, log_interval=10, write_collected_feats=True)
+
+    Note:
+        Ensure that the model is properly initialized before calling this
+        function, and that the input data is correctly formatted.
+
+    Todo:
+        - Add more detailed logging for easier debugging.
+        - Implement additional statistics collection if necessary.
     """
 
     npy_scp_writers = {}

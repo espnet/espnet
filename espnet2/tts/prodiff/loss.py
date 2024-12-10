@@ -17,15 +17,28 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 def gaussian(window_size: int, sigma: float) -> torch.Tensor:
-    """Gaussian Noise.
+    """
+        Gaussian Noise generation function.
+
+    This function generates a Gaussian noise tensor based on the specified window
+    size and sigma. The resulting tensor can be used for various applications
+    such as data augmentation or simulating noise in signal processing tasks.
 
     Args:
-        window_size (int): Window size.
-        sigma (float): Noise sigma.
+        window_size (int): The size of the window for the Gaussian function.
+        sigma (float): The standard deviation of the Gaussian distribution.
 
     Returns:
-        torch.Tensor: Noise.
+        torch.Tensor: A normalized tensor representing Gaussian noise.
 
+    Examples:
+        >>> noise = gaussian(window_size=5, sigma=1.0)
+        >>> print(noise)
+        tensor([0.0585, 0.2419, 0.3879, 0.2419, 0.0585])
+
+    Note:
+        The generated Gaussian noise is normalized such that the sum of the
+        tensor elements equals 1.
     """
     gauss = torch.Tensor(
         [
@@ -37,11 +50,40 @@ def gaussian(window_size: int, sigma: float) -> torch.Tensor:
 
 
 class SSimLoss(torch.nn.Module):
-    """SSimLoss.
+    """
+        SSimLoss.
 
-    This is an implementation of structural similarity (SSIM) loss.
+    This is an implementation of structural similarity (SSIM) loss. The SSIM
+    loss measures the similarity between two images, with a focus on luminance,
+    contrast, and structure, which is often used in image processing tasks.
+
     This code is modified from https://github.com/Po-Hsun-Su/pytorch-ssim.
 
+    Attributes:
+        bias (float): Value of the bias added to the outputs and target.
+        win_len (int): Size of the SSIM window.
+        channels (int): Number of channels in the input tensors.
+        average (bool): Flag to determine if the loss should be averaged.
+
+    Args:
+        bias (float, optional): Value of the bias. Defaults to 6.0.
+        window_size (int, optional): Window size for SSIM calculation. Defaults to 11.
+        channels (int, optional): Number of channels in the input. Defaults to 1.
+        reduction (str, optional): Type of reduction during the loss calculation.
+            Can be "none", "mean". Defaults to "none".
+
+    Returns:
+        Tensor: Loss scalar value.
+
+    Examples:
+        >>> ssim_loss = SSimLoss()
+        >>> output = torch.randn(1, 1, 256, 256)
+        >>> target = torch.randn(1, 1, 256, 256)
+        >>> loss = ssim_loss(output, target)
+        >>> print(loss)
+
+    Raises:
+        ValueError: If the input tensors do not have the same shape.
     """
 
     def __init__(
@@ -76,17 +118,54 @@ class SSimLoss(torch.nn.Module):
         )
 
     def forward(self, outputs: torch.Tensor, target: torch.Tensor):
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method computes the loss values for the ProDiff loss function. It takes
+        various outputs from the model, as well as the target values, and computes
+        the L1 loss, duration predictor loss, pitch predictor loss, and energy
+        predictor loss. The method can also apply masking to ignore padded parts of
+        the sequences if specified.
 
         Args:
-            outputs (torch.Tensor): Batch of output sequences generated
-                by the model (batch, time, mels).
-            target (torch.Tensor): Batch of sequences with true
-                states (batch, time, mels).
+            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).
+            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
+            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
+            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).
+            ys (Tensor): Batch of target features (B, T_feats, odim).
+            ds (LongTensor): Batch of durations (B, T_text).
+            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
+            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).
+            ilens (LongTensor): Batch of the lengths of each input (B,).
+            olens (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
-            Tensor: Loss scalar value.
+            Tuple[Tensor, Tensor, Tensor, Tensor]:
+                - L1 loss value.
+                - Duration predictor loss value.
+                - Pitch predictor loss value.
+                - Energy predictor loss value.
 
+        Examples:
+            >>> after_outs = torch.rand(2, 100, 80)
+            >>> before_outs = torch.rand(2, 100, 80)
+            >>> d_outs = torch.randint(1, 10, (2, 20))
+            >>> p_outs = torch.rand(2, 20, 1)
+            >>> e_outs = torch.rand(2, 20, 1)
+            >>> ys = torch.rand(2, 100, 80)
+            >>> ds = torch.randint(1, 10, (2, 20))
+            >>> ps = torch.rand(2, 20, 1)
+            >>> es = torch.rand(2, 20, 1)
+            >>> ilens = torch.tensor([100, 90])
+            >>> olens = torch.tensor([100, 90])
+            >>> l1_loss, ssim_loss, duration_loss, pitch_loss, energy_loss = loss_module.forward(
+            ...     after_outs, before_outs, d_outs, p_outs, e_outs, ys, ds, ps, es, ilens, olens
+            ... )
+
+        Note:
+            This method assumes that the inputs are properly shaped and on the same
+            device.
         """
         with torch.no_grad():
             dim = target.size(-1)
@@ -98,15 +177,42 @@ class SSimLoss(torch.nn.Module):
         return loss
 
     def ssim(self, tensor1: torch.Tensor, tensor2: torch.Tensor):
-        """Calculate SSIM loss.
+        """
+                SSimLoss.
+
+        This class implements the structural similarity (SSIM) loss function, which
+        measures the similarity between two images. This code is modified from
+        https://github.com/Po-Hsun-Su/pytorch-ssim.
+
+        Attributes:
+            bias (float): The bias value added to the outputs and targets.
+            win_len (int): The size of the Gaussian window used in SSIM calculation.
+            channels (int): The number of channels in the input tensors.
+            average (bool): Indicates whether to average the SSIM values.
 
         Args:
-            tensor1 (torch.Tensor): Generated output.
-            tensor2 (torch.Tensor): Groundtruth output.
+            bias (float, optional): Value of the bias. Defaults to 6.0.
+            window_size (int, optional): Size of the Gaussian window. Defaults to 11.
+            channels (int, optional): Number of channels. Defaults to 1.
+            reduction (str, optional): Type of reduction during the loss calculation.
+                Defaults to "none".
 
         Returns:
-            Tensor: Loss scalar value.
+            Tensor: The calculated SSIM loss.
 
+        Examples:
+            >>> ssim_loss = SSimLoss()
+            >>> output = torch.randn(1, 1, 256, 256)
+            >>> target = torch.randn(1, 1, 256, 256)
+            >>> loss = ssim_loss(output, target)
+            >>> print(loss)
+
+        Raises:
+            ValueError: If the input tensors do not have the same shape.
+
+        Note:
+            This loss is particularly useful for tasks involving image quality
+            assessment, such as image denoising and super-resolution.
         """
         window = self.window.to(tensor1.device)
         mu1 = F.conv2d(tensor1, window, padding=self.win_len // 2, groups=self.channels)
@@ -158,7 +264,35 @@ class SSimLoss(torch.nn.Module):
 
 
 class ProDiffLoss(torch.nn.Module):
-    """Loss function module for ProDiffLoss."""
+    """
+        Loss function module for ProDiffLoss.
+
+    This module implements the ProDiffLoss, which is used for training models
+    in the ESPnet2 text-to-speech framework. It combines multiple loss criteria
+    to optimize the performance of the model, including L1 loss, SSIM loss,
+    duration prediction loss, pitch prediction loss, and energy prediction loss.
+
+    Attributes:
+        use_masking (bool): Whether to apply masking for padded parts in loss
+            calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation.
+
+    Args:
+        use_masking (bool): Whether to apply masking for padded part in loss
+            calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation.
+
+    Raises:
+        AssertionError: If both use_masking and use_weighted_masking are True.
+
+    Examples:
+        >>> loss_fn = ProDiffLoss(use_masking=True, use_weighted_masking=False)
+        >>> l1_loss, ssim_loss, duration_loss, pitch_loss, energy_loss = loss_fn(
+        ...     after_outs, before_outs, d_outs, p_outs, e_outs, ys, ds, ps, es,
+        ...     ilens, olens)
+    """
 
     @typechecked
     def __init__(
@@ -202,27 +336,47 @@ class ProDiffLoss(torch.nn.Module):
         ilens: torch.Tensor,
         olens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method computes the loss values based on the outputs from the model and
+        the corresponding target values. It utilizes various loss functions such as
+        L1 loss, SSIM loss, and others, depending on the specified configuration
+        for masking and weighted masking.
 
         Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).
-            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
-            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
-            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).
-            ys (Tensor): Batch of target features (B, T_feats, odim).
-            ds (LongTensor): Batch of durations (B, T_text).
-            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
-            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).
-            ilens (LongTensor): Batch of the lengths of each input (B,).
-            olens (LongTensor): Batch of the lengths of each target (B,).
+            after_outs (torch.Tensor): Batch of outputs after postnets (B, T_feats, odim).
+            before_outs (torch.Tensor): Batch of outputs before postnets (B, T_feats, odim).
+            d_outs (torch.LongTensor): Batch of outputs of duration predictor (B, T_text).
+            p_outs (torch.Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
+            e_outs (torch.Tensor): Batch of outputs of energy predictor (B, T_text, 1).
+            ys (torch.Tensor): Batch of target features (B, T_feats, odim).
+            ds (torch.LongTensor): Batch of durations (B, T_text).
+            ps (torch.Tensor): Batch of target token-averaged pitch (B, T_text, 1).
+            es (torch.Tensor): Batch of target token-averaged energy (B, T_text, 1).
+            ilens (torch.LongTensor): Batch of the lengths of each input (B,).
+            olens (torch.LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
-            Tensor: L1 loss value.
-            Tensor: Duration predictor loss value.
-            Tensor: Pitch predictor loss value.
-            Tensor: Energy predictor loss value.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                - L1 loss value.
+                - SSIM loss value.
+                - Duration predictor loss value.
+                - Pitch predictor loss value.
+                - Energy predictor loss value.
 
+        Examples:
+            # Example usage of the forward method
+            l1_loss, ssim_loss, duration_loss, pitch_loss, energy_loss =
+            loss_module.forward(after_outs, before_outs, d_outs, p_outs, e_outs,
+                                 ys, ds, ps, es, ilens, olens)
+
+        Note:
+            The method can apply masking for padded parts based on the
+            configuration specified during the initialization of the class.
+
+        Todo:
+            - Implement additional loss functions if required.
         """
         # First SSIM before masks
         ssim_loss = self.ssim_criterion(before_outs, ys)

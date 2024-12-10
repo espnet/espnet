@@ -19,11 +19,34 @@ from einops import rearrange
 
 
 class ModReLU(nn.Module):
-    """ComplexReLU module.
+    """
+    Complex ReLU module.
+
+    This module applies a modified ReLU activation function to complex-valued
+    inputs. It computes the ReLU of the absolute value of the input, adds a
+    learnable bias, and then reconstructs the complex output using the
+    original phase of the input.
 
     Reference:
-        https://arxiv.org/abs/1705.09792
-        https://github.com/pytorch/pytorch/issues/47052#issuecomment-718948801
+        - https://arxiv.org/abs/1705.09792
+        - https://github.com/pytorch/pytorch/issues/47052#issuecomment-718948801
+
+    Attributes:
+        b (torch.Parameter): Learnable parameter that is added to the absolute
+            value of the input before applying the ReLU function.
+
+    Args:
+        None
+
+    Returns:
+        Tensor: The complex output after applying the modified ReLU.
+
+    Examples:
+        >>> mod_relu = ModReLU()
+        >>> input_tensor = torch.tensor([1+2j, -3-4j, 0+0j])
+        >>> output_tensor = mod_relu(input_tensor)
+        >>> print(output_tensor)
+        tensor([3.0 + 2.0j, 0.0 + 0.0j, 0.0 + 0.0j])
     """
 
     def __init__(self):
@@ -31,11 +54,78 @@ class ModReLU(nn.Module):
         self.b = nn.Parameter(torch.tensor(0.0))
 
     def forward(self, x):
+        """
+            Calculate forward propagation.
+
+        This method takes an input signal and processes it through the layers of
+        the ComplexSTFT Discriminator. The signal undergoes a Short-Time Fourier
+        Transform (STFT) and is then passed through a series of complex
+        convolutional layers. The output can be either the absolute values of the
+        logits or the real part of the complex output, depending on the
+        configuration.
+
+        Args:
+            x (Tensor): Input signal of shape (B, 1, T), where B is the batch
+            size, 1 is the number of input channels, and T is the length of the
+            signal.
+
+        Returns:
+            List[List[Tensor]]: A nested list containing the discriminator output
+            after processing through the network. The output is in the form of
+            complex tensors.
+
+        Reference:
+            Paper: https://arxiv.org/pdf/2107.03312.pdf
+            Implementation: https://github.com/alibaba-damo-academy/FunCodec.git
+
+        Examples:
+            >>> model = ComplexSTFTDiscriminator()
+            >>> input_signal = torch.randn(8, 1, 1024)  # Batch of 8 signals
+            >>> output = model(input_signal)
+            >>> print(len(output))  # Should print 1
+            >>> print(output[0][0].shape)  # Shape of the output tensor
+
+        Note:
+            Ensure that the input tensor `x` is appropriately shaped and contains
+            the expected type of data (float or complex) for proper processing
+            through the model.
+        """
         return F.relu(torch.abs(x) + self.b) * torch.exp(1.0j * torch.angle(x))
 
 
 class ComplexConv2d(nn.Module):
-    """ComplexConv2d module."""
+    """
+        ComplexConv2d module that performs complex-valued 2D convolution.
+
+    This module extends the standard 2D convolution to handle complex-valued
+    inputs. The weights and biases are stored in real-valued format and are
+    converted to complex format during the forward pass.
+
+    Attributes:
+        weight (torch.Tensor): The complex convolution weights as real-valued tensor.
+        bias (torch.Tensor): The complex convolution biases as real-valued tensor.
+        stride (int): The stride of the convolution.
+        padding (int): The padding applied to the input.
+
+    Args:
+        dim (int): Number of input channels.
+        dim_out (int): Number of output channels.
+        kernel_size (int or tuple): Size of the convolution kernel.
+        stride (int or tuple, optional): Stride of the convolution. Default is 1.
+        padding (int or tuple, optional): Padding added to both sides of the input.
+            Default is 0.
+
+    Returns:
+        Tensor: The result of the complex 2D convolution.
+
+    Examples:
+        >>> import torch
+        >>> conv = ComplexConv2d(dim=2, dim_out=3, kernel_size=3)
+        >>> input_tensor = torch.randn(1, 2, 10, 10, dtype=torch.complex64)
+        >>> output = conv(input_tensor)
+        >>> print(output.shape)
+        torch.Size([1, 3, 8, 8])  # Output shape depends on padding and stride
+    """
 
     def __init__(self, dim, dim_out, kernel_size, stride=1, padding=0):
         super().__init__()
@@ -47,6 +137,33 @@ class ComplexConv2d(nn.Module):
         self.padding = padding
 
     def forward(self, x):
+        """
+            Calculate forward propagation.
+
+        This method processes the input signal through the Complex STFT
+        Discriminator using complex convolutional layers and performs the
+        Short-Time Fourier Transform (STFT) on the input.
+
+        Args:
+            x (Tensor): Input signal with shape (B, 1, T), where B is the
+                batch size, and T is the length of the signal.
+
+        Returns:
+            List[List[Tensor]]: A nested list containing the output of the
+                discriminator after processing the input signal through all
+                layers.
+
+        Reference:
+            Paper: https://arxiv.org/pdf/2107.03312.pdf
+            Implementation: https://github.com/alibaba-damo-academy/FunCodec.git
+
+        Examples:
+            >>> discriminator = ComplexSTFTDiscriminator()
+            >>> input_signal = torch.randn(4, 1, 1024)  # Batch of 4 signals
+            >>> output = discriminator(input_signal)
+            >>> print(len(output))  # Should print the number of layers
+            >>> print(output[0][0].shape)  # Shape of the output tensor
+        """
         weight, bias = map(torch.view_as_complex, (self.weight, self.bias))
 
         x = x.to(weight.dtype)
@@ -54,15 +171,32 @@ class ComplexConv2d(nn.Module):
 
 
 def ComplexSTFTResidualUnit(in_channel, out_channel, strides):
-    """Complex STFT Residual block.
+    """
+        Complex STFT Residual block for building a discriminator in a GAN framework.
+
+    This module serves as a building block for the ComplexSTFTDiscriminator,
+    which processes complex-valued inputs and applies a series of complex
+    convolutions and non-linear activations.
+
+    Attributes:
+        in_channel (int): Number of input channels for the convolutions.
+        out_channel (int): Number of output channels after convolutions.
+        strides (int): Stride size for convolutions.
 
     Args:
-        in_channel (int): Input channel.
-        out_channel (int): Output channel.
-        strides (int): Strides of the whole module.
+        in_channel (int): Input channel size.
+        out_channel (int): Output channel size.
+        strides (int): Stride size of the convolutions.
 
     Returns:
-        nn.Module: Output nn module with complex conv2ds.
+        nn.Module: A sequential module containing complex convolutions and
+        ModReLU activation.
+
+    Examples:
+        >>> complex_stft_unit = ComplexSTFTResidualUnit(1, 2, (1, 2))
+        >>> output_module = complex_stft_unit(torch.randn(1, 1, 64, 64))
+        >>> print(output_module.shape)
+        torch.Size([1, 2, 32, 32])
     """
     kernel_sizes = tuple(map(lambda t: t + 2, strides))
     paddings = tuple(map(lambda t: t // 2, kernel_sizes))
@@ -77,7 +211,53 @@ def ComplexSTFTResidualUnit(in_channel, out_channel, strides):
 
 
 class ComplexSTFTDiscriminator(nn.Module):
-    """ComplexSTFT Discriminator used in SoundStream."""
+    """
+    ComplexSTFT Discriminator used in SoundStream.
+
+    This class implements a complex Short-Time Fourier Transform (STFT)
+    discriminator for use in SoundStream. The architecture consists of
+    several residual units with complex convolutional layers, allowing
+    for effective processing of audio signals in the frequency domain.
+
+    Adapted from https://github.com/alibaba-damo-academy/FunCodec.git.
+
+    Attributes:
+        init_conv (ComplexConv2d): Initial complex convolutional layer.
+        layers (nn.ModuleList): List of complex STFT residual units.
+        stft_normalized (bool): Flag to indicate if STFT output is normalized.
+        logits_abs (bool): Flag to determine if the output logits are absolute.
+        n_fft (int): FFT size used in STFT computation.
+        hop_length (int): Hop length for STFT.
+        win_length (int): Window length for STFT.
+
+    Args:
+        in_channels (int): Input channel (default: 1).
+        channels (int): Number of output channels (default: 32).
+        strides (List[List[int]]): Detailed strides for conv2d modules
+            (default: [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]]).
+        chan_mults (List[int]): Channel multipliers (default: [1, 2, 4, 4, 8, 8]).
+        n_fft (int): n_fft in the STFT (default: 1024).
+        hop_length (int): hop_length in the STFT (default: 256).
+        win_length (int): win_length in the STFT (default: 1024).
+        stft_normalized (bool): Whether to normalize the STFT output
+            (default: False).
+        logits_abs (bool): Whether to use the absolute number of output
+            logits (default: True).
+
+    Returns:
+        None
+
+    Examples:
+        >>> discriminator = ComplexSTFTDiscriminator()
+        >>> input_signal = torch.randn(1, 1, 16000)  # (B, C, T)
+        >>> output = discriminator(input_signal)
+        >>> print(len(output))  # Output: 1
+        >>> print(output[0][0].shape)  # Shape of the discriminator output
+
+    Note:
+        The implementation is inspired by techniques from audio processing
+        and the referenced papers.
+    """
 
     def __init__(
         self,
@@ -131,13 +311,49 @@ class ComplexSTFTDiscriminator(nn.Module):
         self.win_length = win_length
 
     def forward(self, x):
-        """Calculate forward propagation.
+        """
+                ComplexSTFTDiscriminator is a neural network module that implements a complex
+        Short-Time Fourier Transform (STFT) discriminator used in SoundStream. It
+        processes input signals to produce a list of outputs suitable for further
+        discrimination tasks.
+
+        Attributes:
+            init_conv (ComplexConv2d): Initial complex convolution layer.
+            layers (ModuleList): List of complex STFT residual units.
+            stft_normalized (bool): Flag indicating whether to normalize the STFT output.
+            logits_abs (bool): Flag indicating whether to return absolute logits.
+            n_fft (int): FFT size for the STFT.
+            hop_length (int): Hop length for the STFT.
+            win_length (int): Window length for the STFT.
 
         Args:
-            x (Tensor): Input signal (B, 1, T).
+            in_channels (int): Number of input channels (default: 1).
+            channels (int): Number of output channels (default: 32).
+            strides (List[List[int]]): Strides for the convolutional layers (default:
+                [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]]).
+            chan_mults (List[int]): Channel multipliers for each layer (default:
+                [1, 2, 4, 4, 8, 8]).
+            n_fft (int): FFT size for the STFT (default: 1024).
+            hop_length (int): Hop length for the STFT (default: 256).
+            win_length (int): Window length for the STFT (default: 1024).
+            stft_normalized (bool): Whether to normalize the STFT output (default:
+                False).
+            logits_abs (bool): Whether to return absolute values of output logits
+                (default: True).
 
         Returns:
-            List[List[Tensor]]: List of list of the discriminator output.
+            List[List[Tensor]]: A list of lists containing the discriminator output.
+
+        Examples:
+            # Example usage of ComplexSTFTDiscriminator
+            discriminator = ComplexSTFTDiscriminator()
+            input_signal = torch.randn(1, 1, 1024)  # Batch size of 1, 1 channel, 1024 time steps
+            output = discriminator(input_signal)
+            print(output)
+
+        Note:
+            This module is adapted from the implementation found at
+            https://github.com/alibaba-damo-academy/FunCodec.git.
 
         Reference:
             Paper: https://arxiv.org/pdf/2107.03312.pdf

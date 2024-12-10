@@ -31,7 +31,8 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class FastSpeech2(AbsTTS):
-    """FastSpeech2 module.
+    """
+        FastSpeech2 module.
 
     This is a module of FastSpeech2 described in `FastSpeech 2: Fast and
     High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and
@@ -43,6 +44,119 @@ class FastSpeech2(AbsTTS):
     .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:
         https://arxiv.org/abs/2006.06873
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End-of-sequence token id.
+        reduction_factor (int): Reduction factor for outputs.
+        encoder_type (str): Type of encoder ("transformer" or "conformer").
+        decoder_type (str): Type of decoder ("transformer" or "conformer").
+        stop_gradient_from_pitch_predictor (bool): If true, stop gradient from pitch
+            predictor to encoder.
+        stop_gradient_from_energy_predictor (bool): If true, stop gradient from energy
+            predictor to encoder.
+        use_scaled_pos_enc (bool): If true, use scaled positional encoding.
+        use_gst (bool): If true, use global style token.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        adim (int): Dimension of the attention layers.
+        aheads (int): Number of attention heads.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        dlayers (int): Number of decoder layers.
+        dunits (int): Number of decoder hidden units.
+        postnet_layers (int): Number of postnet layers.
+        postnet_chans (int): Number of postnet channels.
+        postnet_filts (int): Kernel size of postnet.
+        postnet_dropout_rate (float): Dropout rate in postnet.
+        positionwise_layer_type (str): Type of positionwise layer.
+        positionwise_conv_kernel_size (int): Kernel size for positionwise conv.
+        use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
+        use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+        encoder_normalize_before (bool): Whether to apply layernorm before encoder block.
+        decoder_normalize_before (bool): Whether to apply layernorm before decoder block.
+        encoder_concat_after (bool): Whether to concatenate attention input and output.
+        decoder_concat_after (bool): Whether to concatenate attention input and output.
+        reduction_factor (int): Reduction factor.
+        encoder_type (str): Encoder type ("transformer" or "conformer").
+        decoder_type (str): Decoder type ("transformer" or "conformer").
+        transformer_enc_dropout_rate (float): Dropout rate in encoder.
+        transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
+            positional encoding.
+        transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
+            self-attention module.
+        transformer_dec_dropout_rate (float): Dropout rate in decoder.
+        transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
+            positional encoding.
+        transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
+            self-attention module.
+        conformer_rel_pos_type (str): Relative pos encoding type in conformer.
+        conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer.
+        conformer_self_attn_layer_type (str): Self-attention layer type in conformer.
+        conformer_activation_type (str): Activation function type in conformer.
+        use_macaron_style_in_conformer (bool): Whether to use macaron style FFN.
+        use_cnn_in_conformer (bool): Whether to use CNN in conformer.
+        zero_triu (bool): Whether to use zero triu in relative self-attention.
+        conformer_enc_kernel_size (int): Kernel size of encoder conformer.
+        conformer_dec_kernel_size (int): Kernel size of decoder conformer.
+        duration_predictor_layers (int): Number of duration predictor layers.
+        duration_predictor_chans (int): Number of duration predictor channels.
+        duration_predictor_kernel_size (int): Kernel size of duration predictor.
+        duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
+        energy_predictor_layers (int): Number of energy predictor layers.
+        energy_predictor_chans (int): Number of energy predictor channels.
+        energy_predictor_kernel_size (int): Kernel size of energy predictor.
+        energy_predictor_dropout (float): Dropout rate in energy predictor.
+        energy_embed_kernel_size (int): Kernel size of energy embedding.
+        energy_embed_dropout (float): Dropout rate for energy embedding.
+        stop_gradient_from_energy_predictor (bool): Whether to stop gradient from
+            energy predictor to encoder.
+        pitch_predictor_layers (int): Number of pitch predictor layers.
+        pitch_predictor_chans (int): Number of pitch predictor channels.
+        pitch_predictor_kernel_size (int): Kernel size of pitch predictor.
+        pitch_predictor_dropout (float): Dropout rate in pitch predictor.
+        pitch_embed_kernel_size (int): Kernel size of pitch embedding.
+        pitch_embed_dropout (float): Dropout rate for pitch embedding.
+        stop_gradient_from_pitch_predictor (bool): Whether to stop gradient from
+            pitch predictor to encoder.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        use_gst (bool): Whether to use global style token.
+        gst_tokens (int): The number of GST embeddings.
+        gst_heads (int): The number of heads in GST multihead attention.
+        gst_conv_layers (int): The number of conv layers in GST.
+        gst_conv_chans_list (Sequence[int]): List of the number of channels of conv layers in GST.
+        gst_conv_kernel_size (int): Kernel size of conv layers in GST.
+        gst_conv_stride (int): Stride size of conv layers in GST.
+        gst_gru_layers (int): The number of GRU layers in GST.
+        gst_gru_units (int): The number of GRU units in GST.
+        init_type (str): How to initialize transformer parameters.
+        init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the encoder.
+        init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the decoder.
+        use_masking (bool): Whether to apply masking for padded part in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
+
+    Examples:
+        # Initialize FastSpeech2
+        model = FastSpeech2(idim=256, odim=80)
+
+        # Forward pass through the model
+        loss, stats, weight = model(
+            text=torch.randint(0, 256, (10, 50)),
+            text_lengths=torch.randint(1, 50, (10,)),
+            feats=torch.randn(10, 100, 80),
+            feats_lengths=torch.randint(1, 100, (10,)),
+            durations=torch.randint(1, 20, (10, 51)),
+            durations_lengths=torch.randint(1, 20, (10,)),
+            pitch=torch.randn(10, 51, 1),
+            pitch_lengths=torch.randint(1, 51, (10,)),
+            energy=torch.randn(10, 51, 1),
+            energy_lengths=torch.randint(1, 51, (10,))
+        )
     """
 
     @typechecked
@@ -496,7 +610,13 @@ class FastSpeech2(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the FastSpeech2 model. It takes
+        input tensors representing text, features, durations, pitch, and energy,
+        along with optional speaker and language embeddings, and computes the
+        model's outputs along with the associated loss and statistics.
 
         Args:
             text (LongTensor): Batch of padded token ids (B, T_text).
@@ -515,10 +635,25 @@ class FastSpeech2(AbsTTS):
             joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+                - Tensor: Loss scalar value.
+                - Dict: Statistics to be monitored.
+                - Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3], [1, 2, 0]])
+            >>> text_lengths = torch.tensor([3, 2])
+            >>> feats = torch.rand(2, 5, 80)
+            >>> feats_lengths = torch.tensor([5, 5])
+            >>> durations = torch.tensor([[1, 2, 3, 4], [1, 2, 0, 0]])
+            >>> durations_lengths = torch.tensor([4, 2])
+            >>> pitch = torch.rand(2, 4, 1)
+            >>> pitch_lengths = torch.tensor([4, 2])
+            >>> energy = torch.rand(2, 4, 1)
+            >>> energy_lengths = torch.tensor([4, 2])
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ...                         durations, durations_lengths, pitch,
+            ...                         pitch_lengths, energy, energy_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel

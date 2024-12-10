@@ -17,6 +17,30 @@ from espnet2.train.dataset import ESPnetDataset
 
 
 def load_kaldi(input):
+    """
+        Load Kaldi formatted data from the specified input.
+
+    This function loads matrices from Kaldi files (e.g., .ark or .scp) using the
+    kaldiio library. It handles both single and multi-channel wave files and
+    returns the data as a NumPy array.
+
+    Args:
+        input (str): The path to the Kaldi file to load.
+
+    Returns:
+        np.ndarray: The loaded data as a NumPy array. The shape of the array will
+        depend on the format of the data in the Kaldi file. It can be either
+        (NSample, Channel) for multichannel audio or (Nsample,) for single-channel
+        audio.
+
+    Raises:
+        RuntimeError: If the input format is unexpected or if the loading fails.
+
+    Examples:
+        >>> array = load_kaldi('path/to/file.ark')
+        >>> print(array.shape)
+        (N, C)  # where N is the number of samples and C is the number of channels.
+    """
     retval = kaldiio.load_mat(input)
     if isinstance(retval, tuple):
         assert len(retval) == 2, len(retval)
@@ -66,14 +90,54 @@ DATA_TYPES = {
 
 
 class IterableESPnetDataset(IterableDataset):
-    """Pytorch Dataset class for ESPNet.
+    """
+    Pytorch Dataset class for ESPNet.
+
+    This class represents an iterable dataset for handling various data types
+    used in ESPNet training. It supports loading and preprocessing data
+    from specified file types and yields data in a structured format.
+
+    Attributes:
+        path_name_type_list (Collection[Tuple[str, str, str]]): A collection
+            of tuples containing paths, names, and types of the data files.
+        preprocess (Optional[Callable[[str, Dict[str, np.ndarray]],
+            Dict[str, np.ndarray]]]): An optional preprocessing function to
+            apply to the data.
+        float_dtype (str): The desired float data type (default: "float32").
+        int_dtype (str): The desired integer data type (default: "long").
+        key_file (Optional[Union[str, List]]): An optional file or list
+            containing keys for data access.
+        preprocess_prefix (Optional[str]): An optional prefix for the
+            preprocessing function.
+        debug_info (Dict[str, Tuple[str, str]]): A dictionary for storing
+            debug information about the dataset.
+        non_iterable_dataset (Optional[ESPnetDataset]): An instance of
+            ESPnetDataset for handling non-iterable data types.
+        apply_utt2category (bool): A flag indicating whether to apply
+            utterance-to-category mapping.
+
+    Args:
+        path_name_type_list (Collection[Tuple[str, str, str]]): A list of
+            tuples where each tuple contains (path, name, type).
+        preprocess (Optional[Callable[[str, Dict[str, np.ndarray]],
+            Dict[str, np.ndarray]]]): A function for preprocessing data.
+        float_dtype (str): Desired data type for floating-point values.
+        int_dtype (str): Desired data type for integer values.
+        key_file (Optional[Union[str, List]]): File or list of keys for data
+            retrieval.
+        preprocess_prefix (Optional[str]): Prefix to prepend to keys for
+            preprocessing.
+
+    Raises:
+        ValueError: If `path_name_type_list` is empty.
+        RuntimeError: If duplicate names are found or if keys are mismatched.
 
     Examples:
         >>> dataset = IterableESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                                  ('token_int', 'output', 'text_int')],
         ...                                )
         >>> for uid, data in dataset:
-        ...     data
+        ...     print(data)
         {'input': per_utt_array, 'output': per_utt_array}
     """
 
@@ -134,9 +198,46 @@ class IterableESPnetDataset(IterableDataset):
             self.apply_utt2category = False
 
     def has_name(self, name) -> bool:
+        """
+            Checks if the given name exists in the dataset.
+
+        This method verifies if a specific name is present in the dataset's
+        internal debug information, which tracks the paths and types of the
+        data entries.
+
+        Args:
+            name (str): The name to check for existence in the dataset.
+
+        Returns:
+            bool: True if the name exists in the dataset, False otherwise.
+
+        Examples:
+            >>> dataset = IterableESPnetDataset([('wav.scp', 'input', 'sound')])
+            >>> dataset.has_name('input')
+            True
+            >>> dataset.has_name('output')
+            False
+        """
         return name in self.debug_info
 
     def names(self) -> Tuple[str, ...]:
+        """
+                Iterable dataset module.
+
+        This module contains classes and functions for creating and managing iterable
+        datasets for ESPNet.
+
+        Functions:
+            load_kaldi(input): Load Kaldi format data.
+
+        Constants:
+            DATA_TYPES (dict): A dictionary mapping data types to loading functions.
+
+        Classes:
+            IterableESPnetDataset: A Pytorch Dataset class for ESPNet.
+            SplicedIterableESPnetDataset: A data iterator that is spliced from multiple
+            IterableESPnetDataset.
+        """
         return tuple(self.debug_info)
 
     def __repr__(self):
@@ -251,7 +352,53 @@ class IterableESPnetDataset(IterableDataset):
 
 
 class SplicedIterableESPnetDataset(IterableDataset):
-    """A data iterator that is spliced from multiple IterableESPnetDataset"""
+    """
+    A data iterator that is spliced from multiple IterableESPnetDataset.
+
+    This class enables the combination of multiple `IterableESPnetDataset`
+    instances into a single iterable dataset. It facilitates handling
+    multiple data sources while maintaining a consistent interface.
+
+    Attributes:
+        data_iterators (List[IterableESPnetDataset]): List of data iterators
+            from `IterableESPnetDataset`.
+        task_map (Dict[IterableESPnetDataset, str]): Mapping of each dataset
+            iterator to its associated task name.
+        speaker_prompt_config (Dict[IterableESPnetDataset, Dict]): Configuration
+            for speaker prompts, if applicable.
+
+    Args:
+        path_name_type_list (Collection[Tuple[str, str, str]]): A collection of
+            tuples where each tuple contains the path to a JSON file, a name,
+            and the type (should be "json").
+        preprocess (Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]):
+            Optional preprocessing function that takes a string and a dictionary
+            and returns a modified dictionary.
+        key_file (str, optional): An optional path to a key file containing
+            valid keys for data examples.
+        **kwargs: Additional keyword arguments to be passed to the
+            `IterableESPnetDataset`.
+
+    Examples:
+        >>> dataset = SplicedIterableESPnetDataset(
+        ...     path_name_type_list=[('data.json', 'task_name', 'json')],
+        ...     preprocess=my_preprocess_function,
+        ...     key_file='key_file.txt'
+        ... )
+        >>> for uid, data in dataset:
+        ...     print(uid, data)
+
+    Note:
+        The input JSON files must follow a specific structure, containing
+        a "data_files" key that lists the paths to data files and their
+        modalities and types. Additionally, the "examples" key should list
+        valid keys for the dataset.
+
+    Raises:
+        AssertionError: If any of the triplets in `path_name_type_list` are
+            not of type "json".
+        RuntimeError: If there are issues reading the files or mismatched keys.
+    """
 
     def __init__(
         self,
@@ -339,9 +486,54 @@ class SplicedIterableESPnetDataset(IterableDataset):
 
     # Keep same interface with IterableDataset
     def has_name(self, name) -> bool:
+        """
+            Check if a given name exists in the dataset.
+
+        This method checks if the specified name is present in the debug
+        information dictionary of the dataset. This can be useful for
+        verifying the presence of a particular data key before attempting to
+        access it.
+
+        Args:
+            name (str): The name to check for existence in the dataset.
+
+        Returns:
+            bool: True if the name exists in the dataset, False otherwise.
+
+        Examples:
+            >>> dataset = SplicedIterableESPnetDataset([('path/to/data.json', 'data', 'json')])
+            >>> dataset.has_name('data')
+            True
+            >>> dataset.has_name('nonexistent_name')
+            False
+        """
         return name in self.names()
 
     def names(self) -> Tuple[str, ...]:
+        """
+                Iterable dataset module.
+
+        This module provides the implementation of the `IterableESPnetDataset` and
+        `SplicedIterableESPnetDataset` classes, which are designed for use with ESPnet,
+        a toolkit for end-to-end speech processing.
+
+        The `IterableESPnetDataset` class represents an iterable dataset that can load
+        data from various sources defined in a list of tuples containing path, name, and
+        data type. The `SplicedIterableESPnetDataset` class allows for splicing multiple
+        `IterableESPnetDataset` instances, enabling multi-task training.
+
+        Attributes:
+            DATA_TYPES (dict): A dictionary mapping data types to their respective loading
+                functions.
+
+        Examples:
+            >>> dataset = IterableESPnetDataset([('wav.scp', 'input', 'sound'),
+            ...                                  ('token_int', 'output', 'text_int')],
+            ...                                )
+            >>> for uid, data in dataset:
+            ...     data
+            {'input': per_utt_array, 'output': per_utt_array}
+        """
         if self.encoder_decoder_format:
             return ("encoder_sequence", "decoder_sequence")
         else:
@@ -355,6 +547,31 @@ class SplicedIterableESPnetDataset(IterableDataset):
         return string
 
     def post_process(self, data: Dict, iterator: IterableESPnetDataset):
+        """
+                Post-processes the data after loading from the iterator.
+
+        This method modifies the input data dictionary by adding a speaker prompt if
+        configured. It ensures that the speaker prompt is a dummy prompt with the
+        correct length.
+
+        Args:
+            data (Dict): A dictionary containing the data loaded from the dataset.
+            iterator (IterableESPnetDataset): The iterator from which the data was
+                loaded, used to access speaker prompt configuration.
+
+        Returns:
+            Dict: The modified data dictionary with the added speaker prompt.
+
+        Examples:
+            >>> dataset = SplicedIterableESPnetDataset([...])
+            >>> for uid, data in dataset:
+            ...     processed_data = dataset.post_process(data, dataset.data_iterators[0])
+            ...     print(processed_data)
+
+        Note:
+            The speaker prompt configuration is expected to be present in the
+            `speaker_prompt_config` attribute of the instance.
+        """
         # (1) speaker prompt: dummy prompt, but with the correct length
         spk_conf = self.speaker_prompt_config[iterator]
         for key in data.keys():

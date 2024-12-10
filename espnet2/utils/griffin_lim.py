@@ -27,19 +27,36 @@ def logmel2linear(
     fmin: Optional[int] = None,
     fmax: Optional[int] = None,
 ) -> np.ndarray:
-    """Convert log Mel filterbank to linear spectrogram.
+    """
+        Convert log Mel filterbank to linear spectrogram.
+
+    This function transforms a log Mel spectrogram into a linear spectrogram
+    using the inverse of the Mel filterbank. It computes the inverse Mel
+    basis and applies it to the log Mel spectrogram.
 
     Args:
-        lmspc: Log Mel filterbank (T, n_mels).
-        fs: Sampling frequency.
-        n_fft: The number of FFT points.
-        n_mels: The number of mel basis.
-        f_min: Minimum frequency to analyze.
-        f_max: Maximum frequency to analyze.
+        lmspc (np.ndarray): Log Mel filterbank with shape (T, n_mels).
+        fs (int): Sampling frequency.
+        n_fft (int): The number of FFT points.
+        n_mels (int): The number of Mel basis.
+        fmin (Optional[int]): Minimum frequency to analyze. If None, defaults to 0.
+        fmax (Optional[int]): Maximum frequency to analyze. If None, defaults to fs / 2.
 
     Returns:
-        Linear spectrogram (T, n_fft // 2 + 1).
+        np.ndarray: Linear spectrogram with shape (T, n_fft // 2 + 1).
 
+    Examples:
+        >>> import numpy as np
+        >>> lmspc = np.random.rand(100, 40)  # Example log Mel spectrogram
+        >>> fs = 16000
+        >>> n_fft = 2048
+        >>> n_mels = 40
+        >>> linear_spc = logmel2linear(lmspc, fs, n_fft, n_mels)
+        >>> print(linear_spc.shape)  # Should be (100, 1025) for 2048 FFT points
+
+    Note:
+        The function uses the `librosa` library to create the Mel filterbank
+        and compute its pseudoinverse.
     """
     assert lmspc.shape[1] == n_mels
     fmin = 0 if fmin is None else fmin
@@ -61,19 +78,38 @@ def griffin_lim(
     window: Optional[str] = "hann",
     n_iter: Optional[int] = 32,
 ) -> np.ndarray:
-    """Convert linear spectrogram into waveform using Griffin-Lim.
+    """
+        Convert linear spectrogram into waveform using Griffin-Lim.
+
+    This function reconstructs a waveform from a linear spectrogram using the
+    Griffin-Lim algorithm, which iteratively refines the phase information to
+    recover the audio signal.
 
     Args:
         spc: Linear spectrogram (T, n_fft // 2 + 1).
         n_fft: The number of FFT points.
         n_shift: Shift size in points.
-        win_length: Window length in points.
-        window: Window function type.
-        n_iter: The number of iterations.
+        win_length: Window length in points (optional).
+        window: Window function type (optional, default is "hann").
+        n_iter: The number of iterations (optional, default is 32).
 
     Returns:
         Reconstructed waveform (N,).
 
+    Examples:
+        # Example of using griffin_lim to convert a linear spectrogram back to audio
+        import numpy as np
+        spc = np.random.rand(100, 1025)  # Example linear spectrogram
+        waveform = griffin_lim(spc, n_fft=2048, n_shift=512)
+
+    Note:
+        This function requires librosa library version 0.7.0 or higher for the
+        optimized Griffin-Lim algorithm. If an older version is used, a warning
+        will be logged, and a slower implementation will be used.
+
+    Raises:
+        ValueError: If the input spectrogram shape does not match the expected
+        dimensions.
     """
     # assert the size of input linear spectrogram
     assert spc.shape[1] == n_fft // 2 + 1
@@ -111,7 +147,45 @@ def griffin_lim(
 
 # TODO(kan-bayashi): write as torch.nn.Module
 class Spectrogram2Waveform(object):
-    """Spectrogram to waveform conversion module."""
+    """
+        Spectrogram to waveform conversion module.
+
+    This class provides functionality to convert log Mel filterbanks or linear
+    spectrograms into waveforms using the Griffin-Lim algorithm. It allows for
+    flexible configuration of parameters such as the sampling frequency, number
+    of FFT points, and windowing options.
+
+    Attributes:
+        fs: Sampling frequency.
+        logmel2linear: Function to convert log Mel filterbank to linear
+            spectrogram.
+        griffin_lim: Function to perform Griffin-Lim reconstruction.
+        params: Dictionary containing the parameters used for conversion.
+
+    Args:
+        n_fft: The number of FFT points.
+        n_shift: Shift size in points.
+        fs: Sampling frequency (optional).
+        n_mels: The number of mel basis (optional).
+        win_length: Window length in points (optional).
+        window: Window function type (default: "hann").
+        fmin: Minimum frequency to analyze (optional).
+        fmax: Maximum frequency to analyze (optional).
+        griffin_lim_iters: The number of iterations for Griffin-Lim (default: 8).
+
+    Examples:
+        >>> model = Spectrogram2Waveform(n_fft=2048, n_shift=512, fs=16000)
+        >>> logmel = torch.rand(100, 80)  # Example log Mel filterbank
+        >>> waveform = model(logmel)
+
+    Note:
+        This module is designed to work with PyTorch tensors and expects the
+        input spectrogram to be in the shape (T_feats, n_mels) or
+        (T_feats, n_fft // 2 + 1).
+
+    Todo:
+        Implement as a torch.nn.Module.
+    """
 
     @typechecked
     def __init__(

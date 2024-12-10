@@ -22,6 +22,45 @@ from espnet2.speechlm.net_utils import (
 
 
 class ValleLM(AbsCoreLM):
+    """
+    Implementation of the Vall-E model for speech language modeling.
+
+    This class initializes and defines the forward and inference methods for
+    the Vall-E model as described in the paper:
+    https://arxiv.org/abs/2301.02111.
+
+    Attributes:
+        emb (torch.nn.Embedding): The embedding layer for input tokens.
+        lm_head (torch.nn.Linear): The linear layer for generating output logits.
+        ar_decoder (TransformerDecoder): The auto-regressive decoder.
+        nar_decoder (ValleNARDecoder): The non-auto-regressive decoder.
+        nq (int): Number of codes for each token/frame.
+
+    Args:
+        vocab_size (int): Dimension of vocabulary.
+        nq (int): Number of codes for each token/frame, usually for speech codec.
+        share_emb (bool): If True, share the embedding and lm_head weight.
+        att_unit (int): Dimension of Transformer attention.
+        head (int): Number of heads in Transformer attention.
+        ar_layer (int): Number of layers in AR Transformer.
+        nar_layer (int): Number of layers in NAR Transformer.
+        n_ctx (int): Maximum context length of AR & NAR Transformer.
+
+    Methods:
+        forward: Computes the forward pass of the Vall-E model for training.
+        inference: Performs inference using the Vall-E model.
+
+    Examples:
+        # Initialize the model
+        model = ValleLM(vocab_size=1000, nq=256)
+
+        # Forward pass
+        loss, stats, weight = model.forward(dec_seq, dec_seq_lengths)
+
+        # Inference
+        generated_tokens, generated_scores = model.inference(prefix, opts)
+    """
+
     def __init__(
         self,
         vocab_size: int,
@@ -75,16 +114,45 @@ class ValleLM(AbsCoreLM):
         enc_seq_lengths: torch.Tensor = None,
         prefix_len: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        """Vall-E forward for training
+        """
+        Vall-E forward for training.
+
+        This method performs a forward pass through the Vall-E model,
+        calculating the loss and returning relevant statistics. It
+        processes both auto-regressive (AR) and non-auto-regressive (NAR)
+        sequences.
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
-            dec_seq_lengths (LongTensor): Lengths of batched decoder sequences (B,).
-            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq), keep
-                the interface, may not be used.
-            enc_seq_lengths (LongTensor): Lengths of batched encoder sequences (B,),
-                keep the interface, may not be used.
-            prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
+            dec_seq_lengths (LongTensor): Lengths of batched decoder
+                sequences (B,).
+            enc_seq (LongTensor): Batch of encoder sequences (B, T, nq),
+                keeping the interface, may not be used.
+            enc_seq_lengths (LongTensor): Lengths of batched encoder
+                sequences (B,), keeping the interface, may not be used.
+            prefix_len (LongTensor): Lengths of condition part in
+                dec_seq (B,).
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, Dict]: A tuple containing:
+                - loss (torch.Tensor): Computed loss value.
+                - stats (torch.Tensor): A dictionary containing statistics
+                  related to the model's performance.
+                - weight (torch.Tensor): The weight used for loss calculation.
+
+        Raises:
+            AssertionError: If the dimensions of `dec_seq` are not as
+            expected.
+
+        Examples:
+            >>> model = ValleLM(vocab_size=100, nq=10)
+            >>> dec_seq = torch.randint(0, 100, (32, 20, 10))
+            >>> dec_seq_lengths = torch.randint(1, 21, (32,))
+            >>> loss, stats, weight = model.forward(dec_seq, dec_seq_lengths)
+
+        Note:
+            This method assumes that `dec_seq` has three dimensions, and
+            it is critical to maintain the shape (B, T, nq).
         """
 
         assert dec_seq.dim() == 3
@@ -153,14 +221,41 @@ class ValleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
-        """Vall-E Inference.
+        """
+            Vall-E Inference.
+
+        This method performs inference using the Vall-E model, which can generate
+        sequences based on a provided prefix and optional suffix. The inference
+        process is divided into two parts: an auto-regressive (AR) generation for
+        the first code layer and a non-auto-regressive (NAR) generation for the
+        remaining layers.
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
-            opts (SpeechLMInferenceOptions): inference options.
-            enc_seq (LongTensor): Encoder token sequence (B, T, nq).
-            suffix (LongTensor): suffix part of dec_seq (B, T, nq),
+            opts (SpeechLMInferenceOptions): Inference options.
+            enc_seq (LongTensor, optional): Encoder token sequence (B, T, nq).
+            suffix (LongTensor, optional): Suffix part of dec_seq (B, T, nq),
                 usually the target sequence for teacher-forcing.
+
+        Returns:
+            Tuple[List[LongTensor], List[LongTensor]]: A tuple containing two
+            lists. The first list contains generated token sequences for each
+            valid batch, and the second list contains the corresponding scores.
+
+        Examples:
+            >>> prefix = torch.tensor([[[1, 2, 3], [4, 5, 6]]])  # Example prefix
+            >>> opts = SpeechLMInferenceOptions(nbest=1, minlenratio=0.2,
+            ...                                  maxlenratio=1.0, start=0,
+            ...                                  eos=1, search_algo='greedy')
+            >>> gen_tokens, gen_scores = model.inference(prefix, opts)
+
+        Note:
+            The method will log the process of generation, including the
+            termination steps and any warnings if no valid examples are generated.
+
+        Raises:
+            AssertionError: If the provided suffix is None when the search
+            algorithm is set to "teacher_force".
         """
 
         # (1) initialization

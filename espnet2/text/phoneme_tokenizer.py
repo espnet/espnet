@@ -47,6 +47,31 @@ g2p_choices = [
 
 
 def split_by_space(text) -> List[str]:
+    """
+    Splits the input text into a list of words based on spaces.
+
+    This function replaces multiple consecutive spaces with a single space,
+    ensuring that the output list contains words separated by a single space.
+
+    Args:
+        text (str): The input text string to be split.
+
+    Returns:
+        List[str]: A list of words extracted from the input text.
+
+    Examples:
+        >>> split_by_space("Hello world")
+        ['Hello', 'world']
+
+        >>> split_by_space("This  is  a   test")
+        ['This', 'is', 'a', 'test']
+
+        >>> split_by_space("  Leading and trailing spaces  ")
+        ['Leading', 'and', 'trailing', 'spaces']
+
+        >>> split_by_space("Multiple   spaces  here")
+        ['Multiple', 'spaces', 'here']
+    """
     if "   " in text:
         text = text.replace("   ", " <space> ")
         return [c.replace("<space>", " ") for c in text.split(" ")]
@@ -55,6 +80,29 @@ def split_by_space(text) -> List[str]:
 
 
 def pyopenjtalk_g2p(text) -> List[str]:
+    """
+        Converts input text to phonemes using the pyopenjtalk library.
+
+    This function utilizes the `pyopenjtalk` library to perform
+    grapheme-to-phoneme (G2P) conversion, generating a list of
+    phonemes represented as strings.
+
+    Args:
+        text (str): The input text that needs to be converted to phonemes.
+
+    Returns:
+        List[str]: A list of phonemes extracted from the input text.
+
+    Examples:
+        >>> phonemes = pyopenjtalk_g2p("こんにちは。")
+        >>> print(phonemes)
+        ['k', 'o', 'N', 'n', 'i', 'ch', 'i', 'w', 'a']
+
+    Note:
+        The input text should be in Japanese for accurate phoneme
+        extraction. Ensure that the `pyopenjtalk` library is installed
+        and available in your environment.
+    """
     import pyopenjtalk
 
     # phones is a str object separated by space
@@ -73,6 +121,27 @@ def _extract_fullcontext_label(text):
 
 
 def pyopenjtalk_g2p_accent(text) -> List[str]:
+    """
+    Convert input text to phonemes with accent information.
+
+    This function uses the PyOpenJTalk library to extract phonemes from
+    input text while also incorporating accentuation details. It returns
+    a list of phonemes, each represented as a string, where the accent
+    type and position are included.
+
+    Args:
+        text (str): The input text to be converted into phonemes.
+
+    Returns:
+        List[str]: A list of phonemes with accent information.
+
+    Examples:
+        >>> pyopenjtalk_g2p_accent("こんにちは。")
+        ['k', 'o', 'N', 'n', 'i', 'ch', 'i', 'w', 'a']
+
+    Note:
+        This function assumes that the input text is in Japanese.
+    """
     phones = []
     for labels in _extract_fullcontext_label(text):
         p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9]+)", labels)
@@ -82,6 +151,35 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
+    """
+        Convert text to a sequence of phonemes with accent and pause information.
+
+    This function processes the input text to extract phonemes while
+    considering accent information and pauses. It identifies pauses in
+    the input and represents them as 'pau' in the output list. The
+    function utilizes full-context labels extracted from the input text
+    to determine phoneme attributes.
+
+    Args:
+        text (str): Input text to be converted into phonemes.
+
+    Returns:
+        List[str]: A list of phonemes including accents and pauses.
+
+    Examples:
+        >>> result = pyopenjtalk_g2p_accent_with_pause("こんにちは")
+        >>> print(result)
+        ['k', 'o', 'N', 'n', 'i', 'ch', 'i']
+
+        >>> result_with_pause = pyopenjtalk_g2p_accent_with_pause("こんにちは。")
+        >>> print(result_with_pause)
+        ['k', 'o', 'N', 'n', 'i', 'ch', 'i', 'pau']
+
+    Note:
+        The function relies on the `_extract_fullcontext_label`
+        function to get full-context labels from the input text.
+        It requires the `pyopenjtalk` package to be installed.
+    """
     phones = []
     for labels in _extract_fullcontext_label(text):
         if labels.split("-")[1].split("+")[0] == "pau":
@@ -94,6 +192,29 @@ def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_kana(text) -> List[str]:
+    """
+        Converts input text to its corresponding kana representation using
+    PyOpenJTalk.
+
+    This function utilizes the PyOpenJTalk library to perform grapheme-to-phoneme
+    conversion specifically for kana. The input text is transformed into its
+    phonetic representation in kana format.
+
+    Args:
+        text (str): The input text to be converted into kana.
+
+    Returns:
+        List[str]: A list of kana characters corresponding to the input text.
+
+    Examples:
+        >>> kana_output = pyopenjtalk_g2p_kana("こんにちは")
+        >>> print(kana_output)
+        ['こ', 'ん', 'に', 'ち', 'は']
+
+    Note:
+        Ensure that the PyOpenJTalk library is installed and properly configured
+        in your environment to use this function.
+    """
     import pyopenjtalk
 
     kanas = pyopenjtalk.g2p(text, kana=True)
@@ -101,14 +222,15 @@ def pyopenjtalk_g2p_kana(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> List[str]:
-    """Extract phoneme + prosoody symbol sequence from input full-context labels.
+    """
+        Extract phoneme + prosody symbol sequence from input full-context labels.
 
     The algorithm is based on `Prosodic features control by symbols as input of
     sequence-to-sequence acoustic modeling for neural TTS`_ with some r9y9's tweaks.
 
     Args:
         text (str): Input text.
-        drop_unvoiced_vowels (bool): whether to drop unvoiced vowels.
+        drop_unvoiced_vowels (bool): Whether to drop unvoiced vowels.
 
     Returns:
         List[str]: List of phoneme + prosody symbols.
@@ -120,7 +242,6 @@ def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> Lis
 
     .. _`Prosodic features control by symbols as input of sequence-to-sequence acoustic
         modeling for neural TTS`: https://doi.org/10.1587/transinf.2020EDP7104
-
     """
     labels = _extract_fullcontext_label(text)
     N = len(labels)
@@ -185,6 +306,29 @@ def _numeric_feature_by_regex(regex, s):
 
 
 def pypinyin_g2p(text) -> List[str]:
+    """
+        Convert Chinese text to pinyin phonemes.
+
+    This function utilizes the `pypinyin` library to convert the given Chinese
+    text into its corresponding pinyin phonemes. It extracts the pinyin with
+    tone numbers, returning them as a list of strings.
+
+    Args:
+        text (str): The Chinese text to be converted into pinyin.
+
+    Returns:
+        List[str]: A list of pinyin phonemes corresponding to the input text.
+
+    Examples:
+        >>> pypinyin_g2p("你好")
+        ['nǐ', 'hǎo']
+
+        >>> pypinyin_g2p("中国")
+        ['zhōng', 'guó']
+
+    Note:
+        Ensure that the `pypinyin` library is installed in your environment.
+    """
     from pypinyin import Style, pinyin
 
     phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
@@ -192,6 +336,32 @@ def pypinyin_g2p(text) -> List[str]:
 
 
 def pypinyin_g2p_phone(text) -> List[str]:
+    """
+        Convert Chinese text to phonemes using Pinyin with tone markings.
+
+    This function takes a Chinese text input and converts it into a list of phonemes
+    based on the Pinyin representation, including initial and final sounds, while
+    maintaining tone information. The function is useful for applications requiring
+    phonetic analysis or text-to-speech systems.
+
+    Args:
+        text (str): The input Chinese text to be converted to phonemes.
+
+    Returns:
+        List[str]: A list of phonemes extracted from the input text.
+
+    Examples:
+        >>> pypinyin_g2p_phone("你好")
+        ['n', 'i', 'h', 'a', 'o']
+
+        >>> pypinyin_g2p_phone("北京")
+        ['b', 'e', 'i', 'j', 'i', 'n']
+
+    Note:
+        This function utilizes the `pypinyin` library, which must be installed for
+        the function to work correctly. Ensure to handle any potential exceptions
+        that may arise from invalid input.
+    """
     from pypinyin import Style, pinyin
     from pypinyin.style._utils import get_finals, get_initials
 
@@ -217,6 +387,28 @@ def pypinyin_g2p_phone(text) -> List[str]:
 
 
 def pypinyin_g2p_phone_without_prosody(text) -> List[str]:
+    """
+        Convert Chinese text to phonemes without prosody using pypinyin.
+
+    This function takes a string of Chinese text and converts it into a list of
+    phonemes. The conversion is done using the pypinyin library, and the output
+    does not include any prosodic features.
+
+    Args:
+        text (str): The input Chinese text to be converted to phonemes.
+
+    Returns:
+        List[str]: A list of phonemes corresponding to the input text.
+
+    Examples:
+        >>> from espnet2.text.phoneme_tokenizer import pypinyin_g2p_phone_without_prosody
+        >>> pypinyin_g2p_phone_without_prosody("你好")
+        ['n', 'i', 'h', 'a', 'o']
+
+    Note:
+        This function uses the pypinyin library's normal style for phoneme
+        conversion, which does not include tone markings or prosodic symbols.
+    """
     from pypinyin import Style, pinyin
     from pypinyin.style._utils import get_finals, get_initials
 
@@ -241,12 +433,31 @@ def pypinyin_g2p_phone_without_prosody(text) -> List[str]:
 
 
 class G2p_en:
-    """On behalf of g2p_en.G2p.
+    """
+    On behalf of g2p_en.G2p.
 
-    g2p_en.G2p isn't pickalable and it can't be copied to the other processes
-    via multiprocessing module.
-    As a workaround, g2p_en.G2p is instantiated upon calling this class.
+    This class serves as a wrapper for the g2p_en.G2p class, which is used for
+    converting English text to phonemes. Note that g2p_en.G2p is not
+    picklable, meaning it cannot be serialized for use with the multiprocessing
+    module. As a workaround, an instance of g2p_en.G2p is created upon the
+    first call to this class.
 
+    Attributes:
+        no_space (bool): If True, spaces representing word separators will be
+            removed from the output.
+
+    Args:
+        no_space (bool): Flag indicating whether to remove spaces from the
+            phoneme output. Default is False.
+
+    Returns:
+        List[str]: A list of phonemes corresponding to the input text.
+
+    Examples:
+        >>> g2p = G2p_en(no_space=True)
+        >>> phonemes = g2p("Hello world")
+        >>> print(phonemes)
+        ['h', 'ə', 'l', 'oʊ', 'w', 'ɜ', 'r', 'l', 'd']
     """
 
     def __init__(self, no_space: bool = False):
@@ -265,12 +476,45 @@ class G2p_en:
 
 
 class G2pk:
-    """On behalf of g2pk.G2p.
+    """
+        On behalf of g2pk.G2p.
 
-    g2pk.G2p isn't pickalable and it can't be copied to the other processes
-    via multiprocessing module.
-    As a workaround, g2pk.G2p is instantiated upon calling this class.
+    g2pk.G2p isn't picklable and it can't be copied to other processes
+    via the multiprocessing module. As a workaround, g2pk.G2p is
+    instantiated upon calling this class.
 
+    Attributes:
+        descritive (bool): If True, produces descriptive phonemes.
+        group_vowels (bool): If True, groups similar vowel sounds.
+        to_syl (bool): If True, converts output to syllables.
+        no_space (bool): If True, removes spaces that represent word separators.
+        explicit_space (bool): If True, replaces spaces with a specified symbol.
+        space_symbol (str): The symbol used to represent spaces.
+
+    Args:
+        descritive (bool): Optional; defaults to False.
+        group_vowels (bool): Optional; defaults to False.
+        to_syl (bool): Optional; defaults to False.
+        no_space (bool): Optional; defaults to False.
+        explicit_space (bool): Optional; defaults to False.
+        space_symbol (str): Optional; defaults to "<space>".
+
+    Returns:
+        List[str]: A list of phonemes generated from the input text.
+
+    Examples:
+        >>> from espnet2.text.phoneme_tokenizer import G2pk
+        >>> g2p = G2pk()
+        >>> g2p("hello world")
+        ['h', 'e', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd']
+
+        >>> g2p_no_space = G2pk(no_space=True)
+        >>> g2p_no_space("hello world")
+        ['h', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd']
+
+        >>> g2p_explicit_space = G2pk(explicit_space=True, space_symbol="_")
+        >>> g2p_explicit_space("hello world")
+        ['h', 'e', 'l', 'o', '_', 'w', 'o', 'r', 'l', 'd']
     """
 
     def __init__(
@@ -315,6 +559,37 @@ class G2pk:
 
 
 class Jaso:
+    """
+    A class for converting Korean text into Jamo characters.
+
+    This class takes Korean text as input and converts it into its
+    corresponding Jamo characters. It also provides options to handle
+    spaces in the output.
+
+    Attributes:
+        PUNC (str): A string of punctuation characters.
+        SPACE (str): A string representing a space character.
+        JAMO_LEADS (str): A string of Jamo leading characters.
+        JAMO_VOWELS (str): A string of Jamo vowel characters.
+        JAMO_TAILS (str): A string of Jamo tail characters.
+        VALID_CHARS (str): A string of valid characters, including Jamo
+            characters, punctuation, and spaces.
+
+    Args:
+        space_symbol (str): The symbol to use for spaces in the output.
+            Defaults to a regular space.
+        no_space (bool): If True, spaces will be removed from the output.
+
+    Examples:
+        >>> jaso = Jaso(space_symbol="<space>", no_space=False)
+        >>> jaso("안녕하세요")
+        ['ᄋ', 'ᅡ', 'ᄂ', 'ᅣ', 'ᄉ', 'ᅥ', 'ᄒ', 'ᅡ', 'ᄋ', 'ᅭ']
+
+        >>> jaso_no_space = Jaso(no_space=True)
+        >>> jaso_no_space("안녕하세요")
+        ['ᄋ', 'ᅡ', 'ᄂ', 'ᅣ', 'ᄉ', 'ᅥ', 'ᄒ', 'ᅡ', 'ᄋ', 'ᅭ']
+    """
+
     PUNC = "!'(),-.:;?"
     SPACE = " "
 
@@ -348,14 +623,42 @@ class Jaso:
 
 
 class Phonemizer:
-    """Phonemizer module for various languages.
+    """
+        Phonemizer module for various languages.
 
-    This is wrapper module of https://github.com/bootphon/phonemizer.
-    You can define various g2p modules by specifying options for phonemizer.
+    This is a wrapper module for the [phonemizer library, which provides
+    phonemization capabilities for different languages. You can define
+    various g2p (grapheme-to-phoneme) modules by specifying options for
+    the phonemizer.
 
     See available options:
         https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32
 
+    See also:
+        https://github.com/bootphon/phonemizer
+
+    Attributes:
+        backend (str): The backend to use for phonemization.
+        word_separator (Optional[str]): Custom word separator.
+        syllable_separator (Optional[str]): Custom syllable separator.
+        phone_separator (Optional[str]): Custom phone separator (default is " ").
+        strip (bool): Whether to strip whitespace from the output.
+        split_by_single_token (bool): Whether to split the output by single tokens.
+
+    Args:
+        backend (str): The backend for phonemization (e.g., "espeak").
+        word_separator (Optional[str]): Custom word separator.
+        syllable_separator (Optional[str]): Custom syllable separator.
+        phone_separator (Optional[str]): Custom phone separator.
+        strip (bool): Whether to strip whitespace from the output.
+        split_by_single_token (bool): Whether to split the output by single tokens.
+        **phonemizer_kwargs: Additional keyword arguments for phonemizer.
+
+    Examples:
+        >>> phonemizer = Phonemizer(backend='espeak')
+        >>> phonemes = phonemizer("Hello, world!")
+        >>> print(phonemes)
+        ['h', 'ɛ', 'l', 'oʊ', ' ', 'w', 'ɜ', 'r', 'l', 'd']
     """
 
     def __init__(
@@ -404,11 +707,33 @@ class Phonemizer:
 
 
 class IsG2p:  # pylint: disable=too-few-public-methods
-    """Minimal wrapper for https://github.com/grammatek/ice-g2p
+    """
+        Minimal wrapper for https://github.com/grammatek/ice-g2p
 
     The g2p module uses a Bi-LSTM model along with
-    a pronunciation dictionary to generate phonemization
-    Unfortunately does not support multi-thread phonemization as of yet
+    a pronunciation dictionary to generate phonemization.
+    Unfortunately, it does not support multi-thread phonemization as of yet.
+
+    Attributes:
+        dialect (str): The dialect to use for phonemization (default: "standard").
+        syllabify (bool): Whether to syllabify the output (default: True).
+        word_sep (str): The separator for words (default: ",").
+        use_dict (bool): Whether to use a pronunciation dictionary (default: True).
+
+    Args:
+        dialect (str): The dialect for phonemization.
+        syllabify (bool): Flag to enable syllabification.
+        word_sep (str): Separator used for words.
+        use_dict (bool): Flag to enable dictionary usage.
+
+    Returns:
+        List[str]: A list of phonemes generated from the input text.
+
+    Examples:
+        >>> g2p = IsG2p()
+        >>> phonemes = g2p("example text")
+        >>> print(phonemes)
+        ['ɪ', 'g', 'z', 'æ', 'm', 'p', 'əl', 't', 'ɛ', 'k', 's']
     """
 
     def __init__(
@@ -436,6 +761,53 @@ class IsG2p:  # pylint: disable=too-few-public-methods
 
 
 class PhonemeTokenizer(AbsTokenizer):
+    """
+    A tokenizer that converts text into phonemes using various G2P methods.
+
+    This class is designed to handle text-to-phoneme (G2P) conversion for
+    different languages and dialects. It supports multiple G2P backends
+    and allows customization for handling non-linguistic symbols.
+
+    Attributes:
+        g2p_type (str): The type of G2P method to use for phoneme conversion.
+        space_symbol (str): The symbol used to represent spaces in tokenized
+            output.
+        non_linguistic_symbols (set): A set of symbols to handle separately
+            during tokenization.
+        remove_non_linguistic_symbols (bool): Flag to determine whether to
+            remove non-linguistic symbols from the output.
+
+    Args:
+        g2p_type (Union[None, str]): The G2P method to use. If None, a
+            simple space-based tokenizer is used.
+        non_linguistic_symbols (Union[None, Path, str, Iterable[str]]): A
+            collection of non-linguistic symbols to handle.
+        space_symbol (str): Symbol to use for spaces in tokenized output.
+            Default is "<space>".
+        remove_non_linguistic_symbols (bool): Whether to remove non-linguistic
+            symbols from the output. Default is False.
+
+    Raises:
+        NotImplementedError: If an unsupported G2P type is provided.
+
+    Examples:
+        >>> tokenizer = PhonemeTokenizer(g2p_type="g2p_en")
+        >>> tokens = tokenizer.text2tokens("Hello, world!")
+        >>> print(tokens)
+        ['HH', 'AH', 'L', 'OW', ',', 'W', 'ER', 'L', 'D', '!']
+
+        >>> tokenizer = PhonemeTokenizer(g2p_type="g2pk",
+        ...                                non_linguistic_symbols=["!"])
+        >>> tokens = tokenizer.text2tokens("Hello! World!")
+        >>> print(tokens)
+        ['HH', 'AH', 'L', 'OW', '!', 'W', 'ER', 'L', 'D', '!']
+
+    Note:
+        The G2P methods used are dependent on the installation of
+        corresponding libraries (e.g., g2p_en, g2pk, etc.). Make sure to
+        install the necessary packages to utilize specific G2P methods.
+    """
+
     @typechecked
     def __init__(
         self,
@@ -606,6 +978,39 @@ class PhonemeTokenizer(AbsTokenizer):
         )
 
     def text2tokens(self, line: str) -> List[str]:
+        """
+                Converts input text to a list of tokens (phonemes).
+
+        This method processes the input string `line` by extracting any non-linguistic
+        symbols specified during the initialization of the `PhonemeTokenizer` and
+        then applying the configured G2P (grapheme-to-phoneme) model to convert the
+        remaining text into phonemes.
+
+        Attributes:
+            non_linguistic_symbols (set): A set of non-linguistic symbols to be
+                recognized and handled during tokenization.
+            remove_non_linguistic_symbols (bool): Flag indicating whether to
+                remove non-linguistic symbols from the output tokens.
+
+        Args:
+            line (str): The input text string to be tokenized.
+
+        Returns:
+            List[str]: A list of tokens (phonemes) generated from the input text.
+
+        Examples:
+            >>> from phoneme_tokenizer import PhonemeTokenizer
+            >>> tokenizer = PhonemeTokenizer(g2p_type="g2p_en")
+            >>> tokenizer.text2tokens("Hello, world!")
+            ['H', 'ə', 'l', 'oʊ', ' ', 'w', 'ɜ', 'r', 'l', 'd', '!']
+
+        Note:
+            The method processes the input line in a loop, checking for
+            non-linguistic symbols at the beginning of the line. If found,
+            it appends the symbol to the token list (if not set to remove)
+            and continues processing the rest of the line. After handling
+            all symbols, it applies the G2P model to the remaining text.
+        """
         tokens = []
         while len(line) != 0:
             for w in self.non_linguistic_symbols:
@@ -624,10 +1029,80 @@ class PhonemeTokenizer(AbsTokenizer):
         return tokens
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
+        """
+            Tokenizes text into phonemes using various g2p methods.
+
+        This class serves as a tokenizer that converts text into phoneme tokens
+        based on the specified g2p (grapheme-to-phoneme) method. It supports
+        multiple g2p implementations, allowing for flexibility in phoneme
+        generation for different languages and dialects.
+
+        Attributes:
+            g2p_type (Union[None, str]): The type of g2p method to use.
+            space_symbol (str): The symbol to use for spaces in tokens.
+            non_linguistic_symbols (set): A set of non-linguistic symbols to handle.
+            remove_non_linguistic_symbols (bool): Whether to remove non-linguistic symbols.
+
+        Args:
+            g2p_type (Union[None, str]): The g2p method to be used.
+            non_linguistic_symbols (Union[None, Path, str, Iterable[str]]):
+                Symbols that are not linguistic in nature.
+            space_symbol (str): The symbol used to represent spaces in tokens.
+            remove_non_linguistic_symbols (bool): Whether to remove non-linguistic
+                symbols from the output.
+
+        Raises:
+            NotImplementedError: If the specified g2p_type is not supported.
+
+        Examples:
+            >>> from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
+            >>> tokenizer = PhonemeTokenizer(g2p_type="g2p_en")
+            >>> tokens = tokenizer.text2tokens("Hello, world!")
+            >>> print(tokens)
+            ['H', 'ə', 'l', 'oʊ', ',', ' ', 'w', 'ɜ', 'r', 'l', 'd', '!']
+
+        Note:
+            The tokenizer's behavior can be modified by adjusting the
+            `non_linguistic_symbols` and `remove_non_linguistic_symbols`
+            attributes.
+
+        Todo:
+            - Extend support for additional g2p methods.
+            - Improve handling of edge cases in text-to-token conversion.
+        """
         # phoneme type is not invertible
         return "".join(tokens)
 
     def text2tokens_svs(self, syllable: str) -> List[str]:
+        """
+        Converts a given syllable into its corresponding phonetic tokens.
+
+        This method handles specific syllables by returning predefined token
+        mappings from a custom dictionary. If the provided syllable is not in
+        the dictionary, it defaults to using the general g2p (grapheme-to-phoneme)
+        conversion method.
+
+        Note:
+            If needed, the `customed_dic` can be modified to include additional
+            mappings as required.
+
+        Args:
+            syllable (str): The input syllable to be converted into phonetic
+            tokens.
+
+        Returns:
+            List[str]: A list of phonetic tokens corresponding to the input
+            syllable.
+
+        Examples:
+            >>> tokenizer = PhonemeTokenizer(g2p_type="pyopenjtalk")
+            >>> tokenizer.text2tokens_svs("は")
+            ['h', 'a']
+            >>> tokenizer.text2tokens_svs("シ")
+            ['sh', 'I']
+            >>> tokenizer.text2tokens_svs("くぁ")
+            ['k', 'w', 'a']
+        """
         # Note(Yuning): fix syllabel2phoneme mismatch
         # If needed, customed_dic can be changed into extra input
         customed_dic = {

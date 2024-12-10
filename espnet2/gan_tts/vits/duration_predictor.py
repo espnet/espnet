@@ -23,14 +23,48 @@ from espnet2.gan_tts.vits.flow import (
 
 
 class StochasticDurationPredictor(torch.nn.Module):
-    """Stochastic duration predictor module.
+    """
+        Stochastic duration predictor module.
 
-    This is a module of stochastic duration predictor described in `Conditional
-    Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech`_.
+    This module implements a stochastic duration predictor as described in
+    `Conditional Variational Autoencoder with Adversarial Learning for
+    End-to-End Text-to-Speech`_.
 
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        pre (torch.nn.Conv1d): Convolutional layer for preprocessing input.
+        dds (DilatedDepthSeparableConv): Dilated depth separable convolution layer.
+        proj (torch.nn.Conv1d): Convolutional layer for projecting features.
+        log_flow (LogFlow): Log flow for managing the flow of information.
+        flows (torch.nn.ModuleList): List of flow modules for processing.
+        post_pre (torch.nn.Conv1d): Convolutional layer for post-processing input.
+        post_dds (DilatedDepthSeparableConv): Post-processing dilated depth
+            separable convolution layer.
+        post_proj (torch.nn.Conv1d): Convolutional layer for projecting post-processed
+            features.
+        post_flows (torch.nn.ModuleList): List of post-processing flow modules.
+        global_conv (torch.nn.Conv1d, optional): Convolutional layer for global
+            conditioning if global_channels > 0.
+
+    Args:
+        channels (int): Number of channels.
+        kernel_size (int): Kernel size.
+        dropout_rate (float): Dropout rate.
+        flows (int): Number of flows.
+        dds_conv_layers (int): Number of conv layers in DDS conv.
+        global_channels (int): Number of global conditioning channels.
+
+    Examples:
+        >>> predictor = StochasticDurationPredictor()
+        >>> x = torch.randn(2, 192, 50)  # Example input tensor
+        >>> x_mask = torch.ones(2, 1, 50)  # Example mask tensor
+        >>> duration = torch.randn(2, 1, 50)  # Example duration tensor
+        >>> output = predictor(x, x_mask, w=duration)
+
+    Raises:
+        AssertionError: If `inverse` is False and `w` is None in the forward method.
     """
 
     def __init__(
@@ -111,20 +145,35 @@ class StochasticDurationPredictor(torch.nn.Module):
         inverse: bool = False,
         noise_scale: float = 1.0,
     ) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method performs the forward pass for the Stochastic Duration Predictor.
+        It computes the negative log-likelihood (NLL) or log-duration tensor based
+        on the provided input tensors and optional parameters.
 
         Args:
-            x (Tensor): Input tensor (B, channels, T_text).
-            x_mask (Tensor): Mask tensor (B, 1, T_text).
-            w (Optional[Tensor]): Duration tensor (B, 1, T_text).
-            g (Optional[Tensor]): Global conditioning tensor (B, channels, 1)
-            inverse (bool): Whether to inverse the flow.
-            noise_scale (float): Noise scale value.
+            x (Tensor): Input tensor with shape (B, channels, T_text).
+            x_mask (Tensor): Mask tensor with shape (B, 1, T_text).
+            w (Optional[Tensor]): Duration tensor with shape (B, 1, T_text).
+                Required when `inverse` is False.
+            g (Optional[Tensor]): Global conditioning tensor with shape (B, channels, 1).
+            inverse (bool): Whether to perform the inverse operation on the flow.
+                Defaults to False.
+            noise_scale (float): Scale for the noise added to the latent space.
+                Defaults to 1.0.
 
         Returns:
-            Tensor: If not inverse, negative log-likelihood (NLL) tensor (B,).
-                If inverse, log-duration tensor (B, 1, T_text).
+            Tensor: If `inverse` is False, returns a negative log-likelihood (NLL)
+            tensor with shape (B,). If `inverse` is True, returns a log-duration
+            tensor with shape (B, 1, T_text).
 
+        Examples:
+            >>> model = StochasticDurationPredictor()
+            >>> x = torch.randn(5, 192, 10)  # Example input tensor
+            >>> x_mask = torch.ones(5, 1, 10)  # Example mask tensor
+            >>> w = torch.randn(5, 1, 10)  # Example duration tensor
+            >>> output = model.forward(x, x_mask, w)  # Forward pass
         """
         x = x.detach()  # stop gradient
         x = self.pre(x)

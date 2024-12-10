@@ -13,7 +13,42 @@ import torch
 
 
 class ResidualStack(torch.nn.Module):
-    """Residual stack module introduced in MelGAN."""
+    """
+        Residual stack module in MelGAN.
+
+    This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
+
+    Attributes:
+        stack (torch.nn.Sequential): A sequential container for the residual stack.
+        skip_layer (torch.nn.Conv1d): A convolutional layer for skip connections.
+
+    Args:
+        kernel_size (int): Kernel size of dilation convolution layer.
+        channels (int): Number of channels of convolution layers.
+        dilation (int): Dilation factor.
+        bias (bool): Whether to add bias parameter in convolution layers.
+        nonlinear_activation (str): Activation function module name.
+        nonlinear_activation_params (Dict[str, Any]): Hyperparameters for
+            activation function.
+        pad (str): Padding function module name before dilated convolution layer.
+        pad_params (Dict[str, Any]): Hyperparameters for padding function.
+
+    Returns:
+        None
+
+    Examples:
+        >>> residual_stack = ResidualStack(kernel_size=3, channels=32)
+        >>> input_tensor = torch.randn(1, 32, 100)  # (B, channels, T)
+        >>> output_tensor = residual_stack(input_tensor)
+        >>> print(output_tensor.shape)  # Should be (1, 32, 100)
+
+    Raises:
+        AssertionError: If the kernel size is an even number.
+
+    Note:
+        The residual stack combines convolutional layers with skip connections to
+        improve the learning capability of the model.
+    """
 
     def __init__(
         self,
@@ -58,13 +93,31 @@ class ResidualStack(torch.nn.Module):
         self.skip_layer = torch.nn.Conv1d(channels, channels, 1, bias=bias)
 
     def forward(self, c: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+                Residual stack module introduced in MelGAN.
+
+        This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
+
+        Attributes:
+            stack (torch.nn.Sequential): Sequential container for the residual stack.
+            skip_layer (torch.nn.Conv1d): Convolution layer for the skip connection.
 
         Args:
-            c (Tensor): Input tensor (B, channels, T).
+            kernel_size (int): Kernel size of dilation convolution layer.
+            channels (int): Number of channels of convolution layers.
+            dilation (int): Dilation factor.
+            bias (bool): Whether to add bias parameter in convolution layers.
+            nonlinear_activation (str): Activation function module name.
+            nonlinear_activation_params (Dict[str, Any]): Hyperparameters for
+                activation function.
+            pad (str): Padding function module name before dilated convolution layer.
+            pad_params (Dict[str, Any]): Hyperparameters for padding function.
 
-        Returns:
-            Tensor: Output tensor (B, chennels, T).
-
+        Examples:
+            >>> residual_stack = ResidualStack(kernel_size=3, channels=32)
+            >>> input_tensor = torch.randn(1, 32, 100)  # Batch size of 1, 32 channels, 100 time steps
+            >>> output_tensor = residual_stack(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([1, 32, 100])
         """
         return self.stack(c) + self.skip_layer(c)

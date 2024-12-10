@@ -104,6 +104,51 @@ tts_choices = ClassChoices(
 
 
 class TTSTask(AbsTask):
+    """
+        TTSTask is a class that implements a text-to-speech (TTS) task for training
+    and evaluating TTS models.
+
+    This class provides methods to handle TTS-specific functionalities such as
+    building models, processing data, and defining the required and optional
+    data names for training and inference.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers to be used in the task.
+        class_choices_list (list): A list of choices for various components
+            like feature extraction, normalization, and TTS models.
+        trainer (Trainer): The trainer class used for training the TTS model.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to add task
+            related arguments.
+
+    Returns:
+        Callable: A callable function that collates the input data.
+
+    Raises:
+        RuntimeError: If the token list is not of the expected type.
+
+    Examples:
+        # To add task-specific arguments
+        TTSTask.add_task_arguments(parser)
+
+        # To build a model
+        model = TTSTask.build_model(args)
+
+        # To get required data names for training
+        required_names = TTSTask.required_data_names(train=True)
+
+        # To build vocoder from a file
+        vocoder = TTSTask.build_vocoder_from_file(vocoder_config_file='path/to/config.yaml')
+
+    Note:
+        This class inherits from AbsTask and requires the implementation of
+        abstract methods defined in the parent class.
+
+    Todo:
+        - Expand the functionality to support more advanced TTS models.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -131,6 +176,41 @@ class TTSTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+                Adds task-related arguments to the argument parser for the TTS task.
+
+        This method configures the argument parser with the necessary arguments
+        for the text-to-speech task. It defines both task-specific and preprocessing
+        arguments, which are essential for training and evaluating TTS models.
+
+        Args:
+            cls: The class itself, typically used in class methods.
+            parser (argparse.ArgumentParser): The argument parser to which the
+                arguments will be added.
+
+        Examples:
+            parser = argparse.ArgumentParser()
+            TTSTask.add_task_arguments(parser)
+
+            # This will add the following arguments to the parser:
+            # --token_list
+            # --odim
+            # --model_conf
+            # --use_preprocessor
+            # --token_type
+            # --bpemodel
+            # --non_linguistic_symbols
+            # --cleaner
+            # --g2p
+            # and others defined in class_choices_list.
+
+        Note:
+            The arguments for feature extraction, normalization, and TTS models
+            are added from the `class_choices_list`.
+
+        Raises:
+            None: This method does not raise any exceptions.
+        """
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -209,6 +289,35 @@ class TTSTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+        Build a collate function for batching data.
+
+        This method constructs a collate function that is used to process
+        batches of data. The collate function will handle padding and
+        formatting of input data into a form suitable for training or
+        evaluation.
+
+        Args:
+            args (argparse.Namespace): The arguments parsed from the command line.
+            train (bool): Indicates whether the function is being used for
+                training or evaluation.
+
+        Returns:
+            Callable: A collate function that takes a collection of data
+            samples and returns a tuple containing a list of keys and a
+            dictionary of tensors.
+
+        Examples:
+            >>> collate_fn = TTSTask.build_collate_fn(args, train=True)
+            >>> batch = collate_fn([("sample1", {"feature": np.array([1, 2])}),
+            ...                      ("sample2", {"feature": np.array([3, 4])})])
+            >>> print(batch)
+            (['sample1', 'sample2'], {'feature': tensor([[1, 2], [3, 4]])})
+
+        Note:
+            This function uses CommonCollateFn to handle padding and
+            data organization.
+        """
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -220,6 +329,39 @@ class TTSTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds a preprocessing function based on the given arguments.
+
+        This function returns a callable that applies preprocessing to input text
+        and its corresponding feature dictionary if preprocessing is enabled. If
+        preprocessing is not required, it returns None.
+
+        Args:
+            cls: The class type for method resolution.
+            args (argparse.Namespace): The parsed arguments containing
+                preprocessing options.
+            train (bool): Indicates whether the function is for training or
+                inference.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A function that takes a string and a dictionary of features,
+                applying the specified preprocessing steps, or None if
+                preprocessing is disabled.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(use_preprocessor=True, token_type='phn', ...)
+            >>> preprocess_fn = TTSTask.build_preprocess_fn(args, train=True)
+            >>> features = preprocess_fn("sample text", {"feature_key": np.array([1, 2])})
+
+        Note:
+            The preprocessing function may include tokenization, text cleaning,
+            and conversion to phonemes based on the specified arguments.
+
+        Todo:
+            Consider adding more preprocessing options in future iterations.
+        """
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -238,6 +380,40 @@ class TTSTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+                Text-to-speech task.
+
+        This class provides functionalities to manage the text-to-speech (TTS) task,
+        including argument parsing, data handling, and model building.
+
+        Attributes:
+            num_optimizers (int): The number of optimizers used for training.
+            class_choices_list (List[ClassChoices]): A list of available class choices
+                for features extraction, normalization, TTS, pitch extraction, and
+                energy extraction.
+
+        Args:
+            train (bool): Indicates whether the task is in training mode. Defaults to
+                True.
+            inference (bool): Indicates whether the task is in inference mode.
+                Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of required data names based on the mode.
+
+        Examples:
+            >>> TTSTask.required_data_names(train=True, inference=False)
+            ('text', 'speech')
+
+            >>> TTSTask.required_data_names(train=True, inference=True)
+            ('text',)
+
+        Note:
+            In inference mode, only 'text' is required.
+
+        Todo:
+            - Expand the functionality to include more data types as needed.
+        """
         if not inference:
             retval = ("text", "speech")
         else:
@@ -249,6 +425,31 @@ class TTSTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns a tuple of optional data names used in the text-to-speech task.
+
+        The optional data names vary based on whether the task is in training or
+        inference mode. During training, the following optional data names can be
+        utilized: 'spembs', 'durations', 'pitch', 'energy', 'sids', 'lids'. In
+        inference mode, 'spembs', 'speech', 'durations', 'pitch', 'energy',
+        'sids', and 'lids' can be used.
+
+        Args:
+            train (bool): Indicates if the task is in training mode. Defaults to
+                True.
+            inference (bool): Indicates if the task is in inference mode.
+                Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of optional data.
+
+        Examples:
+            >>> TTSTask.optional_data_names(train=True, inference=False)
+            ('spembs', 'durations', 'pitch', 'energy', 'sids', 'lids')
+
+            >>> TTSTask.optional_data_names(train=True, inference=True)
+            ('spembs', 'speech', 'durations', 'pitch', 'energy', 'sids', 'lids')
+        """
         if not inference:
             retval = (
                 "spembs",
@@ -274,6 +475,70 @@ class TTSTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetTTSModel:
+        """
+                Builds and returns an instance of the ESPnetTTSModel based on the provided
+        arguments.
+
+        This method configures various components of the text-to-speech (TTS) model,
+        including feature extraction, normalization, and the TTS architecture itself.
+        It also handles the token list for input processing.
+
+        Args:
+            args (argparse.Namespace): A namespace object containing the necessary
+                configurations for building the model, including:
+                - token_list (str or list): Path to a file or a list of tokens mapping
+                  int-id to token.
+                - odim (int, optional): The number of dimensions of the output feature.
+                - feats_extract (str): Type of feature extractor to use.
+                - feats_extract_conf (dict): Configuration for the feature extractor.
+                - normalize (str, optional): Type of normalization to apply.
+                - normalize_conf (dict, optional): Configuration for normalization.
+                - tts (str): Type of TTS model to use.
+                - tts_conf (dict): Configuration for the TTS model.
+                - pitch_extract (str, optional): Type of pitch extractor to use.
+                - pitch_extract_conf (dict, optional): Configuration for pitch extractor.
+                - energy_extract (str, optional): Type of energy extractor to use.
+                - energy_extract_conf (dict, optional): Configuration for energy extractor.
+                - pitch_normalize (str, optional): Type of pitch normalization to apply.
+                - pitch_normalize_conf (dict, optional): Configuration for pitch
+                  normalization.
+                - energy_normalize (str, optional): Type of energy normalization to apply.
+                - energy_normalize_conf (dict, optional): Configuration for energy
+                  normalization.
+                - model_conf (dict, optional): Additional keyword arguments for the
+                  model class.
+
+        Returns:
+            ESPnetTTSModel: An instance of the configured ESPnetTTSModel.
+
+        Raises:
+            RuntimeError: If token_list is not a string or a list.
+
+        Examples:
+            # Building a model with a specified token list file
+            args = argparse.Namespace(
+                token_list='path/to/token_list.txt',
+                odim=None,
+                feats_extract='fbank',
+                feats_extract_conf={'param1': value1},
+                normalize='global_mvn',
+                tts='tacotron2',
+                tts_conf={'param2': value2},
+            )
+            model = TTSTask.build_model(args)
+
+            # Building a model with a predefined list of tokens
+            args = argparse.Namespace(
+                token_list=['a', 'b', 'c'],
+                odim=80,
+                feats_extract='spectrogram',
+                feats_extract_conf={'param1': value1},
+                normalize=None,
+                tts='fastspeech2',
+                tts_conf={'param2': value2},
+            )
+            model = TTSTask.build_model(args)
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line[0] + line[1:].rstrip() for line in f]
@@ -374,6 +639,48 @@ class TTSTask(AbsTask):
         model: Optional[ESPnetTTSModel] = None,
         device: str = "cpu",
     ):
+        """
+                Builds a vocoder from the specified configuration file or file path.
+
+        This method constructs a vocoder based on the provided vocoder configuration
+        file and vocoder model file. If no vocoder model file is provided, it defaults
+        to using the Griffin-Lim vocoder. If the vocoder model file has a ".pkl"
+        extension, it is assumed to be a trained Parallel WaveGAN model.
+
+        Attributes:
+            vocoder_config_file (Union[Path, str]): Path to the vocoder configuration file.
+            vocoder_file (Union[Path, str]): Path to the vocoder model file.
+            model (Optional[ESPnetTTSModel]): The TTS model used for extracting features.
+            device (str): The device to load the model onto (default: "cpu").
+
+        Args:
+            vocoder_config_file (Union[Path, str]): The path to the vocoder config file.
+            vocoder_file (Union[Path, str]): The path to the vocoder model file.
+            model (Optional[ESPnetTTSModel]): The TTS model to extract features from.
+            device (str): The device to load the model onto (default: "cpu").
+
+        Returns:
+            Optional[Union[Spectrogram2Waveform, ParallelWaveGANPretrainedVocoder]]:
+            The constructed vocoder or None if the vocoder could not be built.
+
+        Raises:
+            ValueError: If the vocoder_file format is not supported.
+
+        Examples:
+            # Build vocoder using a configuration file and model file
+            vocoder = TTSTask.build_vocoder_from_file(
+                vocoder_config_file="path/to/vocoder_config.yaml",
+                vocoder_file="path/to/vocoder_model.pkl",
+                model=my_tts_model,
+                device="cuda"
+            )
+
+            # Build vocoder using only a configuration file, defaults to Griffin-Lim
+            vocoder = TTSTask.build_vocoder_from_file(
+                vocoder_config_file="path/to/vocoder_config.yaml",
+                model=my_tts_model
+            )
+        """
         # Build vocoder
         if vocoder_file is None:
             # If vocoder file is not provided, use griffin-lim as a vocoder

@@ -38,7 +38,79 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class FunCodec(AbsGANCodec):
-    """ "FunCodec model."""
+    """
+    FunCodec model for audio processing using GAN architecture.
+
+    This model implements a GAN-based codec that performs audio
+    encoding and decoding. It consists of a generator for generating
+    audio waveforms and a discriminator for evaluating the generated
+    audio quality. The FunCodec model is capable of applying various
+    loss functions to improve the quality of the generated audio.
+
+    Attributes:
+        generator (FunCodecGenerator): The generator module.
+        discriminator (FunCodecDiscriminator): The discriminator module.
+        generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for
+            the generator.
+        generator_reconstruct_loss (torch.nn.L1Loss): Reconstruction loss for
+            the generator.
+        discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss
+            for the discriminator.
+        use_feat_match_loss (bool): Flag to indicate whether to use feature
+            matching loss.
+        feat_match_loss (FeatureMatchLoss): Feature matching loss module.
+        use_mel_loss (bool): Flag to indicate whether to use mel loss.
+        mel_loss (MultiScaleMelSpectrogramLoss): Mel loss module.
+        use_dual_decoder (bool): Flag to indicate whether to use dual decoder.
+        lambda_quantization (float): Weight for quantization loss.
+        lambda_reconstruct (float): Weight for reconstruction loss.
+        lambda_commit (float): Weight for commitment loss.
+        lambda_adv (float): Weight for adversarial loss.
+        lambda_feat_match (float): Weight for feature matching loss.
+        lambda_mel (float): Weight for mel loss.
+        cache_generator_outputs (bool): Flag to cache generator outputs.
+        fs (int): Sampling rate for saving audio files.
+        num_streams (int): Number of streams for quantization.
+        frame_shift (int): Frame shift calculated from encoder ratios.
+        code_size_per_stream (List[int]): Code size for each stream.
+
+    Args:
+        sampling_rate (int): Sampling rate for the audio (default: 24000).
+        generator_params (Dict[str, Any]): Parameters for the generator.
+        discriminator_params (Dict[str, Any]): Parameters for the discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameters for generator
+            adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameters for
+            discriminator adversarial loss.
+        use_feat_match_loss (bool): Whether to use feature matching loss
+            (default: True).
+        feat_match_loss_params (Dict[str, Any]): Parameters for feature
+            matching loss.
+        use_mel_loss (bool): Whether to use mel loss (default: True).
+        mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+        use_dual_decoder (bool): Whether to use dual decoder (default: False).
+        lambda_quantization (float): Weight for quantization loss (default: 1.0).
+        lambda_reconstruct (float): Weight for reconstruction loss (default: 1.0).
+        lambda_commit (float): Weight for commitment loss (default: 1.0).
+        lambda_adv (float): Weight for adversarial loss (default: 1.0).
+        lambda_feat_match (float): Weight for feature matching loss (default: 2.0).
+        lambda_mel (float): Weight for mel loss (default: 45.0).
+        cache_generator_outputs (bool): Flag to cache generator outputs
+            (default: False).
+
+    Examples:
+        >>> codec = FunCodec()
+        >>> audio_input = torch.randn(1, 24000)  # Example input tensor
+        >>> output = codec.forward(audio_input)
+        >>> print(output['loss'])  # Access the computed loss
+
+    Note:
+        Ensure that the input audio tensor has the shape (B, T_wav) where
+        B is the batch size and T_wav is the length of the audio waveform.
+
+    Raises:
+        AssertionError: If dual decoder is enabled without mel loss.
+    """
 
     @typechecked
     def __init__(
@@ -221,6 +293,29 @@ class FunCodec(AbsGANCodec):
         ] * self.num_streams
 
     def meta_info(self) -> Dict[str, Any]:
+        """
+        Retrieve metadata information of the FunCodec model.
+
+        This method returns essential information about the current configuration
+        of the FunCodec model, including the sampling rate, number of streams,
+        frame shift, and code size per stream. This information can be useful
+        for understanding the model's parameters and for debugging purposes.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the following keys:
+                - 'fs' (int): The sampling rate of the audio.
+                - 'num_streams' (int): The number of streams in the codec.
+                - 'frame_shift' (int): The frame shift size used in the model.
+                - 'code_size_per_stream' (List[int]): A list indicating the
+                  code size for each stream.
+
+        Examples:
+            >>> model = FunCodec()
+            >>> info = model.meta_info()
+            >>> print(info)
+            {'fs': 24000, 'num_streams': 8, 'frame_shift': 128,
+             'code_size_per_stream': [1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024]}
+        """
         return {
             "fs": self.fs,
             "num_streams": self.num_streams,
@@ -234,7 +329,8 @@ class FunCodec(AbsGANCodec):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
 
         Args:
             audio (Tensor): Audio waveform tensor (B, T_wav).
@@ -247,6 +343,17 @@ class FunCodec(AbsGANCodec):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> model = FunCodec()
+            >>> audio_input = torch.randn(8, 220500)  # Example input
+            >>> output = model.forward(audio_input)
+            >>> print(output.keys())
+            dict_keys(['loss', 'stats', 'weight', 'optim_idx'])
+
+        Note:
+            This method determines whether to use the generator or the
+            discriminator for the forward pass based on the
+            `forward_generator` argument.
         """
         if forward_generator:
             return self._forward_generator(
@@ -436,16 +543,56 @@ class FunCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """
+            FunCodec model for audio generation and encoding.
+
+        This model implements a generative audio codec based on GAN architecture.
+        It is designed to encode audio signals into a compact representation and
+        decode them back to waveform format.
+
+        Attributes:
+            generator (FunCodecGenerator): The generator module of the model.
+            discriminator (FunCodecDiscriminator): The discriminator module of the model.
+            generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for the generator.
+            generator_reconstruct_loss (torch.nn.L1Loss): Reconstruction loss for the generator.
+            discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss for the discriminator.
+            use_feat_match_loss (bool): Flag to use feature matching loss.
+            feat_match_loss (FeatureMatchLoss): Feature matching loss module.
+            use_mel_loss (bool): Flag to use mel loss.
+            mel_loss (MultiScaleMelSpectrogramLoss): Mel spectrogram loss module.
+            use_dual_decoder (bool): Flag to indicate if dual decoder is used.
+            cache_generator_outputs (bool): Flag to cache generator outputs.
+            fs (int): Sampling rate of the audio.
+            num_streams (int): Number of streams in the quantizer.
+            frame_shift (int): Frame shift size calculated from encoder ratios.
+            code_size_per_stream (List[int]): Code size for each stream.
 
         Args:
-            x (Tensor): Input audio (T_wav,).
+            sampling_rate (int): The sampling rate of the audio (default: 24000).
+            generator_params (Dict[str, Any]): Parameters for the generator module.
+            discriminator_params (Dict[str, Any]): Parameters for the discriminator module.
+            generator_adv_loss_params (Dict[str, Any]): Parameters for generator adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]): Parameters for discriminator adversarial loss.
+            use_feat_match_loss (bool): Flag to use feature matching loss (default: True).
+            feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+            use_mel_loss (bool): Flag to use mel loss (default: True).
+            mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+            use_dual_decoder (bool): Flag to indicate if dual decoder is used (default: False).
+            lambda_quantization (float): Weight for quantization loss (default: 1.0).
+            lambda_reconstruct (float): Weight for reconstruction loss (default: 1.0).
+            lambda_commit (float): Weight for commitment loss (default: 1.0).
+            lambda_adv (float): Weight for adversarial loss (default: 1.0).
+            lambda_feat_match (float): Weight for feature matching loss (default: 2.0).
+            lambda_mel (float): Weight for mel loss (default: 45.0).
+            cache_generator_outputs (bool): Flag to cache generator outputs (default: False).
 
-        Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec (T_code, N_stream).
+        Examples:
+            # Creating a FunCodec model instance
+            codec = FunCodec(sampling_rate=22050)
 
+            # Forward pass with audio input
+            audio_input = torch.randn(1, 22050)  # Simulated audio
+            output = codec(audio_input)
         """
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
@@ -457,7 +604,8 @@ class FunCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run encoding.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -465,6 +613,15 @@ class FunCodec(AbsGANCodec):
         Returns:
             Tensor: Generated codes (T_code, N_stream).
 
+        Examples:
+            >>> model = FunCodec()
+            >>> audio_input = torch.randn(1, 24000)  # Example audio tensor
+            >>> codes = model.encode(audio_input)
+            >>> print(codes.shape)  # Output shape will depend on model config
+
+        Note:
+            This method utilizes the generator's encoding capabilities to transform
+            audio waveforms into a compressed representation.
         """
         return self.generator.encode(x)
 
@@ -473,7 +630,11 @@ class FunCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run decoding.
+
+        This method takes the encoded input codes and generates a waveform
+        tensor as output.
 
         Args:
             x (Tensor): Input codes (T_code, N_stream).
@@ -481,12 +642,109 @@ class FunCodec(AbsGANCodec):
         Returns:
             Tensor: Generated waveform (T_wav,).
 
+        Examples:
+            >>> model = FunCodec()
+            >>> codes = torch.randn(100, 8)  # Example input codes
+            >>> waveform = model.decode(codes)
+            >>> print(waveform.shape)
+            torch.Size([B, T_wav])  # The shape will depend on the model's
+            configuration and input codes.
         """
         return self.generator.decode(x)
 
 
 class FunCodecGenerator(nn.Module):
-    """FunCodec generator module."""
+    """
+    FunCodec generator module.
+
+    This module defines the generator part of the FunCodec architecture,
+    which is responsible for encoding and decoding audio signals. It utilizes
+    various neural network components, including convolutional layers,
+    quantization mechanisms, and domain transformation techniques to
+    achieve efficient audio synthesis.
+
+    Attributes:
+        codec_domain (List): List indicating the codec domains for encoding
+            and decoding (e.g., "time", "stft").
+        domain_conf (Optional[Dict]): Configuration parameters for domain
+            transformations.
+        encoder (SEANetEncoder2d): The encoder network used to process audio.
+        quantizer (ResidualVectorQuantizer): The quantization module to map
+            encoder outputs to discrete codes.
+        decoder (SEANetDecoder2d): The decoder network used to reconstruct
+            audio from quantized codes.
+        sample_rate (int): The sampling rate of the audio signals.
+        frame_rate (int): The frame rate for the processed audio.
+        audio_normalize (bool): Flag indicating whether to normalize audio
+            inputs.
+
+    Args:
+        sample_rate (int): Sampling rate of the audio. Default is 24000.
+        hidden_dim (int): Dimensionality of the hidden layers. Default is 128.
+        codebook_dim (int): Dimensionality of the codebook for quantization.
+            Default is 8.
+        encdec_channels (int): Number of input/output channels for the encoder
+            and decoder. Default is 1.
+        encdec_n_filters (int): Number of filters in the encoder/decoder
+            layers. Default is 32.
+        encdec_n_residual_layers (int): Number of residual layers in the
+            encoder/decoder. Default is 1.
+        encdec_ratios (List[Tuple[int, int]]): Ratios for downsampling/upsampling
+            in the encoder/decoder. Default is [(4, 1), (4, 1), (4, 2), (4, 1)].
+        encdec_activation (str): Activation function to use. Default is "ELU".
+        encdec_activation_params (Dict[str, Any]): Parameters for the activation
+            function. Default is {"alpha": 1.0}.
+        encdec_norm (str): Normalization type to use in the layers. Default is
+            "weight_norm".
+        encdec_norm_params (Dict[str, Any]): Parameters for normalization layers.
+        encdec_kernel_size (int): Kernel size for the convolutional layers.
+            Default is 7.
+        encdec_residual_kernel_size (int): Kernel size for the residual layers.
+            Default is 7.
+        encdec_last_kernel_size (int): Kernel size for the last layer. Default
+            is 7.
+        encdec_dilation_base (int): Dilation base for the convolutional layers.
+            Default is 2.
+        encdec_causal (bool): Flag indicating whether to use causal convolutions.
+            Default is False.
+        encdec_pad_mode (str): Padding mode for the convolutional layers. Default
+            is "reflect".
+        encdec_true_skip (bool): Flag indicating whether to use true skip
+            connections. Default is False.
+        encdec_compress (int): Compression factor for the encoder. Default is 2.
+        encdec_lstm (int): Number of LSTM layers in the encoder/decoder. Default
+            is 2.
+        decoder_trim_right_ratio (float): Ratio to trim the right side of the
+            decoder output. Default is 1.0.
+        decoder_final_activation (Optional[str]): Final activation function for
+            the decoder. Default is None.
+        decoder_final_activation_params (Optional[dict]): Parameters for the
+            final activation function. Default is None.
+        quantizer_n_q (int): Number of quantization channels. Default is 8.
+        quantizer_bins (int): Number of bins for quantization. Default is 1024.
+        quantizer_decay (float): Decay rate for the quantizer. Default is 0.99.
+        quantizer_kmeans_init (bool): Flag indicating whether to initialize
+            quantizer with K-means. Default is True.
+        quantizer_kmeans_iters (int): Number of iterations for K-means
+            initialization. Default is 50.
+        quantizer_threshold_ema_dead_code (int): Threshold for EMA dead code.
+            Default is 2.
+        quantizer_target_bandwidth (List[float]): Target bandwidths for
+            quantization. Default is [7.5, 15].
+        quantizer_dropout (bool): Flag indicating whether to use dropout in
+            quantization. Default is True.
+        audio_normalize (bool): Flag indicating whether to normalize audio
+            inputs. Default is False.
+
+    Examples:
+        >>> generator = FunCodecGenerator(sample_rate=24000)
+        >>> input_audio = torch.randn(1, 1, 24000)  # Batch size 1, 1 channel
+        >>> resynthesized_audio, commit_loss, quantization_loss, resynthesized_real = generator(input_audio)
+
+    Note:
+        Ensure that the input audio is appropriately shaped as (B, 1, T) where
+        B is the batch size and T is the length of the audio sequence.
+    """
 
     @typechecked
     def __init__(
@@ -633,6 +891,35 @@ class FunCodecGenerator(nn.Module):
         self.audio_normalize = audio_normalize
 
     def time_to_freq_transfer(self, x: torch.Tensor):
+        """
+            Convert time-domain audio signals to frequency-domain representations.
+
+        This method transforms the input audio tensor `x` from the time domain
+        to the frequency domain based on the codec domain configuration. It
+        handles different types of frequency representations such as STFT,
+        magnitude, and phase. It also includes optional audio normalization.
+
+        Args:
+            x (torch.Tensor): Input audio tensor of shape (B, C, T), where B
+                              is the batch size, C is the number of channels,
+                              and T is the number of time steps.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - x (torch.Tensor): The transformed frequency-domain tensor.
+                - scale (Optional[torch.Tensor]): Scale tensor used for
+                  normalization, if applicable.
+
+        Note:
+            The method modifies the input tensor `x` based on the codec domain
+            specified during initialization. The input tensor can be normalized
+            to maintain a consistent volume level across audio samples.
+
+        Examples:
+            >>> audio_tensor = torch.randn(2, 1, 16000)  # Batch of 2 audio samples
+            >>> transformed_x, scale = time_to_freq_transfer(audio_tensor)
+            >>> print(transformed_x.shape)  # Output shape depends on codec domain
+        """
         if self.audio_normalize:
             mono = x.mean(dim=1, keepdim=True)
             volume = mono.pow(2).mean(dim=2, keepdim=True).sqrt()
@@ -686,6 +973,45 @@ class FunCodecGenerator(nn.Module):
         return x, scale
 
     def freq_to_time_transfer(self, x: torch.Tensor, scale: torch.Tensor = None):
+        """
+        Convert frequency domain representation back to time domain.
+
+        This method processes the input tensor `x`, which is assumed to be in
+        the frequency domain, and converts it back to the time domain. The
+        conversion is based on the codec domain defined during the initialization
+        of the FunCodecGenerator. Additionally, a scale can be applied to the
+        output, which is useful for normalization or restoration of audio signals.
+
+        Args:
+            x (torch.Tensor): Input tensor in the frequency domain.
+                The shape depends on the codec domain:
+                - For "stft": (B, C, T) where C is 2 (real and imaginary).
+                - For "mag_phase": (B, C, T) where C is 3 (magnitude and phase).
+                - For "mag_angle": (B, C, T) where C is 2 (magnitude and angle).
+                - For "mag_oracle_phase": (B, C, T) where C is 2 (magnitude and angle).
+            scale (torch.Tensor, optional): A tensor to scale the output.
+                If provided, it should match the shape for proper broadcasting.
+
+        Returns:
+            torch.Tensor: The converted time domain tensor.
+                The shape will be (B, 1, T_wav), where T_wav is the length
+                of the output waveform.
+
+        Note:
+            - The processing behavior may vary based on the codec domain settings.
+            - Ensure that the input tensor `x` has the correct shape for the
+              specified codec domain to avoid runtime errors.
+
+        Examples:
+            >>> generator = FunCodecGenerator()
+            >>> freq_tensor = torch.randn(1, 2, 512)  # Example for STFT
+            >>> time_tensor = generator.freq_to_time_transfer(freq_tensor)
+            >>> print(time_tensor.shape)
+            torch.Size([1, 1, T_wav])  # T_wav will depend on the inverse process
+
+            >>> scale_tensor = torch.tensor([0.5])
+            >>> time_tensor_scaled = generator.freq_to_time_transfer(freq_tensor, scale_tensor)
+        """
         if self.codec_domain[1] == "stft":
             if len(x.shape) == 3:
                 out_list = torch.split(x, x.shape[1] // 2, dim=1)
@@ -734,16 +1060,34 @@ class FunCodecGenerator(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """FunCodec forward propagation.
+        """
+        Perform generator forward.
+
+        This method executes the forward pass of the FunCodec model. Depending on the
+        value of the `forward_generator` flag, it either computes the output from the
+        generator or the discriminator.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
-            use_dual_decoder (bool): Whether to use dual decoder for encoder out
+            audio (Tensor): Audio waveform tensor of shape (B, T_wav), where B is the
+                batch size and T_wav is the number of audio samples.
+            forward_generator (bool): Flag indicating whether to forward through the
+                generator (True) or the discriminator (False).
+
         Returns:
-            torch.Tensor: resynthesized audio.
-            torch.Tensor: commitment loss.
-            torch.Tensor: quantization loss
-            torch.Tensor: resynthesized audio from encoder.
+            Dict[str, Any]:
+                - loss (Tensor): A scalar tensor representing the computed loss.
+                - stats (Dict[str, float]): A dictionary containing various statistics
+                  to be monitored during training, including losses.
+                - weight (Tensor): A tensor summarizing the weight of the loss
+                  based on the batch size.
+                - optim_idx (int): The optimizer index indicating which optimizer
+                  to use (0 for generator and 1 for discriminator).
+
+        Examples:
+            >>> model = FunCodec()
+            >>> audio_input = torch.randn(2, 22050)  # Example input tensor
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'].item())
         """
         x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
@@ -773,12 +1117,27 @@ class FunCodecGenerator(nn.Module):
         x: torch.Tensor,
         target_bw: Optional[float] = None,
     ):
-        """FunCodec codec encoding.
+        """
+        Run encoding.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
+            x (Tensor): Input audio (T_wav,).
+
         Returns:
-            torch.Tensor: neural codecs in shape ().
+            Tensor: Generated codes (T_code, N_stream).
+
+        Examples:
+            >>> codec = FunCodec()
+            >>> input_audio = torch.randn(1, 24000)  # Example audio tensor
+            >>> codes = codec.encode(input_audio)
+            >>> print(codes.shape)  # Should output the shape of the generated codes
+
+        Note:
+            The input tensor `x` should have a shape of (B, T_wav),
+            where B is the batch size and T_wav is the number of audio samples.
+
+        Raises:
+            ValueError: If the input tensor `x` is not of the expected shape.
         """
 
         x, scale = self.time_to_freq_transfer(x)
@@ -791,12 +1150,27 @@ class FunCodecGenerator(nn.Module):
         return codes
 
     def decode(self, codes: torch.Tensor):
-        """FunCodec codec decoding.
+        """
+        Run decoding.
+
+        This method takes encoded input codes and generates the corresponding
+        waveform output. The decoding process transforms the compressed codes
+        back into audio waveform.
 
         Args:
-            codecs (torch.Tensor): neural codecs in shape ().
+            x (Tensor): Input codes (T_code, N_stream), where T_code is the
+                length of the code sequence and N_stream is the number of
+                streams.
+
         Returns:
-            torch.Tensor: resynthesized audio.
+            Tensor: Generated waveform (T_wav,), which is the reconstructed audio
+            from the input codes.
+
+        Examples:
+            >>> codec = FunCodec()
+            >>> input_codes = torch.randn(100, 8)  # Example input codes
+            >>> generated_waveform = codec.decode(input_codes)
+            >>> print(generated_waveform.shape)  # Should print a shape like (T_wav,)
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
@@ -805,7 +1179,41 @@ class FunCodecGenerator(nn.Module):
 
 
 class FunCodecDiscriminator(nn.Module):
-    """FunCodec discriminator module."""
+    """
+    FunCodec discriminator module.
+
+    This class implements a multi-scale and multi-period discriminator for the
+    FunCodec model. It utilizes various discriminators including a multi-scale
+    discriminator, a multi-period discriminator, and a complex STFT discriminator.
+
+    Attributes:
+        msd (HiFiGANMultiScaleDiscriminator): Multi-scale discriminator.
+        mpd (HiFiGANMultiPeriodDiscriminator): Multi-period discriminator.
+        complex_stft_d (ComplexSTFTDiscriminator): Complex STFT discriminator.
+
+    Args:
+        scales (int): Number of multi-scales.
+        scale_downsample_pooling (str): Pooling module name for downsampling
+            of the inputs.
+        scale_downsample_pooling_params (Dict[str, Any]): Parameters for the
+            above pooling module.
+        scale_discriminator_params (Dict[str, Any]): Parameters for hifi-gan
+            scale discriminator module.
+        scale_follow_official_norm (bool): Whether to follow the norm setting
+            of the official implementation. The first discriminator uses
+            spectral norm and the other discriminators use weight norm.
+        periods (List[int]): List of periods for the multi-period discriminator.
+        period_discriminator_params (Dict[str, Any]): Parameters for the
+            multi-period discriminator.
+        complexstft_discriminator_params (Dict[str, Any]): Parameters for the
+            complex STFT discriminator module.
+
+    Examples:
+        >>> discriminator = FunCodecDiscriminator()
+        >>> input_tensor = torch.randn(1, 1, 256)  # Example input
+        >>> outputs = discriminator(input_tensor)
+        >>> print(len(outputs))  # Number of outputs from the discriminators
+    """
 
     def __init__(
         self,
@@ -892,16 +1300,37 @@ class FunCodecDiscriminator(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Perform forward propagation through the model.
+
+        This method executes the forward pass of the FunCodec model. Depending on the
+        `forward_generator` flag, it either computes the generator's output or the
+        discriminator's output. It returns a dictionary containing the loss, statistics,
+        and other relevant information.
 
         Args:
-            x (Tensor): Input noise signal (B, 1, T).
+            audio (torch.Tensor): Audio waveform tensor of shape (B, T_wav),
+                where B is the batch size and T_wav is the length of the audio.
+            forward_generator (bool): Flag to determine whether to forward through
+                the generator (True) or the discriminator (False). Defaults to True.
 
         Returns:
-            List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Multi scale and
-                multi period ones are concatenated.
+            Dict[str, Any]: A dictionary containing:
+                - loss (Tensor): Loss scalar tensor computed during the forward pass.
+                - stats (Dict[str, float]): Statistics for monitoring performance,
+                  including various loss components.
+                - weight (Tensor): Weight tensor used for summarizing losses.
+                - optim_idx (int): Index indicating which optimizer to use
+                  (0 for generator and 1 for discriminator).
 
+        Examples:
+            >>> model = FunCodec()
+            >>> audio_input = torch.randn(2, 16000)  # Batch of 2 audio samples
+            >>> output = model.forward(audio_input)
+            >>> print(output['loss'])  # Access the computed loss
+
+        Note:
+            Ensure that the input audio tensor is correctly shaped and normalized.
         """
         msd_outs = self.msd(x)
         mpd_outs = self.mpd(x)

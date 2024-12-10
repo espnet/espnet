@@ -26,7 +26,63 @@ else:
 
 
 class ESPnetGANTTSModel(AbsGANESPnetModel):
-    """ESPnet model for GAN-based text-to-speech task."""
+    """
+        ESPnet model for GAN-based text-to-speech task.
+
+    This class implements a GAN-based model for generating speech from text.
+    It uses various feature extraction and normalization layers to process
+    input data, and it relies on a generator and discriminator for training
+    and inference.
+
+    Attributes:
+        feats_extract (Optional[AbsFeatsExtract]): Feature extraction module.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            module for features.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            pitch.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for pitch features.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            energy.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for energy features.
+        tts (AbsGANTTS): Text-to-speech module that includes the generator
+            and discriminator.
+
+    Args:
+        feats_extract (Optional[AbsFeatsExtract]): Feature extraction module.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            module for features.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            pitch.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for pitch features.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            energy.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for energy features.
+        tts (AbsGANTTS): Text-to-speech module.
+
+    Raises:
+        AssertionError: If the generator or discriminator is not properly
+            registered in the TTS module.
+
+    Examples:
+        >>> model = ESPnetGANTTSModel(feats_extract=some_feats_extract,
+        ...                            normalize=some_normalize,
+        ...                            pitch_extract=some_pitch_extract,
+        ...                            pitch_normalize=some_pitch_normalize,
+        ...                            energy_extract=some_energy_extract,
+        ...                            energy_normalize=some_energy_normalize,
+        ...                            tts=some_tts_module)
+        >>> output = model.forward(text_tensor, text_lengths_tensor,
+        ...                         speech_tensor, speech_lengths_tensor)
+        >>> print(output)
+
+    Note:
+        Ensure that the `tts` parameter contains the required attributes
+        `generator` and `discriminator`.
+    """
 
     @typechecked
     def __init__(
@@ -82,32 +138,47 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Return generator or discriminator loss with dict format.
+        """
+        Return generator or discriminator loss with dict format.
+
+        This method processes the input text and corresponding features to
+        compute the generator or discriminator loss in a GAN-based text-to-speech
+        system. It can also extract and normalize features if required.
 
         Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, T_wav).
-            speech_lengths (Tensor): Speech length tensor (B,).
-            duration (Optional[Tensor]): Duration tensor.
-            duration_lengths (Optional[Tensor]): Duration length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor.
-            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            energy (Optional[Tensor]): Energy tensor.
-            energy_lengths (Optional[Tensor]): Energy length tensor (B,).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
-            sids (Optional[Tensor]): Speaker ID tensor (B, 1).
-            lids (Optional[Tensor]): Language ID tensor (B, 1).
-            forward_generator (bool): Whether to forward generator.
-            kwargs: "utt_id" is among the input.
+            text (Tensor): Text index tensor of shape (B, T_text).
+            text_lengths (Tensor): Text length tensor of shape (B,).
+            speech (Tensor): Speech waveform tensor of shape (B, T_wav).
+            speech_lengths (Tensor): Speech length tensor of shape (B,).
+            durations (Optional[Tensor]): Duration tensor of shape (B, T).
+            durations_lengths (Optional[Tensor]): Duration length tensor of shape (B,).
+            pitch (Optional[Tensor]): Pitch tensor of shape (B, T).
+            pitch_lengths (Optional[Tensor]): Pitch length tensor of shape (B,).
+            energy (Optional[Tensor]): Energy tensor of shape (B, T).
+            energy_lengths (Optional[Tensor]): Energy length tensor of shape (B,).
+            spembs (Optional[Tensor]): Speaker embedding tensor of shape (B, D).
+            sids (Optional[Tensor]): Speaker ID tensor of shape (B, 1).
+            lids (Optional[Tensor]): Language ID tensor of shape (B, 1).
+            forward_generator (bool): Flag to determine if the generator
+                should be used. Default is True.
+            kwargs: Additional arguments, where "utt_id" may be included.
 
         Returns:
-            Dict[str, Any]:
+            Dict[str, Any]: A dictionary containing:
                 - loss (Tensor): Loss scalar tensor.
                 - stats (Dict[str, float]): Statistics to be monitored.
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> model.forward(text_tensor, text_lengths_tensor, speech_tensor,
+            ...                speech_lengths_tensor)
+            {'loss': tensor(0.1234), 'stats': {'accuracy': 0.98},
+             'weight': tensor(1.0), 'optim_idx': 0}
+
+        Note:
+            Ensure that the input tensors have the correct shapes as specified
+            in the arguments section.
         """
         with autocast(False):
             # Extract features
@@ -186,26 +257,47 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Calculate features and return them as a dict.
+        """
+                Calculate features and return them as a dict.
+
+        This method extracts various features from the input speech waveform,
+        including pitch and energy, and organizes them into a dictionary format.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B, 1).
-            durations (Optional[Tensor): Duration tensor.
-            durations_lengths (Optional[Tensor): Duration length tensor (B,).
-            pitch (Optional[Tensor): Pitch tensor.
-            pitch_lengths (Optional[Tensor): Pitch length tensor (B,).
-            energy (Optional[Tensor): Energy tensor.
-            energy_lengths (Optional[Tensor): Energy length tensor (B,).
+            durations (Optional[Tensor]): Duration tensor.
+            durations_lengths (Optional[Tensor]): Duration length tensor (B,).
+            pitch (Optional[Tensor]): Pitch tensor.
+            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
+            energy (Optional[Tensor]): Energy tensor.
+            energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker index tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
 
         Returns:
-            Dict[str, Tensor]: Dict of features.
+            Dict[str, Tensor]: Dictionary containing the extracted features,
+            including:
+                - feats: Extracted features tensor.
+                - feats_lengths: Lengths of the extracted features.
+                - pitch: Extracted pitch tensor.
+                - pitch_lengths: Lengths of the extracted pitch.
+                - energy: Extracted energy tensor.
+                - energy_lengths: Lengths of the extracted energy.
 
+        Examples:
+            >>> model.collect_feats(
+            ...     text=text_tensor,
+            ...     text_lengths=text_lengths_tensor,
+            ...     speech=speech_tensor,
+            ...     speech_lengths=speech_lengths_tensor
+            ... )
+            {'feats': tensor(...), 'feats_lengths': tensor(...),
+             'pitch': tensor(...), 'pitch_lengths': tensor(...),
+             'energy': tensor(...), 'energy_lengths': tensor(...)}
         """
         feats = None
         if self.feats_extract is not None:

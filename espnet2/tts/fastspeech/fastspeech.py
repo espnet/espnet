@@ -32,16 +32,96 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class FastSpeech(AbsTTS):
-    """FastSpeech module for end-to-end text-to-speech.
+    """
+    FastSpeech module for end-to-end text-to-speech.
 
-    This is a module of FastSpeech, feed-forward Transformer with duration predictor
-    described in `FastSpeech: Fast, Robust and Controllable Text to Speech`_, which
-    does not require any auto-regressive processing during inference, resulting in
-    fast decoding compared with auto-regressive Transformer.
+    This is a module of FastSpeech, a feed-forward Transformer with a duration
+    predictor described in `FastSpeech: Fast, Robust and Controllable Text to
+    Speech`_, which does not require any auto-regressive processing during
+    inference, resulting in fast decoding compared with auto-regressive
+    Transformers.
 
     .. _`FastSpeech: Fast, Robust and Controllable Text to Speech`:
         https://arxiv.org/pdf/1905.09263.pdf
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End-of-sequence token ID.
+        reduction_factor (int): Reduction factor for output features.
+        encoder_type (str): Type of encoder used ("transformer" or "conformer").
+        decoder_type (str): Type of decoder used ("transformer" or "conformer").
+        use_scaled_pos_enc (bool): Flag to use scaled positional encoding.
+        use_gst (bool): Flag to indicate the use of global style token.
+        padding_idx (int): Index used for padding in input sequences.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        adim (int, optional): Attention dimension (default: 384).
+        aheads (int, optional): Number of attention heads (default: 4).
+        elayers (int, optional): Number of encoder layers (default: 6).
+        eunits (int, optional): Number of encoder hidden units (default: 1536).
+        dlayers (int, optional): Number of decoder layers (default: 6).
+        dunits (int, optional): Number of decoder hidden units (default: 1536).
+        postnet_layers (int, optional): Number of postnet layers (default: 5).
+        postnet_chans (int, optional): Number of postnet channels (default: 512).
+        postnet_filts (int, optional): Kernel size of postnet (default: 5).
+        postnet_dropout_rate (float, optional): Dropout rate in postnet (default: 0.5).
+        positionwise_layer_type (str, optional): Type of positionwise layer (default: "conv1d").
+        positionwise_conv_kernel_size (int, optional): Kernel size for positionwise convolution (default: 1).
+        use_scaled_pos_enc (bool, optional): Use trainable scaled positional encoding (default: True).
+        use_batch_norm (bool, optional): Use batch normalization in encoder prenet (default: True).
+        encoder_normalize_before (bool, optional): Apply layernorm before encoder block (default: True).
+        decoder_normalize_before (bool, optional): Apply layernorm before decoder block (default: True).
+        encoder_concat_after (bool, optional): Concatenate attention layer's input and output in encoder (default: False).
+        decoder_concat_after (bool, optional): Concatenate attention layer's input and output in decoder (default: False).
+        duration_predictor_layers (int, optional): Number of duration predictor layers (default: 2).
+        duration_predictor_chans (int, optional): Number of duration predictor channels (default: 384).
+        duration_predictor_kernel_size (int, optional): Kernel size of duration predictor (default: 3).
+        duration_predictor_dropout_rate (float, optional): Dropout rate in duration predictor (default: 0.1).
+        reduction_factor (int, optional): Reduction factor (default: 1).
+        encoder_type (str, optional): Encoder type ("transformer" or "conformer", default: "transformer").
+        decoder_type (str, optional): Decoder type ("transformer" or "conformer", default: "transformer").
+        transformer_enc_dropout_rate (float, optional): Dropout rate in encoder (default: 0.1).
+        transformer_enc_positional_dropout_rate (float, optional): Dropout rate after encoder positional encoding (default: 0.1).
+        transformer_enc_attn_dropout_rate (float, optional): Dropout rate in encoder self-attention (default: 0.1).
+        transformer_dec_dropout_rate (float, optional): Dropout rate in decoder (default: 0.1).
+        transformer_dec_positional_dropout_rate (float, optional): Dropout rate after decoder positional encoding (default: 0.1).
+        transformer_dec_attn_dropout_rate (float, optional): Dropout rate in decoder self-attention (default: 0.1).
+        conformer_rel_pos_type (str, optional): Relative pos encoding type in conformer (default: "legacy").
+        conformer_pos_enc_layer_type (str, optional): Pos encoding layer type in conformer (default: "rel_pos").
+        conformer_self_attn_layer_type (str, optional): Self-attention layer type in conformer (default: "rel_selfattn").
+        conformer_activation_type (str, optional): Activation function type in conformer (default: "swish").
+        use_macaron_style_in_conformer (bool, optional): Use macaron style FFN in conformer (default: True).
+        use_cnn_in_conformer (bool, optional): Use CNN in conformer (default: True).
+        conformer_enc_kernel_size (int, optional): Kernel size of encoder conformer (default: 7).
+        conformer_dec_kernel_size (int, optional): Kernel size of decoder conformer (default: 31).
+        zero_triu (bool, optional): Use zero triu in relative self-attention (default: False).
+        spks (Optional[int], optional): Number of speakers (default: None).
+        langs (Optional[int], optional): Number of languages (default: None).
+        spk_embed_dim (Optional[int], optional): Speaker embedding dimension (default: None).
+        spk_embed_integration_type (str, optional): How to integrate speaker embedding (default: "add").
+        use_gst (bool, optional): Whether to use global style token (default: False).
+        gst_tokens (int, optional): Number of GST embeddings (default: 10).
+        gst_heads (int, optional): Number of heads in GST multihead attention (default: 4).
+        gst_conv_layers (int, optional): Number of conv layers in GST (default: 6).
+        gst_conv_chans_list (Sequence[int], optional): Number of channels in conv layers in GST (default: (32, 32, 64, 64, 128, 128)).
+        gst_conv_kernel_size (int, optional): Kernel size of conv layers in GST (default: 3).
+        gst_conv_stride (int, optional): Stride size of conv layers in GST (default: 2).
+        gst_gru_layers (int, optional): Number of GRU layers in GST (default: 1).
+        gst_gru_units (int, optional): Number of GRU units in GST (default: 128).
+        init_type (str, optional): How to initialize transformer parameters (default: "xavier_uniform").
+        init_enc_alpha (float, optional): Initial value of alpha in scaled pos encoding of encoder (default: 1.0).
+        init_dec_alpha (float, optional): Initial value of alpha in scaled pos encoding of decoder (default: 1.0).
+        use_masking (bool, optional): Whether to apply masking for padded parts in loss calculation (default: False).
+        use_weighted_masking (bool, optional): Whether to apply weighted masking in loss calculation (default: False).
+
+    Examples:
+        >>> model = FastSpeech(idim=256, odim=80)
+        >>> input_tensor = torch.randint(0, 256, (1, 10))
+        >>> input_lengths = torch.tensor([10])
+        >>> output = model.forward(input_tensor, input_lengths, ...)
     """
 
     @typechecked
@@ -489,7 +569,12 @@ class FastSpeech(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass for the FastSpeech model, taking in
+        the input text, target features, and durations. It computes the loss and
+        outputs the statistics for monitoring during training.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
@@ -504,10 +589,21 @@ class FastSpeech(AbsTTS):
             joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[Tensor, Dict[str, torch.Tensor], Tensor]: A tuple containing:
+                - Tensor: Loss scalar value.
+                - Dict: Statistics to be monitored.
+                - Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.randint(0, 100, (2, 5))  # (B, T_text)
+            >>> text_lengths = torch.tensor([5, 3])  # (B,)
+            >>> feats = torch.randn(2, 6, 80)  # (B, T_feats, odim)
+            >>> feats_lengths = torch.tensor([6, 4])  # (B,)
+            >>> durations = torch.randint(1, 10, (2, 6))  # (B, T_text + 1)
+            >>> durations_lengths = torch.tensor([6, 4])  # (B,)
+            >>> loss, stats, weight = model.forward(text, text_lengths, feats,
+            ...                                      feats_lengths, durations,
+            ...                                      durations_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel

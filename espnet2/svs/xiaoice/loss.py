@@ -16,7 +16,47 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class XiaoiceSing2Loss(torch.nn.Module):
-    """Loss function module for FastSpeech2."""
+    """
+        XiaoiceSing2Loss is a loss function module for FastSpeech2, designed to compute
+    various losses used during the training of speech synthesis models.
+
+    Attributes:
+        use_masking (bool): Indicates whether to apply masking for padded parts in
+            loss calculations.
+        use_weighted_masking (bool): Indicates whether to apply weighted masking in
+            loss calculations.
+
+    Args:
+        use_masking (bool): Whether to apply masking for padded part in loss
+            calculation. Defaults to True.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation. Defaults to False.
+
+    Methods:
+        forward(after_outs, before_outs, d_outs, p_outs, v_outs, ys, ds, ps,
+            vs, ilens, olens, loss_type='L1'):
+            Calculates the forward propagation and computes the losses.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            - Mel loss value.
+            - Duration predictor loss value.
+            - Pitch predictor loss value.
+            - VUV predictor loss value.
+
+    Raises:
+        NotImplementedError: If the specified loss type is not supported.
+
+    Examples:
+        >>> loss_fn = XiaoiceSing2Loss(use_masking=True, use_weighted_masking=False)
+        >>> mel_loss, duration_loss, pitch_loss, vuv_loss = loss_fn(
+        ...     after_outs, before_outs, d_outs, p_outs, v_outs, ys, ds, ps, vs,
+        ...     ilens, olens, loss_type="L1"
+        ... )
+
+    Note:
+        The `loss_type` can be one of "L1", "L2", or "L1+L2".
+    """
 
     @typechecked
     def __init__(self, use_masking: bool = True, use_weighted_masking: bool = False):
@@ -57,28 +97,49 @@ class XiaoiceSing2Loss(torch.nn.Module):
         olens: torch.Tensor,
         loss_type: str = "L1",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation for the XiaoiceSing2 loss module.
+
+        This method computes the loss values for the outputs of a neural network model
+        used in the XiaoiceSing2 framework. It takes in the model's outputs and the
+        corresponding target values, and calculates the loss based on the specified
+        loss type. The function also applies masking if configured, to ignore padded
+        elements in the loss calculation.
 
         Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).
-            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
-            p_outs (Tensor): Batch of outputs of log_f0 (B, T_text, 1).
-            v_outs (Tensor): Batch of outputs of VUV (B, T_text, 1).
-            ys (Tensor): Batch of target features (B, T_feats, odim).
-            ds (LongTensor): Batch of durations (B, T_text).
-            ps (Tensor): Batch of target log_f0 (B, T_text, 1).
-            vs (Tensor): Batch of target VUV (B, T_text, 1).
-            ilens (LongTensor): Batch of the lengths of each input (B,).
-            olens (LongTensor): Batch of the lengths of each target (B,).
-            loss_type (str): Mel loss type ("L1" (MAE), "L2" (MSE) or "L1+L2")
+            after_outs (torch.Tensor): Batch of outputs after postnets (B, T_feats, odim).
+            before_outs (torch.Tensor): Batch of outputs before postnets (B, T_feats, odim).
+            d_outs (torch.LongTensor): Batch of outputs of duration predictor (B, T_text).
+            p_outs (torch.Tensor): Batch of outputs of log_f0 (B, T_text, 1).
+            v_outs (torch.Tensor): Batch of outputs of VUV (B, T_text, 1).
+            ys (torch.Tensor): Batch of target features (B, T_feats, odim).
+            ds (torch.LongTensor): Batch of durations (B, T_text).
+            ps (torch.Tensor): Batch of target log_f0 (B, T_text, 1).
+            vs (torch.Tensor): Batch of target VUV (B, T_text, 1).
+            ilens (torch.LongTensor): Batch of the lengths of each input (B,).
+            olens (torch.LongTensor): Batch of the lengths of each target (B,).
+            loss_type (str): Mel loss type ("L1" (MAE), "L2" (MSE), or "L1+L2").
 
         Returns:
-            Tensor: Mel loss value.
-            Tensor: Duration predictor loss value.
-            Tensor: Pitch predictor loss value.
-            Tensor: VUV predictor loss value.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: A tuple
+            containing the following loss values:
+                - Mel loss value.
+                - Duration predictor loss value.
+                - Pitch predictor loss value.
+                - VUV predictor loss value.
 
+        Raises:
+            NotImplementedError: If the specified loss_type is not one of "L1", "L2",
+            or "L1+L2".
+
+        Examples:
+            mel_loss, duration_loss, pitch_loss, vuv_loss = model.forward(
+                after_outs, before_outs, d_outs, p_outs, v_outs, ys, ds, ps, vs, ilens, olens, loss_type="L1"
+            )
+
+        Note:
+            The function applies masking based on the `use_masking` and
+            `use_weighted_masking` attributes defined in the XiaoiceSing2Loss class.
         """
         # apply mask to remove padded part
         if self.use_masking:

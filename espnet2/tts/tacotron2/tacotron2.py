@@ -24,15 +24,87 @@ from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 
 
 class Tacotron2(AbsTTS):
-    """Tacotron2 module for end-to-end text-to-speech.
+    """
+        Tacotron2 module for end-to-end text-to-speech.
 
     This is a module of Spectrogram prediction network in Tacotron2 described
-    in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_,
-    which converts the sequence of characters into the sequence of Mel-filterbanks.
+    in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram
+    Predictions`_, which converts the sequence of characters into the
+    sequence of Mel-filterbanks.
 
-    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
-       https://arxiv.org/abs/1712.05884
+    .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram
+    Predictions`: https://arxiv.org/abs/1712.05884
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End-of-sequence token index.
+        cumulate_att_w (bool): Whether to cumulate previous attention weight.
+        reduction_factor (int): Reduction factor for the output.
+        use_gst (bool): Whether to use global style token.
+        use_guided_attn_loss (bool): Whether to use guided attention loss.
+        loss_type (str): Type of loss function used.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        embed_dim (int): Dimension of the token embedding.
+        elayers (int): Number of encoder blstm layers.
+        eunits (int): Number of encoder blstm units.
+        econv_layers (int): Number of encoder conv layers.
+        econv_filts (int): Number of encoder conv filter size.
+        econv_chans (int): Number of encoder conv filter channels.
+        dlayers (int): Number of decoder lstm layers.
+        dunits (int): Number of decoder lstm units.
+        prenet_layers (int): Number of prenet layers.
+        prenet_units (int): Number of prenet units.
+        postnet_layers (int): Number of postnet layers.
+        postnet_filts (int): Number of postnet filter size.
+        postnet_chans (int): Number of postnet filter channels.
+        output_activation (str): Name of activation function for outputs.
+        adim (int): Number of dimension of mlp in attention.
+        aconv_chans (int): Number of attention conv filter channels.
+        aconv_filts (int): Number of attention conv filter size.
+        cumulate_att_w (bool): Whether to cumulate previous attention weight.
+        use_batch_norm (bool): Whether to use batch normalization.
+        use_concate (bool): Whether to concat enc outputs w/ dec lstm outputs.
+        reduction_factor (int): Reduction factor.
+        spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+            sids will be provided as the input and use sid embedding layer.
+        langs (Optional[int]): Number of languages. If set to > 1, assume that the
+            lids will be provided as the input and use sid embedding layer.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+            assume that spembs will be provided as the input.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        use_gst (str): Whether to use global style token.
+        gst_tokens (int): Number of GST embeddings.
+        gst_heads (int): Number of heads in GST multihead attention.
+        gst_conv_layers (int): Number of conv layers in GST.
+        gst_conv_chans_list (Sequence[int]): List of the number of channels of conv
+            layers in GST.
+        gst_conv_kernel_size (int): Kernel size of conv layers in GST.
+        gst_conv_stride (int): Stride size of conv layers in GST.
+        gst_gru_layers (int): Number of GRU layers in GST.
+        gst_gru_units (int): Number of GRU units in GST.
+        dropout_rate (float): Dropout rate.
+        zoneout_rate (float): Zoneout rate.
+        use_masking (bool): Whether to mask padded part in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in
+            loss calculation.
+        bce_pos_weight (float): Weight of positive sample of stop token
+            (only for use_masking=True).
+        loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
+        use_guided_attn_loss (bool): Whether to use guided attention loss.
+        guided_attn_loss_sigma (float): Sigma in guided attention loss.
+        guided_attn_loss_lambda (float): Lambda in guided attention loss.
+
+    Examples:
+        >>> model = Tacotron2(idim=100, odim=80)
+        >>> text = torch.randint(0, 100, (1, 10))
+        >>> text_lengths = torch.tensor([10])
+        >>> feats = torch.rand(1, 20, 80)
+        >>> feats_lengths = torch.tensor([20])
+        >>> loss, stats, weight = model(text, text_lengths, feats, feats_lengths)
     """
 
     @typechecked
@@ -284,23 +356,40 @@ class Tacotron2(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the Tacotron2 model,
+        calculating the loss and outputs based on the input text and
+        target features.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
-            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            text_lengths (LongTensor): Batch of lengths of each input
+                batch (B,).
             feats (Tensor): Batch of padded target features (B, T_feats, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            feats_lengths (LongTensor): Batch of the lengths of each target
+                (B,).
+            spembs (Optional[Tensor]): Batch of speaker embeddings
+                (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
-            joint_training (bool): Whether to perform joint training with vocoder.
+            joint_training (bool): Whether to perform joint training with
+                vocoder.
 
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> model = Tacotron2(...)
+            >>> text = torch.randint(0, 100, (32, 50))  # Example input
+            >>> text_lengths = torch.randint(1, 50, (32,))
+            >>> feats = torch.randn(32, 100, 80)  # Example target features
+            >>> feats_lengths = torch.randint(1, 100, (32,))
+            >>> loss, stats, weight = model.forward(text, text_lengths, feats,
+                feats_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel

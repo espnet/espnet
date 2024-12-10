@@ -33,7 +33,72 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class HiFiCodec(AbsGANCodec):
-    """HiFiCodec model."""
+    """
+    HiFiCodec model for high-fidelity audio generation and encoding.
+
+    This model implements a GAN-based codec for generating high-quality audio.
+    It consists of a generator and discriminator, with options for various
+    loss functions and features for improved audio fidelity.
+
+    Attributes:
+        generator (HiFiCodecGenerator): The generator module for audio synthesis.
+        discriminator (HiFiCodecDiscriminator): The discriminator module for
+            evaluating the quality of generated audio.
+        generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for the
+            generator.
+        generator_reconstruct_loss (L1Loss): Reconstruction loss for generator.
+        discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss
+            for the discriminator.
+        use_feat_match_loss (bool): Flag to indicate whether to use feature
+            matching loss.
+        feat_match_loss (FeatureMatchLoss): Feature matching loss if enabled.
+        use_mel_loss (bool): Flag to indicate whether to use mel spectrogram loss.
+        mel_loss (MultiScaleMelSpectrogramLoss): Mel spectrogram loss if enabled.
+        use_dual_decoder (bool): Flag to indicate whether to use a dual decoder.
+        cache_generator_outputs (bool): Flag to indicate whether to cache generator
+            outputs for efficiency.
+        loss_balancer (Balancer): Loss balancer for adjusting the weights of
+            different loss components.
+
+    Args:
+        sampling_rate (int): The sampling rate of the audio. Default is 16000.
+        generator_params (Dict[str, Any]): Parameters for the generator module.
+        discriminator_params (Dict[str, Any]): Parameters for the discriminator
+            module.
+        generator_adv_loss_params (Dict[str, Any]): Parameters for generator
+            adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameters for
+            discriminator adversarial loss.
+        use_feat_match_loss (bool): Whether to use feature matching loss.
+        feat_match_loss_params (Dict[str, Any]): Parameters for feature matching
+            loss.
+        use_mel_loss (bool): Whether to use mel loss.
+        mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+        use_dual_decoder (bool): Whether to use dual decoder.
+        lambda_quantization (float): Weight for quantization loss. Default is 1.0.
+        lambda_reconstruct (float): Weight for reconstruction loss. Default is 1.0.
+        lambda_commit (float): Weight for commitment loss. Default is 1.0.
+        lambda_adv (float): Weight for adversarial loss. Default is 1.0.
+        lambda_feat_match (float): Weight for feature matching loss. Default is 2.0.
+        lambda_mel (float): Weight for mel loss. Default is 45.0.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+        use_loss_balancer (bool): Whether to use loss balancer.
+        balance_ema_decay (float): EMA decay rate for loss balancer. Default is 0.99.
+
+    Examples:
+        >>> model = HiFiCodec()
+        >>> audio_input = torch.randn(1, 16000)  # Simulated audio input
+        >>> output = model.forward(audio_input)
+        >>> print(output['loss'])  # Access the loss from output
+
+    Note:
+        The generator and discriminator parameters can be adjusted for
+        specific use cases, such as changing the number of layers or kernel
+        sizes.
+
+    Raises:
+        AssertionError: If dual decoder is enabled without mel loss.
+    """
 
     @typechecked
     def __init__(
@@ -205,6 +270,35 @@ class HiFiCodec(AbsGANCodec):
             self.loss_balancer = None
 
     def meta_info(self) -> Dict[str, Any]:
+        """
+        Retrieve model meta-information.
+
+        This method provides essential information about the HiFiCodec model's
+        configuration, including the sampling rate, number of streams, frame
+        shift, and code size per stream.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the following keys:
+                - fs (int): The sampling rate of the model.
+                - num_streams (int): The number of quantizer streams used in the
+                  model.
+                - frame_shift (int): The frame shift calculated based on the
+                  upsample rates.
+                - code_size_per_stream (List[int]): A list containing the code
+                  size for each quantization stream.
+
+        Examples:
+            >>> model = HiFiCodec()
+            >>> meta = model.meta_info()
+            >>> print(meta)
+            {'fs': 16000, 'num_streams': 8, 'frame_shift': 640,
+             'code_size_per_stream': [1024, 1024, 1024, 1024, 1024, 1024,
+             1024, 1024]}
+
+        Note:
+            This method is useful for understanding the configuration of the
+            model and for debugging purposes.
+        """
         return {
             "fs": self.fs,
             "num_streams": self.num_streams,
@@ -218,19 +312,42 @@ class HiFiCodec(AbsGANCodec):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
+
+        This method performs the forward pass of the HiFiCodec model. It can
+        either execute the generator or discriminator forward pass based on the
+        `forward_generator` flag. The output includes loss metrics and
+        statistics that are useful for monitoring training progress.
 
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-            forward_generator (bool): Whether to forward generator.
+            audio (torch.Tensor):
+                Audio waveform tensor with shape (B, T_wav), where B is the
+                batch size and T_wav is the number of audio samples.
+            forward_generator (bool):
+                Flag to indicate whether to forward through the generator
+                (True) or the discriminator (False).
 
         Returns:
             Dict[str, Any]:
-                - loss (Tensor): Loss scalar tensor.
-                - stats (Dict[str, float]): Statistics to be monitored.
-                - weight (Tensor): Weight tensor to summarize losses.
-                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+                - loss (Tensor): Loss scalar tensor representing the total
+                  computed loss.
+                - stats (Dict[str, float]): Dictionary containing various
+                  statistics to be monitored during training, such as
+                  individual loss components.
+                - weight (Tensor): Weight tensor used to summarize losses.
+                - optim_idx (int): Index of the optimizer to be used (0 for
+                  generator and 1 for discriminator).
 
+        Examples:
+            >>> model = HiFiCodec()
+            >>> audio_input = torch.randn(2, 16000)  # Batch of 2 audio samples
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'], output['stats'])
+
+        Note:
+            Ensure that the input audio tensor is properly preprocessed
+            and has the correct shape before calling this method.
         """
         if forward_generator:
             return self._forward_generator(
@@ -438,16 +555,69 @@ class HiFiCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """
+            HiFiCodec model.
+
+        This class implements the HiFiCodec architecture, which is a generative
+        adversarial network (GAN) designed for high-fidelity audio generation.
+
+        Attributes:
+            generator (HiFiCodecGenerator): The generator module for audio synthesis.
+            discriminator (HiFiCodecDiscriminator): The discriminator module for
+                evaluating the generated audio.
+            generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for the
+                generator.
+            generator_reconstruct_loss (torch.nn.L1Loss): Reconstruction loss for the
+                generator.
+            discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss for
+                the discriminator.
+            use_feat_match_loss (bool): Flag to indicate whether to use feature
+                matching loss.
+            feat_match_loss (FeatureMatchLoss): Feature matching loss module.
+            use_mel_loss (bool): Flag to indicate whether to use mel loss.
+            mel_loss (MultiScaleMelSpectrogramLoss): Mel loss module.
+            cache_generator_outputs (bool): Flag to cache generator outputs.
+            loss_balancer (Optional[Balancer]): Loss balancer for managing multiple loss
+                components.
 
         Args:
-            x (Tensor): Input audio (T_wav,).
+            sampling_rate (int): Sampling rate for audio (default: 16000).
+            generator_params (Dict[str, Any]): Parameters for the generator module.
+            discriminator_params (Dict[str, Any]): Parameters for the discriminator module.
+            generator_adv_loss_params (Dict[str, Any]): Parameters for the generator
+                adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]): Parameters for the
+                discriminator adversarial loss.
+            use_feat_match_loss (bool): Flag to use feature matching loss (default: True).
+            feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+            use_mel_loss (bool): Flag to use mel loss (default: True).
+            mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+            use_dual_decoder (bool): Flag to use dual decoder (default: True).
+            lambda_quantization (float): Coefficient for quantization loss (default: 1.0).
+            lambda_reconstruct (float): Coefficient for reconstruction loss (default: 1.0).
+            lambda_commit (float): Coefficient for commitment loss (default: 1.0).
+            lambda_adv (float): Coefficient for adversarial loss (default: 1.0).
+            lambda_feat_match (float): Coefficient for feature matching loss (default: 2.0).
+            lambda_mel (float): Coefficient for mel loss (default: 45.0).
+            cache_generator_outputs (bool): Flag to cache generator outputs (default: False).
+            use_loss_balancer (bool): Flag to use loss balancer (default: False).
+            balance_ema_decay (float): Exponential moving average decay for balancing loss
+                (default: 0.99).
 
-        Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec (T_code, N_stream).
+        Examples:
+            # Initialize the HiFiCodec model with default parameters
+            hifi_codec = HiFiCodec()
 
+            # Initialize the HiFiCodec model with custom parameters
+            custom_hifi_codec = HiFiCodec(sampling_rate=22050,
+                                           generator_params={"hidden_dim": 512})
+
+        Note:
+            The model expects audio input in the form of a PyTorch tensor of shape
+            (B, T_wav) for training and inference.
+
+        Todo:
+            - Implement additional features for model customization.
         """
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
@@ -459,7 +629,8 @@ class HiFiCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run encoding.
 
         Args:
             x (Tensor): Input audio (T_wav,).
@@ -467,6 +638,15 @@ class HiFiCodec(AbsGANCodec):
         Returns:
             Tensor: Generated codes (T_code, N_stream).
 
+        Examples:
+            >>> model = HiFiCodec()
+            >>> audio_input = torch.randn(1, 16000)  # Simulated audio input
+            >>> codes = model.encode(audio_input)
+            >>> print(codes.shape)  # Expected output shape: (T_code, N_stream)
+
+        Note:
+            This method utilizes the generator's encode function to process the
+            input audio and produce a set of neural codec representations.
         """
         # print(x.shape)
         return self.generator.encode(x)
@@ -476,20 +656,86 @@ class HiFiCodec(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run decoding.
+
+        This method takes encoded audio codes as input and generates a
+        waveform tensor. The decoding process involves the reconstruction
+        of the original audio from its encoded representation.
 
         Args:
-            x (Tensor): Input codes (T_code, N_stream).
+            x (Tensor): Input codes (T_code, N_stream), where T_code is the
+                length of the code sequence and N_stream is the number of
+                streams in the codec.
 
         Returns:
-            Tensor: Generated waveform (T_wav,).
+            Tensor: Generated waveform (T_wav,), where T_wav is the length of
+            the reconstructed audio waveform.
 
+        Examples:
+            >>> codec_input = torch.randn(100, 8)  # Example input codes
+            >>> waveform = hi_fi_codec.decode(codec_input)
+            >>> print(waveform.shape)
+            torch.Size([T_wav,])  # Output shape will depend on the model
         """
         return self.generator.decode(x)
 
 
 class HiFiCodecGenerator(nn.Module):
-    """HiFiCodec generator module."""
+    """
+    HiFiCodec generator module.
+
+    This class implements the generator for the HiFiCodec model, which
+    processes audio waveforms through encoding and decoding mechanisms.
+    The generator uses a combination of an encoder, a quantizer, and a
+    decoder to achieve high-fidelity audio synthesis.
+
+    Attributes:
+        encoder (Encoder): The encoder module that extracts features from
+            the input audio.
+        quantizer (GroupResidualVectorQuantization): The quantization module
+            that compresses the encoded features.
+        decoder (Generator): The decoder module that reconstructs audio from
+            quantized features.
+        target_bandwidths (List[float]): List of target bandwidths for
+            quantization.
+        sample_rate (int): The sample rate of the audio.
+        frame_rate (int): The frame rate derived from the sample rate and
+            upsample rates.
+
+    Args:
+        sample_rate (int): Sample rate of the input audio. Default is 16000.
+        hidden_dim (int): Dimensionality of hidden layers. Default is 128.
+        resblock_num (str): Number of residual blocks. Default is "1".
+        resblock_kernel_sizes (List[int]): List of kernel sizes for residual
+            blocks. Default is [3, 7, 11].
+        resblock_dilation_sizes (List[List[int]]): List of dilation sizes for
+            residual blocks. Default is [[1, 3, 5], [1, 3, 5], [1, 3, 5]].
+        upsample_rates (List[int]): List of upsample rates. Default is [8, 5, 4, 2].
+        upsample_kernel_sizes (List[int]): List of kernel sizes for upsampling.
+            Default is [16, 11, 8, 4].
+        upsample_initial_channel (int): Number of initial channels for the
+            upsampling layer. Default is 512.
+        quantizer_n_q (int): Number of quantizers. Default is 8.
+        quantizer_bins (int): Number of quantization bins. Default is 1024.
+        quantizer_decay (float): Decay rate for quantization. Default is 0.99.
+        quantizer_kmeans_init (bool): Whether to initialize with k-means.
+            Default is True.
+        quantizer_kmeans_iters (int): Number of iterations for k-means. Default is 50.
+        quantizer_threshold_ema_dead_code (int): Threshold for dead code.
+            Default is 2.
+        quantizer_target_bandwidth (List[float]): List of target bandwidths
+            for quantization. Default is [7.5, 15].
+
+    Examples:
+        >>> generator = HiFiCodecGenerator()
+        >>> input_audio = torch.randn(1, 1, 16000)  # (B, 1, T)
+        >>> output = generator(input_audio)
+        >>> print(output[0].shape)  # Resynthesized audio shape
+        >>> print(output[1].shape)  # Commitment loss shape
+        >>> print(output[2].shape)  # Quantization loss shape
+        >>> print(output[3].shape)  # Resynthesized audio from encoder
+    """
 
     @typechecked
     def __init__(
@@ -552,16 +798,39 @@ class HiFiCodecGenerator(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """HiFiCodec forward propagation.
+        """
+        Perform generator forward.
+
+        This method handles the forward pass for either the generator or
+        discriminator, based on the `forward_generator` flag. It processes
+        the input audio waveform tensor and computes the corresponding
+        losses and statistics.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
-            use_dual_decoder (bool): Whether to use dual decoder for encoder out
+            audio (Tensor): Audio waveform tensor of shape (B, T_wav).
+            forward_generator (bool): If True, the forward pass is done
+                through the generator; otherwise, it goes through the
+                discriminator.
+
         Returns:
-            torch.Tensor: resynthesized audio.
-            torch.Tensor: commitment loss.
-            torch.Tensor: quantization loss
-            torch.Tensor: resynthesized audio from encoder.
+            Dict[str, Any]:
+                - loss (Tensor): Loss scalar tensor computed during the
+                  forward pass.
+                - stats (Dict[str, float]): Statistics for monitoring,
+                  including individual loss components.
+                - weight (Tensor): Weight tensor summarizing losses.
+                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+
+        Examples:
+            >>> model = HiFiCodec()
+            >>> audio_input = torch.randn(8, 16000)  # Batch of 8, 1 second audio
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'].item())  # Access the computed loss
+
+        Note:
+            The method will call either `_forward_generator` or
+            `_forward_discrminator` based on the value of
+            `forward_generator`.
         """
         encoder_out = self.encoder(x)
         # print("x shape:", x.shape)
@@ -590,12 +859,25 @@ class HiFiCodecGenerator(nn.Module):
         x: torch.Tensor,
         target_bw: Optional[float] = None,
     ):
-        """HiFiCodec codec encoding.
+        """
+        Run encoding.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
+            x (Tensor): Input audio (T_wav,).
+
         Returns:
-            torch.Tensor: neural codecs in shape ().
+            Tensor: Generated codes (T_code, N_stream).
+
+        Examples:
+            >>> import torch
+            >>> model = HiFiCodec()
+            >>> input_audio = torch.randn(1, 16000)  # Example audio tensor
+            >>> encoded_codes = model.encode(input_audio)
+            >>> print(encoded_codes.shape)  # Output shape: (T_code, N_stream)
+
+        Note:
+            The input tensor should have the shape (B, T_wav) where B is the batch
+            size and T_wav is the number of audio samples.
         """
         if x.dim() == 1:
             x = x.view(1, 1, -1)
@@ -612,12 +894,32 @@ class HiFiCodecGenerator(nn.Module):
         return codes
 
     def decode(self, codes: torch.Tensor):
-        """HiFiCodec codec decoding.
+        """
+        Run decoding.
+
+        This method takes input codes generated by the encoder and produces a
+        waveform. It is an essential step in the HiFiCodec pipeline, converting
+        compressed representations back into audio signals.
 
         Args:
-            codecs (torch.Tensor): neural codecs in shape ().
+            x (Tensor): Input codes (T_code, N_stream). These are the codes
+                produced by the encoder, which represent the compressed audio
+                data.
+
         Returns:
-            torch.Tensor: resynthesized audio.
+            Tensor: Generated waveform (T_wav,). This is the output audio signal
+            reconstructed from the input codes.
+
+        Examples:
+            >>> codec = HiFiCodec()
+            >>> input_codes = torch.randn(10, 8)  # Example input codes
+            >>> waveform = codec.decode(input_codes)
+            >>> print(waveform.shape)  # Output shape will depend on the model
+
+        Note:
+            The input codes should be of the shape (T_code, N_stream) where
+            T_code is the length of the code sequence and N_stream is the number
+            of streams used in the codec.
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
@@ -626,7 +928,41 @@ class HiFiCodecGenerator(nn.Module):
 
 
 class HiFiCodecDiscriminator(nn.Module):
-    """HiFiCodec discriminator module."""
+    """
+    HiFiCodec discriminator module.
+
+    This class implements a discriminator for the HiFiCodec model, which uses
+    multi-scale and multi-period discriminators to evaluate the quality of
+    generated audio signals.
+
+    Attributes:
+        msstft (MultiScaleSTFTDiscriminator): Multi-scale STFT discriminator.
+        msd (HiFiGANMultiScaleDiscriminator): Multi-scale discriminator.
+        mpd (HiFiGANMultiPeriodDiscriminator): Multi-period discriminator.
+
+    Args:
+        msstft_discriminator_params (Dict[str, Any]): Parameters for multi-scales
+            STFT discriminator module.
+        scales (int): Number of multi-scales.
+        scale_downsample_pooling (str): Pooling module name for downsampling of
+            the inputs.
+        scale_downsample_pooling_params (Dict[str, Any]): Parameters for the
+            above pooling module.
+        scale_discriminator_params (Dict[str, Any]): Parameters for HiFi-GAN
+            scale discriminator module.
+        scale_follow_official_norm (bool): Flag to follow the official
+            normalization.
+        periods (List[int]): List of periods for multi-period discriminator.
+        periods_discriminator_params (Dict[str, Any]): Parameters for HiFi-GAN
+            period discriminator module. The period parameter will be overwritten.
+
+    Examples:
+        >>> discriminator = HiFiCodecDiscriminator()
+        >>> input_tensor = torch.randn(8, 1, 16000)  # Batch of 8 audio signals
+        >>> outputs = discriminator(input_tensor)
+        >>> len(outputs)  # Check the number of outputs from the discriminators
+        8
+    """
 
     def __init__(
         self,
@@ -717,16 +1053,37 @@ class HiFiCodecDiscriminator(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+            Perform forward propagation for the HiFiCodec model.
+
+        This method decides whether to forward the audio through the generator
+        or the discriminator based on the `forward_generator` flag. It computes
+        the loss and statistics based on the selected path.
 
         Args:
-            x (Tensor): Input noise signal (B, 1, T).
+            audio (Tensor): Audio waveform tensor of shape (B, T_wav), where B is
+                the batch size and T_wav is the length of the audio waveform.
+            forward_generator (bool): If True, forwards the audio through the
+                generator; if False, forwards it through the discriminator.
 
         Returns:
-            List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Multi scale and
-                multi period ones are concatenated.
+            Dict[str, Any]:
+                - loss (Tensor): Loss scalar tensor.
+                - stats (Dict[str, float]): Statistics to be monitored during training.
+                - weight (Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Index for the optimizer (0 for generator and
+                  1 for discriminator).
 
+        Examples:
+            >>> model = HiFiCodec()
+            >>> audio_input = torch.randn(8, 16000)  # Batch of 8 audio samples
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'], output['stats'])
+
+        Note:
+            Ensure that the audio input tensor is properly shaped and contains
+            valid waveform data. The `kwargs` can be used to pass additional
+            parameters needed for either generator or discriminator forward pass.
         """
         # 5 scale list of [fmap + [logit]]
         msstft_outs = self.msstft(x)

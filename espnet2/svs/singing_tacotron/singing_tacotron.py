@@ -30,17 +30,92 @@ from espnet.nets.pytorch_backend.rnn.attentions import (
 
 
 class singing_tacotron(AbsSVS):
-    """singing_Tacotron module for end-to-end singing-voice-synthesis.
+    """
+        Singing Tacotron related modules for ESPnet2.
 
-    This is a module of Spectrogram prediction network in Singing Tacotron
-    described in `Singing-Tacotron: Global Duration Control Attention and
-    Dynamic Filter for End-to-end Singing Voice Synthesis`_,
-    which learn accurate alignment information automatically.
+    This module implements the Singing Tacotron, a spectrogram prediction network
+    for end-to-end singing voice synthesis. It is described in the paper
+    `Singing-Tacotron: Global Duration Control Attention and Dynamic Filter for
+    End-to-end Singing Voice Synthesis`_.
 
-    .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic
-    Filter for End-to-end Singing Voice Synthesis`:
+    This module learns accurate alignment information automatically, and can be
+    configured with various hyperparameters related to the encoder, decoder, and
+    training settings.
+
+    .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic Filter for
+    End-to-end Singing Voice Synthesis`:
        https://arxiv.org/pdf/2202.07907v1.pdf
 
+    Attributes:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End-of-sequence token index.
+        midi_eos (int): End-of-sequence token index for MIDI.
+        duration_eos (int): End-of-sequence token index for duration.
+        cumulate_att_w (bool): Whether to cumulate previous attention weight.
+        reduction_factor (int): Reduction factor.
+        use_gst (bool): Whether to use global style token.
+        use_guided_attn_loss (bool): Whether to use guided attention loss.
+        loss_type (str): Type of loss function to use ("L1", "L2", or "L1+L2").
+
+    Args:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int, optional): Dimension of MIDI inputs. Defaults to 129.
+        duration_dim (int, optional): Dimension of duration inputs. Defaults to 500.
+        embed_dim (int, optional): Dimension of the token embedding. Defaults to 512.
+        elayers (int, optional): Number of encoder BLSTM layers. Defaults to 1.
+        eunits (int, optional): Number of encoder BLSTM units. Defaults to 512.
+        econv_layers (int, optional): Number of encoder convolution layers. Defaults to 3.
+        econv_chans (int, optional): Number of encoder convolution filter channels. Defaults to 512.
+        econv_filts (int, optional): Size of encoder convolution filters. Defaults to 5.
+        atype (str, optional): Type of attention mechanism to use. Defaults to "GDCA".
+        adim (int, optional): Dimension of MLP in attention. Defaults to 512.
+        aconv_chans (int, optional): Number of attention convolution filter channels. Defaults to 32.
+        aconv_filts (int, optional): Size of attention convolution filters. Defaults to 15.
+        cumulate_att_w (bool, optional): Whether to cumulate previous attention weight. Defaults to True.
+        dlayers (int, optional): Number of decoder LSTM layers. Defaults to 2.
+        dunits (int, optional): Number of decoder LSTM units. Defaults to 1024.
+        prenet_layers (int, optional): Number of prenet layers. Defaults to 2.
+        prenet_units (int, optional): Number of prenet units. Defaults to 256.
+        postnet_layers (int, optional): Number of postnet layers. Defaults to 5.
+        postnet_chans (int, optional): Number of postnet filter channels. Defaults to 512.
+        postnet_filts (int, optional): Size of postnet filters. Defaults to 5.
+        output_activation (Optional[str], optional): Name of activation function for outputs. Defaults to None.
+        use_batch_norm (bool, optional): Whether to use batch normalization. Defaults to True.
+        use_concate (bool, optional): Whether to concatenate encoder outputs with decoder outputs. Defaults to True.
+        use_residual (bool, optional): Whether to use residual connections. Defaults to False.
+        reduction_factor (int, optional): Reduction factor. Defaults to 1.
+        spks (Optional[int], optional): Number of speakers. Defaults to None.
+        langs (Optional[int], optional): Number of languages. Defaults to None.
+        spk_embed_dim (Optional[int], optional): Speaker embedding dimension. Defaults to None.
+        spk_embed_integration_type (str, optional): Method to integrate speaker embedding. Defaults to "concat".
+        use_gst (bool, optional): Whether to use global style token. Defaults to False.
+        gst_tokens (int, optional): Number of GST embeddings. Defaults to 10.
+        gst_heads (int, optional): Number of heads in GST multihead attention. Defaults to 4.
+        gst_conv_layers (int, optional): Number of conv layers in GST. Defaults to 6.
+        gst_conv_chans_list (Sequence[int], optional): List of channels for conv layers in GST. Defaults to (32, 32, 64, 64, 128, 128).
+        gst_conv_kernel_size (int, optional): Kernel size of conv layers in GST. Defaults to 3.
+        gst_conv_stride (int, optional): Stride size of conv layers in GST. Defaults to 2.
+        gst_gru_layers (int, optional): Number of GRU layers in GST. Defaults to 1.
+        gst_gru_units (int, optional): Number of GRU units in GST. Defaults to 128.
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.5.
+        zoneout_rate (float, optional): Zoneout rate. Defaults to 0.1.
+        use_masking (bool, optional): Whether to mask padded parts in loss calculation. Defaults to True.
+        use_weighted_masking (bool, optional): Whether to apply weighted masking in loss calculation. Defaults to False.
+        bce_pos_weight (float, optional): Weight of positive sample of stop token (only for use_masking=True). Defaults to 5.0.
+        loss_type (str, optional): Loss function type ("L1", "L2", or "L1+L2"). Defaults to "L1".
+        use_guided_attn_loss (bool, optional): Whether to use guided attention loss. Defaults to True.
+        guided_attn_loss_sigma (float, optional): Sigma in guided attention loss. Defaults to 0.4.
+        guided_attn_loss_lambda (float, optional): Lambda in guided attention loss. Defaults to 1.0.
+
+    Examples:
+        >>> model = singing_tacotron(idim=40, odim=80)
+        >>> text = torch.randint(0, 40, (1, 50))  # Random text input
+        >>> text_lengths = torch.tensor([50])  # Length of text input
+        >>> feats = torch.randn(1, 80, 200)  # Random feature input
+        >>> feats_lengths = torch.tensor([200])  # Length of feature input
+        >>> output = model.forward(text, text_lengths, feats, feats_lengths)
     """
 
     @typechecked
@@ -349,39 +424,53 @@ class singing_tacotron(AbsSVS):
         joint_training: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs forward propagation through the Singing Tacotron
+        model, processing the input sequences and generating the corresponding
+        output features along with the associated statistics.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-                        label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
+            label (Optional[Dict]): Key is "lab" or "score"; value is
+                (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): Key is "lab" or "score"; value
+                is (LongTensor): Batch of the lengths of padded label ids (B, ).
+            melody (Optional[Dict]): Key is "lab" or "score"; value is
+                (LongTensor): Batch of padded melody (B, Tmax).
+            melody_lengths (Optional[Dict]): Key is "lab" or "score"; value
+                is (LongTensor): Batch of the lengths of padded melody (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
-            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded duration (B, Tmax).
-            duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded duration (B, ).
+            duration (Optional[Dict]): Key is "lab", "score_phn" or "score_syb";
+                value is (LongTensor): Batch of padded duration (B, Tmax).
+            duration_lengths (Optional[Dict]): Key is "lab", "score_phn" or
+                "score_syb"; value is (LongTensor): Batch of the lengths of
+                padded duration (B, ).
             slur (LongTensor): Batch of padded slur (B, Tmax).
             slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             joint_training (bool): Whether to perform joint training with vocoder.
+            flag_IsValid (bool): A flag indicating whether the input is valid.
 
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.randint(0, 100, (32, 50))  # Batch of text inputs
+            >>> text_lengths = torch.randint(10, 50, (32,))  # Lengths of texts
+            >>> feats = torch.rand(32, 100, 80)  # Batch of feature outputs
+            >>> feats_lengths = torch.randint(80, 100, (32,))  # Lengths of feats
+            >>> loss, stats, weight = model.forward(text, text_lengths, feats,
+            ...                                      feats_lengths)
         """
 
         label = label["score"]
