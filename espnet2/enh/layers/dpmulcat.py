@@ -3,14 +3,36 @@ import torch.nn as nn
 
 
 class MulCatBlock(nn.Module):
-    """The MulCat block.
+    """
+    The MulCat block.
+
+    This module implements a multiplicative concatenation block using LSTM layers.
+    It processes input sequences through two separate LSTM networks: one for the 
+    main processing and another to create a gating mechanism. The outputs are 
+    combined to enhance the feature representation.
+
+    Attributes:
+        rnn (nn.LSTM): The primary LSTM layer for feature extraction.
+        rnn_proj (nn.Linear): Linear layer to project the output of the RNN.
+        gate_rnn (nn.LSTM): The gating LSTM layer.
+        gate_rnn_proj (nn.Linear): Linear layer to project the output of the gate RNN.
+        block_projection (nn.Linear): Final linear projection to match input size.
 
     Args:
-        input_size: int, dimension of the input feature.
+        input_size (int): Dimension of the input feature.
             The input should have shape (batch, seq_len, input_size).
-        hidden_size: int, dimension of the hidden state.
-        dropout: float, the dropout rate in the LSTM layer. (Default: 0.0)
-        bidirectional: bool, whether the RNN layers are bidirectional. (Default: True)
+        hidden_size (int): Dimension of the hidden state.
+        dropout (float, optional): The dropout rate in the LSTM layer. 
+            Defaults to 0.0.
+        bidirectional (bool, optional): Whether the RNN layers are bidirectional. 
+            Defaults to True.
+
+    Examples:
+        >>> input_tensor = torch.randn(32, 10, 64)  # (batch_size, seq_len, input_size)
+        >>> mulcat_block = MulCatBlock(input_size=64, hidden_size=32)
+        >>> output_tensor = mulcat_block(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([32, 10, 64])  # Output has the same shape as input
     """
 
     def __init__(
@@ -47,15 +69,27 @@ class MulCatBlock(nn.Module):
         self.block_projection = nn.Linear(input_size * 2, input_size)
 
     def forward(self, input):
-        """Compute output after MulCatBlock.
+        """
+        The MulCat block.
 
-        Args:
-            input (torch.Tensor): The input feature.
-                Tensor of shape (batch, time, feature_dim)
+    This module implements a MulCat block that processes input features 
+    through LSTM layers and applies gating mechanisms to produce an 
+    output feature.
 
-        Returns:
-            (torch.Tensor): The output feature after MulCatBlock.
-                Tensor of shape (batch, time, feature_dim)
+    Args:
+        input_size (int): Dimension of the input feature. The input should 
+            have shape (batch, seq_len, input_size).
+        hidden_size (int): Dimension of the hidden state.
+        dropout (float, optional): The dropout rate in the LSTM layer. 
+            (Default: 0.0)
+        bidirectional (bool, optional): Whether the RNN layers are 
+            bidirectional. (Default: True)
+
+    Examples:
+        >>> mul_cat_block = MulCatBlock(input_size=128, hidden_size=64)
+        >>> input_tensor = torch.randn(32, 10, 128)  # (batch, seq_len, input_size)
+        >>> output_tensor = mul_cat_block(input_tensor)
+        >>> print(output_tensor.shape)  # (32, 10, 128)
         """
         orig_shape = input.shape
         # run rnn module
@@ -86,19 +120,45 @@ class MulCatBlock(nn.Module):
 
 
 class DPMulCat(nn.Module):
-    """Dual-path RNN module with MulCat blocks.
+    """
+    Dual-path RNN module with MulCat blocks.
+
+    This module implements a dual-path RNN architecture that utilizes
+    MulCat blocks to process input features in both row and column 
+    dimensions. It allows for flexible handling of multi-speaker 
+    scenarios and incorporates optional normalization.
+
+    Attributes:
+        rows_grnn (nn.ModuleList): List of MulCat blocks for row processing.
+        cols_grnn (nn.ModuleList): List of MulCat blocks for column processing.
+        rows_normalization (nn.ModuleList): List of normalization layers for rows.
+        cols_normalization (nn.ModuleList): List of normalization layers for columns.
+        output (nn.Sequential): Final layer for producing the output.
 
     Args:
-        input_size: int, dimension of the input feature.
+        input_size (int): Dimension of the input feature.
             The input should have shape (batch, seq_len, input_size).
-        hidden_size: int, dimension of the hidden state.
-        output_size: int, dimension of the output size.
-        num_spk: int, the number of speakers in the output.
-        dropout: float, the dropout rate in the LSTM layer. (Default: 0.0)
-        bidirectional: bool, whether the RNN layers are bidirectional. (Default: True)
-        num_layers: int, number of stacked MulCat blocks. (Default: 4)
-        input_normalize: bool, whether to apply GroupNorm on the input Tensor.
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        num_spk (int): The number of speakers in the output.
+        dropout (float): The dropout rate in the LSTM layer. (Default: 0.0)
+        bidirectional (bool): Whether the RNN layers are bidirectional. 
+            (Default: True)
+        num_layers (int): Number of stacked MulCat blocks. (Default: 4)
+        input_normalize (bool): Whether to apply GroupNorm on the input Tensor.
             (Default: False)
+
+    Examples:
+        >>> dp_mul_cat = DPMulCat(input_size=64, hidden_size=128, output_size=10, 
+        ...                        num_spk=2)
+        >>> input_tensor = torch.randn(32, 10, 64)  # (batch, seq_len, input_size)
+        >>> output = dp_mul_cat(input_tensor)
+        >>> len(output)  # Should return 4 if num_layers is 4
+
+    Returns:
+        list(torch.Tensor) or list(list(torch.Tensor)):
+            In training mode, the module returns output of each DPMulCat block.
+            In eval mode, the module only returns output in the last block.
     """
 
     def __init__(
@@ -144,17 +204,24 @@ class DPMulCat(nn.Module):
         )
 
     def forward(self, input):
-        """Compute output after DPMulCat module.
+        """
+        Compute output after DPMulCat module.
 
-        Args:
-            input (torch.Tensor): The input feature.
-                Tensor of shape (batch, N, dim1, dim2)
-                Apply RNN on dim1 first and then dim2
+Args:
+    input (torch.Tensor): The input feature.
+        Tensor of shape (batch, N, dim1, dim2)
+        Apply RNN on dim1 first and then dim2.
 
-        Returns:
-            (list(torch.Tensor) or list(list(torch.Tensor))
-                In training mode, the module returns output of each DPMulCat block.
-                In eval mode, the module only returns output in the last block.
+Returns:
+    (list(torch.Tensor) or list(list(torch.Tensor))): 
+        In training mode, the module returns output of each DPMulCat block.
+        In eval mode, the module only returns output in the last block.
+
+Examples:
+    >>> model = DPMulCat(input_size=128, hidden_size=64, output_size=10, num_spk=2)
+    >>> input_tensor = torch.randn(32, 10, 20, 20)  # (batch, N, dim1, dim2)
+    >>> output = model(input_tensor)
+    >>> print(len(output))  # Output length in training mode
         """
         batch_size, _, d1, d2 = input.shape
         output = input

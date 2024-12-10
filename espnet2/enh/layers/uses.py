@@ -9,43 +9,59 @@ from espnet2.torch_utils.get_layer_from_string import get_layer
 
 
 class USES(nn.Module):
-    """Unconstrained Speech Enhancement and Separation (USES) Network.
+    """
+    Unconstrained Speech Enhancement and Separation (USES) Network.
+
+    This class implements the USES network, which is designed for speech 
+    enhancement and separation tasks under various input conditions. It 
+    utilizes a series of processing blocks with memory tokens to capture 
+    historical information from previous segments.
 
     Reference:
-        [1] W. Zhang, K. Saijo, Z.-Q., Wang, S. Watanabe, and Y. Qian,
+        [1] W. Zhang, K. Saijo, Z.-Q. Wang, S. Watanabe, and Y. Qian,
         “Toward Universal Speech Enhancement for Diverse Input Conditions,”
         in Proc. ASRU, 2023.
 
-    args:
-        input_size (int): dimension of the input feature.
-        output_size (int): dimension of the output.
-        bottleneck_size (int): dimension of the bottleneck feature.
+    Args:
+        input_size (int): Dimension of the input feature.
+        output_size (int): Dimension of the output.
+        bottleneck_size (int): Dimension of the bottleneck feature.
             Must be a multiple of `att_heads`.
-        num_blocks (int): number of processing blocks.
-        num_spatial_blocks (int): number of processing blocks with channel modeling.
-        segment_size (int): number of frames in each non-overlapping segment.
+        num_blocks (int): Number of processing blocks.
+        num_spatial_blocks (int): Number of processing blocks with channel 
+            modeling.
+        segment_size (int): Number of frames in each non-overlapping segment.
             This is used to segment long utterances into smaller segments for
             efficient processing.
-        memory_size (int): group size of global memory tokens.
-            The basic use of memory tokens is to store the history information from
-            previous segments.
-            The memory tokens are updated by the output of the last block after
-            processing each segment.
-        memory_types (int): numbre of memory token groups.
+        memory_size (int): Group size of global memory tokens.
+            The basic use of memory tokens is to store the history information 
+            from previous segments. The memory tokens are updated by the 
+            output of the last block after processing each segment.
+        memory_types (int): Number of memory token groups.
             Each group corresponds to a different type of processing, i.e.,
                 the first group is used for denoising without dereverberation,
-                the second group is used for denoising with dereverberation,
-        rnn_type (str): type of the RNN cell in the improved Transformer layer.
-        hidden_size (int): hidden dimension of the RNN cell.
-        att_heads (int): number of attention heads in Transformer.
-        dropout (float): dropout ratio. Default is 0.
-        activation (str): non-linear activation function applied in each block.
-        bidirectional (bool): whether the RNN layers are bidirectional.
-        norm_type (str): normalization type in the improved Transformer layer.
-        ch_mode (str): mode of channel modeling.
-            Select from "att" and "tac".
-        ch_att_dim (int): dimension of the channel attention.
-        eps (float): epsilon for layer normalization.
+                the second group is used for denoising with dereverberation.
+        rnn_type (str): Type of the RNN cell in the improved Transformer layer.
+        hidden_size (int): Hidden dimension of the RNN cell.
+        att_heads (int): Number of attention heads in Transformer.
+        dropout (float): Dropout ratio. Default is 0.
+        activation (str): Non-linear activation function applied in each block.
+        bidirectional (bool): Whether the RNN layers are bidirectional.
+        norm_type (str): Normalization type in the improved Transformer layer.
+        ch_mode (str): Mode of channel modeling. Select from "att" and "tac".
+        ch_att_dim (int): Dimension of the channel attention.
+        eps (float): Epsilon for layer normalization.
+
+    Examples:
+        >>> model = USES(input_size=128, output_size=64)
+        >>> input_tensor = torch.randn(1, 1, 128, 256, 10)  # (batch, mics, 
+        ... input_size, freq, time)
+        >>> output = model(input_tensor)
+        >>> print(output.shape)  # (1, 64, 256, 10)
+
+    Raises:
+        AssertionError: If `num_blocks` is less than `num_spatial_blocks`.
+        AssertionError: If `ch_mode` is not one of ("att", "tac").
     """
 
     def __init__(
@@ -125,18 +141,49 @@ class USES(nn.Module):
         )
 
     def forward(self, input, ref_channel=None, mem_idx=None):
-        """USES forward.
+        """
+        Unconstrained Speech Enhancement and Separation (USES) Network.
 
-        Args:
-            input (torch.Tensor): input feature (batch, mics, input_size, freq, time)
-            ref_channel (None or int): index of the reference channel.
-                if None, simply average all channels.
-                if int, take the specified channel instead of averaging.
-            mem_idx (None or int): index of the memory token group.
-                if None, use the only group of memory tokens in the model.
-                if int, use the specified group from multiple existing groups.
-        Returns:
-            output (torch.Tensor): output feature (batch, output_size, freq, time)
+    Reference:
+        [1] W. Zhang, K. Saijo, Z.-Q. Wang, S. Watanabe, and Y. Qian,
+        “Toward Universal Speech Enhancement for Diverse Input Conditions,”
+        in Proc. ASRU, 2023.
+
+    Args:
+        input_size (int): Dimension of the input feature.
+        output_size (int): Dimension of the output.
+        bottleneck_size (int): Dimension of the bottleneck feature.
+            Must be a multiple of `att_heads`.
+        num_blocks (int): Number of processing blocks.
+        num_spatial_blocks (int): Number of processing blocks with channel modeling.
+        segment_size (int): Number of frames in each non-overlapping segment.
+            This is used to segment long utterances into smaller segments for
+            efficient processing.
+        memory_size (int): Group size of global memory tokens.
+            The basic use of memory tokens is to store the history information from
+            previous segments. The memory tokens are updated by the output of the
+            last block after processing each segment.
+        memory_types (int): Number of memory token groups.
+            Each group corresponds to a different type of processing, i.e.,
+                the first group is used for denoising without dereverberation,
+                the second group is used for denoising with dereverberation.
+        rnn_type (str): Type of the RNN cell in the improved Transformer layer.
+        hidden_size (int): Hidden dimension of the RNN cell.
+        att_heads (int): Number of attention heads in Transformer.
+        dropout (float): Dropout ratio. Default is 0.
+        activation (str): Non-linear activation function applied in each block.
+        bidirectional (bool): Whether the RNN layers are bidirectional.
+        norm_type (str): Normalization type in the improved Transformer layer.
+        ch_mode (str): Mode of channel modeling.
+            Select from "att" and "tac".
+        ch_att_dim (int): Dimension of the channel attention.
+        eps (float): Epsilon for layer normalization.
+
+    Examples:
+        >>> model = USES(input_size=128, output_size=64)
+        >>> input_tensor = torch.randn(10, 2, 128, 16, 32)  # (batch, mics, input_size, freq, time)
+        >>> output = model(input_tensor)
+        >>> print(output.shape)  # Output shape: (10, 64, 16, 32)
         """
         B, C, N, F, T = input.shape
         output = self.layer_norm(input.reshape(B * C, N, -1))
@@ -185,6 +232,54 @@ class USES(nn.Module):
 
 
 class ATFBlock(nn.Module):
+    """
+    ATFBlock is a container module for a single Attentive Time-Frequency Block.
+
+This block is designed to process time-frequency representations of audio 
+signals using a combination of improved transformer layers and channel 
+modeling techniques.
+
+Attributes:
+    input_size (int): Dimension of the input feature.
+    rnn_type (str): Type of the RNN cell in the improved Transformer layer.
+    hidden_size (int): Hidden dimension of the RNN cell.
+    att_heads (int): Number of attention heads in the Transformer.
+    dropout (float): Dropout ratio. Default is 0.
+    activation (str): Non-linear activation function applied in each block.
+    bidirectional (bool): Whether the RNN layers are bidirectional.
+    norm_type (str): Normalization type in the improved Transformer layer.
+    ch_mode (str): Mode of channel modeling. Select from "att" and "tac".
+    ch_att_dim (int): Dimension of the channel attention.
+    eps (float): Epsilon for layer normalization.
+    with_channel_modeling (bool): Whether to use channel modeling.
+
+Args:
+    input_size (int): Dimension of the input feature.
+    rnn_type (str): Type of the RNN cell in the improved Transformer layer.
+    hidden_size (int): Hidden dimension of the RNN cell.
+    att_heads (int): Number of attention heads in Transformer.
+    dropout (float): Dropout ratio. Default is 0.
+    activation (str): Non-linear activation function applied in each block.
+    bidirectional (bool): Whether the RNN layers are bidirectional.
+    norm_type (str): Normalization type in the improved Transformer layer.
+    ch_mode (str): Mode of channel modeling. Select from "att" and "tac".
+    ch_att_dim (int): Dimension of the channel attention.
+    eps (float): Epsilon for layer normalization.
+    with_channel_modeling (bool): Whether to use channel modeling.
+
+Examples:
+    >>> atf_block = ATFBlock(input_size=64, hidden_size=128)
+    >>> input_tensor = torch.randn(32, 2, 64, 128, 256)  # (batch, C, N, F, T)
+    >>> output_tensor = atf_block(input_tensor)
+    >>> output_tensor.shape
+    torch.Size([32, 2, 64, 128, 256])
+
+Returns:
+    output (torch.Tensor): Output sequence (batch, C, N, freq, time).
+
+Raises:
+    NotImplementedError: If an unsupported channel modeling mode is specified.
+    """
     def __init__(
         self,
         input_size,
@@ -248,15 +343,33 @@ class ATFBlock(nn.Module):
                 raise NotImplementedError(ch_mode)
 
     def forward(self, input, ref_channel=None):
-        """Forward.
+        """
+        Processes the input through the USES network.
 
         Args:
-            input (torch.Tensor): feature sequence (batch, C, N, freq, time)
-            ref_channel (None or int): index of the reference channel.
-                if None, simply average all channels.
-                if int, take the specified channel instead of averaging.
+            input (torch.Tensor): Input feature tensor of shape 
+                (batch, mics, input_size, freq, time).
+            ref_channel (None or int): Index of the reference channel. If None,
+                all channels are averaged. If an int, the specified channel is
+                used instead of averaging.
+            mem_idx (None or int): Index of the memory token group. If None,
+                the only group of memory tokens in the model is used. If an int,
+                the specified group from multiple existing groups is used.
+
         Returns:
-            output (torch.Tensor): output sequence (batch, C, N, freq, time)
+            output (torch.Tensor): Output feature tensor of shape 
+                (batch, output_size, freq, time).
+
+        Examples:
+            >>> model = USES(input_size=128, output_size=64)
+            >>> input_tensor = torch.randn(8, 2, 128, 10, 20)  # (batch, mics, input_size, freq, time)
+            >>> output = model(input_tensor, ref_channel=0)
+            >>> print(output.shape)  # (8, 64, 10, 20)
+
+        Note:
+            This method is designed for efficient segment-by-segment processing
+            of input features, utilizing memory tokens to store historical 
+            information from previous segments.
         """
         if not self.with_channel_modeling:
             if input.size(1) > 1 and ref_channel is not None:
@@ -273,6 +386,31 @@ class ATFBlock(nn.Module):
         return output
 
     def freq_path_process(self, x):
+        """
+        Processes the input tensor through the frequency path of the model.
+
+    This method reshapes and permutes the input tensor to fit the expected 
+    input shape for the frequency neural network, applies the frequency 
+    neural network, and then reshapes the output back to the original 
+    dimensions.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (batch, N, freq, time), 
+            where `batch` is the batch size, `N` is the number of features, 
+            `freq` is the number of frequency bins, and `time` is the 
+            number of time steps.
+
+    Returns:
+        torch.Tensor: Output tensor of shape (batch, C, freq, time), 
+            where `C` is the number of channels.
+
+    Examples:
+        >>> model = ATFBlock(input_size=128)
+        >>> input_tensor = torch.randn(32, 10, 64, 100)  # (batch, N, freq, time)
+        >>> output_tensor = model.freq_path_process(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([32, 10, 64, 100])
+        """
         batch, N, freq, time = x.shape
         x = x.permute(0, 3, 2, 1).reshape(batch * time, freq, N)
         x = self.freq_nn(x)
@@ -280,6 +418,27 @@ class ATFBlock(nn.Module):
         return x.contiguous()
 
     def time_path_process(self, x):
+        """
+        Processes the input tensor through the temporal path.
+
+        This method takes the input tensor, permutes its dimensions to prepare it 
+        for processing through a temporal neural network, and reshapes it back to 
+        its original dimensions after processing.
+
+        Args:
+            x (torch.Tensor): Input tensor with shape (batch, N, freq, time).
+
+        Returns:
+            torch.Tensor: Output tensor with the same shape as the input tensor, 
+            processed through the temporal neural network.
+
+        Examples:
+            >>> model = ATFBlock(input_size=64)
+            >>> input_tensor = torch.randn(32, 10, 64, 128)  # (batch, N, freq, time)
+            >>> output_tensor = model.time_path_process(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([32, 10, 64, 128])
+        """
         batch, N, freq, time = x.shape
         x = x.permute(0, 2, 3, 1).reshape(batch * freq, time, N)
         x = self.temporal_nn(x)
@@ -288,6 +447,38 @@ class ATFBlock(nn.Module):
 
 
 class ChannelAttention(nn.Module):
+    """
+    Channel Attention module.
+
+This module implements a channel attention mechanism which applies self-attention
+across the channel dimension. It utilizes multiple attention heads to compute
+attention scores and applies a linear transformation followed by a non-linear
+activation function and layer normalization.
+
+Attributes:
+    att_heads (int): Number of attention heads in self-attention.
+    att_dim (int): Projection dimension for query and key before self-attention.
+    activation (str): Non-linear activation function.
+    
+Args:
+    input_dim (int): Dimension of the input feature.
+    att_heads (int): Number of attention heads in self-attention.
+    att_dim (int): Projection dimension for query and key before self-attention.
+    activation (str): Non-linear activation function.
+    eps (float): Epsilon for layer normalization.
+
+Examples:
+    >>> import torch
+    >>> channel_attention = ChannelAttention(input_dim=128, att_heads=4)
+    >>> input_tensor = torch.randn(32, 8, 128, 64, 10)  # (batch, C, N, F, T)
+    >>> output_tensor = channel_attention(input_tensor)
+    >>> output_tensor.shape
+    torch.Size([32, 8, 128, 64, 10])
+
+Returns:
+    output (torch.Tensor): Output feature (batch, C, N, freq, time) after applying
+    channel attention.
+    """
     def __init__(
         self, input_dim, att_heads=4, att_dim=256, activation="relu", eps=1e-5
     ):
@@ -330,13 +521,41 @@ class ChannelAttention(nn.Module):
         return getattr(self, key)
 
     def forward(self, x, ref_channel=None):
-        """ChannelAttention Forward.
+        """
+        Processes the input tensor through the USES network.
+
+        This method takes an input tensor and performs a forward pass
+        through the USES architecture, which consists of various 
+        processing blocks. It can utilize memory tokens to store 
+        historical information and can process the input either 
+        by averaging channels or selecting a reference channel.
 
         Args:
-            x (torch.Tensor): input feature (batch, C, N, freq, time)
-            ref_channel (None or int): index of the reference channel.
+            input (torch.Tensor): Input feature tensor of shape 
+                (batch, mics, input_size, freq, time).
+            ref_channel (None or int): Index of the reference channel.
+                If None, the output will be the average of all channels.
+                If int, the specified channel will be used instead of 
+                averaging.
+            mem_idx (None or int): Index of the memory token group.
+                If None, the only group of memory tokens in the model 
+                will be used. If int, the specified group from multiple 
+                existing groups will be utilized.
+
         Returns:
-            output (torch.Tensor): output feature (batch, C, N, freq, time)
+            output (torch.Tensor): Output feature tensor of shape 
+                (batch, output_size, freq, time).
+
+        Examples:
+            >>> model = USES(input_size=128, output_size=64)
+            >>> input_tensor = torch.randn(10, 2, 128, 64, 100)
+            >>> output_tensor = model(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([10, 64, 64, 100])
+
+        Note:
+            Ensure that the input tensor's shape is compatible with 
+            the expected dimensions, as specified in the arguments.
         """
         B, C, N, F, T = x.shape
         batch = x.permute(0, 4, 1, 3, 2)  # [B, T, C, F, N]
@@ -372,6 +591,38 @@ class ChannelAttention(nn.Module):
 
 
 class ChannelTAC(nn.Module):
+    """
+    Channel Transform-Average-Concatenate (TAC) module.
+
+This module performs a series of transformations on the input feature to 
+enhance the channel representation by transforming, averaging, and 
+concatenating the features. It is particularly useful in scenarios where 
+channel interactions are significant for the overall performance of the 
+model.
+
+Attributes:
+    transform (nn.Sequential): A sequential module that transforms the input 
+        features to a higher-dimensional space.
+    average (nn.Sequential): A sequential module that averages the transformed 
+        features.
+    concat (nn.Sequential): A sequential module that concatenates the transformed 
+        and averaged features and applies layer normalization.
+
+Args:
+    input_dim (int): Dimension of the input feature.
+    eps (float): Epsilon for layer normalization, to avoid division by zero.
+
+Examples:
+    >>> tac = ChannelTAC(input_dim=128)
+    >>> input_tensor = torch.randn(32, 4, 128, 64, 64)  # (batch, C, N, freq, time)
+    >>> output_tensor = tac(input_tensor)
+    >>> output_tensor.shape
+    torch.Size([32, 4, 128, 64, 64])
+
+Returns:
+    output (torch.Tensor): Output feature (batch, C, N, freq, time) after 
+        transformation, averaging, concatenation, and residual addition.
+    """
     def __init__(self, input_dim, eps=1e-5):
         """Channel Transform-Average-Concatenate (TAC) module.
 
@@ -391,13 +642,49 @@ class ChannelTAC(nn.Module):
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, x, ref_channel=None):
-        """ChannelTAC Forward.
+        """
+        Unconstrained Speech Enhancement and Separation (USES) Network.
 
-        Args:
-            x (torch.Tensor): input feature (batch, C, N, freq, time)
-            ref_channel (None or int): index of the reference channel.
-        Returns:
-            output (torch.Tensor): output feature (batch, C, N, freq, time)
+    Reference:
+        [1] W. Zhang, K. Saijo, Z.-Q. Wang, S. Watanabe, and Y. Qian,
+        “Toward Universal Speech Enhancement for Diverse Input Conditions,”
+        in Proc. ASRU, 2023.
+
+    Args:
+        input_size (int): Dimension of the input feature.
+        output_size (int): Dimension of the output.
+        bottleneck_size (int): Dimension of the bottleneck feature.
+            Must be a multiple of `att_heads`.
+        num_blocks (int): Number of processing blocks.
+        num_spatial_blocks (int): Number of processing blocks with channel modeling.
+        segment_size (int): Number of frames in each non-overlapping segment.
+            This is used to segment long utterances into smaller segments for
+            efficient processing.
+        memory_size (int): Group size of global memory tokens.
+            The basic use of memory tokens is to store the history information from
+            previous segments. The memory tokens are updated by the output of the last
+            block after processing each segment.
+        memory_types (int): Number of memory token groups.
+            Each group corresponds to a different type of processing, i.e.,
+                the first group is used for denoising without dereverberation,
+                the second group is used for denoising with dereverberation.
+        rnn_type (str): Type of the RNN cell in the improved Transformer layer.
+        hidden_size (int): Hidden dimension of the RNN cell.
+        att_heads (int): Number of attention heads in Transformer.
+        dropout (float): Dropout ratio. Default is 0.
+        activation (str): Non-linear activation function applied in each block.
+        bidirectional (bool): Whether the RNN layers are bidirectional.
+        norm_type (str): Normalization type in the improved Transformer layer.
+        ch_mode (str): Mode of channel modeling. Select from "att" and "tac".
+        ch_att_dim (int): Dimension of the channel attention.
+        eps (float): Epsilon for layer normalization.
+
+    Examples:
+        >>> model = USES(input_size=128, output_size=64)
+        >>> input_tensor = torch.randn(10, 2, 128, 64, 50)  # (batch, mics, input_size, freq, time)
+        >>> output = model(input_tensor)
+        >>> output.shape
+        torch.Size([10, 64, 64, 50])  # (batch, output_size, freq, time)
         """
         batch = x.contiguous().permute(0, 4, 1, 3, 2)  # [B, T, C, F, N]
         out = self.transform(batch)
@@ -408,6 +695,40 @@ class ChannelTAC(nn.Module):
 
 
 class LayerNormalization(nn.Module):
+    """
+    Layer normalization for neural network layers.
+
+    This module applies layer normalization to the input tensor along the specified 
+    dimension. It normalizes the input to have a mean of zero and a variance of one 
+    for each sample in the batch.
+
+    Attributes:
+        gamma (torch.Tensor): Scale parameter for the normalization.
+        beta (torch.Tensor): Shift parameter for the normalization.
+        eps (float): A small constant added to the variance for numerical stability.
+
+    Args:
+        input_dim (int): Dimension of the input feature.
+        dim (int): The dimension along which to normalize. Defaults to 1.
+        total_dim (int): Total number of dimensions of the input tensor. Defaults to 4.
+        eps (float): Epsilon value to prevent division by zero in normalization. 
+            Defaults to 1e-5.
+
+    Raises:
+        ValueError: If the input tensor does not have the expected number of dimensions.
+
+    Examples:
+        >>> layer_norm = LayerNormalization(input_dim=10)
+        >>> input_tensor = torch.randn(32, 10, 5)  # (batch_size, input_dim, features)
+        >>> output_tensor = layer_norm(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([32, 10, 5])
+
+    Note:
+        This implementation assumes that the input tensor has at least `dim + 1`
+        dimensions. If the input tensor has fewer dimensions, a ValueError will be 
+        raised.
+    """
     def __init__(self, input_dim, dim=1, total_dim=4, eps=1e-5):
         super().__init__()
         self.dim = dim if dim >= 0 else total_dim + dim
@@ -420,6 +741,37 @@ class LayerNormalization(nn.Module):
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, x):
+        """
+        Forward pass for the USES network.
+
+    This method processes the input tensor through the network layers and returns 
+    the output tensor. It supports the use of memory tokens for efficient 
+    segment-by-segment processing.
+
+    Args:
+        input (torch.Tensor): Input feature tensor of shape 
+            (batch, mics, input_size, freq, time).
+        ref_channel (None or int): Index of the reference channel.
+            If None, all channels are averaged. If int, the specified channel 
+            is used instead of averaging.
+        mem_idx (None or int): Index of the memory token group.
+            If None, the only group of memory tokens in the model is used. 
+            If int, the specified group from multiple existing groups is used.
+
+    Returns:
+        output (torch.Tensor): Output feature tensor of shape 
+            (batch, output_size, freq, time).
+    
+    Raises:
+        ValueError: If the input tensor does not have the expected number of 
+            dimensions or if the reference channel index is out of bounds.
+
+    Examples:
+        >>> model = USES(input_size=128, output_size=64)
+        >>> input_tensor = torch.randn(2, 2, 128, 10, 20)  # (batch, mics, input_size, freq, time)
+        >>> output = model(input_tensor, ref_channel=0)
+        >>> print(output.shape)  # Should print (2, 64, 10, 20)
+        """
         if x.ndim - 1 < self.dim:
             raise ValueError(
                 f"Expect x to have {self.dim + 1} dimensions, but got {x.ndim}"

@@ -14,6 +14,55 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class MaskEstimator(torch.nn.Module):
+    """
+    MaskEstimator is a neural network module for estimating masks in audio 
+enhancement tasks. It leverages recurrent neural networks (RNN) for 
+temporal feature extraction and produces multiple masks based on the input 
+spectrogram.
+
+Attributes:
+    type (str): The type of RNN architecture to be used ('vgg' or 'p').
+    nmask (int): The number of masks to estimate.
+    nonlinear (str): The type of nonlinearity applied to the output masks 
+        ('sigmoid', 'relu', 'tanh', or 'crelu').
+    brnn (torch.nn.Module): The recurrent neural network module.
+    linears (torch.nn.ModuleList): A list of linear layers for mask estimation.
+
+Args:
+    type (str): The type of RNN architecture ('vgg', 'vggp', etc.).
+    idim (int): Input dimension (number of features).
+    layers (int): Number of RNN layers.
+    units (int): Number of units in each RNN layer.
+    projs (int): Number of projected features after the RNN.
+    dropout (float): Dropout rate for the RNN.
+    nmask (int, optional): Number of masks to estimate (default is 1).
+    nonlinear (str, optional): Nonlinearity to apply to the output masks 
+        (default is 'sigmoid').
+
+Returns:
+    Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]: A tuple containing 
+    the estimated masks and the input lengths.
+
+Raises:
+    ValueError: If the specified nonlinear activation is not supported.
+
+Examples:
+    >>> mask_estimator = MaskEstimator(type='vgg', idim=64, layers=3, 
+    ...                                 units=128, projs=64, dropout=0.1)
+    >>> xs = torch.randn(8, 64, 2, 100)  # Example input (B, F, C, T)
+    >>> ilens = torch.tensor([100] * 8)  # Example input lengths
+    >>> masks, lengths = mask_estimator(xs, ilens)
+    >>> print(masks)  # Output masks for each estimated mask
+
+Note:
+    The input tensor `xs` should have dimensions (B, F, C, T), where B is 
+    the batch size, F is the number of frequency bins, C is the number of 
+    channels, and T is the number of time frames.
+
+Todo:
+    - Add support for more complex RNN architectures.
+    - Implement additional nonlinearity options.
+    """
     def __init__(
         self, type, idim, layers, units, projs, dropout, nmask=1, nonlinear="sigmoid"
     ):

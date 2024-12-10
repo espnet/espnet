@@ -10,6 +10,51 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 
 
 class DPCLE2ESeparator(AbsSeparator):
+    """
+    Deep Clustering End-to-End Separator.
+
+    This class implements a deep clustering approach for single-channel
+    multi-speaker separation. The model utilizes a recurrent neural network
+    (RNN) architecture to learn speaker-specific masks from the input audio
+    features.
+
+    References:
+        Single-Channel Multi-Speaker Separation using Deep Clustering;
+        Yusuf Isik et al., 2016;
+        https://www.isca-speech.org/archive/interspeech_2016/isik16_interspeech.html
+
+    Args:
+        input_dim (int): Input feature dimension.
+        rnn_type (str): Type of RNN to use. Options include 'blstm', 'lstm', etc.
+        num_spk (int): Number of speakers in the input audio.
+        predict_noise (bool): Whether to output the estimated noise signal.
+        nonlinear (str): Nonlinear function for mask estimation.
+            Options: 'relu', 'tanh', 'sigmoid'.
+        layer (int): Number of stacked RNN layers. Default is 2.
+        unit (int): Dimension of the hidden state.
+        emb_D (int): Dimension of the feature vector for a tf-bin.
+        dropout (float): Dropout ratio. Default is 0.0.
+        alpha (float): Clustering hardness parameter.
+        max_iteration (int): Maximum iterations for soft k-means.
+        threshold (float): Threshold to end the soft k-means process.
+
+    Returns:
+        None.
+
+    Examples:
+        separator = DPCLE2ESeparator(input_dim=257, num_spk=2)
+        input_features = torch.randn(10, 100, 257)  # (Batch, Time, Frequency)
+        input_lengths = torch.tensor([100] * 10)  # Lengths of each input sequence
+        masked_outputs, lengths, others = separator(input_features, input_lengths)
+
+    Note:
+        This separator is designed to work with both real and complex input
+        tensors. Ensure the input features are properly formatted before 
+        passing them to the forward method.
+
+    Raises:
+        ValueError: If an unsupported nonlinear activation function is provided.
+    """
     def __init__(
         self,
         input_dim: int,
@@ -96,22 +141,49 @@ class DPCLE2ESeparator(AbsSeparator):
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
-        """Forward.
+        """
+        Forward pass for the DPCLE2ESeparator.
+
+        This method takes the encoded features and performs the forward pass
+        through the model to separate the sources. It applies a soft K-means
+        clustering algorithm to estimate the masks for each speaker.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
-            ilens (torch.Tensor): input lengths [Batch]
+            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor 
+                of shape [B, T, F] where B is batch size, T is time frames, 
+                and F is the number of frequency bins.
+            ilens (torch.Tensor): Tensor of input lengths of shape [Batch].
+            additional (Optional[Dict], optional): Additional information that 
+                can be passed to the forward method. Defaults to None.
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
-            ilens (torch.Tensor): (B,)
-            others predicted data, e.g. V: OrderedDict[
-                others predicted data, e.g. masks: OrderedDict[
-                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-                ...
-                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
-            ]
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
+            OrderedDict]: A tuple containing:
+                - masked (List[Union[torch.Tensor, ComplexTensor]]): List of 
+                  tensors, each of shape (B, T, F) representing the 
+                  separated sources [(B, T, N), ...].
+                - ilens (torch.Tensor): Tensor containing the lengths of each 
+                  output in the batch.
+                - others (OrderedDict): Contains additional predicted data, 
+                  e.g., masks for each speaker:
+                    - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                    - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                    ...
+                    - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
+
+        Examples:
+            >>> separator = DPCLE2ESeparator(input_dim=128)
+            >>> input_tensor = torch.randn(10, 100, 128)  # Batch of 10
+            >>> ilens = torch.tensor([100] * 10)  # All sequences of length 100
+            >>> masked, ilens_out, others = separator.forward(input_tensor, ilens)
+
+        Note:
+            The output masks can be applied to the input features to obtain 
+            the estimated sources.
+
+        Raises:
+            ValueError: If the input is not a valid tensor or if ilens does 
+            not match the batch size.
         """
 
         # if complex spectrum,

@@ -11,7 +11,71 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class STFTDecoder(AbsDecoder):
-    """STFT decoder for speech enhancement and separation"""
+    """
+    STFTDecoder is a subclass of AbsDecoder that implements the Short-Time Fourier 
+    Transform (STFT) decoder for speech enhancement and separation tasks.
+
+    This class takes in complex spectrograms and reconstructs the time-domain 
+    waveforms. It includes functionality for various spectral transformations and 
+    supports both batch and streaming processing.
+
+    Attributes:
+        n_fft (int): Number of FFT points.
+        win_length (int): Length of each window segment.
+        hop_length (int): Number of samples between successive frames.
+        window (str): Type of window to use (e.g., "hann").
+        center (bool): If True, the signal is padded to center the window.
+        default_fs (int): Default sampling rate in Hz.
+        spec_transform_type (str): Type of spectral transformation ("exponent", 
+            "log", or "none").
+        spec_factor (float): Scaling factor for the output spectrum.
+        spec_abs_exponent (float): Exponent factor used in the "exponent" 
+            transformation.
+
+    Args:
+        n_fft (int): Number of FFT points. Default is 512.
+        win_length (int, optional): Length of each window segment. Default is None.
+        hop_length (int): Number of samples between successive frames. Default is 128.
+        window (str): Type of window to use (e.g., "hann"). Default is "hann".
+        center (bool): If True, the signal is padded to center the window. Default is True.
+        normalized (bool): If True, the window is normalized. Default is False.
+        onesided (bool): If True, the output will be one-sided. Default is True.
+        default_fs (int): Default sampling rate in Hz. Default is 16000.
+        spec_transform_type (str, optional): Type of spectral transformation 
+            ("exponent", "log", or "none"). Default is None.
+        spec_factor (float): Scaling factor for the output spectrum. Default is 0.15.
+        spec_abs_exponent (float): Exponent factor used in the "exponent" 
+            transformation. Default is 0.5.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Reconstructed waveforms and their lengths.
+
+    Raises:
+        TypeError: If the input tensor is not a complex tensor.
+
+    Examples:
+        >>> import torch
+        >>> from espnet2.enh.encoder.stft_encoder import STFTEncoder
+        >>> input_audio = torch.randn((1, 100))
+        >>> ilens = torch.LongTensor([100])
+        >>> nfft = 32
+        >>> win_length = 28
+        >>> hop = 10
+        >>> encoder = STFTEncoder(n_fft=nfft, win_length=win_length, 
+        ...                        hop_length=hop, onesided=True, 
+        ...                        spec_transform_type="exponent")
+        >>> decoder = STFTDecoder(n_fft=nfft, win_length=win_length, 
+        ...                        hop_length=hop, onesided=True, 
+        ...                        spec_transform_type="exponent")
+        >>> frames, flens = encoder(input_audio, ilens)
+        >>> wav, ilens = decoder(frames, ilens)
+
+    Note:
+        The class supports half-precision training for compatible input types.
+    
+    Todo:
+        - Implement additional spectral transformation types if needed.
+    """
 
     def __init__(
         self,
@@ -57,14 +121,47 @@ class STFTDecoder(AbsDecoder):
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
-        """Forward.
+        """
+        Forward method for the STFTDecoder class, which processes the input spectrum
+and reconstructs the time-domain waveform.
 
-        Args:
-            input (ComplexTensor): spectrum [Batch, T, (C,) F]
-            ilens (torch.Tensor): input lengths [Batch]
-            fs (int): sampling rate in Hz
-                If not None, reconfigure iSTFT window and hop lengths for a new
-                sampling rate while keeping their duration fixed.
+This method takes a complex spectrum as input and uses the inverse Short-Time 
+Fourier Transform (iSTFT) to convert it back to the time-domain waveform. The 
+input can be configured for different sampling rates. 
+
+Args:
+    input (ComplexTensor): Spectrum tensor of shape [Batch, T, (C,) F], where 
+        T is the number of time frames, C is the number of channels, and F is 
+        the number of frequency bins.
+    ilens (torch.Tensor): A tensor containing the lengths of each input 
+        sequence in the batch. Shape [Batch].
+    fs (int, optional): The sampling rate in Hz. If not None, the iSTFT 
+        window and hop lengths are reconfigured for the new sampling rate while 
+        keeping their duration fixed.
+
+Returns:
+    tuple: A tuple containing:
+        - wav (torch.Tensor): The reconstructed waveform of shape 
+          [Batch, Nsamples, (C,)].
+        - wav_lens (torch.Tensor): The lengths of the reconstructed waveforms, 
+          shape [Batch].
+
+Raises:
+    TypeError: If the input tensor is not of type ComplexTensor and 
+    if PyTorch version is 1.9.0 or higher and the input is not a complex tensor.
+
+Examples:
+    >>> import torch
+    >>> from torch_complex.tensor import ComplexTensor
+    >>> decoder = STFTDecoder(n_fft=512, hop_length=128)
+    >>> input_spectrum = ComplexTensor(torch.randn(1, 100, 1, 257))  # Example spectrum
+    >>> ilens = torch.tensor([100])  # Example input lengths
+    >>> wav, wav_lens = decoder(input_spectrum, ilens)
+    >>> print(wav.shape, wav_lens.shape)  # Output shapes
+
+Note:
+    The input tensor must be a complex tensor to perform the inverse STFT 
+    operation.
         """
         if not isinstance(input, ComplexTensor) and (
             is_torch_1_9_plus and not torch.is_complex(input)
@@ -128,6 +225,89 @@ class STFTDecoder(AbsDecoder):
         return window
 
     def spec_back(self, spec):
+        """
+        STFTDecoder is a class that implements a Short-Time Fourier Transform (STFT) 
+    decoder for speech enhancement and separation.
+
+    This decoder is designed to convert complex spectral representations back 
+    into time-domain waveforms, enabling applications in speech processing.
+
+    Attributes:
+        stft (Stft): Instance of the STFT layer used for converting spectra 
+            back to waveforms.
+        win_length (int): Length of the window used for STFT.
+        n_fft (int): Number of FFT points.
+        hop_length (int): Number of samples to hop between frames.
+        window (str): Type of window function used for STFT.
+        center (bool): If True, the signal is centered before the STFT.
+        default_fs (int): Default sampling frequency for reconfiguration.
+        spec_transform_type (str): Type of spectral transformation to apply 
+            ("exponent", "log", or "none").
+        spec_factor (float): Factor to scale the spectrum.
+        spec_abs_exponent (float): Exponent used in the "exponent" 
+            transformation.
+
+    Args:
+        n_fft (int): Number of FFT points. Default is 512.
+        win_length (int, optional): Length of the window. If None, defaults 
+            to n_fft.
+        hop_length (int): Number of samples to hop between frames. Default 
+            is 128.
+        window (str): Type of window function (e.g., "hann"). Default is 
+            "hann".
+        center (bool): If True, signal is centered before the STFT. Default 
+            is True.
+        normalized (bool): If True, normalize the STFT. Default is False.
+        onesided (bool): If True, use a one-sided STFT. Default is True.
+        default_fs (int): Default sampling frequency. Default is 16000.
+        spec_transform_type (str, optional): Type of spectral transformation 
+            ("exponent", "log", or "none"). Default is None.
+        spec_factor (float): Factor to scale the spectrum. Default is 0.15.
+        spec_abs_exponent (float): Exponent for "exponent" transformation. 
+            Default is 0.5.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Returns the reconstructed waveforms 
+        and their lengths.
+
+    Raises:
+        TypeError: If the input tensor is not of type ComplexTensor or a 
+        compatible complex tensor.
+
+    Examples:
+        # Example usage:
+        import torch
+        from espnet2.enh.encoder.stft_encoder import STFTEncoder
+
+        input_audio = torch.randn((1, 100))
+        ilens = torch.LongTensor([100])
+
+        nfft = 32
+        win_length = 28
+        hop = 10
+
+        encoder = STFTEncoder(
+            n_fft=nfft,
+            win_length=win_length,
+            hop_length=hop,
+            onesided=True,
+            spec_transform_type="exponent",
+        )
+        decoder = STFTDecoder(
+            n_fft=nfft,
+            win_length=win_length,
+            hop_length=hop,
+            onesided=True,
+            spec_transform_type="exponent",
+        )
+        frames, flens = encoder(input_audio, ilens)
+        wav, ilens = decoder(frames, ilens)
+
+    Note:
+        The STFTDecoder is particularly useful for applications in speech 
+        enhancement and separation tasks, where the conversion from spectral 
+        to time-domain representations is essential.
+        """
         if self.spec_transform_type == "exponent":
             spec = spec / self.spec_factor
             if self.spec_abs_exponent != 1:
@@ -141,11 +321,26 @@ class STFTDecoder(AbsDecoder):
         return spec
 
     def forward_streaming(self, input_frame: torch.Tensor):
-        """Forward.
+        """
+        Process a single frame of complex spectrum input to produce audio.
+
+        This method performs an inverse short-time Fourier transform (iSTFT) on the
+        input frame and returns the corresponding audio waveform. The input is
+        expected to be a complex tensor representing the spectrum of a single frame.
 
         Args:
-            input (ComplexTensor): spectrum [Batch, 1, F]
-            output: wavs [Batch, 1, self.win_length]
+            input_frame (torch.Tensor): Spectrum of shape [Batch, 1, F] where
+                F is the number of frequency bins.
+
+        Returns:
+            torch.Tensor: The reconstructed audio waveform of shape
+                [Batch, 1, self.win_length].
+
+        Examples:
+            >>> input_frame = torch.randn((1, 1, 512), dtype=torch.complex64)
+            >>> output_wav = decoder.forward_streaming(input_frame)
+            >>> output_wav.shape
+            torch.Size([1, 1, 512])
         """
         input_frame = self.spec_back(input_frame)
         input_frame = input_frame.real + 1j * input_frame.imag
@@ -163,17 +358,36 @@ class STFTDecoder(AbsDecoder):
         return output_wav * self._get_window_func()
 
     def streaming_merge(self, chunks, ilens=None):
-        """streaming_merge. It merges the frame-level processed audio chunks
-        in the streaming *simulation*. It is noted that, in real applications,
-        the processed audio should be sent to the output channel frame by frame.
-        You may refer to this function to manage your streaming output buffer.
+        """
+        Merge frame-level processed audio chunks in a streaming simulation.
+
+        This method merges audio chunks processed at the frame level. 
+        It is important to note that, in real applications, the processed 
+        audio should be sent to the output channel frame by frame. 
+        This function can be referred to for managing the streaming output 
+        buffer.
 
         Args:
-            chunks: List [(B, frame_size),]
-            ilens: [B]
+            chunks (List[torch.Tensor]): A list of audio chunks, each of shape 
+                (B, frame_size).
+            ilens (torch.Tensor, optional): Input lengths of shape [B]. 
+                If provided, it will be used to trim the merged audio.
+
         Returns:
-            merge_audio: [B, T]
-        """  # noqa: H405
+            torch.Tensor: Merged audio of shape [B, T].
+
+        Examples:
+            >>> decoder = STFTDecoder(win_length=256, hop_length=128)
+            >>> chunks = [torch.randn(2, 256) for _ in range(5)]  # 5 chunks
+            >>> ilens = torch.tensor([256, 256])  # Lengths for each batch
+            >>> merged_audio = decoder.streaming_merge(chunks, ilens)
+            >>> print(merged_audio.shape)
+            torch.Size([2, T])  # T will depend on the number of chunks
+
+        Note:
+            The output audio is normalized based on the applied windowing 
+            function.
+        """
 
         frame_size = self.win_length
         hop_size = self.hop_length

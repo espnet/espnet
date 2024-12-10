@@ -16,15 +16,41 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 class SingleRNN(nn.Module):
-    """Container module for a single RNN layer.
+    """
+    Container module for a single RNN layer.
 
-    args:
-        rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
-        input_size: int, dimension of the input feature. The input should have shape
-                    (batch, seq_len, input_size).
-        hidden_size: int, dimension of the hidden state.
-        dropout: float, dropout ratio. Default is 0.
-        bidirectional: bool, whether the RNN layers are bidirectional. Default is False.
+    This class implements a single RNN layer that can be configured to use
+    either RNN, LSTM, or GRU types. It includes a linear projection layer 
+    and dropout functionality.
+
+    Attributes:
+        rnn_type (str): The type of RNN ('RNN', 'LSTM', or 'GRU').
+        input_size (int): The dimension of the input features.
+        hidden_size (int): The dimension of the hidden state.
+        num_direction (int): The number of directions for the RNN (1 for 
+            unidirectional, 2 for bidirectional).
+        rnn (nn.Module): The RNN layer instance.
+        dropout (nn.Dropout): The dropout layer.
+        proj (nn.Linear): The linear projection layer.
+
+    Args:
+        rnn_type (str): Type of RNN to use. Must be 'RNN', 'LSTM', or 'GRU'.
+        input_size (int): Dimension of the input feature. The input should 
+            have shape (batch, seq_len, input_size).
+        hidden_size (int): Dimension of the hidden state.
+        dropout (float, optional): Dropout ratio. Default is 0.
+        bidirectional (bool, optional): Whether the RNN layers are 
+            bidirectional. Default is False.
+
+    Raises:
+        AssertionError: If rnn_type is not one of 'RNN', 'LSTM', or 'GRU'.
+
+    Examples:
+        >>> rnn_layer = SingleRNN('LSTM', input_size=128, hidden_size=64)
+        >>> input_tensor = torch.randn(32, 10, 128)  # (batch, seq_len, input_size)
+        >>> output, state = rnn_layer(input_tensor)
+        >>> output.shape
+        torch.Size([32, 10, 128])  # output shape is (batch, seq_len, input_size)
     """
 
     def __init__(
@@ -59,6 +85,34 @@ class SingleRNN(nn.Module):
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)
 
     def forward(self, input, state=None):
+        """
+        Perform a forward pass through the SingleRNN layer.
+
+    This method takes the input tensor and an optional hidden state,
+    processes the input through the RNN layer, applies dropout, and 
+    projects the output back to the input feature dimension.
+
+    Args:
+        input (torch.Tensor): Input tensor of shape (batch, seq_len, dim).
+        state (torch.Tensor, optional): The initial hidden state of the RNN.
+                                         If not provided, it defaults to None.
+
+    Returns:
+        tuple: A tuple containing:
+            - output (torch.Tensor): The output tensor after processing, with 
+              shape (batch, seq_len, input_size).
+            - state (torch.Tensor): The hidden state after processing, with 
+              shape (num_layers * num_directions, batch, hidden_size).
+
+    Examples:
+        >>> rnn = SingleRNN(rnn_type='LSTM', input_size=10, hidden_size=20)
+        >>> input_tensor = torch.randn(5, 15, 10)  # (batch_size, seq_len, input_size)
+        >>> output, hidden_state = rnn(input_tensor)
+
+    Note:
+        The input tensor should have shape (batch, seq_len, input_size).
+        The hidden state should match the dimensions of the RNN layer.
+        """
         # input shape: batch, seq, dim
         # input = input.to(device)
         output = input
@@ -72,17 +126,44 @@ class SingleRNN(nn.Module):
 
 # dual-path RNN
 class DPRNN(nn.Module):
-    """Deep dual-path RNN.
+    """
+    Deep dual-path RNN for efficient long sequence modeling.
 
-    args:
-        rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
-        input_size: int, dimension of the input feature. The input should have shape
-                    (batch, seq_len, input_size).
-        hidden_size: int, dimension of the hidden state.
-        output_size: int, dimension of the output size.
-        dropout: float, dropout ratio. Default is 0.
-        num_layers: int, number of stacked RNN layers. Default is 1.
-        bidirectional: bool, whether the RNN layers are bidirectional. Default is True.
+    This module implements a dual-path RNN as proposed in Luo et al. 
+    "Dual-path RNN: efficient long sequence modeling for time-domain 
+    single-channel speech separation." The dual-path RNN applies RNN 
+    layers in both row and column directions to effectively model 
+    long sequences while maintaining efficiency.
+
+    Args:
+        rnn_type (str): Select from 'RNN', 'LSTM', and 'GRU'.
+        input_size (int): Dimension of the input feature. The input 
+                          should have shape (batch, seq_len, input_size).
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        dropout (float): Dropout ratio. Default is 0.
+        num_layers (int): Number of stacked RNN layers. Default is 1.
+        bidirectional (bool): Whether the RNN layers are bidirectional. 
+                             Default is True.
+
+    Examples:
+        >>> dprnn = DPRNN('LSTM', input_size=256, hidden_size=128, 
+                          output_size=256, num_layers=2)
+        >>> input_tensor = torch.randn(32, 10, 256)  # (batch_size, seq_len, input_size)
+        >>> output = dprnn(input_tensor)
+        >>> print(output.shape)  # Should be (32, 256, 10, 1)
+
+    Returns:
+        torch.Tensor: The output tensor with shape 
+                      (batch_size, output_size, dim1, dim2).
+
+    Note:
+        The dual-path RNN consists of row RNNs and column RNNs that are 
+        applied in sequence. The output is then processed through a 
+        linear layer for final predictions.
+
+    Raises:
+        AssertionError: If rnn_type is not one of 'RNN', 'LSTM', or 'GRU'.
     """
 
     def __init__(
@@ -130,6 +211,36 @@ class DPRNN(nn.Module):
         self.output = nn.Sequential(nn.PReLU(), nn.Conv2d(input_size, output_size, 1))
 
     def forward(self, input):
+        """
+        Perform a forward pass through the RNN layer.
+
+    This method processes the input tensor through the RNN layer, applies 
+    dropout, and performs a linear projection to transform the RNN output 
+    back to the input feature space.
+
+    Args:
+        input (torch.Tensor): Input tensor of shape (batch, seq_len, dim).
+            It should have dimensions representing batch size, sequence 
+            length, and input feature dimension.
+        state (torch.Tensor, optional): The initial hidden state for the RNN. 
+            If not provided, the RNN will initialize its hidden state 
+            internally.
+
+    Returns:
+        tuple: A tuple containing:
+            - output (torch.Tensor): The output tensor after processing through 
+              the RNN layer, of shape (batch, seq_len, dim).
+            - state (torch.Tensor): The final hidden state of the RNN.
+
+    Examples:
+        >>> rnn = SingleRNN('LSTM', input_size=10, hidden_size=20)
+        >>> input_tensor = torch.randn(5, 15, 10)  # batch_size=5, seq_len=15
+        >>> output, state = rnn(input_tensor)
+
+    Note:
+        The input tensor must be of shape (batch, seq_len, input_size) 
+        and the output tensor will have the same shape as the input tensor.
+        """
         # input shape: batch, N, dim1, dim2
         # apply RNN on dim1 first and then dim2
         # output shape: B, output_size, dim1, dim2
@@ -172,18 +283,53 @@ class DPRNN(nn.Module):
 
 # dual-path RNN with transform-average-concatenate (TAC)
 class DPRNN_TAC(nn.Module):
-    """Deep duaL-path RNN with TAC applied to each layer/block.
+    """
+    Deep duaL-path RNN with TAC applied to each layer/block.
 
-    args:
-        rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
-        input_size: int, dimension of the input feature. The input should
-                    have shape (batch, seq_len, input_size).
-        hidden_size: int, dimension of the hidden state.
-        output_size: int, dimension of the output size.
-        dropout: float, dropout ratio. Default is 0.
-        num_layers: int, number of stacked RNN layers. Default is 1.
-        bidirectional: bool, whether the RNN layers are bidirectional.
-                    Default is False.
+    This class implements a deep dual-path RNN architecture with 
+    Transform-Average-Concatenate (TAC) applied to each layer/block. 
+    It is designed for efficient processing of 3D input data and 
+    leverages the capabilities of RNNs for time-domain single-channel 
+    speech separation.
+
+    Attributes:
+        input_size (int): Dimension of the input feature.
+        output_size (int): Dimension of the output size.
+        hidden_size (int): Dimension of the hidden state.
+        row_rnn (nn.ModuleList): List of row RNNs for intra-segment processing.
+        col_rnn (nn.ModuleList): List of column RNNs for inter-segment processing.
+        ch_transform (nn.ModuleList): List of transformation layers for channels.
+        ch_average (nn.ModuleList): List of average pooling layers for channels.
+        ch_concat (nn.ModuleList): List of concatenation layers for channels.
+        row_norm (nn.ModuleList): List of normalization layers for row outputs.
+        col_norm (nn.ModuleList): List of normalization layers for column outputs.
+        ch_norm (nn.ModuleList): List of normalization layers for channel outputs.
+        output (nn.Sequential): Output layer that processes the final output.
+
+    Args:
+        rnn_type (str): Type of RNN to use. Must be one of 'RNN', 'LSTM', or 'GRU'.
+        input_size (int): Dimension of the input feature. The input should
+                          have shape (batch, seq_len, input_size).
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        dropout (float): Dropout ratio. Default is 0.
+        num_layers (int): Number of stacked RNN layers. Default is 1.
+        bidirectional (bool): Whether the RNN layers are bidirectional. 
+                             Default is False.
+
+    Examples:
+        >>> model = DPRNN_TAC(rnn_type='LSTM', input_size=64, hidden_size=128,
+        ...                   output_size=64, dropout=0.1, num_layers=2)
+        >>> input_tensor = torch.randn(32, 4, 16, 64)  # (batch, ch, N, dim1, dim2)
+        >>> num_mic = torch.tensor([2] * 32)  # Assume all inputs have 2 microphones
+        >>> output = model(input_tensor, num_mic)
+
+    Note:
+        The model supports both fixed geometry arrays and variable geometry arrays 
+        based on the `num_mic` parameter.
+
+    Raises:
+        AssertionError: If `rnn_type` is not one of the supported types ('RNN', 'LSTM', 'GRU').
     """
 
     def __init__(
@@ -250,6 +396,34 @@ class DPRNN_TAC(nn.Module):
         self.output = nn.Sequential(nn.PReLU(), nn.Conv2d(input_size, output_size, 1))
 
     def forward(self, input, num_mic):
+        """
+        Forward pass for the DPRNN_TAC model.
+
+    This method processes the input through the dual-path RNN with TAC 
+    applied to each layer/block. The model first applies RNN on the 
+    'dim1' dimension, followed by 'dim2', and finally across channels.
+
+    Args:
+        input (torch.Tensor): Input tensor of shape 
+            (batch, ch, N, dim1, dim2), where 'ch' is the number of 
+            channels, 'N' is the sequence length, and 'dim1', 'dim2' 
+            are the dimensions of the input features.
+        num_mic (torch.Tensor): A tensor of shape (batch,) indicating 
+            the number of microphones used for each batch item.
+
+    Returns:
+        torch.Tensor: The output tensor after processing, of shape 
+            (B, ch, N, dim1, dim2), where 'B' is the batch size.
+
+    Examples:
+        >>> model = DPRNN_TAC('LSTM', input_size=64, hidden_size=128, 
+        ...                   output_size=64)
+        >>> input_tensor = torch.randn(10, 4, 20, 32, 32)  # Batch of 10
+        >>> num_mic = torch.tensor([2, 2, 1, 0, 2, 1, 2, 0, 1, 2])
+        >>> output = model(input_tensor, num_mic)
+        >>> output.shape
+        torch.Size([10, 4, 20, 32, 32])
+        """
         # input shape: batch, ch, N, dim1, dim2
         # num_mic shape: batch,
         # apply RNN on dim1 first, then dim2, then ch
@@ -356,6 +530,37 @@ def _pad_segment(input, segment_size):
 
 
 def split_feature(input, segment_size):
+    """
+    Split the input features into chunks of specified segment size.
+
+    This function takes a tensor of features and splits it into overlapping 
+    segments of a given size. It also handles padding to ensure that the 
+    segments are of the correct size and can be processed without losing 
+    information from the input tensor.
+
+    Args:
+        input (torch.Tensor): The input tensor of shape (B, N, T), where 
+            B is the batch size, N is the number of features, and T is the 
+            sequence length.
+        segment_size (int): The size of each segment to split the input into.
+
+    Returns:
+        Tuple[torch.Tensor, int]: A tuple containing:
+            - A tensor of shape (B, N, K, segment_size), where K is the 
+              number of segments created from the input.
+            - An integer representing the number of elements that were 
+              padded at the end of the input.
+
+    Examples:
+        >>> input_tensor = torch.randn(2, 3, 10)  # (B=2, N=3, T=10)
+        >>> segments, rest = split_feature(input_tensor, segment_size=4)
+        >>> segments.shape
+        torch.Size([2, 3, 6, 4])  # Example output shape with K=6 segments
+
+    Note:
+        The function uses zero-padding to ensure that the input length is 
+        a multiple of the segment size before splitting.
+    """
     # split the feature into chunks of segment size
     # input is the features: (B, N, T)
 
@@ -383,6 +588,37 @@ def split_feature(input, segment_size):
 
 
 def merge_feature(input, rest):
+    """
+    Merge the splitted features into full utterance.
+
+    This function takes the split features and reconstructs the original 
+    full utterance. It combines the segments produced by the `split_feature`
+    function, accounting for any remaining elements that were padded during 
+    the segmentation process.
+
+    Args:
+        input (torch.Tensor): The input features with shape 
+            (B, N, L, K), where B is the batch size, N is the number of 
+            features, L is the number of segments, and K is the segment size.
+        rest (int): The number of elements that were padded and should 
+            be removed from the output.
+
+    Returns:
+        torch.Tensor: The reconstructed features with shape (B, N, T), 
+        where T is the length of the original sequence after removing 
+        the padded elements.
+
+    Examples:
+        >>> input = torch.rand(2, 3, 4, 5)  # Example input tensor
+        >>> rest = 1  # Example rest value
+        >>> output = merge_feature(input, rest)
+        >>> print(output.shape)  # Should output: torch.Size([2, 3, 19])
+
+    Note:
+        The `rest` parameter should match the padding applied during the 
+        splitting process to ensure correct reconstruction of the original 
+        sequence length.
+    """
     # merge the splitted features into full utterance
     # input is the features: (B, N, L, K)
 

@@ -8,6 +8,63 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 class AsteroidModel_Converter(AbsSeparator):
+    """
+    Convert models from Asteroid to AbsSeparator for speech separation.
+
+    This class serves as a bridge to utilize Asteroid models within the
+    AbsSeparator framework. It allows for the instantiation of various
+    Asteroid models, enabling speech enhancement tasks.
+
+    Attributes:
+        model: The instantiated Asteroid model.
+        _num_spk: The number of speakers to separate.
+        loss_type: The type of loss used for model training.
+
+    Args:
+        encoder_output_dim (int): Input feature dimension, default=1 after
+            the NullEncoder.
+        model_name (str): Asteroid model names, e.g., ConvTasNet, DPTNet.
+            Refer to: https://github.com/asteroid-team/asteroid/
+            blob/master/asteroid/models/__init__.py
+        num_spk (int): Number of speakers to separate.
+        pretrained_path (str, optional): Name of the pretrained model from
+            Asteroid in HF hub. Refer to:
+            https://github.com/asteroid-team/asteroid/
+            blob/master/docs/source/readmes/pretrained_models.md and
+            https://huggingface.co/models?filter=asteroid
+        loss_type (str, optional): Loss type of enhancement, default is
+            "si_snr".
+        **model_related_kwargs: Additional arguments specific to each
+            Asteroid model.
+
+    Raises:
+        AssertionError: If encoder_output_dim is not 1.
+        ValueError: If an unsupported loss type is specified.
+
+    Examples:
+        Instantiate the model with a pretrained ConvTasNet:
+        
+        >>> model = AsteroidModel_Converter(
+        ...     model_name="ConvTasNet",
+        ...     encoder_output_dim=1,
+        ...     num_spk=2,
+        ...     loss_type="si_snr",
+        ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean"
+        ... )
+        
+        Process a mixture of audio signals:
+        
+        >>> mixture = torch.randn(3, 16000)
+        >>> output, ilens, masks = model(mixture)
+
+        Access the number of speakers:
+        
+        >>> num_speakers = model.num_spk
+
+    Note:
+        Ensure that Asteroid is installed. Refer to:
+        https://github.com/asteroid-team/asteroid
+    """
     def __init__(
         self,
         encoder_output_dim: int,
@@ -72,22 +129,51 @@ class AsteroidModel_Converter(AbsSeparator):
         ilens: torch.Tensor = None,
         additional: Optional[Dict] = None,
     ):
-        """Whole forward of asteroid models.
+        """
+        Perform the forward pass of the asteroid models.
+
+        This method takes raw waveform input and processes it through the 
+        model to estimate the source waveforms and additional output data 
+        such as masks for each speaker.
 
         Args:
-            input (torch.Tensor): Raw Waveforms [B, T]
-            ilens (torch.Tensor): input lengths [B]
-            additional (Dict or None): other data included in model
+            input (torch.Tensor): Raw waveforms of shape [B, T] where B is the 
+                batch size and T is the length of the waveform.
+            ilens (torch.Tensor): Input lengths of shape [B]. This is optional 
+                and can be None.
+            additional (Dict or None): Additional data to be included in the 
+                model's forward pass, if required.
 
         Returns:
-            estimated Waveforms(List[Union(torch.Tensor]): [(B, T), ...]
-            ilens (torch.Tensor): (B,)
-            others predicted data, e.g. masks: OrderedDict[
-                'mask_spk1': torch.Tensor(Batch, T),
-                'mask_spk2': torch.Tensor(Batch, T),
-                ...
-                'mask_spkn': torch.Tensor(Batch, T),
-            ]
+            Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]: A tuple 
+            containing:
+                - estimated waveforms as a list of tensors [(B, T), ...]
+                - input lengths as a tensor of shape (B,)
+                - additional predicted data (e.g., masks) as an 
+                  OrderedDict with keys:
+                    - 'mask_spk1': torch.Tensor(Batch, T)
+                    - 'mask_spk2': torch.Tensor(Batch, T)
+                    - ...
+                    - 'mask_spkn': torch.Tensor(Batch, T)
+
+        Examples:
+            >>> input_waveforms = torch.randn(3, 16000)  # Batch of 3 waveforms
+            >>> model = AsteroidModel_Converter(
+            ...     model_name="ConvTasNet",
+            ...     encoder_output_dim=1,
+            ...     num_spk=2,
+            ...     loss_type="si_snr",
+            ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
+            ... )
+            >>> estimated_waveforms, lengths, masks = model.forward(input_waveforms)
+
+        Note:
+            The input tensor should have the correct shape, and the model 
+            should be properly initialized before calling this method.
+
+        Raises:
+            AssertionError: If the dimensions of the estimated sources do not 
+            match the number of speakers.
         """
 
         if hasattr(self.model, "forward_wav"):
@@ -109,7 +195,39 @@ class AsteroidModel_Converter(AbsSeparator):
     def forward_rawwav(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Output with waveforms."""
+        """
+        Output with waveforms.
+
+    This method processes the input raw waveforms through the model and 
+    returns the estimated source waveforms along with their respective 
+    lengths.
+
+    Args:
+        input (torch.Tensor): Raw waveforms with shape [B, T], where B is the 
+            batch size and T is the length of the waveforms.
+        ilens (torch.Tensor, optional): Input lengths with shape [B]. 
+            Defaults to None.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - estimated Waveforms (List[Union(torch.Tensor)]): A list of 
+              tensors representing the estimated waveforms for each speaker 
+              in the batch.
+            - ilens (torch.Tensor): A tensor representing the input lengths 
+              for the batch.
+    
+    Examples:
+        >>> mixture = torch.randn(3, 16000)  # Example input
+        >>> model = AsteroidModel_Converter(
+        ...     model_name="ConvTasNet",
+        ...     encoder_output_dim=1,
+        ...     num_spk=2,
+        ...     loss_type="si_snr",
+        ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
+        ... )
+        >>> output, ilens = model.forward_rawwav(mixture, torch.tensor([16000]*3))
+        >>> print(output[0].shape)  # Output shape for speaker 1
+        """
         return self.forward(input, ilens)
 
     @property
