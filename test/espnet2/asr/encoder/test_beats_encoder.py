@@ -37,7 +37,7 @@ def test_forward_pass(
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})  # Smaller model
+    beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -85,7 +85,7 @@ def test_backward_pass(
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})  # Smaller model
+    beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
