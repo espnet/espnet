@@ -9,7 +9,49 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class CommonCollateFn:
-    """Functor class of common_collate_fn()"""
+    """
+    A class that implements a common collate function for batching audio and text
+    data. This class is particularly useful in scenarios where data needs to be
+    collated into a format suitable for input into machine learning models,
+    especially in speech processing tasks.
+
+    Attributes:
+        float_pad_value (Union[float, int]): The value used to pad float tensors.
+        int_pad_value (int): The value used to pad integer tensors.
+        not_sequence (set): A collection of keys that should not have lengths
+            calculated.
+
+    Args:
+        float_pad_value (Union[float, int], optional): The float value to use for
+            padding. Defaults to 0.0.
+        int_pad_value (int, optional): The integer value to use for padding.
+            Defaults to -32768.
+        not_sequence (Collection[str], optional): A collection of keys that
+            should not be treated as sequences. Defaults to an empty tuple.
+
+    Returns:
+        Tuple[List[str], Dict[str, torch.Tensor]]: A tuple containing a list of
+        unique identifiers and a dictionary of collated tensors.
+
+    Examples:
+        >>> from espnet2.train.collate_fn import CommonCollateFn
+        >>> collate_fn = CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
+        >>> data = [
+        ...     ("id1", {"speech": np.array([1.0, 2.0]), "text": np.array([1])}),
+        ...     ("id2", {"speech": np.array([3.0]), "text": np.array([2])}),
+        ... ]
+        >>> result = collate_fn(data)
+        >>> print(result)
+        (['id1', 'id2'], {'speech': tensor(...), 'text': tensor(...)})
+
+    Note:
+        This class is designed to work seamlessly with the `common_collate_fn`
+        function for flexible handling of different data formats.
+
+    Raises:
+        AssertionError: If the input data does not match expected formats or
+        contains incompatible keys.
+    """
 
     @typechecked
     def __init__(
@@ -40,7 +82,73 @@ class CommonCollateFn:
 
 
 class HuBERTCollateFn(CommonCollateFn):
-    """Functor class of common_collate_fn()"""
+    """
+    Functor class for collating audio and label data for HuBERT training.
+
+    This class inherits from `CommonCollateFn` and provides additional
+    functionalities specific to HuBERT, such as label downsampling, random
+    cropping, and audio cropping. It ensures that the audio and label data
+    are correctly processed and padded before being passed to the model.
+
+    Attributes:
+        float_pad_value (Union[float, int]): Value used for padding float
+            tensors (default: 0.0).
+        int_pad_value (int): Value used for padding integer tensors
+            (default: -32768).
+        label_downsampling (int): Factor by which to downsample labels
+            (default: 1).
+        pad (bool): If True, pad audio to the maximum length in the batch
+            (default: False).
+        rand_crop (bool): If True, apply random cropping to the audio and
+            labels (default: True).
+        crop_audio (bool): If True, crop the audio to match the desired
+            length (default: True).
+        not_sequence (Collection[str]): Keys that should not have lengths
+            calculated (default: ()).
+        window_size (float): Size of the window for audio processing in ms
+            (default: 25).
+        window_shift (float): Shift of the window for audio processing in ms
+            (default: 20).
+        sample_rate (float): Sample rate of the audio in kHz (default: 16).
+
+    Args:
+        float_pad_value (Union[float, int]): Value used for padding float
+            tensors (default: 0.0).
+        int_pad_value (int): Value used for padding integer tensors
+            (default: -32768).
+        label_downsampling (int): Factor by which to downsample labels
+            (default: 1).
+        pad (bool): If True, pad audio to the maximum length in the batch
+            (default: False).
+        rand_crop (bool): If True, apply random cropping to the audio and
+            labels (default: True).
+        crop_audio (bool): If True, crop the audio to match the desired
+            length (default: True).
+        not_sequence (Collection[str]): Keys that should not have lengths
+            calculated (default: ()).
+        window_size (float): Size of the window for audio processing in ms
+            (default: 25).
+        window_shift (float): Shift of the window for audio processing in ms
+            (default: 20).
+        sample_rate (float): Sample rate of the audio in kHz (default: 16).
+
+    Returns:
+        Tuple[List[str], Dict[str, torch.Tensor]]: A tuple containing the
+        unique identifiers of the data and a dictionary of processed tensors.
+
+    Raises:
+        AssertionError: If the required keys "speech" and "text" are not
+        present in the input data.
+
+    Examples:
+        >>> collate_fn = HuBERTCollateFn(pad=True, rand_crop=False)
+        >>> batch = collate_fn(data)
+        >>> print(batch)
+
+    Note:
+        The `__call__` method asserts that the data contains "speech" and
+        "text" keys and processes the data accordingly.
+    """
 
     @typechecked
     def __init__(
@@ -186,15 +294,39 @@ def common_collate_fn(
     int_pad_value: int = -32768,
     not_sequence: Collection[str] = (),
 ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
-    """Concatenate ndarray-list to an array and convert to torch.Tensor.
+    """
+    Concatenate ndarray-list to an array and convert to torch.Tensor.
+
+    This function is used to collate a batch of data into a single tensor.
+    It takes care of padding and ensures that the input data is properly
+    structured for further processing.
+
+    Args:
+        data (Collection[Tuple[str, Dict[str, np.ndarray]]]):
+            A collection of tuples, where each tuple contains a unique
+            identifier and a dictionary of NumPy arrays. The dictionary
+            should have consistent keys across all samples.
+        float_pad_value (Union[float, int], optional):
+            The value used to pad floating-point tensors. Defaults to 0.0.
+        int_pad_value (int, optional):
+            The value used to pad integer tensors. Defaults to -32768.
+        not_sequence (Collection[str], optional):
+            A collection of keys that should not have their lengths
+            calculated. Defaults to an empty collection.
+
+    Returns:
+        Tuple[List[str], Dict[str, torch.Tensor]]:
+            A tuple where the first element is a list of unique
+            identifiers and the second element is a dictionary of
+            tensors, where each tensor corresponds to the padded data.
 
     Examples:
-        >>> from espnet2.samplers.constant_batch_sampler import ConstantBatchSampler,
+        >>> from espnet2.samplers.constant_batch_sampler import ConstantBatchSampler
         >>> import espnet2.tasks.abs_task
         >>> from espnet2.train.dataset import ESPnetDataset
         >>> sampler = ConstantBatchSampler(...)
         >>> dataset = ESPnetDataset(...)
-        >>> keys = next(iter(sampler)
+        >>> keys = next(iter(sampler))
         >>> batch = [dataset[key] for key in keys]
         >>> batch = common_collate_fn(batch)
         >>> model(**batch)
@@ -202,6 +334,9 @@ def common_collate_fn(
         Note that the dict-keys of batch are propagated from
         that of the dataset as they are.
 
+    Raises:
+        AssertionError: If the keys of the dictionaries in the data
+        collection do not match or if any key ends with "_lengths".
     """
     uttids = [u for u, _ in data]
     data = [d for _, d in data]

@@ -75,6 +75,74 @@ except Exception:
 
 @dataclasses.dataclass
 class TrainerOptions:
+    """
+        TrainerOptions is a data class that holds various options for training a model.
+
+    Attributes:
+        ngpu (int): Number of GPUs to use for training.
+        resume (bool): Whether to resume training from a checkpoint.
+        use_amp (bool): Whether to use Automatic Mixed Precision.
+        train_dtype (str): Data type used for training (e.g., 'float32').
+        grad_noise (bool): Whether to apply gradient noise.
+        accum_grad (int): Number of gradients to accumulate before updating.
+        grad_clip (float): Maximum norm for gradient clipping.
+        grad_clip_type (float): Type of norm for gradient clipping.
+        log_interval (Optional[int]): Interval for logging training progress.
+        no_forward_run (bool): If True, skips the forward pass during training.
+        use_matplotlib (bool): Whether to use matplotlib for plotting.
+        use_tensorboard (bool): Whether to use TensorBoard for logging.
+        use_wandb (bool): Whether to use Weights and Biases for logging.
+        adapter (str): Adapter type to use (e.g., 'lora').
+        use_adapter (bool): Whether to use an adapter.
+        save_strategy (str): Strategy for saving models (e.g., 'all').
+        output_dir (Union[Path, str]): Directory to save outputs.
+        max_epoch (int): Maximum number of training epochs.
+        seed (int): Random seed for reproducibility.
+        sharded_ddp (bool): Whether to use sharded DDP.
+        patience (Optional[int]): Patience for early stopping.
+        keep_nbest_models (Union[int, List[int]]): Number of best models to keep.
+        nbest_averaging_interval (int): Interval for averaging n-best models.
+        early_stopping_criterion (Sequence[str]): Criteria for early stopping.
+        best_model_criterion (Sequence[Sequence[str]]): Criteria for the best model.
+        val_scheduler_criterion (Sequence[str]): Validation scheduler criteria.
+        unused_parameters (bool): Whether to allow unused parameters.
+        wandb_model_log_interval (int): Interval for logging models to Weights and Biases.
+        create_graph_in_tensorboard (bool): Whether to create computation graph in TensorBoard.
+
+    Examples:
+        >>> options = TrainerOptions(
+        ...     ngpu=1,
+        ...     resume=False,
+        ...     use_amp=True,
+        ...     train_dtype='float32',
+        ...     grad_noise=False,
+        ...     accum_grad=1,
+        ...     grad_clip=5.0,
+        ...     grad_clip_type=2,
+        ...     log_interval=10,
+        ...     no_forward_run=False,
+        ...     use_matplotlib=True,
+        ...     use_tensorboard=True,
+        ...     use_wandb=False,
+        ...     adapter='lora',
+        ...     use_adapter=True,
+        ...     save_strategy='all',
+        ...     output_dir='output/',
+        ...     max_epoch=100,
+        ...     seed=42,
+        ...     sharded_ddp=False,
+        ...     patience=10,
+        ...     keep_nbest_models=[1, 2],
+        ...     nbest_averaging_interval=5,
+        ...     early_stopping_criterion=['loss'],
+        ...     best_model_criterion=[['train', 'loss', 'min']],
+        ...     val_scheduler_criterion=['val_loss'],
+        ...     unused_parameters=False,
+        ...     wandb_model_log_interval=5,
+        ...     create_graph_in_tensorboard=True
+        ... )
+    """
+
     ngpu: int
     resume: bool
     use_amp: bool
@@ -107,26 +175,51 @@ class TrainerOptions:
 
 
 class Trainer:
-    """Trainer having a optimizer.
+    """
+        Trainer module for managing the training process of ESPnet models.
 
-    If you'd like to use multiple optimizers, then inherit this class
-    and override the methods if necessary - at least "train_one_epoch()"
+    The Trainer class provides an interface for training models with various options,
+    optimizers, and schedulers. It allows for customization through inheritance and
+    overriding methods. The training process includes logging, validation, and
+    attention plotting.
 
-    >>> class TwoOptimizerTrainer(Trainer):
-    ...     @classmethod
-    ...     def add_arguments(cls, parser):
-    ...         ...
-    ...
-    ...     @classmethod
-    ...     def train_one_epoch(cls, model, optimizers, ...):
-    ...         loss1 = model.model1(...)
-    ...         loss1.backward()
-    ...         optimizers[0].step()
-    ...
-    ...         loss2 = model.model2(...)
-    ...         loss2.backward()
-    ...         optimizers[1].step()
+    Example:
+        To create a custom trainer with two optimizers, inherit from Trainer and
+        override the necessary methods:
 
+        >>> class TwoOptimizerTrainer(Trainer):
+        ...     @classmethod
+        ...     def add_arguments(cls, parser):
+        ...         ...
+        ...
+        ...     @classmethod
+        ...     def train_one_epoch(cls, model, optimizers, ...):
+        ...         loss1 = model.model1(...)
+        ...         loss1.backward()
+        ...         optimizers[0].step()
+        ...
+        ...         loss2 = model.model2(...)
+        ...         loss2.backward()
+        ...         optimizers[1].step()
+
+    Attributes:
+        None
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If an instance of this class is created directly.
+
+    Todo:
+        - Extend functionality for more optimizers and schedulers.
+        - Improve logging mechanisms for better insights during training.
+
+    Note:
+        This class cannot be instantiated directly; it is intended to be subclassed.
     """
 
     def __init__(self):
@@ -135,12 +228,55 @@ class Trainer:
     @classmethod
     @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
-        """Build options consumed by train(), eval(), and plot_attention()"""
+        """
+        Build options consumed by train(), eval(), and plot_attention().
+
+        This method constructs a `TrainerOptions` dataclass from the given
+        arguments. The options include various parameters that control the
+        training process, such as the number of GPUs, whether to use
+        automatic mixed precision (AMP), gradient clipping, logging intervals,
+        and more.
+
+        Args:
+            args (argparse.Namespace): Command line arguments parsed using
+                argparse.
+
+        Returns:
+            TrainerOptions: A dataclass instance containing the training
+                options.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> parser.add_argument('--ngpu', type=int, default=1)
+            >>> parser.add_argument('--resume', action='store_true')
+            >>> args = parser.parse_args(['--ngpu', '2', '--resume'])
+            >>> options = Trainer.build_options(args)
+            >>> print(options.ngpu)  # Output: 2
+            >>> print(options.resume)  # Output: True
+        """
         return build_dataclass(TrainerOptions, args)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
-        """Reserved for future development of another Trainer"""
+        """
+            Reserved for future development of another Trainer.
+
+        This method is intended to allow subclasses to define their own
+        command-line arguments for training configurations. It is currently
+        a placeholder and does not implement any functionality.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser instance
+                to which the arguments should be added.
+
+        Examples:
+            >>> import argparse
+            >>> class MyTrainer(Trainer):
+            ...     @classmethod
+            ...     def add_arguments(cls, parser):
+            ...         parser.add_argument('--my_arg', type=int, default=42)
+        """
         pass
 
     @staticmethod
@@ -154,6 +290,76 @@ class Trainer:
         ngpu: int = 0,
         strict: bool = True,
     ):
+        """
+                Trainer module.
+
+        This module provides the Trainer class for managing the training of
+        machine learning models, specifically in the context of deep learning
+        using PyTorch. The Trainer class includes methods for building options,
+        resuming training from checkpoints, and executing the training and
+        validation processes. It is designed to be extensible, allowing
+        subclasses to implement custom training logic.
+
+        Attributes:
+            ngpu (int): Number of GPUs to use for training.
+            resume (bool): Flag indicating whether to resume training from a
+                checkpoint.
+            use_amp (bool): Flag to indicate if Automatic Mixed Precision is
+                used.
+            train_dtype (str): Data type for training.
+            grad_noise (bool): Flag to indicate if gradient noise is added.
+            accum_grad (int): Number of batches to accumulate gradients.
+            grad_clip (float): Maximum value for gradient clipping.
+            grad_clip_type (float): Type of norm for gradient clipping.
+            log_interval (Optional[int]): Interval for logging training metrics.
+            no_forward_run (bool): Flag to skip forward run.
+            use_matplotlib (bool): Flag to indicate if Matplotlib is used for
+                plotting.
+            use_tensorboard (bool): Flag to indicate if TensorBoard is used for
+                logging.
+            use_wandb (bool): Flag to indicate if Weights & Biases is used for
+                logging.
+            adapter (str): Adapter type to be used.
+            use_adapter (bool): Flag to indicate if an adapter is used.
+            save_strategy (str): Strategy for saving models.
+            output_dir (Union[Path, str]): Directory for saving output files.
+            max_epoch (int): Maximum number of epochs for training.
+            seed (int): Random seed for reproducibility.
+            sharded_ddp (bool): Flag to indicate if sharded DDP is used.
+            patience (Optional[int]): Patience for early stopping.
+            keep_nbest_models (Union[int, List[int]]): Number of best models to
+                keep.
+            nbest_averaging_interval (int): Interval for averaging n-best
+                models.
+            early_stopping_criterion (Sequence[str]): Criteria for early
+                stopping.
+            best_model_criterion (Sequence[Sequence[str]]): Criteria for
+                determining the best model.
+            val_scheduler_criterion (Sequence[str]): Criteria for the
+                validation scheduler.
+            unused_parameters (bool): Flag to indicate if unused parameters are
+                ignored.
+            wandb_model_log_interval (int): Interval for logging model with
+                Weights & Biases.
+            create_graph_in_tensorboard (bool): Flag to indicate if graph is
+                created in TensorBoard.
+
+        Examples:
+            >>> class TwoOptimizerTrainer(Trainer):
+            ...     @classmethod
+            ...     def add_arguments(cls, parser):
+            ...         ...
+            ...
+            ...     @classmethod
+            ...     def train_one_epoch(cls, model, optimizers, ...):
+            ...         loss1 = model.model1(...)
+            ...         loss1.backward()
+            ...         optimizers[0].step()
+            ...
+            ...         loss2 = model.model2(...)
+            ...         loss2.backward()
+            ...         optimizers[1].step()
+        """
         states = torch.load(
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
@@ -186,7 +392,65 @@ class Trainer:
         trainer_options,
         distributed_option: DistributedOption,
     ) -> None:
-        """Perform training. This method performs the main process of training."""
+        """
+        Perform training.
+
+        This method executes the main process of training a model, which
+        includes training and validation for multiple epochs. It handles
+        various aspects of training such as gradient clipping, mixed
+        precision, logging, and model saving.
+
+        Args:
+            model (AbsESPnetModel): The model to be trained.
+            optimizers (Sequence[torch.optim.Optimizer]): A sequence of
+                optimizers to be used for training.
+            schedulers (Sequence[Optional[AbsScheduler]]): A sequence of
+                schedulers to adjust the learning rate.
+            train_iter_factory (AbsIterFactory): Factory to create training
+                data iterators.
+            valid_iter_factory (AbsIterFactory): Factory to create validation
+                data iterators.
+            plot_attention_iter_factory (Optional[AbsIterFactory]): Factory
+                to create data iterators for plotting attention, if any.
+            trainer_options: Options for training, must be a dataclass of
+                type TrainerOptions.
+            distributed_option (DistributedOption): Options related to
+                distributed training.
+
+        Raises:
+            RuntimeError: If any required component for training is missing
+                or if an error occurs during the training process.
+
+        Examples:
+            >>> trainer_options = TrainerOptions(ngpu=1, resume=False, use_amp=True,
+            ...                                   train_dtype='float32', grad_noise=False,
+            ...                                   accum_grad=1, grad_clip=5.0,
+            ...                                   grad_clip_type=2.0, log_interval=100,
+            ...                                   no_forward_run=False, use_matplotlib=True,
+            ...                                   use_tensorboard=True, use_wandb=False,
+            ...                                   adapter='none', use_adapter=False,
+            ...                                   save_strategy='all', output_dir='./output',
+            ...                                   max_epoch=10, seed=42, sharded_ddp=False,
+            ...                                   patience=None, keep_nbest_models=1,
+            ...                                   nbest_averaging_interval=1,
+            ...                                   early_stopping_criterion=['valid_loss'],
+            ...                                   best_model_criterion=[['valid', 'loss', 'min']],
+            ...                                   val_scheduler_criterion=['valid_loss'],
+            ...                                   unused_parameters=False,
+            ...                                   wandb_model_log_interval=1,
+            ...                                   create_graph_in_tensorboard=False)
+            >>> trainer.run(model, optimizers, schedulers, train_iter_factory,
+            ...              valid_iter_factory, plot_attention_iter_factory,
+            ...              trainer_options, distributed_option)
+
+        Note:
+            This method should be called within a context where the model,
+            optimizers, and data iterators are properly initialized.
+
+        Todo:
+            - Implement additional logging features.
+            - Enhance the validation process with more metrics.
+        """
         # NOTE(kamo): Don't check the type more strictly as far trainer_options
         assert is_dataclass(trainer_options), type(trainer_options)
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
@@ -529,6 +793,51 @@ class Trainer:
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
+        """
+        Train the model for one epoch.
+
+        This method handles the training loop for a single epoch, including
+        forward and backward passes, gradient updates, and logging. It also
+        supports distributed training.
+
+        Args:
+            model (torch.nn.Module): The model to be trained.
+            iterator (Iterable[Tuple[List[str], Dict[str, torch.Tensor]]]):
+                An iterable that provides batches of training data.
+            optimizers (Sequence[torch.optim.Optimizer]): A sequence of optimizers
+                for the model.
+            schedulers (Sequence[Optional[AbsScheduler]]): A sequence of learning
+                rate schedulers corresponding to the optimizers.
+            scaler (Optional[GradScaler]): A GradScaler for mixed precision
+                training.
+            reporter (SubReporter): A reporter to log training statistics.
+            summary_writer: A writer for logging to TensorBoard.
+            options (TrainerOptions): Options for the training process.
+            distributed_option (DistributedOption): Options for distributed
+                training.
+
+        Returns:
+            bool: Returns True if all gradient steps were invalid, otherwise False.
+
+        Examples:
+            >>> model = MyModel()
+            >>> iterator = data_loader()
+            >>> optimizers = [torch.optim.Adam(model.parameters())]
+            >>> schedulers = [torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)]
+            >>> reporter = SubReporter()
+            >>> options = TrainerOptions(...)
+            >>> distributed_option = DistributedOption(...)
+            >>> all_steps_invalid = Trainer.train_one_epoch(
+            ...     model, iterator, optimizers, schedulers, None, reporter, None, options, distributed_option
+            ... )
+
+        Note:
+            This method modifies the model's parameters and may have side effects
+            on the model's state.
+
+        Raises:
+            AssertionError: If the batch is not of type dict.
+        """
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad

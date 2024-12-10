@@ -24,6 +24,28 @@ from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
 
 class AbsPreprocessor(ABC):
+    """
+    Abstract base class for audio data preprocessing.
+
+    This class serves as a blueprint for implementing various types of
+    preprocessing tasks for audio data, such as speech enhancement,
+    speech recognition, and others. It provides the structure for
+    initializing preprocessors and defining the processing method.
+
+    Attributes:
+        train (bool): A flag indicating whether the preprocessor is
+            being used in training mode.
+
+    Args:
+        train (bool): Indicates if the preprocessor is used for training.
+
+    Methods:
+        __call__(uid: str, data: Dict[str, Union[str, np.ndarray]]) ->
+            Dict[str, np.ndarray]:
+            Abstract method that processes the input data and returns
+            the preprocessed data.
+    """
+
     def __init__(self, train: bool):
         self.train = train
 
@@ -41,6 +63,45 @@ def framing(
     centered: bool = True,
     padded: bool = True,
 ):
+    """
+    Segment an input array into overlapping frames.
+
+    This function divides the input array `x` into overlapping frames of
+    specified length and shift. It can also pad the input and center the
+    frames based on the provided parameters.
+
+    Args:
+        x (np.ndarray): The input array to be framed.
+        frame_length (int, optional): The length of each frame. Must be
+            a positive integer. Defaults to 512.
+        frame_shift (int, optional): The number of samples to shift for
+            the next frame. Must be greater than 0. Defaults to 256.
+        centered (bool, optional): If True, pads the input array on both
+            sides to center the frames. Defaults to True.
+        padded (bool, optional): If True, pads the input array to ensure
+            an integer number of frames can be created. Defaults to True.
+
+    Returns:
+        np.ndarray: A 2D array where each row represents a frame of
+        `frame_length` samples.
+
+    Raises:
+        ValueError: If the input array size is zero, if
+        `frame_length` is less than 1, if `frame_length` is greater
+        than the input length, or if `frame_shift` is less than or
+        equal to 0.
+
+    Examples:
+        >>> x = np.random.rand(1024)  # Sample input
+        >>> frames = framing(x, frame_length=512, frame_shift=256)
+        >>> frames.shape
+        (3, 512)  # Three frames of length 512
+
+    Note:
+        The output array will have shape (num_frames, frame_length),
+        where num_frames is calculated based on the input size, frame
+        length, and frame shift.
+    """
     if x.size == 0:
         raise ValueError("Input array size is zero")
     if frame_length < 1:
@@ -84,14 +145,40 @@ def detect_non_silence(
     frame_shift: int = 512,
     window: str = "boxcar",
 ) -> np.ndarray:
-    """Power based voice activity detection.
+    """
+    Power based voice activity detection.
+
+    This function detects non-silent frames in an audio signal based on the
+    power of the signal. It frames the input signal, applies a windowing
+    function, and computes the mean power to determine which frames contain
+    non-silent segments based on a specified threshold.
 
     Args:
-        x: (Channel, Time)
-    >>> x = np.random.randn(1000)
-    >>> detect = detect_non_silence(x)
-    >>> assert x.shape == detect.shape
-    >>> assert detect.dtype == np.bool
+        x (np.ndarray): The input audio signal represented as a numpy array.
+            It should have a shape of (Channel, Time).
+        threshold (float): The power threshold for detecting non-silence.
+            Defaults to 0.01.
+        frame_length (int): The length of each frame for analysis.
+            Defaults to 1024.
+        frame_shift (int): The number of samples to shift between frames.
+            Defaults to 512.
+        window (str): The type of window to apply to each frame.
+            Defaults to "boxcar".
+
+    Returns:
+        np.ndarray: A boolean array of the same shape as `x`, where True
+        indicates non-silent frames and False indicates silent frames.
+
+    Examples:
+        >>> x = np.random.randn(1000)
+        >>> detect = detect_non_silence(x)
+        >>> assert x.shape == detect.shape
+        >>> assert detect.dtype == np.bool
+
+    Raises:
+        ValueError: If the input array is empty or if frame_length is less
+        than 1, greater than the input length, or if frame_shift is less
+        than or equal to 0.
     """
     if x.shape[-1] < frame_length:
         return np.full(x.shape, fill_value=True, dtype=np.bool)
@@ -130,12 +217,131 @@ def detect_non_silence(
 
 
 def any_allzero(signal):
+    """
+    Check if any of the elements in the input signal are all zeros.
+
+    This function evaluates whether any given element in a signal (which can be
+    a single array or a list/tuple of arrays) consists entirely of zeros. It uses
+    NumPy's `allclose` function to check for numerical closeness to zero, which is
+    particularly useful for floating-point comparisons.
+
+    Args:
+        signal (Union[np.ndarray, list, tuple]): The input signal, which can be
+        a NumPy array, a list, or a tuple. Each element of the list or tuple
+        should be an array that is to be checked for being all zeros.
+
+    Returns:
+        bool: Returns `True` if any element in the input signal is all zeros;
+        otherwise returns `False`.
+
+    Examples:
+        >>> any_allzero(np.array([0.0, 0.0, 0.0]))
+        True
+
+        >>> any_allzero(np.array([1.0, 0.0, 0.0]))
+        False
+
+        >>> any_allzero([np.array([0.0, 0.0]), np.array([1.0, 2.0])])
+        True
+
+        >>> any_allzero([np.array([1.0, 2.0]), np.array([3.0, 4.0])])
+        False
+
+        >>> any_allzero((np.array([0.0, 0.0]), np.array([1.0, 2.0])))
+        True
+
+    Note:
+        This function uses NumPy's `allclose` which allows for a numerical
+        tolerance when checking if values are close to zero.
+    """
     if isinstance(signal, (list, tuple)):
         return any([np.allclose(s, 0.0) for s in signal])
     return np.allclose(signal, 0.0)
 
 
 class CommonPreprocessor(AbsPreprocessor):
+    """
+    Common preprocessor for handling speech and text data.
+
+    This class is responsible for processing speech and text data for
+    various tasks in speech processing. It applies data augmentation,
+    normalization, and handles tokenization for the text inputs.
+
+    Attributes:
+        train (bool): Indicates whether the preprocessor is in training mode.
+        speech_name (str): The key for accessing speech data in the input dict.
+        text_name (str): The key for accessing text data in the input dict.
+        speech_volume_normalize (float): Normalization factor for speech volume.
+        force_single_channel (bool): If True, forces single-channel output.
+        rir_apply_prob (float): Probability of applying Room Impulse Response (RIR).
+        noise_apply_prob (float): Probability of applying noise augmentation.
+        short_noise_thres (float): Threshold for short noise application.
+        aux_task_names (Collection[str]): Names of auxiliary tasks for processing.
+        rirs (List[str]): List of paths to RIR files.
+        noises (List[str]): List of paths to noise files.
+        data_aug (DataAugmentation): Object for applying data augmentation effects.
+        min_sample_size (int): Minimum sample size for padding speech data.
+        audio_pad_value (Union[float, int]): Value used for padding audio data.
+        tokenizer (Tokenizer): Tokenizer object for processing text.
+        token_id_converter (TokenIDConverter): Converter for text tokens to IDs.
+        text_cleaner (TextCleaner): Object for cleaning text inputs.
+
+    Args:
+        train (bool): Indicates whether to use in training mode.
+        use_lang_prompt (bool): If True, use language prompts.
+        use_nlp_prompt (bool): If True, use NLP prompts.
+        token_type (Optional[str]): Type of tokenization to use.
+        token_list (Union[Path, str, Iterable[str]]): List of tokens for the tokenizer.
+        bpemodel (Union[Path, str, Iterable[str]]): Path to BPE model for tokenization.
+        text_cleaner (Collection[str]): Collection of text cleaning rules.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme conversion.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol for spaces in tokenized text.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Symbols to ignore.
+        delimiter (Optional[str]): Delimiter for tokenization.
+        force_single_channel (bool): If True, force output to single channel.
+        rir_scp (Optional[str]): Path to Room Impulse Response (RIR) SCP file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (Optional[str]): Path to noise SCP file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for applying short noise.
+        aux_task_names (Collection[str]): Names of auxiliary tasks.
+        speech_volume_normalize (float): Volume normalization factor for speech.
+        fs (int): Sampling rate for audio data.
+        nonsplit_symbol (Iterable[str]): Symbols for non-splitting in tokenization.
+        data_aug_effects (List): Effects for data augmentation.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+        min_sample_size (int): Minimum sample size for chunking.
+        audio_pad_value (Union[float, int]): Value for padding audio.
+        whisper_language (Optional[str]): Language for Whisper models.
+        whisper_task (Optional[str]): Task for Whisper models.
+
+    Raises:
+        ValueError: If `token_list` is required when `token_type` is specified.
+
+    Examples:
+        # Example of creating a CommonPreprocessor instance
+        preprocessor = CommonPreprocessor(
+            train=True,
+            use_lang_prompt=True,
+            token_type='word',
+            token_list='path/to/token_list.txt',
+            bpemodel='path/to/bpemodel',
+            text_cleaner=['remove_punctuation'],
+            g2p_type='g2p_model',
+            speech_name='speech',
+            text_name='text'
+        )
+
+        # Example of processing data
+        processed_data = preprocessor(uid='sample_uid', data={
+            'speech': np.array([0.1, 0.2, 0.3]),
+            'text': 'Hello world!'
+        })
+    """
+
     def __init__(
         self,
         train: bool,
@@ -550,6 +756,68 @@ class CommonPreprocessor(AbsPreprocessor):
 
 
 class SLUPreprocessor(CommonPreprocessor):
+    """
+    Preprocessor for Spoken Language Understanding (SLU) tasks.
+
+    This class processes audio and text data for SLU tasks, allowing for
+    the handling of different tokenization strategies, data augmentation,
+    and normalization techniques. It inherits from `CommonPreprocessor`
+    and extends its functionalities specifically for SLU.
+
+    Attributes:
+        transcript_tokenizer (Tokenizer): Tokenizer for the transcript text.
+        transcript_token_id_converter (TokenIDConverter): Converts transcript
+            tokens to IDs.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        token_type (Optional[str]): Type of tokenization (e.g., 'word', 'bpe').
+        token_list (Union[Path, str, Iterable[str]]): Path or list of tokens
+            for the main text.
+        transcript_token_list (Union[Path, str, Iterable[str]]): Path or list
+            of tokens for the transcript text.
+        bpemodel (Union[Path, str, Iterable[str]]): Path to the BPE model.
+        text_cleaner (Collection[str]): Text cleaning strategies to apply.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme model to use.
+        unk_symbol (str): Symbol for unknown tokens (default: "<unk>").
+        space_symbol (str): Symbol representing spaces (default: "<space>").
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Path or
+            list of non-linguistic symbols.
+        delimiter (Optional[str]): Delimiter for tokenization.
+        rir_scp (Optional[str]): Path to the RIR SCP file for reverberation.
+        rir_apply_prob (float): Probability of applying RIR (default: 1.0).
+        noise_scp (Optional[str]): Path to the noise SCP file.
+        noise_apply_prob (float): Probability of applying noise (default: 1.0).
+        noise_db_range (str): Range of noise levels in dB (default: "3_10").
+        short_noise_thres (float): Threshold for short noise (default: 0.5).
+        speech_volume_normalize (float): Volume normalization factor.
+        speech_name (str): Key for speech data in the input dictionary.
+        text_name (str): Key for text data in the input dictionary.
+        fs (int): Sampling rate for the audio data.
+        data_aug_effects (List): List of data augmentation effects to apply.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+
+    Examples:
+        >>> preprocessor = SLUPreprocessor(
+        ...     train=True,
+        ...     token_type='word',
+        ...     token_list='path/to/token_list.txt',
+        ...     transcript_token_list='path/to/transcript_token_list.txt',
+        ...     bpemodel='path/to/bpemodel',
+        ...     text_cleaner=['cleaner1', 'cleaner2'],
+        ...     fs=16000
+        ... )
+        >>> processed_data = preprocessor(uid='sample_uid', data={'speech': audio_data, 'text': 'sample text'})
+        >>> print(processed_data['text'])  # Output: token IDs of the processed text
+
+    Note:
+        - The `transcript_token_list` is optional; if provided, a separate
+          tokenizer and ID converter will be initialized for transcripts.
+        - Make sure the paths provided in `token_list` and `transcript_token_list`
+          are valid and accessible.
+    """
+
     def __init__(
         self,
         train: bool,
@@ -639,6 +907,93 @@ class SLUPreprocessor(CommonPreprocessor):
 
 
 class CommonPreprocessor_multi(CommonPreprocessor):
+    """
+    Common preprocessor for multi-input text and speech data.
+
+    This preprocessor handles the processing of both speech and text
+    data for training models that require multiple text inputs, such as
+    those used in multi-speaker scenarios. It includes functionality for
+    text tokenization, noise addition, reverberation effects, and other
+    augmentations as specified in the constructor.
+
+    Attributes:
+        train (bool): Indicates whether the preprocessor is in training mode.
+        use_lang_prompt (bool): Flag to use language prompts in processing.
+        use_nlp_prompt (bool): Flag to use NLP prompts in processing.
+        token_type (Optional[str]): Type of tokenization to be used.
+        token_list (Union[Path, str, Iterable[str]]): Path or list of tokens.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model path or list.
+        text_cleaner (Collection[str]): Collection of text cleaning methods.
+        g2p_type (Optional[str]): Type of G2P model to use.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol representing spaces.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+        delimiter (Optional[str]): Delimiter for tokenization.
+        rir_scp (Optional[str]): Path to RIR (Room Impulse Response) script.
+        rir_apply_prob (float): Probability of applying RIR effects.
+        noise_scp (Optional[str]): Path to noise script.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise segments.
+        aux_task_names (Collection[str]): Names of auxiliary tasks.
+        speech_volume_normalize (float): Factor for normalizing speech volume.
+        speech_name (str): Key for accessing speech data in input dictionary.
+        text_name (List[str]): List of keys for accessing text data.
+        fs (int): Sampling frequency of the audio data.
+        speaker_change_symbol (Iterable[str]): Symbols indicating speaker changes.
+        data_aug_effects (List): Effects to apply for data augmentation.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentations.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        use_lang_prompt (bool): Flag to use language prompts in processing.
+        use_nlp_prompt (bool): Flag to use NLP prompts in processing.
+        token_type (Optional[str]): Type of tokenization to be used.
+        token_list (Union[Path, str, Iterable[str]]): Path or list of tokens.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model path or list.
+        text_cleaner (Collection[str]): Collection of text cleaning methods.
+        g2p_type (Optional[str]): Type of G2P model to use.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol representing spaces.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+        delimiter (Optional[str]): Delimiter for tokenization.
+        rir_scp (Optional[str]): Path to RIR (Room Impulse Response) script.
+        rir_apply_prob (float): Probability of applying RIR effects.
+        noise_scp (Optional[str]): Path to noise script.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise segments.
+        aux_task_names (Collection[str]): Names of auxiliary tasks.
+        speech_volume_normalize (float): Factor for normalizing speech volume.
+        speech_name (str): Key for accessing speech data in input dictionary.
+        text_name (List[str]): List of keys for accessing text data.
+        fs (int): Sampling frequency of the audio data.
+        speaker_change_symbol (Iterable[str]): Symbols indicating speaker changes.
+        data_aug_effects (List): Effects to apply for data augmentation.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentations.
+
+    Examples:
+        >>> preprocessor = CommonPreprocessor_multi(
+        ...     train=True,
+        ...     token_type="word",
+        ...     token_list=["<unk>", "<space>", "hello", "world"],
+        ...     noise_apply_prob=0.5,
+        ...     speech_name="audio",
+        ...     text_name=["transcript", "summary"]
+        ... )
+        >>> processed_data = preprocessor(uid="example_id", data={
+        ...     "audio": np.random.rand(16000),  # 1 second of audio
+        ...     "transcript": "hello world",
+        ...     "summary": "a brief summary"
+        ... })
+
+    Note:
+        Ensure that the input data dictionary contains the specified keys
+        for speech and text data.
+    """
+
     def __init__(
         self,
         train: bool,
@@ -762,6 +1117,71 @@ class CommonPreprocessor_multi(CommonPreprocessor):
 
 
 class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
+    """
+    Preprocessor that supports multiple tokenizers for text processing.
+
+    This class extends the CommonPreprocessor to handle multiple tokenizers
+    and their corresponding configurations. It allows for flexible tokenization
+    strategies based on the provided token types and lists.
+
+    Attributes:
+        train (bool): Indicates whether the preprocessor is in training mode.
+        num_tokenizer (int): Number of tokenizers to be used.
+        tokenizer (List): List of tokenizer instances.
+        token_id_converter (List): List of token ID converters.
+        text_cleaner (TextCleaner): Instance of the text cleaner.
+        text_name (List[str]): List of text names corresponding to each tokenizer.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        token_type (List[str]): List of token types for each tokenizer.
+        token_list (List[Union[Path, str, Iterable[str]]]): List of token lists
+            for each tokenizer.
+        bpemodel (List[Union[Path, str, Iterable[str]]]): List of BPE models
+            for each tokenizer.
+        text_cleaner (Collection[str], optional): Cleaning rules for text.
+        g2p_type (Union[List[str], str], optional): Grapheme-to-phoneme conversion type.
+        unk_symbol (str, optional): Unknown symbol for tokenization.
+        space_symbol (str, optional): Space symbol for tokenization.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]], optional): Symbols to
+            treat as non-linguistic.
+        delimiter (Optional[str], optional): Delimiter for tokenization.
+        rir_scp (Optional[str], optional): Path to the RIR scp file.
+        rir_apply_prob (float, optional): Probability of applying RIR.
+        noise_scp (Optional[str], optional): Path to the noise scp file.
+        noise_apply_prob (float, optional): Probability of applying noise.
+        noise_db_range (str, optional): Range of noise levels in dB.
+        short_noise_thres (float, optional): Threshold for short noise.
+        speech_volume_normalize (float, optional): Normalization factor for speech volume.
+        speech_name (str, optional): Name of the speech input.
+        text_name (List[str], optional): List of text names for processing.
+        tokenizer_encode_conf (List[Dict], optional): Configuration for tokenizer encoding.
+        fs (int, optional): Sampling frequency.
+        data_aug_effects (List, optional): Data augmentation effects.
+        data_aug_num (List[int], optional): Number of data augmentation operations.
+        data_aug_prob (float, optional): Probability of applying data augmentation.
+        whisper_language (List[str], optional): List of languages for Whisper tokenizer.
+        whisper_task (Optional[str], optional): Task type for Whisper tokenizer.
+
+    Raises:
+        ValueError: If the length of token_type, token_list, bpemodel, or
+            text_name do not match.
+
+    Examples:
+        >>> preprocessor = MutliTokenizerCommonPreprocessor(
+        ...     train=True,
+        ...     token_type=["word", "bpe"],
+        ...     token_list=["path/to/word_list", "path/to/bpe_list"],
+        ...     bpemodel=["path/to/bpe_model"],
+        ...     text_name=["text", "transcript"]
+        ... )
+        >>> data = {
+        ...     "text": "Hello world",
+        ...     "transcript": "Hello world transcript"
+        ... }
+        >>> processed_data = preprocessor("uid_1", data)
+    """
+
     def __init__(
         self,
         train: bool,
@@ -896,6 +1316,56 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
 
 
 class DynamicMixingPreprocessor(AbsPreprocessor):
+    """
+    Dynamic Mixing Preprocessor for speech data.
+
+    This preprocessor is responsible for dynamically mixing multiple speech
+    sources based on the provided configuration. It allows the mixing of
+    different speech utterances while applying random gain, and is
+    particularly useful for tasks such as speech enhancement and
+    separation.
+
+    Attributes:
+        source_scp (Optional[str]): Path to the source SCP file containing
+            speech files.
+        ref_num (int): Number of reference utterances to mix.
+        dynamic_mixing_gain_db (float): Maximum gain in decibels to apply to
+            each source.
+        speech_name (str): Key used to identify the mixed speech in the
+            output data.
+        speech_ref_name_prefix (str): Prefix for reference speech names in
+            the output data.
+        mixture_source_name (Optional[str]): Key to select source utterances
+            from the data loader.
+        utt2spk (Optional[str]): Path to the mapping of utterances to
+            speakers.
+        categories (Optional[List]): List of categories for the utterances.
+
+    Args:
+        train (bool): Indicates whether the preprocessor is used for training.
+        source_scp (Optional[str]): Path to the source SCP file.
+        ref_num (int): Number of reference utterances to mix.
+        dynamic_mixing_gain_db (float): Maximum gain for dynamic mixing.
+        speech_name (str): Name for the mixed speech output.
+        speech_ref_name_prefix (str): Prefix for reference speech output.
+        mixture_source_name (Optional[str]): Key for source utterances.
+        utt2spk (Optional[str]): Path to utterance-to-speaker mapping.
+        categories (Optional[List]): List of categories for utterances.
+
+    Raises:
+        ValueError: If `source_scp` is not provided.
+
+    Examples:
+        >>> preprocessor = DynamicMixingPreprocessor(
+        ...     train=True,
+        ...     source_scp="path/to/source.scp",
+        ...     ref_num=2,
+        ...     dynamic_mixing_gain_db=3.0
+        ... )
+        >>> mixed_data = preprocessor(uid="example_uid", data={"speech_ref1": np.random.rand(16000)})
+        >>> print(mixed_data.keys())  # Outputs: dict_keys(['speech_mix', 'speech_ref1', 'speech_ref2'])
+    """
+
     def __init__(
         self,
         train: bool,
@@ -1054,7 +1524,85 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
 
 
 class EnhPreprocessor(CommonPreprocessor):
-    """Preprocessor for Speech Enhancement (Enh) task."""
+    """
+    Preprocessor for Speech Enhancement (Enh) task.
+
+    This class is responsible for processing audio data for speech
+    enhancement tasks. It applies techniques such as room impulse
+    response (RIR) convolution and noise addition to the input
+    audio signals, enabling the training of models to enhance
+    speech quality.
+
+    Attributes:
+        rir_scp (Optional[str]): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (Optional[str]): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold of short noise.
+        speech_volume_normalize (float): Volume normalization factor.
+        speech_name (str): Key for speech data in input.
+        speech_ref_name_prefix (str): Prefix for reference speech keys.
+        noise_ref_name_prefix (str): Prefix for noise reference keys.
+        dereverb_ref_name_prefix (str): Prefix for dereverberated
+            reference keys.
+        use_reverberant_ref (bool): Flag to use reverberant reference.
+        num_spk (int): Number of speakers.
+        num_noise_type (int): Number of noise types.
+        sample_rate (int): Sampling rate for audio processing.
+        force_single_channel (bool): Flag to convert to single-channel audio.
+        channel_reordering (bool): Flag to randomly reorder channels.
+        categories (Optional[List]): Mapping of categories to unique integers.
+        data_aug_effects (List): Data augmentation effects to apply.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+        speech_segment (Optional[int]): Length of speech segments for
+            processing.
+        avoid_allzero_segment (bool): Flag to avoid all-zero segments.
+        flexible_numspk (bool): Flag to allow variable number of speakers.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        rir_scp (Optional[str]): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (Optional[str]): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold of short noise.
+        speech_volume_normalize (float): Volume normalization factor.
+        speech_name (str): Key for speech data in input.
+        speech_ref_name_prefix (str): Prefix for reference speech keys.
+        noise_ref_name_prefix (str): Prefix for noise reference keys.
+        dereverb_ref_name_prefix (str): Prefix for dereverberated
+            reference keys.
+        use_reverberant_ref (bool): Flag to use reverberant reference.
+        num_spk (int): Number of speakers.
+        num_noise_type (int): Number of noise types.
+        sample_rate (int): Sampling rate for audio processing.
+        force_single_channel (bool): Flag to convert to single-channel audio.
+        channel_reordering (bool): Flag to randomly reorder channels.
+        categories (Optional[List]): Mapping of categories to unique integers.
+        data_aug_effects (List): Data augmentation effects to apply.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+        speech_segment (Optional[int]): Length of speech segments for
+            processing.
+        avoid_allzero_segment (bool): Flag to avoid all-zero segments.
+        flexible_numspk (bool): Flag to allow variable number of speakers.
+
+    Examples:
+        >>> preprocessor = EnhPreprocessor(train=True, rir_scp="path/to/rir.scp",
+        ...                                 noise_scp="path/to/noise.scp")
+        >>> processed_data = preprocessor(uid="sample_uid", data={"speech": audio_data})
+
+    Raises:
+        ValueError: If any of the input parameters are invalid or
+            inconsistent.
+
+    Note:
+        Ensure that the sampling rates of all audio data and RIRs
+        are consistent to avoid processing errors.
+    """
 
     def __init__(
         self,
@@ -1514,7 +2062,56 @@ class EnhPreprocessor(CommonPreprocessor):
 
 
 class SVSPreprocessor(AbsPreprocessor):
-    """Preprocessor for Sing Voice Sythesis (SVS) task."""
+    """
+    Preprocessor for Sing Voice Synthesis (SVS) task.
+
+    This class handles the preprocessing steps for data used in
+    singing voice synthesis tasks, including text cleaning, tokenization,
+    and normalization of singing audio signals.
+
+    Attributes:
+        train (bool): Indicates whether the preprocessor is in training mode.
+        singing_name (str): Key in the data dictionary for the singing audio.
+        text_name (str): Key in the data dictionary for the text input.
+        label_name (str): Key in the data dictionary for the label information.
+        midi_name (str): Key in the data dictionary for the MIDI score.
+        fs (np.int32): Sampling rate of the audio.
+        hop_length (np.int32): Hop length for audio processing.
+        singing_volume_normalize (float): Factor for normalizing singing volume.
+        phn_seg (dict): Segmentation rules for phonemes.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        token_type (Optional[str]): Type of tokenizer to use.
+        token_list (Union[Path, str, Iterable[str]]): Path or list of tokens.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model for tokenization.
+        text_cleaner (Collection[str]): List of cleaning functions for text.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme conversion.
+        unk_symbol (str): Symbol used for unknown tokens.
+        space_symbol (str): Symbol used for spaces in text.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Path or list
+            of non-linguistic symbols to handle.
+        delimiter (Optional[str]): Delimiter for separating tokens in text.
+        singing_volume_normalize (float): Normalization factor for singing audio.
+        singing_name (str): Key for singing audio in data dictionary.
+        text_name (str): Key for text in data dictionary.
+        label_name (str): Key for labels in data dictionary.
+        midi_name (str): Key for MIDI score in data dictionary.
+        fs (np.int32): Sampling rate for audio.
+        hop_length (np.int32): Hop length for audio processing.
+        phn_seg (dict): Segmentation rules for phonemes.
+
+    Examples:
+        >>> preprocessor = SVSPreprocessor(train=True, token_type="bpe",
+        ...                                 token_list=["<unk>", "<space>"],
+        ...                                 bpemodel="path/to/bpe/model")
+        >>> data = {
+        ...     "singing": np.random.rand(1000),  # Example singing audio
+        ...     "label": (np.array([[0, 1]]), ["a", "b", "c"]),
+        ...     "score": (120, [[0, 1, "A", 60, "a_b"]])
+        ... }
+        >>> processed_data = preprocessor("example_uid", data)
+    """
 
     def __init__(
         self,
@@ -1683,7 +2280,97 @@ class SVSPreprocessor(AbsPreprocessor):
 
 
 class TSEPreprocessor(EnhPreprocessor):
-    """Preprocessor for Target Speaker Extraction."""
+    """
+    Preprocessor for Target Speaker Extraction.
+
+    This class processes audio data for the target speaker extraction task. It
+    handles enrollment audio, applies noise and reverberation effects, and
+    manages speaker embeddings based on the provided configuration. The
+    preprocessor is designed to work in both training and evaluation modes.
+
+    Attributes:
+        train (bool): Indicates whether the preprocessor is in training mode.
+        train_spk2enroll (Optional[str]): Path to the speaker-to-enrollment mapping.
+        enroll_segment (int): Length of the enrollment audio segment.
+        load_spk_embedding (bool): Flag to load speaker embeddings instead of
+            enrollment audios.
+        load_all_speakers (bool): Flag to load all speakers in each mixture sample.
+
+        rir_scp (Optional[str]): Path to the RIR (Room Impulse Response) scp file.
+        rir_apply_prob (float): Probability of applying RIR effects.
+        noise_scp (Optional[str]): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise segments.
+        speech_volume_normalize (float): Factor to normalize speech volume.
+        speech_name (str): Key for accessing the speech data.
+        speech_ref_name_prefix (str): Prefix for accessing reference speech data.
+        noise_ref_name_prefix (str): Prefix for accessing noise reference data.
+        dereverb_ref_name_prefix (str): Prefix for accessing dereverberated reference data.
+        use_reverberant_ref (bool): Flag to use reverberant reference signals.
+        num_spk (int): Number of speakers involved in the extraction.
+        num_noise_type (int): Number of types of noise.
+        sample_rate (int): Sampling rate for the audio.
+        force_single_channel (bool): Flag to force single-channel audio.
+        channel_reordering (bool): Flag to reorder audio channels.
+        categories (Optional[List]): List of categories for classification.
+        data_aug_effects (List): List of data augmentation effects.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+        speech_segment (Optional[int]): Length of speech segments for processing.
+        avoid_allzero_segment (bool): Flag to avoid all-zero audio segments.
+        flexible_numspk (bool): Flag to allow variable number of speakers.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        train_spk2enroll (Optional[str]): Path to the speaker-to-enrollment mapping.
+        enroll_segment (int): Length of the enrollment audio segment.
+        load_spk_embedding (bool): Flag to load speaker embeddings instead of
+            enrollment audios.
+        load_all_speakers (bool): Flag to load all speakers in each mixture sample.
+        rir_scp (Optional[str]): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR effects.
+        noise_scp (Optional[str]): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise segments.
+        speech_volume_normalize (float): Factor to normalize speech volume.
+        speech_name (str): Key for accessing the speech data.
+        speech_ref_name_prefix (str): Prefix for accessing reference speech data.
+        noise_ref_name_prefix (str): Prefix for accessing noise reference data.
+        dereverb_ref_name_prefix (str): Prefix for accessing dereverberated reference data.
+        use_reverberant_ref (bool): Flag to use reverberant reference signals.
+        num_spk (int): Number of speakers involved in the extraction.
+        num_noise_type (int): Number of types of noise.
+        sample_rate (int): Sampling rate for the audio.
+        force_single_channel (bool): Flag to force single-channel audio.
+        channel_reordering (bool): Flag to reorder audio channels.
+        categories (Optional[List]): List of categories for classification.
+        data_aug_effects (List): List of data augmentation effects.
+        data_aug_num (List[int]): Number of augmentations to apply.
+        data_aug_prob (float): Probability of applying data augmentation.
+        speech_segment (Optional[int]): Length of speech segments for processing.
+        avoid_allzero_segment (bool): Flag to avoid all-zero audio segments.
+        flexible_numspk (bool): Flag to allow variable number of speakers.
+
+    Examples:
+        # Initialize the preprocessor for training mode
+        preprocessor = TSEPreprocessor(
+            train=True,
+            train_spk2enroll="path/to/spk2enroll.json",
+            enroll_segment=3000,
+            load_spk_embedding=False,
+            load_all_speakers=True,
+            rir_scp="path/to/rir.scp",
+            noise_scp="path/to/noise.scp"
+        )
+
+        # Process an audio sample
+        processed_data = preprocessor(uid="sample_id", data={"speech_mix": audio_data})
+
+    Raises:
+        ValueError: If the input data is not in the expected format.
+    """
 
     def __init__(
         self,
@@ -1910,9 +2597,15 @@ class TSEPreprocessor(EnhPreprocessor):
 
 
 class SpkPreprocessor(CommonPreprocessor):
-    """Preprocessor for Speaker tasks.
+    """
+    Preprocessor for Speaker tasks.
 
-    Args:
+    This class is responsible for preprocessing audio data for speaker-related
+    tasks, including applying data augmentation techniques such as RIR
+    convolution and noise addition. It also maps speaker labels to integer
+    values for training and evaluation.
+
+    Attributes:
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
         target_duration (float): Target duration in seconds.
@@ -1930,6 +2623,39 @@ class SpkPreprocessor(CommonPreprocessor):
                 - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        target_duration (float): Target duration in seconds.
+        spk2utt (Optional[str]): Path to the `spk2utt` file.
+        sample_rate (int): Sampling rate.
+        num_eval (int): Number of utterances to be used for evaluation.
+        rir_scp (Optional[str]): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_info (Optional[List[Tuple[float, str, Tuple[int, int], Tuple[float, float]]]]):
+            List of noise information tuples.
+        noise_apply_prob (float): Probability of applying noise.
+        short_noise_thres (float): Threshold for short noise.
+
+    Raises:
+        ValueError: If the noise information is incorrectly formatted.
+
+    Examples:
+        # Creating an instance of SpkPreprocessor
+        spk_preprocessor = SpkPreprocessor(
+            train=True,
+            target_duration=5.0,
+            spk2utt='path/to/spk2utt',
+            sample_rate=16000,
+            num_eval=10,
+            rir_scp='path/to/rir.scp',
+            noise_info=[(0.5, 'path/to/noise.scp', (1, 3), (0.0, 5.0))],
+            noise_apply_prob=0.8,
+            short_noise_thres=0.5
+        )
+
+        # Using the __call__ method to preprocess data
+        processed_data = spk_preprocessor(uid='sample_uid', data={'speech': audio_data, 'spk_labels': 'speaker1'})
     """
 
     def __init__(
@@ -2185,6 +2911,77 @@ class SpkPreprocessor(CommonPreprocessor):
 
 
 class S2TPreprocessor(CommonPreprocessor):
+    """
+    Preprocessor for speech-to-text tasks.
+
+    This class processes speech and text data for training and evaluation
+    in speech-to-text tasks. It includes functionalities for tokenization,
+    noise augmentation, speech length adjustments, and handling of
+    special tokens.
+
+    Attributes:
+        text_prev_name (str): Name of the previous text input.
+        text_ctc_name (str): Name of the CTC text input.
+        speech_length (int): Desired speech length in samples.
+        speech_resolution (int): Time resolution for speech processing in samples.
+        speech_init_silence (int): Initial silence duration before speech in samples.
+        text_prev_apply_prob (float): Probability of applying the previous text.
+        time_apply_prob (float): Probability of including timestamps.
+        na_symbol (str): Token for unavailable text data.
+        notime (int): Token ID for no timestamp.
+        first_time (int): Token ID for the first timestamp.
+        last_time (int): Token ID for the last timestamp.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        token_type (Optional[str]): Type of tokenizer to use.
+        token_list (Union[Path, str, Iterable[str]]): Path or list of token IDs.
+        bpemodel (Union[Path, str, Iterable[str]]): Path to BPE model.
+        text_cleaner (Collection[str]): Text cleaning configurations.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme conversion.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol for space tokens.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Path to non-linguistic symbols.
+        delimiter (Optional[str]): Delimiter for tokenization.
+        rir_scp (Optional[str]): Path to RIR (Room Impulse Response) script file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (Optional[str]): Path to noise script file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise.
+        speech_volume_normalize (float): Volume normalization factor for speech.
+        speech_name (str): Key for speech data in input.
+        text_name (str): Key for text data in input.
+        text_prev_name (str): Key for previous text data in input.
+        text_ctc_name (str): Key for CTC text data in input.
+        fs (int): Sampling frequency of the audio data.
+        na_symbol (str): Token for unavailable text data.
+        speech_length (float): Desired speech length in seconds.
+        speech_resolution (float): Time resolution for speech processing in seconds.
+        speech_init_silence (float): Max silence duration before speech in seconds.
+        text_prev_apply_prob (float): Probability of applying previous text.
+        time_apply_prob (float): Probability of including timestamps.
+        notime_symbol (str): Token for no timestamps.
+        first_time_symbol (str): Token for the first timestamp.
+        last_time_symbol (str): Token for the last timestamp.
+
+    Examples:
+        >>> preprocessor = S2TPreprocessor(train=True)
+        >>> processed_data = preprocessor(uid="example_uid", data={
+        ...     "speech": np.random.randn(16000),
+        ...     "text": "This is an example.",
+        ...     "text_prev": "This is previous text.",
+        ...     "text_ctc": "CTC text example."
+        ... })
+
+    Note:
+        The speech length will be padded or trimmed to the specified value,
+        and silence may be added at the beginning of the speech.
+
+    Raises:
+        ValueError: If the token list is not provided when the token type is specified.
+    """
+
     def __init__(
         self,
         train: bool,
@@ -2360,7 +3157,82 @@ class S2TPreprocessor(CommonPreprocessor):
 
 
 class S2TCTCPreprocessor(CommonPreprocessor):
-    """Preprocessor for OWSM-CTC."""
+    """
+    Preprocessor for OWSM-CTC.
+
+    This class handles the preprocessing of input data specifically for the
+    Online Waveform Speech Model with Connectionist Temporal Classification
+    (OWSM-CTC). It prepares speech and text data for training and inference,
+    including augmentations and normalization. The preprocessor can pad or trim
+    audio signals and apply various transformations to text inputs, such as
+    conditioning on previous text or handling special tokens.
+
+    Attributes:
+        train (bool): Whether to use in training mode.
+        token_type (Optional[str]): Type of tokenization to use.
+        token_list (Union[Path, str, Iterable[str]]): List of tokens.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model for tokenization.
+        text_cleaner (Collection[str]): Collection of text cleaning methods.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme conversion.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol representing space in text.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+        delimiter (str): Delimiter for tokenization.
+        rir_scp (str): Path to the RIR (Room Impulse Response) scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (str): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise.
+        speech_volume_normalize (float): Volume normalization factor for speech.
+        speech_name (str): Key for speech data in the input dictionary.
+        text_name (str): Key for text data in the input dictionary.
+        text_prev_name (str): Key for previous text data in the input dictionary.
+        text_ctc_name (str): Key for CTC text data in the input dictionary.
+        fs (int): Sampling rate for the audio data.
+        na_symbol (str): Symbol indicating text is not available (e.g., for prev or ctc).
+        speech_length (int): Target length for speech data in samples.
+        speech_init_silence (int): Maximum silence to add before speech during data augmentation.
+        text_prev_apply_prob (float): Probability of using previous text for conditioning.
+        lang_apply_prob (float): Probability of using ground truth language instead of unknown.
+        nolang (int): Token ID for the no language symbol.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        token_type (Optional[str]): Type of tokenization to use.
+        token_list (Union[Path, str, Iterable[str]]): List of tokens.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model for tokenization.
+        text_cleaner (Collection[str]): Collection of text cleaning methods.
+        g2p_type (Optional[str]): Type of grapheme-to-phoneme conversion.
+        unk_symbol (str): Symbol for unknown tokens.
+        space_symbol (str): Symbol representing space in text.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+        delimiter (str): Delimiter for tokenization.
+        rir_scp (str): Path to the RIR (Room Impulse Response) scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_scp (str): Path to the noise scp file.
+        noise_apply_prob (float): Probability of applying noise.
+        noise_db_range (str): Range of noise levels in dB.
+        short_noise_thres (float): Threshold for short noise.
+        speech_volume_normalize (float): Volume normalization factor for speech.
+        speech_name (str): Key for speech data in the input dictionary.
+        text_name (str): Key for text data in the input dictionary.
+        text_prev_name (str): Key for previous text data in the input dictionary.
+        text_ctc_name (str): Key for CTC text data in the input dictionary.
+        fs (int): Sampling rate for the audio data.
+        na_symbol (str): Symbol indicating text is not available (e.g., for prev or ctc).
+        speech_length (float): Target length for speech data in seconds.
+        speech_init_silence (float): Maximum silence to add before speech during data augmentation.
+        text_prev_apply_prob (float): Probability of using previous text for conditioning.
+        lang_apply_prob (float): Probability of using ground truth language instead of unknown.
+        nolang_symbol (str): Symbol for no language.
+
+    Examples:
+        >>> preprocessor = S2TCTCPreprocessor(train=True)
+        >>> processed_data = preprocessor(uid="example_uid", data={"speech": speech_data, "text": "Hello World"})
+        >>> assert "speech" in processed_data
+        >>> assert "text" in processed_data
+    """
 
     def __init__(
         self,
@@ -2530,7 +3402,68 @@ class S2TCTCPreprocessor(CommonPreprocessor):
 
 
 class SpeechLMPreprocessor(AbsPreprocessor):
-    """Preprocessor specifically for SpeechLM models"""
+    """
+    Preprocessor specifically for SpeechLM models.
+
+    This class handles the preprocessing steps required for SpeechLM models,
+    including tokenization and modality-specific processing of speech and text
+    inputs. It utilizes various tokenizers and encoders to convert raw data
+    into the appropriate format for training or inference.
+
+    Attributes:
+        token_list (List): A list of tokens used for encoding.
+        token_bias (Dict): A dictionary containing bias values for different
+            token types.
+        encoder_decoder_format (bool): Flag indicating if the output should
+            follow encoder-decoder format.
+        codec_token_per_frame (int): Number of codec tokens per frame.
+        codec_token_in_use (int): Number of codec tokens to use.
+        unk_symbol (str): Symbol representing unknown tokens.
+        space_symbol (str): Symbol representing spaces in the text.
+        non_linguistic_symbols (Union[Path, str, Iterable[str]]): Symbols
+            that are not linguistic.
+        g2p_type (str): Type of grapheme-to-phoneme model used.
+        bpemodel (Union[Path, str, Iterable[str]]): BPE model for tokenization.
+        bpe_encode_kwargs (Dict): Additional arguments for BPE encoding.
+        text_cleaner (str): Method for cleaning text input.
+        speaker_prompt_length (int): Length of the speaker prompt in tokens.
+
+    Args:
+        token_list (List): A list of tokens for encoding.
+        token_bias (Dict): A dictionary mapping modalities to their biases.
+        encoder_decoder_format (bool): If True, outputs in encoder-decoder format.
+        codec_token_per_frame (int): Number of codec tokens per frame.
+        codec_token_in_use (int, optional): Number of codec tokens to use.
+            Defaults to None.
+        unk_symbol (str, optional): Symbol for unknown tokens. Defaults to "<unk>".
+        space_symbol (str, optional): Symbol for spaces. Defaults to "<space>".
+        non_linguistic_symbols (Union[Path, str, Iterable[str]], optional):
+            Non-linguistic symbols. Defaults to None.
+        g2p_type (str, optional): Grapheme-to-phoneme type. Defaults to None.
+        bpemodel (Union[Path, str, Iterable[str]], optional): BPE model path.
+            Defaults to None.
+        bpe_encode_kwargs (Dict, optional): Additional BPE encoding arguments.
+            Defaults to None.
+        text_cleaner (str, optional): Method for cleaning text. Defaults to None.
+        speaker_prompt_length (int, optional): Length of the speaker prompt.
+            Defaults to 1800.
+
+    Raises:
+        ValueError: If continuous features are not supported in modality processing.
+        NotImplementedError: If a modality is not supported.
+
+    Examples:
+        >>> preprocessor = SpeechLMPreprocessor(
+        ...     token_list=["<pad>", "<unk>", "<sos>", "<eos>"],
+        ...     token_bias={"codec": 0.1, "ssl": 0.2},
+        ...     encoder_decoder_format=True
+        ... )
+        >>> data = {
+        ...     "speech": np.random.rand(16000),
+        ...     "text": "Hello, how are you?"
+        ... }
+        >>> processed_data = preprocessor("task_name", data)
+    """
 
     def __init__(
         self,
@@ -2653,11 +3586,105 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return new_data
 
     def special_token(self, token):
+        """
+            Preprocessor specifically for SpeechLM models.
+
+        This class is responsible for preprocessing data for SpeechLM models.
+        It handles various modalities, including text, codec, and speaker features,
+        and processes them accordingly to prepare the data for model training or
+        inference.
+
+        Attributes:
+            token_list (List): A list of tokens used in the model.
+            token_bias (Dict): A dictionary containing biases for different token types.
+            encoder_decoder_format (bool): Whether to use encoder-decoder format.
+            codec_token_per_frame (int): Number of codec tokens per frame.
+            codec_token_in_use (int): Number of codec tokens currently in use.
+            unk_symbol (str): Symbol representing unknown tokens.
+            space_symbol (str): Symbol representing spaces in text.
+            non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+            g2p_type (str): Type of grapheme-to-phoneme model used.
+            bpemodel (Union[Path, str, Iterable[str]]): BPE model path or definition.
+            bpe_encode_kwargs (Dict): Additional arguments for BPE encoding.
+            text_cleaner (str): Cleaning rules for text data.
+            speaker_prompt_length (int): Length of speaker prompt.
+
+        Args:
+            token_list (List): A list of tokens used in the model.
+            token_bias (Dict): A dictionary containing biases for different token types.
+            encoder_decoder_format (bool): Whether to use encoder-decoder format.
+            codec_token_per_frame (int): Number of codec tokens per frame.
+            codec_token_in_use (int): Number of codec tokens currently in use.
+            unk_symbol (str): Symbol representing unknown tokens.
+            space_symbol (str): Symbol representing spaces in text.
+            non_linguistic_symbols (Union[Path, str, Iterable[str]]): Non-linguistic symbols.
+            g2p_type (str): Type of grapheme-to-phoneme model used.
+            bpemodel (Union[Path, str, Iterable[str]]): BPE model path or definition.
+            bpe_encode_kwargs (Dict): Additional arguments for BPE encoding.
+            text_cleaner (str): Cleaning rules for text data.
+            speaker_prompt_length (int): Length of speaker prompt.
+
+        Examples:
+            >>> preprocessor = SpeechLMPreprocessor(
+            ...     token_list=["<pad>", "<unk>", "<sos>", "<eos>"],
+            ...     token_bias={"codec": 0.5, "ssl": 0.1},
+            ...     encoder_decoder_format=True,
+            ...     codec_token_per_frame=2,
+            ...     speaker_prompt_length=1800
+            ... )
+            >>> processed_data = preprocessor(uid="example_uid", data={"text": "Hello"})
+            >>> assert "enc_seq" in processed_data
+            >>> assert "dec_seq" in processed_data
+
+        Raises:
+            ValueError: If the modality specified is not supported.
+            NotImplementedError: If continuous modalities are not supported.
+
+        Note:
+            This class assumes that the input data has already been validated
+            and that the required fields are present.
+        """
         token_idx = self.token_list.index(token)
         token_idx = np.array([token_idx]).repeat(self.codec_token_in_use, axis=0)
         return token_idx
 
     def modality_specific_processing(self, value, modality):
+        """
+            Processes the input value based on the specified modality.
+
+        This method reshapes, pads, and tokenizes the input value according
+        to the modality type. It supports various modalities such as codec,
+        speaker, text_bpe, and g2p.
+
+        Args:
+            value (np.ndarray): The input data to be processed.
+            modality (str): The type of modality. Supported modalities include:
+                - "codec"
+                - "spk"
+                - "text_bpe"
+                - "g2p"
+                - "ssl"
+
+        Returns:
+            Tuple[np.ndarray, Optional[np.ndarray]]:
+                - The processed value as a numpy array.
+                - An optional continuous feature (currently not used).
+
+        Raises:
+            NotImplementedError: If an unsupported modality is specified.
+
+        Examples:
+            >>> processor = SpeechLMPreprocessor(token_list=['<pad>', '<unk>', 'hello'],
+            ...                                   token_bias={'codec': 1.0, 'ssl': 0.5})
+            >>> value = np.array([1, 2, 3])
+            >>> processed_value, conti_feat = processor.modality_specific_processing(value, 'codec')
+            >>> print(processed_value)
+            array([...])  # Example output after processing
+
+            >>> processed_value, conti_feat = processor.modality_specific_processing(value, 'text_bpe')
+            >>> print(processed_value)
+            array([...])  # Example output after processing
+        """
 
         if modality in ["codec", "spk"]:
             value = value.reshape(-1, self.codec_token_per_frame)
@@ -2704,7 +3731,67 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         return value, conti_feat
 
     def diagnose(self, data):
-        """Only for debug"""
+        """
+            Preprocessor specifically for SpeechLM models.
+
+        This class handles the preprocessing of input data for SpeechLM models,
+        including tokenization, special token handling, and modality-specific
+        processing. It prepares sequences for both encoder and decoder.
+
+        Attributes:
+            token_list (List): List of tokens used for the model.
+            token_bias (Dict): Bias values for different modalities.
+            encoder_decoder_format (bool): Whether to use encoder-decoder format.
+            codec_token_per_frame (int): Number of codec tokens per frame.
+            codec_token_in_use (int): Number of codec tokens currently in use.
+            unk_symbol (str): Symbol for unknown tokens.
+            space_symbol (str): Symbol for space.
+            non_linguistic_symbols (Union[Path, str, Iterable[str]]): Symbols that are
+                non-linguistic.
+            g2p_type (str): Type of grapheme-to-phoneme conversion.
+            bpemodel (Union[Path, str, Iterable[str]]): BPE model for tokenization.
+            bpe_encode_kwargs (Dict): Additional kwargs for BPE encoding.
+            text_cleaner (str): Text cleaning method.
+            speaker_prompt_length (int): Length of the speaker prompt.
+
+        Args:
+            token_list (List): List of tokens for the model.
+            token_bias (Dict): Bias values for various modalities.
+            encoder_decoder_format (bool): Use encoder-decoder format.
+            codec_token_per_frame (int): Number of codec tokens per frame.
+            codec_token_in_use (int, optional): Number of codec tokens in use.
+            unk_symbol (str, optional): Symbol for unknown tokens (default: "<unk>").
+            space_symbol (str, optional): Symbol for space (default: "<space>").
+            non_linguistic_symbols (Union[Path, str, Iterable[str]], optional):
+                Non-linguistic symbols (default: None).
+            g2p_type (str, optional): Grapheme-to-phoneme type (default: None).
+            bpemodel (Union[Path, str, Iterable[str]], optional): BPE model (default: None).
+            bpe_encode_kwargs (Dict, optional): BPE encoding kwargs (default: None).
+            text_cleaner (str, optional): Text cleaner (default: None).
+            speaker_prompt_length (int, optional): Length of the speaker prompt
+                (default: 1800).
+
+        Returns:
+            Dict[str, np.ndarray]: Preprocessed data ready for the SpeechLM model.
+
+        Examples:
+            >>> preprocessor = SpeechLMPreprocessor(token_list=["<sos/eos>", "<pad>"],
+            ...                                       token_bias={"codec": 0.1},
+            ...                                       encoder_decoder_format=True)
+            >>> uid = "task_name"
+            >>> data = {"input": np.array([1, 2, 3])}
+            >>> processed_data = preprocessor(uid, data)
+            >>> print(processed_data.keys())
+            dict_keys(['enc_seq', 'dec_seq', 'prefix_len'])
+
+        Raises:
+            ValueError: If continuous features are passed to the preprocessor.
+            NotImplementedError: If a modality type is not supported.
+
+        Note:
+            The `diagnose` method is available for debugging the input sequences
+            and their formats.
+        """
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
 
