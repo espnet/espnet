@@ -16,6 +16,62 @@ from espnet2.speechlm.net_utils import ce_loss, install_kv_cache_hook, logits_to
 
 
 class MultiScaleLM(AbsCoreLM):
+    """
+        MultiScaleLM is an implementation of the UniAudio architecture for speech
+    language modeling. It leverages multi-scale attention mechanisms to process
+    input sequences and generate output sequences effectively.
+
+    Attributes:
+        emb (torch.nn.Embedding): Embedding layer for input vocabulary.
+        lm_head (torch.nn.Linear): Linear layer mapping from hidden states to
+            vocabulary logits.
+        g_decoders (TransformerDecoder): Global Transformer decoder for
+            processing long-range dependencies.
+        l_decoders (TransformerDecoder): Local Transformer decoder for
+            processing fine-grained details.
+        placeholder (torch.nn.Parameter): A learnable parameter to facilitate
+            local attention computations.
+        nq (int): Number of codes for each token/frame.
+        first_layer_weight (float): Scaling factor for gradients in the first
+            layer.
+
+    Args:
+        vocab_size (int): Dimension of vocabulary.
+        nq (int): Number of codes for each token/frame, usually for speech codec.
+        share_emb (bool): If true, share the embedding and lm_head weight.
+        g_att_unit (int): Dimension of global Transformer attention.
+        g_head (int): Number of heads in global Transformer attention.
+        g_layer (int): Number of layers in global Transformer.
+        l_att_unit (int): Dimension of local Transformer attention.
+        l_head (int): Number of heads in local Transformer attention.
+        l_layer (int): Number of layers in local Transformer.
+        n_ctx (int): Maximum context length of global Transformer.
+        first_layer_weight (float): A factor to scale the gradient for
+            the first-layer codes.
+
+    Examples:
+        # Initialize the MultiScaleLM model
+        model = MultiScaleLM(vocab_size=5000, nq=10, share_emb=True)
+
+        # Forward pass
+        dec_seq = torch.randint(0, 5000, (32, 50, 10))  # Example decoder input
+        dec_seq_lengths = torch.tensor([50] * 32)  # Lengths of the decoder sequences
+        loss, stats, weight = model.forward(dec_seq, dec_seq_lengths)
+
+        # Inference
+        prefix = torch.randint(0, 5000, (32, 10, 10))  # Example prefix input
+        opts = SpeechLMInferenceOptions()  # Define inference options
+        gen_tokens, gen_scores = model.inference(prefix, opts)
+
+    Note:
+        This implementation is based on the architecture described in the paper
+        "UniAudio" (https://arxiv.org/abs/2310.00704).
+
+    Raises:
+        ValueError: If global and local attention sizes are not equal during
+            initialization.
+    """
+
     def __init__(
         self,
         vocab_size: int,
@@ -143,14 +199,41 @@ class MultiScaleLM(AbsCoreLM):
         enc_seq: torch.Tensor = None,
         suffix: torch.Tensor = None,
     ):
-        """Auto-Regresive MultiScale Inference.
+        """
+                Auto-Regresive MultiScale Inference.
+
+        This method performs inference using the MultiScaleLM model. It generates
+        tokens based on a given prefix and optional suffix. The process involves
+        global and local attention mechanisms to create a coherent output sequence.
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).
-            opts (SpeechLMInferenceOptions): inference options.
-            enc_seq (LongTensor): Encoder token sequence (B, T_enc, nq).
-            suffix (LongTensor): suffix part of dec_seq (B, T_dec, nq),
-                usually the target sequence for teacher-forcing.
+            opts (SpeechLMInferenceOptions): Inference options, including parameters
+                such as `nbest`, `minlenratio`, `maxlenratio`, `search_algo`, `start`,
+                and `eos`.
+            enc_seq (LongTensor, optional): Encoder token sequence (B, T_enc, nq).
+                This is optional and may not be used in the inference process.
+            suffix (LongTensor, optional): Suffix part of dec_seq (B, T_dec, nq),
+                usually the target sequence for teacher-forcing. This is optional.
+
+        Returns:
+            Tuple[List[torch.Tensor], List[torch.Tensor]]: A tuple containing:
+                - gen_tokens (List[torch.Tensor]): Generated token sequences for each
+                  batch.
+                - gen_scores (List[torch.Tensor]): Corresponding scores for the generated
+                  tokens.
+
+        Examples:
+            >>> model = MultiScaleLM(vocab_size=1000, nq=10)
+            >>> prefix = torch.randint(0, 1000, (2, 5, 10))  # Example prefix
+            >>> opts = SpeechLMInferenceOptions(nbest=3, minlenratio=0.5,
+            ...                                  maxlenratio=1.5, search_algo='greedy',
+            ...                                  start=0, eos=1)
+            >>> gen_tokens, gen_scores = model.inference(prefix, opts)
+
+        Note:
+            This method uses caching mechanisms for efficiency, allowing the model to
+            keep track of previously computed states during the generation process.
         """
 
         # (1) global initialization
