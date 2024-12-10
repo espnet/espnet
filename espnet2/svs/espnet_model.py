@@ -33,7 +33,61 @@ else:
 
 
 class ESPnetSVSModel(AbsESPnetModel):
-    """ESPnet model for singing voice synthesis task."""
+    """
+    ESPnet model for singing voice synthesis task.
+
+    This model is designed for singing voice synthesis using various
+    feature extraction techniques. It processes text and singing
+    waveforms to produce outputs for the synthesis task.
+
+    Attributes:
+        text_extract (Optional[AbsFeatsExtract]): Feature extractor for text.
+        feats_extract (Optional[AbsFeatsExtract]): Feature extractor for audio.
+        score_feats_extract (Optional[AbsFeatsExtract]): Feature extractor for
+            score features.
+        label_extract (Optional[AbsFeatsExtract]): Feature extractor for labels.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extractor for pitch.
+        ying_extract (Optional[AbsFeatsExtract]): Feature extractor for ying.
+        duration_extract (Optional[AbsFeatsExtract]): Feature extractor for
+            duration.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extractor for energy.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            layer for features.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization layer for pitch.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization layer for energy.
+        svs (AbsSVS): The main singing voice synthesis model.
+
+    Args:
+        text_extract (Optional[AbsFeatsExtract]): Feature extractor for text.
+        feats_extract (Optional[AbsFeatsExtract]): Feature extractor for audio.
+        score_feats_extract (Optional[AbsFeatsExtract]): Feature extractor for
+            score features.
+        label_extract (Optional[AbsFeatsExtract]): Feature extractor for labels.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extractor for pitch.
+        ying_extract (Optional[AbsFeatsExtract]): Feature extractor for ying.
+        duration_extract (Optional[AbsFeatsExtract]): Feature extractor for
+            duration.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extractor for energy.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            layer for features.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization layer for pitch.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization layer for energy.
+        svs (AbsSVS): The main singing voice synthesis model.
+
+    Examples:
+        >>> model = ESPnetSVSModel(text_extract=text_feature_extractor,
+        ...                         feats_extract=audio_feature_extractor,
+        ...                         svs=svs_model)
+        >>> output = model(text_tensor, text_lengths_tensor, singing_tensor,
+        ...                 singing_lengths_tensor)
+
+    Raises:
+        RuntimeError: If the score feature extractor type is not recognized.
+    """
 
     @typechecked
     def __init__(
@@ -99,39 +153,62 @@ class ESPnetSVSModel(AbsESPnetModel):
         flag_IsValid=False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Caclualte outputs and return the loss tensor.
+        """
+                Caclualte outputs and return the loss tensor.
+
+        This method computes the forward pass of the ESPnetSVSModel, which includes
+        feature extraction, normalization, and the final loss calculation for the
+        singing voice synthesis task. It processes various input tensors and
+        returns the loss tensor, statistics for monitoring, and a weight tensor.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label (Option[Tensor]): Label tensor (B, T_label).
-            label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
-            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            midi (Option[Tensor]): Midi tensor (B, T_label).
-            midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            duration_phn (Optional[Tensor]): duration tensor (B, T_label).
-            duration_phn_lengths (Optional[Tensor]): duration length tensor (B,).
-            duration_ruled_phn (Optional[Tensor]): duration tensor (B, T_phone).
-            duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
-            duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
-            duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
-            slur (Optional[Tensor]): slur tensor (B, T_slur).
-            slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            feats (Optional[Tensor]): Features tensor (B, T_feats).
+            feats_lengths (Optional[Tensor]): Lengths of features tensor (B,).
+            label (Optional[Tensor]): Label tensor (B, T_label).
+            label_lengths (Optional[Tensor]): Label length tensor (B,).
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb).
+            midi (Optional[Tensor]): Midi tensor (B, T_label).
+            midi_lengths (Optional[Tensor]): Midi length tensor (B,).
+            duration_phn (Optional[Tensor]): Duration tensor (B, T_label).
+            duration_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_ruled_phn (Optional[Tensor]): Duration tensor (B, T_phone).
+            duration_ruled_phn_lengths (Optional[Tensor]): Duration length tensor (B,).
+            duration_syb (Optional[Tensor]): Duration tensor (B, T_syb).
+            duration_syb_lengths (Optional[Tensor]): Duration length tensor (B,).
+            slur (Optional[Tensor]): Slur tensor (B, T_slur).
+            slur_lengths (Optional[Tensor]): Slur length tensor (B,).
+            pitch (Optional[Tensor]): Pitch tensor (B, T_wav).
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
+            ying (Optional[Tensor]): Ying tensor.
+            ying_lengths (Optional[Tensor]): Ying length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
-            kwargs: "utt_id" is among the input.
+            flag_IsValid (bool, optional): Flag to indicate if the input is valid.
+            kwargs: Additional arguments, with "utt_id" being among the input.
 
         Returns:
             Tensor: Loss scalar tensor.
             Dict[str, float]: Statistics to be monitored.
             Tensor: Weight tensor to summarize losses.
+
+        Examples:
+            # Example of using the forward method
+            loss, stats, weights = model.forward(
+                text=text_tensor,
+                text_lengths=text_lengths_tensor,
+                singing=singing_tensor,
+                singing_lengths=singing_lengths_tensor,
+                label=label_tensor,
+                label_lengths=label_lengths_tensor,
+                ...
+            )
         """
         with autocast(False):
             # Extract features

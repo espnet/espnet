@@ -35,17 +35,112 @@ from espnet.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
 
 
 class XiaoiceSing(AbsSVS):
-    """XiaoiceSing module for Singing Voice Synthesis.
+    """
+    XiaoiceSing module for Singing Voice Synthesis.
 
-    This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
-    employs an integrated network for spectrum, F0 and duration modeling. It follows the
-    main architecture of FastSpeech while proposing some singing-specific design:
-        1) Add features from musical score (e.g.note pitch and length)
-        2) Add a residual connection in F0 prediction to attenuate off-key issues
-        3) The duration of all the phonemes in a musical note is accumulated to
-        calculate the syllable duration loss for rhythm enhancement (syllable loss)
-    .. _`XiaoiceSing: A High-Quality and Integrated Singing Voice Synthesis System`:
-        https://arxiv.org/pdf/2006.06261.pdf
+    This module implements a high-quality singing voice synthesis system,
+    utilizing an integrated network for spectrum, F0, and duration modeling.
+    It follows the main architecture of FastSpeech while incorporating several
+    singing-specific design features:
+        1) Incorporation of musical score features (e.g., note pitch and length).
+        2) Residual connections in F0 prediction to mitigate off-key issues.
+        3) Accumulation of phoneme durations within a musical note to compute
+           the syllable duration loss, enhancing rhythm (syllable loss).
+
+    For more information, refer to the paper:
+    `XiaoiceSing: A High-Quality and Integrated Singing Voice Synthesis System`:
+    https://arxiv.org/pdf/2006.06261.pdf
+
+    Attributes:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the midi inputs.
+        duration_dim (int): Dimension of the duration inputs.
+        eos (int): End-of-sequence token index.
+        reduction_factor (int): Reduction factor for the model outputs.
+        encoder_type (str): Type of encoder ("transformer" or "conformer").
+        decoder_type (str): Type of decoder ("transformer" or "conformer").
+        use_scaled_pos_enc (bool): Flag indicating whether to use scaled pos encoding.
+        loss_function (str): Selected loss function ("FastSpeech1" or "XiaoiceSing2").
+        loss_type (str): Type of mel loss ("L1", "L2", or "L1+L2").
+        lambda_mel (float): Scaling coefficient for Mel loss.
+        lambda_dur (float): Scaling coefficient for duration loss.
+        lambda_pitch (float): Scaling coefficient for pitch loss.
+        lambda_vuv (float): Scaling coefficient for VUV loss.
+
+    Args:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the midi inputs.
+        duration_dim (int): Dimension of the duration inputs.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        dlayers (int): Number of decoder layers.
+        dunits (int): Number of decoder hidden units.
+        postnet_layers (int): Number of postnet layers.
+        postnet_chans (int): Number of postnet channels.
+        postnet_filts (int): Kernel size of postnet.
+        postnet_dropout_rate (float): Dropout rate in postnet.
+        use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
+        use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+        encoder_normalize_before (bool): Whether to apply layernorm before encoder block.
+        decoder_normalize_before (bool): Whether to apply layernorm before decoder block.
+        encoder_concat_after (bool): Whether to concatenate attention input and output in encoder.
+        decoder_concat_after (bool): Whether to concatenate attention input and output in decoder.
+        duration_predictor_layers (int): Number of duration predictor layers.
+        duration_predictor_chans (int): Number of duration predictor channels.
+        duration_predictor_kernel_size (int): Kernel size of duration predictor.
+        duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
+        reduction_factor (int): Reduction factor.
+        encoder_type (str): Encoder type ("transformer" or "conformer").
+        decoder_type (str): Decoder type ("transformer" or "conformer").
+        transformer_enc_dropout_rate (float): Dropout rate in encoder except attention.
+        transformer_enc_positional_dropout_rate (float): Dropout rate after encoder positional encoding.
+        transformer_enc_attn_dropout_rate (float): Dropout rate in encoder self-attention module.
+        transformer_dec_dropout_rate (float): Dropout rate in decoder except attention.
+        transformer_dec_positional_dropout_rate (float): Dropout rate after decoder positional encoding.
+        transformer_dec_attn_dropout_rate (float): Dropout rate in decoder self-attention module.
+        spks (Optional[int]): Number of speakers (if > 1, use sid embedding).
+        langs (Optional[int]): Number of languages (if > 1, use lid embedding).
+        spk_embed_dim (Optional[int]): Speaker embedding dimension (if > 0, use spembs).
+        spk_embed_integration_type (str): Method to integrate speaker embedding.
+        init_type (str): Parameter initialization method.
+        init_enc_alpha (float): Initial value of alpha in scaled pos encoding for encoder.
+        init_dec_alpha (float): Initial value of alpha in scaled pos encoding for decoder.
+        use_masking (bool): Whether to apply masking for padded parts in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
+        loss_function (str): Loss functions ("FastSpeech1" or "XiaoiceSing2").
+        loss_type (str): Mel loss type ("L1", "L2", or "L1+L2").
+        lambda_mel (float): Loss scaling coefficient for Mel loss.
+        lambda_dur (float): Loss scaling coefficient for duration loss.
+        lambda_pitch (float): Loss scaling coefficient for pitch loss.
+        lambda_vuv (float): Loss scaling coefficient for VUV loss.
+
+    Examples:
+        # Initialize the XiaoiceSing module
+        xiaoice_sing = XiaoiceSing(idim=40, odim=80)
+
+        # Perform forward propagation
+        loss, stats, output = xiaoice_sing.forward(
+            text=text_tensor,
+            text_lengths=text_lengths_tensor,
+            feats=features_tensor,
+            feats_lengths=features_lengths_tensor,
+            label=label_dict,
+            label_lengths=label_lengths_dict,
+            melody=melody_dict,
+            melody_lengths=melody_lengths_dict,
+            pitch=pitch_tensor,
+            pitch_lengths=pitch_lengths_tensor,
+            duration=duration_dict,
+            duration_lengths=duration_lengths_dict,
+            slur=slur_tensor,
+            slur_lengths=slur_lengths_tensor,
+            spembs=speaker_embeddings_tensor,
+            sids=speaker_ids_tensor,
+            lids=language_ids_tensor,
+            joint_training=False,
+        )
     """
 
     @typechecked
@@ -428,7 +523,12 @@ class XiaoiceSing(AbsSVS):
         joint_training: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs forward propagation through the XiaoiceSing model.
+        It processes the input text, features, and various optional parameters
+        to compute the output and loss values.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
@@ -438,28 +538,38 @@ class XiaoiceSing(AbsSVS):
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, Tmax).
             label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
+                value (LongTensor): Batch of the lengths of padded label ids (B,).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
             melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
+                value (LongTensor): Batch of the lengths of padded melody (B,).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B,).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded duration (B, ).
+                value (LongTensor): Batch of the lengths of padded duration (B,).
             slur (LongTensor): Batch of padded slur (B, Tmax).
-            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B,).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             joint_training (bool): Whether to perform joint training with vocoder.
+            flag_IsValid (bool): Flag indicating if validation is being performed.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+                - Loss scalar value.
+                - Statistics to be monitored.
+                - Weight value if not joint training else model outputs.
+
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3], [4, 5, 0]])  # Example text
+            >>> text_lengths = torch.tensor([3, 2])  # Lengths of each text
+            >>> feats = torch.rand(2, 10, 80)  # Example features
+            >>> feats_lengths = torch.tensor([10, 10])  # Lengths of features
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths)
+            >>> print(output)
         """
 
         if joint_training:
@@ -630,7 +740,13 @@ class XiaoiceSing(AbsSVS):
         use_teacher_forcing: torch.Tensor = False,
         joint_training: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Generate the sequence of features given the sequences of characters.
+        """
+        Generate the sequence of features given the sequences of characters.
+
+        This method processes the input text and generates the corresponding
+        features using the trained model. It can also utilize additional
+        inputs like melodies, pitch, and duration if provided. The output
+        includes the generated features and the duration sequence.
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
@@ -647,12 +763,20 @@ class XiaoiceSing(AbsSVS):
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
             lids (Optional[Tensor]): Language ID (1,).
-            alpha (float): Alpha to control the speed.
+            use_teacher_forcing (torch.Tensor): Flag to use teacher forcing.
+            joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
                 * duration (Tensor): Duration sequence (T_text + 1,).
+
+        Examples:
+            >>> model = XiaoiceSing(idim=128, odim=80)
+            >>> text = torch.LongTensor([1, 2, 3, 4])
+            >>> output = model.inference(text)
+            >>> output['feat_gen'].shape
+            torch.Size([T_feats, odim])
         """
 
         label = label["score"]
