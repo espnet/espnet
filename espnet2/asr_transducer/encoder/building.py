@@ -43,14 +43,21 @@ def build_main_parameters(
     num_left_chunks: int = 0,
     **activation_parameters,
 ) -> Dict[str, Any]:
-    """Build encoder main parameters.
+    """
+    Build encoder main parameters.
+
+    This function constructs the main parameters required for the encoder
+    architecture of a Transducer model, allowing customization of various
+    components such as activation functions, normalization types, and 
+    dropout rates.
 
     Args:
         pos_wise_act_type: X-former position-wise feed-forward activation type.
         conv_mod_act_type: X-former convolution module activation type.
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
-        simplified_att_score: Whether to use simplified attention score computation.
+        simplified_att_score: Whether to use simplified attention score 
+                              computation.
         norm_type: X-former normalization module type.
         conv_mod_norm_type: Conformer convolution module normalization type.
         after_norm_eps: Epsilon value for the final normalization.
@@ -58,15 +65,31 @@ def build_main_parameters(
         blockdrop_rate: Probability threshold of dropping out each encoder block.
         dynamic_chunk_training: Whether to use dynamic chunk training.
         short_chunk_threshold: Threshold for dynamic chunk selection.
-        short_chunk_size: Minimum number of frames during dynamic chunk training.
-        num_left_chunks: Number of left chunks the attention module can see.
+        short_chunk_size: Minimum number of frames during dynamic chunk 
+                          training.
+        num_left_chunks: Number of left chunks the attention module can see. 
                          (null or negative value means full context)
         **activation_parameters: Parameters of the activation functions.
                                  (See espnet2/asr_transducer/activation.py)
 
     Returns:
-        : Main encoder parameters
+        dict: Main encoder parameters including activation functions, 
+              dropout rates, normalization configurations, and other 
+              settings required for the encoder.
 
+    Examples:
+        >>> params = build_main_parameters(
+        ...     pos_wise_act_type='relu',
+        ...     blockdrop_rate=0.1,
+        ...     dynamic_chunk_training=True
+        ... )
+        >>> print(params)
+        {
+            'pos_wise_act': <activation_function>,
+            'conv_mod_act': <activation_function>,
+            'pos_enc_dropout_rate': 0.0,
+            ...
+        }
     """
     main_params = {}
 
@@ -104,15 +127,26 @@ def build_main_parameters(
 def build_positional_encoding(
     block_size: int, configuration: Dict[str, Any]
 ) -> RelPositionalEncoding:
-    """Build positional encoding block.
+    """
+    Build positional encoding block.
+
+    This function creates a positional encoding module, which is used in 
+    transformer architectures to inject information about the position of 
+    tokens in the input sequence. The positional encoding helps the model 
+    understand the order of tokens.
 
     Args:
-        block_size: Input/output size.
-        configuration: Positional encoding configuration.
+        block_size: Input/output size of the positional encoding.
+        configuration: A dictionary containing the positional encoding 
+                       configuration parameters.
 
     Returns:
-        : Positional encoding module.
+        RelPositionalEncoding: An instance of the positional encoding module.
 
+    Examples:
+        >>> config = {'pos_enc_dropout_rate': 0.1, 'pos_enc_max_len': 1000}
+        >>> pos_enc = build_positional_encoding(512, config)
+        >>> print(pos_enc)
     """
     return RelPositionalEncoding(
         block_size,
@@ -125,15 +159,35 @@ def build_input_block(
     input_size: int,
     configuration: Dict[str, Union[str, int]],
 ) -> ConvInput:
-    """Build encoder input block.
+    """
+    Build encoder input block.
+
+    This function constructs the input block for the encoder, which typically
+    includes a convolutional layer for processing input features. The configuration
+    dictates the specifics of the convolutional layer, such as size and
+    subsampling factors.
 
     Args:
-        input_size: Input size.
-        configuration: Input block configuration.
+        input_size: The size of the input features.
+        configuration: A dictionary containing the input block configuration,
+            which must include the following keys:
+            - 'conv_size': Size of the convolutional layer.
+            - 'subsampling_factor': Factor by which to subsample the input.
+            - 'vgg_like': Boolean indicating whether to use VGG-like architecture.
+            - 'output_size': Size of the output features after the input block.
 
     Returns:
-        : ConvInput block function.
+        ConvInput: An instance of the ConvInput block configured as specified.
 
+    Examples:
+        >>> config = {
+        ...     'conv_size': 3,
+        ...     'subsampling_factor': 2,
+        ...     'vgg_like': True,
+        ...     'output_size': 128
+        ... }
+        >>> input_block = build_input_block(256, config)
+        >>> print(input_block)
     """
     return ConvInput(
         input_size,
@@ -148,15 +202,54 @@ def build_branchformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
 ) -> Branchformer:
-    """Build Branchformer block.
+    """
+    Build Branchformer block.
+
+    This function constructs a Branchformer block, which is a component of
+    the encoder architecture in the Transducer model. The Branchformer 
+    block leverages attention mechanisms and convolutional layers to 
+    process input data efficiently.
 
     Args:
-        configuration: Branchformer block configuration.
-        main_params: Encoder main parameters.
+        configuration: A list of dictionaries containing the configuration 
+                       for the Branchformer block. Each dictionary must 
+                       include the keys:
+                       - hidden_size: Size of the hidden layer.
+                       - linear_size: Size of the linear layer.
+                       - conv_mod_kernel_size: Kernel size for the convolutional 
+                         module.
+                       - dropout_rate: Dropout rate for the block.
+                       - heads: Number of attention heads (optional, default is 4).
+                       - att_dropout_rate: Dropout rate for attention (optional).
+                       - norm_eps: Epsilon value for normalization (optional).
+                       - norm_partial: Partial value for normalization (optional).
+        main_params: A dictionary containing the main parameters for the 
+                     encoder, including:
+                     - conv_mod_norm_type: Type of normalization for the 
+                       convolution module.
+                     - simplified_att_score: Boolean indicating if simplified 
+                       attention scoring is used.
 
     Returns:
-        : Branchformer block function.
+        Branchformer: A callable function that returns a Branchformer block 
+                      when invoked.
 
+    Examples:
+        >>> config = [
+        ...     {
+        ...         "hidden_size": 256,
+        ...         "linear_size": 128,
+        ...         "conv_mod_kernel_size": 3,
+        ...         "dropout_rate": 0.1,
+        ...         "heads": 4
+        ...     }
+        ... ]
+        >>> main_params = {
+        ...     "conv_mod_norm_type": "layer_norm",
+        ...     "simplified_att_score": False
+        ... }
+        >>> branchformer_block = build_branchformer_block(config, main_params)
+        >>> block = branchformer_block()  # Instantiate the block
     """
     hidden_size = configuration["hidden_size"]
     linear_size = configuration["linear_size"]
@@ -206,15 +299,47 @@ def build_conformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
 ) -> Conformer:
-    """Build Conformer block.
+    """
+    Build Conformer block.
+
+    This function constructs a Conformer block based on the provided 
+    configuration and main parameters. The Conformer architecture 
+    integrates convolutional layers and attention mechanisms to 
+    capture both local and global dependencies in the input data.
 
     Args:
-        configuration: Conformer block configuration.
-        main_params: Encoder main parameters.
+        configuration: A list of dictionaries containing Conformer 
+                       block configuration settings. Each dictionary 
+                       should include keys such as "hidden_size", 
+                       "linear_size", "pos_wise_dropout_rate", and 
+                       "conv_mod_kernel_size".
+        main_params: A dictionary containing encoder main parameters, 
+                     which are used to configure the various components 
+                     of the Conformer block, including activation functions 
+                     and normalization settings.
 
     Returns:
-        : Conformer block function.
+        A callable that returns a Conformer block instance when invoked.
 
+    Examples:
+        >>> config = [{
+        ...     "hidden_size": 256,
+        ...     "linear_size": 512,
+        ...     "pos_wise_dropout_rate": 0.1,
+        ...     "conv_mod_kernel_size": 31,
+        ...     "heads": 4,
+        ...     "att_dropout_rate": 0.1,
+        ...     "dropout_rate": 0.1,
+        ...     "norm_eps": 1e-5
+        ... }]
+        >>> main_params = {
+        ...     "pos_wise_act": "relu",
+        ...     "conv_mod_act": "relu",
+        ...     "norm_type": "layer_norm",
+        ...     "conv_mod_norm_type": "layer_norm",
+        ...     "dynamic_chunk_training": False
+        ... }
+        >>> conformer_block = build_conformer_block(config, main_params)()
     """
     hidden_size = configuration["hidden_size"]
     linear_size = configuration["linear_size"]
@@ -268,14 +393,52 @@ def build_conv1d_block(
     configuration: List[Dict[str, Any]],
     causal: bool,
 ) -> Conv1d:
-    """Build Conv1d block.
+    """
+    Build Conv1d block.
+
+    This function constructs a Conv1d block based on the provided configuration
+    and causal flag. The Conv1d block is used in various neural network architectures
+    for processing sequential data.
 
     Args:
-        configuration: Conv1d block configuration.
+        configuration: A list of dictionaries where each dictionary contains 
+                       the configuration parameters for the Conv1d block. 
+                       Expected keys include:
+                       - input_size: Size of the input features.
+                       - output_size: Size of the output features.
+                       - kernel_size: Size of the convolutional kernel.
+                       - stride: Stride of the convolution (default is 1).
+                       - dilation: Dilation factor (default is 1).
+                       - groups: Number of groups for grouped convolution 
+                                 (default is 1).
+                       - bias: Whether to include a bias term (default is True).
+                       - relu: Whether to apply ReLU activation (default is True).
+                       - batch_norm: Whether to include batch normalization 
+                                     (default is False).
+        causal: A boolean indicating whether the convolution should be causal. 
+                If True, the convolution will not include future time steps.
 
     Returns:
-        : Conv1d block function.
+        A Conv1d block function that can be called to create the Conv1d layer.
 
+    Examples:
+        >>> conv1d_block = build_conv1d_block(
+        ...     configuration=[
+        ...         {
+        ...             "input_size": 128,
+        ...             "output_size": 256,
+        ...             "kernel_size": 3,
+        ...             "stride": 1,
+        ...             "dilation": 1,
+        ...             "groups": 1,
+        ...             "bias": True,
+        ...             "relu": True,
+        ...             "batch_norm": False,
+        ...         }
+        ...     ],
+        ...     causal=True
+        ... )
+        >>> conv_layer = conv1d_block()
     """
     return lambda: Conv1d(
         configuration["input_size"],
@@ -296,15 +459,42 @@ def build_ebranchformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
 ) -> EBranchformer:
-    """Build E-Branchformer block.
+    """
+    Build E-Branchformer block.
+
+    This function constructs an E-Branchformer block, which is part of the 
+    encoder architecture for transducers. It utilizes various configurations 
+    and main parameters to create a functional block for encoding input data.
 
     Args:
-        configuration: E-Branchformer block configuration.
-        main_params: Encoder main parameters.
+        configuration: A list of dictionaries containing the E-Branchformer 
+            block configuration parameters such as `hidden_size`, `linear_size`, 
+            `dropout_rate`, `pos_wise_dropout_rate`, `conv_mod_kernel_size`, 
+            `heads`, `att_dropout_rate`, `depth_conv_kernel_size`, `norm_eps`, 
+            and `norm_partial`.
+        main_params: A dictionary containing the main encoder parameters, 
+            including activation functions, normalization types, and dropout 
+            rates.
 
     Returns:
-        : E-Branchformer block function.
+        EBranchformer: A callable that constructs an E-Branchformer block 
+            function when invoked.
 
+    Examples:
+        config = [{
+            "hidden_size": 256,
+            "linear_size": 512,
+            "dropout_rate": 0.1,
+            "pos_wise_dropout_rate": 0.1,
+            "conv_mod_kernel_size": 3,
+            "heads": 4,
+            "att_dropout_rate": 0.1,
+            "depth_conv_kernel_size": 3,
+            "norm_eps": 1e-5,
+            "norm_partial": None
+        }]
+        main_params = build_main_parameters()
+        e_branchformer_block = build_ebranchformer_block(config, main_params)()
     """
     hidden_size = configuration["hidden_size"]
     linear_size = configuration["linear_size"]
@@ -373,16 +563,49 @@ def build_body_blocks(
     main_params: Dict[str, Any],
     output_size: int,
 ) -> MultiBlocks:
-    """Build encoder body blocks.
+    """
+    Build encoder body blocks.
+
+    This function constructs a series of encoder body blocks based on the given
+    configuration and main parameters. It allows for the creation of different
+    types of blocks, including Branchformer, Conformer, Conv1d, and E-Branchformer,
+    according to the specified configuration.
 
     Args:
-        configuration: Body blocks configuration.
-        main_params: Encoder main parameters.
-        output_size: Architecture output size.
+        configuration: A list of dictionaries containing the configuration for each
+                       body block. Each dictionary may specify the type of block,
+                       the number of blocks, and various hyperparameters.
+        main_params: A dictionary containing the main parameters for the encoder,
+                     including activation functions, normalization types, and other
+                     relevant settings.
+        output_size: The output size of the architecture after processing through
+                     the body blocks.
 
     Returns:
-        MultiBlocks function encapsulation all encoder blocks.
+        MultiBlocks: A function encapsulating all encoder blocks, which can be
+                     invoked to create the full encoder body.
 
+    Raises:
+        NotImplementedError: If an unsupported block type is specified in the
+                             configuration.
+
+    Examples:
+        configuration = [
+            {"block_type": "branchformer", "num_blocks": 2, "hidden_size": 256,
+             "linear_size": 128, "dropout_rate": 0.1},
+            {"block_type": "conformer", "num_blocks": 1, "hidden_size": 256,
+             "linear_size": 128, "pos_wise_dropout_rate": 0.1},
+        ]
+        main_params = {
+            "pos_wise_act": "relu",
+            "norm_type": "layer_norm",
+            "after_norm_class": "layer_norm",
+            "after_norm_args": {"eps": 1e-6},
+            "blockdrop_rate": 0.0,
+        }
+        output_size = 512
+
+        body_blocks = build_body_blocks(configuration, main_params, output_size)
     """
     fn_modules = []
     extended_conf = []

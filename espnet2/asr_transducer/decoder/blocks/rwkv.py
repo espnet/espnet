@@ -13,20 +13,51 @@ from espnet2.asr_transducer.decoder.modules.rwkv.feed_forward import FeedForward
 
 
 class RWKV(torch.nn.Module):
-    """RWKV module.
+    """
+    Receptance Weighted Key Value (RWKV) block definition.
+
+    This module implements the RWKV architecture, which combines recurrent and
+    transformer-like properties for processing sequences. It is based on the work
+    by BlinkDL, as referenced in the repository:
+    https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py
+
+    Attributes:
+        layer_norm_att: Layer normalization for the attention module.
+        layer_norm_ffn: Layer normalization for the feed-forward module.
+        att: Self-attention mechanism.
+        dropout_att: Dropout layer for the attention module.
+        ffn: Feed-forward network.
+        dropout_ffn: Dropout layer for the feed-forward network.
 
     Args:
-        size: Input/Output size.
-        linear_size: Feed-forward hidden size.
-        attention_size: SelfAttention hidden size.
-        context_size: Context size for WKV computation.
-        block_id: Block index.
-        num_blocks: Number of blocks in the architecture.
-        normalization_class: Normalization layer class.
-        normalization_args: Normalization layer arguments.
-        att_dropout_rate: Dropout rate for the attention module.
-        ffn_dropout_rate: Dropout rate for the feed-forward module.
+        size (int): Input/Output size.
+        linear_size (int): Feed-forward hidden size.
+        attention_size (int): SelfAttention hidden size.
+        context_size (int): Context size for WKV computation.
+        block_id (int): Block index.
+        num_blocks (int): Number of blocks in the architecture.
+        normalization_class (torch.nn.Module, optional): Normalization layer class.
+            Defaults to torch.nn.LayerNorm.
+        normalization_args (Dict, optional): Normalization layer arguments.
+            Defaults to an empty dictionary.
+        att_dropout_rate (float, optional): Dropout rate for the attention module.
+            Defaults to 0.0.
+        ffn_dropout_rate (float, optional): Dropout rate for the feed-forward
+            module. Defaults to 0.0.
 
+    Examples:
+        >>> rwkv = RWKV(size=512, linear_size=2048, attention_size=256,
+        ...             context_size=128, block_id=0, num_blocks=12)
+        >>> input_tensor = torch.randn(32, 10, 512)  # (Batch, Length, Size)
+        >>> output, state = rwkv(input_tensor)
+
+    Note:
+        The RWKV architecture is designed to handle long-range dependencies
+        in sequence data, leveraging the advantages of both recurrent and
+        attention-based models.
+
+    Raises:
+        ValueError: If any of the input parameters are invalid.
     """
 
     def __init__(
@@ -61,16 +92,54 @@ class RWKV(torch.nn.Module):
         x: torch.Tensor,
         state: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Compute receptance weighted key value.
+        """
+        Receptance Weighted Key Value (RWKV) block definition.
+
+        Based/modified from https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py
+
+        Attributes:
+            layer_norm_att: Normalization layer for the attention module.
+            layer_norm_ffn: Normalization layer for the feed-forward module.
+            att: SelfAttention module for computing attention.
+            dropout_att: Dropout layer for the attention output.
+            ffn: FeedForward module for processing inputs.
+            dropout_ffn: Dropout layer for the feed-forward output.
 
         Args:
-            x: RWKV input sequences. (B, L, size)
-            state: Decoder hidden states. [5 x (B, D_att/size, N)]
+            size (int): Input/Output size.
+            linear_size (int): Feed-forward hidden size.
+            attention_size (int): SelfAttention hidden size.
+            context_size (int): Context size for WKV computation.
+            block_id (int): Block index.
+            num_blocks (int): Number of blocks in the architecture.
+            normalization_class (torch.nn.Module, optional): Normalization layer class.
+                Defaults to torch.nn.LayerNorm.
+            normalization_args (Dict, optional): Normalization layer arguments.
+                Defaults to {}.
+            att_dropout_rate (float, optional): Dropout rate for the attention module.
+                Defaults to 0.0.
+            ffn_dropout_rate (float, optional): Dropout rate for the feed-forward module.
+                Defaults to 0.0.
+
+        Methods:
+            forward(x: torch.Tensor, state: Optional[torch.Tensor]) -> 
+                Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                Compute receptance weighted key value.
 
         Returns:
-            x: RWKV output sequences. (B, L, size)
-            x: Decoder hidden states. [5 x (B, D_att/size, N)]
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - x: RWKV output sequences. Shape: (B, L, size).
+                - state: Decoder hidden states. Shape: [5 x (B, D_att/size, N)].
 
+        Examples:
+            >>> rwkv = RWKV(size=256, linear_size=512, attention_size=128, 
+            ...            context_size=32, block_id=0, num_blocks=1)
+            >>> input_tensor = torch.randn(10, 20, 256)  # (B, L, size)
+            >>> output, hidden_state = rwkv(input_tensor)
+
+        Note:
+            The RWKV module is designed to work within the context of 
+            Receptance Weighted Key Value computations for neural network models.
         """
         att, state = self.att(self.layer_norm_att(x), state=state)
         x = x + self.dropout_att(att)

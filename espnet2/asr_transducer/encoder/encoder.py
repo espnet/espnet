@@ -21,14 +21,51 @@ from espnet2.asr_transducer.utils import (
 
 
 class Encoder(torch.nn.Module):
-    """Encoder module definition.
+    """
+    Encoder module definition for Transducer model.
+
+    This class implements an Encoder module used in the Transducer model for
+    automatic speech recognition (ASR). It processes input sequences and generates
+    encoded outputs suitable for further processing in a neural network.
+
+    Attributes:
+        output_size (int): The size of the encoder output features.
+        dynamic_chunk_training (bool): Flag indicating whether dynamic chunk 
+            training is enabled.
+        short_chunk_threshold (float): The threshold for short chunks.
+        short_chunk_size (int): The size of short chunks.
+        num_left_chunks (int): The number of left chunks to consider in the
+            attention mechanism.
 
     Args:
-        input_size: Input size.
-        body_conf: Encoder body configuration.
-        input_conf: Encoder input configuration.
-        main_conf: Encoder main configuration.
+        input_size (int): Input size.
+        body_conf (List[Dict[str, Any]]): Encoder body configuration.
+        input_conf (Dict[str, Any], optional): Encoder input configuration.
+            Defaults to an empty dictionary.
+        main_conf (Dict[str, Any], optional): Encoder main configuration.
+            Defaults to an empty dictionary.
 
+    Raises:
+        TooShortUttError: If the input sequence is shorter than the required
+            length for subsampling.
+
+    Examples:
+        encoder = Encoder(input_size=80, body_conf=[{'type': 'block', 'params': {}}])
+        x = torch.randn(1, 100, 80)  # Batch of 1, 100 time steps, 80 features
+        x_len = torch.tensor([100])  # Length of the input sequence
+        outputs, lengths = encoder(x, x_len)
+
+        # For chunk-wise processing
+        processed_frames = torch.tensor(0)  # Number of frames already processed
+        chunk_outputs = encoder.chunk_forward(x, x_len, processed_frames)
+
+    Note:
+        The Encoder class is part of the ESPnet2 ASR Transducer framework and
+        relies on several utility functions for building its components.
+
+    Todo:
+        - Add support for additional encoder architectures.
+        - Implement more sophisticated error handling for input validation.
     """
 
     @typechecked
@@ -59,13 +96,30 @@ class Encoder(torch.nn.Module):
         self.num_left_chunks = main_params["num_left_chunks"]
 
     def reset_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize/Reset encoder cache for streaming.
+        """
+        Initialize/Reset encoder cache for streaming.
+
+        This method resets the internal cache of the encoder to prepare for 
+        streaming input processing. It sets the number of previous frames 
+        that the attention module can see based on the specified left context 
+        and updates the device on which the computation will occur.
 
         Args:
-            left_context: Number of previous frames (AFTER subsampling) the attention
-                          module can see in current chunk.
-            device: Device ID.
+            left_context: Number of previous frames (AFTER subsampling) the 
+                          attention module can see in current chunk.
+            device: Device ID where the cache will be reset.
 
+        Returns:
+            None
+
+        Examples:
+            >>> encoder = Encoder(input_size=128, body_conf=[...])
+            >>> encoder.reset_cache(left_context=32, device=torch.device('cpu'))
+
+        Note:
+            This function is particularly useful when processing audio streams 
+            in real-time, allowing the encoder to maintain the necessary context 
+            across chunks of input data.
         """
         return self.encoders.reset_streaming_cache(left_context, device)
 
@@ -74,16 +128,43 @@ class Encoder(torch.nn.Module):
         x: torch.Tensor,
         x_len: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Encode input sequences.
+        """
+        Encode input sequences.
+
+        This method processes input sequences through the encoder, applying
+        embeddings, positional encodings, and encoding layers to produce the
+        final output. It also validates the length of the input to ensure
+        it meets the requirements for subsampling.
 
         Args:
-            x: Encoder input features. (B, T_in, F)
-            x_len: Encoder input features lengths. (B,)
+            x: Encoder input features. Shape: (B, T_in, F), where B is the batch
+               size, T_in is the input sequence length, and F is the number of
+               features.
+            x_len: Encoder input features lengths. Shape: (B,), where each element
+                    represents the length of the corresponding input sequence.
 
         Returns:
-           x: Encoder outputs. (B, T_out, D_enc)
-           x_len: Encoder outputs lenghts. (B,)
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - x: Encoder outputs. Shape: (B, T_out, D_enc), where T_out is the
+                     output sequence length and D_enc is the dimensionality of the
+                     encoder output.
+                - x_len: Encoder outputs lengths. Shape: (B,), representing the
+                          lengths of the output sequences.
 
+        Raises:
+            TooShortUttError: If the input sequence is too short for subsampling,
+                               an exception is raised indicating the required length.
+
+        Examples:
+            >>> encoder = Encoder(input_size=128, body_conf=[{'type': 'block'}])
+            >>> input_features = torch.randn(32, 100, 128)  # (B, T_in, F)
+            >>> input_lengths = torch.tensor([100] * 32)  # Lengths for each input
+            >>> outputs, lengths = encoder(input_features, input_lengths)
+            >>> print(outputs.shape)  # Should output: (32, T_out, D_enc)
+
+        Note:
+            The method will raise an exception if the input sequences are shorter
+            than the minimum required length for the specified subsampling factor.
         """
         short_status, limit_size = check_short_utt(
             self.embed.subsampling_factor, x.size(1)
@@ -136,18 +217,38 @@ class Encoder(torch.nn.Module):
         processed_frames: torch.tensor,
         left_context: int = 32,
     ) -> torch.Tensor:
-        """Encode input sequences as chunks.
+        """
+        Encode input sequences as chunks.
+
+        This method processes input sequences in smaller segments or chunks,
+        allowing for more efficient encoding while managing context from previous
+        frames.
+
+        Attributes:
+            left_context (int): Number of previous frames (AFTER subsampling) the
+                attention module can see in the current chunk.
 
         Args:
-            x: Encoder input features. (1, T_in, F)
-            x_len: Encoder input features lengths. (1,)
-            processed_frames: Number of frames already seen.
-            left_context: Number of previous frames (AFTER subsampling) the attention
-                          module can see in current chunk.
+            x (torch.Tensor): Encoder input features with shape (1, T_in, F).
+            x_len (torch.Tensor): Lengths of encoder input features with shape (1,).
+            processed_frames (torch.Tensor): Number of frames that have already been seen.
+            left_context (int, optional): Number of previous frames (AFTER
+                subsampling) the attention module can see in the current chunk.
+                Defaults to 32.
 
         Returns:
-           x: Encoder outputs. (B, T_out, D_enc)
+            torch.Tensor: Encoder outputs with shape (B, T_out, D_enc).
 
+        Examples:
+            >>> encoder = Encoder(input_size=128, body_conf=[...])
+            >>> x = torch.randn(1, 50, 128)  # Example input
+            >>> x_len = torch.tensor([50])    # Length of the input
+            >>> processed_frames = torch.tensor(10)  # Already seen frames
+            >>> output = encoder.chunk_forward(x, x_len, processed_frames)
+
+        Note:
+            This method is particularly useful in streaming applications where
+            inputs arrive in chunks rather than all at once.
         """
         mask = make_source_mask(x_len)
         x, mask = self.embed(x, mask)

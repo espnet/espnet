@@ -20,24 +20,54 @@ from espnet2.asr_transducer.decoder.modules.mega.positional_bias import (
 
 
 class MEGA(torch.nn.Module):
-    """MEGA module.
+    """
+    Moving Average Equipped Gated Attention (MEGA) block definition.
+
+    Based/modified from 
+    https://github.com/facebookresearch/mega/blob/main/fairseq/modules/
+    moving_average_gated_attention.py
+
+    Most variables are renamed according to 
+    https://github.com/huggingface/transformers/blob/main/src/transformers/models/
+    mega/modeling_mega.py.
+
+    Attributes:
+        multihead_damped_ema: Multi-head damped exponential moving average module.
+        rel_pos_bias: Relative position bias module based on the specified type.
+        proj_v: Linear projection layer for value tensor.
+        proj_mx: Linear projection layer for combined inputs.
+        proj_h: Linear projection layer for output tensor.
+        qk_weight: Learnable parameter for query/key weights.
+        qk_bias: Learnable parameter for query/key biases.
+        scaling: Scaling factor for query tensor.
+        activation: Activation function applied within the module.
+        normalization: Normalization function applied at the output.
+        dropout: Dropout layer for general use.
+        dropout_attn: Dropout layer specifically for attention.
+        dropout_ema: Dropout layer specifically for EMA.
 
     Args:
-        size: Input/Output size.
-        num_heads: Number of EMA heads.
-        qk_size: Shared query and key size for attention module.
-        v_size: Value size for attention module.
-        qk_v_size: (QK, V) sizes for attention module.
-        activation: Activation function type.
-        normalization: Normalization module.
-        rel_pos_bias_type: Type of relative position bias in attention module.
-        max_positions: Maximum number of position for RelativePositionBias.
-        truncation_length: Maximum length for truncation in EMA module.
-        chunk_size: Chunk size for attention computation (-1 = full context).
-        dropout_rate: Dropout rate for inner modules.
-        att_dropout_rate: Dropout rate for the attention module.
-        ema_dropout_rate: Dropout rate for the EMA module.
+        size (int): Input/Output size.
+        num_heads (int): Number of EMA heads.
+        qk_size (int): Shared query and key size for attention module.
+        v_size (int): Value size for attention module.
+        activation (torch.nn.Module): Activation function type.
+        normalization (torch.nn.Module): Normalization module.
+        rel_pos_bias_type (str): Type of relative position bias in attention module.
+        max_positions (int): Maximum number of positions for RelativePositionBias.
+        truncation_length (Optional[int]): Maximum length for truncation in EMA module.
+        chunk_size (int): Chunk size for attention computation (-1 = full context).
+        dropout_rate (float): Dropout rate for inner modules.
+        att_dropout_rate (float): Dropout rate for the attention module.
+        ema_dropout_rate (float): Dropout rate for the EMA module.
 
+    Examples:
+        >>> mega = MEGA(size=512, num_heads=4)
+        >>> input_tensor = torch.randn(10, 32, 512)  # (L, B, size)
+        >>> output, state = mega(input_tensor)
+
+    Raises:
+        ValueError: If an invalid value is provided for `rel_pos_bias_type`.
     """
 
     def __init__(
@@ -103,12 +133,30 @@ class MEGA(torch.nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self, val: int = 0.0, std: int = 0.02) -> None:
-        """Reset module parameters.
+        """
+        Reset module parameters.
+
+        This method initializes the weights and biases of the various linear
+        layers and parameters within the MEGA module. The initialization is
+        done using a normal distribution for weights and a constant value for
+        biases.
 
         Args:
-            val: Initialization value.
-            std: Standard deviation.
+            val: Initialization value for biases. Default is 0.0.
+            std: Standard deviation for the normal distribution used to
+                initialize weights. Default is 0.02.
 
+        Examples:
+            >>> mega = MEGA()
+            >>> mega.reset_parameters(val=0.1, std=0.01)
+            >>> # This will reset the parameters with bias initialized to 0.1
+            >>> # and weights initialized from a normal distribution with std
+            >>> # deviation of 0.01.
+
+        Note:
+            This method should be called to reinitialize the parameters
+            if needed, such as when retraining or experimenting with different
+            initialization strategies.
         """
         torch.nn.init.normal_(self.proj_v.weight, mean=val, std=std)
         torch.nn.init.constant_(self.proj_v.bias, val)
@@ -129,17 +177,61 @@ class MEGA(torch.nn.Module):
         mask: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Compute attention weights with softmax.
+        """
+        Moving Average Equipped Gated Attention (MEGA) block definition.
+
+        Based/modified from https://github.com/facebookresearch/mega/blob/main/fairseq/modules/moving_average_gated_attention.py
+
+        Most variables are renamed according to https://github.com/huggingface/transformers/blob/main/src/transformers/models/mega/modeling_mega.py.
+
+        Attributes:
+            multihead_damped_ema: Multi-head damped EMA module.
+            rel_pos_bias: Relative position bias module.
+            proj_v: Linear projection for value tensor.
+            proj_mx: Linear projection for mixed tensor.
+            proj_h: Linear projection for hidden state.
+            qk_weight: Parameter for query-key weight.
+            qk_bias: Parameter for query-key bias.
+            scaling: Scaling factor for query tensor.
+            activation: Activation function used in the module.
+            normalization: Normalization module applied to output.
+            dropout: Dropout layer for inner modules.
+            dropout_attn: Dropout layer for attention module.
+            dropout_ema: Dropout layer for EMA module.
+            qk_size: Size of the query-key.
+            v_size: Size of the value.
+            size: Input/Output size.
+            chunk_size: Chunk size for attention computation.
 
         Args:
-            query: Query tensor. (B, 1, L, D)
-            key: Key tensor. (B, 1, L, D)
-            mask: Sequence mask. (B, 1, L)
-            attn_mask: Attention mask. (1, L, L)
+            size: Input/Output size.
+            num_heads: Number of EMA heads.
+            qk_size: Shared query and key size for attention module.
+            v_size: Value size for attention module.
+            activation: Activation function type.
+            normalization: Normalization module.
+            rel_pos_bias_type: Type of relative position bias in attention module.
+            max_positions: Maximum number of positions for RelativePositionBias.
+            truncation_length: Maximum length for truncation in EMA module.
+            chunk_size: Chunk size for attention computation (-1 = full context).
+            dropout_rate: Dropout rate for inner modules.
+            att_dropout_rate: Dropout rate for the attention module.
+            ema_dropout_rate: Dropout rate for the EMA module.
 
-        Returns:
-            attn_weights: Attention weights. (B, 1, L, L)
+        Examples:
+            >>> mega = MEGA(size=512, num_heads=4)
+            >>> query = torch.randn(2, 1, 10, 128)
+            >>> key = torch.randn(2, 1, 10, 128)
+            >>> attn_weights = mega.softmax_attention(query, key)
 
+        Note:
+            The MEGA module is designed for efficient attention computation 
+            with moving averages, making it suitable for tasks in natural 
+            language processing and other sequential data applications.
+
+        Todo:
+            Implement support for additional activation functions and 
+            normalization layers as needed.
         """
         length = key.size(2)
 
@@ -172,18 +264,56 @@ class MEGA(torch.nn.Module):
         attn_mask: Optional[torch.Tensor] = None,
         state: Optional[Dict[str, Optional[torch.Tensor]]] = None,
     ) -> Tuple[torch.Tensor, Optional[Dict[str, Optional[torch.Tensor]]]]:
-        """Compute moving average equiped gated attention.
+        """
+        Moving Average Equipped Gated Attention (MEGA) block definition.
+
+        Based/modified from 
+        https://github.com/facebookresearch/mega/blob/main/fairseq/modules/moving_average_gated_attention.py
+
+        Most variables are renamed according to 
+        https://github.com/huggingface/transformers/blob/main/src/transformers/models/mega/modeling_mega.py.
+
+        Attributes:
+            multihead_damped_ema: Multi-head damped EMA module.
+            rel_pos_bias: Relative position bias module.
+            proj_v: Linear layer for value projection.
+            proj_mx: Linear layer for mixed projection.
+            proj_h: Linear layer for output projection.
+            qk_weight: Learnable parameters for query-key weights.
+            qk_bias: Learnable parameters for query-key biases.
+            scaling: Scaling factor for query-key attention.
+            activation: Activation function used in the module.
+            normalization: Normalization module applied to the output.
+            dropout: Dropout layer for inner modules.
+            dropout_attn: Dropout layer for attention module.
+            dropout_ema: Dropout layer for EMA module.
+            qk_size: Size of the query-key vectors.
+            v_size: Size of the value vectors.
+            size: Input/output size.
+            chunk_size: Size of the chunks for attention computation.
 
         Args:
-            x: MEGA input sequences. (L, B, size)
-            mask: MEGA input sequence masks. (B, 1, L)
-            attn_mask: MEGA attention mask. (1, L, L)
-            state: Decoder hidden states.
+            size: Input/Output size.
+            num_heads: Number of EMA heads.
+            qk_size: Shared query and key size for attention module.
+            v_size: Value size for attention module.
+            activation: Activation function type (default: ReLU).
+            normalization: Normalization module (default: LayerNorm).
+            rel_pos_bias_type: Type of relative position bias in attention module.
+            max_positions: Maximum number of positions for RelativePositionBias.
+            truncation_length: Maximum length for truncation in EMA module.
+            chunk_size: Chunk size for attention computation (-1 = full context).
+            dropout_rate: Dropout rate for inner modules.
+            att_dropout_rate: Dropout rate for the attention module.
+            ema_dropout_rate: Dropout rate for the EMA module.
 
-        Returns:
-            x: MEGA output sequences. (B, L, size)
-            state: Decoder hidden states.
+        Examples:
+            >>> mega = MEGA(size=512, num_heads=4)
+            >>> input_tensor = torch.randn(10, 32, 512)  # (L, B, size)
+            >>> output, state = mega(input_tensor)
 
+        Raises:
+            ValueError: If rel_pos_bias_type is not 'rotary' or 'simple'.
         """
         length, batch, size = x.size()
 

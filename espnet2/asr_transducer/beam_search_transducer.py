@@ -12,14 +12,90 @@ from espnet2.asr_transducer.joint_network import JointNetwork
 
 @dataclass
 class Hypothesis:
-    """Default hypothesis definition for Transducer search algorithms.
+    """
+    Search algorithms for Transducer models.
+
+    This module implements search algorithms for Transducer models, including 
+    the Beam Search algorithm. The `Hypothesis` class defines the default 
+    hypothesis structure used in these search algorithms.
+
+    Classes:
+        Hypothesis: Represents a single hypothesis with its associated score, 
+            label sequence, and states.
+        ExtendedHypothesis: An extension of the Hypothesis class that includes 
+            decoder output and language model scores.
+        BeamSearchTransducer: Implements beam search for transducer models.
+
+    Attributes:
+        Hypothesis:
+            score: Total log-probability of the hypothesis.
+            yseq: Label sequence represented as a list of integer IDs.
+            dec_state: RNN/MEGA Decoder state (None if stateless).
+            lm_state: RNNLM state, can be a tuple of (N, D_lm) or None.
+        ExtendedHypothesis:
+            dec_out: Decoder output sequence of shape (B, D_dec).
+            lm_score: Log-probabilities of the language model for given labels 
+                of shape (vocab_size).
+        BeamSearchTransducer:
+            decoder: Decoder module used in the beam search.
+            joint_network: Joint network module for scoring.
+            beam_size: Size of the beam for search.
+            lm: Language model module for scoring.
+            lm_weight: Weight for the language model during scoring.
+            search_type: Type of search algorithm to use.
+            max_sym_exp: Maximum symbol expansions at each time step.
+            u_max: Maximum expected target sequence length.
+            nstep: Maximum expansion steps at each time step.
+            expansion_gamma: Allowed log-probability difference for pruning.
+            expansion_beta: Additional candidates for hypothesis selection.
+            score_norm: Whether to normalize final scores by length.
+            nbest: Number of final hypotheses to return.
+            streaming: Whether to perform chunk-by-chunk beam search.
 
     Args:
-        score: Total log-probability.
-        yseq: Label sequence as integer ID sequence.
-        dec_state: RNN/MEGA Decoder state (None if Stateless).
-        lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None
+        Hypothesis:
+            score (float): Total log-probability of the hypothesis.
+            yseq (List[int]): Sequence of label IDs.
+            dec_state (Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]): 
+                Decoder state.
+            lm_state (Optional[Union[Dict[str, Any], List[Any]]]): Language model state.
+        ExtendedHypothesis:
+            dec_out (torch.Tensor, optional): Decoder output sequence.
+            lm_score (torch.Tensor, optional): Log-probabilities of LM.
+        BeamSearchTransducer:
+            decoder (AbsDecoder): Decoder module for the transducer.
+            joint_network (JointNetwork): Joint network module for scoring.
+            beam_size (int): Size of the beam.
+            lm (Optional[torch.nn.Module]): Language model module.
+            lm_weight (float): Weight for language model in scoring.
+            search_type (str): Algorithm to use during inference.
+            max_sym_exp (int): Maximum symbol expansions at each time step.
+            u_max (int): Maximum expected target sequence length.
+            nstep (int): Maximum expansion steps at each time step.
+            expansion_gamma (float): Allowed log-probability difference for pruning.
+            expansion_beta (int): Additional candidates for selection.
+            score_norm (bool): Whether to normalize scores by length.
+            nbest (int): Number of final hypotheses to return.
+            streaming (bool): Whether to perform chunk-by-chunk beam search.
 
+    Returns:
+        Hypothesis: A list of n-best hypotheses after performing beam search.
+
+    Examples:
+        >>> hyp = Hypothesis(score=0.0, yseq=[1, 2, 3])
+        >>> hyp.score
+        0.0
+        >>> hyp.yseq
+        [1, 2, 3]
+
+        >>> transducer = BeamSearchTransducer(decoder, joint_network, beam_size=5)
+        >>> results = transducer(enc_out)
+        >>> len(results)
+        5
+
+    Note:
+        The `Hypothesis` class is designed to store and manage the state of 
+        hypotheses during the beam search process.
     """
 
     score: float
@@ -30,13 +106,39 @@ class Hypothesis:
 
 @dataclass
 class ExtendedHypothesis(Hypothesis):
-    """Extended hypothesis definition for NSC beam search and mAES.
+    """
+    Extended hypothesis definition for NSC beam search and mAES.
+
+    This class extends the default hypothesis to include additional attributes
+    specifically useful for the NSC beam search and modified Adaptive
+    Expansion Search (mAES) algorithms.
+
+    Attributes:
+        dec_out: Decoder output sequence. Shape: (B, D_dec)
+        lm_score: Log-probabilities of the language model for the given label.
+                  Shape: (vocab_size)
 
     Args:
-        : Hypothesis dataclass arguments.
-        dec_out: Decoder output sequence. (B, D_dec)
-        lm_score: Log-probabilities of the LM for given label. (vocab_size)
+        score: Total log-probability.
+        yseq: Label sequence as integer ID sequence.
+        dec_state: RNN/MEGA Decoder state (None if Stateless).
+        lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None.
+        dec_out: Decoder output sequence. Shape: (B, D_dec).
+        lm_score: Log-probabilities of the LM for given label. Shape: (vocab_size).
 
+    Examples:
+        >>> hyp = ExtendedHypothesis(
+        ...     score=-1.0,
+        ...     yseq=[1, 2, 3],
+        ...     dec_state=(torch.tensor([0.5]), None),
+        ...     lm_state=None,
+        ...     dec_out=torch.tensor([[0.1, 0.2], [0.3, 0.4]]),
+        ...     lm_score=torch.tensor([0.5, 0.6])
+        ... )
+        >>> print(hyp.score)
+        -1.0
+        >>> print(hyp.yseq)
+        [1, 2, 3]
     """
 
     dec_out: torch.Tensor = None
@@ -44,25 +146,57 @@ class ExtendedHypothesis(Hypothesis):
 
 
 class BeamSearchTransducer:
-    """Beam search implementation for Transducer.
+    """
+    Beam search implementation for Transducer models.
+
+    This class implements a beam search algorithm for transducer models in 
+    automatic speech recognition (ASR). It is designed to work with a decoder 
+    and a joint network module to produce N-best hypotheses from the encoder 
+    output.
+
+    Attributes:
+        decoder (AbsDecoder): Decoder module for generating sequences.
+        joint_network (JointNetwork): Joint network module that combines 
+            encoder and decoder outputs.
+        beam_size (int): Size of the beam for search.
+        lm (Optional[torch.nn.Module]): Language model module for soft fusion.
+        lm_weight (float): Weight for the language model in scoring.
+        search_type (str): Type of search algorithm used during inference.
+        max_sym_exp (int): Maximum symbol expansions at each time step.
+        u_max (int): Maximum expected target sequence length.
+        nstep (int): Maximum expansion steps at each time step.
+        expansion_gamma (float): Log probability difference for pruning.
+        expansion_beta (int): Additional candidates for expanded hypotheses.
+        score_norm (bool): Whether to normalize final scores by length.
+        nbest (int): Number of final hypotheses.
+        streaming (bool): Whether to perform chunk-by-chunk beam search.
 
     Args:
-        decoder: Decoder module.
-        joint_network: Joint network module.
-        beam_size: Size of the beam.
-        lm: LM module.
-        lm_weight: LM weight for soft fusion.
-        search_type: Search algorithm to use during inference.
-        max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
-        u_max: Maximum expected target sequence length. (ALSD)
-        nstep: Number of maximum expansion steps at each time step. (mAES)
-        expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
-        expansion_beta:
-             Number of additional candidates for expanded hypotheses selection. (mAES)
-        score_norm: Normalize final scores by length.
-        nbest: Number of final hypothesis.
-        streaming: Whether to perform chunk-by-chunk beam search.
+        decoder (AbsDecoder): The decoder module.
+        joint_network (JointNetwork): The joint network module.
+        beam_size (int): The size of the beam for search.
+        lm (Optional[torch.nn.Module]): The language model for soft fusion.
+        lm_weight (float): Weight of the language model.
+        search_type (str): Type of search algorithm to use.
+        max_sym_exp (int): Maximum symbol expansions.
+        u_max (int): Maximum expected target sequence length.
+        nstep (int): Maximum number of expansion steps.
+        expansion_gamma (float): Log probability difference for pruning.
+        expansion_beta (int): Additional candidates for expanded hypotheses.
+        score_norm (bool): Normalize final scores by length.
+        nbest (int): Number of final hypotheses.
+        streaming (bool): Perform chunk-by-chunk beam search.
 
+    Examples:
+        >>> beam_search = BeamSearchTransducer(decoder, joint_network, beam_size=5)
+        >>> hypotheses = beam_search(enc_out, is_final=True)
+
+    Raises:
+        NotImplementedError: If the specified search type is not supported.
+
+    Note:
+        Ensure that the `beam_size` is less than or equal to the vocabulary size 
+        of the decoder.
     """
 
     def __init__(
@@ -176,19 +310,57 @@ class BeamSearchTransducer:
         return hyps
 
     def reset_cache(self) -> None:
-        """Reset cache for streaming decoding."""
+        """
+        Reset cache for streaming decoding.
+
+        This method clears the score cache in the decoder and resets the search
+        cache. It is particularly useful in scenarios where multiple decoding
+        chunks are processed in a streaming manner, ensuring that previous
+        state information does not interfere with subsequent decoding steps.
+
+        Attributes:
+            score_cache (dict): A dictionary used by the decoder to cache scores.
+            search_cache (None): A placeholder for caching hypotheses during
+                the search process.
+
+        Examples:
+            >>> beam_search = BeamSearchTransducer(...)
+            >>> beam_search.reset_cache()  # Resets caches before new decoding.
+
+        Note:
+            This method is automatically called at the end of a decoding
+            pass if `is_final` is set to `True` in the `__call__` method.
+        """
         self.decoder.score_cache = {}
         self.search_cache = None
 
     def sort_nbest(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
-        """Sort in-place hypotheses by score or score given sequence length.
+        """
+        Sort in-place hypotheses by score or score given sequence length.
+
+        This method sorts a list of hypotheses based on their scores. If 
+        `score_norm` is set to `True`, it normalizes the scores by the 
+        length of the corresponding label sequences. The sorted list 
+        will contain only the top `nbest` hypotheses.
 
         Args:
-            hyps: Hypothesis.
+            hyps: A list of `Hypothesis` instances to be sorted.
 
-        Return:
-            hyps: Sorted hypothesis.
+        Returns:
+            List[Hypothesis]: A sorted list of hypotheses, containing only 
+            the top `nbest` hypotheses based on their scores.
 
+        Examples:
+            >>> hyp1 = Hypothesis(score=10.0, yseq=[1, 2])
+            >>> hyp2 = Hypothesis(score=15.0, yseq=[1, 3])
+            >>> hyp3 = Hypothesis(score=5.0, yseq=[2, 3])
+            >>> sorted_hyps = sort_nbest([hyp1, hyp2, hyp3])
+            >>> sorted_hyps[0].score  # Should return 15.0
+            15.0
+
+        Note:
+            The sorting is done in-place, meaning the original list 
+            `hyps` will be modified.
         """
         if self.score_norm:
             hyps.sort(key=lambda x: x.score / len(x.yseq), reverse=True)
@@ -198,14 +370,33 @@ class BeamSearchTransducer:
         return hyps[: self.nbest]
 
     def recombine_hyps(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
-        """Recombine hypotheses with same label ID sequence.
+        """
+        Recombine hypotheses with same label ID sequence.
+
+        This method aggregates the scores of hypotheses that share the same
+        label ID sequence, effectively merging them into a single hypothesis
+        with a combined score. The score is computed using the log-sum-exp
+        trick to prevent numerical underflow.
 
         Args:
-            hyps: Hypotheses.
+            hyps: A list of Hypothesis objects that need to be recombined.
 
         Returns:
-            final: Recombined hypotheses.
+            final: A list of recombined Hypothesis objects, where each unique
+            label ID sequence is represented by a single Hypothesis with its
+            score adjusted accordingly.
 
+        Examples:
+            >>> hyps = [
+            ...     Hypothesis(score=1.0, yseq=[1, 2]),
+            ...     Hypothesis(score=0.5, yseq=[1, 2]),
+            ...     Hypothesis(score=2.0, yseq=[3, 4]),
+            ... ]
+            >>> recombined = recombine_hyps(hyps)
+            >>> for hyp in recombined:
+            ...     print(hyp.yseq, hyp.score)
+            [1, 2] -1.2039728043259318  # logaddexp(1.0, 0.5)
+            [3, 4] 2.0
         """
         final = {}
 
@@ -225,19 +416,28 @@ class BeamSearchTransducer:
         topk_idx: torch.Tensor,
         topk_logp: torch.Tensor,
     ) -> List[ExtendedHypothesis]:
-        """Return K hypotheses candidates for expansion from a list of hypothesis.
+        """
+        Return K hypotheses candidates for expansion from a list of hypotheses.
 
         K candidates are selected according to the extended hypotheses probabilities
         and a prune-by-value method. Where K is equal to beam_size + beta.
 
         Args:
-            hyps: Hypotheses.
-            topk_idx: Indices of candidates hypothesis.
-            topk_logp: Log-probabilities of candidates hypothesis.
+            hyps: List of extended hypotheses to select from.
+            topk_idx: Indices of candidate hypotheses.
+            topk_logp: Log-probabilities of candidate hypotheses.
 
         Returns:
-            k_expansions: Best K expansion hypotheses candidates.
+            k_expansions: List of the best K expansion hypotheses candidates.
 
+        Examples:
+            >>> hyps = [ExtendedHypothesis(yseq=[0], score=1.0),
+            ...          ExtendedHypothesis(yseq=[1], score=0.8)]
+            >>> topk_idx = torch.tensor([[0, 1], [0, 1]])
+            >>> topk_logp = torch.tensor([[0.5, 0.3], [0.4, 0.2]])
+            >>> k_expansions = select_k_expansions(hyps, topk_idx, topk_logp)
+            >>> print(k_expansions)
+            [<ExtendedHypothesis>, <ExtendedHypothesis>]
         """
         k_expansions = []
 
@@ -261,14 +461,33 @@ class BeamSearchTransducer:
         return k_expansions
 
     def create_lm_batch_inputs(self, hyps_seq: List[List[int]]) -> torch.Tensor:
-        """Make batch of inputs with left padding for LM scoring.
+        """
+        Make batch of inputs with left padding for LM scoring.
+
+        This function creates a padded batch of hypothesis sequences, where each
+        sequence is left-padded with a start-of-sequence token and right-padded
+        with zeros to ensure that all sequences in the batch have the same length.
 
         Args:
-            hyps_seq: Hypothesis sequences.
+            hyps_seq: A list of hypothesis sequences, where each sequence is a list
+                of integers representing label IDs.
 
         Returns:
-            : Padded batch of sequences.
+            torch.Tensor: A tensor containing the padded batch of sequences. The
+                shape of the tensor will be (batch_size, max_length), where
+                max_length is the length of the longest sequence in the input.
 
+        Examples:
+            >>> hyps_seq = [[1, 2, 3], [4, 5], [6]]
+            >>> batch_inputs = create_lm_batch_inputs(hyps_seq)
+            >>> print(batch_inputs)
+            tensor([[ 0,  1,  2,  3],
+                    [ 0,  4,  5,  0],
+                    [ 0,  6,  0,  0]])
+
+        Note:
+            The start-of-sequence token is defined as `self.sos`, and zero is used
+            for padding.
         """
         max_len = max([len(h) for h in hyps_seq])
 
@@ -278,16 +497,32 @@ class BeamSearchTransducer:
         )
 
     def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
-        """Beam search implementation without prefix search.
+        """
+        Beam search implementation without prefix search.
 
-        Modified from https://arxiv.org/pdf/1211.3711.pdf
+        This method performs a beam search over the output of the encoder 
+        without using prefix search. It evaluates the hypotheses at each 
+        time step, expanding the most promising ones according to the beam 
+        size and the scores computed from the joint network.
+
+        Modified from: https://arxiv.org/pdf/1211.3711.pdf
 
         Args:
-            enc_out: Encoder output sequence. (T, D)
+            enc_out: Encoder output sequence. Shape (T, D).
 
         Returns:
-            nbest_hyps: N-best hypothesis.
+            nbest_hyps: List of N-best hypotheses sorted by their scores.
 
+        Examples:
+            >>> enc_out = torch.randn(10, 256)  # Example encoder output
+            >>> beam_search = BeamSearchTransducer(decoder, joint_network, beam_size=5)
+            >>> results = beam_search.default_beam_search(enc_out)
+            >>> print(results)  # List of Hypothesis objects with their scores and sequences.
+
+        Note:
+            The hypotheses are scored based on both the decoder output and 
+            the language model (if available), and are pruned according 
+            to the beam size at each time step.
         """
         beam_k = min(self.beam_size, (self.vocab_size - 1))
         max_t = len(enc_out)
@@ -373,16 +608,30 @@ class BeamSearchTransducer:
         self,
         enc_out: torch.Tensor,
     ) -> List[Hypothesis]:
-        """Alignment-length synchronous beam search implementation.
+        """
+        Alignment-length synchronous beam search implementation.
 
-        Based on https://ieeexplore.ieee.org/document/9053040
+        This method performs a beam search that synchronizes the length of the 
+        generated sequences with the input encoder outputs. The search is 
+        based on the algorithm described in the paper:
+        "A Generalized Beam Search Algorithm for Sequence-to-Sequence 
+        Learning" (https://ieeexplore.ieee.org/document/9053040).
 
         Args:
-            h: Encoder output sequences. (T, D)
+            enc_out: Encoder output sequences. Shape is (T, D) where T is 
+                    the number of time steps and D is the dimension of 
+                    the encoder output.
 
         Returns:
-            nbest_hyps: N-best hypothesis.
+            List[Hypothesis]: A list of N-best hypotheses generated from 
+                            the beam search.
 
+        Examples:
+            >>> beam_search_transducer = BeamSearchTransducer(...)
+            >>> encoder_output = torch.randn(10, 256)  # Example encoder output
+            >>> hypotheses = beam_search_transducer.align_length_sync_decoding(encoder_output)
+            >>> for hyp in hypotheses:
+            ...     print(hyp.yseq, hyp.score)
         """
         t_max = int(enc_out.size(0))
         u_max = min(self.u_max, (t_max - 1))
@@ -462,16 +711,36 @@ class BeamSearchTransducer:
         return B
 
     def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
-        """Time synchronous beam search implementation.
+        """
+        Time synchronous beam search implementation.
 
-        Based on https://ieeexplore.ieee.org/document/9053040
+        This method implements a beam search algorithm that operates in a time 
+        synchronous manner. It takes the encoder output sequence and generates 
+        N-best hypotheses based on the joint network's log-probabilities. The 
+        approach allows for multiple symbol expansions at each time step, making 
+        it suitable for scenarios where temporal alignment is critical.
 
         Args:
             enc_out: Encoder output sequence. (T, D)
 
         Returns:
-            nbest_hyps: N-best hypothesis.
+            List[Hypothesis]: N-best hypotheses, sorted by their scores.
 
+        Examples:
+            >>> decoder = AbsDecoder(...)
+            >>> joint_network = JointNetwork(...)
+            >>> beam_search = BeamSearchTransducer(decoder, joint_network, beam_size=5)
+            >>> enc_out = torch.randn(10, decoder.input_dim)  # Example encoder output
+            >>> nbest_hyps = beam_search.time_sync_decoding(enc_out)
+            >>> for hyp in nbest_hyps:
+            >>>     print(hyp.yseq, hyp.score)
+
+        Note:
+            The method can utilize a language model if one is provided during the 
+            initialization of the `BeamSearchTransducer`.
+
+        Raises:
+            RuntimeError: If the input tensor dimensions do not match expected shapes.
         """
         if self.search_cache is not None:
             B = self.search_cache
@@ -556,17 +825,28 @@ class BeamSearchTransducer:
         self,
         enc_out: torch.Tensor,
     ) -> List[ExtendedHypothesis]:
-        """Modified version of Adaptive Expansion Search (mAES).
+        """
+        Modified version of Adaptive Expansion Search (mAES).
 
-        Based on AES (https://ieeexplore.ieee.org/document/9250505) and
-                 NSC (https://arxiv.org/abs/2201.05420).
+        This method implements a modified version of the Adaptive Expansion
+        Search algorithm for beam search decoding in transducer models. It 
+        utilizes a combination of hypotheses from previous steps and expands 
+        them based on the current encoder output.
+
+        Based on the original Adaptive Expansion Search (AES) as described in
+        https://ieeexplore.ieee.org/document/9250505 and the Non-Stationary
+        Context (NSC) approach from https://arxiv.org/abs/2201.05420.
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)
 
         Returns:
-            nbest_hyps: N-best hypothesis.
+            nbest_hyps: N-best hypotheses sorted by score.
 
+        Examples:
+            >>> enc_out = torch.rand(10, 256)  # Example encoder output
+            >>> beam_search = BeamSearchTransducer(...)
+            >>> nbest_hyps = beam_search.modified_adaptive_expansion_search(enc_out)
         """
         if self.search_cache is not None:
             kept_hyps = self.search_cache
