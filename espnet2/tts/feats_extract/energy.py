@@ -16,7 +16,60 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Energy(AbsFeatsExtract):
-    """Energy extractor."""
+    """
+        Energy extractor for audio features.
+
+    This class implements an energy extraction mechanism from audio signals. It
+    utilizes Short-Time Fourier Transform (STFT) to compute the energy of the
+    input audio and offers functionalities to adjust and average the energy
+    based on token durations.
+
+    Attributes:
+        fs (int): Sampling frequency of the input audio.
+        n_fft (int): Number of FFT points.
+        win_length (Optional[int]): Length of the window for STFT.
+        hop_length (int): Hop length for STFT.
+        window (str): Type of window to use for STFT.
+        center (bool): Whether to center the input signal.
+        normalized (bool): Whether to normalize the output.
+        onesided (bool): Whether to use one-sided STFT.
+        use_token_averaged_energy (bool): Whether to use averaged energy per token.
+        reduction_factor (Optional[int]): Factor for reducing the energy length.
+
+    Args:
+        fs (Union[int, str]): Sampling frequency of the audio. Can be an int or
+            a human-friendly string (e.g., "22k").
+        n_fft (int): Number of FFT points. Default is 1024.
+        win_length (Optional[int]): Length of the window. Default is None, which
+            uses `n_fft`.
+        hop_length (int): Hop length for STFT. Default is 256.
+        window (str): Type of window function to use. Default is "hann".
+        center (bool): Whether to center the input signal. Default is True.
+        normalized (bool): Whether to normalize the output. Default is False.
+        onesided (bool): Whether to use one-sided STFT. Default is True.
+        use_token_averaged_energy (bool): Whether to average energy per token.
+            Default is True.
+        reduction_factor (Optional[int]): Factor for reducing the energy length.
+            Must be >= 1 if `use_token_averaged_energy` is True.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - energy (torch.Tensor): Extracted energy of shape (B, T, 1).
+            - energy_lengths (torch.Tensor): Lengths of the energy sequences.
+
+    Raises:
+        AssertionError: If `reduction_factor` is less than 1 when
+            `use_token_averaged_energy` is True.
+
+    Examples:
+        >>> energy_extractor = Energy(fs=22050, n_fft=1024, hop_length=256)
+        >>> input_audio = torch.randn(10, 16000)  # Batch of 10 audio signals
+        >>> energy, lengths = energy_extractor(input_audio)
+
+    Note:
+        This class is a subclass of `AbsFeatsExtract` and must be used
+        in accordance with its interface.
+    """
 
     @typechecked
     def __init__(
@@ -57,9 +110,54 @@ class Energy(AbsFeatsExtract):
         )
 
     def output_size(self) -> int:
+        """
+            Returns the output size of the energy extractor.
+
+        This method returns a fixed output size of 1, which corresponds to the
+        energy feature extracted from the input signal. This is a property of the
+        energy extraction process, as the energy feature is a scalar value for
+        each input frame.
+
+        Returns:
+            int: The output size of the energy extractor, which is always 1.
+
+        Examples:
+            >>> energy_extractor = Energy()
+            >>> output_size = energy_extractor.output_size()
+            >>> print(output_size)
+            1
+        """
         return 1
 
     def get_parameters(self) -> Dict[str, Any]:
+        """
+        Retrieve the parameters of the Energy extractor.
+
+        This method returns a dictionary containing the key parameters
+        used in the Energy extractor, which are essential for understanding
+        the configuration and setup of the feature extraction process.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the parameters of the
+            Energy extractor, including sample rate, FFT size, hop length,
+            window type, and other relevant configurations.
+
+        Examples:
+            >>> energy_extractor = Energy()
+            >>> parameters = energy_extractor.get_parameters()
+            >>> print(parameters)
+            {
+                'fs': 22050,
+                'n_fft': 1024,
+                'hop_length': 256,
+                'window': 'hann',
+                'win_length': None,
+                'center': True,
+                'normalized': False,
+                'use_token_averaged_energy': True,
+                'reduction_factor': None
+            }
+        """
         return dict(
             fs=self.fs,
             n_fft=self.n_fft,
@@ -80,6 +178,55 @@ class Energy(AbsFeatsExtract):
         durations: torch.Tensor = None,
         durations_lengths: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+            Extracts energy features from audio input.
+
+        This class inherits from the abstract class `AbsFeatsExtract` and provides
+        methods to compute energy features from audio signals using Short-Time
+        Fourier Transform (STFT). It supports various configurations for the STFT
+        and energy calculation.
+
+        Attributes:
+            fs (int): Sampling frequency of the audio signal.
+            n_fft (int): Number of FFT points.
+            hop_length (int): Number of samples between successive frames.
+            win_length (Optional[int]): Length of each windowed segment.
+            window (str): Type of window function to use (e.g., "hann").
+            use_token_averaged_energy (bool): Whether to use token-averaged energy.
+            reduction_factor (Optional[int]): Factor by which to reduce energy.
+
+        Args:
+            fs (Union[int, str]): Sampling frequency, can be an integer or a string.
+            n_fft (int): Number of FFT points (default: 1024).
+            win_length (Optional[int]): Length of each windowed segment (default: None).
+            hop_length (int): Number of samples between successive frames (default: 256).
+            window (str): Type of window function to use (default: "hann").
+            center (bool): Whether to center the signal (default: True).
+            normalized (bool): Whether to normalize the output (default: False).
+            onesided (bool): Whether to use one-sided spectrum (default: True).
+            use_token_averaged_energy (bool): Whether to use token-averaged energy
+                (default: True).
+            reduction_factor (Optional[int]): Factor by which to reduce energy
+                (default: None).
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - Energy features of shape (B, T, 1).
+                - Lengths of the energy features.
+
+        Raises:
+            AssertionError: If the input tensor's shape is not valid or if the
+                `reduction_factor` is invalid when `use_token_averaged_energy` is True.
+
+        Examples:
+            >>> energy_extractor = Energy(fs=22050, n_fft=1024)
+            >>> input_tensor = torch.randn(10, 16000)  # Batch of 10 audio signals
+            >>> energy, lengths = energy_extractor.forward(input_tensor)
+
+        Note:
+            The input tensor should have the shape (B, T), where B is the batch
+            size and T is the number of time steps.
+        """
         # If not provide, we assume that the inputs have the same length
         if input_lengths is None:
             input_lengths = (

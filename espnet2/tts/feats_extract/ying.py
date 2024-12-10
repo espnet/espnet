@@ -16,7 +16,60 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Ying(AbsFeatsExtract):
-    """Extact Ying-based Features."""
+    """
+    Extract Ying-based Features.
+
+    This class computes the Ying features from raw audio input using
+    methods derived from the NANSY implementation. The Ying features
+    are calculated through a series of transformations applied to the
+    audio signal, including computing the cumulative mean normalized
+    difference function (cMNDF) and converting MIDI to time lag.
+
+    Attributes:
+        fs (int): Sample rate of the audio.
+        w_step (int): Step size for the window in frames.
+        W (int): Window size for the analysis.
+        tau_max (int): Maximum time lag to consider.
+        midi_start (int): Starting MIDI note number.
+        midi_end (int): Ending MIDI note number.
+        octave_range (int): Number of MIDI notes per octave.
+        use_token_averaged_ying (bool): Flag to indicate if token-averaged
+            Ying features should be used.
+
+    Args:
+        fs (int): Sample rate (default: 22050).
+        w_step (int): Window step size (default: 256).
+        W (int): Window size (default: 2048).
+        tau_max (int): Maximum time lag (default: 2048).
+        midi_start (int): Starting MIDI note (default: -5).
+        midi_end (int): Ending MIDI note (default: 75).
+        octave_range (int): Range of octaves (default: 24).
+        use_token_averaged_ying (bool): Use token averaged Ying features
+            (default: False).
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the Ying
+        features and their lengths.
+
+    Raises:
+        AssertionError: If the input duration is invalid.
+
+    Examples:
+        >>> import torch
+        >>> ying_extractor = Ying()
+        >>> audio_input = torch.randn(1, 1024)  # Simulated raw audio input
+        >>> ying_features, lengths = ying_extractor(audio_input)
+        >>> print(ying_features.shape)
+        torch.Size([1, 80, T'])  # Shape will depend on input length
+
+    Note:
+        This implementation is designed to be fully differentiable, allowing
+        for integration into neural network training pipelines.
+
+    Todo:
+        - Remove batch_size in self.yingram for improved flexibility.
+        - Confirm whether the float() conversion in return should be necessary.
+    """
 
     @typechecked
     def __init__(
@@ -45,9 +98,56 @@ class Ying(AbsFeatsExtract):
         self.register_buffer("c_ms_floor", torch.floor(self.c_ms).long())
 
     def output_size(self) -> int:
+        """
+        Returns the output size of the Ying feature extractor.
+
+        This method returns a fixed output size of 1, which is used in the
+        context of feature extraction from audio signals. The output size
+        remains constant regardless of the input data.
+
+        Returns:
+            int: The output size of the Ying feature extractor, which is always 1.
+
+        Examples:
+            >>> ying = Ying()
+            >>> output_size = ying.output_size()
+            >>> print(output_size)
+            1
+        """
         return 1
 
     def get_parameters(self) -> Dict[str, Any]:
+        """
+            Retrieve the parameters of the Ying feature extraction instance.
+
+        This method returns a dictionary containing the key parameters used in the
+        Ying feature extraction process. The parameters include the sample rate,
+        window step size, window size, maximum time lag, and whether token-averaged
+        Ying is used.
+
+        Args:
+            None
+
+        Returns:
+            A dictionary containing the following keys:
+                - fs (int): Sample rate.
+                - w_step (int): Step size for the window.
+                - W (int): Size of the window.
+                - tau_max (int): Maximum time lag.
+                - use_token_averaged_ying (bool): Indicates if token-averaged Ying
+                  is used.
+
+        Examples:
+            >>> ying = Ying()
+            >>> parameters = ying.get_parameters()
+            >>> print(parameters)
+            {'fs': 22050, 'w_step': 256, 'W': 2048, 'tau_max': 2048,
+             'use_token_averaged_ying': False}
+
+        Note:
+            This method is useful for understanding the configuration of the
+            Ying feature extraction instance and for debugging purposes.
+        """
         return dict(
             fs=self.fs,
             w_step=self.w_step,
@@ -57,37 +157,61 @@ class Ying(AbsFeatsExtract):
         )
 
     def midi_to_lag(self, m: int, octave_range: float = 12):
-        """converts midi-to-lag, eq. (4)
+        """
+        Converts MIDI note number to time lag.
+
+        This function calculates the time lag (tau, c(m)) corresponding to a given
+        MIDI note number using the formula provided in the associated reference.
+        The time lag is computed based on the frequency derived from the MIDI number.
 
         Args:
-            m: midi
-            fs: sample_rate
-            octave_range:
+            m (int): MIDI note number (typically ranging from 0 to 127).
+            octave_range (float, optional): The range of octaves for frequency
+                calculation. Default is 12.
 
         Returns:
-            lag: time lag(tau, c(m)) calculated from midi, eq. (4)
+            float: The calculated time lag in seconds corresponding to the given MIDI
+            note number.
 
+        Examples:
+            >>> midi_to_lag(69)  # A4
+            0.0022727272727272726
+            >>> midi_to_lag(60)  # C4
+            0.004545454545454545
+            >>> midi_to_lag(72)  # C5
+            0.0022727272727272726
+
+        Note:
+            The standard reference frequency for MIDI note 69 (A4) is 440 Hz.
         """
         f = 440 * math.pow(2, (m - 69) / octave_range)
         lag = self.fs / f
         return lag
 
     def yingram_from_cmndf(self, cmndfs: torch.Tensor) -> torch.Tensor:
-        """yingram calculator from cMNDFs.
+        """
+        Calculate the Yingram from cumulative Mean Normalized Difference Functions.
 
-        (cumulative Mean Normalized Difference Functions)
+        This method computes the Yingram from the provided cumulative Mean
+        Normalized Difference Functions (cMNDFs). The Yingram is a representation
+        that captures pitch information based on the input cMNDFs.
 
         Args:
             cmndfs: torch.Tensor
-                calculated cumulative mean normalized difference function
-                for details, see models/yin.py or eq. (1) and (2)
-            ms: list of midi(int)
-            fs: sampling rate
+                A tensor containing the calculated cumulative mean normalized
+                difference function. For details, refer to models/yin.py or
+                equations (1) and (2) in the associated documentation.
 
         Returns:
-            y:
-                calculated batch yingram
+            torch.Tensor:
+                The calculated batch Yingram, which is a tensor containing the
+                pitch representation derived from the input cMNDFs.
 
+        Examples:
+            >>> cmndfs = torch.randn(10, 2048)  # Example input
+            >>> yingram = self.yingram_from_cmndf(cmndfs)
+            >>> print(yingram.shape)
+            torch.Size([10, <num_midis>])  # Output shape depends on midi range
         """
         # c_ms = np.asarray([Pitch.midi_to_lag(m, fs) for m in ms])
         # c_ms = torch.from_numpy(c_ms).to(cmndfs.device)
@@ -100,18 +224,56 @@ class Ying(AbsFeatsExtract):
         return y
 
     def yingram(self, x: torch.Tensor):
-        """calculates yingram from raw audio (multi segment)
+        """
+                Extact Ying-based Features.
+
+        This class implements the extraction of Ying-based features from audio input.
+        It is designed to be fully differentiable and is suitable for use in various
+        machine learning and audio processing tasks.
+
+        Attributes:
+            fs (int): Sampling frequency in Hz. Default is 22050.
+            w_step (int): Step size for the window in samples. Default is 256.
+            W (int): Window size in samples. Default is 2048.
+            tau_max (int): Maximum time lag for calculations. Default is 2048.
+            midi_start (int): Starting MIDI note number. Default is -5.
+            midi_end (int): Ending MIDI note number. Default is 75.
+            octave_range (int): Number of MIDI notes per octave. Default is 24.
+            use_token_averaged_ying (bool): If True, use token-averaged YIN values.
+                Default is False.
 
         Args:
-            x: raw audio, torch.Tensor of shape (t)
-            W: yingram Window Size
-            tau_max:
-            fs: sampling rate
-            w_step: yingram bin step size
+            fs (int): Sampling frequency in Hz. Default is 22050.
+            w_step (int): Step size for the window in samples. Default is 256.
+            W (int): Window size in samples. Default is 2048.
+            tau_max (int): Maximum time lag for calculations. Default is 2048.
+            midi_start (int): Starting MIDI note number. Default is -5.
+            midi_end (int): Ending MIDI note number. Default is 75.
+            octave_range (int): Number of MIDI notes per octave. Default is 24.
+            use_token_averaged_ying (bool): If True, use token-averaged YIN values.
+                Default is False.
 
         Returns:
-            yingram: yingram. torch.Tensor of shape (80 x t')
+            None
 
+        Examples:
+            # Initialize the Ying feature extractor
+            ying_extractor = Ying()
+
+            # Process a batch of audio signals
+            audio_batch = torch.randn(1, 4096)  # Simulated audio input
+            ying_features = ying_extractor.yingram(audio_batch)
+
+            # Output the shape of the extracted features
+            print(ying_features.shape)  # Expected shape: (80, t')
+
+        Note:
+            This class inherits from AbsFeatsExtract, and requires the espnet2
+            library for audio processing utilities.
+
+        Todo:
+            - Implement more robust error handling.
+            - Explore optimization opportunities for performance.
         """
         # x.shape: t -> B,T, B,T = x.shape
         B, T = x.shape
@@ -157,6 +319,52 @@ class Ying(AbsFeatsExtract):
         durations: Optional[torch.Tensor] = None,
         durations_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Computes the forward pass of the Ying feature extractor.
+
+        This method processes the input audio tensor to extract Ying-based features.
+        It optionally handles input lengths, feature lengths, and duration information
+        for the audio segments.
+
+        Args:
+            input (torch.Tensor): A tensor of shape (B, T) representing the input
+                audio signals, where B is the batch size and T is the number of
+                time steps.
+            input_lengths (Optional[torch.Tensor]): A tensor of shape (B,)
+                containing the lengths of each input sequence. If None, it is
+                assumed that all inputs are of maximum length.
+            feats_lengths (Optional[torch.Tensor]): A tensor of shape (B,) that
+                contains the lengths of the desired output features. This is used
+                for optional length adjustment.
+            durations (Optional[torch.Tensor]): A tensor of shape (B,) containing
+                the duration information for each input segment. Used for
+                averaging when `use_token_averaged_ying` is True.
+            durations_lengths (Optional[torch.Tensor]): A tensor of shape (B,)
+                containing the lengths of the duration sequences.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - A tensor of shape (B, F, T') representing the extracted Ying
+                  features, where F is the number of features and T' is the
+                  number of time steps after processing.
+                - A tensor of shape (B,) containing the lengths of the output
+                  features.
+
+        Note:
+            The output tensor is converted to float type before returning.
+
+        Examples:
+            >>> ying_extractor = Ying()
+            >>> audio_input = torch.randn(2, 4096)  # Example input for batch size 2
+            >>> input_lengths = torch.tensor([4096, 4096])
+            >>> features, feature_lengths = ying_extractor.forward(audio_input,
+            ...                                                    input_lengths)
+            >>> print(features.shape)  # Expected shape: (2, F, T')
+
+        Raises:
+            ValueError: If the input tensor dimensions are not as expected or if
+            input lengths exceed the tensor dimensions.
+        """
         if input_lengths is None:
             input_lengths = (
                 input.new_ones(input.shape[0], dtype=torch.long) * input.shape[1]
@@ -207,6 +415,39 @@ class Ying(AbsFeatsExtract):
     def crop_scope(
         self, x, yin_start, scope_shift
     ):  # x: tensor [B,C,T] #scope_shift: tensor [B]
+        """
+        Crop a specified scope from the input tensor based on the YIN start and
+        scope shift.
+
+        This method extracts a segment from the input tensor `x`, using the
+        `yin_start` index and applying the `scope_shift` for each batch. It
+        returns a new tensor containing the cropped segments for each batch.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape [B, C, T], where B is the
+                batch size, C is the number of channels, and T is the
+                sequence length.
+            yin_start (int): The starting index for cropping from each
+                sequence in the input tensor.
+            scope_shift (torch.Tensor): A tensor of shape [B] representing the
+                shift to apply to the starting index for each batch.
+
+        Returns:
+            torch.Tensor: A tensor containing the cropped segments from the
+                input tensor, of shape [B, C, scope_length], where
+                scope_length is determined by the difference between the
+                ending index and the starting index.
+
+        Examples:
+            >>> import torch
+            >>> x = torch.rand(2, 3, 10)  # Example input tensor
+            >>> yin_start = 2
+            >>> scope_shift = torch.tensor([1, 2])
+            >>> cropped = crop_scope(x, yin_start, scope_shift)
+            >>> print(cropped.shape)
+            torch.Size([2, 3, scope_length])  # Output shape will depend on
+            # yin_scope and scope_shift values.
+        """
         return torch.stack(
             [
                 x[

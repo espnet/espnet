@@ -14,32 +14,51 @@ from espnet.nets.pytorch_backend.transformer.attention import (
 
 
 class StyleEncoder(torch.nn.Module):
-    """Style encoder.
+    """
+        Style encoder of GST-Tacotron.
 
-    This module is style encoder introduced in `Style Tokens: Unsupervised Style
-    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+    This module implements the style encoder introduced in
+    `Style Tokens: Unsupervised Style Modeling, Control and Transfer in
+    End-to-End Speech Synthesis`.
 
-    .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
-        Speech Synthesis`: https://arxiv.org/abs/1803.09017
+    .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in
+       End-to-End Speech Synthesis`: https://arxiv.org/abs/1803.09017
+
+    Attributes:
+        ref_enc (ReferenceEncoder): Reference encoder module for feature extraction.
+        stl (StyleTokenLayer): Style token layer for generating style embeddings.
 
     Args:
-        idim (int, optional): Dimension of the input mel-spectrogram.
-        gst_tokens (int, optional): The number of GST embeddings.
-        gst_token_dim (int, optional): Dimension of each GST embedding.
+        idim (int, optional): Dimension of the input mel-spectrogram. Default is 80.
+        gst_tokens (int, optional): The number of GST embeddings. Default is 10.
+        gst_token_dim (int, optional): Dimension of each GST embedding. Default is 256.
         gst_heads (int, optional): The number of heads in GST multihead attention.
-        conv_layers (int, optional): The number of conv layers in the reference encoder.
-        conv_chans_list: (Sequence[int], optional):
-            List of the number of channels of conv layers in the referece encoder.
-        conv_kernel_size (int, optional):
-            Kernel size of conv layers in the reference encoder.
-        conv_stride (int, optional):
-            Stride size of conv layers in the reference encoder.
-        gru_layers (int, optional): The number of GRU layers in the reference encoder.
-        gru_units (int, optional): The number of GRU units in the reference encoder.
+            Default is 4.
+        conv_layers (int, optional): The number of conv layers in the reference
+            encoder. Default is 6.
+        conv_chans_list (Sequence[int], optional): List of the number of channels
+            of conv layers in the reference encoder. Default is (32, 32, 64, 64,
+            128, 128).
+        conv_kernel_size (int, optional): Kernel size of conv layers in the
+            reference encoder. Default is 3.
+        conv_stride (int, optional): Stride size of conv layers in the reference
+            encoder. Default is 2.
+        gru_layers (int, optional): The number of GRU layers in the reference
+            encoder. Default is 1.
+        gru_units (int, optional): The number of GRU units in the reference
+            encoder. Default is 128.
 
     Todo:
         * Support manual weight specification in inference.
 
+    Examples:
+        # Initialize the StyleEncoder with default parameters
+        style_encoder = StyleEncoder()
+
+        # Forward pass with dummy input
+        dummy_input = torch.randn(4, 100, 80)  # (B, Lmax, idim)
+        style_embeddings = style_encoder(dummy_input)
+        print(style_embeddings.shape)  # Output shape should be (B, gst_token_dim)
     """
 
     @typechecked
@@ -76,14 +95,27 @@ class StyleEncoder(torch.nn.Module):
         )
 
     def forward(self, speech: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+            Calculate forward propagation.
+
+        This method computes the forward pass of the style encoder by taking
+        the input speech features and producing style token embeddings.
 
         Args:
-            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech (Tensor): Batch of padded target features with shape
+                (B, Lmax, odim), where B is the batch size, Lmax is the maximum
+                length of the sequence, and odim is the dimension of the output
+                features.
 
         Returns:
-            Tensor: Style token embeddings (B, token_dim).
+            Tensor: Style token embeddings with shape (B, token_dim), where
+                token_dim is the dimension of the generated style tokens.
 
+        Examples:
+            >>> style_encoder = StyleEncoder()
+            >>> input_speech = torch.randn(16, 100, 80)  # Example input
+            >>> output_style_embs = style_encoder(input_speech)
+            >>> print(output_style_embs.shape)  # Should print: torch.Size([16, 256])
         """
         ref_embs = self.ref_enc(speech)
         style_embs = self.stl(ref_embs)
@@ -92,19 +124,26 @@ class StyleEncoder(torch.nn.Module):
 
 
 class ReferenceEncoder(torch.nn.Module):
-    """Reference encoder module.
+    """
+        Reference encoder module.
 
-    This module is reference encoder introduced in `Style Tokens: Unsupervised Style
-    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+    This module is the reference encoder introduced in `Style Tokens: Unsupervised
+    Style Modeling, Control and Transfer in End-to-End Speech Synthesis`.
 
     .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
-        Speech Synthesis`: https://arxiv.org/abs/1803.09017
+       Speech Synthesis`: https://arxiv.org/abs/1803.09017
+
+    Attributes:
+        conv_layers (int): The number of conv layers in the reference encoder.
+        kernel_size (int): Kernel size of conv layers in the reference encoder.
+        stride (int): Stride size of conv layers in the reference encoder.
+        padding (int): Padding size used in convolution layers.
 
     Args:
         idim (int, optional): Dimension of the input mel-spectrogram.
         conv_layers (int, optional): The number of conv layers in the reference encoder.
-        conv_chans_list: (Sequence[int], optional):
-            List of the number of channels of conv layers in the referece encoder.
+        conv_chans_list (Sequence[int], optional):
+            List of the number of channels of conv layers in the reference encoder.
         conv_kernel_size (int, optional):
             Kernel size of conv layers in the reference encoder.
         conv_stride (int, optional):
@@ -112,6 +151,11 @@ class ReferenceEncoder(torch.nn.Module):
         gru_layers (int, optional): The number of GRU layers in the reference encoder.
         gru_units (int, optional): The number of GRU units in the reference encoder.
 
+    Examples:
+        >>> encoder = ReferenceEncoder(idim=80, conv_layers=6)
+        >>> input_tensor = torch.randn(16, 100, 80)  # (B, Lmax, idim)
+        >>> output = encoder(input_tensor)
+        >>> print(output.shape)  # Output shape: (B, gru_units)
     """
 
     @typechecked
@@ -169,14 +213,24 @@ class ReferenceEncoder(torch.nn.Module):
         self.gru = torch.nn.GRU(gru_in_units, gru_units, gru_layers, batch_first=True)
 
     def forward(self, speech: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs forward propagation through the style encoder,
+        taking a batch of padded target features and returning style token
+        embeddings.
 
         Args:
-            speech (Tensor): Batch of padded target features (B, Lmax, idim).
+            speech (Tensor): Batch of padded target features (B, Lmax, odim).
 
         Returns:
-            Tensor: Reference embedding (B, gru_units)
+            Tensor: Style token embeddings (B, token_dim).
 
+        Examples:
+            >>> encoder = StyleEncoder()
+            >>> speech_input = torch.randn(8, 100, 80)  # Example input
+            >>> style_embeddings = encoder.forward(speech_input)
+            >>> print(style_embeddings.shape)  # Should output: torch.Size([8, 256])
         """
         batch_size = speech.size(0)
         xs = speech.unsqueeze(1)  # (B, 1, Lmax, idim)
@@ -192,10 +246,11 @@ class ReferenceEncoder(torch.nn.Module):
 
 
 class StyleTokenLayer(torch.nn.Module):
-    """Style token layer module.
+    """
+    Style token layer module.
 
-    This module is style token layer introduced in `Style Tokens: Unsupervised Style
-    Modeling, Control and Transfer in End-to-End Speech Synthesis`.
+    This module is a style token layer introduced in `Style Tokens: Unsupervised
+    Style Modeling, Control and Transfer in End-to-End Speech Synthesis`.
 
     .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End
         Speech Synthesis`: https://arxiv.org/abs/1803.09017
@@ -207,6 +262,16 @@ class StyleTokenLayer(torch.nn.Module):
         gst_heads (int, optional): The number of heads in GST multihead attention.
         dropout_rate (float, optional): Dropout rate in multi-head attention.
 
+    Returns:
+        Tensor: Style token embeddings (B, gst_token_dim).
+
+    Examples:
+        >>> layer = StyleTokenLayer(ref_embed_dim=128, gst_tokens=10,
+        ...                          gst_token_dim=256, gst_heads=4)
+        >>> ref_embs = torch.randn(32, 128)  # Batch of reference embeddings
+        >>> style_embs = layer(ref_embs)
+        >>> style_embs.shape
+        torch.Size([32, 256])  # Shape of style token embeddings
     """
 
     @typechecked
@@ -233,14 +298,28 @@ class StyleTokenLayer(torch.nn.Module):
         )
 
     def forward(self, ref_embs: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass of the StyleEncoder module. It takes
+        a batch of padded target features and processes them to extract style token
+        embeddings.
 
         Args:
-            ref_embs (Tensor): Reference embeddings (B, ref_embed_dim).
+            speech (Tensor): Batch of padded target features with shape
+                (B, Lmax, odim), where B is the batch size, Lmax is the maximum
+                sequence length, and odim is the dimension of the output.
 
         Returns:
-            Tensor: Style token embeddings (B, gst_token_dim).
+            Tensor: Style token embeddings with shape (B, token_dim), where token_dim
+                is the dimension of the style token embeddings.
 
+        Examples:
+            >>> style_encoder = StyleEncoder()
+            >>> input_tensor = torch.randn(32, 100, 80)  # Example input
+            >>> output = style_encoder(input_tensor)
+            >>> print(output.shape)
+            torch.Size([32, 256])  # Example output shape
         """
         batch_size = ref_embs.size(0)
         # (num_tokens, token_dim) -> (batch_size, num_tokens, token_dim)
@@ -253,7 +332,37 @@ class StyleTokenLayer(torch.nn.Module):
 
 
 class MultiHeadedAttention(BaseMultiHeadedAttention):
-    """Multi head attention module with different input dimension."""
+    """
+    Multi head attention module with different input dimension.
+
+    This module extends the base multi-headed attention mechanism to support
+    different input dimensions for queries, keys, and values. It is used in
+    various architectures, including transformers and attention-based models.
+
+    Args:
+        q_dim (int): Dimension of the input queries.
+        k_dim (int): Dimension of the input keys.
+        v_dim (int): Dimension of the input values.
+        n_head (int): Number of attention heads.
+        n_feat (int): Total dimension of the input features.
+        dropout_rate (float, optional): Dropout rate for attention weights (default: 0.0).
+
+    Raises:
+        AssertionError: If `n_feat` is not divisible by `n_head`.
+
+    Examples:
+        >>> attention_layer = MultiHeadedAttention(q_dim=64, k_dim=64, v_dim=64,
+        ...                                        n_head=8, n_feat=64)
+        >>> query = torch.rand(10, 20, 64)  # (batch_size, seq_length, q_dim)
+        >>> key = torch.rand(10, 15, 64)    # (batch_size, seq_length, k_dim)
+        >>> value = torch.rand(10, 15, 64)  # (batch_size, seq_length, v_dim)
+        >>> output = attention_layer(query, key, value)
+        >>> print(output.shape)  # Output shape should be (10, 20, 64)
+
+    Note:
+        The `d_v` (dimension of values) is assumed to be equal to `d_k`
+        (dimension of keys).
+    """
 
     def __init__(self, q_dim, k_dim, v_dim, n_head, n_feat, dropout_rate=0.0):
         """Initialize multi head attention module."""

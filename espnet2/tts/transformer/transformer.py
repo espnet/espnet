@@ -32,15 +32,115 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class Transformer(AbsTTS):
-    """Transformer-TTS module.
+    """
+        Transformer-TTS module.
 
     This is a module of text-to-speech Transformer described in `Neural Speech Synthesis
-    with Transformer Network`_, which convert the sequence of tokens into the sequence
+    with Transformer Network`_, which converts the sequence of tokens into the sequence
     of Mel-filterbanks.
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End of sequence token ID.
+        reduction_factor (int): Reduction factor for the output sequence.
+        use_gst (bool): Whether to use global style token.
+        use_guided_attn_loss (bool): Whether to use guided attention loss.
+        use_scaled_pos_enc (bool): Whether to use trainable scaled positional encoding.
+        loss_type (str): Type of loss function used in training.
+        padding_idx (int): Index used for padding in sequences.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        embed_dim (int): Dimension of character embedding.
+        eprenet_conv_layers (int): Number of encoder prenet convolution layers.
+        eprenet_conv_chans (int): Number of encoder prenet convolution channels.
+        eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+        dprenet_layers (int): Number of decoder prenet layers.
+        dprenet_units (int): Number of decoder prenet hidden units.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        adim (int): Number of attention transformation dimensions.
+        aheads (int): Number of heads for multi-head attention.
+        dlayers (int): Number of decoder layers.
+        dunits (int): Number of decoder hidden units.
+        postnet_layers (int): Number of postnet layers.
+        postnet_chans (int): Number of postnet channels.
+        postnet_filts (int): Filter size of postnet.
+        positionwise_layer_type (str): Position-wise operation type.
+        positionwise_conv_kernel_size (int): Kernel size in position-wise conv 1d.
+        use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
+        use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+        encoder_normalize_before (bool): Whether to apply layernorm before encoder block.
+        decoder_normalize_before (bool): Whether to apply layernorm before decoder block.
+        encoder_concat_after (bool): Whether to concatenate attention layer's input
+            and output in encoder.
+        decoder_concat_after (bool): Whether to concatenate attention layer's input
+            and output in decoder.
+        reduction_factor (int): Reduction factor.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        use_gst (bool): Whether to use global style token.
+        gst_tokens (int): Number of GST embeddings.
+        gst_heads (int): Number of heads in GST multihead attention.
+        gst_conv_layers (int): Number of conv layers in GST.
+        gst_conv_chans_list (Sequence[int]): List of the number of channels in GST.
+        gst_conv_kernel_size (int): Kernel size of conv layers in GST.
+        gst_conv_stride (int): Stride size of conv layers in GST.
+        gst_gru_layers (int): Number of GRU layers in GST.
+        gst_gru_units (int): Number of GRU units in GST.
+        transformer_enc_dropout_rate (float): Dropout rate in encoder.
+        transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
+            positional encoding.
+        transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
+            self-attention module.
+        transformer_dec_dropout_rate (float): Dropout rate in decoder.
+        transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
+            positional encoding.
+        transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
+            self-attention module.
+        transformer_enc_dec_attn_dropout_rate (float): Dropout rate in source
+            attention module.
+        init_type (str): How to initialize transformer parameters.
+        init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
+            encoder.
+        init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the
+            decoder.
+        eprenet_dropout_rate (float): Dropout rate in encoder prenet.
+        dprenet_dropout_rate (float): Dropout rate in decoder prenet.
+        postnet_dropout_rate (float): Dropout rate in postnet.
+        use_masking (bool): Whether to apply masking for padded part in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss calculation.
+        bce_pos_weight (float): Positive sample weight in BCE calculation.
+        loss_type (str): How to calculate loss.
+        use_guided_attn_loss (bool): Whether to use guided attention loss.
+        num_heads_applied_guided_attn (int): Number of heads in each layer to apply
+            guided attention loss.
+        num_layers_applied_guided_attn (int): Number of layers to apply guided
+            attention loss.
+        modules_applied_guided_attn (Sequence[str]): List of module names to apply
+            guided attention loss.
+        guided_attn_loss_sigma (float): Sigma in guided attention loss.
+        guided_attn_loss_lambda (float): Lambda in guided attention loss.
+
+    Returns:
+        None
+
+    Examples:
+        # Create a Transformer instance
+        transformer = Transformer(idim=256, odim=80)
+
+        # Forward pass
+        loss, stats, weight = transformer.forward(text_tensor, text_lengths, feats_tensor, feats_lengths)
+
+        # Inference
+        output = transformer.inference(text_tensor)
     """
 
     @typechecked
@@ -399,7 +499,12 @@ class Transformer(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method performs the forward pass of the Transformer model. It takes
+        input text, target features, and optional speaker and language embeddings
+        to generate predictions and calculate the loss.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
@@ -412,10 +517,17 @@ class Transformer(AbsTTS):
             joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[Tensor, Dict[str, torch.Tensor], Tensor]:
+                - Loss scalar value.
+                - Statistics to be monitored.
+                - Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3], [1, 2, 0]])
+            >>> text_lengths = torch.tensor([3, 2])
+            >>> feats = torch.rand(2, 5, 80)
+            >>> feats_lengths = torch.tensor([5, 5])
+            >>> model.forward(text, text_lengths, feats, feats_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -631,7 +743,12 @@ class Transformer(AbsTTS):
         maxlenratio: float = 10.0,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Generate the sequence of features given the sequences of characters.
+        """
+        Generate the sequence of features given the sequences of characters.
+
+        This method performs inference using the provided input text and optional
+        features. It generates the output features by passing the input through the
+        encoder and decoder, with options for teacher forcing and length constraints.
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
@@ -640,7 +757,7 @@ class Transformer(AbsTTS):
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
             lids (Optional[Tensor]): Language ID (1,).
-            threshold (float): Threshold in inference.
+            threshold (float): Threshold in inference to determine stop probabilities.
             minlenratio (float): Minimum length ratio in inference.
             maxlenratio (float): Maximum length ratio in inference.
             use_teacher_forcing (bool): Whether to use teacher forcing.
@@ -649,8 +766,15 @@ class Transformer(AbsTTS):
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
                 * prob (Tensor): Output sequence of stop probabilities (T_feats,).
-                * att_w (Tensor): Source attn weight (#layers, #heads, T_feats, T_text).
+                * att_w (Tensor): Source attention weight
+                  (#layers, #heads, T_feats, T_text).
 
+        Examples:
+            >>> text = torch.tensor([1, 2, 3, 4])  # Example character input
+            >>> feats = torch.rand(5, 80)  # Example feature input
+            >>> output = model.inference(text, feats)
+            >>> print(output['feat_gen'].shape)
+            torch.Size([T_feats, odim])  # Shape of generated features
         """
         x = text
         y = feats
