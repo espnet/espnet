@@ -34,7 +34,70 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class SoundStream(AbsGANCodec):
-    """ "SoundStream model."""
+    """
+    SoundStream model for audio generation and processing.
+
+    This class implements the SoundStream model, which is a generative model
+    for audio processing. It includes a generator and a discriminator, both
+    of which are designed to work with audio waveforms. The model can perform
+    tasks such as encoding, decoding, and generating audio waveforms.
+
+    Attributes:
+        generator (SoundStreamGenerator): The generator component of the model.
+        discriminator (SoundStreamDiscriminator): The discriminator component of the model.
+        generator_adv_loss (GeneratorAdversarialLoss): Adversarial loss for the generator.
+        generator_reconstruct_loss (torch.nn.L1Loss): Reconstruction loss for the generator.
+        discriminator_adv_loss (DiscriminatorAdversarialLoss): Adversarial loss for the discriminator.
+        use_feat_match_loss (bool): Flag indicating whether to use feature matching loss.
+        feat_match_loss (FeatureMatchLoss): Feature matching loss module.
+        use_mel_loss (bool): Flag indicating whether to use mel loss.
+        mel_loss (MultiScaleMelSpectrogramLoss): Mel spectrogram loss module.
+        cache_generator_outputs (bool): Flag indicating whether to cache generator outputs.
+        fs (int): Sampling rate for saving audio files.
+        num_streams (int): Number of quantization streams.
+        frame_shift (int): Frame shift size.
+        code_size_per_stream (List[int]): Size of codes per quantization stream.
+        loss_balancer (Optional[Balancer]): Loss balancer for handling multiple losses.
+
+    Args:
+        sampling_rate (int): Sampling rate for audio processing. Default is 24000.
+        generator_params (Dict[str, Any]): Parameters for the generator.
+        discriminator_params (Dict[str, Any]): Parameters for the discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameters for generator adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameters for discriminator adversarial loss.
+        use_feat_match_loss (bool): Flag to use feature matching loss. Default is True.
+        feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+        use_mel_loss (bool): Flag to use mel loss. Default is True.
+        mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+        use_dual_decoder (bool): Flag to use dual decoder. Default is True.
+        lambda_quantization (float): Weight for quantization loss. Default is 1.0.
+        lambda_reconstruct (float): Weight for reconstruction loss. Default is 1.0.
+        lambda_commit (float): Weight for commitment loss. Default is 1.0.
+        lambda_adv (float): Weight for adversarial loss. Default is 1.0.
+        lambda_feat_match (float): Weight for feature matching loss. Default is 2.0.
+        lambda_mel (float): Weight for mel loss. Default is 45.0.
+        cache_generator_outputs (bool): Flag to cache generator outputs. Default is False.
+        use_loss_balancer (bool): Flag to use loss balancer. Default is False.
+        balance_ema_decay (float): Exponential moving average decay for balancing losses. Default is 0.99.
+
+    Examples:
+        # Initialize the SoundStream model
+        sound_stream = SoundStream(
+            sampling_rate=24000,
+            generator_params={"hidden_dim": 128, ...},  # Fill with actual params
+            discriminator_params={"scales": 3, ...},  # Fill with actual params
+        )
+
+        # Perform forward pass with audio input
+        output = sound_stream.forward(audio_input)
+
+    Note:
+        The model is designed to be used in a training loop where the generator and
+        discriminator are optimized iteratively.
+
+    Todo:
+        - Complete the docstring with detailed descriptions for each argument.
+    """
 
     @typechecked
     def __init__(
@@ -208,6 +271,28 @@ class SoundStream(AbsGANCodec):
             self.loss_balancer = None
 
     def meta_info(self) -> Dict[str, Any]:
+        """
+        Retrieve meta information about the SoundStream model.
+
+        This method provides key details about the model's configuration,
+        including the sampling rate, number of streams, frame shift, and
+        code size per stream.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the following key-value pairs:
+                - fs (int): The sampling rate of the model.
+                - num_streams (int): The number of quantization streams.
+                - frame_shift (int): The frame shift size used in processing.
+                - code_size_per_stream (List[int]): A list indicating the code
+                  size for each stream.
+
+        Examples:
+            >>> sound_stream = SoundStream()
+            >>> meta_info = sound_stream.meta_info()
+            >>> print(meta_info)
+            {'fs': 24000, 'num_streams': 8, 'frame_shift': 128,
+             'code_size_per_stream': [1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024]}
+        """
         return {
             "fs": self.fs,
             "num_streams": self.num_streams,
@@ -221,19 +306,36 @@ class SoundStream(AbsGANCodec):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
+
+        This method computes the forward pass for either the generator or the
+        discriminator, depending on the `forward_generator` flag.
 
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-            forward_generator (bool): Whether to forward generator.
+            audio (Tensor): Audio waveform tensor of shape (B, T_wav).
+            forward_generator (bool): Flag indicating whether to forward the
+                generator (True) or the discriminator (False).
 
         Returns:
-            Dict[str, Any]:
-                - loss (Tensor): Loss scalar tensor.
-                - stats (Dict[str, float]): Statistics to be monitored.
-                - weight (Tensor): Weight tensor to summarize losses.
-                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+            Dict[str, Any]: A dictionary containing the following keys:
+                - loss (Tensor): Scalar tensor representing the total loss.
+                - stats (Dict[str, float]): Statistics to be monitored,
+                  including various loss components.
+                - weight (Tensor): Weight tensor summarizing the losses.
+                - optim_idx (int): Index indicating which optimizer to use
+                  (0 for generator and 1 for discriminator).
 
+        Examples:
+            >>> audio_input = torch.randn(8, 24000)  # Batch of 8 audio samples
+            >>> model = SoundStream()
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output.keys())
+            dict_keys(['loss', 'stats', 'weight', 'optim_idx'])
+
+        Note:
+            The audio input should be pre-processed as necessary to fit the
+            expected input shape.
         """
         if forward_generator:
             return self._forward_generator(
@@ -441,16 +543,32 @@ class SoundStream(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Run inference.
+        """
+        Run inference on input audio.
+
+        This method takes an input audio tensor, encodes it to a neural codec,
+        and then decodes it back to a waveform. It is designed to be used for
+        generating audio samples after the model has been trained.
 
         Args:
-            x (Tensor): Input audio (T_wav,).
+            x (Tensor): Input audio tensor of shape (T_wav,).
 
         Returns:
             Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec (T_code, N_stream).
+                * wav (Tensor): Generated waveform tensor of shape (T_wav,).
+                * codec (Tensor): Generated neural codec of shape (T_code, N_stream).
 
+        Examples:
+            >>> model = SoundStream()
+            >>> input_audio = torch.randn(24000)  # Example input (1 second of audio)
+            >>> output = model.inference(input_audio)
+            >>> generated_wav = output['wav']
+            >>> generated_codec = output['codec']
+
+        Note:
+            The input audio tensor should be of shape (T_wav,) where T_wav is
+            the length of the audio signal. The output includes both the
+            generated waveform and the codec representation.
         """
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
@@ -462,14 +580,25 @@ class SoundStream(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run encoding.
+
+        This method processes the input audio tensor through the generator's
+        encoder to produce a set of neural codes.
 
         Args:
-            x (Tensor): Input audio (T_wav,).
+            x (Tensor): Input audio tensor of shape (T_wav,).
 
         Returns:
-            Tensor: Generated codes (T_code, N_stream).
+            Tensor: Generated codes of shape (T_code, N_stream), where T_code
+            is the length of the generated codes and N_stream is the number of
+            quantization streams.
 
+        Examples:
+            >>> model = SoundStream()
+            >>> input_audio = torch.randn(1, 24000)  # Example audio tensor
+            >>> codes = model.encode(input_audio)
+            >>> print(codes.shape)  # Output shape will be (T_code, N_stream)
         """
         return self.generator.encode(x)
 
@@ -478,7 +607,11 @@ class SoundStream(AbsGANCodec):
         x: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
+        """
+        Run decoding.
+
+        This method takes encoded input codes and generates a waveform
+        tensor by passing the codes through the generator's decoder.
 
         Args:
             x (Tensor): Input codes (T_code, N_stream).
@@ -486,12 +619,89 @@ class SoundStream(AbsGANCodec):
         Returns:
             Tensor: Generated waveform (T_wav,).
 
+        Examples:
+            >>> model = SoundStream()
+            >>> codes = torch.randn(100, 8)  # Example input codes
+            >>> waveform = model.decode(codes)
+            >>> print(waveform.shape)
+            torch.Size([T_wav,])  # Shape of the generated waveform tensor
+
+        Note:
+            Ensure that the input tensor 'x' has the correct shape and
+            data type expected by the generator's decoder.
         """
         return self.generator.decode(x)
 
 
 class SoundStreamGenerator(nn.Module):
-    """SoundStream generator module."""
+    """
+    SoundStream generator module.
+
+    This module implements the generator part of the SoundStream model, which is
+    responsible for encoding and decoding audio signals. The generator utilizes
+    a neural network architecture consisting of an encoder, quantizer, and decoder
+    to perform the audio processing tasks.
+
+    Attributes:
+        encoder (SEANetEncoder): The encoder module that processes the input audio.
+        quantizer (ResidualVectorQuantizer): The quantization module that encodes the
+            features into a discrete representation.
+        target_bandwidths (List[float]): List of target bandwidths for the quantizer.
+        sample_rate (int): The sample rate of the audio signals.
+        frame_rate (int): The frame rate calculated from the sample rate and encoding
+            ratios.
+        decoder (SEANetDecoder): The decoder module that reconstructs the audio from
+            the quantized representation.
+        l1_quantization_loss (torch.nn.L1Loss): Loss function for L1 quantization loss.
+        l2_quantization_loss (torch.nn.MSELoss): Loss function for L2 quantization loss.
+
+    Args:
+        sample_rate (int): The sample rate of the audio (default: 24000).
+        hidden_dim (int): The dimension of hidden layers (default: 128).
+        encdec_channels (int): Number of channels for encoder/decoder (default: 1).
+        encdec_n_filters (int): Number of filters in encoder/decoder (default: 32).
+        encdec_n_residual_layers (int): Number of residual layers (default: 1).
+        encdec_ratios (List[int]): Ratios for the encoder/decoder (default: [8, 5, 4, 2]).
+        encdec_activation (str): Activation function used (default: "ELU").
+        encdec_activation_params (Dict[str, Any]): Parameters for activation function
+            (default: {"alpha": 1.0}).
+        encdec_norm (str): Normalization type (default: "weight_norm").
+        encdec_norm_params (Dict[str, Any]): Parameters for normalization (default: {}).
+        encdec_kernel_size (int): Kernel size for the encoder/decoder (default: 7).
+        encdec_residual_kernel_size (int): Kernel size for residual layers (default: 7).
+        encdec_last_kernel_size (int): Kernel size for the last layer (default: 7).
+        encdec_dilation_base (int): Dilation base for the encoder/decoder (default: 2).
+        encdec_causal (bool): Whether to use causal convolution (default: False).
+        encdec_pad_mode (str): Padding mode for convolution (default: "reflect").
+        encdec_true_skip (bool): Whether to use true skip connections (default: False).
+        encdec_compress (int): Compression factor (default: 2).
+        encdec_lstm (int): Number of LSTM layers (default: 2).
+        decoder_trim_right_ratio (float): Ratio for trimming the decoder output (default: 1.0).
+        decoder_final_activation (Optional[str]): Final activation function (default: None).
+        decoder_final_activation_params (Optional[dict]): Parameters for final activation
+            (default: None).
+        quantizer_n_q (int): Number of quantization codes (default: 8).
+        quantizer_bins (int): Number of bins for quantization (default: 1024).
+        quantizer_decay (float): Decay factor for quantization (default: 0.99).
+        quantizer_kmeans_init (bool): Whether to initialize with k-means (default: True).
+        quantizer_kmeans_iters (int): Number of iterations for k-means (default: 50).
+        quantizer_threshold_ema_dead_code (int): Threshold for dead code (default: 2).
+        quantizer_target_bandwidth (List[float]): Target bandwidths for quantization
+            (default: [7.5, 15]).
+
+    Returns:
+        None: This constructor does not return any value.
+
+    Examples:
+        generator = SoundStreamGenerator(sample_rate=24000)
+        output_audio, commit_loss, quantization_loss, resyn_audio_real = generator(
+            input_tensor
+        )
+
+    Note:
+        The input tensor for the forward method should have a shape of (B, 1, T),
+        where B is the batch size and T is the length of the audio sequence.
+    """
 
     @typechecked
     def __init__(
@@ -599,16 +809,32 @@ class SoundStreamGenerator(nn.Module):
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """Soundstream forward propagation.
+        """
+        Perform generator forward.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
-            use_dual_decoder (bool): Whether to use dual decoder for encoder out
+            audio (Tensor): Audio waveform tensor (B, T_wav).
+            forward_generator (bool): Whether to forward generator.
+
         Returns:
-            torch.Tensor: resynthesized audio.
-            torch.Tensor: commitment loss.
-            torch.Tensor: quantization loss
-            torch.Tensor: resynthesized audio from encoder.
+            Dict[str, Any]:
+                - loss (Tensor): Loss scalar tensor.
+                - stats (Dict[str, float]): Statistics to be monitored.
+                - weight (Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+
+        Examples:
+            >>> audio_input = torch.randn(8, 24000)  # Example audio input
+            >>> model = SoundStream()
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'].item())  # Accessing the loss value
+
+        Note:
+            This method performs a forward pass through the generator or
+            discriminator based on the `forward_generator` flag. If
+            `forward_generator` is set to True, it processes the audio input
+            through the generator; otherwise, it forwards through the
+            discriminator.
         """
         encoder_out = self.encoder(x)
         max_idx = len(self.target_bandwidths) - 1
@@ -636,12 +862,25 @@ class SoundStreamGenerator(nn.Module):
         x: torch.Tensor,
         target_bw: Optional[float] = None,
     ):
-        """Soundstream codec encoding.
+        """
+        Run encoding.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
+            x (Tensor): Input audio (T_wav,).
+
         Returns:
-            torch.Tensor: neural codecs in shape ().
+            Tensor: Generated codes (T_code, N_stream).
+
+        Examples:
+            >>> model = SoundStream(...)
+            >>> input_audio = torch.randn(1, 24000)  # Simulated audio input
+            >>> codes = model.encode(input_audio)
+            >>> print(codes.shape)  # Output shape should be (T_code, N_stream)
+
+        Note:
+            The input tensor should have a shape of (B, T_wav) where B is the batch
+            size and T_wav is the length of the audio waveform. The output will be
+            the encoded representation of the audio in terms of codes.
         """
 
         encoder_out = self.encoder(x)
@@ -653,12 +892,25 @@ class SoundStreamGenerator(nn.Module):
         return codes
 
     def decode(self, codes: torch.Tensor):
-        """Soundstream codec decoding.
+        """
+        Run decoding.
+
+        This method takes neural codes as input and generates a waveform.
 
         Args:
-            codecs (torch.Tensor): neural codecs in shape ().
+            x (Tensor): Input codes (T_code, N_stream). The shape of the input
+            tensor should correspond to the encoded representations of the audio
+            signals.
+
         Returns:
-            torch.Tensor: resynthesized audio.
+            Tensor: Generated waveform (T_wav,). This tensor contains the
+            reconstructed audio signal derived from the input codes.
+
+        Examples:
+            >>> model = SoundStream()
+            >>> codes = torch.randn(100, 8)  # Example shape for codes
+            >>> waveform = model.decode(codes)
+            >>> print(waveform.shape)  # Output shape will be (T_wav,)
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
@@ -666,7 +918,39 @@ class SoundStreamGenerator(nn.Module):
 
 
 class SoundStreamDiscriminator(nn.Module):
-    """SoundStream discriminator module."""
+    """
+    SoundStream discriminator module.
+
+    This module implements a multi-scale and complex STFT discriminator for the
+    SoundStream model. It is designed to distinguish between real and generated
+    audio signals, using multiple scales of feature extraction and
+    complex short-time Fourier transform.
+
+    Attributes:
+        msd (HiFiGANMultiScaleDiscriminator): Multi-scale discriminator component.
+        complex_stft_d (ComplexSTFTDiscriminator): Complex STFT discriminator component.
+
+    Args:
+        scales (int): Number of multi-scales for the discriminator.
+        scale_downsample_pooling (str): Pooling module name for downsampling of the
+            inputs.
+        scale_downsample_pooling_params (Dict[str, Any]): Parameters for the above
+            pooling module.
+        scale_discriminator_params (Dict[str, Any]): Parameters for HiFi-GAN scale
+            discriminator module.
+        scale_follow_official_norm (bool): Whether to follow the norm setting of the
+            official implementation. The first discriminator uses spectral norm
+            and the other discriminators use weight norm.
+        complexstft_discriminator_params (Dict[str, Any]): Parameters for the
+            complex STFT discriminator module.
+
+    Examples:
+        >>> discriminator = SoundStreamDiscriminator(scales=3)
+        >>> input_tensor = torch.randn(8, 1, 16000)  # Batch of 8 audio signals
+        >>> outputs = discriminator(input_tensor)
+        >>> len(outputs)  # Outputs will be a list containing outputs from both
+        ...              # multi-scale and complex STFT discriminators.
+    """
 
     def __init__(
         self,
@@ -734,16 +1018,43 @@ class SoundStreamDiscriminator(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Perform forward propagation for the SoundStream model.
+
+        This method either runs the generator or discriminator depending on the
+        value of the `forward_generator` flag. If `forward_generator` is set to
+        True, the method will compute the generator's output and loss; if set
+        to False, it will compute the discriminator's output and loss.
 
         Args:
-            x (Tensor): Input noise signal (B, 1, T).
+            audio (torch.Tensor): Audio waveform tensor of shape (B, T_wav),
+                where B is the batch size and T_wav is the number of audio
+                samples.
+            forward_generator (bool): A flag indicating whether to forward the
+                generator (True) or the discriminator (False). Defaults to True.
 
         Returns:
-            List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Multi scale and
-                multi period ones are concatenated.
+            Dict[str, Any]:
+                - loss (Tensor): A scalar tensor representing the total loss.
+                - stats (Dict[str, float]): A dictionary containing various
+                  statistics to be monitored during training.
+                - weight (Tensor): A tensor summarizing the weights for loss
+                  computation.
+                - optim_idx (int): An integer indicating the optimizer index
+                  (0 for generator and 1 for discriminator).
 
+        Examples:
+            >>> audio_input = torch.randn(4, 16000)  # Example audio input
+            >>> model = SoundStream()  # Initialize the model
+            >>> output = model.forward(audio_input, forward_generator=True)
+            >>> print(output['loss'])  # Access the computed loss
+
+        Note:
+            Ensure that the audio tensor is properly shaped and normalized
+            before passing it to the forward method.
+
+        Raises:
+            ValueError: If the audio tensor is not of shape (B, T_wav).
         """
         msd_outs = self.msd(x)
         complex_stft_outs = self.complex_stft_d(x)
