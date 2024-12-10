@@ -56,6 +56,7 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
 CSMSC=downloads
 CSS10=
 DIHARD2= # Path to dihard2/second_dihard_challenge_dev-eleven_srcs/data/multichannel/sad directory
+GENSHIN=downloads
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
