@@ -8,19 +8,30 @@ def add_gradient_noise(
     eta: float = 1.0,
     scale_factor: float = 0.55,
 ):
-    """Adds noise from a standard normal distribution to the gradients.
+    """
+        Adds noise from a standard normal distribution to the gradients.
 
-    The standard deviation (`sigma`) is controlled
-    by the three hyper-parameters below.
-    `sigma` goes to zero (no noise) with more iterations.
+    The standard deviation (`sigma`) of the noise is controlled by three hyper-parameters.
+    As the number of iterations increases, `sigma` approaches zero, effectively reducing
+    the noise added to the gradients.
 
     Args:
-        model: Model.
-        iteration: Number of iterations.
-        duration: {100, 1000}: Number of durations to control
-            the interval of the `sigma` change.
-        eta: {0.01, 0.3, 1.0}: The magnitude of `sigma`.
-        scale_factor: {0.55}: The scale of `sigma`.
+        model (torch.nn.Module): The model whose gradients will be modified.
+        iteration (int): The current iteration number.
+        duration (float, optional): The interval duration controlling the change of
+            `sigma`. Default is 100. Acceptable values are 100 or 1000.
+        eta (float, optional): The magnitude of `sigma`. Default is 1.0. Acceptable
+            values include 0.01, 0.3, or 1.0.
+        scale_factor (float, optional): The scale of `sigma`. Default is 0.55.
+
+    Examples:
+        >>> model = SomeModel()
+        >>> for i in range(1000):
+        >>>     add_gradient_noise(model, i)
+
+    Note:
+        The function assumes that the model's parameters have gradients computed
+        prior to calling this function.
     """
     interval = (iteration // duration) + 1
     sigma = eta / interval**scale_factor
