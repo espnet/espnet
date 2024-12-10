@@ -13,13 +13,15 @@ from espnet2.schedulers.abs_scheduler import (
 
 
 class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
-    """The WarmupReduceLROnPlateau scheduler.
+    """
+        The WarmupReduceLROnPlateau scheduler.
 
-    This scheduler is the combination of WarmupLR and ReduceLROnPlateau:
+    This scheduler combines the functionality of WarmupLR and ReduceLROnPlateau:
 
     WarmupLR:
         lr = optimizer.lr * warmup_step ** 0.5
              * min(step ** -0.5, step * warmup_step ** -1.5)
+
     WarmupReduceLROnPlateau:
         if step <= warmup_step:
             lr = optimizer.lr * warmup_step ** 0.5
@@ -33,6 +35,73 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
 
     Note that the maximum lr equals to optimizer.lr in this scheduler.
 
+    Attributes:
+        warmup_steps (Union[int, float]): Number of steps for the warmup phase.
+        step_num (int): Current step number.
+        lr_scale (float): Scaling factor for learning rate during warmup.
+        base_lrs (list): Initial learning rates for each parameter group.
+        factor (float): Factor by which the learning rate will be reduced.
+        optimizer (torch.optim.Optimizer): The optimizer to be used.
+        min_lrs (list): Minimum learning rates for each parameter group.
+        patience (int): Number of epochs with no improvement after which
+            learning rate will be reduced.
+        verbose (bool): If True, prints a message to stdout for each learning
+            rate reduction.
+        cooldown (int): Number of epochs to wait before resuming normal
+            operation after learning rate has been reduced.
+        mode (str): One of {'min', 'max'}. In 'min' mode, lr is reduced when
+            the quantity monitored has stopped decreasing; in 'max' mode it is
+            reduced when the quantity monitored has stopped increasing.
+        threshold (float): Threshold for measuring the new optimum, to
+            only focus on significant changes.
+        threshold_mode (str): One of {'rel', 'abs'}. In 'rel' mode, dynamic
+            threshold is a relative change, in 'abs' mode it is an absolute
+            change.
+        eps (float): Minimal decay applied to learning rate.
+        last_epoch (int): The index of the last epoch.
+        best (float): The best value seen so far.
+        num_bad_epochs (int): Number of bad epochs.
+        mode_worse (float): The worse value for the chosen mode.
+        cooldown_counter (int): Counter for cooldown period.
+        _last_lr (list): Last learning rates.
+
+    Args:
+        optimizer (torch.optim.Optimizer): The optimizer for which to schedule the
+            learning rate.
+        warmup_steps (Union[int, float], optional): Number of steps for warmup.
+            Defaults to 25000.
+        mode (str, optional): One of {'min', 'max'}. Defaults to 'min'.
+        factor (float, optional): Factor by which the learning rate will be
+            reduced. Defaults to 0.1.
+        patience (int, optional): Number of epochs with no improvement after
+            which learning rate will be reduced. Defaults to 10.
+        threshold (float, optional): Threshold for measuring new optimum.
+            Defaults to 1e-4.
+        threshold_mode (str, optional): One of {'rel', 'abs'}. Defaults to 'rel'.
+        cooldown (int, optional): Number of epochs to wait before resuming normal
+            operation after learning rate has been reduced. Defaults to 0.
+        min_lr (Union[int, float, list], optional): Minimum learning rate for
+            each parameter group. Defaults to 0.
+        eps (float, optional): Minimal decay applied to learning rate.
+            Defaults to 1e-8.
+        verbose (bool, optional): If True, prints a message to stdout for each
+            learning rate reduction. Defaults to False.
+
+    Examples:
+        # Create an optimizer
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+        # Initialize the scheduler
+        scheduler = WarmupReduceLROnPlateau(optimizer, warmup_steps=1000)
+
+        # Step the scheduler
+        for epoch in range(num_epochs):
+            # ... training code ...
+            scheduler.step(metrics=validation_metric, epoch=epoch)
+
+    Raises:
+        ValueError: If factor is >= 1.0 or if the number of min_lrs does not
+        match the number of parameter groups in the optimizer.
     """
 
     @typechecked
@@ -103,6 +172,92 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         )
 
     def step(self, metrics=None, epoch=None):
+        """
+                The WarmupReduceLROnPlateau scheduler.
+
+        This scheduler combines the functionality of WarmupLR and ReduceLROnPlateau:
+
+        WarmupLR:
+            lr = optimizer.lr * warmup_step ** 0.5
+                 * min(step ** -0.5, step * warmup_step ** -1.5)
+
+        WarmupReduceLROnPlateau:
+            if step <= warmup_step:
+                lr = optimizer.lr * warmup_step ** 0.5
+                     * min(step ** -0.5, step * warmup_step ** -1.5)
+            else:
+                lr = (
+                    optimizer.lr * factor
+                    if no improvement for a 'patience' number of epochs
+                    else optimizer.lr
+                )
+
+        Note that the maximum lr equals to optimizer.lr in this scheduler.
+
+        Attributes:
+            warmup_steps (Union[int, float]): Number of steps for warmup phase.
+            step_num (int): Current step number.
+            lr_scale (float): Scale factor for learning rate during warmup.
+            base_lrs (list): Initial learning rates for each parameter group.
+            factor (float): Factor by which the learning rate will be reduced.
+            optimizer (torch.optim.Optimizer): The optimizer to adjust the learning rate for.
+            min_lrs (list): Minimum learning rates for each parameter group.
+            patience (int): Number of epochs with no improvement after which learning rate
+                            will be reduced.
+            verbose (bool): If True, prints a message to stdout for each learning rate
+                            adjustment.
+            cooldown (int): Number of epochs to wait before resuming normal operation after
+                            lr has been reduced.
+            threshold (float): Threshold for measuring the new optimum.
+            threshold_mode (str): One of "rel" or "abs", to specify whether
+                                  `threshold` is a relative or absolute change.
+            eps (float): Minimal change in learning rate to be considered significant.
+            last_epoch (int): Last epoch number.
+            best (float): Best metric observed during training.
+            num_bad_epochs (int): Counter for the number of bad epochs.
+            mode_worse (float): The worse value for the chosen mode.
+            cooldown_counter (int): Counter for cooldown periods.
+            _last_lr (list): Last learning rates for each parameter group.
+
+        Args:
+            optimizer (torch.optim.Optimizer): The optimizer to adjust the learning rate for.
+            warmup_steps (Union[int, float], optional): Number of steps for warmup phase.
+                                                         Default is 25000.
+            mode (str, optional): One of {'min', 'max'}. Default is 'min'.
+            factor (float, optional): Factor by which the learning rate will be reduced.
+                                      Default is 0.1.
+            patience (int, optional): Number of epochs with no improvement after which
+                                       learning rate will be reduced. Default is 10.
+            threshold (float, optional): Threshold for measuring the new optimum.
+                                          Default is 1e-4.
+            threshold_mode (str, optional): One of {'rel', 'abs'}. Default is 'rel'.
+            cooldown (int, optional): Number of epochs to wait before resuming normal
+                                      operation after lr has been reduced. Default is 0.
+            min_lr (Union[int, float, list], optional): Minimum learning rate. Default is 0.
+            eps (float, optional): Minimal change in learning rate to be considered
+                                   significant. Default is 1e-8.
+            verbose (bool, optional): If True, prints a message to stdout for each
+                                      learning rate adjustment. Default is False.
+
+        Returns:
+            None
+
+        Examples:
+            >>> optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            >>> scheduler = WarmupReduceLROnPlateau(optimizer, warmup_steps=5000)
+            >>> for epoch in range(100):
+            >>>     train(...)
+            >>>     val_metrics = validate(...)
+            >>>     scheduler.step(val_metrics, epoch)
+
+        Note:
+            The `metrics` parameter in the `step` method can be a float value representing
+            the validation metric. If no metrics are provided, it will perform warmup
+            adjustments based on the step count.
+
+        Todo:
+            - Consider adding support for more modes in the future.
+        """
         if metrics is None:
             # WarmupLR
             self.step_num += 1
@@ -161,6 +316,29 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         return self.cooldown_counter > 0
 
     def is_better(self, a, best):
+        """
+        Determines if the current metric is better than the best recorded.
+
+        The comparison is based on the mode ('min' or 'max') and the threshold
+        mode ('rel' or 'abs') set during the initialization of the scheduler.
+
+        Args:
+            a (float): The current metric to compare.
+            best (float): The best recorded metric.
+
+        Returns:
+            bool: True if the current metric is better than the best recorded
+            metric, False otherwise.
+
+        Examples:
+            >>> scheduler = WarmupReduceLROnPlateau(optimizer, mode='min',
+            ...                                       threshold_mode='rel',
+            ...                                       threshold=0.1)
+            >>> scheduler.is_better(0.8, 0.9)
+            False
+            >>> scheduler.is_better(0.7, 0.9)
+            True
+        """
         if self.mode == "min" and self.threshold_mode == "rel":
             rel_epsilon = 1.0 - self.threshold
             return a < best * rel_epsilon
@@ -191,11 +369,57 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         self.threshold_mode = threshold_mode
 
     def state_dict(self):
+        """
+            Returns the state dictionary of the scheduler.
+
+        This method returns a dictionary containing the internal state of the
+        WarmupReduceLROnPlateau scheduler, which can be used for saving and
+        loading the state of the scheduler.
+
+        The state dictionary includes all attributes of the class except for
+        the optimizer, which is not serialized.
+
+        Returns:
+            dict: A dictionary containing the state of the scheduler.
+
+        Examples:
+            >>> scheduler = WarmupReduceLROnPlateau(optimizer, warmup_steps=5000)
+            >>> state = scheduler.state_dict()
+            >>> print(state)
+            {'warmup_steps': 5000, 'step_num': 0, 'lr_scale': 0.0004472135954999579,
+             'base_lrs': [...], 'factor': 0.1, 'min_lrs': [...], ...}
+
+        Note:
+            The returned state_dict can be used with the `load_state_dict`
+            method to restore the scheduler state.
+        """
         return {
             key: value for key, value in self.__dict__.items() if key != "optimizer"
         }
 
     def load_state_dict(self, state_dict):
+        """
+        Load the state dictionary for the scheduler.
+
+        This method updates the internal state of the scheduler using the
+        provided state dictionary. It also reinitializes the internal
+        parameters related to the comparison mode and threshold settings.
+
+        Args:
+            state_dict (dict): A dictionary containing the state of the
+                scheduler. This should include all necessary attributes
+                that were saved previously using `state_dict()`.
+
+        Examples:
+            >>> scheduler = WarmupReduceLROnPlateau(optimizer)
+            >>> state = scheduler.state_dict()
+            >>> scheduler.load_state_dict(state)
+
+        Note:
+            It is essential that the `state_dict` provided has been created
+            using the same version of the `WarmupReduceLROnPlateau` class
+            to ensure compatibility.
+        """
         self.__dict__.update(state_dict)
         self._init_is_better(
             mode=self.mode, threshold=self.threshold, threshold_mode=self.threshold_mode
