@@ -17,13 +17,80 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class UnitYSynthesizer(AbsSynthesizer):
-    """UnitY Synthesizer related modules for speech-to-speech translation.
+    """
+        UnitY Synthesizer related modules for speech-to-speech translation.
 
     This is a module of discrete unit prediction network in discrete-unit
     described in `Direct speech-to-speech translation with discrete units`_,
     which converts the sequence of hidden states into the sequence of
-    discrete unit (from SSLs).
+    discrete units (from SSLs).
 
+    Attributes:
+        spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+            speaker IDs will be provided as input and use speaker embedding layer.
+        langs (Optional[int]): Number of languages. If set to > 1, assume that the
+            language IDs will be provided as input and use language embedding layer.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+            assume that speaker embeddings will be provided as input.
+        sid_emb (torch.nn.Embedding): Embedding layer for speaker IDs.
+        lid_emb (torch.nn.Embedding): Embedding layer for language IDs.
+        decoder (TransformerDecoder): Transformer decoder for discrete unit module.
+
+    Args:
+        vocab_size (int): Output dimension.
+        encoder_output_size (int): Dimension of attention.
+        attention_heads (int, optional): Number of heads in multi-head attention.
+            Defaults to 4.
+        linear_units (int, optional): Number of units in position-wise feed-forward.
+            Defaults to 2048.
+        num_blocks (int, optional): Number of decoder blocks. Defaults to 6.
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
+        positional_dropout_rate (float, optional): Dropout rate for positional encoding.
+            Defaults to 0.1.
+        self_attention_dropout_rate (float, optional): Dropout rate for self-attention.
+            Defaults to 0.0.
+        src_attention_dropout_rate (float, optional): Dropout rate for source attention.
+            Defaults to 0.0.
+        input_layer (str, optional): Input layer type. Defaults to "embed".
+        use_output_layer (bool, optional): Whether to use output layer. Defaults to True.
+        pos_enc_class (type, optional): PositionalEncoding or ScaledPositionalEncoding.
+        normalize_before (bool, optional): Whether to use layer norm before the first block.
+            Defaults to True.
+        concat_after (bool, optional): Whether to concatenate attention layer's input and
+            output. Defaults to False.
+        layer_drop_rate (float, optional): Layer drop rate. Defaults to 0.0.
+        spks (Optional[int], optional): Number of speakers. Defaults to None.
+        langs (Optional[int], optional): Number of languages. Defaults to None.
+        spk_embed_dim (Optional[int], optional): Speaker embedding dimension. Defaults to None.
+        spk_embed_integration_type (str, optional): How to integrate speaker embedding.
+            Defaults to "concat".
+
+    Examples:
+        # Initialize the synthesizer
+        synthesizer = UnitYSynthesizer(
+            vocab_size=5000,
+            encoder_output_size=256,
+            spks=2,
+            langs=3,
+            spk_embed_dim=64,
+            spk_embed_integration_type="add"
+        )
+
+        # Forward pass
+        enc_outputs = torch.randn(32, 100, 256)  # (batch_size, max_time, enc_dim)
+        enc_outputs_lengths = torch.randint(1, 101, (32,))  # (batch_size,)
+        feats = torch.randn(32, 50, 256)  # (batch_size, max_time, feat_dim)
+        feats_lengths = torch.randint(1, 51, (32,))  # (batch_size,)
+
+        hs, hlens = synthesizer.forward(enc_outputs, enc_outputs_lengths, feats, feats_lengths)
+
+    Note:
+        The integration of speaker embeddings can be done through either
+        concatenation or addition based on the specified integration type.
+
+    Raises:
+        ValueError: If the specified speaker embedding integration type is not supported.
+        NotImplementedError: If the integration type is not "add" or "concat".
     """
 
     @typechecked
@@ -133,20 +200,43 @@ class UnitYSynthesizer(AbsSynthesizer):
         return_last_hidden: bool = False,
         return_all_hiddens: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method performs the forward pass of the UnitYSynthesizer, processing
+        the encoder outputs, target features, and optional speaker and language
+        embeddings to generate hidden states and their lengths.
 
         Args:
-            enc_outputs (LongTensor): Batch of padded character ids (B, T, idim).
-            enc_outputs_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, T_feats, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
-            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
-            lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            enc_outputs (torch.Tensor): Batch of padded character ids (B, T, idim).
+            enc_outputs_lengths (torch.Tensor): Batch of lengths of each input
+                batch (B,).
+            feats (torch.Tensor): Batch of padded target features (B, T_feats, odim).
+            feats_lengths (torch.Tensor): Batch of the lengths of each target (B,).
+            spembs (Optional[torch.Tensor]): Batch of speaker embeddings
+                (B, spk_embed_dim).
+            sids (Optional[torch.Tensor]): Batch of speaker IDs (B, 1).
+            lids (Optional[torch.Tensor]): Batch of language IDs (B, 1).
+            return_last_hidden (bool, optional): Whether to return the last hidden
+                state. Defaults to False.
+            return_all_hiddens (bool, optional): Whether to return all hidden
+                states. Defaults to False.
 
         Returns:
-            hs
-            hlens
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - hs (torch.Tensor): Hidden states.
+                - hlens (torch.Tensor): Lengths of the hidden states.
+
+        Examples:
+            # Example of calling forward method
+            hs, hlens = synthesizer.forward(enc_outputs, enc_outputs_lengths,
+                                             feats, feats_lengths,
+                                             spembs=spembs, sids=sids,
+                                             lids=lids)
+
+        Note:
+            Ensure that the dimensions of the inputs match the expected sizes
+            as defined in the method arguments.
         """
 
         enc_outputs = enc_outputs[:, : enc_outputs_lengths.max()]

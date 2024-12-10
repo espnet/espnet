@@ -23,15 +23,74 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 
 
 class Translatotron(AbsSynthesizer):
-    """TTranslatotron Synthesizer related modules for speech-to-speech translation.
+    """
+    Translatotron Synthesizer related modules for speech-to-speech translation.
 
-    This is a module of Spectrogram prediction network in Translatotron described
-    in `Direct speech-to-speech translation with a sequence-to-sequence model`_,
-    which converts the sequence of hidden states into the sequence of Mel-filterbanks.
+    This module is part of the Spectrogram prediction network in Translatotron
+    described in `Direct speech-to-speech translation with a sequence-to-sequence
+    model`_, which converts the sequence of hidden states into the sequence of
+    Mel-filterbanks.
 
     .. _`Direct speech-to-speech translation with a sequence-to-sequence model`:
        https://arxiv.org/pdf/1904.06037.pdf
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        atype (str): Type of attention mechanism.
+        cumulate_att_w (bool): Whether to cumulate previous attention weight.
+        reduction_factor (int): Reduction factor for outputs.
+        output_activation_fn (callable, optional): Activation function for the output.
+        padding_idx (int): Index used for padding in input sequences.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Dimension of speaker embeddings.
+        sid_emb (torch.nn.Embedding, optional): Embedding layer for speaker IDs.
+        lid_emb (torch.nn.Embedding, optional): Embedding layer for language IDs.
+        projection (torch.nn.Linear, optional): Linear projection for speaker embeddings.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        embed_dim (int): Dimension of the token embedding (default=512).
+        atype (str): Type of attention (default="multihead").
+        adim (int): Number of dimensions of MLP in attention (default=512).
+        aheads (int): Number of attention heads (default=4).
+        aconv_chans (int): Number of attention convolution filter channels (default=32).
+        aconv_filts (int): Size of attention convolution filter (default=15).
+        cumulate_att_w (bool): Whether to cumulate previous attention weight (default=True).
+        dlayers (int): Number of decoder LSTM layers (default=4).
+        dunits (int): Number of decoder LSTM units (default=1024).
+        prenet_layers (int): Number of prenet layers (default=2).
+        prenet_units (int): Number of prenet units (default=32).
+        postnet_layers (int): Number of postnet layers (default=5).
+        postnet_chans (int): Number of postnet filter channels (default=512).
+        postnet_filts (int): Size of postnet filter (default=5).
+        output_activation (Optional[str]): Name of activation function for outputs.
+        use_batch_norm (bool): Whether to use batch normalization (default=True).
+        use_concate (bool): Whether to concatenate encoder outputs with decoder LSTM
+            outputs (default=True).
+        use_residual (bool): Whether to use residual connections (default=False).
+        reduction_factor (int): Reduction factor (default=2).
+        spks (Optional[int]): Number of speakers (default=None).
+        langs (Optional[int]): Number of languages (default=None).
+        spk_embed_dim (Optional[int]): Speaker embedding dimension (default=None).
+        spk_embed_integration_type (str): How to integrate speaker embedding
+            (default="concat").
+        dropout_rate (float): Dropout rate (default=0.5).
+        zoneout_rate (float): Zoneout rate (default=0.1).
+
+    Examples:
+        >>> model = Translatotron(idim=80, odim=80)
+        >>> enc_outputs = torch.randn(10, 100, 80)  # Example encoder outputs
+        >>> enc_outputs_lengths = torch.randint(1, 100, (10,))
+        >>> feats = torch.randn(10, 50, 80)  # Example target features
+        >>> feats_lengths = torch.randint(1, 50, (10,))
+        >>> outputs = model(enc_outputs, enc_outputs_lengths, feats, feats_lengths)
+
+    Raises:
+        ValueError: If an unsupported activation function is provided.
+        NotImplementedError: If an unsupported attention type is provided.
     """
 
     @typechecked
@@ -199,25 +258,50 @@ class Translatotron(AbsSynthesizer):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass through the Translatotron model,
+        processing the encoded outputs and generating the corresponding target
+        features. It also computes the attention weights and stop labels.
 
         Args:
             enc_outputs (LongTensor): Batch of padded character ids (B, T, idim).
-            enc_outputs_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            enc_outputs_lengths (LongTensor): Batch of lengths of each input
+                batch (B,).
             feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            spembs (Optional[Tensor]): Batch of speaker embeddings
+                (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         Returns:
-            after_outs (TODO(jiatong) add full comment)
-            before_outs (TODO(jiatong) add full comments)
-            logits
-            att_ws
-            ys
-            stop_labels
-            olens
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - after_outs: Output features after the forward pass.
+                - before_outs: Output features before the forward pass.
+                - logits: Logits for stop prediction.
+                - att_ws: Attention weights.
+                - ys: Ground truth features.
+                - labels: Labels for stop prediction.
+                - olens: Lengths of output sequences.
+
+        Note:
+            The method assumes that input tensors are properly padded and that
+            their lengths are provided. The maximum lengths of the inputs are
+            used to slice the tensors for processing.
+
+        Examples:
+            >>> enc_outputs = torch.randn(2, 10, 80)  # Batch of 2
+            >>> enc_outputs_lengths = torch.tensor([10, 8])
+            >>> feats = torch.randn(2, 20, 80)  # Batch of 2
+            >>> feats_lengths = torch.tensor([20, 18])
+            >>> after_outs, before_outs, logits, att_ws, ys, labels, olens =
+            ...     model.forward(enc_outputs, enc_outputs_lengths, feats,
+            ...     feats_lengths)
+
+        Raises:
+            ValueError: If the provided activation function name is invalid.
         """
 
         enc_outputs = enc_outputs[:, : enc_outputs_lengths.max()]

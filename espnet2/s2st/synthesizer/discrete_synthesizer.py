@@ -18,16 +18,56 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
-    """Discrete unit Synthesizer related modules for speech-to-speech translation.
+    """
+    Discrete unit Synthesizer related modules for speech-to-speech translation.
 
-    This is a module of discrete unit prediction network in discrete-unit described
-    in `Direct speech-to-speech translation with discrete units`_,
-    which converts the sequence of hidden states into the sequence of
-    discrete unit (from SSLs).
+    This module implements a discrete unit prediction network as described in
+    `Direct speech-to-speech translation with discrete units`_. It converts a
+    sequence of hidden states into a sequence of discrete units (from SSLs).
 
     .. _`Direct speech-to-speech translation with discrete units`:
        https://arxiv.org/abs/2107.05604
 
+    Attributes:
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Dimension of speaker embedding.
+        sid_emb (torch.nn.Embedding): Speaker ID embedding layer.
+        lid_emb (torch.nn.Embedding): Language ID embedding layer.
+        decoder (TransformerDecoder): Transformer decoder instance.
+
+    Args:
+        odim (int): Output dimension (vocab size).
+        idim (int): Input dimension (encoder output size).
+        attention_heads (int, optional): Number of heads for multi-head attention.
+        linear_units (int, optional): Number of units in position-wise feed forward.
+        num_blocks (int, optional): Number of decoder blocks.
+        dropout_rate (float, optional): Dropout rate.
+        positional_dropout_rate (float, optional): Positional dropout rate.
+        self_attention_dropout_rate (float, optional): Self-attention dropout rate.
+        src_attention_dropout_rate (float, optional): Source attention dropout rate.
+        input_layer (str, optional): Type of input layer.
+        use_output_layer (bool, optional): Whether to use the output layer.
+        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding class.
+        normalize_before (bool, optional): Whether to use layer normalization before the first block.
+        concat_after (bool, optional): Whether to concatenate attention layer's input and output.
+        layer_drop_rate (float, optional): Drop rate for layers.
+        spks (Optional[int], optional): Number of speakers.
+        langs (Optional[int], optional): Number of languages.
+        spk_embed_dim (Optional[int], optional): Speaker embedding dimension.
+        spk_embed_integration_type (str, optional): Method to integrate speaker embedding.
+
+    Examples:
+        >>> synthesizer = TransformerDiscreteSynthesizer(odim=10, idim=20)
+        >>> enc_outputs = torch.randn(5, 15, 20)
+        >>> enc_outputs_lengths = torch.tensor([15, 15, 15, 15, 15])
+        >>> feats = torch.randn(5, 15, 10)
+        >>> feats_lengths = torch.tensor([15, 15, 15, 15, 15])
+        >>> hs, hlens = synthesizer(enc_outputs, enc_outputs_lengths, feats, feats_lengths)
+
+    Raises:
+        ValueError: If `spk_embed_integration_type` is not supported.
+        NotImplementedError: If the integration type is not "add" or "concat".
     """
 
     @typechecked
@@ -137,20 +177,42 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         return_hs: bool = False,
         return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method processes the encoder outputs and features to perform
+        forward propagation through the Transformer Discrete Synthesizer.
 
         Args:
-            enc_outputs (LongTensor): Batch of padded character ids (B, T, idim).
-            enc_outputs_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, T_feats, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
-            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
-            lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            enc_outputs (torch.Tensor): Batch of padded character ids (B, T, idim).
+            enc_outputs_lengths (torch.Tensor): Batch of lengths of each input
+                batch (B,).
+            feats (torch.Tensor): Batch of padded target features (B, T_feats, odim).
+            feats_lengths (torch.Tensor): Batch of the lengths of each target (B,).
+            spembs (Optional[torch.Tensor]): Batch of speaker embeddings
+                (B, spk_embed_dim).
+            sids (Optional[torch.Tensor]): Batch of speaker IDs (B, 1).
+            lids (Optional[torch.Tensor]): Batch of language IDs (B, 1).
+            return_hs (bool, optional): Whether to return hidden states.
+                Defaults to False.
+            return_all_hs (bool, optional): Whether to return all hidden states.
+                Defaults to False.
 
         Returns:
-            hs
-            hlens
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - hs (torch.Tensor): The hidden states after forward propagation.
+                - hlens (torch.Tensor): The lengths of the hidden states.
+
+        Examples:
+            >>> enc_outputs = torch.randn(32, 10, 256)  # Batch of encoder outputs
+            >>> enc_outputs_lengths = torch.randint(1, 11, (32,))
+            >>> feats = torch.randn(32, 15, 512)  # Batch of target features
+            >>> feats_lengths = torch.randint(1, 16, (32,))
+            >>> hs, hlens = synthesizer.forward(
+            ...     enc_outputs, enc_outputs_lengths, feats, feats_lengths
+            ... )
+            >>> print(hs.shape, hlens.shape)
+            torch.Size([32, 15, 512]) torch.Size([32])
         """
 
         enc_outputs = enc_outputs[:, : enc_outputs_lengths.max()]
@@ -265,7 +327,31 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache=cache)
 
     def score(self, ys, state, x):
-        """Score."""
+        """
+                Score the output of the model given the previous tokens and state.
+
+        This method computes the log probabilities of the next token based on the
+        previous token(s) provided as input, along with the current state and the
+        encoder output. It uses a subsequent mask to ensure that the predictions
+        are made only based on the previous tokens.
+
+        Args:
+            ys (torch.Tensor): The input tokens for which the score is to be computed.
+            state (Any): The current state of the model, which is used for caching.
+            x (torch.Tensor): The encoder output that corresponds to the input tokens.
+
+        Returns:
+            Tuple[torch.Tensor, Any]: A tuple containing:
+                - logp (torch.Tensor): The log probabilities of the next token.
+                - state (Any): The updated state after scoring.
+
+        Examples:
+            >>> model = TransformerDiscreteSynthesizer(...)
+            >>> previous_tokens = torch.tensor([1, 2, 3])
+            >>> current_state = ...
+            >>> encoder_output = torch.randn(1, 10, model.decoder.encoder_dim)
+            >>> log_probabilities, updated_state = model.score(previous_tokens, current_state, encoder_output)
+        """
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(
             ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
@@ -275,19 +361,37 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
-        """Score new token batch.
+        """
+            Score new token batch.
+
+        This method computes the scores for the next token predictions based on the
+        provided prefix tokens and the corresponding encoder features. It merges the
+        internal states from the scoring process to facilitate batch scoring.
 
         Args:
-            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor):
-                The encoder feature that generates ys (n_batch, xlen, n_feat).
+            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing the prefix
+                tokens, represented as int64.
+            states (List[Any]): A list containing the scorer states for the prefix
+                tokens.
+            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) representing
+                the encoder features that generate the prefix tokens.
 
         Returns:
-            tuple[torch.Tensor, List[Any]]: Tuple of
-                batchfied scores for next token with shape of `(n_batch, n_vocab)`
-                and next state list for ys.
+            Tuple[torch.Tensor, List[Any]]: A tuple containing:
+                - A tensor of shape (n_batch, n_vocab) with the batchified scores for
+                  the next token.
+                - A list of the next state for the prefix tokens.
 
+        Examples:
+            >>> ys = torch.tensor([[1, 2, 3], [4, 5, 6]])  # Prefix tokens
+            >>> states = [None, None]  # Initial states
+            >>> xs = torch.randn(2, 10, 512)  # Encoder features
+            >>> logp, new_states = synthesizer.batch_score(ys, states, xs)
+            >>> print(logp.shape)  # Output shape: (2, vocab_size)
+
+        Note:
+            Ensure that the input tensors are appropriately shaped and that the model
+            is in evaluation mode to get accurate scoring results.
         """
         # merge states
         n_batch = len(ys)
@@ -310,4 +414,50 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         return logp, state_list
 
     def inference(self):
+        """
+            Discrete unit Synthesizer related modules for speech-to-speech translation.
+
+        This module implements a discrete unit prediction network for discrete units
+        as described in `Direct speech-to-speech translation with discrete units`_.
+        It converts a sequence of hidden states into a sequence of discrete units
+        (from SSLs).
+
+        .. _`Direct speech-to-speech translation with discrete units`:
+           https://arxiv.org/abs/2107.05604
+
+        Attributes:
+            spks (Optional[int]): Number of speakers.
+            langs (Optional[int]): Number of languages.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension.
+            decoder (TransformerDecoder): The transformer decoder used for synthesis.
+
+        Args:
+            odim (int): Output dimension (vocab size).
+            idim (int): Input dimension (encoder output size).
+            attention_heads (int): Number of attention heads (default: 4).
+            linear_units (int): Number of units in the position-wise feed forward (default: 2048).
+            num_blocks (int): Number of decoder blocks (default: 6).
+            dropout_rate (float): Dropout rate (default: 0.1).
+            positional_dropout_rate (float): Dropout rate for positional encoding (default: 0.1).
+            self_attention_dropout_rate (float): Dropout rate for self-attention (default: 0.0).
+            src_attention_dropout_rate (float): Dropout rate for source attention (default: 0.0).
+            input_layer (str): Type of input layer (default: "embed").
+            use_output_layer (bool): Whether to use the output layer (default: True).
+            pos_enc_class: Class for positional encoding (default: PositionalEncoding).
+            normalize_before (bool): Use layer normalization before the first block (default: True).
+            concat_after (bool): Whether to concatenate input and output of attention layer (default: False).
+            layer_drop_rate (float): Rate for layer dropping (default: 0.0).
+            spks (Optional[int]): Number of speakers (default: None).
+            langs (Optional[int]): Number of languages (default: None).
+            spk_embed_dim (Optional[int]): Dimension of speaker embeddings (default: None).
+            spk_embed_integration_type (str): Method for integrating speaker embeddings (default: "concat").
+
+        Raises:
+            ValueError: If `spk_embed_integration_type` is not supported.
+
+        Examples:
+            synthesizer = TransformerDiscreteSynthesizer(odim=100, idim=128)
+            output, lengths = synthesizer.forward(enc_outputs, enc_outputs_lengths,
+                                                  feats, feats_lengths)
+        """
         pass
